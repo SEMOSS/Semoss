@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -54,6 +55,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String JAVA = "java";
 	private static final String JAVASCRIPT = "javascript";
 	private static final String PIXEL = "pixel";
+	private static final String GUARDRAIL = "guardrail";
 	private static final String LANGCHAIN = "LANGCHAIN";
 	private static final String OPENAI = "OPENAI";
 	private static final String ANTHROPIC = "ANTHROPIC";
@@ -70,6 +72,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
 	private static final String JAVASCRIPT_LABEL = "How to use in JavaScript/TypeScript with the @semoss/sdk";
+	private static final String GUARDRAIL_LABEL = "How to configure the guardrail pipeline JSON";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
 	private static final String OPENAI_LABEL = "How to use externally with OpenAI API";
 	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API";
@@ -179,6 +182,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return getVectorUsage(engineId);
 		case FUNCTION:
 			return getFunctionUsage(engineId);
+		case GUARDRAIL:
+			return getGuardrailUsage(engineId);
 		default:
 			return getPendingUsage();
 		}
@@ -2216,22 +2221,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usage;
 	}
 
-	private List<Map<String, Object>> getPendingUsage() {
-		List<Map<String, Object>> usage = new ArrayList<>();
-		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
-				"""
-						Detailed usage examples for this engine type have not been written yet. The platform notes below still apply - every engine is reachable the same way, whichever type it is.
-
-						"""
-						+ PLATFORM_INTRODUCTION,
-				null);
-		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
-		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL, "Documentation pending", null);
-		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
-		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
-		return usage;
-	}
-
 	private List<FunctionParameter> getFunctionParameters(IFunctionEngine functionEngine) {
 		List<FunctionParameter> parameters = functionEngine.getParameters();
 		return parameters == null ? new ArrayList<>() : parameters;
@@ -2278,6 +2267,104 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return "\"string\"";
 		}
 		return type;
+	}
+
+	private List<Map<String, Object>> getGuardrailUsage(String engineId) {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		List<FunctionParameter> parameters;
+		List<String> requiredParameters;
+		String pipelineUsage;
+		if (SAMPLE_ENGINE_ID.equals(engineId)) {
+			parameters = List.of(new FunctionParameter("prompt", "String", "The text to evaluate"));
+			requiredParameters = List.of("prompt");
+			pipelineUsage = "Select a guardrail engine to view its default pipeline configuration.";
+		} else {
+			IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
+			parameters = getFunctionParameters(guardrailEngine);
+			requiredParameters = getRequiredFunctionParameters(guardrailEngine);
+			pipelineUsage = guardrailEngine.getDefaultMarkdown();
+			if (pipelineUsage == null || pipelineUsage.trim().isEmpty()) {
+				pipelineUsage = "This guardrail engine does not define a default pipeline configuration.";
+			}
+		}
+		List<Map<String, Object>> paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
+		String testArguments = buildGuardrailTestArguments(parameters, requiredParameters);
+
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Guardrail** engine evaluates selected input or output from another engine and returns a pass, block, mask, or replacement-response decision. Guardrails are normally referenced from another engine's `pipeline.json` rather than called directly.
+
+						## Pipeline placement
+
+						Save `pipeline.json` in the protected engine's assets folder and set `PIPELINE pipeline.json` in that engine's SMSS. The top-level `pipelines` map is keyed by intercepted Java method name, such as `askRoom` for model chat or `execute` for a function engine. Use `*` to apply a pipeline to every intercepted method.
+
+						## Execution order
+
+						- `input` guardrails run before the protected engine method. They can block, mask an argument, return a guardrail-provided response, or close a model room after a block.
+						- `output` guardrails run after the protected engine method. They can block the result or close a model room after a block.
+						- Entries run in list order. A failed blocking guardrail stops the remaining work.
+						""",
+				engineId);
+
+		addUsage(usage, GUARDRAIL, GUARDRAIL_LABEL, pipelineUsage, engineId, paramInfo);
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						## Test the guardrail directly
+
+						`ExecuteGuardrailEngine` runs the guardrail by itself so you can test its decision and returned details before attaching it to another engine. This call does not exercise the input/output pipeline behavior such as blocking, masking, replacing a response, or closing a room.
+
+						```
+						ExecuteGuardrailEngine(engine = "<engineid>"<testarguments>);
+						```
+						"""
+						.replace("<testarguments>", testArguments),
+				engineId, paramInfo);
+		return usage;
+	}
+
+	private String buildGuardrailTestArguments(List<FunctionParameter> parameters, List<String> requiredParameters) {
+		List<FunctionParameter> testParameters = new ArrayList<>();
+		for (FunctionParameter parameter : parameters) {
+			if (requiredParameters.contains(parameter.getParameterName())) {
+				testParameters.add(parameter);
+			}
+		}
+		if (testParameters.isEmpty() && !parameters.isEmpty()) {
+			testParameters.add(parameters.get(0));
+		}
+
+		StringBuilder arguments = new StringBuilder();
+		for (FunctionParameter parameter : testParameters) {
+			arguments.append(", ").append(parameter.getParameterName()).append(" = ")
+					.append(getGuardrailTestValue(parameter));
+		}
+		return arguments.toString();
+	}
+
+	private String getGuardrailTestValue(FunctionParameter parameter) {
+		String type = parameter.getParameterType();
+		if ("string".equalsIgnoreCase(type)) {
+			if ("prompt".equalsIgnoreCase(parameter.getParameterName())) {
+				return "\"<encode>Sample text to evaluate</encode>\"";
+			}
+			return "\"sample value\"";
+		}
+		if ("boolean".equalsIgnoreCase(type)) {
+			return "true";
+		}
+		if ("double".equalsIgnoreCase(type) || "float".equalsIgnoreCase(type)) {
+			return "0.7";
+		}
+		if ("integer".equalsIgnoreCase(type) || "long".equalsIgnoreCase(type)) {
+			return "1";
+		}
+		if (type != null && type.toLowerCase().startsWith("list")) {
+			return "[\"sample value\"]";
+		}
+		if (type != null && type.toLowerCase().startsWith("map")) {
+			return "{}";
+		}
+		return "null";
 	}
 
 	/**
@@ -2335,17 +2422,33 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usageMap;
 	}
 
+	private List<Map<String, Object>> getPendingUsage() {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						Detailed usage examples for this engine type have not been written yet. The platform notes below still apply - every engine is reachable the same way, whichever type it is.
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				null);
+		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL, "Documentation pending", null);
+		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
+		return usage;
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return """
-				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, Guardrail pipeline JSON, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
 
-				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), and Function (callable tools) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
+				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), Function (callable tools), and Guardrail (input/output policy checks) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
 
 				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
 				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
 				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
-				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does plus a shared "how to reach this engine" platform section. The remaining channels (`pixel`, `javascript`, `python`, `java`, ...) are per-integration.
+				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does. The remaining channels (`pixel`, `javascript`, `python`, `java`, `guardrail`, ...) are per-integration or configuration format.
 				- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
 				- The `javascript` channel covers the `@semoss/sdk` front-end package: `runPixel` (which returns the parsed envelope plus a pre-collected `errors` array), insight sessions, engine discovery via `MyEngines`, and, for Model engines, room-threaded chat, file uploads, and streaming through `runPixelAsync`/`getPixelJobStreaming`.
 				- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
@@ -2364,7 +2467,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
 			String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
 					IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
-					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString(),
+					IEngine.CATALOG_TYPE.GUARDRAIL.toString());
 			return """
 					Fallback engine catalog type used only when `engine` is not provided.
 
