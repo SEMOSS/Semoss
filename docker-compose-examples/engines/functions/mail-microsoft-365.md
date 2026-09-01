@@ -195,6 +195,58 @@ Office 365 Exchange Online ...
 > engine only keeps its promise of a single inbox with no folders and no read
 > state.
 
+## The signed in user's own mailbox
+
+Everything above is an engine holding an app registration's credentials and
+working a mailbox somebody cataloged it against. The other way to reach Microsoft
+365 mail is as the person using SEMOSS, with the token they already signed in
+with, and that is a pair of reactors rather than an engine:
+
+```
+MicrosoftOutlookListMail(folder=["inbox"], limit=[10], unreadOnly=[true]);
+MicrosoftOutlookSendMail(to=["someone@yourdomain.com"], subject=["Hello"], message=["Hi"]);
+MicrosoftOutlookSaveDraft(to=["someone@yourdomain.com"], subject=["Hello"], message=["Hi"]);
+MicrosoftOutlookSendDraft(draftId=["<the id SaveDraft returned>"]);
+```
+
+None of them takes a mailbox. They address `/me`, so the token decides whose mail
+is read and who the message is sent as, and no input can point any of them at
+anyone else. `MicrosoftOutlookSendMail` has no sender key for the same reason,
+and keeps a copy in the sender's own Sent Items unless `saveToSentItems=[false]`.
+
+`MicrosoftOutlookSaveDraft` is the one to reach for when something generated the
+message and a person should see it before it goes anywhere. The draft lands in
+their own Drafts folder, nothing is sent, and they decide: the returned `webLink`
+opens it in Outlook to send or discard there, and the returned `draftId` sends it
+from SEMOSS through `MicrosoftOutlookSendDraft`. Nothing is required to save one,
+since a draft with a subject and no recipient is a reasonable thing to leave for
+somebody to finish.
+
+These need delegated scopes on the Microsoft login, which is a different grant
+from the application permissions above. Add them to `ms_scope` in
+`social.properties`:
+
+```
+ms_scope   ... Mail.ReadWrite Mail.Send
+```
+
+`Mail.Read` is enough if you only ever list. Saving a draft writes to the
+mailbox, so it needs `Mail.ReadWrite`.
+
+Everyone signed in through Microsoft consents again the next time they log in,
+since the scopes they hold a token for changed.
+
+| | Engines | Reactors |
+|---|---------|----------|
+| Whose mailbox | the one in the SMSS | whoever is signed in |
+| Credentials | an app registration's | the user's login |
+| Permission | application, granted once by an admin | delegated, consented to by each user |
+| Runs without a user | yes, so a scheduled job can send | no |
+
+`MicrosoftOutlookListMail` answers in the same message shape the mail engines do,
+down to the key names, so whatever reads one reads the other. `uid` is Graph's
+opaque id, as it is for an engine on `graph`.
+
 ---
 
 Part of the [function engines](README.md) of the

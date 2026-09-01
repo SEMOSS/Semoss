@@ -37,9 +37,9 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jsoup.Jsoup;
 
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMessageMapper;
 import prerna.om.Insight;
 
 /**
@@ -49,12 +49,13 @@ import prerna.om.Insight;
  * <p>
  * The Graph calls themselves are
  * {@link prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper}, which is
- * deliberately generic. This is the translation layer on top of it: it turns
- * the engine's search into a Graph query, Graph's json into the same message
- * maps the IMAP engine returns, and applies the guardrails the SMSS set. A
- * caller cannot tell from the output which way the mailbox was read, other than
- * by the uid - Graph names a message with an opaque string where IMAP uses a
- * number.
+ * deliberately generic, and describing a message is
+ * {@link prerna.io.connector.ms.outlook.MicrosoftOutlookMessageMapper}, which
+ * is shared with the reactors that read a signed in user's own mail. This is
+ * what is left that only an engine needs: turning the engine's search into a
+ * Graph query, and applying the guardrails the SMSS set. A caller cannot tell
+ * from the output which way the mailbox was read, other than by the uid - Graph
+ * names a message with an opaque string where IMAP uses a number.
  */
 public class GraphMailboxReader {
 
@@ -108,12 +109,12 @@ public class GraphMailboxReader {
 			if (messages.size() >= limit) {
 				break;
 			}
-			String sender = addressOf(message.get("from"));
+			String sender = MicrosoftOutlookMessageMapper.addressOf(message.get("from"));
 			if (!this.engine.isSenderAllowed(sender)) {
 				continue;
 			}
-			messages.add(toMessageMap(accessToken, mailbox, message, sender, includeBody, downloadAttachments,
-					executingInsight));
+			messages.add(
+					toMessageMap(accessToken, mailbox, message, includeBody, downloadAttachments, executingInsight));
 		}
 
 		Map<String, Object> output = new LinkedHashMap<>();
@@ -129,35 +130,17 @@ public class GraphMailboxReader {
 	 * @param accessToken         the token to read attachments with
 	 * @param mailbox             the mailbox the message is in
 	 * @param message             the message as Graph returned it
-	 * @param sender              the address it came from
 	 * @param includeBody         whether the body comes back
 	 * @param downloadAttachments whether attachments are written into the insight
 	 * @param executingInsight    the insight this call is running under, or null
 	 * @return the message as a map
 	 */
 	private Map<String, Object> toMessageMap(String accessToken, String mailbox, Map<String, Object> message,
-			String sender, boolean includeBody, boolean downloadAttachments, Insight executingInsight) {
-		Map<String, Object> output = new LinkedHashMap<>();
-		// graph names a message with an opaque string, where a protocol uses a
-		// number. it round trips the same way, which is all a caller does with it
-		output.put("uid", message.get("id"));
-		putIfPresent(output, "messageId", message.get("internetMessageId"));
-		putIfPresent(output, "from", sender);
-		putIfPresent(output, "to", addressList(message.get("toRecipients")));
-		putIfPresent(output, "cc", addressList(message.get("ccRecipients")));
-		putIfPresent(output, "subject", message.get("subject"));
-		putIfPresent(output, "sentDate", message.get("sentDateTime"));
-		putIfPresent(output, "receivedDate", message.get("receivedDateTime"));
-		output.put("unread", !Boolean.TRUE.equals(message.get("isRead")));
-
-		if (includeBody) {
-			String body = bodyOf(message);
-			if (body.length() > this.engine.maxBodyChars) {
-				body = body.substring(0, this.engine.maxBodyChars) + " ... [truncated]";
-				output.put("bodyTruncated", true);
-			}
-			output.put("body", body);
-		}
+			boolean includeBody, boolean downloadAttachments, Insight executingInsight) {
+		// the message itself is described the same way however it was read, so only
+		// the attachments, which the engine may write into the insight, are left here
+		Map<String, Object> output = MicrosoftOutlookMessageMapper.toMessage(message, includeBody,
+				this.engine.maxBodyChars);
 
 		if (Boolean.TRUE.equals(message.get("hasAttachments"))) {
 			output.put("attachments", attachments(accessToken, mailbox, (String) message.get("id"), downloadAttachments,
@@ -189,7 +172,7 @@ public class GraphMailboxReader {
 			if (size instanceof Number) {
 				entry.put("size", ((Number) size).longValue());
 			}
-			putIfPresent(entry, "contentType", attachment.get("contentType"));
+			MicrosoftOutlookMessageMapper.putIfPresent(entry, "contentType", attachment.get("contentType"));
 
 			Object contentBytes = attachment.get("contentBytes");
 			if (download && contentBytes != null && executingInsight != null) {
@@ -260,76 +243,6 @@ public class GraphMailboxReader {
 			deleted++;
 		}
 		return deleted;
-	}
-
-	/**
-	 * The readable text of a message, preferring what Graph says is plain over
-	 * markup, the same way the protocol engines do.
-	 *
-	 * @param message the message as Graph returned it
-	 * @return the body text, empty when there is none
-	 */
-	private static String bodyOf(Map<String, Object> message) {
-		Object body = message.get("body");
-		if (!(body instanceof Map)) {
-			Object preview = message.get("bodyPreview");
-			return preview == null ? "" : preview.toString().trim();
-		}
-		Map<?, ?> bodyMap = (Map<?, ?>) body;
-		String content = bodyMap.get("content") == null ? "" : bodyMap.get("content").toString();
-		if ("html".equalsIgnoreCase(String.valueOf(bodyMap.get("contentType")))) {
-			// the markup is noise to whoever asked what the message says
-			return Jsoup.parse(content).text().trim();
-		}
-		return content.trim();
-	}
-
-	/**
-	 * The address out of a Graph recipient object.
-	 *
-	 * @param recipient the {@code from} or one entry of a recipient collection
-	 * @return the address, or null when there is none
-	 */
-	private static String addressOf(Object recipient) {
-		if (!(recipient instanceof Map)) {
-			return null;
-		}
-		Object emailAddress = ((Map<?, ?>) recipient).get("emailAddress");
-		if (!(emailAddress instanceof Map)) {
-			return null;
-		}
-		Object address = ((Map<?, ?>) emailAddress).get("address");
-		return address == null ? null : address.toString();
-	}
-
-	/**
-	 * The addresses of one recipient collection, joined the way the protocol
-	 * engines join them.
-	 *
-	 * @param recipients the collection as Graph returned it
-	 * @return the addresses joined, or null when there are none
-	 */
-	private static String addressList(Object recipients) {
-		if (!(recipients instanceof List)) {
-			return null;
-		}
-		List<String> addresses = new ArrayList<>();
-		for (Object recipient : (List<?>) recipients) {
-			String address = addressOf(recipient);
-			if (address != null) {
-				addresses.add(address);
-			}
-		}
-		if (addresses.isEmpty()) {
-			return null;
-		}
-		return String.join(", ", addresses);
-	}
-
-	private static void putIfPresent(Map<String, Object> output, String key, Object value) {
-		if (value != null) {
-			output.put(key, value);
-		}
 	}
 
 }
