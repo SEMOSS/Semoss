@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.logging.log4j.LogManager;
@@ -187,6 +188,156 @@ public class NodeUtils {
 		} catch (Exception e) {
 			classLogger.warn("Unable to read node_env package.json for the tool description", e);
 			return "curated package list unavailable";
+		}
+	}
+
+	// ------------------------------------------------------------------
+	// node_env install self-heal
+
+	private static final Object NODE_ENV_INSTALL_LOCK = new Object();
+	private static final long NPM_CI_TIMEOUT_MINUTES = 10;
+	private static final int NPM_OUTPUT_TAIL_CHARS = 4000;
+
+	/**
+	 * Whether every dependency declared in the node_env package.json is
+	 * actually installed (has a package.json under node_modules).
+	 * node_modules is gitignored, so a branch switch or an external cleanup
+	 * can gut the installed tree while the manifest still advertises the
+	 * packages to the ExecuteNodeCode tool description.
+	 *
+	 * @return true when nothing is declared or every declared package resolves
+	 */
+	public static boolean isNodeEnvInstalled() {
+		File envDir = new File(Utility.normalizePath(getNodeEnvDir()));
+		File packageJson = new File(envDir, "package.json");
+		if (!packageJson.isFile()) {
+			// no curated environment configured - nothing to verify
+			return true;
+		}
+		JSONObject deps;
+		try {
+			String content = new String(Files.readAllBytes(packageJson.toPath()), StandardCharsets.UTF_8);
+			deps = new JSONObject(content).optJSONObject("dependencies");
+		} catch (Exception e) {
+			classLogger.warn("Unable to read node_env package.json while verifying the install", e);
+			return false;
+		}
+		if (deps == null || deps.isEmpty()) {
+			return true;
+		}
+		for (String name : deps.keySet()) {
+			if (!new File(envDir, "node_modules/" + name + "/package.json").isFile()) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Ensure the curated node_env packages are installed, running
+	 * {@code npm ci --omit=dev} when the installed tree is missing or
+	 * incomplete. Safe to call on every boot: a healthy environment returns
+	 * immediately without touching npm. Never throws - a failed install just
+	 * leaves ExecuteNodeCode degraded (require() of curated packages fails)
+	 * until fixed manually.
+	 */
+	public static void ensureNodeEnvInstalled() {
+		if (!isNodeToolEnabled()) {
+			return;
+		}
+		synchronized (NODE_ENV_INSTALL_LOCK) {
+			if (isNodeEnvInstalled()) {
+				classLogger.debug("node_env packages verified installed");
+				return;
+			}
+			File envDir = new File(Utility.normalizePath(getNodeEnvDir()));
+			if (!new File(envDir, "package-lock.json").isFile()) {
+				classLogger.error("node_env at {} is missing package-lock.json so npm ci cannot run - "
+						+ "restore the lockfile (it is git-tracked) and restart", envDir);
+				return;
+			}
+			String npm = getNpmExecutableOrNull();
+			if (npm == null || !new File(npm).exists()) {
+				classLogger.error("node_env at {} needs an install but no npm executable was found under NODE_HOME",
+						envDir);
+				return;
+			}
+			long start = System.currentTimeMillis();
+			try {
+				File logFile = File.createTempFile("node-env-npm-ci", ".log");
+				classLogger.warn("node_env at {} is missing installed packages - running npm ci --omit=dev "
+						+ "(output: {})", envDir, logFile);
+				ProcessBuilder pb = new ProcessBuilder(npm, "ci", "--omit=dev", "--no-audit", "--no-fund");
+				pb.directory(envDir);
+				pb.redirectErrorStream(true);
+				pb.redirectOutput(ProcessBuilder.Redirect.to(logFile));
+				// npm resolves node through its env shebang - make sure our NODE_HOME wins the PATH
+				File nodeExe = new File(getNodeExecutable());
+				String path = pb.environment().get("PATH");
+				pb.environment().put("PATH",
+						nodeExe.getParent() + File.pathSeparator + (path == null ? "" : path));
+				Process p = pb.start();
+				if (!p.waitFor(NPM_CI_TIMEOUT_MINUTES, TimeUnit.MINUTES)) {
+					p.destroyForcibly();
+					classLogger.error("npm ci in {} timed out after {} minutes - see {}", envDir,
+							NPM_CI_TIMEOUT_MINUTES, logFile);
+					return;
+				}
+				long elapsed = System.currentTimeMillis() - start;
+				if (p.exitValue() != 0) {
+					classLogger.error("npm ci in {} failed with exit code {} after {} ms - output tail:\n{}",
+							envDir, p.exitValue(), elapsed, readTail(logFile));
+					return;
+				}
+				if (isNodeEnvInstalled()) {
+					classLogger.info("node_env restored via npm ci in {} ms", elapsed);
+					logFile.delete();
+				} else {
+					classLogger.warn("npm ci in {} completed but the install is still incomplete - output tail:\n{}",
+							envDir, readTail(logFile));
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				classLogger.error("Interrupted while running npm ci in {}", envDir, e);
+			} catch (Exception e) {
+				classLogger.error("Failed to run npm ci in {}", envDir, e);
+			}
+		}
+	}
+
+	/**
+	 * Resolve the npm executable that ships alongside NODE_HOME, mirroring
+	 * {@link #getNodeExecutableOrNull()}.
+	 *
+	 * @return the absolute path to npm, or null when NODE_HOME is unset
+	 */
+	public static String getNpmExecutableOrNull() {
+		String home = System.getenv(Settings.NODE_HOME);
+		if (home == null) {
+			home = Utility.getDIHelperProperty(Settings.NODE_HOME);
+		}
+		if (home == null || home.trim().isEmpty()) {
+			return null;
+		}
+		home = home.trim();
+		String npm;
+		if (SystemUtils.IS_OS_WINDOWS) {
+			npm = home + "/npm.cmd";
+		} else {
+			npm = home + "/bin/npm";
+		}
+		return npm.replace("\\", "/");
+	}
+
+	private static String readTail(File logFile) {
+		try {
+			String content = new String(Files.readAllBytes(logFile.toPath()), StandardCharsets.UTF_8);
+			if (content.length() > NPM_OUTPUT_TAIL_CHARS) {
+				content = content.substring(content.length() - NPM_OUTPUT_TAIL_CHARS);
+			}
+			return content;
+		} catch (Exception e) {
+			return "(unable to read " + logFile + ": " + e.getMessage() + ")";
 		}
 	}
 }
