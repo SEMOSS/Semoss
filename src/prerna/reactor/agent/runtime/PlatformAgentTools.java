@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -47,9 +48,10 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-final class PlatformAgentTools {
+public final class PlatformAgentTools {
 
 	static final String PARAM_USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
+	static final String DEFAULT_TOOL_POLICY_DENIAL_CODE = "DEFAULT_TOOL_DISABLED_BY_AGENT_POLICY";
 	private static final String PARAM_TOOLS = "tools";
 	private static final String PROP_DEFAULT_TOOLS_MCP_ID = "AGENT_DEFAULT_TOOLS_MCP_ID";
 	private static final String PROP_DEFAULT_TOOLS_MCP_PROJECT_ID = "AGENT_DEFAULT_TOOLS_MCP_PROJECT_ID";
@@ -60,7 +62,16 @@ final class PlatformAgentTools {
 	private PlatformAgentTools() {
 	}
 
-	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap) {
+	/**
+	 * Returns the current deployment's default tool definitions for administrative
+	 * configuration UI. This uses the same native-or-override provider resolver
+	 * as the harness, without workspace-specific policy filtering.
+	 */
+	public static List<Map<String, Object>> getDefaultToolDefinitions() {
+		return resolveDefaultTools(java.util.Collections.emptyMap(), java.util.Collections.emptySet());
+	}
+
+	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap, Set<String> disabledNames) {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (useDefaultAgentTools(paramMap)) {
 			String overrideMcpId = getDefaultToolsMcpId();
@@ -71,7 +82,24 @@ final class PlatformAgentTools {
 			}
 		}
 		tools.addAll(getExplicitTools(paramMap));
-		return dedupeByName(tools);
+		List<Map<String, Object>> resolved = dedupeByName(tools);
+		if (disabledNames != null && !disabledNames.isEmpty()) {
+			resolved.removeIf(tool -> disabledNames.contains(String.valueOf(tool.get("name"))));
+		}
+		return resolved;
+	}
+
+	static ToolExecutionResult policyDenialResult(String toolName, AgentRunContext ctx) {
+		if (toolName == null || toolName.trim().isEmpty() || ctx == null) {
+			return null;
+		}
+		if (!ctx.getAgentConfig().getDisabledDefaultTools().contains(toolName)
+				&& (ctx.getAgentConfig().useDefaultAgentTools() || !isDefaultTool(toolName))) {
+			return null;
+		}
+
+		String message = "Tool '" + toolName + "' is disabled for this agent";
+		return ToolExecutionResult.error(message, DEFAULT_TOOL_POLICY_DENIAL_CODE + ": " + message);
 	}
 
 	static boolean isDefaultTool(String toolName) {
