@@ -65,11 +65,11 @@ public class SynapseQueryUtil extends MicrosoftSqlServerQueryUtil {
 
 		if (limit > 0) {
 			String strquery = query.toString();
+			query = new StringBuffer();
 			if (strquery.startsWith("SELECT DISTINCT")) {
 				strquery = strquery.replaceFirst("SELECT DISTINCT", "SELECT DISTINCT TOP " + limit + " ");
 			} else {
 				strquery = strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
-				query = new StringBuffer();
 			}
 			query.append(strquery);
 		}

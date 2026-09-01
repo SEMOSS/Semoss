@@ -45,12 +45,12 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
-import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.parsers.SqlParser2;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.reactor.imports.NativeImporter;
 import prerna.sablecc2.om.Join;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class SQLQueryUtils {
 
@@ -70,31 +70,18 @@ public class SQLQueryUtils {
 		// or do it through relationsets
 		// with gen expression we can start to move to other pieces
 
-		SqlParser2 parser2 = new SqlParser2();
-		parser2.parameterize = false;
 		try {
 			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(curQS);
 			String curQuery = interp.composeQuery();
-			GenExpressionWrapper curExpr = parser2.processQuery(curQuery);
 
 			interp = qs.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(qs);
 			String thisQuery = interp.composeQuery();
-			GenExpressionWrapper thisExpr = parser2.processQuery(thisQuery);
 
-			GenExpression finalExp = new GenExpression(); // this is the one to be returned
+			GenExpression retExpression = joinSQL(List.of(curQuery, thisQuery), joins, List.of(curQS, qs));
 
-			String firstQueryAlias = Utility.getRandomString(5);
-			String secondQueryAlias = Utility.getRandomString(5);
-
-			List<String> sqlList = new ArrayList<String>();
-			sqlList.add(curQuery);
-			sqlList.add(thisQuery);
-
-			GenExpression retExpression = joinSQL(sqlList, joins);
-
-			StringBuffer finalOutput = retExpression.printQS(retExpression, null);
+			StringBuffer finalOutput = retExpression.printQS(retExpression, null, getQueryUtil(qs.retrieveQueryStructEngine()));
 
 			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
 			hqs.customFrom = finalOutput.toString();
@@ -116,6 +103,11 @@ public class SQLQueryUtils {
 	}
 
 	public static GenExpression joinSQL(List<String> expressions, List<Join> joins) {
+		return joinSQL(expressions, joins, null);
+	}
+
+	private static GenExpression joinSQL(List<String> expressions, List<Join> joins,
+			List<SelectQueryStruct> sourceQueryStructs) {
 		// get the expression
 		// add the selectors to the master one
 		// and then add the join
@@ -137,7 +129,9 @@ public class SQLQueryUtils {
 
 			GenExpression curExpr = null;
 			try {
-				curExpr = parser.processQuery(sql).root;
+				SelectQueryStruct sourceQueryStruct = sourceQueryStructs == null ? null
+						: sourceQueryStructs.get(expIndex);
+				curExpr = parseQuery(parser, sql, sourceQueryStruct);
 			} catch (Exception e) {
 				classLogger.error("Failed to parse the SQL query {}", sql, e);
 			}
@@ -439,12 +433,12 @@ public class SQLQueryUtils {
 
 			interp.setQueryStruct(subQueryStruct);
 			String subQuery = interp.composeQuery();
-			GenExpression subQueryExpression = parser.processQuery(subQuery).root;
+			GenExpression subQueryExpression = parseQuery(parser, subQuery, subQueryStruct);
 
-			interp = new SqlInterpreter();
+			interp = new SqlInterpreter(engine);
 			interp.setQueryStruct(wrapperQueryStruct);
 			String mainQuery = interp.composeQuery();
-			GenExpression mainQueryExpression = parser.processQuery(mainQuery).root;
+			GenExpression mainQueryExpression = parseQuery(parser, mainQuery, wrapperQueryStruct);
 
 			String mainQueryAlias = Utility.getRandomString(5);
 
@@ -464,7 +458,7 @@ public class SQLQueryUtils {
 			mainQueryExpression.from.composite = true;
 			mainQueryExpression.from.leftAlias = mainQueryAlias;
 
-			StringBuffer finalOutput = mainQueryExpression.printQS(mainQueryExpression, null);
+			StringBuffer finalOutput = mainQueryExpression.printQS(mainQueryExpression, null, engine.getQueryUtil());
 
 			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
 			hqs.customFrom = finalOutput.toString();
@@ -500,9 +494,9 @@ public class SQLQueryUtils {
 
 			interp.setQueryStruct(queryStruct);
 			String mainQuery = interp.composeQuery();
-			GenExpression mainQueryExpression = parser.processQuery(mainQuery).root;
+			GenExpression mainQueryExpression = parseQuery(parser, mainQuery, queryStruct);
 
-			StringBuffer finalOutput = GenExpression.printQS(mainQueryExpression, null);
+			StringBuffer finalOutput = GenExpression.printQS(mainQueryExpression, null, getQueryUtil(engine));
 
 			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
 			hqs.customFrom = finalOutput.toString();
@@ -535,32 +529,18 @@ public class SQLQueryUtils {
 		// or do it through relationsets
 		// with gen expression we can start to move to other pieces
 
-		SqlParser2 parser2 = new SqlParser2();
-		parser2.parameterize = false;
-
 		try {
 			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(curQS);
 			String curQuery = interp.composeQuery();
-			GenExpressionWrapper curExpr = parser2.processQuery(curQuery);
 
 			interp = qs.retrieveQueryStructEngine().getQueryInterpreter();
 			interp.setQueryStruct(qs);
 			String thisQuery = interp.composeQuery();
-			GenExpressionWrapper thisExpr = parser2.processQuery(thisQuery);
 
-			GenExpression finalExp = new GenExpression(); // this is the one to be returned
+			GenExpression retExpression = unionSQL(List.of(curQuery, thisQuery), List.of(curQS, qs));
 
-			String firstQueryAlias = Utility.getRandomString(5);
-			String secondQueryAlias = Utility.getRandomString(5);
-
-			List<String> sqlList = new ArrayList<String>();
-			sqlList.add(curQuery);
-			sqlList.add(thisQuery);
-
-			GenExpression retExpression = unionSQL(sqlList);
-
-			StringBuffer finalOutput = retExpression.printQS(retExpression, null);
+			StringBuffer finalOutput = retExpression.printQS(retExpression, null, getQueryUtil(qs.retrieveQueryStructEngine()));
 
 			HardSelectQueryStruct hqs = new HardSelectQueryStruct();
 			hqs.customFrom = finalOutput.toString();
@@ -581,12 +561,23 @@ public class SQLQueryUtils {
 		return null;
 	}
 
+	private static AbstractSqlQueryUtil getQueryUtil(IDatabaseEngine engine) {
+		if (engine instanceof IRDBMSEngine) {
+			return ((IRDBMSEngine) engine).getQueryUtil();
+		}
+		return null;
+	}
+
 	/**
 	 * 
 	 * @param expressions
 	 * @return
 	 */
 	public static GenExpression unionSQL(List<String> expressions) {
+		return unionSQL(expressions, null);
+	}
+
+	private static GenExpression unionSQL(List<String> expressions, List<SelectQueryStruct> sourceQueryStructs) {
 		// get the expression
 		// add the selectors to the master one
 		// and then add the join
@@ -610,7 +601,9 @@ public class SQLQueryUtils {
 
 			GenExpression curExpr = null;
 			try {
-				curExpr = parser.processQuery(sql).root;
+				SelectQueryStruct sourceQueryStruct = sourceQueryStructs == null ? null
+						: sourceQueryStructs.get(expIndex);
+				curExpr = parseQuery(parser, sql, sourceQueryStruct);
 			} catch (Exception e) {
 				classLogger.error("Failed to parse the SQL query {}", sql, e);
 			}
@@ -627,8 +620,17 @@ public class SQLQueryUtils {
 			}
 
 		}
-		GenExpression finalExpression = selfSubQuery(retExpression, lastExpression);
-		return finalExpression;
+		return selfSubQuery(retExpression, lastExpression);
+	}
+
+	private static GenExpression parseQuery(SqlParser2 parser, String sql, SelectQueryStruct sourceQueryStruct)
+			throws Exception {
+		GenExpression expression = parser.processQuery(sql).root;
+		if (sourceQueryStruct != null) {
+			expression.setLimit(sourceQueryStruct.getLimit());
+			expression.setOffSet(sourceQueryStruct.getOffset());
+		}
+		return expression;
 	}
 
 	/**
