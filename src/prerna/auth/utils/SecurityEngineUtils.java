@@ -135,15 +135,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 		} else {
-			addEngine(engineId, engineName, displayName, engineType, (String) typeAndCost[1],
-					(String) typeAndCost[2], global, user);
+			addEngine(engineId, engineName, displayName, engineType, (String) typeAndCost[1], (String) typeAndCost[2],
+					global, user);
 		}
 
 		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
 			try {
 				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
 			} catch (Exception e) {
-				classLogger.error("Failed to save model metadata for engine {}. The engine is catalogued without it",
+				classLogger.error("Failed to save model metadata for engine {}. The engine is cataloged without it",
 						Utility.cleanLogString(engineId), e);
 			}
 		}

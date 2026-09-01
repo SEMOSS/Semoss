@@ -145,7 +145,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (!agentConfig.useDefaultAgentTools()) {
 			paramMap.put(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS, false);
 		}
-		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
+		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
+				agentConfig.getDisabledDefaultTools());
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
@@ -934,6 +935,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (paramMap == null) {
 			return;
 		}
+		paramMap.remove("tools");
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (baseTools != null && !baseTools.isEmpty()) {
 			tools.addAll(baseTools);
