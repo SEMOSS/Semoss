@@ -150,6 +150,49 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Save a message as a draft rather than sending it.
+	 *
+	 * <p>
+	 * The draft lands in the mailbox's Drafts folder, where whoever owns it can
+	 * read it, change it and decide whether it goes out. Nothing is sent, and the
+	 * message can be sent later with {@link #sendDraft(String, String, String)}.
+	 *
+	 * @param accessToken the token to write with
+	 * @param mailbox     the mailbox to save into, or null for the signed in user
+	 * @param message     the message, as built by
+	 *                    {@link #buildMessage(String, String, boolean, String[], String[], String[], String, String, String[])}
+	 * @return the draft as Graph created it, which carries the id it was given and
+	 *         a webLink that opens it in Outlook
+	 */
+	public Map<String, Object> createDraft(String accessToken, String mailbox, Map<String, Object> message) {
+		String url = userPath(mailbox) + "/messages";
+		classLogger.info("Saving a draft email through {}", url);
+		// unlike sendMail, this answers with the message it created, since the id it
+		// was given is the only way to find it again
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(message),
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "save a draft email");
+		return readMap(response);
+	}
+
+	/**
+	 * Send a message that was saved as a draft.
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox holding the draft, or null for the signed in
+	 *                    user
+	 * @param messageId   the draft to send
+	 */
+	public void sendDraft(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/send";
+		classLogger.info("Sending a saved draft through {}", url);
+		// answers 202 with no body, the same way sendMail does
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), "",
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "send a saved draft");
+	}
+
+	/**
 	 * Build a message in the shape Graph reads.
 	 *
 	 * <p>

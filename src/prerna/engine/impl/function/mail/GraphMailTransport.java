@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailTracking;
 
 /**
  * Sends through Microsoft Graph.
@@ -104,21 +105,26 @@ public class GraphMailTransport implements MailTransport {
 					this.sender, requested);
 		}
 
+		boolean success = false;
 		try {
 			Map<String, Object> built = MicrosoftOutlookMailHelper.buildMessage(subject, message, html, to, cc, bcc,
 					this.sender, this.senderName, attachments);
 			this.mail.sendMail(getAccessToken(), this.sender, built, this.saveToSentItems);
-			return true;
+			success = true;
 		} catch (IOException e) {
 			classLogger.error("Could not build the email with subject '{}' to send", subject, e);
-			return false;
 		} catch (RuntimeException e) {
 			classLogger.error("Error sending the email as {} through Graph", this.sender, e);
 			// the usual reason a send starts failing is a permission that is about to
 			// be changed, and a cached token would go on being refused for its hour
 			this.tokenProvider.invalidate();
-			return false;
 		}
+
+		// the smtp transport records its sends by going through EmailUtility, which
+		// this does not, so the row is written here instead. otherwise the tracking
+		// table would only hold the sends that happened to go over a relay
+		MicrosoftOutlookMailTracking.trackSend(to, cc, bcc, this.sender, subject, message, html, attachments, success);
+		return success;
 	}
 
 	/**
