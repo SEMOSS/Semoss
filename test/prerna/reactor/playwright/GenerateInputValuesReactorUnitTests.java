@@ -143,7 +143,7 @@ class GenerateInputValuesReactorUnitTests {
 
 			ArgumentCaptor<InputMessage> promptCaptor = ArgumentCaptor.forClass(InputMessage.class);
 			verify(promptRoom).ask(promptCaptor.capture(), eq(modelEngine));
-			String prompt = promptCaptor.getValue().getInputPrompt();
+			String prompt = promptCaptor.getValue().getFullInputPrompt();
 			assertTrue(prompt.contains("CONVERSATION HISTORY"));
 			assertTrue(prompt.contains("Where should we go?"));
 			assertTrue(prompt.contains("Head to Wonderland"));
