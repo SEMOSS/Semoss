@@ -1835,12 +1835,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setProjectTemplate(User user, String projectId, boolean isTemplate)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
 		}
+		return setProjectTemplate(projectId, isTemplate);
+	}
 
+	/**
+	 * System variant of {@link #setProjectTemplate(User, String, boolean)} with no
+	 * permission check. Used at boot to heal the template flag on platform
+	 * projects from their smss; must never be exposed to user input.
+	 *
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 */
+	public static boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET IS_TEMPLATE=? WHERE PROJECTID=?");

@@ -68,6 +68,7 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					INIT_LIST.add("platform__" + fileName);
 					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
 					ensureProjectTags(engineId, "APP", "SYSTEM");
+					ensureTemplateFlag(engineId, folderToWatch + "/platform__" + fileName);
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
 					classLogger.error("Failed to load and initialize the {}", engineId, e);
@@ -188,6 +189,27 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	}
 
 	/**
+	 * Heals PROJECT.IS_TEMPLATE from a platform project's smss on every boot.
+	 * addProject only reads IS_TEMPLATE on the initial insert, so a security db
+	 * row created by an older build (or before the flag was added to the smss)
+	 * would otherwise stay non-cloneable forever. One-directional on purpose: an
+	 * smss without IS_TEMPLATE=true leaves the db value alone, so a flag enabled
+	 * at runtime through the REST endpoint is never clobbered. Never blocks
+	 * project load.
+	 */
+	private static void ensureTemplateFlag(String projectId, String smssPath) {
+		try {
+			Properties prop = Utility.loadProperties(smssPath);
+			boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
+			if (isTemplate) {
+				SecurityProjectUtils.setProjectTemplate(projectId, true);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure template flag on platform project '{}': {}", projectId, e.getMessage());
+		}
+	}
+
+	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
 	@Override
@@ -217,9 +239,11 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 
 		if (!ClusterUtil.IS_CLUSTER) {
-			// reserved system apps (platform skills + platform mcps) reload from disk
-			// every boot and must never be pruned during file-system reconciliation
+			// reserved system projects (platform apps + skills + mcps + agents) reload
+			// from disk every boot and must never be pruned during file-system
+			// reconciliation
 			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemApps());
 			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
 			reservedProjects.addAll(SystemDefaultEngines.getSystemAgents());
 			// if projects are removed from the file system

@@ -1,0 +1,62 @@
+{
+	"_meta": { "last_modified_date": "2026-01-28" },
+	"tools": [
+		{
+			"inputSchema": {
+				"type": "object",
+				"title": "OpenMCPApp_Arguments",
+				"properties": {},
+				"required": []
+			},
+			"name": "OpenMCPApp",
+			"description": "This tool allows the user to interact with the SEMOSS Template application.",
+			"_meta": {
+				"SMSS_MCP_UI": { "resourceURI": "/" },
+				"SMSS_MCP_EXECUTION": "ask"
+			},
+			"title": "Open MCP App"
+		},
+		{
+			"inputSchema": {
+				"type": "object",
+				"title": "CallPython_Arguments",
+				"properties": {
+					"numValue": {
+						"description": "Numeric value to be used in the operation",
+						"title": "numValue",
+						"type": "string"
+					}
+				},
+				"required": ["numValue"]
+			},
+			"name": "CallPython",
+			"description": "No description present",
+			"_meta": {
+				"SMSS_MCP_UI": {},
+				"SMSS_MCP_EXECUTION": "ask"
+			},
+			"title": "Call Python"
+		},
+		{
+			"inputSchema": {
+				"type": "object",
+				"title": "HelloUser_Arguments",
+				"properties": {
+					"name": {
+						"description": "Unique identifier",
+						"title": "name",
+						"type": "string"
+					}
+				},
+				"required": []
+			},
+			"name": "HelloUser",
+			"description": "No description present",
+			"_meta": {
+				"SMSS_MCP_UI": {},
+				"SMSS_MCP_EXECUTION": "auto"
+			},
+			"title": "Hello User"
+		}
+	]
+}
