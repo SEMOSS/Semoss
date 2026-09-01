@@ -40,7 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.model.MailSearchRequest;
 import prerna.engine.impl.function.mail.model.MailSearchResult;
 import prerna.engine.impl.function.mail.model.MailboxActionResult;
@@ -283,7 +283,7 @@ public final class GraphMailboxClient implements MailboxClient {
 	 */
 	private RuntimeException graphError(RuntimeException error) {
 		classLogger.error("Graph refused a call for {} and {}", this.mailbox,
-				ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider));
+				Microsoft365MailOAuth.tokenDiagnostic(this.tokenProvider));
 		this.tokenProvider.invalidate();
 		String hint = this.authenticationHint == null ? null : this.authenticationHint.get();
 		return hint == null || hint.isEmpty() ? error

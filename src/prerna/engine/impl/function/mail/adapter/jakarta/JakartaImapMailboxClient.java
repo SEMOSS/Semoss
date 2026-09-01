@@ -45,12 +45,12 @@ import jakarta.mail.search.FromStringTerm;
 import jakarta.mail.search.ReceivedDateTerm;
 import jakarta.mail.search.SearchTerm;
 import jakarta.mail.search.SubjectTerm;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
 import prerna.engine.impl.function.mail.model.MailSearchCriteria;
 import prerna.engine.impl.function.mail.model.MailboxActionResult;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 
 /**
  * Reading a mailbox over IMAP.

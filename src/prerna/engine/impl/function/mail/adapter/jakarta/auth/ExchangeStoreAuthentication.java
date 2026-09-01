@@ -25,12 +25,11 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail.adapter.jakarta;
+package prerna.engine.impl.function.mail.adapter.jakarta.auth;
 
 import java.util.Properties;
 
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 
 /**
@@ -65,7 +64,7 @@ public final class ExchangeStoreAuthentication implements MailStoreAuthenticatio
 
 	@Override
 	public void configure(Properties mailProperties, String protocol) {
-		ExchangeMailOAuth.addXoauth2Properties(mailProperties, protocol);
+		Microsoft365MailOAuth.addXoauth2Properties(mailProperties, protocol);
 	}
 
 	@Override
@@ -77,7 +76,7 @@ public final class ExchangeStoreAuthentication implements MailStoreAuthenticatio
 
 	@Override
 	public String description() {
-		return ExchangeMailOAuth.credentialDescription(this.tokenProvider.getClientId());
+		return Microsoft365MailOAuth.credentialDescription(this.tokenProvider.getClientId());
 	}
 
 	@Override
@@ -90,11 +89,11 @@ public final class ExchangeStoreAuthentication implements MailStoreAuthenticatio
 
 	@Override
 	public String failureHint() {
-		return ExchangeMailOAuth.authenticationHint(this.permission, null);
+		return Microsoft365MailOAuth.authenticationHint(this.permission, null);
 	}
 
 	@Override
 	public String diagnostic() {
-		return ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider);
+		return Microsoft365MailOAuth.tokenDiagnostic(this.tokenProvider);
 	}
 }

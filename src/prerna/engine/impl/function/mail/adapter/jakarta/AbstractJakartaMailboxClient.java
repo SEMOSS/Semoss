@@ -45,6 +45,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
 import prerna.engine.impl.function.mail.config.MailProperties;
@@ -52,7 +53,6 @@ import prerna.engine.impl.function.mail.model.MailSearchCriteria;
 import prerna.engine.impl.function.mail.model.MailSearchRequest;
 import prerna.engine.impl.function.mail.model.MailSearchResult;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.spi.MailboxClient;
 
 /**

@@ -34,7 +34,7 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.config.Microsoft365Config;
 import prerna.engine.impl.function.mail.model.OutboundMail;
@@ -77,7 +77,7 @@ public class GraphMailSender implements MailSender {
 	public void open(Properties smssProp) throws Exception {
 		// the provider validates the credentials, so an engine missing one of them
 		// fails on open rather than on the first send
-		Microsoft365Config microsoft = Microsoft365Config.from(smssProp, ExchangeMailOAuth.GRAPH_SCOPE);
+		Microsoft365Config microsoft = Microsoft365Config.from(smssProp, Microsoft365MailOAuth.GRAPH_SCOPE);
 		this.tokenProvider = microsoft.tokenProvider();
 
 		this.mail = new MicrosoftOutlookMailHelper(microsoft.graphBaseUrl());
@@ -92,7 +92,7 @@ public class GraphMailSender implements MailSender {
 			throw new IllegalArgumentException("Must define " + MailProperties.SMTP_SENDER
 					+ " in SMSS, since Graph sends as a particular mailbox");
 		}
-		ExchangeMailOAuth.validateMailbox(this.sender, MailProperties.SMTP_SENDER);
+		Microsoft365MailOAuth.validateMailbox(this.sender, MailProperties.SMTP_SENDER);
 	}
 
 	@Override
@@ -152,9 +152,9 @@ public class GraphMailSender implements MailSender {
 
 	@Override
 	public String failureHint() {
-		return "If the log shows Graph refused the request, " + ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider)
-				+ ", and sending needs the " + ExchangeMailOAuth.GRAPH_SEND_PERMISSION
-				+ " application permission with admin consent";
+		return "If the log shows Graph refused the request, "
+				+ Microsoft365MailOAuth.tokenDiagnostic(this.tokenProvider) + ", and sending needs the "
+				+ Microsoft365MailOAuth.GRAPH_SEND_PERMISSION + " application permission with admin consent";
 	}
 
 	/**

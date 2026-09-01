@@ -33,7 +33,7 @@ import prerna.engine.impl.function.mail.model.OutboundMail;
 import prerna.engine.impl.function.mail.model.SendResult;
 
 /**
- * How a message actually leaves the instance.
+ * How a message is actually sent.
  *
  * <p>
  * The sending engine decides what may be sent and to whom; an implementation of

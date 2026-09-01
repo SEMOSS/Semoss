@@ -43,16 +43,16 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.impl.function.AbstractFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.engine.impl.function.mail.adapter.graph.GraphMailboxClient;
-import prerna.engine.impl.function.mail.adapter.jakarta.PasswordStoreAuthentication;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.PasswordStoreAuthentication;
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.config.Microsoft365Config;
 import prerna.engine.impl.function.mail.model.MailSearchCriteria;
 import prerna.engine.impl.function.mail.model.MailSearchRequest;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.spi.MailboxClient;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
@@ -151,7 +151,7 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 		this.allowAttachmentDownload = this.readPolicy.allowAttachmentDownload();
 		this.allowedSenderDomains = this.readPolicy.allowedSenderDomains();
 
-		this.transportName = ExchangeMailOAuth.resolveTransport(properties, getDefaultTransport());
+		this.transportName = Microsoft365MailOAuth.resolveTransport(properties, getDefaultTransport());
 		this.username = MailProperties.trimToNull(properties.getProperty(key(USERNAME_SUFFIX)));
 		if (this.username == null) {
 			throw new IllegalArgumentException(
@@ -161,13 +161,13 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 
 		openProtocolProperties(properties);
 		if (isGraphTransport()) {
-			Microsoft365Config microsoft = Microsoft365Config.from(properties, ExchangeMailOAuth.GRAPH_SCOPE);
+			Microsoft365Config microsoft = Microsoft365Config.from(properties, Microsoft365MailOAuth.GRAPH_SCOPE);
 			MicrosoftGraphAppTokenProvider tokenProvider = microsoft.tokenProvider();
 			this.mailboxClient = new GraphMailboxClient(new MicrosoftOutlookMailHelper(microsoft.graphBaseUrl()),
 					tokenProvider, this.username, this.readPolicy, this.attachmentStore, this::getAuthenticationHint,
 					markGraphSearchAsRead());
 			classLogger.info("Reading {} through Microsoft Graph, signing in with {}", this.username,
-					ExchangeMailOAuth.credentialDescription(tokenProvider.getClientId()));
+					Microsoft365MailOAuth.credentialDescription(tokenProvider.getClientId()));
 		} else {
 			JakartaStoreConfig config = JakartaStoreConfig.from(properties, getProtocol(), getSecureProtocol(),
 					getDefaultHost(), getDefaultPort(false), getDefaultPort(true), requiresPassword());
@@ -354,14 +354,14 @@ public abstract class AbstractMailStoreFunctionEngine extends AbstractFunctionEn
 	 *         protocol for a plain mailbox and Graph for a Microsoft 365 one
 	 */
 	protected String getDefaultTransport() {
-		return ExchangeMailOAuth.JAKARTA_TRANSPORT;
+		return Microsoft365MailOAuth.JAKARTA_TRANSPORT;
 	}
 
 	/**
 	 * @return whether this engine reads through Graph rather than a protocol
 	 */
 	protected boolean isGraphTransport() {
-		return ExchangeMailOAuth.GRAPH_TRANSPORT.equals(this.transportName);
+		return Microsoft365MailOAuth.GRAPH_TRANSPORT.equals(this.transportName);
 	}
 
 	/**

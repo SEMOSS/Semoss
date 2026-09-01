@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail.adapter.smtp;
+package prerna.engine.impl.function.mail.adapter.jakarta;
 
 import java.util.Properties;
 
@@ -36,7 +36,7 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.model.OutboundMail;
 import prerna.engine.impl.function.mail.model.SendResult;
@@ -61,9 +61,9 @@ import prerna.util.EmailUtility;
  * protocol floor is TLS 1.2. Anything spelled out as a raw {@code mail.}
  * property is layered on last and wins.
  */
-public class SmtpMailSender implements MailSender {
+public class JakartaSmtpMailSender implements MailSender {
 
-	private static final Logger classLogger = LogManager.getLogger(SmtpMailSender.class);
+	private static final Logger classLogger = LogManager.getLogger(JakartaSmtpMailSender.class);
 
 	// jakarta.mail key that turns a plain smtp connection into an encrypted one.
 	// read off the raw properties so a configuration that only ever spoke in
@@ -91,13 +91,13 @@ public class SmtpMailSender implements MailSender {
 		if (trimToNull(smssProp.getProperty(MailProperties.EXCHANGE_CLIENT_ID)) != null) {
 			// the provider validates the credentials, so an engine missing one of
 			// them fails on open rather than on the first send
-			this.tokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp);
+			this.tokenProvider = Microsoft365MailOAuth.openTokenProvider(smssProp);
 		}
 
 		this.host = trimToNull(smssProp.getProperty(MailProperties.SMTP_HOST));
 		if (this.host == null && this.tokenProvider != null) {
 			// a microsoft 365 mailbox is always sent from the same place
-			this.host = ExchangeMailOAuth.SEND_HOST;
+			this.host = Microsoft365MailOAuth.SEND_HOST;
 		}
 		if (this.host == null && trimToNull(smssProp.getProperty("mail.smtp.host")) == null) {
 			throw new IllegalArgumentException("Must have key " + MailProperties.SMTP_HOST
@@ -117,7 +117,7 @@ public class SmtpMailSender implements MailSender {
 				throw new IllegalArgumentException(
 						"Must define " + MailProperties.SMTP_USERNAME + " in SMSS to know which mailbox to send as");
 			}
-			ExchangeMailOAuth.validateMailbox(this.username, MailProperties.SMTP_USERNAME);
+			Microsoft365MailOAuth.validateMailbox(this.username, MailProperties.SMTP_USERNAME);
 			if (this.password != null) {
 				classLogger.warn("A {} was set but this mailbox signs in with a token, so the password is ignored",
 						MailProperties.SMTP_PASSWORD);
@@ -156,7 +156,7 @@ public class SmtpMailSender implements MailSender {
 			// what the refused token carried, which is what tells a missing consent
 			// apart from a missing grant on the mailbox
 			classLogger.error("The send as {} failed and {}", this.username,
-					ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider));
+					Microsoft365MailOAuth.tokenDiagnostic(this.tokenProvider));
 			// and then dropped, because the usual reason a send starts failing is a
 			// permission that is about to be changed, and a cached token would go on
 			// being refused for the rest of its hour after the fix
@@ -233,7 +233,7 @@ public class SmtpMailSender implements MailSender {
 		}
 
 		if (this.tokenProvider != null) {
-			ExchangeMailOAuth.addXoauth2Properties(mailProps, "smtp");
+			Microsoft365MailOAuth.addXoauth2Properties(mailProps, "smtp");
 		}
 
 		// applied last so a raw mail. key wins over anything above
@@ -277,7 +277,7 @@ public class SmtpMailSender implements MailSender {
 	 */
 	private String credentialDescription() {
 		if (this.tokenProvider != null) {
-			return ExchangeMailOAuth.credentialDescription(this.tokenProvider.getClientId());
+			return Microsoft365MailOAuth.credentialDescription(this.tokenProvider.getClientId());
 		}
 		return "a password";
 	}
@@ -292,8 +292,8 @@ public class SmtpMailSender implements MailSender {
 		if (this.tokenProvider == null) {
 			return null;
 		}
-		return "If the log shows the sign in was refused: " + ExchangeMailOAuth
-				.authenticationHint(ExchangeMailOAuth.SMTP_PERMISSION, ExchangeMailOAuth.SMTP_AUTH_HINT);
+		return "If the log shows the sign in was refused: " + Microsoft365MailOAuth
+				.authenticationHint(Microsoft365MailOAuth.SMTP_PERMISSION, Microsoft365MailOAuth.SMTP_AUTH_HINT);
 	}
 
 	/**
