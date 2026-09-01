@@ -37,7 +37,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.function.mail.adapter.graph.GraphMailSender;
-import prerna.engine.impl.function.mail.adapter.smtp.SmtpMailSender;
+import prerna.engine.impl.function.mail.adapter.jakarta.JakartaSmtpMailSender;
 import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.model.OutboundMail;
 import prerna.engine.impl.function.mail.model.SendResult;
@@ -169,7 +169,7 @@ public class SMTPFunctionEngine extends AbstractSendMailFunctionEngine {
 			return new GraphMailSender();
 		}
 		if (JAKARTA_TRANSPORT.equals(transportName)) {
-			return new SmtpMailSender();
+			return new JakartaSmtpMailSender();
 		}
 		throw new IllegalArgumentException("The " + MAIL_TRANSPORT_KEY + " of '" + transportName
 				+ "' is not one this engine can send through, which is " + GRAPH_TRANSPORT + " or "

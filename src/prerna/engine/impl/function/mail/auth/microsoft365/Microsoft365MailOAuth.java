@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail.auth;
+package prerna.engine.impl.function.mail.auth.microsoft365;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -40,17 +40,18 @@ import prerna.engine.impl.function.mail.config.Microsoft365Config;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 
 /**
- * The Exchange Online half of the mail engines: the app registration an engine
- * is configured with, the token it obtains, and the jakarta.mail properties
- * that make the mail library present that token rather than a password.
+ * Shared Microsoft 365 authentication support for both Graph and the Jakarta
+ * Mail protocol adapters: the app registration an engine is configured with,
+ * the resource-specific token it obtains, and the XOAUTH2 properties that make
+ * Jakarta Mail present that token rather than a password.
  *
  * <p>
- * Exchange Online accepts no mailbox password on any of the three protocols, so
- * IMAP, POP3 and SMTP all sign in the same way and only differ in which
- * application permission the token has to carry. That shared part lives here so
- * each engine is only the protocol it speaks.
+ * Graph uses the token as a bearer credential. Exchange Online's IMAP, POP3 and
+ * SMTP endpoints receive a token through XOAUTH2, in the password position of
+ * the Jakarta Mail connection API. One app registration serves both paths, but
+ * each token is issued for the resource being called.
  */
-public final class ExchangeMailOAuth {
+public final class Microsoft365MailOAuth {
 
 	// public so a caller building one of these engines in memory rather than from
 	// a cataloged SMSS can populate the properties by name
@@ -119,7 +120,7 @@ public final class ExchangeMailOAuth {
 	// the mechanism Exchange expects the token to arrive through
 	private static final String XOAUTH2_MECHANISM = "XOAUTH2";
 
-	private ExchangeMailOAuth() {
+	private Microsoft365MailOAuth() {
 
 	}
 

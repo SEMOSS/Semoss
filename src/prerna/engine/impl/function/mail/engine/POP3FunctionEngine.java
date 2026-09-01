@@ -31,10 +31,10 @@ import java.util.Properties;
 
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.impl.function.mail.adapter.jakarta.JakartaPop3MailboxClient;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.spi.MailboxClient;
 
 /**

@@ -33,34 +33,24 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.FunctionTypeEnum;
-import prerna.engine.impl.function.mail.adapter.jakarta.ExchangeStoreAuthentication;
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.ExchangeStoreAuthentication;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 
 /**
- * Function engine that reads a Microsoft 365 mailbox over IMAP.
+ * Function engine that reads a Microsoft 365 mailbox through Graph by default,
+ * or through IMAP when {@code MAIL_TRANSPORT} selects Jakarta Mail.
  *
  * <p>
- * Exchange Online does not accept a mailbox password over IMAP. It expects an
- * OAuth access token presented through the XOAUTH2 mechanism, so this engine is
- * configured with an app registration - tenant, client id, client secret -
- * rather than with a password, and it obtains the token itself. That token
- * carries application permissions, so nobody has to be signed in for a read to
- * work: the engine reads the one mailbox it was pointed at, on behalf of the
- * application.
- * 
- * <p>
- * The Azure side has to be set up to match: the app registration needs the
- * {@code IMAP.AccessAsApp} application permission with admin consent, and
- * Exchange has to let that application open the mailbox. Without the mailbox
- * grant the token is issued and the sign in still fails, since the token says
- * what the application may do but not which mailboxes it may do it to.
+ * Both transports use the configured app registration, but each obtains a token
+ * for the resource it calls. Graph uses its mail application permission. IMAP
+ * uses {@value #IMAP_PERMISSION}, XOAUTH2 and the corresponding Exchange
+ * mailbox grant.
  *
  * <p>
- * Everything about reading the mailbox - folders, searching, the read policy,
- * and the changes an admin can turn on - works the same as
- * {@link IMAPFunctionEngine}, which this extends. Only how it signs in differs.
+ * Folder selection, searching, read policy and optional mailbox changes retain
+ * the contract defined by {@link IMAPFunctionEngine}, regardless of transport.
  */
 public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 
@@ -91,7 +81,8 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 	protected void openProtocolProperties(Properties smssProp) {
 		super.openProtocolProperties(smssProp);
 
-		ExchangeMailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))), key(USERNAME_SUFFIX));
+		Microsoft365MailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))),
+				key(USERNAME_SUFFIX));
 
 		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
 			// a password here is a sign the engine was set up as though it were a
@@ -103,7 +94,7 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 
 	@Override
 	protected MailStoreAuthentication createStoreAuthentication(Properties properties, JakartaStoreConfig config) {
-		return new ExchangeStoreAuthentication(ExchangeMailOAuth.openTokenProvider(properties), IMAP_PERMISSION);
+		return new ExchangeStoreAuthentication(Microsoft365MailOAuth.openTokenProvider(properties), IMAP_PERMISSION);
 	}
 
 	/**
@@ -116,7 +107,7 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 	 */
 	@Override
 	protected String getDefaultTransport() {
-		return ExchangeMailOAuth.GRAPH_TRANSPORT;
+		return Microsoft365MailOAuth.GRAPH_TRANSPORT;
 	}
 
 	@Override
@@ -126,7 +117,7 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 
 	@Override
 	protected String getDefaultHost() {
-		return ExchangeMailOAuth.MAILBOX_HOST;
+		return Microsoft365MailOAuth.MAILBOX_HOST;
 	}
 
 	@Override
@@ -134,11 +125,11 @@ public class ExchangeIMAPFunctionEngine extends IMAPFunctionEngine {
 		if (isGraphTransport()) {
 			// graph asks for one permission and nothing else, and only needs the
 			// write one when this engine was told it may change the mailbox
-			return ExchangeMailOAuth
-					.graphAuthenticationHint(changesTheMailbox() ? ExchangeMailOAuth.GRAPH_READ_WRITE_PERMISSION
-							: ExchangeMailOAuth.GRAPH_READ_PERMISSION);
+			return Microsoft365MailOAuth
+					.graphAuthenticationHint(changesTheMailbox() ? Microsoft365MailOAuth.GRAPH_READ_WRITE_PERMISSION
+							: Microsoft365MailOAuth.GRAPH_READ_PERMISSION);
 		}
-		return ExchangeMailOAuth.authenticationHint(IMAP_PERMISSION, null);
+		return Microsoft365MailOAuth.authenticationHint(IMAP_PERMISSION, null);
 	}
 
 	@Override

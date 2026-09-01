@@ -33,27 +33,25 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.FunctionTypeEnum;
-import prerna.engine.impl.function.mail.adapter.jakarta.ExchangeStoreAuthentication;
-import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.ExchangeStoreAuthentication;
+import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
+import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 
 /**
- * Function engine that reads a Microsoft 365 mailbox over POP3.
+ * Function engine that reads a Microsoft 365 mailbox through Graph by default,
+ * or through POP3 when {@code MAIL_TRANSPORT} selects Jakarta Mail.
  *
  * <p>
- * Same sign in as {@link ExchangeIMAPFunctionEngine} - an app registration and
- * a token rather than a mailbox password - and the same single inbox with no
- * folders and no read state that POP3 always has. The application permission is
- * the POP one rather than the IMAP one, and they are granted separately, so an
- * app registration set up for one does not serve the other.
+ * Both transports use the configured app registration, but each obtains a token
+ * for the resource it calls. Graph uses its mail application permission. POP3
+ * uses {@value #POP3_PERMISSION}, XOAUTH2 and the corresponding Exchange
+ * mailbox grant.
  *
  * <p>
- * On a Microsoft 365 mailbox this is the harder of the two to justify: it costs
- * the folders, the search, and the record of what has been read, and gains
- * nothing, since both protocols are reached with the same token. It exists for
- * a process that already speaks POP3, or a mailbox where only POP was turned
- * on.
+ * Regardless of transport, this engine preserves the POP3-style contract from
+ * {@link POP3FunctionEngine}: one inbox, no folder selection and no mailbox
+ * changes.
  */
 public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 
@@ -63,9 +61,9 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	public static final String POP3_PERMISSION = "POP.AccessAsApp";
 
 	/**
-	 * Build an Exchange POP3 engine that is not in the catalog, for a caller that
-	 * already holds an app registration and wants this engine's connection handling
-	 * rather than its own.
+	 * Build an Exchange mailbox engine that is not in the catalog, for a caller
+	 * that already holds an app registration and wants this engine's connection
+	 * handling rather than its own.
 	 *
 	 * @param engineId the id to open under, used only for logging
 	 * @param props    the mailbox and app registration properties
@@ -84,7 +82,8 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	protected void openProtocolProperties(Properties smssProp) {
 		super.openProtocolProperties(smssProp);
 
-		ExchangeMailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))), key(USERNAME_SUFFIX));
+		Microsoft365MailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))),
+				key(USERNAME_SUFFIX));
 
 		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
 			// a password here is a sign the engine was set up as though it were a
@@ -96,7 +95,7 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 
 	@Override
 	protected MailStoreAuthentication createStoreAuthentication(Properties properties, JakartaStoreConfig config) {
-		return new ExchangeStoreAuthentication(ExchangeMailOAuth.openTokenProvider(properties), POP3_PERMISSION);
+		return new ExchangeStoreAuthentication(Microsoft365MailOAuth.openTokenProvider(properties), POP3_PERMISSION);
 	}
 
 	/**
@@ -113,7 +112,7 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	 */
 	@Override
 	protected String getDefaultTransport() {
-		return ExchangeMailOAuth.GRAPH_TRANSPORT;
+		return Microsoft365MailOAuth.GRAPH_TRANSPORT;
 	}
 
 	@Override
@@ -123,16 +122,16 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 
 	@Override
 	protected String getDefaultHost() {
-		return ExchangeMailOAuth.MAILBOX_HOST;
+		return Microsoft365MailOAuth.MAILBOX_HOST;
 	}
 
 	@Override
 	protected String getAuthenticationHint() {
 		if (isGraphTransport()) {
 			// this engine never changes a mailbox, so reading is all it ever needs
-			return ExchangeMailOAuth.graphAuthenticationHint(ExchangeMailOAuth.GRAPH_READ_PERMISSION);
+			return Microsoft365MailOAuth.graphAuthenticationHint(Microsoft365MailOAuth.GRAPH_READ_PERMISSION);
 		}
-		return ExchangeMailOAuth.authenticationHint(POP3_PERMISSION, null);
+		return Microsoft365MailOAuth.authenticationHint(POP3_PERMISSION, null);
 	}
 
 	@Override

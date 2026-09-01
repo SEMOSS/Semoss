@@ -25,10 +25,9 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail.adapter.jakarta;
+package prerna.engine.impl.function.mail.adapter.jakarta.auth;
 
 import jakarta.mail.PasswordAuthentication;
-import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 
 /**
  * Signing in to a mailbox with its own password.
