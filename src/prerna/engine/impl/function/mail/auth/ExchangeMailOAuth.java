@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail;
+package prerna.engine.impl.function.mail.auth;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -33,10 +33,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.google.gson.Gson;
 
+import prerna.engine.impl.function.mail.config.MailProperties;
+import prerna.engine.impl.function.mail.config.Microsoft365Config;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 
 /**
@@ -54,10 +54,10 @@ public final class ExchangeMailOAuth {
 
 	// public so a caller building one of these engines in memory rather than from
 	// a cataloged SMSS can populate the properties by name
-	public static final String EXCHANGE_TENANT_KEY = "EXCHANGE_TENANT";
-	public static final String EXCHANGE_CLIENT_ID_KEY = "EXCHANGE_CLIENT_ID";
-	public static final String EXCHANGE_CLIENT_SECRET_KEY = "EXCHANGE_CLIENT_SECRET";
-	public static final String EXCHANGE_SCOPE_KEY = "EXCHANGE_SCOPE";
+	public static final String EXCHANGE_TENANT_KEY = MailProperties.EXCHANGE_TENANT;
+	public static final String EXCHANGE_CLIENT_ID_KEY = MailProperties.EXCHANGE_CLIENT_ID;
+	public static final String EXCHANGE_CLIENT_SECRET_KEY = MailProperties.EXCHANGE_CLIENT_SECRET;
+	public static final String EXCHANGE_SCOPE_KEY = MailProperties.EXCHANGE_SCOPE;
 
 	/**
 	 * The resource a mailbox token is issued for. Asking for {@code .default} means
@@ -67,16 +67,16 @@ public final class ExchangeMailOAuth {
 	public static final String DEFAULT_SCOPE = "https://outlook.office365.com/.default";
 
 	/** Which way an engine reaches the mailbox. */
-	public static final String MAIL_TRANSPORT_KEY = "MAIL_TRANSPORT";
+	public static final String MAIL_TRANSPORT_KEY = MailProperties.MAIL_TRANSPORT;
 
 	/** Go through the Microsoft Graph API. */
-	public static final String GRAPH_TRANSPORT = "graph";
+	public static final String GRAPH_TRANSPORT = MailProperties.GRAPH_TRANSPORT;
 
 	/** Go through the mail protocol with the jakarta.mail library. */
-	public static final String JAKARTA_TRANSPORT = "jakarta";
+	public static final String JAKARTA_TRANSPORT = MailProperties.JAKARTA_TRANSPORT;
 
 	/** Where Graph lives, overridable for a sovereign cloud. */
-	public static final String GRAPH_BASE_URL_KEY = "GRAPH_BASE_URL";
+	public static final String GRAPH_BASE_URL_KEY = MailProperties.GRAPH_BASE_URL;
 
 	/**
 	 * The resource a Graph token is issued for, which is a different resource from
@@ -149,9 +149,7 @@ public final class ExchangeMailOAuth {
 	 * @throws IllegalArgumentException when the app registration is incomplete
 	 */
 	public static MicrosoftGraphAppTokenProvider openTokenProvider(Properties smssProp, String defaultScope) {
-		return new MicrosoftGraphAppTokenProvider(smssProp.getProperty(EXCHANGE_TENANT_KEY),
-				smssProp.getProperty(EXCHANGE_CLIENT_ID_KEY), smssProp.getProperty(EXCHANGE_CLIENT_SECRET_KEY),
-				StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(EXCHANGE_SCOPE_KEY)), defaultScope));
+		return Microsoft365Config.from(smssProp, defaultScope).tokenProvider();
 	}
 
 	/**
@@ -162,13 +160,10 @@ public final class ExchangeMailOAuth {
 	 * @return the transport name
 	 */
 	public static String resolveTransport(Properties smssProp, String defaultTransport) {
-		String transport = StringUtils
-				.defaultIfEmpty(trimToNull(smssProp.getProperty(MAIL_TRANSPORT_KEY)), defaultTransport).toLowerCase();
-		if (!GRAPH_TRANSPORT.equals(transport) && !JAKARTA_TRANSPORT.equals(transport)) {
-			throw new IllegalArgumentException("The " + MAIL_TRANSPORT_KEY + " of '" + transport
-					+ "' is not one a mail engine can use, which is " + GRAPH_TRANSPORT + " or " + JAKARTA_TRANSPORT);
-		}
-		return transport;
+		MailProperties.Backend defaultBackend = GRAPH_TRANSPORT.equalsIgnoreCase(defaultTransport)
+				? MailProperties.Backend.GRAPH
+				: MailProperties.Backend.JAKARTA;
+		return MailProperties.backend(smssProp, defaultBackend).name().toLowerCase();
 	}
 
 	/**
@@ -190,20 +185,6 @@ public final class ExchangeMailOAuth {
 	}
 
 	/**
-	 * What to check when Exchange issues a token and then refuses the sign in.
-	 *
-	 * <p>
-	 * This is the usual first failure, and it is worth spelling out because the two
-	 * halves of the setup live in different places: the permission is granted on
-	 * the app registration in Azure, and the access to a particular mailbox is
-	 * granted in Exchange Online PowerShell.
-	 *
-	 * @param permission the application permission this protocol needs, such as
-	 *                   {@code IMAP.AccessAsApp}
-	 * @param extra      anything else specific to the protocol, or null
-	 * @return the sentence to append to the error
-	 */
-	/**
 	 * What to check when Graph refuses a mailbox call.
 	 *
 	 * <p>
@@ -221,6 +202,20 @@ public final class ExchangeMailOAuth {
 				+ "one the mail protocols use.";
 	}
 
+	/**
+	 * What to check when Exchange issues a token and then refuses the sign in.
+	 *
+	 * <p>
+	 * This is the usual first failure, and it is worth spelling out because the two
+	 * halves of the setup live in different places: the permission is granted on
+	 * the app registration in Azure, and the access to a particular mailbox is
+	 * granted in Exchange Online PowerShell.
+	 *
+	 * @param permission the application permission this protocol needs, such as
+	 *                   {@code IMAP.AccessAsApp}
+	 * @param extra      anything else specific to the protocol, or null
+	 * @return the sentence to append to the error
+	 */
 	public static String authenticationHint(String permission, String extra) {
 		StringBuilder hint = new StringBuilder("A token was obtained, so the app registration exists. Check that it ")
 				.append("carries the ").append(permission).append(" application permission with admin consent, and ")

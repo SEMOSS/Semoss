@@ -21,7 +21,7 @@ settings, so the parameter descriptions already carry the limits it was given.
 ## The mail engines
 
 Every mail engine below is one of these types, and they share the send or read
-settings of the engine they extend.
+policies while keeping provider-specific behavior behind a small adapter.
 
 | Page | Types | What it does |
 |------|-------|--------------|
@@ -32,3 +32,25 @@ settings of the engine they extend.
 
 The local mail server that backs all of the non-Microsoft ones is
 [semoss-mail.yml](../semoss-mail.yml); see [testing locally](mail-testing.md).
+
+## Code layout
+
+The catalog-facing classes are under
+`prerna.engine.impl.function.mail.engine`. The rest of the mail implementation
+is separated by responsibility:
+
+```
+mail/
+  engine/       function metadata and map-shaped execute contracts
+  config/       typed SMSS configuration and property names
+  model/        messages, searches and results
+  policy/       what a send and a read are allowed to do
+  spi/          MailSender and MailboxClient boundaries
+  adapter/      Graph, Jakarta Mail and SMTP implementations
+  auth/         Microsoft 365 OAuth support
+  attachment/   safe attachment persistence
+```
+
+This keeps SMTP, IMAP, POP3 and Graph details out of the function-engine
+facades. A provider adapter implements `MailSender` and/or `MailboxClient` without
+adding another provider branch to `execute`.

@@ -25,23 +25,29 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail;
+package prerna.engine.impl.function.mail.adapter.graph;
 
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.config.MailProperties;
+import prerna.engine.impl.function.mail.config.Microsoft365Config;
+import prerna.engine.impl.function.mail.model.OutboundMail;
+import prerna.engine.impl.function.mail.model.SendResult;
+import prerna.engine.impl.function.mail.spi.MailSender;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
-import prerna.io.connector.ms.outlook.MicrosoftOutlookMailTracking;
+import prerna.util.EmailUtility;
+import prerna.util.EmailUtility.EmailMetadata;
 
 /**
  * Sends through Microsoft Graph.
- *
+ * 
  * <p>
  * The call itself is {@link MicrosoftOutlookMailHelper}, which knows nothing
  * about engines or SMSS files, so the same code serves a delegated caller
@@ -54,9 +60,9 @@ import prerna.io.connector.ms.outlook.MicrosoftOutlookMailTracking;
  * nothing else - no SMTP AUTH on the tenant or the mailbox, no basic protocol
  * to keep enabled, and no separate {@code SMTP.SendAsApp} grant.
  */
-public class GraphMailTransport implements MailTransport {
+public class GraphMailSender implements MailSender {
 
-	private static final Logger classLogger = LogManager.getLogger(GraphMailTransport.class);
+	private static final Logger classLogger = LogManager.getLogger(GraphMailSender.class);
 
 	private MicrosoftGraphAppTokenProvider tokenProvider = null;
 	private MicrosoftOutlookMailHelper mail = null;
@@ -71,32 +77,27 @@ public class GraphMailTransport implements MailTransport {
 	public void open(Properties smssProp) throws Exception {
 		// the provider validates the credentials, so an engine missing one of them
 		// fails on open rather than on the first send
-		this.tokenProvider = new MicrosoftGraphAppTokenProvider(
-				smssProp.getProperty(SMTPFunctionEngine.GRAPH_TENANT_KEY),
-				smssProp.getProperty(SMTPFunctionEngine.GRAPH_CLIENT_ID_KEY),
-				smssProp.getProperty(SMTPFunctionEngine.GRAPH_CLIENT_SECRET_KEY),
-				StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(SMTPFunctionEngine.GRAPH_SCOPE_KEY)),
-						SMTPFunctionEngine.DEFAULT_GRAPH_SCOPE));
+		Microsoft365Config microsoft = Microsoft365Config.from(smssProp, ExchangeMailOAuth.GRAPH_SCOPE);
+		this.tokenProvider = microsoft.tokenProvider();
 
-		this.mail = new MicrosoftOutlookMailHelper(smssProp.getProperty(SMTPFunctionEngine.GRAPH_BASE_URL_KEY));
-		this.saveToSentItems = parseBoolean(smssProp.getProperty(SMTPFunctionEngine.SAVE_TO_SENT_ITEMS_KEY),
+		this.mail = new MicrosoftOutlookMailHelper(microsoft.graphBaseUrl());
+		this.saveToSentItems = parseBoolean(smssProp.getProperty(MailProperties.SAVE_TO_SENT_ITEMS),
 				this.saveToSentItems);
 
-		this.sender = trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_SENDER_KEY));
-		this.senderName = trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_SENDER_NAME_KEY));
+		this.sender = trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER));
+		this.senderName = trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER_NAME));
 		if (this.sender == null) {
 			// unlike a relay, there is no way to post a message without naming the
 			// mailbox it comes from
-			throw new IllegalArgumentException("Must define " + SMTPFunctionEngine.SMTP_SENDER_KEY
+			throw new IllegalArgumentException("Must define " + MailProperties.SMTP_SENDER
 					+ " in SMSS, since Graph sends as a particular mailbox");
 		}
-		ExchangeMailOAuth.validateMailbox(this.sender, SMTPFunctionEngine.SMTP_SENDER_KEY);
+		ExchangeMailOAuth.validateMailbox(this.sender, MailProperties.SMTP_SENDER);
 	}
 
 	@Override
-	public boolean send(String[] to, String[] cc, String[] bcc, String from, String subject, String message,
-			boolean html, String[] attachments) {
-		String requested = addressOf(from);
+	public SendResult send(OutboundMail outgoing) {
+		String requested = addressOf(outgoing.from());
 		if (requested != null && !requested.equalsIgnoreCase(this.sender)) {
 			// graph sends as the mailbox the request is posted against, so a different
 			// address would be silently ignored rather than honored. a display name is
@@ -105,26 +106,32 @@ public class GraphMailTransport implements MailTransport {
 					this.sender, requested);
 		}
 
+		EmailMetadata metadata = new EmailMetadata(outgoing.toArray(), outgoing.ccArray(), outgoing.bccArray(),
+				this.sender, outgoing.subject(), outgoing.body(), outgoing.html(), outgoing.attachmentArray());
 		boolean success = false;
 		try {
-			Map<String, Object> built = MicrosoftOutlookMailHelper.buildMessage(subject, message, html, to, cc, bcc,
-					this.sender, this.senderName, attachments);
-			this.mail.sendMail(getAccessToken(), this.sender, built, this.saveToSentItems);
+			EmailUtility.sendEmail(() -> {
+				deliver(outgoing);
+				return null;
+			}, metadata);
 			success = true;
 		} catch (IOException e) {
-			classLogger.error("Could not build the email with subject '{}' to send", subject, e);
+			classLogger.error("Could not build the email with subject '{}' to send", outgoing.subject(), e);
 		} catch (RuntimeException e) {
 			classLogger.error("Error sending the email as {} through Graph", this.sender, e);
-			// the usual reason a send starts failing is a permission that is about to
-			// be changed, and a cached token would go on being refused for its hour
+			// A changed permission should not leave a refused token cached for its hour.
 			this.tokenProvider.invalidate();
+		} catch (Exception e) {
+			classLogger.error("Unexpected error sending the email as {} through Graph", this.sender, e);
 		}
+		return new SendResult(success, this.sender);
+	}
 
-		// the smtp transport records its sends by going through EmailUtility, which
-		// this does not, so the row is written here instead. otherwise the tracking
-		// table would only hold the sends that happened to go over a relay
-		MicrosoftOutlookMailTracking.trackSend(to, cc, bcc, this.sender, subject, message, html, attachments, success);
-		return success;
+	private void deliver(OutboundMail outgoing) throws IOException {
+		Map<String, Object> built = MicrosoftOutlookMailHelper.buildMessage(outgoing.subject(), outgoing.body(),
+				outgoing.html(), outgoing.toArray(), outgoing.ccArray(), outgoing.bccArray(), this.sender,
+				this.senderName, outgoing.attachmentArray());
+		this.mail.sendMail(getAccessToken(), this.sender, built, this.saveToSentItems);
 	}
 
 	/**
@@ -146,7 +153,7 @@ public class GraphMailTransport implements MailTransport {
 	@Override
 	public String failureHint() {
 		return "If the log shows Graph refused the request, " + ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider)
-				+ ", and sending needs the " + SMTPFunctionEngine.GRAPH_SEND_PERMISSION
+				+ ", and sending needs the " + ExchangeMailOAuth.GRAPH_SEND_PERMISSION
 				+ " application permission with admin consent";
 	}
 

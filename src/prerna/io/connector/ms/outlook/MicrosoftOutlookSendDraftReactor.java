@@ -39,6 +39,8 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EmailUtility;
+import prerna.util.EmailUtility.EmailMetadata;
 
 /**
  * Sends a draft the signed in user already has, once they have decided it
@@ -74,25 +76,31 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 	public NounMetadata execute() {
 		this.organizeKeys();
 
-		String draftId = this.keyValue.get(DRAFT_ID);
-		if (draftId == null || draftId.trim().isEmpty()) {
+		String requestedDraftId = this.keyValue.get(DRAFT_ID);
+		if (requestedDraftId == null || requestedDraftId.trim().isEmpty()) {
 			throw new SemossPixelException("A " + DRAFT_ID + " is required to send a draft.");
 		}
-		draftId = draftId.trim();
+		String draftId = requestedDraftId.trim();
 
-		Map<String, Object> draft = null;
-		String from = null;
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			from = MicrosoftOutlookMailTracking.signedInAddress(user);
+			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 			MicrosoftOutlookMailHelper mail = new MicrosoftOutlookMailHelper();
 
 			// read it first, because sending moves it to Sent Items under a new id and
 			// there would be nothing left at this one to record
-			draft = mail.getMessage(accessToken, null, draftId);
-			mail.sendDraft(accessToken, null, draftId);
-			MicrosoftOutlookMailTracking.trackSend(draft, from, true);
+			Map<String, Object> draft = mail.getMessage(accessToken, null, draftId);
+			EmailMetadata metadata = new EmailMetadata(
+					MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients")),
+					MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients")),
+					MicrosoftOutlookMessageMapper.addressArray(draft.get("bccRecipients")), from,
+					draft.get("subject") == null ? null : draft.get("subject").toString(),
+					MicrosoftOutlookMessageMapper.bodyOf(draft), false, null);
+			EmailUtility.sendEmail(() -> {
+				mail.sendDraft(accessToken, null, draftId);
+				return null;
+			}, metadata);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("sent", true);
@@ -110,9 +118,6 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to send a draft for the signed in user", e);
-			// a draft that was read and then refused is still worth recording, so the
-			// table shows the attempt rather than nothing at all
-			MicrosoftOutlookMailTracking.trackSend(draft, from, false);
 			throw new SemossPixelException("An error occurred sending the draft. Error message: " + e.getMessage());
 		}
 	}

@@ -35,7 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.PasswordRequirements;
-import prerna.engine.impl.function.mail.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 

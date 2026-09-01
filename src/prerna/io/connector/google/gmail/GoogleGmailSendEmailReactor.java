@@ -40,7 +40,8 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.UserTrackingUtils;
+import prerna.util.EmailUtility;
+import prerna.util.EmailUtility.EmailMetadata;
 
 public class GoogleGmailSendEmailReactor extends AbstractReactor {
 
@@ -71,48 +72,24 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 			throw new SemossPixelException("Email body is required.");
 		}
 
-		String from = null;
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
 			AccessToken googleToken = user == null ? null : user.getAccessToken(AuthProvider.GOOGLE);
-			from = googleToken == null ? null : googleToken.getEmail();
+			String from = googleToken == null ? null : googleToken.getEmail();
+			EmailMetadata metadata = new EmailMetadata(new String[] { to }, null, null, from, subject, body, false,
+					null);
 
-			Map<String, Object> retMap = GoogleGmailHelper.sendEmail(accessToken, subject, body, to);
-			trackEmail(from, to, subject, body, true);
+			Map<String, Object> retMap = EmailUtility.sendEmail(() -> {
+				String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+				return GoogleGmailHelper.sendEmail(accessToken, subject, body, to);
+			}, metadata);
 			return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while sending Gmail email", e);
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to send Gmail email", e);
-			// a refused send is recorded too, so the table shows the attempt
-			trackEmail(from, to, subject, body, false);
 			throw new SemossPixelException("An error occurred sending the email. Error message: " + e.getMessage());
-		}
-	}
-
-	/**
-	 * Record the send in the same table everything sent through SEMOSS is recorded
-	 * in, whichever mail account it went out of.
-	 *
-	 * <p>
-	 * Recording must never be the reason a send is reported as having failed, since
-	 * by the time this runs the mail has already gone, so a tracking failure is
-	 * logged and swallowed.
-	 * </p>
-	 *
-	 * @param from       the account it was sent from
-	 * @param to         the recipients, which may be a comma separated list
-	 * @param subject    the subject line
-	 * @param body       the body
-	 * @param successful whether the send succeeded
-	 */
-	private static void trackEmail(String from, String to, String subject, String body, boolean successful) {
-		try {
-			UserTrackingUtils.trackEmail(new String[] { to }, null, null, from, subject, body, false, null, successful);
-		} catch (RuntimeException e) {
-			classLogger.error("Could not record the Gmail email with subject '{}' sent as {}", subject, from, e);
 		}
 	}
 
