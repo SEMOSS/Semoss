@@ -31,15 +31,17 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
@@ -50,13 +52,12 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.engine.AbstractEngineFileReactor;
-import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -80,7 +81,10 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 		organizeKeys();
 
-		String functionEngineName = getFunctionName();
+		String functionEngineName = getStringFromKeyOrCurRowStringValue(ReactorKeysEnum.FUNCTION.getKey());
+		if (functionEngineName == null || (functionEngineName = functionEngineName.trim()).isEmpty()) {
+			throw new NullPointerException("Must define the name of the new function engine");
+		}
 		// Generate unique engine ID and formatted name
 		String functionName = toUpperCamelCase(functionEngineName);
 		// if function name is not valid, throw error
@@ -90,18 +94,29 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		// String functionName = getFunctionName();
-		Map<String, Object> functionDetails = getFunctionDetails();
+		Map<String, Object> functionDetails = getMapFromKeyOrCurRow(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+		if (functionDetails == null) {
+			throw new NullPointerException("Must define the properties for the new function engine");
+		}
 		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		String pythonFileName = (String) functionDetails.get(IFunctionEngine.PYTHON_FILE_NAME);
 		if (functionTypeStr == null || (functionTypeStr = functionTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the function type");
+			functionTypeStr = FunctionTypeEnum.LOCAL_PYTHON.getFunctionName();
+		}
+		if (pythonFileName == null || (pythonFileName = pythonFileName.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must define the Python file name");
+		}
+		if (pythonFileName.contains("/") || pythonFileName.contains("\\") || !pythonFileName.endsWith(".py")) {
+			throw new IllegalArgumentException("The Python file name must be a .py file name without a path");
 		}
 		FunctionTypeEnum functionType = null;
 		try {
 			functionType = FunctionTypeEnum.getEnumFromName(functionTypeStr);
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Invalid function type " + functionTypeStr);
+		}
+		if (functionType != FunctionTypeEnum.LOCAL_PYTHON) {
+			throw new IllegalArgumentException("CreatePythonFunctionEngine requires the LOCAL_PYTHON function type");
 		}
 
 		String functionId = UUID.randomUUID().toString();
@@ -112,7 +127,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineFolder(IEngine.CATALOG_TYPE.FUNCTION,
+			specificEngineFolder = UploadUtilities.generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.FUNCTION,
 					functionId, functionName);
 			// create main.py file with provided content
 			createPythonFile(specificEngineFolder, pythonFileName, functionDetails);
@@ -139,7 +154,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 			ClusterUtil.pushEngine(functionId);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create Python function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
@@ -170,48 +185,6 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 
 	/**
 	 * 
-	 * @return
-	 */
-	private String getFunctionName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
-		}
-
-		List<String> strValues = this.curRow.getAllStrValues();
-		if (strValues != null && !strValues.isEmpty()) {
-			return strValues.get(0).trim();
-		}
-
-		throw new NullPointerException("Must define the name of the new function engine");
-	}
-
-	/**
-	 * 
-	 * @return
-	 */
-	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if (mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, Object>) mapNouns.get(0).getValue();
-			}
-		}
-
-		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, Object>) mapNouns.get(0).getValue();
-		}
-
-		throw new NullPointerException("Must define the properties for the new function engine");
-	}
-
-	/**
-	 * 
 	 * @param specificEngineFolder
 	 * @param pythonFileName
 	 * @param functionDetails
@@ -223,7 +196,8 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		String fileContent = this.keyValue.get(ReactorKeysEnum.CONTENT.getKey());
 
 		if (mainPy.exists()) {
-			classLogger.warn(pythonFileName + " already exists in " + specificEngineFolder.getAbsolutePath());
+			classLogger.warn("Python file '{}' already exists in engine folder {}", pythonFileName,
+					specificEngineFolder.getAbsolutePath());
 			return;
 		}
 		// UI has passed the full .py content
@@ -231,50 +205,102 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			String unescapedScript = StringEscapeUtils.unescapeJava(fileContent);
 			try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
 				writer.write(unescapedScript);
-				classLogger.info("Uploaded .py file saved to: " + mainPy.getAbsolutePath());
+				classLogger.info("Saved uploaded Python file to {}", mainPy.getAbsolutePath());
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Unable to save uploaded Python file to {}", mainPy.getAbsolutePath(), e);
 				throw e;
 			}
 			return;
 		}
-		// No uploaded file, auto-generate main.py
-		List<String> requiredParams = (List<String>) functionDetails.get("FUNCTION_REQUIRED_PARAMETERS");
-		List<Map<String, String>> allParams = (List<Map<String, String>>) functionDetails.get("FUNCTION_PARAMETERS");
+		// No uploaded content, auto-generate a starter Python file.
+		List<String> requiredParams = GSON.fromJson(
+				asJsonList(functionDetails.get(IFunctionEngine.REQUIRED_PARAMETER_KEY)), new TypeToken<List<String>>() {
+				}.getType());
+		List<FunctionParameter> allParams = GSON.fromJson(
+				asJsonList(functionDetails.get(IFunctionEngine.PARAMETER_KEY)),
+				new TypeToken<List<FunctionParameter>>() {
+				}.getType());
+		Map<String, String> paramDescriptions = allParams.stream().collect(Collectors.toMap(
+				FunctionParameter::getParameterName,
+				parameter -> parameter.getParameterDescription() == null ? "" : parameter.getParameterDescription(),
+				(first, replacement) -> replacement));
 
-		Map<String, String> paramDescriptions = new HashMap<>();
-		for (Map<String, String> param : allParams) {
-			paramDescriptions.put(param.get("parameterName"), param.get("parameterDescription"));
+		Object configuredFunctionName = functionDetails.get(IFunctionEngine.NAME_KEY);
+		if (configuredFunctionName == null || configuredFunctionName.toString().isBlank()) {
+			throw new IllegalArgumentException("Must define the Python function name");
 		}
-
-		StringBuilder builder = new StringBuilder();
-
-		// Function signature
-		builder.append("def main(\n");
-		for (String param : requiredParams) {
-			builder.append("    ").append(param).append(": str,\n");
+		String pythonFunctionName = configuredFunctionName.toString().trim();
+		validatePythonIdentifier(pythonFunctionName, "function name");
+		for (String requiredParam : requiredParams) {
+			validatePythonIdentifier(requiredParam, "required parameter");
 		}
-		builder.append("):\n");
-
-		builder.append("    \"\"\"\n");
-		builder.append("    Args:\n");
-		for (String param : requiredParams) {
-			builder.append("        ").append(param).append(" (str): ")
-					.append(paramDescriptions.getOrDefault(param, "")).append("\n");
-		}
-		builder.append("    \"\"\"\n");
-
-		// Print statements
-		for (String param : requiredParams) {
-			builder.append("    print(\"").append(param).append(" - \", ").append(param).append(")\n");
-		}
+		String functionParameters = requiredParams.stream().map(param -> "    " + param + ": str,")
+				.collect(Collectors.joining("\n"));
+		String parameterDocumentation = requiredParams.stream()
+				.map(param -> "        " + param + " (str): " + paramDescriptions.getOrDefault(param, ""))
+				.collect(Collectors.joining("\n"));
+		String printStatements = requiredParams.stream().map(param -> "    print(\"" + param + " - \", " + param + ")")
+				.collect(Collectors.joining("\n"));
+		String generatedPython = """
+				def %s(
+				%s
+				):
+				    \"""
+				    Args:
+				%s
+				    \"""
+				%s
+				""".formatted(pythonFunctionName, functionParameters, parameterDocumentation, printStatements);
 
 		try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
-			writer.write(builder.toString());
-			classLogger.info("main.py file created  " + mainPy.getAbsolutePath());
+			writer.write(generatedPython);
+			classLogger.info("Created Python file at {}", mainPy.getAbsolutePath());
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create Python file at {}", mainPy.getAbsolutePath(), e);
 			throw e;
 		}
+	}
+
+	private static String asJsonList(Object value) {
+		if (value == null || value.toString().isBlank()) {
+			return "[]";
+		}
+		return value instanceof String stringValue ? stringValue : GSON.toJson(value);
+	}
+
+	private static void validatePythonIdentifier(String value, String field) {
+		if (value == null || !value.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+			throw new IllegalArgumentException("The Python " + field + " must be a valid identifier");
+		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Create and register a LOCAL_PYTHON function engine. The reactor writes the supplied Python source
+				to the engine assets folder, or generates a starter function from the function metadata when no
+				source content is supplied.
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
+			return "The catalog name for the new Python function engine. It is normalized to UpperCamelCase for the engine name.";
+		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
+			return """
+					The function-engine SMSS properties. The map must define FUNCTION_TYPE as LOCAL_PYTHON,
+					PYTHON_FILE_NAME, FUNCTION_NAME, and FUNCTION_DESCRIPTION. FUNCTION_PARAMETERS and
+					FUNCTION_REQUIRED_PARAMETERS are used when generating starter source.
+					""";
+		} else if (ReactorKeysEnum.CONTENT.getKey().equals(key)) {
+			return """
+					Optional complete Python source for the configured file. When omitted, the reactor generates a
+					starter function with the configured function name, required parameters, parameter documentation,
+					and placeholder print statements.
+					""";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 }
