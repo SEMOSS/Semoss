@@ -55,7 +55,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
@@ -100,7 +99,10 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 		organizeKeys();
 
-		String functionName = getFunctionName();
+		String functionName = getStringFromKeyOrCurRowStringValue(ReactorKeysEnum.FUNCTION.getKey());
+		if (functionName == null || (functionName = functionName.trim()).isEmpty()) {
+			throw new NullPointerException("Must define the name of the new function engine");
+		}
 		// if function name is not valid, throw error
 		if (!Utility.validateName(functionName)) {
 			// error and redirect to try again
@@ -108,8 +110,10 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		// String functionName = getFunctionName();
-		Map<String, Object> functionDetails = getFunctionDetails();
+		Map<String, Object> functionDetails = getMapFromKeyOrCurRow(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
+		if (functionDetails == null) {
+			throw new NullPointerException("Must define the properties for the new function engine");
+		}
 		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		if (functionTypeStr == null || (functionTypeStr = functionTypeStr.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the function type");
@@ -160,13 +164,12 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 			// Initialize git and commit initial engine files
 			try {
-				String versionFolder = EngineUtility.getSpecificEngineVersionFolder(
-						IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
+				String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.FUNCTION,
+						functionId, functionName);
 				GitRepoUtils.init(versionFolder);
 				GitRepoUtils.addAllFiles(versionFolder, false);
 				AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
-				GitRepoUtils.commitAddedFiles(versionFolder,
-						"initial: created function engine " + functionName,
+				GitRepoUtils.commitAddedFiles(versionFolder, "initial: created function engine " + functionName,
 						accessToken.getUsername(), accessToken.getEmail());
 			} catch (Exception e) {
 				classLogger.warn("Unable to initialize git for function engine {}", functionId, e);
@@ -174,53 +177,13 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 			ClusterUtil.pushEngine(functionId);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Unable to create function engine '{}' ({})", functionName, functionId, e);
 			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), functionId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
-	}
-
-	/**
-	 * @return
-	 */
-	private String getFunctionName() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<String> strValues = grs.getAllStrValues();
-			if (strValues != null && !strValues.isEmpty()) {
-				return strValues.get(0).trim();
-			}
-		}
-
-		List<String> strValues = this.curRow.getAllStrValues();
-		if (strValues != null && !strValues.isEmpty()) {
-			return strValues.get(0).trim();
-		}
-
-		throw new NullPointerException("Must define the name of the new function engine");
-	}
-
-	/**
-	 * @return
-	 */
-	private Map<String, Object> getFunctionDetails() {
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FUNCTION_DETAILS.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			List<NounMetadata> mapNouns = grs.getNounsOfType(PixelDataType.MAP);
-			if (mapNouns != null && !mapNouns.isEmpty()) {
-				return (Map<String, Object>) mapNouns.get(0).getValue();
-			}
-		}
-
-		List<NounMetadata> mapNouns = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapNouns != null && !mapNouns.isEmpty()) {
-			return (Map<String, Object>) mapNouns.get(0).getValue();
-		}
-
-		throw new NullPointerException("Must define the properties for the new function engine");
 	}
 
 	/**
@@ -232,7 +195,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 		String insightFolder = this.insight.getInsightFolder();
 
 		// see if added as key
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.FILE_PATH.getKey());
+		GenRowStruct grs = getGenRowStruct(ReactorKeysEnum.FILE_PATH.getKey());
 		if (grs != null && !grs.isEmpty()) {
 			int size = grs.size();
 			for (int i = 0; i < size; i++) {
@@ -246,9 +209,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return """
-				Create a new function engine based on the functionDetails parameters
-				""";
+		return "Create a new function engine based on the functionDetails parameters";
 	}
 
 	@Override
