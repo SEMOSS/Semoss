@@ -1,0 +1,38 @@
+import { Env } from "../env";
+import { post } from "../utility";
+
+/**
+ * Upload file(s) to an engine
+ * @param engineId
+ * @param path
+ * @param files
+ * @param insightId
+ * @returns
+ */
+export const uploadEngine = async (
+	engineId: string,
+	path: string,
+	files: File | File[],
+	insightId: string | null,
+) => {
+	const fd: FormData = new FormData();
+	if (Array.isArray(files)) {
+		for (let i = 0; i < files.length; i++) {
+			fd.append("file", files[i]);
+		}
+	} else {
+		// pasted data
+		fd.append("file", files);
+	}
+
+	return await post<
+		{
+			fileName: string;
+			fileLocation: string;
+		}[]
+	>(
+		`${Env.MODULE}/api/uploadFile/engineAssetsUpload?insightId=${insightId}&engineId=${engineId}&path=${encodeURIComponent(path)}`,
+		fd,
+		{},
+	);
+};

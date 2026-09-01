@@ -1,0 +1,7 @@
+import { toHijriDate } from "../utils/conversion.js";
+export function differenceInCalendarMonths(dateLeft, dateRight) {
+    const hijriLeft = toHijriDate(dateLeft);
+    const hijriRight = toHijriDate(dateRight);
+    return ((hijriLeft.year - hijriRight.year) * 12 +
+        (hijriLeft.monthIndex - hijriRight.monthIndex));
+}

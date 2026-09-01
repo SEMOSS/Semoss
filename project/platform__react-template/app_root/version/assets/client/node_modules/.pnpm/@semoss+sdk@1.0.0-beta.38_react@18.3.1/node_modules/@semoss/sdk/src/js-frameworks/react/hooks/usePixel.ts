@@ -1,0 +1,173 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { runPixel } from "../../../api";
+
+interface PixelState<D> {
+	/** Status of the pixel call */
+	status: "INITIAL" | "LOADING" | "SUCCESS" | "ERROR";
+	/** Data returned from the pixel call */
+	data: D;
+	/** Error returned from the pixel call */
+	error?: Error;
+}
+
+export interface PixelConfig<D> {
+	/** Initial Data */
+	data: D;
+
+	/** Callback triggered on success */
+	onSuccess: (data: D) => void;
+
+	/** Callback triggered on error */
+	onError: (data: D, error: Error) => void;
+
+	/** Callback triggered at the end */
+	onFinal: () => void;
+}
+
+interface usePixel<D> extends PixelState<D> {
+	/** Refresh and reexecute the pixel */
+	refresh: () => void;
+	/** Update the data with new information */
+	update: (data: D) => void;
+}
+
+/**
+ * Send a command to the backend and recieve a response. This is intended to be used by a single pixel statement (nothing seperated by ;)
+ *
+ * @param pixel - pixel string to call
+ *
+ * @returns Information about the pixel response
+ */
+export function usePixel<D>(
+	pixel: string,
+	config?: Partial<PixelConfig<D>>,
+	insightId?: string,
+): usePixel<D> {
+	// Memoize the initial data
+	// biome-ignore lint/correctness/useExhaustiveDependencies: config?.data is handled by deep check
+	const initialData = useMemo(() => {
+		return config?.data;
+	}, [JSON.stringify(config?.data)]);
+
+	// track the call backs in a config
+	const callbacksRef = useRef<{
+		onSuccess: PixelConfig<D>["onSuccess"];
+		onError: PixelConfig<D>["onError"];
+		onFinal: PixelConfig<D>["onFinal"];
+	}>({
+		onSuccess: () => null,
+		onError: () => null,
+		onFinal: () => null,
+	});
+
+	useEffect(() => {
+		callbacksRef.current = {
+			onSuccess: config?.onSuccess || (() => null),
+			onError: config?.onError || (() => null),
+			onFinal: config?.onFinal || (() => null),
+		};
+	}, [config?.onSuccess, config?.onError, config?.onFinal]);
+
+	// store the state
+	const [count, setCount] = useState(0);
+	const [state, setState] = useState<PixelState<D>>({
+		status: "INITIAL",
+		data: config?.data,
+	});
+
+	/**
+	 * Increment the count, triggering a refresh of the pixel
+	 */
+	const refresh = useCallback(() => {
+		setCount((prev) => prev + 1);
+	}, []);
+
+	/**
+	 * Update the state with new data
+	 */
+	const update = useCallback((data: D, error?: Error) => {
+		setState((prev) => ({
+			...prev,
+			data: data,
+			error: error,
+		}));
+	}, []);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies(count): count is necessary
+	useEffect(() => {
+		// no command reset it
+		if (!pixel) {
+			setState({
+				status: "INITIAL",
+				data: initialData,
+			});
+
+			return;
+		}
+
+		// track if it has been cancelled
+		let isCancelled = false;
+
+		setState({
+			status: "LOADING",
+			data: initialData,
+		});
+
+		runPixel<[D]>(pixel, insightId)
+			.then((response) => {
+				// ignore if its cancelled
+				if (isCancelled) {
+					return;
+				}
+
+				const { output, operationType } = response.pixelReturn[0];
+
+				// track the errors
+				if (operationType.indexOf("ERROR") > -1) {
+					const error = output as string;
+
+					throw new Error(error);
+				}
+
+				// set as success
+				setState({
+					status: "SUCCESS",
+					data: output,
+				});
+
+				callbacksRef.current.onSuccess(output);
+			})
+			.catch((error) => {
+				// ignore if its cancelled
+				if (isCancelled) {
+					return;
+				}
+
+				setState({
+					status: "ERROR",
+					data: initialData,
+					error: error,
+				});
+
+				callbacksRef.current.onError(initialData, error);
+			})
+			.finally(() => {
+				// ignore if its cancelled
+				if (isCancelled) {
+					return;
+				}
+
+				callbacksRef.current.onFinal();
+			});
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [count, pixel, insightId, initialData]);
+
+	return {
+		...state,
+		refresh: refresh,
+		update: update,
+	};
+}

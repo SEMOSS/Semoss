@@ -1,0 +1,315 @@
+# @semoss\sdk
+
+@semoss\sdk is a small utility package that accelerates the process of building an app.
+
+## Getting Started:
+
+First, install the sdk using a package manager (or your favorite cdn):
+
+```sh
+npm install @semoss/sdk
+```
+
+Next, import the `Insight` from the SDK and create a new instance of it. Insights are temporal workspaces that allow end users to script and interact with a model, storage engine, or database.
+
+```js
+import { Insight } from "@semoss/sdk";
+
+const insight = new Insight();
+```
+
+Once the application is mounted, initialize the insight and load your data app into the insight;
+
+```js
+await insight.initialize();
+```
+
+Now you are ready to go. You can do things like
+
+-   Login or Logout
+
+```js
+const login = (username, password) => {
+    const success = await insight.actions.login({
+        type: 'native',
+        username: username,
+        password: password,
+    });
+
+    console.log(success);
+};
+
+const loginWithOauth = (provider: 'ms' ) => {
+    const resp = await insight.actions.login({
+        type: 'oauth',
+        provider: provider
+    })
+
+    console.log(resp)
+}
+
+const logout = (username, password) => {
+    const success = await insight.actions.logout();
+
+    console.log(success);
+};
+```
+
+-   Ask a LLM and return a result
+
+```js
+const ask = (question) => {
+    const { output } = await insight.actions.askModel(MODEL_ID, question);
+
+    // log the output
+    console.log(output);
+};
+```
+
+-   Ask LLM with stream
+
+```js
+import { partial, runPixel } from "@semoss/sdk";
+
+const insight = new Insight();
+await insight.initialize();
+const insightId = insight._store.insightId;
+
+const askWithStream = async () => {
+    let isCollecting = false;
+
+    const collectMessage = async () => {
+        // only continue if response hasn't come back from runPixel
+        if (!isCollecting) {
+            return;
+        }
+
+        // get the output of partial
+        try {
+            const output = await partial(insightId);
+
+            // add the partial
+            if (output.message && output.message.total) {
+                setAnswer(output.message.total);
+            }
+
+            // get the next partial of response
+            setTimeout(() => collectMessage(), 1000);
+        } catch (e) {
+            // noop
+        }
+    };
+
+    // start collecting
+    isCollecting = true;
+
+    // initial delay that collects partial of response
+    setTimeout(() => collectMessage(), 500);
+
+    const { errors, pixelReturn } = await runPixel(
+        `LLM(engine=["001510f8-b86e-492e-a7f0-41299775e7d9"], command=["<encode>${question}</encode>"]);`,
+        insightId,
+    );
+
+    isCollecting = false;
+};
+```
+
+-   Run a database query
+
+```js
+const getMovies = () => {
+    const { output } = await insight.actions.queryDatabase(
+        DATABASE_ID,
+        'select * from movie',
+    );
+
+    // log the output
+    console.log(output);
+};
+```
+
+-   Run Python
+
+```js
+const sum = (num1, num2) => {
+    const { output } = await insight.actions.runPy(`${num1} + ${num2}`);
+
+    // log the output
+    console.log(output);
+};
+```
+
+-   Upload a File
+
+```js
+const upload = (file, path) => {
+    const { output } = await insight.actions.upload(file, path);
+
+    // log the output
+    console.log(output);
+};
+```
+
+-   Download a File
+
+```js
+const download = (path) => {
+    const { output } = await insight.actions.download(path);
+
+    // log the output
+    console.log(output);
+};
+```
+
+-   Run an MCP tool and send the response to the playground
+
+```js
+const runMCPTool = (name, parameters,)  => {
+    const { output } = await insight.actions.runMCPTool(name, parameters);
+
+    // log the output
+    console.log(output);
+};
+```
+
+## 🔄 Migration Guide
+
+### For Users Migrating from @semoss/sdk-react
+
+If you are a user migrating from [@semoss/sdk-react] to [@semoss/sdk], this section will help you with the transition.
+
+#### Key Change
+
+-   React hooks, contexts, and utilities have been moved to our centralized javascript software development kit
+
+#### Migration Steps
+
+1. Uninstall the old package `@semoss/sdk-react`
+2. Swap import statements, any module that was once imported from `@semoss/sdk-react` can now be imported from `@semoss/sdk/react`
+
+Eg.
+
+```
+import { useInsight } from '@semoss/sdk-react'
+```
+
+Should now import as such:
+
+```
+import { useInsight } from '@semoss/sdk/react'
+```
+
+## Tips and Tricks
+
+Here are a few tips and tricks that can help streamline the development process.
+
+### Development Environment
+
+> Note: We recommend manually setting the environment only in `development` mode.
+
+You can setup a development environment and use access keys to authenticate with the app server. Generate the keys on the server and then update the `Env` module. See:
+
+```js
+// import the module
+import { Env } from "@semoss/sdk";
+
+// update the environment
+Env.update({
+    /**
+     * Url pointing to the app server
+     **/
+    MODULE: "",
+    /**
+     * Access key generated by the app server
+     **/
+    ACCESS_KEY: "",
+    /**
+     * Secret key generated by the app server
+     **/
+    SECRET_KEY: "",
+    /**
+     * Optional field. This will load app specific reactors into the insight. Your app has to be hosted and running on the app server.
+     **/
+    APP: "",
+});
+```
+
+> Note: Please **do not** commit your keys. Instead externalize your keys to a `.env` and load them in as environment variables during development
+
+### Python
+
+The app server allows you to write custom `python` to power your app. You can initialize your `python` environment by:
+
+1. Loading via `js`
+
+Set the option on initialize:
+
+```js
+// define it int he js
+const py = `
+def sayHello(name):
+    print(f'Hello {name}')
+`;
+
+// update the environment
+insight.initialize({
+    python: {
+        /**
+         *  Load the python via js
+         **/
+        type: "script",
+        /**
+         *  Path to the file
+         **/
+        script: py,
+        /**
+         *  Alias for the file
+         **/
+        alias: "smss",
+    },
+});
+```
+
+2. Loading via a file
+
+The sdk will load `python` via an external file.
+
+```py
+# ./hello.py
+def sayHello(name):
+    print(f'Hello {name}')
+```
+
+Set the option on initialize:
+
+```js
+// update the environment
+insight.initialize({
+    python: {
+        /**
+         *  Load the python via an external file
+         **/
+        type: "file",
+        /**
+         *  Path to the file
+         **/
+        path: "./hello.py",
+        /**
+         *  Alias for the file
+         **/
+        alias: "smss",
+    },
+});
+```
+
+Next you can call the preloaded `python` methods by calling the `runPy` action. See
+
+```js
+const hello = (name) => {
+    const { output } = await insight.actions.runPy(`smss.sayHello(${name})`);
+
+    // log the output
+    console.log(output);
+};
+```

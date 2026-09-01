@@ -1,0 +1,44 @@
+import { useCallback, useEffect, useRef } from "react";
+
+/**
+ * Debounce a callback
+ * @param callback - new value
+ * @param delay - delay timer
+ * @returns debounced value
+ */
+export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
+	callback: T,
+	delay: number,
+): (...args: Parameters<T>) => void {
+	const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+	const callbackRef = useRef(callback);
+
+	// set whenever it changes
+	useEffect(() => {
+		callbackRef.current = callback;
+	}, [callback]);
+
+	// clear on unmount
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+			}
+		};
+	}, []);
+
+	const debouncedCallback = useCallback(
+		(...args: Parameters<T>) => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+			}
+
+			timeoutRef.current = setTimeout(() => {
+				callbackRef.current(...args);
+			}, delay);
+		},
+		[delay],
+	);
+
+	return debouncedCallback;
+}
