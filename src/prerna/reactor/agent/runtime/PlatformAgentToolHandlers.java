@@ -60,6 +60,8 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.ds.node.NodeTranslator;
+import prerna.ds.node.NodeUtils;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -89,6 +91,10 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_NODE_CODE_LENGTH = 200_000;
+	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
+	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
+	private static final int MAX_NODE_TIMEOUT_SECONDS = 600;
 	private static final String PARAM_PATH = "path";
 	private static final String PARAM_NEW_PATH = "new_path";
 
@@ -194,6 +200,21 @@ final class PlatformAgentToolHandlers {
 							prop("description", stringProp("Short reason for running the command."))),
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
+		}
+		if (NodeUtils.isNodeToolEnabled()) {
+			add(tools, handler("ExecuteNodeCode",
+					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
+							+ "calls within this conversation (assign to globalThis for durable state when using "
+							+ "top-level await). The value of the last expression is returned (use an explicit "
+							+ "'return' with top-level await); console output is captured and returned too. "
+							+ "require() resolves only against the curated platform packages: "
+							+ NodeUtils.describeCuratedPackages() + ". There is no npm install.",
+					objectSchema(props(
+							prop("code", stringProp("JavaScript source to execute.")),
+							prop("timeout_seconds", integerProp(
+									"Maximum execution seconds before the run is killed. Defaults to 60, max 600."))),
+							List.of("code")),
+					PlatformAgentToolHandlers::executeNodeCode));
 		}
 		add(tools, handler("TodoWrite",
 				"Replaces the current todo list with a validated full-state JSON array.",
@@ -630,6 +651,79 @@ final class PlatformAgentToolHandlers {
 			throw new IllegalArgumentException("Command attempted to navigate outside the working directory sandbox.");
 		}
 		return output == null ? "" : output;
+	}
+
+	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
+		if (!NodeUtils.isNodeToolEnabled()) {
+			return "Error: ExecuteNodeCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_NODE_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_NODE_CODE_LENGTH;
+		}
+		int timeoutSeconds = parseIntOr(params.get("timeout_seconds"), DEFAULT_NODE_TIMEOUT_SECONDS);
+		if (timeoutSeconds < 1) {
+			timeoutSeconds = DEFAULT_NODE_TIMEOUT_SECONDS;
+		}
+		if (timeoutSeconds > MAX_NODE_TIMEOUT_SECONDS) {
+			timeoutSeconds = MAX_NODE_TIMEOUT_SECONDS;
+		}
+		User user = tc.ctx.getInsight().getUser();
+		if (user == null) {
+			return "Error: no user is associated with this agent run";
+		}
+		try {
+			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
+			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
+			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L);
+			return formatNodeOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecuteNodeCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatNodeOutput(Object output) {
+		String stdout = null;
+		Object result = output;
+		if (output instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>) output;
+			Object stdoutValue = map.get("stdout");
+			stdout = stdoutValue != null ? stdoutValue.toString() : null;
+			result = map.get("result");
+		}
+		StringBuilder sb = new StringBuilder();
+		if (stdout != null && !stdout.isEmpty()) {
+			sb.append(stdout);
+		}
+		if (result != null) {
+			if (sb.length() > 0) {
+				sb.append("\n\n=> ");
+			} else {
+				sb.append("=> ");
+			}
+			if (result instanceof String) {
+				sb.append((String) result);
+			} else {
+				try {
+					sb.append(JSONObject.valueToString(result));
+				} catch (Exception e) {
+					sb.append(result.toString());
+				}
+			}
+		}
+		if (sb.length() == 0) {
+			return "(no output)";
+		}
+		if (sb.length() > MAX_NODE_OUTPUT_LENGTH) {
+			return sb.substring(0, MAX_NODE_OUTPUT_LENGTH) + "\n[output truncated at " + MAX_NODE_OUTPUT_LENGTH
+					+ " characters]";
+		}
+		return sb.toString();
 	}
 
 	private static String todoWrite(Map<String, Object> params, ToolContext tc) {
