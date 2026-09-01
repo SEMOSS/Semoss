@@ -8,9 +8,9 @@ MAIL_TRANSPORT             graph | jakarta        (defaults to graph)
 ```
 
 `graph` goes through the Microsoft Graph API. `jakarta` goes through the mail
-protocol - SMTP, POP3 or IMAP - with the token presented over XOAUTH2. Nothing
-else about an engine changes with it: the same guardrails apply, the same
-parameters are published, and a search answers in the same shape either way.
+protocol - SMTP, POP3 or IMAP - with the token presented over XOAUTH2. Both
+backends apply the same policy, publish the same parameters, and return the
+same search shape.
 
 Graph is the default because it needs far less to be true:
 
@@ -51,8 +51,8 @@ New-ServicePrincipal -AppId <application (client) id> `
 
 `<enterprise application object id>` is the Object ID under **Entra ID >
 Enterprise applications**, which is a different object with a different id than
-the app registration. Newer versions of the module name that parameter
-`-ServiceId` rather than `-ObjectId`.
+the app registration. Depending on the Exchange Online module version, the
+parameter is named `-ObjectId` or `-ServiceId`.
 
 ### Limiting which mailboxes Graph can reach
 
@@ -161,16 +161,18 @@ One thing happens behind that: a token is issued for one resource at a time, so
 the protocols get a token for `outlook.office365.com` and Graph gets one for
 `graph.microsoft.com`. Same credentials, different scope, handled for you.
 
+All sends go through `EmailUtility`, so Graph and Jakarta SMTP attempts use the
+same tracking path.
+
 The mailbox is named the way the protocol engine names it - `SMTP_USERNAME`,
 `POP3_USERNAME`, `IMAP_USERNAME` - and there is no password key. On `graph` the
 host, port and security settings are ignored, since there is no server to reach.
 
-Two differences worth knowing when moving an engine from `jakarta` to `graph`:
+Backend-specific behavior:
 
 - **`uid` becomes a string.** Graph names a message with an opaque id where the
-  protocols use a number. It round trips the same way, so `action` calls work
-  unchanged, but anything that stored a uid from the other transport will not
-  find it.
+  protocols use a number. Pass the `uid` returned by a search back to `action`
+  calls made through the same backend.
 - **`delete` is gentler.** Graph moves a message to Deleted Items where IMAP
   expunges it.
 
@@ -233,8 +235,7 @@ ms_scope   ... Mail.ReadWrite Mail.Send
 `Mail.Read` is enough if you only ever list. Saving a draft writes to the
 mailbox, so it needs `Mail.ReadWrite`.
 
-Everyone signed in through Microsoft consents again the next time they log in,
-since the scopes they hold a token for changed.
+Users signing in through Microsoft must consent to these delegated scopes.
 
 | | Engines | Reactors |
 |---|---------|----------|

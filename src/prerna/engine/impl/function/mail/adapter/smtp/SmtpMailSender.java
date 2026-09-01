@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail;
+package prerna.engine.impl.function.mail.adapter.smtp;
 
 import java.util.Properties;
 
@@ -36,6 +36,11 @@ import org.apache.logging.log4j.Logger;
 
 import jakarta.mail.PasswordAuthentication;
 import jakarta.mail.Session;
+import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.config.MailProperties;
+import prerna.engine.impl.function.mail.model.OutboundMail;
+import prerna.engine.impl.function.mail.model.SendResult;
+import prerna.engine.impl.function.mail.spi.MailSender;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.util.EmailUtility;
 
@@ -56,9 +61,9 @@ import prerna.util.EmailUtility;
  * protocol floor is TLS 1.2. Anything spelled out as a raw {@code mail.}
  * property is layered on last and wins.
  */
-public class SmtpMailTransport implements MailTransport {
+public class SmtpMailSender implements MailSender {
 
-	private static final Logger classLogger = LogManager.getLogger(SmtpMailTransport.class);
+	private static final Logger classLogger = LogManager.getLogger(SmtpMailSender.class);
 
 	// jakarta.mail key that turns a plain smtp connection into an encrypted one.
 	// read off the raw properties so a configuration that only ever spoke in
@@ -66,10 +71,10 @@ public class SmtpMailTransport implements MailTransport {
 	private static final String SSL_ENABLE_PROPERTY = "mail.smtp.ssl.enable";
 
 	private String host = null;
-	private String port = SMTPFunctionEngine.DEFAULT_SMTP_PORT;
+	private String port = "587";
 	private String username = null;
 	private String password = null;
-	private String security = SMTPFunctionEngine.STARTTLS_SECURITY;
+	private String security = MailProperties.STARTTLS_SECURITY;
 
 	// set only when the relay is a microsoft 365 mailbox, which takes a token
 	// where every other relay takes a password
@@ -83,40 +88,39 @@ public class SmtpMailTransport implements MailTransport {
 		// is found whichever case it arrived in
 		smssProp = normalizeRawMailKeys(smssProp);
 
-		if (trimToNull(smssProp.getProperty(ExchangeMailOAuth.EXCHANGE_CLIENT_ID_KEY)) != null) {
+		if (trimToNull(smssProp.getProperty(MailProperties.EXCHANGE_CLIENT_ID)) != null) {
 			// the provider validates the credentials, so an engine missing one of
 			// them fails on open rather than on the first send
 			this.tokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp);
 		}
 
-		this.host = trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_HOST_KEY));
+		this.host = trimToNull(smssProp.getProperty(MailProperties.SMTP_HOST));
 		if (this.host == null && this.tokenProvider != null) {
 			// a microsoft 365 mailbox is always sent from the same place
 			this.host = ExchangeMailOAuth.SEND_HOST;
 		}
 		if (this.host == null && trimToNull(smssProp.getProperty("mail.smtp.host")) == null) {
-			throw new IllegalArgumentException("Must have key " + SMTPFunctionEngine.SMTP_HOST_KEY
+			throw new IllegalArgumentException("Must have key " + MailProperties.SMTP_HOST
 					+ " or mail.smtp.host in SMSS to know which mail server to use");
 		}
 
 		// the UI writes a blank line for every optional field left empty, so an
 		// unset key arrives as "" rather than absent - defaultIfEmpty covers both
-		this.port = StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_PORT_KEY)),
-				this.port);
-		this.username = trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_USERNAME_KEY));
-		this.password = trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_PASSWORD_KEY));
+		this.port = StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(MailProperties.SMTP_PORT)), this.port);
+		this.username = trimToNull(smssProp.getProperty(MailProperties.SMTP_USERNAME));
+		this.password = trimToNull(smssProp.getProperty(MailProperties.SMTP_PASSWORD));
 
 		if (this.tokenProvider != null) {
 			if (this.username == null) {
 				// there is no anonymous way into a microsoft 365 mailbox, and the
 				// token names the application rather than the mailbox
-				throw new IllegalArgumentException("Must define " + SMTPFunctionEngine.SMTP_USERNAME_KEY
-						+ " in SMSS to know which mailbox to send as");
+				throw new IllegalArgumentException(
+						"Must define " + MailProperties.SMTP_USERNAME + " in SMSS to know which mailbox to send as");
 			}
-			ExchangeMailOAuth.validateMailbox(this.username, SMTPFunctionEngine.SMTP_USERNAME_KEY);
+			ExchangeMailOAuth.validateMailbox(this.username, MailProperties.SMTP_USERNAME);
 			if (this.password != null) {
 				classLogger.warn("A {} was set but this mailbox signs in with a token, so the password is ignored",
-						SMTPFunctionEngine.SMTP_PASSWORD_KEY);
+						MailProperties.SMTP_PASSWORD);
 				this.password = null;
 			}
 		} else if ((this.username == null) != (this.password == null)) {
@@ -124,30 +128,30 @@ public class SmtpMailTransport implements MailTransport {
 			// unauthenticated rather than fail to open. which one happened is in the
 			// session log line below
 			classLogger.warn("Only one of {} and {} is set, so the connection to {} will not authenticate",
-					SMTPFunctionEngine.SMTP_USERNAME_KEY, SMTPFunctionEngine.SMTP_PASSWORD_KEY, this.host);
+					MailProperties.SMTP_USERNAME, MailProperties.SMTP_PASSWORD, this.host);
 			this.username = null;
 			this.password = null;
 		}
 
 		this.security = StringUtils
-				.defaultIfEmpty(trimToNull(smssProp.getProperty(SMTPFunctionEngine.SMTP_SECURITY_KEY)), this.security)
+				.defaultIfEmpty(trimToNull(smssProp.getProperty(MailProperties.SMTP_SECURITY)), this.security)
 				.toLowerCase();
-		if (!this.security.equals(SMTPFunctionEngine.STARTTLS_SECURITY)
-				&& !this.security.equals(SMTPFunctionEngine.SSL_SECURITY)
-				&& !this.security.equals(SMTPFunctionEngine.NONE_SECURITY)) {
-			throw new IllegalArgumentException("Sending over SMTP only supports " + SMTPFunctionEngine.STARTTLS_SECURITY
-					+ ", " + SMTPFunctionEngine.SSL_SECURITY + ", or " + SMTPFunctionEngine.NONE_SECURITY + " for the "
-					+ SMTPFunctionEngine.SMTP_SECURITY_KEY + " key");
+		if (!this.security.equals(MailProperties.STARTTLS_SECURITY)
+				&& !this.security.equals(MailProperties.SSL_SECURITY)
+				&& !this.security.equals(MailProperties.NO_SECURITY)) {
+			throw new IllegalArgumentException("Sending over SMTP only supports " + MailProperties.STARTTLS_SECURITY
+					+ ", " + MailProperties.SSL_SECURITY + ", or " + MailProperties.NO_SECURITY + " for the "
+					+ MailProperties.SMTP_SECURITY + " key");
 		}
 
 		this.emailSession = buildEmailSession(smssProp);
 	}
 
 	@Override
-	public boolean send(String[] to, String[] cc, String[] bcc, String from, String subject, String message,
-			boolean html, String[] attachments) {
-		boolean success = EmailUtility.sendEmail(this.emailSession, to, cc, bcc, from, subject, message, html,
-				attachments);
+	public SendResult send(OutboundMail message) {
+		boolean success = EmailUtility.sendEmail(this.emailSession, message.toArray(), message.ccArray(),
+				message.bccArray(), message.from(), message.subject(), message.body(), message.html(),
+				message.attachmentArray());
 		if (!success && this.tokenProvider != null) {
 			// what the refused token carried, which is what tells a missing consent
 			// apart from a missing grant on the mailbox
@@ -158,7 +162,7 @@ public class SmtpMailTransport implements MailTransport {
 			// being refused for the rest of its hour after the fix
 			this.tokenProvider.invalidate();
 		}
-		return success;
+		return new SendResult(success, message.from());
 	}
 
 	/**
@@ -168,7 +172,7 @@ public class SmtpMailTransport implements MailTransport {
 	 * @return the session to send every message through
 	 */
 	private Session buildEmailSession(Properties smssProp) {
-		boolean onlyCustomProps = parseBoolean(smssProp.getProperty(SMTPFunctionEngine.ONLY_CUSTOM_PROPS_KEY), false);
+		boolean onlyCustomProps = parseBoolean(smssProp.getProperty(MailProperties.ONLY_CUSTOM_PROPERTIES), false);
 
 		// the server can be described either by this engine's own keys or purely in
 		// jakarta.mail keys, so resolve both before anything reads the port
@@ -192,9 +196,9 @@ public class SmtpMailTransport implements MailTransport {
 
 			// a raw ssl.enable counts the same as picking ssl, so a configuration
 			// written entirely in jakarta.mail keys is read the same way
-			boolean sslEnabled = this.security.equals(SMTPFunctionEngine.SSL_SECURITY)
+			boolean sslEnabled = this.security.equals(MailProperties.SSL_SECURITY)
 					|| Boolean.parseBoolean(smssProp.getProperty(SSL_ENABLE_PROPERTY));
-			if (!this.security.equals(SMTPFunctionEngine.NONE_SECURITY)) {
+			if (!this.security.equals(MailProperties.NO_SECURITY)) {
 				if (sslEnabled) {
 					// ssl.enable on its own, with no socketFactory.class. naming a
 					// socket factory is the legacy way to do this and it takes the
@@ -215,9 +219,9 @@ public class SmtpMailTransport implements MailTransport {
 				mailProps.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
 			}
 
-			mailProps.setProperty("mail.smtp.connectiontimeout", Integer.toString(
-					NumberUtils.toInt(smssProp.getProperty(SMTPFunctionEngine.CONNECTION_TIMEOUT_KEY), 10_000)));
-			int readTimeout = NumberUtils.toInt(smssProp.getProperty(SMTPFunctionEngine.READ_TIMEOUT_KEY), 30_000);
+			mailProps.setProperty("mail.smtp.connectiontimeout", Integer
+					.toString(NumberUtils.toInt(smssProp.getProperty(MailProperties.CONNECTION_TIMEOUT), 10_000)));
+			int readTimeout = NumberUtils.toInt(smssProp.getProperty(MailProperties.READ_TIMEOUT), 30_000);
 			mailProps.setProperty("mail.smtp.timeout", Integer.toString(readTimeout));
 			mailProps.setProperty("mail.smtp.writetimeout", Integer.toString(readTimeout));
 
@@ -234,7 +238,7 @@ public class SmtpMailTransport implements MailTransport {
 
 		// applied last so a raw mail. key wins over anything above
 		for (String key : smssProp.stringPropertyNames()) {
-			if (key.startsWith(SMTPFunctionEngine.RAW_MAIL_PROPERTY_PREFIX)) {
+			if (key.startsWith(MailProperties.RAW_MAIL_PROPERTY_PREFIX)) {
 				mailProps.setProperty(key, smssProp.getProperty(key));
 			}
 		}
@@ -308,7 +312,7 @@ public class SmtpMailTransport implements MailTransport {
 	private static Properties normalizeRawMailKeys(Properties smssProp) {
 		Properties normalized = new Properties();
 		for (String key : smssProp.stringPropertyNames()) {
-			if (key.toLowerCase().startsWith(SMTPFunctionEngine.RAW_MAIL_PROPERTY_PREFIX)) {
+			if (key.toLowerCase().startsWith(MailProperties.RAW_MAIL_PROPERTY_PREFIX)) {
 				normalized.setProperty(key.toLowerCase(), smssProp.getProperty(key));
 			} else {
 				normalized.setProperty(key, smssProp.getProperty(key));

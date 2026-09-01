@@ -72,6 +72,9 @@ from `social.properties` instead - the `smtp_*` keys, which the
 [docker configuration guide](../../../docs/deployment/docker_configuration.md)
 covers.
 
+These transient sends use the same `SMTPFunctionEngine` and `EmailUtility`
+delivery path as a cataloged engine, including email-attempt tracking.
+
 ---
 
 Part of the [function engines](README.md) of the

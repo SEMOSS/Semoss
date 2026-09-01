@@ -50,7 +50,7 @@ import org.mockito.Mockito;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
-import prerna.engine.impl.function.mail.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;

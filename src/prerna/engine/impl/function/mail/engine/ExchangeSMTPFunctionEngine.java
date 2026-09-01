@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail;
+package prerna.engine.impl.function.mail.engine;
 
 import java.util.Properties;
 
@@ -35,7 +35,7 @@ import prerna.engine.api.FunctionTypeEnum;
  * Function engine that sends email as a Microsoft 365 mailbox.
  *
  * <p>
- * The same engine as {@link SMTPFunctionEngine}, with the same guardrails,
+ * The same engine as {@link SMTPFunctionEngine}, with the same send policy,
  * pointed at Microsoft 365 and defaulting the other way on
  * {@link SMTPFunctionEngine#MAIL_TRANSPORT_KEY}:
  *
@@ -75,6 +75,18 @@ public class ExchangeSMTPFunctionEngine extends SMTPFunctionEngine {
 		return engine;
 	}
 
+	/**
+	 * Graph by default, because it asks far less of the tenant: one application
+	 * permission, where the protocol additionally needs a service principal, a
+	 * mailbox grant, and SMTP AUTH left enabled on both the tenant and the mailbox.
+	 *
+	 * <p>
+	 * Set {@code MAIL_TRANSPORT} to {@code jakarta} to send over SMTP instead,
+	 * which is the choice worth making when the point is to keep the application
+	 * confined to one mailbox: the protocol permissions carry no access until a
+	 * particular mailbox is granted, where the Graph ones are tenant wide unless
+	 * they are separately scoped.
+	 */
 	@Override
 	protected String getDefaultTransport() {
 		return GRAPH_TRANSPORT;

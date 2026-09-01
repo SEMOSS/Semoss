@@ -1,4 +1,4 @@
-# Sending mail (SMTP)
+# Sending mail
 
 A relay that is not Microsoft 365 only speaks SMTP, so this engine defaults to
 `MAIL_TRANSPORT jakarta`. For a Microsoft 365 mailbox use `EXCHANGE_SMTP`, which
@@ -26,11 +26,16 @@ CONNECTION_TIMEOUT         <optional; ms, defaults to 10000>
 READ_TIMEOUT               <optional; ms, defaults to 30000>
 ```
 
-Sending cannot be undone, so the guardrails sit in the SMSS rather than with the
+Sending cannot be undone, so the policy sits in the SMSS rather than with the
 caller: the sender is pinned to `SMTP_SENDER` unless `ALLOW_SENDER_OVERRIDE` is
 on, recipients outside `ALLOWED_RECIPIENT_DOMAINS` are rejected, the recipient
 count is capped, and attachments are refused until `ALLOW_ATTACHMENTS` is set.
 Attachments also have to already be files of the insight making the call.
+
+Both delivery backends pass through `EmailUtility`: Jakarta Mail builds and
+sends the SMTP message there, while Graph supplies its provider call to the same
+tracking boundary. Successful and failed attempts are therefore recorded the
+same way regardless of `MAIL_TRANSPORT`.
 
 Read what arrived at http://localhost:8085 (the GreenMail UI), or with
 `curl "http://localhost:8085/api/user/reports@semoss.local/messages/"`.

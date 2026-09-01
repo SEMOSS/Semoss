@@ -41,12 +41,12 @@ import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
-import prerna.engine.impl.function.mail.ExchangeIMAPFunctionEngine;
-import prerna.engine.impl.function.mail.ExchangePOP3FunctionEngine;
-import prerna.engine.impl.function.mail.ExchangeSMTPFunctionEngine;
-import prerna.engine.impl.function.mail.IMAPFunctionEngine;
-import prerna.engine.impl.function.mail.POP3FunctionEngine;
-import prerna.engine.impl.function.mail.SMTPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangeIMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangePOP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangeSMTPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.IMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.POP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.engine.impl.servicenow.ServiceNowFunctionEngine;
 
 public enum FunctionTypeEnum {

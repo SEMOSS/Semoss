@@ -1,9 +1,14 @@
 # Reading a mailbox (POP3 and IMAP)
 
-Two engines read mail over the protocols. They share every guardrail below and
-differ in what the protocol itself can do: POP3 has one inbox and no idea what
-has been read, IMAP has folders, search and read state, and can be allowed to
-change the mailbox.
+Two engines read mail over the protocols. They share every policy setting below
+and differ in what the protocol itself can do: POP3 has one inbox and no idea
+what has been read, IMAP has folders, search and read state, and can be allowed
+to change the mailbox.
+
+Internally both expose the same typed search request and result through a
+`MailboxClient`. Jakarta Mail and Graph are adapters to that boundary, so sender
+filtering, result limits, body truncation and attachment handling do not depend
+on which backend opened the mailbox.
 
 ## POP3
 

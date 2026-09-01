@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.function.mail;
+package prerna.engine.impl.function.mail.engine;
 
 import java.util.Properties;
 
@@ -33,7 +33,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.FunctionTypeEnum;
-import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
+import prerna.engine.impl.function.mail.adapter.jakarta.ExchangeStoreAuthentication;
+import prerna.engine.impl.function.mail.auth.ExchangeMailOAuth;
+import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
+import prerna.engine.impl.function.mail.spi.MailStoreAuthentication;
 
 /**
  * Function engine that reads a Microsoft 365 mailbox over POP3.
@@ -59,8 +62,6 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	/** The application permission a token has to carry to read over POP3. */
 	public static final String POP3_PERMISSION = "POP.AccessAsApp";
 
-	private MicrosoftGraphAppTokenProvider tokenProvider = null;
-
 	/**
 	 * Build an Exchange POP3 engine that is not in the catalog, for a caller that
 	 * already holds an app registration and wants this engine's connection handling
@@ -83,10 +84,6 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	protected void openProtocolProperties(Properties smssProp) {
 		super.openProtocolProperties(smssProp);
 
-		// the provider validates the credentials, so an engine missing one of them
-		// fails on open rather than on the first read
-		this.tokenProvider = ExchangeMailOAuth.openTokenProvider(smssProp);
-
 		ExchangeMailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))), key(USERNAME_SUFFIX));
 
 		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
@@ -98,28 +95,8 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	}
 
 	@Override
-	protected void addAuthenticationProperties(Properties mailProps) {
-		ExchangeMailOAuth.addXoauth2Properties(mailProps, this.storeProtocol);
-	}
-
-	@Override
-	protected String getCredentialDescription() {
-		return ExchangeMailOAuth.credentialDescription(this.tokenProvider.getClientId());
-	}
-
-	@Override
-	protected String getConnectPassword() {
-		// a mailbox token lasts about an hour, so it is fetched per connect. the
-		// provider hands back its cached one until it is close to expiring
-		return this.tokenProvider.getAccessToken();
-	}
-
-	@Override
-	protected boolean refreshCredentials() {
-		// the token was accepted when it was issued, so a refusal means it stopped
-		// being valid before its stated expiry - dropping it is worth one retry
-		this.tokenProvider.invalidate();
-		return true;
+	protected MailStoreAuthentication createStoreAuthentication(Properties properties, JakartaStoreConfig config) {
+		return new ExchangeStoreAuthentication(ExchangeMailOAuth.openTokenProvider(properties), POP3_PERMISSION);
 	}
 
 	/**
@@ -155,10 +132,6 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 			// this engine never changes a mailbox, so reading is all it ever needs
 			return ExchangeMailOAuth.graphAuthenticationHint(ExchangeMailOAuth.GRAPH_READ_PERMISSION);
 		}
-		// what the token carries tells the three causes apart, so it goes in the log
-		// rather than leaving the reader to guess which half of the setup is missing
-		classLogger.error("Exchange refused the sign in for {} and {}", this.username,
-				ExchangeMailOAuth.tokenDiagnostic(this.tokenProvider));
 		return ExchangeMailOAuth.authenticationHint(POP3_PERMISSION, null);
 	}
 

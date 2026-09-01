@@ -38,6 +38,8 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EmailUtility;
+import prerna.util.EmailUtility.EmailMetadata;
 
 /**
  * Sends mail as whoever is signed in.
@@ -48,7 +50,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * their own Sent Items where they can see what was sent on their behalf. The
  * mail function engines are the other way round: they hold an app
  * registration's credentials and send as a mailbox named in their SMSS, which
- * is why they carry the guardrails this does not need.
+ * is why they carry the send policy this does not need.
  * </p>
  *
  * <p>
@@ -90,17 +92,19 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 		String saveToSentItems = this.keyValue.get(SAVE_TO_SENT_ITEMS);
 		boolean keepCopy = saveToSentItems == null || Boolean.parseBoolean(saveToSentItems);
 
-		ComposedMail composed = null;
-		String from = null;
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			from = MicrosoftOutlookMailTracking.signedInAddress(user);
+			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 
-			composed = compose(true, "send");
+			ComposedMail composed = compose(true, "send");
+			EmailMetadata metadata = new EmailMetadata(composed.to, composed.cc, composed.bcc, from, composed.subject,
+					composed.body, composed.html, composed.attachments);
 			// a null mailbox addresses /me, so this sends as the signed in user
-			new MicrosoftOutlookMailHelper().sendMail(accessToken, null, composed.message, keepCopy);
-			track(composed, from, true);
+			EmailUtility.sendEmail(() -> {
+				new MicrosoftOutlookMailHelper().sendMail(accessToken, null, composed.message, keepCopy);
+				return null;
+			}, metadata);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("sent", true);
@@ -111,26 +115,8 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 			throw e;
 		} catch (Exception e) {
 			classLogger.error("Failed to send mail as the signed in user", e);
-			// a message that was assembled and then refused is still worth recording,
-			// so the table shows the attempt rather than nothing at all
-			track(composed, from, false);
 			throw new SemossPixelException("An error occurred sending the email. Error message: " + e.getMessage());
 		}
-	}
-
-	/**
-	 * Record the send alongside everything that goes out over SMTP.
-	 *
-	 * @param composed   what was assembled, or null when it never got that far
-	 * @param from       the address it was sent as
-	 * @param successful whether the send succeeded
-	 */
-	private void track(ComposedMail composed, String from, boolean successful) {
-		if (composed == null) {
-			return;
-		}
-		MicrosoftOutlookMailTracking.trackSend(composed.to, composed.cc, composed.bcc, from, composed.subject,
-				composed.body, composed.html, composed.attachments, successful);
 	}
 
 	@Override
