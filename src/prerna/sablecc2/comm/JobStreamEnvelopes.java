@@ -48,4 +48,15 @@ public final class JobStreamEnvelopes {
 		envelope.put("data", data);
 		PixelJobManager.getManager().addStreamOut(jobId, envelope);
 	}
+
+	/** Emits a room-name update through an existing Pixel async job stream. */
+	public static void roomName(String jobId, String roomName) {
+		if (jobId == null || jobId.isBlank() || roomName == null || roomName.isBlank()) return;
+		Map<String, Object> data = new LinkedHashMap<>();
+		data.put("roomName", roomName);
+		Map<String, Object> envelope = new LinkedHashMap<>();
+		envelope.put("stream_type", "room_name");
+		envelope.put("data", data);
+		PixelJobManager.getManager().addStreamOut(jobId, envelope);
+	}
 }
