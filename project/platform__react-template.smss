@@ -1,5 +1,5 @@
 #Base Properties
-PROJECT	react
+PROJECT	react-template
 PROJECT_ALIAS	platform
 PROJECT_DISPLAY_NAME	React Template App
 PROJECT_TYPE	prerna.project.impl.Project
@@ -13,5 +13,5 @@ DRIVER	org.h2.Driver
 RDBMS_TYPE	H2_DB
 USERNAME	sa
 PASSWORD
-CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__react/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__react-template/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
 PIPELINE	pipeline.json

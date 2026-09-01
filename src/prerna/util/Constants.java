@@ -1081,7 +1081,7 @@ public class Constants {
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
 	// system (platform) app names
-	public static final String APP_REACT = "react";
+	public static final String APP_REACT_TEMPLATE = "react-template";
 
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
