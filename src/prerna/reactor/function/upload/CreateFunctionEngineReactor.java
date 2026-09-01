@@ -128,16 +128,16 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 		String functionId = UUID.randomUUID().toString();
 		File tempSmss = null;
 		File smssFile = null;
-		File specificEngineFolder = null;
+		File specificEngineAssetsFolder = null;
 		IFunctionEngine function = null;
 		try {
 			// validate engine
 			UploadUtilities.validateEngine(IEngine.CATALOG_TYPE.FUNCTION, user, functionName, functionId);
-			specificEngineFolder = UploadUtilities.generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.FUNCTION,
-					functionId, functionName);
+			specificEngineAssetsFolder = UploadUtilities
+					.generateSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.FUNCTION, functionId, functionName);
 
 			if (functionType == FunctionTypeEnum.LOCAL_PYTHON) {
-				moveFilesToEngineFolder(specificEngineFolder);
+				moveFilesToEngineFolder(specificEngineAssetsFolder);
 			}
 
 			String functionClass = functionType.getFunctionClass();
@@ -178,7 +178,7 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(functionId);
 		} catch (Exception e) {
 			classLogger.error("Unable to create function engine '{}' ({})", functionName, functionId, e);
-			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineFolder);
+			UploadUtilities.cleanUpCreateNewError(function, functionId, tempSmss, smssFile, specificEngineAssetsFolder);
 			return new NounMetadata(e.getMessage(), PixelDataType.CONST_STRING, PixelOperationType.ERROR);
 		}
 
@@ -209,17 +209,28 @@ public class CreateFunctionEngineReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Create a new function engine based on the functionDetails parameters";
+		return """
+				Create and register a function engine from the supplied function metadata. The reactor validates the
+				engine type, creates its assets and SMSS configuration, assigns the caller as an owner, initializes
+				version control, and synchronizes the engine to the cluster.
+				""";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.FUNCTION.getKey())) {
-			return "The name of the new function engine";
-		} else if (key.equals(ReactorKeysEnum.FUNCTION_DETAILS.getKey())) {
-			return "A map containing the details for the function engine. These values get added to the engine smss file and are dependent on the specific function engine type";
-		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
-			return "A file path in the current insight space that will get moved into the new engine assets folder";
+		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
+			return "The catalog name for the new function engine. The name must be unique and contain only supported engine-name characters.";
+		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
+			return """
+					The function-engine SMSS properties. The map must include FUNCTION_TYPE and the configuration
+					required by that engine type, such as FUNCTION_NAME, FUNCTION_DESCRIPTION, parameters,
+					credentials, connection settings, or provider-specific options.
+					""";
+		} else if (ReactorKeysEnum.FILE_PATH.getKey().equals(key)) {
+			return """
+					Optional path to a file in the current insight folder. For LOCAL_PYTHON engines, each supplied
+					file is moved into the new engine assets folder.
+					""";
 		}
 
 		return super.getDescriptionForKey(key);

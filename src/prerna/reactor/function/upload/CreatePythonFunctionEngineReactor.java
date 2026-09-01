@@ -101,7 +101,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		String functionTypeStr = (String) functionDetails.get(IFunctionEngine.FUNCTION_TYPE);
 		String pythonFileName = (String) functionDetails.get(IFunctionEngine.PYTHON_FILE_NAME);
 		if (functionTypeStr == null || (functionTypeStr = functionTypeStr.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must define the function type");
+			functionTypeStr = FunctionTypeEnum.LOCAL_PYTHON.getFunctionName();
 		}
 		if (pythonFileName == null || (pythonFileName = pythonFileName.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must define the Python file name");
@@ -272,5 +272,35 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		if (value == null || !value.matches("[A-Za-z_][A-Za-z0-9_]*")) {
 			throw new IllegalArgumentException("The Python " + field + " must be a valid identifier");
 		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Create and register a LOCAL_PYTHON function engine. The reactor writes the supplied Python source
+				to the engine assets folder, or generates a starter function from the function metadata when no
+				source content is supplied.
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.FUNCTION.getKey().equals(key)) {
+			return "The catalog name for the new Python function engine. It is normalized to UpperCamelCase for the engine name.";
+		} else if (ReactorKeysEnum.FUNCTION_DETAILS.getKey().equals(key)) {
+			return """
+					The function-engine SMSS properties. The map must define FUNCTION_TYPE as LOCAL_PYTHON,
+					PYTHON_FILE_NAME, FUNCTION_NAME, and FUNCTION_DESCRIPTION. FUNCTION_PARAMETERS and
+					FUNCTION_REQUIRED_PARAMETERS are used when generating starter source.
+					""";
+		} else if (ReactorKeysEnum.CONTENT.getKey().equals(key)) {
+			return """
+					Optional complete Python source for the configured file. When omitted, the reactor generates a
+					starter function with the configured function name, required parameters, parameter documentation,
+					and placeholder print statements.
+					""";
+		}
+
+		return super.getDescriptionForKey(key);
 	}
 }
