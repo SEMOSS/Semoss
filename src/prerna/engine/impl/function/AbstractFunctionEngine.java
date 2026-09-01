@@ -190,6 +190,41 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 		}
 	}
 
+	/**
+	 * Pull a runtime parameter as a boolean. A model sends a flag as a real boolean
+	 * from one provider and as the string "true" from another, and a plain
+	 * {@link Boolean#parseBoolean(String)} would silently read anything it does not
+	 * recognize as false, so an unrecognized value falls back to the default
+	 * instead.
+	 *
+	 * @param parameterValues the runtime parameters for this call
+	 * @param key             the parameter to read
+	 * @param defaultValue    value to use when the parameter is not set or not a
+	 *                        recognized boolean
+	 * @return the parameter value as a boolean or the default
+	 */
+	protected static boolean getBooleanParameterValue(Map<String, Object> parameterValues, String key,
+			boolean defaultValue) {
+		Object value = parameterValues == null ? null : parameterValues.get(key);
+		if (value == null) {
+			return defaultValue;
+		}
+		if (value instanceof Boolean) {
+			return ((Boolean) value).booleanValue();
+		}
+		String stringValue = value.toString().trim().toLowerCase();
+		if (stringValue.equals("true") || stringValue.equals("yes") || stringValue.equals("y")
+				|| stringValue.equals("1")) {
+			return true;
+		}
+		if (stringValue.equals("false") || stringValue.equals("no") || stringValue.equals("n")
+				|| stringValue.equals("0")) {
+			return false;
+		}
+		classLogger.warn("Invalid boolean '{}' for the {} parameter, using {} instead", stringValue, key, defaultValue);
+		return defaultValue;
+	}
+
 	@Override
 	public JSONObject getFunctionDefintionJson() {
 		JSONObject json = new JSONObject();

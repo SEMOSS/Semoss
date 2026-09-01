@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -43,6 +44,17 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return
 	 */
 	GuardrailTypeEnum getGuardrailType();
+
+	/**
+	 * Markdown that explains and demonstrates this guardrail. Creation flows may
+	 * use it to initialize empty engine metadata without replacing user content.
+	 *
+	 * @return default markdown, or null when the guardrail has no example
+	 */
+	@IgnoreEngineLogging
+	default String getDefaultMarkdown() {
+		return null;
+	}
 
 	/**
 	 * 
