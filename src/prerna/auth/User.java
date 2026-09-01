@@ -128,6 +128,9 @@ public class User implements Serializable {
 	private boolean anonymous;
 	private String anonymousId;
 
+	private boolean pendingRevocation;
+	private String revocationReason;
+
 	private transient volatile String[] cachedTemporalAccessSecretKey = null;
 
 	public User() {
@@ -226,21 +229,29 @@ public class User implements Serializable {
 	}
 
 	/**
-	 * Clears this user's logged-in providers without touching {@code accessTokens}, so
-	 * {@link #getPrimaryLoginToken()} still returns a valid token for the rest of the
-	 * current request while {@link #isLoggedIn()} and {@link #getLogins()} report no
-	 * active session going forward. {@code NoUserInSessionFilter} on the web layer checks
-	 * exactly that on the user's next request, invalidating the session and running real
-	 * logout cleanup. Clearing {@code accessTokens} too would make
-	 * {@link #getPrimaryLoginToken()} return null immediately, which many call sites do
-	 * not null-check.
+	 * Marks this session as pending revocation without touching {@code loggedInProfiles}
+	 * or {@code accessTokens} — unlike an immediate logout, this keeps the session fully
+	 * alive. That's deliberate: the request that triggered this still needs to finish and
+	 * carry the block back to the client (see {@code PipelineInvocationHandler}, which
+	 * both attaches {@code USER_LOGGED_OUT_ERROR} to the response and refuses further
+	 * model calls once this flag is set), and the client performs the real logout, through
+	 * {@code /api/auth/logout/all}, only once the user acknowledges the dialog it shows.
 	 *
-	 * @param reason short cause for the forced logout, for logging only
+	 * @param reason short cause for the revocation, for logging and the dialog's re-delivery path
 	 */
-	public void markLoggedOut(String reason) {
+	public void markPendingRevocation(String reason) {
 		AccessToken token = getPrimaryLoginToken();
 		classLogger.warn("Marking user {} logged out: {}", token != null ? token.getId() : "UNKNOWN", reason);
-		this.loggedInProfiles.clear();
+		this.pendingRevocation = true;
+		this.revocationReason = reason;
+	}
+
+	public boolean isPendingRevocation() {
+		return this.pendingRevocation;
+	}
+
+	public String getRevocationReason() {
+		return this.revocationReason;
 	}
 
 	public boolean isLoggedIn() {

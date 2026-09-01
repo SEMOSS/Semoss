@@ -67,7 +67,6 @@ import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -95,6 +94,7 @@ import prerna.reactor.interceptor.PipelineReactorUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.LocalDateTimeAdapter;
@@ -180,6 +180,16 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		{
+			User pendingUser = resolveUser(args);
+			if (pendingUser != null && pendingUser.isPendingRevocation()) {
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage(
+						"Unable to process this request; your session has been revoked following a content "
+								+ "policy block. Please sign out to continue.",
+						PixelOperationType.USER_LOGGED_OUT_ERROR));
+			}
+		}
+
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
@@ -359,9 +369,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
-						logoutIfRequested(resultMap, args);
-						throw new SemossPixelException(blockMessageOrDefault(resultMap,
-								"Unable to process this request due to content policy (guardrail input exception)"));
+						boolean loggedOut = logoutIfRequested(resultMap, args);
+						String blockMsg = blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail input exception)");
+						if (loggedOut) {
+							throw new SemossPixelException(
+									NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+						}
+						throw new SemossPixelException(blockMsg);
 					}
 				}
 			}
@@ -471,9 +486,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					if (cannedResponse != null) {
 						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
 							closeRoomIfRequested(resultMap, args);
-							logoutIfRequested(resultMap, args);
-							throw new SemossPixelException(blockMessageOrDefault(resultMap,
-									"Unable to process this request due to content policy (guardrail output exception)"));
+							boolean loggedOut = logoutIfRequested(resultMap, args);
+							String blockMsg = blockMessageOrDefault(resultMap,
+									"Unable to process this request due to content policy (guardrail output exception)");
+							if (loggedOut) {
+								throw new SemossPixelException(
+										NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+							}
+							throw new SemossPixelException(blockMsg);
 						}
 						classLogger.warn("Guardrail {} short-circuited the model call with a canned response",
 								reactor.getClass().getSimpleName());
@@ -482,9 +502,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
-						logoutIfRequested(resultMap, args);
-						throw new SemossPixelException(blockMessageOrDefault(resultMap,
-								"Unable to process this request due to content policy (guardrail output exception)"));
+						boolean loggedOut = logoutIfRequested(resultMap, args);
+						String blockMsg = blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail output exception)");
+						if (loggedOut) {
+							throw new SemossPixelException(
+									NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+						}
+						throw new SemossPixelException(blockMsg);
 					}
 				}
 			}
@@ -513,35 +538,38 @@ public class PipelineInvocationHandler implements InvocationHandler {
 		}
 	}
 
-	private void logoutIfRequested(Map<String, Object> resultMap, Object[] args) {
+	/**
+	 * @return true only if a session was actually marked pending revocation. Callers
+	 *         use this — not whether logoutOnBlock was configured — to decide whether
+	 *         to tag the block as a logout, since an anonymous user has no session to
+	 *         revoke and no-ops below.
+	 */
+	private boolean logoutIfRequested(Map<String, Object> resultMap, Object[] args) {
 		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))) {
-			return;
+			return false;
 		}
 		try {
 			User user = resolveUser(args);
 			if (user == null) {
 				classLogger.warn("logoutOnBlock is configured but no user could be resolved from the guardrail call");
-				return;
+				return false;
 			}
 			if (user.isAnonymous()) {
 				classLogger.info("Guardrail block on anonymous user; nothing to log out");
-				return;
-			}
-			if (AbstractSecurityUtils.anonymousUsersEnabled()) {
-				classLogger.warn("logoutOnBlock is configured but anonymous users are enabled; the session cannot "
-						+ "be forced to log out. Blocking only.");
-				return;
+				return false;
 			}
 
 			AccessToken token = user.getPrimaryLoginToken();
 			String userId = token != null ? token.getId() : null;
 
-			user.markLoggedOut("GUARDRAIL");
-			classLogger.warn("Guardrail cleared logins for user {} after a block; session will be terminated on the "
-					+ "next request", userId);
+			user.markPendingRevocation("GUARDRAIL");
+			classLogger.warn("Guardrail marked user {} pending revocation after a block; session stays live until "
+					+ "the client acknowledges and logs out", userId);
+			return true;
 		} catch (Exception e) {
 			// never let this suppress the block itself
-			classLogger.error("Failed to log out user after guardrail block", e);
+			classLogger.error("Failed to mark user pending revocation after guardrail block", e);
+			return false;
 		}
 	}
 
@@ -551,6 +579,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	 * {@code ask} path), then falling back to {@link ThreadStore}.
 	 */
 	private User resolveUser(Object[] args) {
+		if (args == null) {
+			return null;
+		}
 		for (Object arg : args) {
 			if (arg instanceof Room) {
 				return ((Room) arg).getInsight().getUser();
