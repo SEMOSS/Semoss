@@ -72,6 +72,7 @@ import prerna.reactor.qs.SubQueryExpression;
 import prerna.reactor.vector.VectorDatabaseParamOptionsEnum;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -303,7 +304,37 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					filesToCopyToCloud.stream().toArray(String[]::new)));
 		}
 
-		// verify the index class loaded the dataset
+		// python reports one best-effort status per input csv - use it when present
+		Object documentStatuses = pythonResponseAfterCreatingFiles.get("documentStatuses");
+		if (documentStatuses instanceof List) {
+			List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
+			for (Object entry : (List<Object>) documentStatuses) {
+				if (!(entry instanceof Map)) {
+					continue;
+				}
+				Map<String, Object> statusMap = (Map<String, Object>) entry;
+				String file = String.valueOf(statusMap.get("fileName"));
+				String status = String.valueOf(statusMap.get("status"));
+				long totalRecords = asLong(statusMap.get("totalRecords"),
+						fileRecordCountMap.getOrDefault(file, 0));
+				long inserted = asLong(statusMap.get("insertedRecords"),
+						"SUCCESS".equals(status) ? totalRecords : 0);
+				long failed = asLong(statusMap.get("failedRecords"), totalRecords - inserted);
+
+				FileEmbeddingStatus fileStatus = new FileEmbeddingStatus(file, status, inserted, failed,
+						totalRecords);
+				Object error = statusMap.get("error");
+				if (error != null) {
+					Map<String, Object> errorMap = new HashMap<>();
+					errorMap.put(Constants.ERROR_MESSAGE, error.toString());
+					fileStatus.setError(errorMap);
+				}
+				fileStatusList.add(fileStatus);
+			}
+			return fileStatusList;
+		}
+
+		// older python runtime - fall back to the coarse index-level check
 		StringBuilder checkForEmptyDatabase = new StringBuilder();
 		checkForEmptyDatabase.append(this.vectorDatabaseSearcher).append(".searchers['").append(indexClass).append("']")
 				.append(".datasetsLoaded()");
@@ -331,6 +362,19 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		}
 
 		return fileStatusList;
+	}
+
+	/**
+	 *
+	 * @param value
+	 * @param fallback
+	 * @return
+	 */
+	private static long asLong(Object value, long fallback) {
+		if (value instanceof Number) {
+			return ((Number) value).longValue();
+		}
+		return fallback;
 	}
 
 	/**
