@@ -58,6 +58,27 @@ public class ProjectWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void init() {
+		// loading generic platform apps
+		List<String> defaultApps = SystemDefaultEngines.getSystemApps();
+		for (String engineId : defaultApps) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, "APP", "SYSTEM");
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			} else {
+				classLogger.warn("Platform app '{}' is registered but {}/platform__{} is missing; it will not be "
+						+ "available", engineId, folderToWatch, fileName);
+			}
+		}
+
 		// we will load the platform skills
 		List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
 		for (String engineId : defaultPlatforms) {
