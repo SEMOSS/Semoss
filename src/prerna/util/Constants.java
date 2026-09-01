@@ -919,6 +919,9 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
+	// node.js agent execution environment
+	public static final String JS_BASE_FOLDER = "js";
+
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -1091,6 +1094,7 @@ public class Constants {
 	public static final String SKILL_MODEL = "model";
 	public static final String SKILL_PAGINATION = "pagination";
 	public static final String SKILL_PERMISSIONS = "permissions";
+	public static final String SKILL_PPTX = "pptx";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
 	public static final String SKILL_STORAGE = "storage";

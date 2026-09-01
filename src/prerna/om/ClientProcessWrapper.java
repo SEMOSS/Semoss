@@ -117,6 +117,10 @@ public class ClientProcessWrapper {
 	private String sandboxControlDir;
 
 	private boolean nativePyServer;
+	// true when this wrapper owns a node.js worker (gaas_node_worker.js) instead
+	// of a python one; reconnect() re-dispatches on this. The node worker speaks
+	// the same JSON protocol, so it reuses NativePySocketClient.
+	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
 	private String classPath;
 	private boolean debug;
@@ -451,6 +455,10 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect() throws Exception {
+		if (nodeServer) {
+			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			return;
+		}
 		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
 				timeout, loggerLevel, threadLoggerCtx);
 	}
@@ -465,6 +473,11 @@ public class ClientProcessWrapper {
 	 *                   never becomes ready
 	 */
 	public void reconnect(String venvEngineId) throws Exception {
+		if (nodeServer) {
+			// venvs do not apply to the node worker
+			createNodeProcessAndClient(port, serverDirectory, debug, timeout, loggerLevel, threadLoggerCtx);
+			return;
+		}
 		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 		createProcessAndClient(nativePyServer, chrootSymlinkHelper, port, venvPath, serverDirectory, classPath, debug,
 				timeout, loggerLevel, threadLoggerCtx);
@@ -1163,6 +1176,346 @@ public class ClientProcessWrapper {
 			thisProcess = p;
 		} catch (IOException ioe) {
 			throw new IllegalStateException("Failed to start namespace sandbox process", ioe);
+		}
+
+		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };
+	}
+
+	/**
+	 * Spawn the agent node.js worker (js/gaas_node_worker.js) and connect a
+	 * socket client to it, blocking until the client reports ready. This is the
+	 * node analog of
+	 * {@link #createProcessAndClient(boolean, SymlinkHelper, int, String, String, String, boolean, String, String, Map)}.
+	 * On non-Windows hosts with {@code SANDBOX_MODE=NAMESPACE} (or legacy
+	 * {@code NSJAIL}) the worker is launched inside its own unprivileged
+	 * namespace jail; otherwise it is launched as a plain child process.
+	 *
+	 * @param port            port to connect on; negative to auto-allocate
+	 * @param serverDirectory working/scratch directory for the worker process
+	 * @param debug           true to attach to an already-running worker on the
+	 *                        given port instead of spawning one
+	 * @param timeout         idle timeout in minutes (null/"-1" for none)
+	 * @param loggerLevel     log level for the spawned process (e.g. INFO)
+	 * @param threadLoggerCtx log4j MDC context to propagate onto the socket
+	 *                        client thread
+	 * @throws Exception if the process cannot be started or the socket client
+	 *                   never becomes ready
+	 */
+	public void createNodeProcessAndClient(int port, String serverDirectory, boolean debug, String timeout,
+			String loggerLevel, Map<String, String> threadLoggerCtx) throws Exception {
+		lockCreate.lock();
+		try {
+			// the node worker speaks the same JSON protocol as the native python
+			// server, so the connection layer below reuses NativePySocketClient
+			this.nativePyServer = true;
+			this.nodeServer = true;
+			this.chrootSymlinkHelper = null;
+			this.classPath = null;
+			this.venvPath = null;
+			this.port = calculatePort(port);
+			this.serverDirectory = serverDirectory;
+			this.debug = debug;
+			this.loggerLevel = loggerLevel;
+			this.threadLoggerCtx = threadLoggerCtx;
+			this.timeout = timeout;
+			if (this.timeout == null) {
+				this.timeout = "-1";
+			}
+			this.udsPath = null;
+
+			boolean serverRunning = debug && port > 0;
+			if (!serverRunning) {
+				String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+				boolean namespaceSandbox = !SystemUtils.IS_OS_WINDOWS
+						&& ("NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode));
+				if (namespaceSandbox) {
+					Object[] ret = ClientProcessWrapper.startTCPServerNodeSandbox(this.serverDirectory, this.port + "",
+							this.timeout, this.loggerLevel, null);
+					this.process = (Process) ret[0];
+					this.prefix = (String) ret[1];
+					this.udsPath = (String) ret[2];
+					this.controlSocketPath = (String) ret[3];
+					this.sandboxIoDir = (String) ret[4];
+					this.sandboxJailDir = (String) ret[5];
+					this.sandboxControlDir = (String) ret[6];
+				} else {
+					Object[] ret = ClientProcessWrapper.startTCPServerNode(this.serverDirectory, this.port + "",
+							this.timeout, this.loggerLevel);
+					this.process = (Process) ret[0];
+					this.prefix = (String) ret[1];
+				}
+			}
+
+			try {
+				this.socketClient = new NativePySocketClient(threadLoggerCtx);
+				this.socketClient.setCpw(this);
+				if (this.udsPath != null) {
+					this.socketClient.connectUds(this.udsPath);
+				} else {
+					this.socketClient.connect("127.0.0.1", this.port, false);
+				}
+				Thread t = new Thread(socketClient);
+				t.start();
+				socketClient.awaitReadyOrKill(SOCKET_CLIENT_READY_WAIT_TIMEOUT_MS,
+						SOCKET_CLIENT_READY_WAIT_INTERVAL_MS);
+				classLogger.info("Setting the node socket client");
+			} catch (Exception e) {
+				if (debug) {
+					throw new IllegalArgumentException("Could not connect to node process - note force port is on "
+							+ port + " and your server might not be started");
+				}
+				classLogger.error("Failed to initialize socket client for the node worker on port {}", this.port, e);
+				throw e;
+			}
+		} finally {
+			lockCreate.unlock();
+		}
+	}
+
+	/**
+	 * Spawn the node worker as a plain (non-sandboxed) child process. Mirrors
+	 * {@link #startTCPServerNativePy} minus the python-specific pieces. Optional
+	 * {@code NODE_PERMISSION_FLAGS} are inserted before the script so admins can
+	 * apply the node permission model matching their installed node version.
+	 *
+	 * @param insightFolder working directory for the process
+	 * @param port          port to bind
+	 * @param timeout       idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @return a two-element array: { the spawned {@link Process} (or null on
+	 *         failure), the process prefix string }
+	 */
+	public static Object[] startTCPServerNode(String insightFolder, String port, String timeout, String loggerLevel) {
+		String prefix = "";
+		Process thisProcess = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			String node = prerna.ds.node.NodeUtils.getNodeExecutable();
+			String jsBase = prerna.ds.node.NodeUtils.getJsBaseFolder();
+			String nodeWorker = jsBase + "/gaas_node_worker.js";
+			String nodeEnvDir = prerna.ds.node.NodeUtils.getNodeEnvDir();
+
+			prefix = "p_" + Utility.getRandomString(5);
+			String outputFile = finalDir + "/console.txt";
+
+			java.util.List<String> commands = new java.util.ArrayList<>();
+			commands.add(node);
+			String permissionFlags = Utility.getDIHelperProperty(Settings.NODE_PERMISSION_FLAGS);
+			if (permissionFlags != null && !permissionFlags.trim().isEmpty()) {
+				for (String flag : permissionFlags.trim().split("\\s+")) {
+					commands.add(flag);
+				}
+			}
+			commands.add(nodeWorker);
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--node_env");
+			commands.add(nodeEnvDir);
+
+			String[] commandArray = commands.toArray(new String[0]);
+
+			// need to make sure we are not windows cause ulimit will not work
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commandArray) {
+					sb.append(str).append(" ");
+				}
+				commandArray = new String[] { "/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
+			}
+
+			classLogger.info("Starting node agent process with ::: {}", Arrays.toString(commandArray));
+			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			// agent code runs in worker_threads, where process.chdir() throws
+			// ERR_WORKER_UNSUPPORTED_OPERATION - the process itself must start in
+			// the insight folder for relative paths to resolve there (worker
+			// threads inherit the process cwd)
+			pb.directory(new File(finalDir));
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(new File(outputFile));
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			// brief poll for an immediate crash (bad NODE_HOME, syntax error)
+			for (int i = 0; i < PROCESS_CRASH_POLL_ATTEMPTS && p.isAlive(); i++) {
+				try {
+					if (p.waitFor(PROCESS_CRASH_POLL_INTERVAL_MS, TimeUnit.MILLISECONDS)) {
+						break;
+					}
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					classLogger.error("Interrupted while polling for an early node process crash", ie);
+					break;
+				}
+			}
+			if (!p.isAlive()) {
+				throw new IllegalStateException("Node worker exited during startup with code " + p.exitValue() + ". "
+						+ readSandboxStartupLog(new File(outputFile)));
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			classLogger.error("Failed to start the node worker process", ioe);
+		}
+
+		return new Object[] { thisProcess, prefix };
+	}
+
+	/**
+	 * Start the node worker inside its own unprivileged Linux namespace sandbox
+	 * via py/sandbox_launcher.py with the {@code --exec-cmd} override. The jail
+	 * additionally binds the js folder (worker + curated node_env) and, when
+	 * configured, the {@code NODE_HOME} install root read-only. Unlike the
+	 * python sandbox, this jail is self-contained: no injector is wired into a
+	 * user SymlinkHelper, so agent code sees only the jail plus its insight
+	 * scratch folder.
+	 *
+	 * @param insightFolder working directory for the worker process
+	 * @param port          port passed to the worker (it listens on a unix
+	 *                      domain socket inside the sandbox)
+	 * @param timeout       idle timeout in minutes ("-1" for none)
+	 * @param loggerLevel   log level for the spawned process (e.g. INFO)
+	 * @param ioDirName     name for this worker's io-dir / jail folder; a random
+	 *                      name is generated when null/empty
+	 * @return { Process, prefix, udsPath, controlSocketPath, ioDir, jailDir,
+	 *         controlDir }
+	 */
+	public static Object[] startTCPServerNodeSandbox(String insightFolder, String port, String timeout,
+			String loggerLevel, String ioDirName) {
+		String prefix = "";
+		Process thisProcess = null;
+		String udsPath = null;
+		String controlSocketPath = null;
+		String ioDir = null;
+		String jailDir = null;
+		String controlDir = null;
+		String finalDir = insightFolder.replace("\\", "/");
+
+		try {
+			// the sandbox launcher itself runs on the platform python
+			String py = getPythonExecutable();
+			String node = prerna.ds.node.NodeUtils.getNodeExecutable();
+			String jsBase = prerna.ds.node.NodeUtils.getJsBaseFolder();
+			String nodeWorker = jsBase + "/gaas_node_worker.js";
+			String nodeEnvDir = prerna.ds.node.NodeUtils.getNodeEnvDir();
+			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
+			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
+			String launcher = pyBase + "/sandbox_launcher.py";
+
+			prefix = "p_" + Utility.getRandomString(5);
+
+			String ioRoot = Utility.getDIHelperProperty(Constants.SANDBOX_IO_DIR);
+			if (Strings.isNullOrEmpty(ioRoot)) {
+				ioRoot = System.getProperty("java.io.tmpdir") + "/semoss-sandbox";
+			}
+			// AF_UNIX socket paths are limited by sockaddr_un.sun_path, so keep
+			// runtime folder/socket names short (same convention as the py path)
+			String sourceName = Strings.isNullOrEmpty(ioDirName) ? prefix
+					: ioDirName.replaceAll("[^a-zA-Z0-9._-]", "_");
+			String folderName = prefix + "_" + Integer.toUnsignedString(sourceName.hashCode(), 36);
+			ioDir = ioRoot + "/" + folderName;
+			jailDir = ioRoot + "/" + folderName + "_j";
+			controlDir = ioRoot + "/" + folderName + "_c";
+			new File(Utility.normalizePath(ioDir)).mkdirs();
+			new File(Utility.normalizePath(jailDir)).mkdirs();
+			new File(Utility.normalizePath(controlDir)).mkdirs();
+			udsPath = ioDir + "/w.sock";
+			controlSocketPath = controlDir + "/c.sock";
+
+			String outputFile = ioDir + "/console.txt";
+
+			java.util.List<String> commands = new java.util.ArrayList<>();
+			commands.add(py);
+			commands.add(launcher);
+			// bind the js folder (worker script + node_env) read-only
+			commands.add("--py-folder");
+			commands.add(jsBase);
+			commands.add("--insight-folder");
+			commands.add(finalDir);
+			commands.add("--io-dir");
+			commands.add(ioDir);
+			commands.add("--control-socket");
+			commands.add(controlSocketPath);
+			commands.add("--inject-root");
+			commands.add(baseFolder);
+			commands.add("--jail-root");
+			commands.add(jailDir);
+			commands.add("--exec-cmd");
+			commands.add(node);
+			commands.add("--exec-script");
+			commands.add(nodeWorker);
+			// a NODE_HOME outside the default /usr,/bin,/lib mounts must be
+			// visible inside the jail for the execv to work
+			String nodeHome = System.getenv(Settings.NODE_HOME);
+			if (nodeHome == null) {
+				nodeHome = Utility.getDIHelperProperty(Settings.NODE_HOME);
+			}
+			if (nodeHome != null && !nodeHome.trim().isEmpty()) {
+				commands.add("--extra-ro");
+				commands.add(nodeHome.trim().replace("\\", "/"));
+			}
+			if (!nodeEnvDir.startsWith(jsBase)) {
+				commands.add("--extra-ro");
+				commands.add(nodeEnvDir);
+			}
+			commands.add("--");
+			commands.add("--port");
+			commands.add(port);
+			commands.add("--insight_folder");
+			commands.add(finalDir);
+			commands.add("--prefix");
+			commands.add(prefix);
+			commands.add("--timeout");
+			commands.add(timeout);
+			commands.add("--logger_level");
+			commands.add(loggerLevel);
+			commands.add("--uds-path");
+			commands.add(udsPath);
+			commands.add("--node_env");
+			commands.add(nodeEnvDir);
+
+			String[] commandArray = commands.toArray(new String[0]);
+
+			if (!SystemUtils.IS_OS_WINDOWS
+					&& !(Strings.isNullOrEmpty(Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT)))) {
+				String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_R_MEM_LIMIT);
+				StringBuilder sb = new StringBuilder();
+				for (String str : commandArray) {
+					sb.append(str).append(" ");
+				}
+				commandArray = new String[] { "/bin/bash", "-c",
+						"\"ulimit -v " + ulimit + " && " + sb.toString().trim() + "\"" };
+			}
+
+			classLogger.info("Starting namespace-sandboxed node agent process with ::: {}",
+					Arrays.toString(commandArray));
+			ProcessBuilder pb = new ProcessBuilder(commandArray);
+			File consoleFile = new File(outputFile);
+			ProcessBuilder.Redirect redirector = ProcessBuilder.Redirect.to(consoleFile);
+			pb.redirectError(redirector);
+			pb.redirectOutput(redirector);
+			Process p = pb.start();
+			try {
+				if (p.waitFor(500, TimeUnit.MILLISECONDS)) {
+					throw new IllegalStateException("Node sandbox exited during startup with code " + p.exitValue()
+							+ ". " + readSandboxStartupLog(consoleFile));
+				}
+			} catch (InterruptedException ie) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Interrupted while waiting for node sandbox startup", ie);
+			}
+			thisProcess = p;
+		} catch (IOException ioe) {
+			throw new IllegalStateException("Failed to start node sandbox process", ioe);
 		}
 
 		return new Object[] { thisProcess, prefix, udsPath, controlSocketPath, ioDir, jailDir, controlDir };

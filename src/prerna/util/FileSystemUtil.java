@@ -913,9 +913,10 @@ public final class FileSystemUtil {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
+			byte[] decodedBytes = null;
 			if (decodeBase64) {
 				try {
-					content = new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+					decodedBytes = Base64.getDecoder().decode(content);
 				} catch (Exception e) {
 					throw new IllegalArgumentException(
 							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
@@ -924,7 +925,13 @@ public final class FileSystemUtil {
 
 			File file = new File(filePath);
 			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				if (decodedBytes != null) {
+					// write the decoded bytes directly - routing them through a
+					// String corrupts binary content (pptx, images, pdf, etc.)
+					FileUtils.writeByteArrayToFile(file, decodedBytes);
+				} else {
+					FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				}
 			} catch (IOException e) {
 				classLogger.error("Error saving asset file {}", fileName, e);
 				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);

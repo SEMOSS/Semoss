@@ -778,6 +778,9 @@ def _real_mode(args):
     ro = list(DEFAULT_RO_PATHS)
     if args.py_folder:
         ro.append(os.path.abspath(args.py_folder))
+    for extra in args.extra_ro:
+        if extra:
+            ro.append(os.path.abspath(extra))
     rw = []
     if args.insight_folder:
         rw.append(os.path.abspath(args.insight_folder))
@@ -805,11 +808,30 @@ def _real_mode(args):
     if child_pid == 0:
         enter_jail(jail, inject_roots, unshare_net=not args.no_net)
         harden()
-        py = sys.executable
-        cmd = [py, os.path.join(args.py_folder or "/usr/lib/semoss/py",
-                                "gaas_tcp_socket_server.py")]
-        cmd += gaas_args
-        os.execv(py, cmd)
+        if args.exec_cmd:
+            # alternate worker runtime (e.g. the node agent worker); the exec
+            # target must be visible inside the jail (DEFAULT_RO_PATHS or an
+            # --extra-ro bind)
+            # node agent code runs in worker_threads, which cannot chdir, so
+            # start the worker in its insight folder (bound rw at the same
+            # absolute path inside the jail) instead of the pivot root "/"
+            if args.insight_folder:
+                try:
+                    os.chdir(os.path.abspath(args.insight_folder))
+                except OSError:
+                    pass
+            exe = args.exec_cmd
+            cmd = [exe]
+            if args.exec_script:
+                cmd.append(args.exec_script)
+            cmd += gaas_args
+            os.execv(exe, cmd)
+        else:
+            py = sys.executable
+            cmd = [py, os.path.join(args.py_folder or "/usr/lib/semoss/py",
+                                    "gaas_tcp_socket_server.py")]
+            cmd += gaas_args
+            os.execv(py, cmd)
         os._exit(127)  # unreachable
 
     try:
@@ -847,8 +869,18 @@ def parse_args():
                    help="dir carrying the worker data UDS (bound read-write)")
     p.add_argument("--no-net", action="store_true",
                    help="do NOT unshare the network (debugging only)")
+    p.add_argument("--exec-cmd", default="",
+                   help="worker executable to exec instead of the python "
+                        "interpreter (e.g. the node binary); the jail build "
+                        "and hardening are identical either way")
+    p.add_argument("--exec-script", default="",
+                   help="worker entry script passed as argv[1] to --exec-cmd")
+    p.add_argument("--extra-ro", action="append", default=[],
+                   help="additional host dir bound read-only into the jail "
+                        "(repeatable; e.g. a NODE_HOME install root)")
     p.add_argument("gaas", nargs=argparse.REMAINDER,
-                   help="args passed through to gaas_tcp_socket_server.py")
+                   help="args passed through to the worker "
+                        "(gaas_tcp_socket_server.py by default)")
     return p.parse_args()
 
 
