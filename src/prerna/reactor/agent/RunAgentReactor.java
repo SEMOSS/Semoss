@@ -58,6 +58,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     private static final String HARNESS_TYPE_KEY    = "harnessType";
     private static final String WORKSPACE_ID_KEY    = "workspaceId";
+    private static final String SPACE_KEY           = ReactorKeysEnum.SPACE.getKey();
     private static final String MAX_TURNS_KEY       = "maxTurns";
     private static final String MAX_REFLECTIONS_KEY = "maxReflections";
     private static final String WAIT_KEY            = "wait";
@@ -76,6 +77,7 @@ public class RunAgentReactor extends AbstractReactor {
                 ReactorKeysEnum.ENGINE.getKey(),
                 HARNESS_TYPE_KEY,
                 WORKSPACE_ID_KEY,
+                SPACE_KEY,
                 MAX_TURNS_KEY,
                 MAX_REFLECTIONS_KEY,
                 WAIT_KEY,
@@ -85,7 +87,7 @@ public class RunAgentReactor extends AbstractReactor {
                 MEDIA_KEY,
                 ReactorKeysEnum.URL.getKey(),
         };
-        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     }
 
     @Override
@@ -96,6 +98,7 @@ public class RunAgentReactor extends AbstractReactor {
         String input            = this.keyValue.get(ReactorKeysEnum.COMMAND.getKey());
         String engineIdFallback = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
         String harnessType      = this.keyValue.get(HARNESS_TYPE_KEY);
+        String requestedSpace   = StringUtils.trimToNull(this.keyValue.get(SPACE_KEY));
        
 
         // FE sends `command` URL-encoded (spaces as %20, etc.). Decode before
@@ -118,6 +121,16 @@ public class RunAgentReactor extends AbstractReactor {
         long waitTimeoutMs = parseLongAtLeast(this.keyValue.get(WAIT_TIMEOUT_MS_KEY), 0L, 0L);
         Map<String, Object> paramMap = getMap("paramMap");
         Map<String, Object> agentParams = getMap("agentParams");
+        if (paramMap.containsKey(AgentRunner.PARAM_SPACE)) {
+            throw new IllegalArgumentException("RunAgent space must be provided as a top-level argument, not paramValues.space");
+        }
+        if (requestedSpace != null && paramMap.containsKey(AgentRunner.PARAM_PROJECT)) {
+            throw new IllegalArgumentException(
+                    "RunAgent space and paramValues.project are mutually exclusive; use paramValues.project only when space is omitted");
+        }
+        if (requestedSpace != null) {
+            paramMap.put(AgentRunner.PARAM_SPACE, requestedSpace);
+        }
         List<String> inputMedia = getListStringForAliasedKey(MEDIA_KEY);
         List<String> inputMediaURLs = getListString(ReactorKeysEnum.URL.getKey());
 
@@ -128,8 +141,8 @@ public class RunAgentReactor extends AbstractReactor {
             throw new IllegalArgumentException("command (input) is required for RunAgent");
         }
 
-        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} media={} urls={}",
-                roomId, engineIdFallback, harnessType, explicitWorkspaceId, maxTurns, maxReflections, wait,
+        logger.info("RunAgentReactor: roomId={} engineFallback={} harnessType={} workspaceId={} space={} maxTurns={} maxReflections={} wait={} waitTimeoutMs={} media={} urls={}",
+                roomId, engineIdFallback, harnessType, explicitWorkspaceId, requestedSpace, maxTurns, maxReflections, wait,
                 waitTimeoutMs, sizeOf(inputMedia), sizeOf(inputMediaURLs));
 
         try {
@@ -172,7 +185,7 @@ public class RunAgentReactor extends AbstractReactor {
 
     @Override
     public String getReactorDescription() {
-        return "Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
+        return "Start a durable generic agent loop using a pluggable harness. By default RunAgent waits for terminal state; pass wait=false for async submission. space selects INSIGHT/USER or an editable project id; maxTurns applies to the SEMOSS harness tool loop; maxReflections controls optional self-critique rounds.";
     }
 
     // Helpers

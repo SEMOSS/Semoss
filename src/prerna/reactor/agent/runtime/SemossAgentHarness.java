@@ -50,6 +50,7 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.IAgentHarness;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.SubAgentSpec;
@@ -863,6 +864,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		paramMap.remove(PARAM_PERMISSION_MODE);
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
 		paramMap.remove(PARAM_PROJECT);
+		paramMap.remove(AgentRunner.PARAM_SPACE);
 		paramMap.remove(PARAM_SUBDIR);
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
@@ -885,7 +887,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (workingDir != null) {
 			sb.append("\n- Working directory: ").append(workingDir);
 		}
-		if (projectParam != null) {
+		if (ctx != null && ctx.getAgentTarget() != null && ctx.getAgentTarget().isUser()) {
+			sb.append("\n- Working directory source: authenticated user assets");
+			sb.append("\n- User asset project id: ").append(ctx.getAgentTarget().getProjectId());
+		} else if (projectParam != null) {
 			sb.append("\n- Working directory source: target project ").append(projectParam);
 		} else if (roomId != null) {
 			sb.append("\n- Working directory source: room ").append(roomId);

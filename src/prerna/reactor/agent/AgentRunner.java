@@ -41,6 +41,7 @@ import org.json.JSONObject;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -50,6 +51,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.project.api.IProject;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.run.AgentRoomNamer;
@@ -59,6 +61,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
@@ -91,10 +94,18 @@ public final class AgentRunner {
 	public static final String PARAM_PROJECT = "project";
 
 	/**
-	 * paramMap key: relative subfolder inside the resolved container (room or
+	 * paramMap key for the SEMOSS asset space in which the agent edits files.
+	 * {@code null}, empty, and {@code INSIGHT} select the room/insight folder;
+	 * {@code USER} selects the authenticated user's asset project; any other
+	 * value is treated as a project id.
+	 */
+	public static final String PARAM_SPACE = "space";
+
+	/**
+	 * paramMap key: relative subfolder inside the resolved root directory (room or
 	 * project). Must be relative (no leading {@code /}, {@code \}, or {@code ~})
 	 * and must not contain {@code ..} segments. The resolved path is
-	 * canonical-checked to stay under the container.
+	 * canonical-checked to stay under that root.
 	 */
 	public static final String PARAM_SUBDIR = "subdir";
 
@@ -227,9 +238,14 @@ public final class AgentRunner {
 
 			insight.setRoomForInsight(room);
 
-			String filePath = resolveWorkingDir(room, params, effectiveWorkspaceId);
+			AgentRunTarget target = resolveWorkingTarget(room, insight, params, effectiveWorkspaceId);
+			String filePath = target.getWorkingDirectory();
 			if (filePath != null && !filePath.trim().isEmpty()) {
 				params.put(FILE_PATH_PARAM_KEY, filePath);
+			}
+			// Older configuration reads "project"; bridge an explicit project space.
+			if (target.isProject() && trimToNull(params.get(PARAM_SPACE)) != null) {
+				params.put(PARAM_PROJECT, target.getProjectId());
 			}
 
 			SandboxPolicy sandboxPolicy = buildSandboxPolicyFromParams(params);
@@ -249,6 +265,7 @@ public final class AgentRunner {
 					.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls)
 					.spawnDepth(resolveSpawnDepth())
 					.resumeMode(resumeMode)
+					.agentTarget(target)
 					.agentConfig(agentConfig).build();
 
 			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
@@ -310,6 +327,13 @@ public final class AgentRunner {
 					}
 				}
 				restoreWorkspaceOverlay(room, wsOverlay);
+				if (ClusterUtil.IS_CLUSTER) {
+					try {
+						target.pushToCluster();
+					} catch (Exception e) {
+						logger.warn("AgentRunner: post-agent target push failed for target={}", target, e);
+					}
+				}
 			}
 
 			if (ClusterUtil.IS_CLUSTER) {
@@ -488,12 +512,15 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Resolves the working directory from room state plus {@code project} and
-	 * {@code subdir} params.
+	 * Resolves the working directory from room state plus {@code space},
+	 * legacy {@code project}, and {@code subdir} params. The returned target
+	 * also carries the authorized persistence metadata for hooks and cluster
+	 * synchronization.
 	 *
 	 * <p>
-	 * {@code filePath} is deprecated and ignored. {@code project} stays in the
-	 * param map because downstream hooks still read it.
+	 * {@code filePath} is deprecated and ignored. {@code space} stays in the
+	 * param map for harness context; a resolved project target is also normalized
+	 * into {@code project} for existing configuration consumers.
 	 *
 	 * @param effectiveWorkspaceId resolved workspace id (explicit override or
 	 *                             {@code room.options.workspace.workspace_id});
@@ -504,7 +531,8 @@ public final class AgentRunner {
 	 * @throws IllegalArgumentException for unresolvable project, illegal subdir, or
 	 *                                  containment failure
 	 */
-	private static String resolveWorkingDir(Room room, Map<String, Object> params, String effectiveWorkspaceId) {
+	static AgentRunTarget resolveWorkingTarget(Room room, Insight insight, Map<String, Object> params,
+			String effectiveWorkspaceId) {
 		// Legacy filePath - strip + warn, never honor.
 		Object legacyFilePath = params.remove(PARAM_FILE_PATH_LEGACY);
 		if (legacyFilePath != null && !String.valueOf(legacyFilePath).trim().isEmpty()) {
@@ -512,10 +540,11 @@ public final class AgentRunner {
 					PARAM_FILE_PATH_LEGACY, PARAM_PROJECT, PARAM_SUBDIR, legacyFilePath);
 		}
 
-		// Room-level override wins when present, mainly for inherited subagent runs.
+		// Room-level override is the legacy fallback for inherited subagent runs.
+		// An explicit space always selects and authorizes its own target.
 		Object roomLevelOverride = room.getOptionsMap() == null ? null
 				: room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR);
-		if (roomLevelOverride != null) {
+		if (trimToNull(params.get(PARAM_SPACE)) == null && roomLevelOverride != null) {
 			String raw = String.valueOf(roomLevelOverride).trim();
 			if (!raw.isEmpty()) {
 				String canonical;
@@ -545,37 +574,16 @@ public final class AgentRunner {
 				// Subdir is intentionally ignored when an absolute override is supplied -
 				// the room option already names the final path.
 				params.remove(PARAM_SUBDIR);
-				return canonical;
+				return AgentRunTarget.inherited(canonical);
 			}
 		}
 
-		// 1. Container.
-		// Peek at PARAM_PROJECT (don't remove) - downstream consumers including
-		// GitCommitAgentHook.afterRun rely on params["project"] to know
-		// which project's git folder to commit against. The model engine
-		// treats unknown keys as no-ops, so leaving the project id in the
-		// map is safe.
-		String container;
-		String containerLabel;
-		Object projectObj = params.get(PARAM_PROJECT);
-		if (projectObj != null && !String.valueOf(projectObj).trim().isEmpty()) {
-			String projectId = String.valueOf(projectObj).trim();
-			container = AssetUtility.getProjectAssetsFolder(projectId);
-			if (container == null || container.trim().isEmpty()) {
-				throw new IllegalArgumentException(
-						"AgentRunner: could not resolve assets folder for project='" + projectId + "'");
-			}
-			containerLabel = "project=" + projectId;
-			logger.info("AgentRunner: container resolved from project='{}' -> '{}'", projectId, container);
-		} else {
-			container = room.getRoomFolderPath();
-			File roomFolder = new File(container);
-			if (!roomFolder.exists()) {
-				roomFolder.mkdirs();
-			}
-			containerLabel = "room=" + room.getId();
-			logger.info("AgentRunner: container defaulted to room folder='{}' (room={})", container, room.getId());
-		}
+		// Resolve the authorized filesystem and persistence target once.
+		AgentRunTarget target = resolveAssetTarget(room, insight, params);
+		String rootDirectory = target.getRootDirectory();
+		String targetLabel = target.isInsight() ? "room=" + room.getId()
+				: target.isUser() ? "space=USER project=" + target.getProjectId()
+						: "space=project:" + target.getProjectId();
 
 		// 2. Subdir: paramMap override first, then CONFIG_JSON.subdir for the
 		// workspace.
@@ -589,9 +597,72 @@ public final class AgentRunner {
 			}
 		}
 		if (subdir == null || subdir.isEmpty()) {
-			return container;
+			return target;
 		}
-		return joinSubdir(container, subdir, containerLabel);
+		return target.withWorkingDirectory(joinSubdir(rootDirectory, subdir, targetLabel));
+	}
+
+	private static AgentRunTarget resolveAssetTarget(Room room, Insight insight, Map<String, Object> params) {
+		String space = trimToNull(params.get(PARAM_SPACE));
+		String legacyProject = trimToNull(params.get(PARAM_PROJECT));
+		if (space != null && legacyProject != null) {
+			throw new IllegalArgumentException(
+					"RunAgent parameters 'space' and 'paramValues.project' are mutually exclusive");
+		}
+
+		if (space == null && legacyProject != null) {
+			space = legacyProject;
+		}
+
+		if (space == null || AssetUtility.INSIGHT_SPACE_KEY.equalsIgnoreCase(space)) {
+			String rootDirectory = room.getRoomFolderPath();
+			File roomFolder = new File(rootDirectory);
+			if (!roomFolder.exists() && !roomFolder.mkdirs() && !roomFolder.isDirectory()) {
+				throw new IllegalArgumentException("AgentRunner: could not create room folder='" + rootDirectory + "'");
+			}
+			logger.info("AgentRunner: root directory defaulted to room folder='{}' (room={})", rootDirectory,
+					room.getId());
+			return AgentRunTarget.insight(rootDirectory);
+		}
+
+		if (AssetUtility.USER_SPACE_KEY.equalsIgnoreCase(space)) {
+			if (insight == null || insight.getUser() == null || insight.getUser().isAnonymous()
+					|| insight.getUser().getPrimaryLogin() == null) {
+				throw new IllegalArgumentException("Must be logged in as a non-anonymous user to access user assets");
+			}
+			IProject project = insight.getUser().getAssetProject();
+			if (project == null) {
+				throw new IllegalArgumentException("Unable to find user asset app");
+			}
+			String rootDirectory = AssetUtility.getUserAssetFolder(project.getProjectName(), project.getProjectId());
+			String gitFolder = AssetUtility.getUserAssetVersionFolder(project.getProjectName(), project.getProjectId());
+			logger.info("AgentRunner: user asset target resolved to project='{}' folder='{}'", project.getProjectId(),
+					rootDirectory);
+			return AgentRunTarget.user(project, rootDirectory, gitFolder);
+		}
+
+		if (insight == null || insight.getUser() == null
+				|| !SecurityProjectUtils.userCanEditProject(insight.getUser(), space)) {
+			throw new IllegalArgumentException("User does not have permission to edit project '" + space + "'");
+		}
+		IProject project = Utility.getProject(space);
+		if (project == null) {
+			throw new IllegalArgumentException("AgentRunner: project not found for id='" + space + "'");
+		}
+		String rootDirectory = AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId());
+		String gitFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+				project.getProjectId(), project.getProjectName());
+		logger.info("AgentRunner: project target resolved to project='{}' folder='{}'", project.getProjectId(),
+				rootDirectory);
+		return AgentRunTarget.project(project, rootDirectory, gitFolder);
+	}
+
+	private static String trimToNull(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = String.valueOf(value).trim();
+		return text.isEmpty() ? null : text;
 	}
 
 	/**
@@ -622,38 +693,38 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Join {@code subdir} under {@code container}, validating that the result stays
-	 * inside the container after canonicalisation. Rejects absolute paths and
+	 * Join {@code subdir} under {@code rootDirectory}, validating that the result
+	 * stays inside that root after canonicalisation. Rejects absolute paths and
 	 * {@code ..} escape.
 	 */
-	private static String joinSubdir(String container, String subdir, String containerLabel) {
+	private static String joinSubdir(String rootDirectory, String subdir, String targetLabel) {
 		if (subdir.startsWith("/") || subdir.startsWith("\\") || subdir.startsWith("~")) {
 			throw new IllegalArgumentException("subdir must be relative (no leading '/', '\\', or '~'); got '" + subdir
-					+ "' under " + containerLabel);
+					+ "' under " + targetLabel);
 		}
 		if (subdir.contains("..")) {
 			throw new IllegalArgumentException(
-					"subdir must not contain '..' segments; got '" + subdir + "' under " + containerLabel);
+					"subdir must not contain '..' segments; got '" + subdir + "' under " + targetLabel);
 		}
-		File containerFile = new File(container);
-		File joined = new File(containerFile, subdir);
-		String containerCanonical;
+		File rootDirectoryFile = new File(rootDirectory);
+		File joined = new File(rootDirectoryFile, subdir);
+		String rootCanonical;
 		String joinedCanonical;
 		try {
-			containerCanonical = containerFile.getCanonicalPath();
+			rootCanonical = rootDirectoryFile.getCanonicalPath();
 			joinedCanonical = joined.getCanonicalPath();
 		} catch (IOException e) {
-			throw new IllegalArgumentException("Could not canonicalize working dir for " + containerLabel + " + '"
+			throw new IllegalArgumentException("Could not canonicalize working dir for " + targetLabel + " + '"
 					+ subdir + "': " + e.getMessage(), e);
 		}
-		// Allow equality (subdir resolves to container itself) or strict-subdir
+		// Allow equality (subdir resolves to the root itself) or strict-subdir
 		// relationship.
-		if (!joinedCanonical.equals(containerCanonical)
-				&& !joinedCanonical.startsWith(containerCanonical + File.separator)) {
-			throw new IllegalArgumentException("subdir '" + subdir + "' escapes container (" + containerLabel + "): "
-					+ joinedCanonical + " is outside " + containerCanonical);
+		if (!joinedCanonical.equals(rootCanonical)
+				&& !joinedCanonical.startsWith(rootCanonical + File.separator)) {
+			throw new IllegalArgumentException("subdir '" + subdir + "' escapes target root (" + targetLabel + "): "
+					+ joinedCanonical + " is outside " + rootCanonical);
 		}
-		logger.info("AgentRunner: subdir='{}' joined to container -> '{}'", subdir, joinedCanonical);
+		logger.info("AgentRunner: subdir='{}' joined to target root -> '{}'", subdir, joinedCanonical);
 		return joinedCanonical;
 	}
 
