@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,10 +59,12 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 
 	private static final double TOKENS_PER_MILLION = 1_000_000D;
 	private static final String USER_ID_KEY = "userId";
+	private static final String START_DATE_KEY = "startDate";
+	private static final String END_DATE_KEY = "endDate";
 
 	public GetUserModelCreditInfoReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USER_ID_KEY };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USER_ID_KEY, START_DATE_KEY, END_DATE_KEY };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -127,25 +132,43 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 		boolean restrictionEnabled = Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType)
 				&& maxCredits != null;
 		boolean trackingEnabled = Utility.isModelInferenceLogsEnabled();
+		Map<String, ZonedDateTime> customPeriod = parseCustomPeriod(this.keyValue.get(START_DATE_KEY),
+				this.keyValue.get(END_DATE_KEY));
+		boolean customRange = customPeriod != null;
 
 		result.put("restrictionEnabled", restrictionEnabled);
 		result.put("restrictionType", restrictionType);
 		result.put("frequency", restrictionEnabled ? normalizeFrequency(configuredFrequency) : configuredFrequency);
 		result.put("maxCredits", maxCredits == null ? null : maxCredits.doubleValue());
 		result.put("trackingEnabled", trackingEnabled);
+		result.put("rangeType", customRange ? "CUSTOM" : "RESTRICTION");
 
-		if (restrictionEnabled && trackingEnabled) {
+		if (trackingEnabled && (restrictionEnabled || customRange)) {
 			String frequency = normalizeFrequency(configuredFrequency);
-			ZonedDateTime now = Utility.getCurrentZonedDateTimeUTC();
-			Number usage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
-					Constants.MODEL_CREDIT_RESTRICTION_VALUE, targetUserId, engineId, now, frequency);
+			Map<String, ZonedDateTime> period;
+			Number usage;
+			if (customRange) {
+				period = customPeriod;
+				usage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+						Constants.MODEL_CREDIT_RESTRICTION_VALUE, targetUserId, engineId, period.get("start"),
+						period.get("end"));
+			} else {
+				ZonedDateTime now = Utility.getCurrentZonedDateTimeUTC();
+				period = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, now);
+				usage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+						Constants.MODEL_CREDIT_RESTRICTION_VALUE, targetUserId, engineId, now, frequency);
+			}
 			double creditsUsed = usage == null ? 0D : usage.doubleValue();
-			double maximum = maxCredits.doubleValue();
-			Map<String, ZonedDateTime> period = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency, now);
 
 			result.put("creditsUsed", creditsUsed);
-			result.put("creditsRemaining", Math.max(0D, maximum - creditsUsed));
-			result.put("limitExceeded", creditsUsed > maximum);
+			if (customRange || !restrictionEnabled) {
+				result.put("creditsRemaining", null);
+				result.put("limitExceeded", null);
+			} else {
+				double maximum = maxCredits.doubleValue();
+				result.put("creditsRemaining", Math.max(0D, maximum - creditsUsed));
+				result.put("limitExceeded", creditsUsed > maximum);
+			}
 			result.put("periodStart", period.get("start").toString());
 			result.put("periodEnd", period.get("end").toString());
 		} else {
@@ -157,6 +180,30 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 		}
 
 		return new NounMetadata(result, PixelDataType.MAP);
+	}
+
+	private static Map<String, ZonedDateTime> parseCustomPeriod(String startValue, String endValue) {
+		boolean hasStart = startValue != null && !startValue.trim().isEmpty();
+		boolean hasEnd = endValue != null && !endValue.trim().isEmpty();
+		if (!hasStart && !hasEnd) {
+			return null;
+		}
+		if (!hasStart || !hasEnd) {
+			throw new IllegalArgumentException("Both startDate and endDate are required for a custom date range");
+		}
+		try {
+			LocalDate startDate = LocalDate.parse(startValue.trim());
+			LocalDate endDate = LocalDate.parse(endValue.trim());
+			if (endDate.isBefore(startDate)) {
+				throw new IllegalArgumentException("endDate must be on or after startDate");
+			}
+			Map<String, ZonedDateTime> period = new LinkedHashMap<>();
+			period.put("start", startDate.atStartOfDay(ZoneOffset.UTC));
+			period.put("end", endDate.plusDays(1).atStartOfDay(ZoneOffset.UTC).minusNanos(1));
+			return period;
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException("startDate and endDate must use YYYY-MM-DD format", e);
+		}
 	}
 
 	private static Map<String, Object> getPermission(String userId, String engineId) {
@@ -207,6 +254,9 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 		}
 		if (key.equals(USER_ID_KEY)) {
 			return "Optional user id; defaults to the current user and requires admin access for another user";
+		}
+		if (key.equals(START_DATE_KEY) || key.equals(END_DATE_KEY)) {
+			return "Optional custom usage range in YYYY-MM-DD format; both startDate and endDate are required";
 		}
 		return super.getDescriptionForKey(key);
 	}

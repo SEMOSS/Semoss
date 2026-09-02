@@ -174,6 +174,46 @@ class GetUserModelCreditInfoReactorUnitTests {
 	}
 
 	@Test
+	void returnsUsageForCustomDateRangeWithoutApplyingLimitBalance() {
+		Map<String, Object> permission = new HashMap<>();
+		permission.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "credit");
+		permission.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "day");
+		permission.put(Constants.ENGINE_MAX_CREDIT_KEY, 10D);
+		reactor.keyValue.put("startDate", "2026-08-01");
+		reactor.keyValue.put("endDate", "2026-08-31");
+
+		try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
+				MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
+				MockedStatic<SecurityModelMetadataUtils> metadataUtils = Mockito
+						.mockStatic(SecurityModelMetadataUtils.class);
+				MockedStatic<ModelInferenceLogsUtils> logsUtils = Mockito.mockStatic(ModelInferenceLogsUtils.class);
+				MockedStatic<Utility> utility = Mockito.mockStatic(Utility.class)) {
+			queryUtils.when(() -> SecurityQueryUtils.testUserEngineIdForAlias(user, "model-alias"))
+					.thenReturn("model-id");
+			engineUtils.when(() -> SecurityEngineUtils.userCanViewEngine(user, "model-id")).thenReturn(true);
+			engineUtils.when(() -> SecurityEngineUtils.getEngineType("model-id"))
+					.thenReturn(IEngine.CATALOG_TYPE.MODEL);
+			engineUtils.when(() -> SecurityEngineUtils.getEngineUsagePermissionMapForUserId("current-user", "model-id"))
+					.thenReturn(List.of(permission));
+			metadataUtils.when(() -> SecurityModelMetadataUtils.getModelMetadata("model-id")).thenReturn(Map.of());
+			utility.when(Utility::isModelInferenceLogsEnabled).thenReturn(true);
+			logsUtils.when(() -> ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(eq("credit"),
+					eq("current-user"), eq("model-id"), any(ZonedDateTime.class), any(ZonedDateTime.class)))
+					.thenReturn(3D);
+
+			@SuppressWarnings("unchecked")
+			Map<String, Object> result = (Map<String, Object>) reactor.execute().getValue();
+
+			assertEquals("CUSTOM", result.get("rangeType"));
+			assertEquals(3D, result.get("creditsUsed"));
+			assertNull(result.get("creditsRemaining"));
+			assertNull(result.get("limitExceeded"));
+			assertEquals("2026-08-01T00:00Z", result.get("periodStart"));
+			assertEquals("2026-08-31T23:59:59.999999999Z", result.get("periodEnd"));
+		}
+	}
+
+	@Test
 	void rejectsInaccessibleModel() {
 		try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
 				MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class)) {

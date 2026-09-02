@@ -2183,6 +2183,16 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, String userId, String engineId,
 			ZonedDateTime currentDateTime, String frequency) {
+		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
+				currentDateTime);
+		return getTotalTokensOrTotalResponseTime(restrictionMode, userId, engineId, dates.get("start"), dates.get("end"));
+	}
+
+	/**
+	 * Calculates total usage for one user and engine in an explicit date range.
+	 */
+	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, String userId, String engineId,
+			ZonedDateTime startDate, ZonedDateTime endDate) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
@@ -2190,15 +2200,9 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		if (userId == null || userId.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must pass in a valid user id");
 		}
-
-		// Get the date range based on the frequency specification
-		// Supports: WEEK, MONTH, YEAR, ALL_TIME
-		Map<String, ZonedDateTime> dates = ModelUsageRestrictionUtility.getDateRangeFromFrequency(frequency,
-				currentDateTime);
-
-		// Extract start and end dates from the map
-		ZonedDateTime startDate = dates.get("start");
-		ZonedDateTime endDate = dates.get("end");
+		if (startDate == null || endDate == null || endDate.isBefore(startDate)) {
+			throw new IllegalArgumentException("Must pass in a valid date range");
+		}
 
 		String sumColumn = null;
 		if (restrictionMode.equalsIgnoreCase(Constants.MODEL_TOKEN_RESTRICTION_VALUE)) {
@@ -2237,8 +2241,8 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 			}
 		} catch (Exception e) {
 			classLogger.error(
-					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
-					userId, engineId, restrictionMode, frequency, e);
+					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', range '{}'-'{}'.",
+					userId, engineId, restrictionMode, startDate, endDate, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
