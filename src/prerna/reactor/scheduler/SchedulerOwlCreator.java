@@ -327,10 +327,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.AGENT_RUN_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
 
-		addTable(AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN, Arrays.asList(
-				Pair.with(AutomationConstants.PROJECT_ID, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.CLAIMED_AT, TIMESTAMP)));
 		// @formatter:on
 	}
 
@@ -372,10 +368,6 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES,
 				AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES + "." + AutomationConstants.RUN_ID + "."
-						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
-		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN,
-				AutomationConstants.TABLE_AUTOMATION_RUNS,
-				AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 	}
 

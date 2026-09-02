@@ -69,25 +69,18 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		validateInputs(inputs);
 		Map<String, String> traceRoomIds = AutomationRunExecutionService.allocateTraceRoomIds(runNodes);
 
-		if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds, files.nodeSources())) {
-			AutomationDatabaseUtility.markStaleRunsInterrupted();
-			if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds, files.nodeSources())) {
-				throw new IllegalArgumentException("Automation already has an active run: "
-						+ AutomationDatabaseUtility.getClaimedActiveRun(projectId)
-						+ ". Wait for it to complete or cancel it before starting a new run.");
-			}
-		}
+		initializeRun(runId, projectId, definition, runNodes, traceRoomIds, files.nodeSources());
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
 				.executeInitializedRun(runId, projectId, definition, runNodes, inputs, traceRoomIds);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	private boolean initializeRun(String runId, String projectId,
+	private void initializeRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,
 			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds,
 			Map<String, String> nodeSources) {
-		return AutomationDatabaseUtility.claimAndInitializeRun(runId, projectId,
+		AutomationDatabaseUtility.initializeRun(runId, projectId,
 				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
 				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes,
 				traceRoomIds, nodeSources);

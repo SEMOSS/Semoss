@@ -32,7 +32,6 @@ import static prerna.reactor.automation.AutomationConstants.AGENT_RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
 import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
 import static prerna.reactor.automation.AutomationConstants.RESULT_SUMMARY_COL;
-import static prerna.reactor.automation.AutomationConstants.CLAIMED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
 import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
@@ -67,7 +66,6 @@ import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
-import static prerna.reactor.automation.AutomationConstants.PK_AUTO_ACTIVE_RUN;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
 import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
@@ -78,7 +76,7 @@ import static prerna.reactor.automation.AutomationConstants.STARTED_AT;
 import static prerna.reactor.automation.AutomationConstants.STATUS;
 import static prerna.reactor.automation.AutomationConstants.STATUS_INTERRUPTED;
 import static prerna.reactor.automation.AutomationConstants.STATUS_RUNNING;
-import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
+import static prerna.reactor.automation.AutomationConstants.STATUS_SUBMITTED;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
@@ -95,7 +93,6 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
@@ -114,6 +111,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -126,8 +124,7 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
- * Persists Automation run, source-snapshot, node-output, and active-run state in the scheduler
- * database.
+ * Persists Automation run, source-snapshot, and node-output state in the scheduler database.
  *
  * <p>
  * Reads use SEMOSS query structures and writes use parameterized statements. The scheduler OWL
@@ -142,8 +139,6 @@ public final class AutomationDatabaseUtility {
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
 	private static final String TABLE_RUN_SOURCES = TABLE_AUTOMATION_RUN_NODE_SOURCES;
 	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
-	private static final String TABLE_ACTIVE_RUN = TABLE_AUTOMATION_ACTIVE_RUN;
-
 	private AutomationDatabaseUtility() {
 	}
 
@@ -174,12 +169,9 @@ public final class AutomationDatabaseUtility {
 	private static final String SET_CANCEL_REQUESTED =
 			"UPDATE AUTOMATION_RUNS SET CANCEL_REQUESTED = ? WHERE RUN_ID = ?";
 
-	// AUTOMATION_ACTIVE_RUN - single row per project, PK on PROJECT_ID enforces exclusivity
-	private static final String CLAIM_ACTIVE_RUN =
-			"INSERT INTO AUTOMATION_ACTIVE_RUN (PROJECT_ID, RUN_ID, CLAIMED_AT) VALUES (?, ?, ?)";
-
-	private static final String RELEASE_ACTIVE_RUN =
-			"DELETE FROM AUTOMATION_ACTIVE_RUN WHERE PROJECT_ID = ? AND RUN_ID = ?";
+	private static final String CLAIM_RUN = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, STARTED_AT = ?, LAST_HEARTBEAT = ? \
+			WHERE RUN_ID = ? AND STATUS = ?""";
 
 	private static final String MARK_STALE_INTERRUPTED = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -248,7 +240,6 @@ public final class AutomationDatabaseUtility {
 			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createAutomationRunNodeSourcesTable(conn, queryUtil, database, schema, allowIfExists, clobType);
 			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
-			createAutomationActiveRunTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -263,9 +254,8 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Marks RUNNING rows whose heartbeat crossed the stale threshold as INTERRUPTED and releases
-	 * their active-run claims. Called during scheduler startup and before rejecting a new run behind
-	 * an apparently occupied claim.
+	 * Marks submitted or running rows whose heartbeat crossed the stale threshold as interrupted.
+	 * Called during scheduler startup so abandoned runs do not remain active indefinitely.
 	 */
 	public static void markStaleRunsInterrupted() {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
@@ -273,10 +263,14 @@ public final class AutomationDatabaseUtility {
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
-		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + LAST_HEARTBEAT, LAST_HEARTBEAT));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+		OrQueryFilter activeStatus = new OrQueryFilter();
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_SUBMITTED, PixelDataType.CONST_STRING));
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(activeStatus);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		if (results == null || results.isEmpty()) {
@@ -297,7 +291,7 @@ public final class AutomationDatabaseUtility {
 			}
 			for (Map<String, Object> row : results) {
 				String runId = (String) row.get(RUN_ID);
-				String projectId = (String) row.get(PROJECT_ID);
+				String currentStatus = (String) row.get(STATUS);
 
 				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
 				// heartbeat is still alive (e.g. executing on another node in a cluster), so
@@ -314,17 +308,16 @@ public final class AutomationDatabaseUtility {
 					int index = 1;
 					ps.setString(index++, STATUS_INTERRUPTED);
 					ps.setTimestamp(index++, now);
-					ps.setString(index++, "Server restarted during execution");
+					ps.setString(index++, "Server restarted before or during execution");
 					ps.setString(index++, runId);
-					ps.setString(index++, STATUS_RUNNING);
+					ps.setString(index++, currentStatus);
 					ps.setTimestamp(index++, threshold);
 					int updated = ps.executeUpdate();
 					if (updated > 0) {
-						releaseActiveRun(conn, projectId, runId);
 						classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
 					} else {
 						classLogger.debug("Automation run {} changed while stale recovery was in progress; "
-								+ "leaving its status and active-run claim unchanged", runId);
+								+ "leaving its status unchanged", runId);
 					}
 				}
 			}
@@ -341,8 +334,9 @@ public final class AutomationDatabaseUtility {
 	// -- AUTOMATION_RUNS CRUD --------------------------------------------------------
 
 	/**
-	 * Checks if an automation already has an active (RUNNING) run for the given project.
+	 * Returns the newest submitted or running Automation run for a project.
 	 *
+	 * @param projectId project whose active runs are queried
 	 * @return the active run ID, or null if no run is active
 	 */
 	public static String getActiveRun(String projectId) {
@@ -353,8 +347,14 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+		OrQueryFilter activeStatus = new OrQueryFilter();
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_SUBMITTED, PixelDataType.CONST_STRING));
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
 				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(activeStatus);
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
 		qs.setLimit(1);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
@@ -366,16 +366,14 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Claims the project's active-run slot and creates its complete initial history. The claim,
-	 * run record, and all pending node-output rows are committed as one transaction, so callers
-	 * cannot observe an active run without its run and node records.
+	 * Creates a submitted run together with its source snapshot and pending node rows in one
+	 * transaction. Runs are independent; another active run for the same project does not block
+	 * initialization.
 	 *
-	 * @return {@code true} when the run was initialized; {@code false} when the active-run insert
-	 *         was rejected (normally because another run holds the project)
 	 * @throws IllegalStateException when the scheduler database is unavailable or history cannot be
 	 *                               initialized
 	 */
-	public static boolean claimAndInitializeRun(String runId, String projectId, String automationId,
+	public static void initializeRun(String runId, String projectId, String automationId,
 			int definitionVersion, String definitionHash, String definitionSnapshot,
 			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes,
 			Map<String, String> traceRoomIds, Map<String, String> nodeSources) {
@@ -395,37 +393,54 @@ public final class AutomationDatabaseUtility {
 			}
 			Timestamp now = toTimestamp(Instant.now());
 
-			try (PreparedStatement ps = conn.prepareStatement(CLAIM_ACTIVE_RUN)) {
-				int index = 1;
-				ps.setString(index++, projectId);
-				ps.setString(index++, runId);
-				ps.setTimestamp(index++, now);
-				try {
-					ps.executeUpdate();
-				} catch (SQLException e) {
-					if (isConstraintViolation(e)) {
-						rollback(conn, e);
-						classLogger.debug("Active-run slot is already claimed for project {}: {}",
-								projectId, e.getMessage());
-						return false;
-					}
-					throw e;
-				}
-			}
-
 			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
 					definitionVersion, definitionHash, definitionSnapshot, triggerType,
 					orderedNodes.size(), createdBy, now);
 			insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
 			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
 			conn.commit();
-			return true;
 		} catch (Exception e) {
 			rollback(conn, e);
 			classLogger.error("Failed to initialize automation run '{}' for project '{}'", runId, projectId, e);
 			throw new IllegalStateException("Unable to initialize automation run history.", e);
 		} finally {
 			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Atomically transitions one submitted run to running.
+	 *
+	 * @param runId run to claim
+	 * @return {@code true} when this caller claimed the run; {@code false} when it was already
+	 *         claimed or reached another state
+	 */
+	public static boolean claimRun(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("claim the submitted automation run");
+		Timestamp now = toTimestamp(Instant.now());
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN)) {
+				int index = 1;
+				ps.setString(index++, STATUS_RUNNING);
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, runId);
+				ps.setString(index++, STATUS_SUBMITTED);
+				boolean claimed = ps.executeUpdate() == 1;
+				if (!conn.getAutoCommit()) {
+					conn.commit();
+				}
+				return claimed;
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to claim submitted automation run '{}'", runId, e);
+			throw new IllegalStateException("Unable to claim the submitted automation run.", e);
+		} finally {
 			closeConnection(schedulerDb, conn);
 		}
 	}
@@ -462,7 +477,7 @@ public final class AutomationDatabaseUtility {
 			ps.setInt(index++, definitionVersion);
 			ps.setString(index++, definitionHash);
 			queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
-			ps.setString(index++, STATUS_RUNNING);
+			ps.setString(index++, STATUS_SUBMITTED);
 			ps.setString(index++, triggerType);
 			ps.setTimestamp(index++, now);
 			ps.setTimestamp(index++, now);
@@ -490,39 +505,6 @@ public final class AutomationDatabaseUtility {
 			}
 			ps.executeBatch();
 		}
-	}
-
-	private static void releaseActiveRun(Connection conn, String projectId, String runId) throws SQLException {
-		try (PreparedStatement ps = conn.prepareStatement(RELEASE_ACTIVE_RUN)) {
-			ps.setString(1, projectId);
-			ps.setString(2, runId);
-			ps.executeUpdate();
-		}
-	}
-
-	/**
-	 * Returns the active run ID for a project directly from the {@code AUTOMATION_ACTIVE_RUN} lock
-	 * table. It is populated by {@link #claimAndInitializeRun} in the same transaction as
-	 * {@code AUTOMATION_RUNS} and the pending node-output rows.
-	 *
-	 * @return the run ID, or {@code null} if no run is currently active for the project
-	 */
-	public static String getClaimedActiveRun(String projectId) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) return null;
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector(TABLE_ACTIVE_RUN + "__" + RUN_ID, RUN_ID));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
-				TABLE_ACTIVE_RUN + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
-		qs.setLimit(1);
-
-		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
-		if (results != null && !results.isEmpty()) {
-			Object runId = results.get(0).get(RUN_ID);
-			return runId != null ? runId.toString() : null;
-		}
-		return null;
 	}
 
 	/**
@@ -582,9 +564,7 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * Persists a terminal run status and releases the project's active-run claim in one
-	 * transaction. Keeping these writes together prevents a completed run from leaving a
-	 * durable claim that blocks every later trigger.
+	 * Persists a terminal status for a running Automation run.
 	 */
 	public static void completeRun(String runId, String projectId, String status,
 			String failedNodeId, String errorMessage) {
@@ -609,7 +589,6 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, STATUS_RUNNING);
 				requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
 			}
-			releaseActiveRun(conn, projectId, runId);
 			conn.commit();
 		} catch (Exception e) {
 			rollback(conn, e);
@@ -1203,40 +1182,6 @@ public final class AutomationDatabaseUtility {
 		}
 	}
 
-	/**
-	 * Creates the AUTOMATION_ACTIVE_RUN marker table - a single row per project, keyed on
-	 * PROJECT_ID, used to atomically enforce "at most one active run per project" cluster-wide.
-	 * See {@link #claimAndInitializeRun} / {@link #completeRun}.
-	 */
-	private static void createAutomationActiveRunTable(Connection conn, AbstractSqlQueryUtil queryUtil,
-			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
-
-		String tableName = TABLE_AUTOMATION_ACTIVE_RUN;
-
-		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
-		if (!tableExists) {
-			String[] colNames = { PROJECT_ID, RUN_ID, CLAIMED_AT };
-			String[] types = { VARCHAR_255, VARCHAR_255, dateTimeType };
-			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL };
-
-			String sql;
-			if (allowIfExists) {
-				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-			} else {
-				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-			}
-			classLogger.info("Creating table {}: {}", tableName, sql);
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.execute();
-			}
-		}
-
-		// Primary key on PROJECT_ID alone (not RUN_ID) makes the run claim atomic:
-		// a second INSERT for the same project - from any pod - violates this constraint.
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_ACTIVE_RUN,
-				new String[]{ PROJECT_ID });
-	}
-
 	// -- Helpers -------------------------------------------------------------------
 
 	private static IRDBMSEngine getSchedulerDb() {
@@ -1272,19 +1217,6 @@ public final class AutomationDatabaseUtility {
 			cause.addSuppressed(rollbackError);
 			classLogger.error("Failed to roll back automation database transaction", rollbackError);
 		}
-	}
-
-	private static boolean isConstraintViolation(SQLException exception) {
-		for (SQLException current = exception; current != null; current = current.getNextException()) {
-			if (current instanceof SQLIntegrityConstraintViolationException) {
-				return true;
-			}
-			String sqlState = current.getSQLState();
-			if (sqlState != null && sqlState.startsWith("23")) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	private static void requireSingleRow(int updatedRows, String operation, String runId, String nodeId) {

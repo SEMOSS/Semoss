@@ -37,12 +37,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns the currently active run ID for a project by reading the
- * {@code AUTOMATION_ACTIVE_RUN} lock table directly. This table is populated by
- * {@link AutomationDatabaseUtility#claimAndInitializeRun} in the same transaction as the run and
- * pending-node history, so the FE can discover the run ID while
- * {@link TriggerAutomationReactor} is still executing synchronously on a virtual
- * thread.
+ * Returns the newest submitted or running Automation run for the project. This singular lookup is
+ * retained for editor compatibility; {@link ListAutomationRunsReactor} exposes every concurrent
+ * run.
  *
  * <p>Returns {@code { RUN_ID, PROJECT_ID }} when a run is active, or an empty
  * map when no run is in progress.
@@ -61,7 +58,7 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = getProjectId();
 
-		String runId = AutomationDatabaseUtility.getClaimedActiveRun(projectId);
+		String runId = AutomationDatabaseUtility.getActiveRun(projectId);
 
 		Map<String, Object> result = new HashMap<>();
 		if (runId != null) {
@@ -79,7 +76,7 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the active run ID from the AUTOMATION_ACTIVE_RUN table; empty map when no run is in progress.";
+		return "Returns the newest submitted or running Automation run ID; empty map when none is active.";
 	}
 
 	@Override

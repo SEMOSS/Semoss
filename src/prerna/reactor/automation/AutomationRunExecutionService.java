@@ -58,11 +58,12 @@ import prerna.util.insight.InsightUtility;
  * Owns execution of one already initialized Automation run.
  *
  * <p>
- * The triggering reactor performs access checks and atomically creates the run history before
- * entering this boundary. This class then creates a run-local {@link Insight}, traverses the
- * validated control path, executes the immutable source snapshot one node at a time, persists each
- * transition, and always tears down the run-local Insight. Python receives only the selected node
- * source and a read-only scope; it does not own graph traversal or persistence.
+ * The triggering reactor performs access checks and atomically creates submitted run history
+ * before entering this boundary. This class claims that individual run, creates a run-local
+ * {@link Insight}, traverses the validated control path, executes the immutable source snapshot one
+ * node at a time, persists each transition, and always tears down the run-local Insight. Python
+ * receives only the selected node source and a read-only scope; it does not own graph traversal or
+ * persistence.
  *
  * <p>
  * Keeping this lifecycle independent from the Pixel reactor allows the same executor to be called
@@ -86,8 +87,9 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Executes a run whose graph, node rows, and source snapshot already exist in the scheduler
-	 * database.
+	 * Claims and executes a run whose graph, node rows, and source snapshot already exist in the
+	 * scheduler database. A caller that loses the claim receives the current durable state without
+	 * executing the run again.
 	 *
 	 * @param runId durable run identifier
 	 * @param projectId Automation project identifier
@@ -101,6 +103,9 @@ final class AutomationRunExecutionService {
 			AutomationDefinitionValidator.ValidatedDefinition definition,
 			List<Map<String, Object>> runNodes, Map<String, Object> inputs,
 			Map<String, String> traceRoomIds) {
+		if (!AutomationDatabaseUtility.claimRun(runId)) {
+			return buildCurrentRunResult(runId, projectId);
+		}
 		streamRunStarted(runId, definition);
 
 		Map<String, Object> result;
@@ -132,6 +137,19 @@ final class AutomationRunExecutionService {
 			cleanupExecutionInsight(executionInsight);
 		}
 		return buildResult(runId, projectId, result);
+	}
+
+	private static Map<String, Object> buildCurrentRunResult(String runId, String projectId) {
+		Map<String, Object> persisted = AutomationDatabaseUtility.getRunDetail(runId);
+		if (persisted == null) {
+			throw new IllegalStateException("Automation run '" + runId
+					+ "' no longer exists for project '" + projectId + "'.");
+		}
+		Map<String, Object> result = new LinkedHashMap<>(persisted);
+		result.put(AutomationConstants.RESULT_NODE_RESULTS,
+				AutomationDatabaseUtility.buildNodeResults(
+						AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
+		return result;
 	}
 
 	private Map<String, Object> executeInControlOrder(Insight executionInsight, String projectId, String runId,

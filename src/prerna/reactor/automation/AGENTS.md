@@ -12,7 +12,7 @@ in the authenticated user's Python insight.
 | `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, plus `nodeSources: { nodeId: source }`. |
 | `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. Trigger source belongs in `trigger.start.config.pythonSource`; legacy `python` and trigger source entries are migrated. |
 | `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
-| `GetActiveAutomationRun` | `project` | Returns the active run lock or an empty map. |
+| `GetActiveAutomationRun` | `project` | Returns the newest submitted or running run for editor compatibility, or an empty map. |
 | `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
@@ -41,12 +41,12 @@ Workflow artifacts live at the project asset root:
 ```
 TriggerAutomation (virtual thread)
   -> validates and snapshots the graph
-  -> claims AUTOMATION_ACTIVE_RUN
-  -> inserts AUTOMATION_RUNS + AUTOMATION_NODE_OUTPUTS
+  -> inserts a SUBMITTED run, immutable node sources, and pending node outputs
+  -> atomically claims that run as RUNNING
   -> Java seeds trigger globals and executes trigger Python, then visits the selected control path
   -> PyTranslator.runScriptWithExplicitAssetPaths(...) executes that node's source only
   -> Python module invokes its documented ai_server engine SDK or direct Pixel call
-  -> releases the lock in finally
+  -> persists the terminal status for that run
 ```
 
 Java accepts one connected, acyclic control graph rooted at `trigger.start`; each run follows one
@@ -85,9 +85,9 @@ job when possible, and is checked before each node and during waits.
 
 | Class | Purpose |
 | --- | --- |
-| `AutomationDatabaseUtility` | Physical run records, node outputs, active-run locking, and stale-run recovery in the scheduler DB. |
+| `AutomationDatabaseUtility` | Physical run records, node outputs, per-run claiming, and stale-run recovery in the scheduler DB. |
 | `SchedulerOwlCreator` | Authoritative OWL schema for both scheduler-owned and automation-owned tables in that DB. |
 | `AutomationPythonRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
 | `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |
 
-Do not bypass the active-run database lock, run snapshot, or DB/in-memory cancellation signal.
+Do not bypass the per-run database claim, run snapshot, or DB/in-memory cancellation signal.
