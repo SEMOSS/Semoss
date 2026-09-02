@@ -51,7 +51,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  *
  * <p>
  * A system agent is a {@code platform__<id>} project of enum type
- * {@code WORKSPACE} that is catalogued global with no owner (see
+ * {@code WORKSPACE} that is cataloged global with no owner (see
  * {@link ProjectWatcher#init()}) - exactly like the platform skills and system
  * MCPs. Unlike those, an agent also needs a {@code WORKSPACE} row plus
  * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live

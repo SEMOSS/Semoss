@@ -76,6 +76,20 @@ public final class MicrosoftLoginUtils {
 	}
 
 	/**
+	 * Returns the email address attached to a user's Microsoft login.
+	 *
+	 * @param user the signed-in user
+	 * @return the Microsoft account email, or null when it is unavailable
+	 */
+	public static String getMicrosoftEmail(User user) {
+		if (user == null) {
+			return null;
+		}
+		AccessToken token = user.getAccessToken(AuthProvider.MICROSOFT);
+		return token == null ? null : token.getEmail();
+	}
+
+	/**
 	 * Throws the pixel level error that prompts the front end to start the
 	 * Microsoft login flow.
 	 *

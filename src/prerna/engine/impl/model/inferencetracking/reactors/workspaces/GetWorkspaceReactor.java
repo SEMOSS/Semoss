@@ -47,6 +47,7 @@ import prerna.project.impl.ProjectHelper;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
+import prerna.reactor.agent.runtime.PlatformAgentTools;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -175,6 +176,12 @@ public class GetWorkspaceReactor extends AbstractReactor {
 			}
 		} catch (Exception e) {
 			classLogger.warn("Failed to load CONFIG_JSON for workspace '{}': {}", workspaceId, e.getMessage());
+		}
+		try {
+			current.put("default_tools", PlatformAgentTools.getDefaultToolDefinitions());
+		} catch (Exception e) {
+			classLogger.warn("Failed to resolve default tools for workspace '{}': {}", workspaceId, e.getMessage());
+			current.put("default_tools", new ArrayList<>());
 		}
 
 		// Server-computed capability list (not stored data, so kept out of config_json)
