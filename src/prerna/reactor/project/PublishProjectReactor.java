@@ -27,13 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.project;
 
-import java.io.File;
-
 import org.apache.commons.lang3.StringUtils;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.lib.ObjectId;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -48,8 +42,6 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PublishProjectReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(PublishProjectReactor.class);
 
 	public PublishProjectReactor() {
 		this.keysToGet = new String[]{ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey()};
@@ -73,20 +65,8 @@ public class PublishProjectReactor extends AbstractReactor {
 		project.setRepublish(true);
 		if(release) {
 			SecurityProjectUtils.setPortalPublish(user, projectId);
-			String versionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
-			ClusterUtil.pushProjectFolder(project, versionFolder,
+			ClusterUtil.pushProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
 					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
-
-			String headCommitId = null;
-			try (Git repoGit = Git.open(new File(versionFolder))) {
-				ObjectId head = repoGit.getRepository().resolve("HEAD");
-				if (head != null) {
-					headCommitId = head.getName();
-				}
-			} catch (Exception e) {
-				classLogger.error("Failed to resolve HEAD commit for project {} during publish", projectId, e);
-			}
-			SecurityProjectUtils.setPublishMetadata(user, projectId, headCommitId);
 		}
 		
 		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/" + Constants.PORTALS_FOLDER + "/";
