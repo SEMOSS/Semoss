@@ -11,9 +11,12 @@ down when done.
 | [semoss-opensearch.yml](semoss-opensearch.yml) | OpenSearch 2.19.5 + Dashboards | 9200 (API), 5601 (UI) | admin / password | vector (`OPEN_SEARCH`) |
 | [semoss-pgvector.yml](semoss-pgvector.yml) | Postgres 18 + pgvector | 5433 (-> 5432) | pgvector / pgvector | vector (`PGVECTOR`) |
 | [semoss-clickhouse.yml](semoss-clickhouse.yml) | ClickHouse 25.8 | 8123 (HTTP), 9010 (-> 9000 native) | clickhouse / clickhouse | database (`CLICKHOUSE`) |
+| [semoss-minio.yml](semoss-minio.yml) | MinIO 2025-09-07 | 9100 (-> 9000 S3 API), 9101 (-> 9001 UI) | minioadmin / minioadmin | storage (`MINIO`) |
+| [semoss-sftp.yml](semoss-sftp.yml) | atmoz/sftp (alpine) | 2222 (-> 22) | foo / pass | storage (`SFTP`) |
+| [semoss-mail.yml](semoss-mail.yml) | GreenMail 2.1.13 | 3025 SMTP, 3110 POP3, 3143 IMAP, 3465/3995/3993 TLS, 8085 (-> 8080) API | semoss@semoss.local / semoss, reports@semoss.local / reports | function (`SMTP`, `POP3`, `IMAP`) |
 
 ```bash
-docker compose -f semoss-weaviate.yml up -d      # or semoss-chroma.yml / -opensearch.yml / -pgvector.yml / -clickhouse.yml
+docker compose -f semoss-weaviate.yml up -d      # or -chroma / -opensearch / -pgvector / -clickhouse / -minio / -sftp / -mail
 docker compose -f semoss-weaviate.yml down       # add -v to also wipe the data volume
 ```
 
@@ -25,7 +28,22 @@ curl http://localhost:8000/api/v2/version                # chroma
 curl -k -u admin:Str0ngVectorP@ss1 https://localhost:9200  # opensearch
 docker exec semoss-pgvector pg_isready -U pgvector        # pgvector
 curl http://localhost:8123/ping                          # clickhouse (returns "Ok.")
+curl -i http://localhost:9100/minio/health/live          # minio (204 when ready)
+docker exec semoss-sftp nc -z localhost 22 && echo ok    # sftp
+curl http://localhost:8085/api/service/readiness          # mail (greenmail)
 ```
+
+## Pointing SEMOSS at one
+
+The settings each engine takes are on their own page, since they have little to
+do with each other:
+
+| Page | Engines |
+|------|---------|
+| [vector.md](vector.md) | Weaviate, Chroma, OpenSearch, pgvector |
+| [database.md](database.md) | ClickHouse |
+| [storage.md](storage.md) | MinIO, SFTP |
+| [functions/](functions/README.md) | the mail engines: sending, reading, and Microsoft 365 |
 
 ## Networking: connecting from SEMOSS
 
@@ -50,6 +68,9 @@ http://semoss-chroma:8000                         (chroma)
 https://semoss-opensearch:9200                    (opensearch)
 jdbc:postgresql://semoss-pgvector:5432/vectordb   (pgvector, internal port 5432)
 jdbc:clickhouse://semoss-clickhouse:8123/semoss   (clickhouse, HTTP port 8123)
+http://semoss-minio:9000                          (minio, internal S3 API port 9000)
+semoss-sftp:22                                    (sftp, internal port 22)
+semoss-mail:3025 / :3110 / :3143                   (mail, smtp / pop3 / imap)
 ```
 
 **SEMOSS on your host** (not in Docker) - use `localhost` and the published port:
@@ -60,6 +81,9 @@ http://localhost:8000                               (chroma)
 https://localhost:9200                              (opensearch)
 jdbc:postgresql://localhost:5433/vectordb           (pgvector, host port 5433)
 jdbc:clickhouse://localhost:8123/semoss             (clickhouse, host port 8123)
+http://localhost:9100                               (minio, host port 9100)
+localhost:2222                                      (sftp, host port 2222)
+localhost:3025 / :3110 / :3143                       (mail, same ports on the host)
 ```
 
 > **pgvector port note:** pgvector is just Postgres, the same as the SEMOSS `db`
@@ -74,96 +98,24 @@ jdbc:clickhouse://localhost:8123/semoss             (clickhouse, host port 8123)
 > it is published on host `9010` (`9010:9000`) and only matters if you want to attach
 > `clickhouse-client` from the host.
 
-## SEMOSS vector engine settings
+> **MinIO port note:** the SEMOSS compose files that bundle MinIO publish it on
+> host `9000` (S3 API) and `9001` (console). The standalone file uses host `9100`
+> and `9101` so both can run side by side. The in-container ports are still
+> `9000` / `9001`, so SEMOSS-in-Docker connects on `9000` by container name; only
+> host access uses `9100`. If those host ports are taken, change the left side of
+> `"9100:9000"` / `"9101:9001"` in [semoss-minio.yml](semoss-minio.yml).
 
-Create the vector DB engine in SEMOSS with the settings below. Pick the
-`HOSTNAME` value from the networking section above that matches your setup. The
-parameter names are the SMSS property keys the engines read.
-
-### Weaviate
-
-```
-VECTOR_TYPE          WEAVIATE
-HOSTNAME             http://semoss-weaviate:8080   (SEMOSS in Docker; use http://localhost:8081 if SEMOSS runs on host)
-API_KEY              test-key
-WEAVIATE_CLASSNAME   default
-WEAVIATE_GRPC_PORT   50051                         (gRPC port)
-WEAVIATE_GRPC_HOST   <optional; defaults to the HOSTNAME host>
-WEAVIATE_HTTP_PORT   <optional; defaults to 443 for https / 80 for http, or the port in HOSTNAME>
-EMBEDDER_ENGINE_ID   <an existing embedder model engine>
-```
-
-Weaviate uses gRPC in addition to REST, but `WEAVIATE_GRPC_HOST` defaults to the
-host parsed from `HOSTNAME`, so the settings above are all you need.
-
-### Chroma
-
-```
-VECTOR_TYPE              CHROMA
-HOSTNAME                 http://semoss-chroma:8000   (SEMOSS in Docker; use http://localhost:8000 if SEMOSS runs on host)
-CHROMA_COLLECTION_NAME   <collection name>
-EMBEDDER_ENGINE_ID       <an existing embedder model engine>
-```
-
-### OpenSearch
-
-```
-VECTOR_TYPE          OPEN_SEARCH
-HOSTNAME             https://semoss-opensearch:9200    (SEMOSS in Docker; use https://localhost:9200 if SEMOSS runs on host)
-USERNAME             admin
-PASSWORD             Str0ngVectorP@ss1            (OPENSEARCH_INITIAL_ADMIN_PASSWORD)
-INDEX_NAME           <index name>
-EMBEDDER_ENGINE_ID   <an existing embedder model engine>
-```
-
-> OpenSearch serves HTTPS with a self-signed certificate, so use `https://` and
-> make sure SEMOSS is allowed to trust/skip verification for it. Override the
-> admin password by exporting `OPENSEARCH_INITIAL_ADMIN_PASSWORD` (or a `.env`
-> file) before `up`; it must meet OpenSearch's complexity rules.
-
-### pgvector
-
-pgvector extends `RDBMSNativeEngine`, so it takes JDBC connection settings rather
-than a plain `HOSTNAME`. SEMOSS creates the `vector` extension and the tables
-automatically on first connect.
-
-```
-VECTOR_TYPE                    PGVECTOR
-RDBMS_TYPE                     POSTGRES
-DRIVER                         org.postgresql.Driver
-CONNECTION_URL                 jdbc:postgresql://semoss-pgvector:5432/vectordb   (host: jdbc:postgresql://localhost:5433/vectordb)
-USERNAME                       pgvector
-PASSWORD                       pgvector
-PGVECTOR_TABLE_NAME            <table name>
-PGVECTOR_METADATA_TABLE_NAME   <metadata table name>
-EMBEDDER_ENGINE_ID             <an existing embedder model engine>
-```
-
-## SEMOSS database engine settings
-
-### ClickHouse
-
-ClickHouse is a relational (OLAP) database, not a vector DB, so create it as a
-database engine:
-
-```
-RDBMS_TYPE   CLICKHOUSE
-HOSTNAME     semoss-clickhouse   (host: localhost)
-PORT         8123
-DATABASE     semoss
-USERNAME     clickhouse
-PASSWORD     clickhouse
-```
-
-ClickHouse has databases only, no schemas, so leave `SCHEMA` unset. Instead of
-`HOSTNAME` / `PORT` / `DATABASE` you can set `CONNECTION_URL` directly to
-`jdbc:clickhouse://semoss-clickhouse:8123/semoss`.
+> **Mail port note:** GreenMail serves on `3025` / `3110` / `3143` instead of the
+> real `25` / `110` / `143` so it needs no privileges, and it publishes them
+> unmapped, so the port is the same from Docker and from the host. The mail engines
+> default to the real ports, so `SMTP_PORT` / `POP3_PORT` / `IMAP_PORT` always have
+> to be set for this server.
 
 ## Notes
 
 - All credentials here (`test-key`, `admin` / `Str0ngVectorP@ss1`,
-  `pgvector` / `pgvector`, `clickhouse` / `clickhouse`) are local-dev defaults -
-  change them before using any of this beyond your machine.
+  `pgvector` / `pgvector`, `clickhouse` / `clickhouse`,
+  `minioadmin` / `minioadmin`, `foo` / `pass`,
+  `semoss@semoss.local` / `semoss`, `reports@semoss.local` / `reports`) are
+  local-dev defaults - change them before using any of this beyond your machine.
 - Each service uses fixed container names, so run one instance of each at a time.
-- `EMBEDDER_ENGINE_ID` must reference an embedder model engine that already exists
-  in your SEMOSS instance.

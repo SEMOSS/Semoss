@@ -1,0 +1,385 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-08-19"
+  },
+  "tools": [
+    {
+      "name": "BrowseInsightAssets",
+      "title": "Browse Insight Assets",
+      "description": "List the files and directories from a relative filePath input from within the insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "BrowseInsightAssets_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to list contents from."
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "BrowseInsightAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "CopyInsightAsset",
+      "title": "Copy Insight Asset",
+      "description": "Copy (clone) a file or directory in the insight assets folder to a new path",
+      "inputSchema": {
+        "type": "object",
+        "title": "CopyInsightAsset_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The source file or directory to copy. This relative path should assume the prefix of the insight folder."
+          },
+          "newValue": {
+            "type": "string",
+            "title": "newValue",
+            "description": "The destination path for the copy. This cannot be an existing file or directory unless override is true and has the same character restrictions you would expect on a typical file system."
+          },
+          "override": {
+            "type": "boolean",
+            "title": "override",
+            "description": "Whether to delete an existing file or directory at the destination before copying. Defaults to false.",
+            "default": false
+          }
+        },
+        "required": [
+          "filePath",
+          "newValue"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "CopyInsightAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "DeleteInsightAssets",
+      "title": "Delete Insight Assets",
+      "description": "Delete a single or multiple files in the insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "DeleteInsightAssets_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to delete. This relative path should assume the insight folder. If no value is passed, all files in the insight folder will be deleted."
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DeleteInsightAssets",
+        "SMSS_MCP_EXECUTION": "ask",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "DownloadInsightAsset",
+      "title": "Download Insight Asset",
+      "description": "Download a file or directory from within the insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "DownloadInsightAsset_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to a file or directory within the insight folder"
+          }
+        },
+        "required": []
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "DownloadInsightAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "GetInsightAssetsBase64",
+      "title": "Get Insight Assets Base64",
+      "description": "Retrieve the contents of a file (image, pdf, etc.) as base64 encoded string in the insight",
+      "inputSchema": {
+        "type": "object",
+        "title": "GetInsightAssetsBase64_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to get the contents as a base64 encoded string"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetInsightAssetsBase64",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "GetInsightAssets",
+      "title": "Get Insight Assets",
+      "description": "Retrieve the contents of a file in the insight",
+      "inputSchema": {
+        "type": "object",
+        "title": "GetInsightAssets_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to get the contents"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "GetInsightAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "NewInsightAssetsDirectory",
+      "title": "New Insight Assets Directory",
+      "description": "Create a new empty directory in the insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "NewInsightAssetsDirectory_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to create."
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "NewInsightAssetsDirectory",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "NewInsightAssetsFile",
+      "title": "New Insight Assets File",
+      "description": "Create a new empty file in the insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "NewInsightAssetsFile_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file to create."
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "NewInsightAssetsFile",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "RenameInsightAsset",
+      "title": "Rename Insight Asset",
+      "description": "Rename a file or directory in the insight assets folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "RenameInsightAsset_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save. This relative path should assume the prefix of the insight folder."
+          },
+          "newValue": {
+            "type": "string",
+            "title": "newValue",
+            "description": "The new name for the file or directory. This cannot be a name for an existing file or directory and has the same character restrictions you would expect on a typical file system."
+          }
+        },
+        "required": [
+          "filePath",
+          "newValue"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "RenameInsightAsset",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SaveInsightAssetsBase64",
+      "title": "Save Insight Assets Base64",
+      "description": "Save a single or multiple files in the insight assets folder. Content for each file is provided as base64 utf-8 encoded input. Prefer SaveInsightAssets over this tool. Only use this when the content cannot be sent as plain text, such as binary files (images, pdfs, zips) or text that would be corrupted in transit.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SaveInsightAssetsBase64_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save"
+          },
+          "content": {
+            "type": "string",
+            "title": "content",
+            "description": "Contents of the file(s) to save. Content is base64 utf-8 string."
+          },
+          "decode": {
+            "type": "string",
+            "title": "decode",
+            "description": "Boolean to decode the base64 utf-8 content string before writing to the file. Default is true"
+          }
+        },
+        "required": [
+          "filePath",
+          "content"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveInsightAssetsBase64",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SaveInsightAssets",
+      "title": "Save Insight Assets",
+      "description": "Saves one or more files to the insight assets folder and commits them to the insight's git repository. This is the preferred tool for writing files and should be used for all text content. Only fall back to SaveInsightAssetsBase64 when the content cannot be sent as plain text, such as binary files.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SaveInsightAssets_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "Names of the file(s) to save"
+          },
+          "content": {
+            "type": "string",
+            "title": "content",
+            "description": "Contents of the file(s) to save."
+          }
+        },
+        "required": [
+          "filePath",
+          "content"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SaveInsightAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "SearchInsightAssets",
+      "title": "Search Insight Assets",
+      "description": "Recursively search files and directories within the insight's assets folder, filtered by search term and optional searching flags.",
+      "inputSchema": {
+        "type": "object",
+        "title": "SearchInsightAssets_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path to search files from. This relative path should assume the file path till insight's folder and relative path should start onwards"
+          },
+          "search": {
+            "type": "string",
+            "title": "search",
+            "description": "The search term used to filter file and directory names"
+          },
+          "options": {
+            "type": "string",
+            "title": "options",
+            "description": "A list of zero or more search flags to modify matching behavior. Valid values are 'case' for case-sensitive matching, 'word' for whole-word matching, and 'regex' to treat the search term as a Java regular expression. If omitted, the search is case-insensitive."
+          }
+        },
+        "required": [
+          "filePath",
+          "search"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "SearchInsightAssets",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    },
+    {
+      "name": "UnzipInsightAssetFile",
+      "title": "Unzip Insight Asset File",
+      "description": "Unzips a zip file located in the current insight folder",
+      "inputSchema": {
+        "type": "object",
+        "title": "UnzipInsightAssetFile_Arguments",
+        "properties": {
+          "filePath": {
+            "type": "string",
+            "title": "filePath",
+            "description": "The relative file path of the zip file within the current insight folder to extract"
+          }
+        },
+        "required": [
+          "filePath"
+        ]
+      },
+      "_meta": {
+        "SMSS_FUNCTION_NAME": "UnzipInsightAssetFile",
+        "SMSS_MCP_EXECUTION": "auto",
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        }
+      }
+    }
+  ]
+}

@@ -74,7 +74,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+					if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 
@@ -86,11 +86,12 @@ public class DeleteProjectReactor extends AbstractReactor {
 				}
 			}
 
-			if (SystemDefaultEngines.getSystemSkills().contains(projectId)
+			if (SystemDefaultEngines.getSystemApps().contains(projectId)
+					|| SystemDefaultEngines.getSystemSkills().contains(projectId)
 					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)
 					|| SystemDefaultEngines.getSystemAgents().contains(projectId)) {
 				throw new IllegalArgumentException(
-						"Project " + projectId + " is a built-in platform MCP/skill/agent and cannot be deleted");
+						"Project " + projectId + " is a built-in platform app/MCP/skill/agent and cannot be deleted");
 			}
 
 			IProject project = Utility.getProject(projectId);

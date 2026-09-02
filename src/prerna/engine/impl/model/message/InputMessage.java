@@ -96,16 +96,46 @@ public class InputMessage extends AbstractMessage {
 	}
 
 	/**
-	 * Get the effective prompt to send to the LLM (RAG: includes user + chunks).
+	 * Returns only the text portion of this input message.
+	 *
+	 * @return text input, or the legacy text value when no text part exists
 	 */
-	public String getInputPrompt() {
-
+	public String getInputText() {
 		// assuming input messages have only 1 text part for now
 		TextMessagePart textPart = getFirstTextPart();
 		if (textPart != null && textPart.getText() != null) {
 			return textPart.getText();
 		}
 		return inputPrompt;
+	}
+
+	/**
+	 * Returns the effective prompt sent to the model. Text input takes precedence;
+	 * a tool-result-only message returns its combined tool output.
+	 *
+	 * @return model-bound input text or tool output
+	 */
+	public String getFullInputPrompt() {
+		String inputText = getInputText();
+		if (inputText != null) {
+			return inputText;
+		}
+		StringBuilder toolOutput = new StringBuilder();
+		for (MessagePart part : getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart result = ((ToolResultMessagePart) part).getToolResult();
+				if (result != null && result.getOutput() != null) {
+					if (toolOutput.length() > 0) {
+						toolOutput.append('\n');
+					}
+					toolOutput.append(result.getOutput());
+				}
+			}
+		}
+		if (toolOutput.length() > 0) {
+			return toolOutput.toString();
+		}
+		return null;
 	}
 
 	public String getInputUIPrompt() {
@@ -184,7 +214,7 @@ public class InputMessage extends AbstractMessage {
 		}
 
 		// ---- text ----
-		String effective = getInputPrompt();
+		String effective = getFullInputPrompt();
 		if (effective != null && !effective.trim().isEmpty()) {
 			if (inputUIPrompt != null && !inputUIPrompt.equals(effective)) {
 				addPart(new TextMessagePart(effective, inputUIPrompt));
@@ -195,7 +225,7 @@ public class InputMessage extends AbstractMessage {
 
 		// ---- tool execution ----
 		if (type == MessageType.INPUT_TOOL_EXEC || toolCallId != null || toolName != null) {
-			addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName, getInputPrompt(),
+			addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName, getFullInputPrompt(),
 					toolParameterValues, toolStatus, false)));
 		}
 	}
@@ -706,5 +736,37 @@ public class InputMessage extends AbstractMessage {
 			}
 		}
 		return medias;
+	}
+
+	/**
+	 * Replaces this message's model-bound textual content. Input guardrails use
+	 * this method so the exact message object supplied by the caller, retained by
+	 * the room, and sent to the model all contain the masked value.
+	 *
+	 * @param prompt replacement text sent to the model
+	 */
+	public void setFullInputPrompt(String prompt) {
+		this.inputPrompt = prompt;
+		this.inputUIPrompt = prompt;
+
+		boolean replacedContent = false;
+		for (MessagePart part : getParts()) {
+			if (part instanceof TextMessagePart) {
+				TextMessagePart textPart = (TextMessagePart) part;
+				textPart.setText(prompt);
+				textPart.setUiText(prompt);
+				replacedContent = true;
+			} else if (part instanceof ToolResultMessagePart) {
+				ToolResultPart result = ((ToolResultMessagePart) part).getToolResult();
+				if (result != null) {
+					result.setOutput(prompt);
+					replacedContent = true;
+				}
+			}
+		}
+		if (!replacedContent && prompt != null && !prompt.isEmpty()) {
+			addPart(new TextMessagePart(prompt));
+		}
+		normalizeForWrite();
 	}
 }

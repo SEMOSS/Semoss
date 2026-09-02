@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.engine.impl.function;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -91,6 +94,135 @@ public abstract class AbstractFunctionEngine extends AbstractEngine implements I
 						smssProp.getProperty(IFunctionEngine.REQUIRED_PARAMETER_KEY));
 			}
 		}
+	}
+
+	/**
+	 * Throw when a caller left out a parameter this engine declared as required.
+	 *
+	 * <p>
+	 * Every implementation of {@link #execute(Map)} owes its caller this check, and
+	 * {@link #requiredParameters} is owned here, so the check belongs here too
+	 * rather than being restated by each engine.
+	 *
+	 * @param parameterValues the runtime parameters for this call
+	 */
+	protected void validateRequiredParameters(Map<String, Object> parameterValues) {
+		if (this.requiredParameters == null || this.requiredParameters.isEmpty()) {
+			return;
+		}
+		Set<String> missingPs = new HashSet<>();
+		for (String requiredP : this.requiredParameters) {
+			if (parameterValues == null || !parameterValues.containsKey(requiredP)) {
+				missingPs.add(requiredP);
+			}
+		}
+		if (!missingPs.isEmpty()) {
+			throw new IllegalArgumentException("Must define required keys = " + missingPs);
+		}
+	}
+
+	/**
+	 * Build the trailing sentence that tells a caller what value is used when they
+	 * leave a parameter out. Used when composing the parameter descriptions that
+	 * {@link #getFunctionDefintionJson()} publishes.
+	 *
+	 * @param defaultValue the default this engine was opened with
+	 * @return the sentence to append, or an empty string when there is no default
+	 */
+	protected static String defaultText(String defaultValue) {
+		if (defaultValue == null || defaultValue.isEmpty()) {
+			return "";
+		}
+		return " Defaults to " + defaultValue + ".";
+	}
+
+	/**
+	 * Pull a runtime parameter as a trimmed string, falling back to a default when
+	 * it is missing or blank.
+	 *
+	 * @param parameterValues the runtime parameters for this call
+	 * @param key             the parameter to read
+	 * @param defaultValue    value to use when the parameter is not set
+	 * @return the parameter value as a string or the default
+	 */
+	protected static String getParameterValue(Map<String, Object> parameterValues, String key, String defaultValue) {
+		Object value = parameterValues == null ? null : parameterValues.get(key);
+		if (value == null) {
+			return defaultValue;
+		}
+		String stringValue = value.toString().trim();
+		if (stringValue.isEmpty()) {
+			return defaultValue;
+		}
+		return stringValue;
+	}
+
+	/**
+	 * Pull a runtime parameter as an int. A value that is not a number is logged
+	 * and the default used, since a model passing "five" should still get a result
+	 * back rather than an error.
+	 *
+	 * @param parameterValues the runtime parameters for this call
+	 * @param key             the parameter to read
+	 * @param defaultValue    value to use when the parameter is not set or not a
+	 *                        number
+	 * @return the parameter value as an int or the default
+	 */
+	protected static int getIntParameterValue(Map<String, Object> parameterValues, String key, int defaultValue) {
+		Object value = parameterValues == null ? null : parameterValues.get(key);
+		if (value == null) {
+			return defaultValue;
+		}
+		if (value instanceof Number) {
+			return ((Number) value).intValue();
+		}
+		String stringValue = value.toString().trim();
+		if (stringValue.isEmpty()) {
+			return defaultValue;
+		}
+		try {
+			// a model routinely sends an integer as "5" or even "5.0"
+			return (int) Double.parseDouble(stringValue);
+		} catch (NumberFormatException e) {
+			classLogger.warn("Invalid number '{}' for the {} parameter, using {} instead", stringValue, key,
+					defaultValue);
+			return defaultValue;
+		}
+	}
+
+	/**
+	 * Pull a runtime parameter as a boolean. A model sends a flag as a real boolean
+	 * from one provider and as the string "true" from another, and a plain
+	 * {@link Boolean#parseBoolean(String)} would silently read anything it does not
+	 * recognize as false, so an unrecognized value falls back to the default
+	 * instead.
+	 *
+	 * @param parameterValues the runtime parameters for this call
+	 * @param key             the parameter to read
+	 * @param defaultValue    value to use when the parameter is not set or not a
+	 *                        recognized boolean
+	 * @return the parameter value as a boolean or the default
+	 */
+	protected static boolean getBooleanParameterValue(Map<String, Object> parameterValues, String key,
+			boolean defaultValue) {
+		Object value = parameterValues == null ? null : parameterValues.get(key);
+		if (value == null) {
+			return defaultValue;
+		}
+		if (value instanceof Boolean) {
+			return ((Boolean) value).booleanValue();
+		}
+		String stringValue = value.toString().trim().toLowerCase();
+		if (stringValue.equals("true") || stringValue.equals("yes") || stringValue.equals("y")
+				|| stringValue.equals("1")) {
+			return true;
+		}
+		if (stringValue.equals("false") || stringValue.equals("no") || stringValue.equals("n")
+				|| stringValue.equals("0")) {
+			return false;
+		}
+		classLogger.warn("Invalid boolean '{}' for the {} parameter, using {} instead", stringValue, key, defaultValue);
+		return defaultValue;
 	}
 
 	@Override

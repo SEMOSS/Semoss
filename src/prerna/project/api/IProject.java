@@ -258,6 +258,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@Deprecated
 	ProjectProperties getProjectProperties();
 
 	/**

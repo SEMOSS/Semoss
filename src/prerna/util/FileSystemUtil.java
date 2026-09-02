@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -653,7 +654,50 @@ public final class FileSystemUtil {
 			return "{}";
 		}
 
+		if (normalizedPath.endsWith(".ipynb")) {
+			return """
+					{
+					  "nbformat": 4,
+					  "nbformat_minor": 5,
+					  "metadata": {
+					    "kernelspec": {
+					      "display_name": "Python 3",
+					      "language": "python",
+					      "name": "python3"
+					    },
+					    "language_info": {
+					      "name": "python"
+					    }
+					  },
+					  "cells": [
+					    {
+					      "id": "%s",
+					      "cell_type": "markdown",
+					      "metadata": {},
+					      "source": [
+					        "# New Notebook"
+					      ]
+					    }
+					  ]
+					}""".formatted(newNotebookCellId());
+		}
+
 		return "new file";
+	}
+
+	/**
+	 * Id for the cell in a newly created notebook.
+	 *
+	 * nbformat 4.5 onward wants an id on every cell, unique within the notebook,
+	 * matching [a-zA-Z0-9-_] and no longer than 64 characters. A fixed value would
+	 * give every notebook the same one, which Jupyter tolerates but which makes
+	 * cells indistinguishable once notebooks are merged or diffed.
+	 *
+	 * @return a random id built from characters the format allows
+	 */
+	private static String newNotebookCellId() {
+		// getRandomString prefixes an "a" and adds this many more characters
+		return Utility.getRandomString(8);
 	}
 
 	/**
@@ -716,6 +760,20 @@ public final class FileSystemUtil {
 	 * @param destFileName   The destination relative path for the copy.
 	 */
 	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		copyAsset(assetFolder, sourceFileName, destFileName, false);
+	}
+
+	/**
+	 * Copies a file or directory within the asset folder, optionally replacing an
+	 * existing destination.
+	 *
+	 * @param assetFolder    The base folder for the assets.
+	 * @param sourceFileName The current relative path of the file/directory to
+	 *                       copy.
+	 * @param destFileName   The destination relative path for the copy.
+	 * @param override       If true, delete an existing destination before copying.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName, boolean override) {
 		while (sourceFileName.startsWith("/")) {
 			sourceFileName = sourceFileName.substring(1);
 		}
@@ -730,9 +788,26 @@ public final class FileSystemUtil {
 		if (!sourceFile.exists()) {
 			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
 		}
+
+		Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
+		Path destPath = destFile.toPath().toAbsolutePath().normalize();
+		if (sourcePath.equals(destPath) || sourcePath.startsWith(destPath)
+				|| (sourceFile.isDirectory() && destPath.startsWith(sourcePath))) {
+			throw new IllegalArgumentException("Source and destination paths cannot contain one another");
+		}
+
 		if (destFile.exists()) {
-			throw new IllegalArgumentException(
-					"A file or directory already exists at the destination: " + destFileName);
+			if (!override) {
+				throw new IllegalArgumentException(
+						"A file or directory already exists at the destination: " + destFileName);
+			}
+			try {
+				FileUtils.forceDelete(destFile);
+			} catch (IOException e) {
+				classLogger.error("Error deleting existing copy destination {}", destFileName, e);
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Unable to replace existing destination " + destFileName));
+			}
 		}
 
 		try {

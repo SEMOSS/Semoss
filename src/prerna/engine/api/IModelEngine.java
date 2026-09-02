@@ -32,6 +32,7 @@ import java.util.Map;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.BatchListResponse;
 import prerna.engine.impl.model.responses.BatchResultsResponse;
@@ -47,17 +48,6 @@ public interface IModelEngine extends IEngine {
 	// this is what the FE sends for the type of storage we are creating
 	// as a result, cannot be a key in the smss file
 	String MODEL_TYPE = "MODEL_TYPE";
-
-	// main class that is responsible for controlling everything models
-	// hosting modes - embedded, inference_engine, FastChat, OpenAI
-	// start server
-	// connect client
-	// disconnect client
-	// stop server ?
-
-	// reactors
-	// ModelDeployMatchFinder - finds it based on GPU memory etc.
-	// StopModel
 
 	/**
 	 * Gets the type of the model inference engine. The model engine type is often
@@ -89,23 +79,35 @@ public interface IModelEngine extends IEngine {
 	AskModelEngineResponse ask(String question, String context, Insight insight, Map<String, Object> parameters);
 
 	/**
-	 * Passes the string question along with other parameters such as context and
-	 * temperature to the python client and
+	 * Sends an input message to the model in the context of a room.
 	 * 
-	 * @param question   The question being asked to the LLM
-	 * @param context    (Optional) The context passed in by the user
-	 * @param room       The room from where the call is being made. The room holder
-	 *                   the insight and user, along with other room properties like
-	 *                   tools, vec dbs, system prompts.
-	 * @param parameters Additional parameters such as temperature, top_k,
-	 *                   max_new_tokens etc
+	 * @param inputMessage The message being sent to the LLM
+	 * @param room         The room from where the call is being made. The room
+	 *                     holder the insight and user, along with other room
+	 *                     properties like tools, vec dbs, system prompts.
+	 * @param parameters   Additional parameters such as temperature, top_k,
+	 *                     max_new_tokens etc
 	 * @return creates a map response with the following keys - response : The
 	 *         actual string response from the LLM/model - messageId : The unique
 	 *         identifier of a message (the user's input and the model response) -
 	 *         roomId: The insightId that the runPixel endpoint is being called from
 	 */
-	AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
-			Map<String, Object> parameters);
+	AskModelEngineResponse askRoom(InputMessage inputMessage, Room room, Map<String, Object> parameters);
+
+	/**
+	 * Validate that the given outbound messages only carry media this model's
+	 * configured input modalities allow. Callers building a provider payload
+	 * outside the askRoom flow (batch submission, routing) invoke this with the
+	 * exact message list they are about to serialize.
+	 *
+	 * This is a no-op by default. Engines backed by MODELMETADATA input modalities
+	 * throw IllegalArgumentException when a message carries media of a disallowed
+	 * modality.
+	 *
+	 * @param outboundMessages the messages about to be sent to the provider
+	 */
+	default void validateInputModalities(List<AbstractMessage> outboundMessages) {
+	}
 
 	/**
 	 * Passes a list of strings to the model client to be embedded. Each string in
@@ -125,16 +127,18 @@ public interface IModelEngine extends IEngine {
 	/**
 	 * Passes text, image, and/or video inputs to the model client to be embedded
 	 * together. Unlike {@link #embeddings}, the result is broken out by modality so
-	 * each returned embedding (and any per-input error) lines up with the input that
-	 * produced it.
+	 * each returned embedding (and any per-input error) lines up with the input
+	 * that produced it.
 	 *
 	 * This is an optional capability. Engines whose underlying client does not
 	 * implement multi modal embeddings inherit this default, which reports that the
 	 * operation is not implemented rather than throwing.
 	 *
 	 * @param text       Text string(s) to embed. May be null/empty.
-	 * @param image      Image input(s) to embed - base64, data URL, or remote URL. May be null/empty.
-	 * @param video      Video input(s) to embed - base64, data URL, or remote URL. May be null/empty.
+	 * @param image      Image input(s) to embed - base64, data URL, or remote URL.
+	 *                   May be null/empty.
+	 * @param video      Video input(s) to embed - base64, data URL, or remote URL.
+	 *                   May be null/empty.
 	 * @param insight    The insight from where the call is being made.
 	 * @param parameters Additional parameters passed through to the model client.
 	 * @return The embeddings response broken out by modality.
@@ -182,7 +186,8 @@ public interface IModelEngine extends IEngine {
 	 *
 	 * @param requests   each entry is {@code {custom_id, body}} where body is the
 	 *                   provider-native per-request payload
-	 * @param parameters optional submission params (e.g. completion_window, endpoint)
+	 * @param parameters optional submission params (e.g. completion_window,
+	 *                   endpoint)
 	 * @return the provider batch id and initial status
 	 */
 	default BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {

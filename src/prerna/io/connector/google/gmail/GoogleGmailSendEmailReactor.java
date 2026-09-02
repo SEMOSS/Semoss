@@ -32,12 +32,16 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EmailUtility;
+import prerna.util.EmailUtility.EmailMetadata;
 
 public class GoogleGmailSendEmailReactor extends AbstractReactor {
 
@@ -70,8 +74,15 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			Map<String, Object> retMap = GoogleGmailHelper.sendEmail(accessToken, subject, body, to);
+			AccessToken googleToken = user == null ? null : user.getAccessToken(AuthProvider.GOOGLE);
+			String from = googleToken == null ? null : googleToken.getEmail();
+			EmailMetadata metadata = new EmailMetadata(new String[] { to }, null, null, from, subject, body, false,
+					null);
+
+			Map<String, Object> retMap = EmailUtility.sendEmail(() -> {
+				String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
+				return GoogleGmailHelper.sendEmail(accessToken, subject, body, to);
+			}, metadata);
 			return new NounMetadata(retMap, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while sending Gmail email", e);

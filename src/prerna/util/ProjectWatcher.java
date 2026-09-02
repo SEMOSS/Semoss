@@ -58,6 +58,28 @@ public class ProjectWatcher extends AbstractFileWatcher {
 
 	@Override
 	public void init() {
+		// loading generic platform apps
+		List<String> defaultApps = SystemDefaultEngines.getSystemApps();
+		for (String engineId : defaultApps) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, "APP", "SYSTEM");
+					ensureTemplateFlag(engineId, folderToWatch + "/platform__" + fileName);
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			} else {
+				classLogger.warn("Platform app '{}' is registered but {}/platform__{} is missing; it will not be "
+						+ "available", engineId, folderToWatch, fileName);
+			}
+		}
+
 		// we will load the platform skills
 		List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
 		for (String engineId : defaultPlatforms) {
@@ -68,7 +90,13 @@ public class ProjectWatcher extends AbstractFileWatcher {
 					// set all as global
 					catalogProject("platform__" + fileName, folderToWatch, true);
 					INIT_LIST.add("platform__" + fileName);
-					ensureSkillTag(engineId);
+					// the global flag passed to catalogProject only lands on the initial
+					// insert - addProject early-returns once the row exists. A skill whose
+					// row was created by any other path first (the generic folder scan, or
+					// a boot before it was registered here) stays non-global and drops out
+					// of MyProjects. Mirror the MCP/agent branches and force it every boot.
+					SecurityProjectUtils.setProjectCompletelyGlobal(engineId);
+					ensureProjectTags(engineId, ProjectHelper.SKILL_PROJECT_TAG, "SYSTEM");
 					// load the project object and don't pull from cloud
 					Utility.getProject(engineId, false);
 				} catch (Exception e) {
@@ -124,44 +152,12 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	}
 
 	/**
-	 * Makes sure a platform skill project carries the PROJECTMETA tag marking it as
-	 * a skill. addProject early-returns when the project already exists in the
-	 * security db, so this runs on every boot; it is idempotent and preserves any
-	 * other tag values already on the project. Never blocks project load.
-	 */
-	private static void ensureSkillTag(String projectId) {
-		try {
-			Map<String, Object> meta = SecurityProjectUtils.getAggregateProjectMetadata(projectId, Arrays.asList("tag"),
-					false);
-			List<Object> tags = new ArrayList<>();
-			Object existing = meta.get("tag");
-			if (existing instanceof List) {
-				tags.addAll((List<?>) existing);
-			} else if (existing != null) {
-				tags.add(existing);
-			}
-			for (Object t : tags) {
-				if (ProjectHelper.SKILL_PROJECT_TAG.equals(t)) {
-					return;
-				}
-			}
-			tags.add(ProjectHelper.SKILL_PROJECT_TAG);
-			Map<String, Object> update = new HashMap<>();
-			update.put("tag", tags);
-			SecurityProjectUtils.updateProjectMetadata(projectId, update);
-		} catch (Exception e) {
-			classLogger.warn("Failed to ensure skill tag on platform skill project '{}': {}", projectId,
-					e.getMessage());
-		}
-	}
-
-	/**
 	 * Ensures a platform project carries each of the given PROJECTMETA tags (e.g.
-	 * "MCP", "SYSTEM"). Mirrors {@link #ensureSkillTag(String)}: addProject
-	 * early-returns when the project already exists in the security db, so this
-	 * runs on every boot; it is idempotent (only writes when a tag is missing) and
-	 * preserves any other tag values already on the project. Never blocks project
-	 * load. The literal "MCP" tag matches MCPUtility.addMCPTag.
+	 * "SKILL", "MCP", "SYSTEM"). addProject early-returns when the project already
+	 * exists in the security db, so this runs on every boot; it is idempotent (only
+	 * writes when a tag is missing) and preserves any other tag values already on
+	 * the project. Never blocks project load. The literal "MCP" tag matches
+	 * MCPUtility.addMCPTag.
 	 */
 	private static void ensureProjectTags(String projectId, String... requiredTags) {
 		try {
@@ -189,6 +185,27 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		} catch (Exception e) {
 			classLogger.warn("Failed to ensure tags {} on platform project '{}': {}", Arrays.toString(requiredTags),
 					projectId, e.getMessage());
+		}
+	}
+
+	/**
+	 * Heals PROJECT.IS_TEMPLATE from a platform project's smss on every boot.
+	 * addProject only reads IS_TEMPLATE on the initial insert, so a security db
+	 * row created by an older build (or before the flag was added to the smss)
+	 * would otherwise stay non-cloneable forever. One-directional on purpose: an
+	 * smss without IS_TEMPLATE=true leaves the db value alone, so a flag enabled
+	 * at runtime through the REST endpoint is never clobbered. Never blocks
+	 * project load.
+	 */
+	private static void ensureTemplateFlag(String projectId, String smssPath) {
+		try {
+			Properties prop = Utility.loadProperties(smssPath);
+			boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
+			if (isTemplate) {
+				SecurityProjectUtils.setProjectTemplate(projectId, true);
+			}
+		} catch (Exception e) {
+			classLogger.warn("Failed to ensure template flag on platform project '{}': {}", projectId, e.getMessage());
 		}
 	}
 
@@ -222,9 +239,11 @@ public class ProjectWatcher extends AbstractFileWatcher {
 		}
 
 		if (!ClusterUtil.IS_CLUSTER) {
-			// reserved system apps (platform skills + platform mcps) reload from disk
-			// every boot and must never be pruned during file-system reconciliation
+			// reserved system projects (platform apps + skills + mcps + agents) reload
+			// from disk every boot and must never be pruned during file-system
+			// reconciliation
 			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemApps());
 			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
 			reservedProjects.addAll(SystemDefaultEngines.getSystemAgents());
 			// if projects are removed from the file system

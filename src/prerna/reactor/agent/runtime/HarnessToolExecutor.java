@@ -52,6 +52,7 @@ import com.google.gson.Gson;
 import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
@@ -89,7 +90,7 @@ final class HarnessToolExecutor {
 	private static final String TOOL_STATUS_ERROR = "error";
 
 	private static final Gson GSON = new Gson();
-	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
+	static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
 
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
@@ -109,7 +110,21 @@ final class HarnessToolExecutor {
 
 		Room room = ctx.getRoom();
 		String parentMsgId = toolResponse.getMessageId();
-		List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> allToolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> toolCalls = new ArrayList<>();
+		for (Map<String, Object> toolCall : allToolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			toolCalls.add(toolCall);
+		}
+		if (toolCalls.size() < allToolCalls.size()) {
+			logger.info("HarnessToolExecutor: skipping {} provider-executed server tool call(s) iter={} room={}",
+					allToolCalls.size() - toolCalls.size(), state.getIterations(), room.getId());
+		}
+		if (toolCalls.isEmpty()) {
+			return toolResponse;
+		}
 		String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 
@@ -342,8 +357,9 @@ final class HarnessToolExecutor {
 		}
 		Object metaObj = tc.toolCall.get("_meta");
 		Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
-		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, tc.toolParams, meta,
-				status);
+		Object title = tc.toolCall.get("title");
+		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName,
+				title != null ? title.toString() : null, tc.toolParams, meta, status);
 		String boundedOutput = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
 		if (boundedOutput != null && !boundedOutput.isBlank()) {
 			item.put("output", boundedOutput);
@@ -416,6 +432,14 @@ final class HarnessToolExecutor {
 				logger.warn("HarnessToolExecutor: subagent tool '{}' failed: {}", tc.rawToolName, e.getMessage(), e);
 				return new ToolExecOutcome(msg, false);
 			}
+		}
+
+		ToolExecutionResult policyDenial = PlatformAgentTools.policyDenialResult(tc.rawToolName, ctx);
+		if (policyDenial != null) {
+			logger.warn("HarnessToolExecutor: denied default tool workspaceId={} roomId={} callId={} toolName={}",
+					ctx.getAgentConfig().getWorkspaceId(), ctx.getRoom().getId(), tc.toolCallId, tc.rawToolName);
+			String error = policyDenial.getError();
+			return new ToolExecOutcome(error != null ? error : String.valueOf(policyDenial.getOutput()), false);
 		}
 
 		// 2. Platform default agent tools. These are not backed by room/workspace MCP

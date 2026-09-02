@@ -72,6 +72,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
@@ -100,6 +101,16 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
 	static boolean adminOnlyProjectSetDiscoverable = false;
+	static boolean adminOnlyWorkspaceAdd = false;
+	static boolean adminOnlyWorkspaceDelete = false;
+	static boolean adminOnlyWorkspaceAddAccess = false;
+	static boolean adminOnlyWorkspaceSetPublic = false;
+	static boolean adminOnlyWorkspaceSetDiscoverable = false;
+	static boolean adminOnlySkillAdd = false;
+	static boolean adminOnlySkillDelete = false;
+	static boolean adminOnlySkillAddAccess = false;
+	static boolean adminOnlySkillSetPublic = false;
+	static boolean adminOnlySkillSetDiscoverable = false;
 
 	static boolean adminOnlyDatabaseAdd = false;
 	static boolean adminOnlyDatabaseDelete = false;
@@ -211,6 +222,16 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
 		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
+		adminOnlyWorkspaceAdd = Utility.getApplicationAdminOnlyWorkspaceAdd();
+		adminOnlyWorkspaceDelete = Utility.getApplicationAdminOnlyWorkspaceDelete();
+		adminOnlyWorkspaceAddAccess = Utility.getApplicationAdminOnlyWorkspaceAddAccess();
+		adminOnlyWorkspaceSetPublic = Utility.getApplicationAdminOnlyWorkspaceSetPublic();
+		adminOnlyWorkspaceSetDiscoverable = Utility.getApplicationAdminOnlyWorkspaceSetDiscoverable();
+		adminOnlySkillAdd = Utility.getApplicationAdminOnlySkillAdd();
+		adminOnlySkillDelete = Utility.getApplicationAdminOnlySkillDelete();
+		adminOnlySkillAddAccess = Utility.getApplicationAdminOnlySkillAddAccess();
+		adminOnlySkillSetPublic = Utility.getApplicationAdminOnlySkillSetPublic();
+		adminOnlySkillSetDiscoverable = Utility.getApplicationAdminOnlySkillSetDiscoverable();
 
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
@@ -275,7 +296,29 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAdd;
 	}
 
+	public static boolean adminOnlyProjectAdd(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAdd;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAdd;
+		}
+		return adminOnlyProjectAdd;
+	}
+
 	public static boolean adminOnlyProjectDelete() {
+		return adminOnlyProjectDelete;
+	}
+
+	public static boolean adminOnlyProjectDelete(String projectId) {
+		return adminOnlyProjectDelete(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectDelete(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceDelete;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillDelete;
+		}
 		return adminOnlyProjectDelete;
 	}
 
@@ -283,12 +326,105 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAddAccess;
 	}
 
+	public static boolean adminOnlyProjectAddAccess(String projectId) {
+		return adminOnlyProjectAddAccess(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectAddAccess(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAddAccess;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAddAccess;
+		}
+		return adminOnlyProjectAddAccess;
+	}
+
 	public static boolean adminOnlyProjectSetPublic() {
+		return adminOnlyProjectSetPublic;
+	}
+
+	public static boolean adminOnlyProjectSetPublic(String projectId) {
+		return adminOnlyProjectSetPublic(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetPublic(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetPublic;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetPublic;
+		}
 		return adminOnlyProjectSetPublic;
 	}
 
 	public static boolean adminOnlyProjectSetDiscoverable() {
 		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(String projectId) {
+		return adminOnlyProjectSetDiscoverable(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetDiscoverable;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetDiscoverable;
+		}
+		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyWorkspaceAdd() {
+		return adminOnlyWorkspaceAdd;
+	}
+
+	public static boolean adminOnlyWorkspaceDelete() {
+		return adminOnlyWorkspaceDelete;
+	}
+
+	public static boolean adminOnlyWorkspaceAddAccess() {
+		return adminOnlyWorkspaceAddAccess;
+	}
+
+	public static boolean adminOnlyWorkspaceSetPublic() {
+		return adminOnlyWorkspaceSetPublic;
+	}
+
+	public static boolean adminOnlyWorkspaceSetDiscoverable() {
+		return adminOnlyWorkspaceSetDiscoverable;
+	}
+
+	public static boolean adminOnlySkillAdd() {
+		return adminOnlySkillAdd;
+	}
+
+	public static boolean adminOnlySkillDelete() {
+		return adminOnlySkillDelete;
+	}
+
+	public static boolean adminOnlySkillAddAccess() {
+		return adminOnlySkillAddAccess;
+	}
+
+	public static boolean adminOnlySkillSetPublic() {
+		return adminOnlySkillSetPublic;
+	}
+
+	public static boolean adminOnlySkillSetDiscoverable() {
+		return adminOnlySkillSetDiscoverable;
+	}
+
+	private static IProject.PROJECT_TYPE getProjectTypeForAdminOnly(String projectId) {
+		String projectType = SecurityProjectUtils.getProjectTypeForId(projectId);
+		if (projectType == null || projectType.trim().isEmpty()) {
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
+		try {
+			return IProject.PROJECT_TYPE.valueOf(projectType.trim());
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Unknown project type '{}' for project {}; applying project admin limits", projectType,
+					projectId);
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
 	}
 
 	public static boolean adminOnlyDatabaseAdd() {
@@ -773,12 +909,13 @@ public abstract class AbstractSecurityUtils {
 			colNames = new String[] { "ENGINEID", "MODELID", "CATALOGMODELKEY", "MODELPROVIDER", "SERVINGPROVIDER",
 					"CAPABILITY", "FAMILY", "INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXOUTPUTTOKENS",
 					"BUILTINTOOLS", "ATTACHMENT", "REASONING", "TOOLCALL", "STRUCTUREDOUTPUT", "TEMPERATURE",
-					"KNOWLEDGECUTOFF", "RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG", "BENCHMARKS" };
+					"KNOWLEDGECUTOFF", "RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG", "BENCHMARKS",
+					"PRICING" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
 					VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", CLOB_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
-					CLOB_DATATYPE_NAME };
+					CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("MODELMETADATA", colNames, types);
 				classLogger.info("Running sql {}", sql);
@@ -966,7 +1103,12 @@ public abstract class AbstractSecurityUtils {
 				// backfill display name from canonical name for existing rows
 				securityDb.insertData(
 						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
-				securityDb.insertData("UPDATE PROJECT SET IS_TEMPLATE = FALSE WHERE IS_TEMPLATE IS NULL");
+
+			   try (PreparedStatement ps = conn
+				  .prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
+				 ps.setBoolean(1, false);
+				 ps.executeUpdate();
+				}
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");

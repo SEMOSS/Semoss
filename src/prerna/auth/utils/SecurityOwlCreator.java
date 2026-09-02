@@ -107,7 +107,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("RELEASEDATE", VARCHAR_255),
 				Pair.with("SUPPORTEDPARAMETERS", CLOB_DATATYPE_NAME),
 				Pair.with("REASONINGCONFIG", CLOB_DATATYPE_NAME),
-				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME)));
+				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME),
+				Pair.with("PRICING", CLOB_DATATYPE_NAME)));
 
 		addTable("ENGINEPERMISSION", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),

@@ -32,6 +32,8 @@ import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
+import prerna.engine.impl.function.BingSearchFunctionEngine;
+import prerna.engine.impl.function.BraveSearchFunctionEngine;
 import prerna.engine.impl.function.GoogleOCRCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.GoogleOCRFunctionEngine;
 import prerna.engine.impl.function.ImageDescriptionFunctionEngine;
@@ -39,6 +41,12 @@ import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangeIMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangePOP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.ExchangeSMTPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.IMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.POP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.engine.impl.servicenow.ServiceNowFunctionEngine;
 
 public enum FunctionTypeEnum {
@@ -47,7 +55,20 @@ public enum FunctionTypeEnum {
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
 
+	BING_SEARCH("BING_SEARCH", BingSearchFunctionEngine.class.getName()),
+	BRAVE_SEARCH("BRAVE_SEARCH", BraveSearchFunctionEngine.class.getName()),
 	SERVICE_NOW("SERVICE_NOW", ServiceNowFunctionEngine.class.getName()),
+
+	// a relay, over jakarta smtp
+	SMTP("SMTP", SMTPFunctionEngine.class.getName()),
+	// jakarta pop3
+	POP3("POP3", POP3FunctionEngine.class.getName()),
+	// jakarta imap+exchange
+	IMAP("IMAP", IMAPFunctionEngine.class.getName()),
+	// microsoft 365, over graph or jakarta depending on MAIL_TRANSPORT
+	EXCHANGE_SMTP("EXCHANGE_SMTP", ExchangeSMTPFunctionEngine.class.getName()),
+	EXCHANGE_POP3("EXCHANGE_POP3", ExchangePOP3FunctionEngine.class.getName()),
+	EXCHANGE_IMAP("EXCHANGE_IMAP", ExchangeIMAPFunctionEngine.class.getName()),
 
 	OPENAI_TRANSCRIBE("OPENAI_TRANSCRIBE", OpenAITranscribeFunctionEngine.class.getName()),
 	AWS_TEXTRACT("AWS_TEXTRACT", AWSTextractFunctionEngine.class.getName()),
@@ -65,7 +86,7 @@ public enum FunctionTypeEnum {
 			GoogleOCRCustomEmbeddingsFunctionEngine.class.getName()),
 	IMAGE_DESCRIPTION("IMAGE_DESCRIPTION", ImageDescriptionFunctionEngine.class.getName()),
 	LOCAL_PYTHON_CUSTOM_EMBEDDINGS("LOCAL_PYTHON_CUSTOM_EMBEDDINGS",
-			LocalPythonCustomEmbeddingsFunctionEngine.class.getName()),;
+			LocalPythonCustomEmbeddingsFunctionEngine.class.getName());
 
 	private String functionName;
 	private String functionClass;

@@ -271,7 +271,7 @@ public class Room implements Serializable {
 
 			// if it is full prompt, process that first.
 			if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
-				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
@@ -301,7 +301,7 @@ public class Room implements Serializable {
 				String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 				kwArgMap.put("message_json", singleMessageJson);
 
-				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
@@ -342,7 +342,7 @@ public class Room implements Serializable {
 					String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
 					kwArgMap.put("message_json", messageJsonString);
 
-					AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+					AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 					applyInputUsageFromModelResponse(msg, llmResponse);
 					response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 				} catch (Exception e) {
@@ -451,8 +451,7 @@ public class Room implements Serializable {
 
 				if (hiddenMessage != null && !hiddenMessage.isEmpty()
 						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
-					MessageUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(),
-							extrasOut);
+					MessageUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(), extrasOut);
 				}
 
 				String prevRoomName = roomName;
@@ -515,7 +514,8 @@ public class Room implements Serializable {
 		}
 	}
 
-	// Cancel-persistence overload: when all tools are answered, slots in prebuiltResponse instead of calling the LLM.
+	// Cancel-persistence overload: when all tools are answered, slots in
+	// prebuiltResponse instead of calling the LLM.
 	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
@@ -611,7 +611,8 @@ public class Room implements Serializable {
 			boolean isToolResultsInputMessage = false;
 			boolean appendedPartThisCall = false;
 
-			// Idempotency guard: reuse the existing carrier if toolCallId was already answered, to avoid duplicate tool_result blocks.
+			// Idempotency guard: reuse the existing carrier if toolCallId was already
+			// answered, to avoid duplicate tool_result blocks.
 			InputMessage existingCarrier = null;
 			for (int i = context.toolResponseIdx + 1; i < messages.size(); ++i) {
 				AbstractMessage m = messages.get(i);
@@ -635,7 +636,8 @@ public class Room implements Serializable {
 			}
 
 			if (existingCarrier != null) {
-				// Duplicate submission - reuse the existing message instead of appending a second part.
+				// Duplicate submission - reuse the existing message instead of appending a
+				// second part.
 				toolResultsMessage = existingCarrier;
 			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
@@ -766,6 +768,9 @@ public class Room implements Serializable {
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
 		Set<String> allIds = new HashSet<>();
 		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			if (MessageUtils.isServerToolCall(tc)) {
+				continue;
+			}
 			allIds.add(String.valueOf(tc.get("id")));
 		}
 		if (allIds.isEmpty()) {
@@ -814,31 +819,18 @@ public class Room implements Serializable {
 		paramValuesMap.put("message_json", messageJsonString);
 		appendToolsToParams(paramValuesMap, modelEngine);
 
-		StringBuilder toolResultsForLogging = new StringBuilder();
-		for (MessagePart part : toolResultsMessage.getParts()) {
-			if (part instanceof ToolResultMessagePart) {
-				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
-				if (tr != null && tr.getOutput() != null) {
-					if (toolResultsForLogging.length() > 0) {
-						toolResultsForLogging.append("\n");
-					}
-					toolResultsForLogging.append(tr.getOutput());
-				}
-			}
-		}
-
 		AskModelEngineResponse llmResponse = null;
 		ResponseMessage nextAssistant = null;
 		if (prebuiltResponse != null) {
-			// Cancel-persistence path: skip the LLM call, slot in the caller-supplied response.
+			// Cancel-persistence path: skip the LLM call, slot in the caller-supplied
+			// response.
 			nextAssistant = prebuiltResponse;
 			nextAssistant.setModel(modelEngine);
 			nextAssistant.setRoom(this);
 			nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
 		} else {
 			try {
-				llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
-						paramValuesMap);
+				llmResponse = modelEngine.askRoom(toolResultsMessage, this, paramValuesMap);
 				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
 				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
 			} catch (Exception e) {
