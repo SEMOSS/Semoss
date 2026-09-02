@@ -135,15 +135,15 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.info("Security database already contains engine of type {} with unique id = {}", typeAndCost[0],
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 		} else {
-			addEngine(engineId, engineName, displayName, engineType, (String) typeAndCost[1],
-					(String) typeAndCost[2], global, user);
+			addEngine(engineId, engineName, displayName, engineType, (String) typeAndCost[1], (String) typeAndCost[2],
+					global, user);
 		}
 
 		if (engineType == IEngine.CATALOG_TYPE.MODEL) {
 			try {
 				SecurityModelMetadataUtils.upsertModelMetadata(engineId, prop);
 			} catch (Exception e) {
-				classLogger.error("Failed to save model metadata for engine {}. The engine is catalogued without it",
+				classLogger.error("Failed to save model metadata for engine {}. The engine is cataloged without it",
 						Utility.cleanLogString(engineId), e);
 			}
 		}
@@ -521,6 +521,42 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs.addRelation(subQuery);
 		}
 		return QueryExecutionUtility.flushToString(securityDb, qs);
+	}
+
+	/**
+	 * Initialize an engine's markdown metadata without replacing existing content.
+	 *
+	 * @param engineId        engine whose metadata should be initialized
+	 * @param defaultMarkdown markdown supplied by the engine implementation
+	 */
+	public static void setDefaultEngineMarkdown(String engineId, String defaultMarkdown) {
+		if (defaultMarkdown == null || defaultMarkdown.trim().isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> metadata = getAggregateEngineMetadata(engineId, List.of(Constants.MARKDOWN), false);
+		if (hasMetadataValue(metadata.get(Constants.MARKDOWN))) {
+			return;
+		}
+
+		Map<String, Object> defaultMetadata = new HashMap<>();
+		defaultMetadata.put(Constants.MARKDOWN, defaultMarkdown);
+		updateEngineMetadata(engineId, defaultMetadata);
+	}
+
+	private static boolean hasMetadataValue(Object value) {
+		if (value == null) {
+			return false;
+		}
+		if (value instanceof Collection) {
+			for (Object item : (Collection<?>) value) {
+				if (hasMetadataValue(item)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		return !value.toString().trim().isEmpty();
 	}
 
 	/**
