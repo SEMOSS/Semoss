@@ -41,6 +41,7 @@ public final class AutomationConstants {
 	// -- DB Table names ------------------------------------------------------------
 
 	public static final String TABLE_AUTOMATION_RUNS = "AUTOMATION_RUNS";
+	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
 	public static final String TABLE_AUTOMATION_ACTIVE_RUN = "AUTOMATION_ACTIVE_RUN";
 
@@ -64,6 +65,11 @@ public final class AutomationConstants {
 	public static final String CREATED_BY = "CREATED_BY";
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
 	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
+
+	// -- AUTOMATION_RUN_NODE_SOURCES columns ---------------------------------------
+
+	public static final String SOURCE_HASH = "SOURCE_HASH";
+	public static final String SOURCE_CODE = "SOURCE_CODE";
 
 	// -- AUTOMATION_ACTIVE_RUN columns ---------------------------------------------
 
@@ -284,6 +290,7 @@ public final class AutomationConstants {
 	// -- DDL object names (indexes / primary keys) ----------------------------------
 
 	public static final String PK_AUTOMATION_RUNS = "PK_AUTOMATION_RUNS";
+	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
 	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
 	public static final String PK_AUTO_ACTIVE_RUN = "PK_AUTO_ACTIVE_RUN";
 	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";

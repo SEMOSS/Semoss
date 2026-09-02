@@ -95,12 +95,14 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		validateInputs(inputs);
 		Map<String, String> traceRoomIds = allocateTraceRoomIds(runNodes);
 
-		if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds)) {
+		if (!initializeRun(runId, projectId, definition, runNodes,
+				traceRoomIds, files.nodeSources())) {
 			// Startup cleanup may see a recently-heartbeating run and correctly leave it
 			// alone. Retry that cleanup on a later trigger so an orphaned lock does not
 			// remain forever after its heartbeat crosses the stale threshold.
 			AutomationDatabaseUtility.markStaleRunsInterrupted();
-			if (!initializeRun(runId, projectId, definition, runNodes, traceRoomIds)) {
+			if (!initializeRun(runId, projectId, definition, runNodes,
+					traceRoomIds, files.nodeSources())) {
 				throw new IllegalArgumentException("Automation already has an active run: "
 						+ AutomationDatabaseUtility.getClaimedActiveRun(projectId)
 						+ ". Wait for it to complete or cancel it before starting a new run.");
@@ -122,8 +124,9 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
+			Map<String, String> runNodeSources = AutomationDatabaseUtility.getRunNodeSources(runId);
 			result = executeInControlOrder(projectId, runId, definition, runNodes,
-					files.nodeSources(), scope, traceRoomIds);
+					runNodeSources, scope, traceRoomIds);
 			finishRun(runId, projectId);
 		} catch (Exception e) {
 			classLogger.error("Python automation run failed for project {}, run {}", projectId, runId, e);
@@ -138,10 +141,12 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 	private boolean initializeRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,
-			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds) {
+			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds,
+			Map<String, String> nodeSources) {
 		return AutomationDatabaseUtility.claimAndInitializeRun(runId, projectId,
 				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes, traceRoomIds);
+				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes,
+				traceRoomIds, nodeSources);
 	}
 
 	private Map<String, Object> executeInControlOrder(String projectId, String runId,
@@ -180,10 +185,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				nodeResult = executeConditionNode(runId, node, scope);
 			} else {
 				nodeResult = executeNodeSource(projectId, runId, node,
-							AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
-									node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
-										? AutomationSourceRenderer.renderNode(node)
-										: nodeSources.get(nodeId),
+							nodeSources.get(nodeId),
 						scope, traceRoomIds.get(nodeId));
 			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {

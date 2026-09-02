@@ -71,6 +71,7 @@ import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_ACTIVE_RUN;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
 import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
 import static prerna.reactor.automation.AutomationConstants.RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.ROOM_ID;
@@ -81,7 +82,10 @@ import static prerna.reactor.automation.AutomationConstants.STATUS_INTERRUPTED;
 import static prerna.reactor.automation.AutomationConstants.STATUS_RUNNING;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.SOURCE_CODE;
+import static prerna.reactor.automation.AutomationConstants.SOURCE_HASH;
 import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
 import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_2000;
@@ -123,8 +127,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
  * Database utility for the Automation Engine subsystem.
- * Manages AUTOMATION_RUNS, AUTOMATION_NODE_OUTPUTS, and AUTOMATION_ACTIVE_RUN tables
- * in the scheduler database.
+ * Manages Automation run, source-snapshot, node-output, and active-run tables in the
+ * scheduler database.
  *
  * Follows the same patterns as {@link prerna.reactor.scheduler.SchedulerDatabaseUtility}.
  * Called at platform startup to create tables; provides CRUD for automation execution state.
@@ -135,6 +139,7 @@ public final class AutomationDatabaseUtility {
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
+	private static final String TABLE_RUN_SOURCES = TABLE_AUTOMATION_RUN_NODE_SOURCES;
 	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
 	private static final String TABLE_ACTIVE_RUN = TABLE_AUTOMATION_ACTIVE_RUN;
 
@@ -180,6 +185,11 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
 			ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ? \
 			AND (LAST_HEARTBEAT IS NULL OR LAST_HEARTBEAT <= ?)""";
+
+	// AUTOMATION_RUN_NODE_SOURCES
+	private static final String INSERT_RUN_NODE_SOURCE = """
+			INSERT INTO AUTOMATION_RUN_NODE_SOURCES \
+			(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE) VALUES (?, ?, ?, ?)""";
 
 	// AUTOMATION_NODE_OUTPUTS
 	private static final String INSERT_NODE_OUTPUT = """
@@ -236,6 +246,7 @@ public final class AutomationDatabaseUtility {
 			String clobType = queryUtil.getClobDataTypeName();
 
 			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
+			createAutomationRunNodeSourcesTable(conn, queryUtil, database, schema, allowIfExists, clobType);
 			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createAutomationActiveRunTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
 
@@ -366,7 +377,7 @@ public final class AutomationDatabaseUtility {
 	public static boolean claimAndInitializeRun(String runId, String projectId, String automationId,
 			int definitionVersion, String definitionHash, String definitionSnapshot,
 			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes,
-			Map<String, String> traceRoomIds) {
+			Map<String, String> traceRoomIds, Map<String, String> nodeSources) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
 			throw new IllegalStateException(
@@ -404,6 +415,7 @@ public final class AutomationDatabaseUtility {
 			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
 					definitionVersion, definitionHash, definitionSnapshot, triggerType,
 					orderedNodes.size(), createdBy, now);
+			insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
 			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
 			conn.commit();
 			return true;
@@ -414,6 +426,26 @@ public final class AutomationDatabaseUtility {
 		} finally {
 			restoreAutoCommit(conn, originalAutoCommit);
 			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	private static void insertAllRunNodeSources(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String runId, Map<String, String> nodeSources)
+			throws SQLException, UnsupportedEncodingException {
+		if (nodeSources == null || nodeSources.isEmpty()) {
+			return;
+		}
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_NODE_SOURCE)) {
+			for (Map.Entry<String, String> entry : nodeSources.entrySet()) {
+				int index = 1;
+				ps.setString(index++, runId);
+				ps.setString(index++, entry.getKey());
+				ps.setString(index++, AutomationDefinitionService.calculateSourceHash(entry.getValue()));
+				queryUtil.handleInsertionOfClob(conn, ps, entry.getValue(), index,
+						AutomationRuntimeUtils.GSON);
+				ps.addBatch();
+			}
+			ps.executeBatch();
 		}
 	}
 
@@ -747,6 +779,40 @@ public final class AutomationDatabaseUtility {
 		return null;
 	}
 
+	/**
+	 * Loads the immutable Python source snapshot captured when a run was created.
+	 * Source hashes are checked before any source is returned for execution.
+	 */
+	public static Map<String, String> getRunNodeSources(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run source snapshot");
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + NODE_ID, NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + SOURCE_HASH, SOURCE_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + SOURCE_CODE, SOURCE_CODE));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUN_SOURCES + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		Map<String, String> sources = new LinkedHashMap<>();
+		if (rows == null) {
+			return sources;
+		}
+		for (Map<String, Object> row : rows) {
+			String nodeId = String.valueOf(row.get(NODE_ID));
+			Object sourceValue = row.get(SOURCE_CODE);
+			String source = sourceValue == null ? null : sourceValue.toString();
+			String expectedHash = String.valueOf(row.get(SOURCE_HASH));
+			if (source == null || !expectedHash.equals(
+					AutomationDefinitionService.calculateSourceHash(source))) {
+				throw new IllegalStateException("Automation run source snapshot is invalid for node '"
+						+ nodeId + "'.");
+			}
+			sources.put(nodeId, source);
+		}
+		return sources;
+	}
+
 	// -- AUTOMATION_NODE_OUTPUTS CRUD ------------------------------------------------
 
 	/**
@@ -1056,6 +1122,30 @@ public final class AutomationDatabaseUtility {
 				new String[]{ PROJECT_ID, STATUS });
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STARTED, tableName,
 				new String[]{ PROJECT_ID, STARTED_AT });
+	}
+
+	private static void createAutomationRunNodeSourcesTable(Connection conn,
+			AbstractSqlQueryUtil queryUtil, String database, String schema, boolean allowIfExists,
+			String clobType) throws SQLException {
+
+		String tableName = TABLE_AUTOMATION_RUN_NODE_SOURCES;
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, clobType };
+			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
+			String sql = allowIfExists
+					? queryUtil.createTableIfNotExistsWithCustomConstraints(
+							tableName, colNames, types, constraints)
+					: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		}
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_RUN_SOURCE,
+				new String[]{ RUN_ID, NODE_ID });
 	}
 
 	private static void createAutomationNodeOutputsTable(Connection conn, AbstractSqlQueryUtil queryUtil,

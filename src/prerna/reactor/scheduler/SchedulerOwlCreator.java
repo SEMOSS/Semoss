@@ -297,6 +297,12 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN),
 				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
 
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES, Arrays.asList(
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.SOURCE_HASH, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.SOURCE_CODE, CLOB)));
+
 		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
@@ -355,6 +361,10 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS,
 				AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES,
+				AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_ACTIVE_RUN,
 				AutomationConstants.TABLE_AUTOMATION_RUNS,
