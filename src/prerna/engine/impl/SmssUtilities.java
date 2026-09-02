@@ -241,6 +241,8 @@ public class SmssUtilities {
 	 * @return
 	 */
 	public static String getUniqueName(String name, String id) {
+		// only the id is constrained - aliases legitimately contain spaces
+		Utility.requireSafeId(id);
 		if (name == null) {
 			return Utility.normalizePath(id);
 		}

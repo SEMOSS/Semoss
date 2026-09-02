@@ -168,6 +168,7 @@ public final class Utility {
 
 	public static int id = 0;
 	private static final String SPECIFIED_PATTERN = "[@]{1}\\w+[-]*[\\w/.:]+[@]";
+	private static final Pattern SAFE_ID_PATTERN = Pattern.compile("[A-Za-z0-9_-]{1,128}");
 
 	/**
 	 * Matches the given query against a specified pattern. While the next substring
@@ -3034,6 +3035,48 @@ public final class Utility {
 		normalizedString = normalizedString.replace("\\", "/");
 
 		return normalizedString;
+	}
+
+	/**
+	 * Validate that an opaque identifier is safe to use as a file path segment.
+	 *
+	 * @param id
+	 * @return
+	 */
+	public static String requireSafeId(String id) {
+		if (id == null || !SAFE_ID_PATTERN.matcher(id).matches()) {
+			classLogger.error("Rejected illegal identifier '{}'", cleanLogString(id));
+			throw new IllegalArgumentException("Illegal identifier");
+		}
+		return id;
+	}
+
+	/**
+	 * Resolve an untrusted relative path under a base directory and fail if the
+	 * result escapes it. Containment is asserted on the canonical path so symlink
+	 * escapes are caught as well.
+	 *
+	 * @param baseDir
+	 * @param untrustedRelative
+	 * @return
+	 * @throws IOException
+	 */
+	public static Path resolveWithin(Path baseDir, String untrustedRelative) throws IOException {
+		if (baseDir == null) {
+			throw new IllegalArgumentException("No base directory provided");
+		}
+		if (untrustedRelative == null || untrustedRelative.trim().isEmpty()
+				|| untrustedRelative.indexOf('\0') >= 0) {
+			throw new IllegalArgumentException("Illegal relative path");
+		}
+		Path base = baseDir.toRealPath();
+		Path candidate = base.resolve(untrustedRelative).normalize();
+		Path canonical = Files.exists(candidate) ? candidate.toRealPath() : candidate.toAbsolutePath();
+		if (!canonical.startsWith(base)) {
+			classLogger.error("Rejected path escaping base directory '{}'", cleanLogString(untrustedRelative));
+			throw new SecurityException("Path escapes the permitted base directory");
+		}
+		return canonical;
 	}
 
 	/**
