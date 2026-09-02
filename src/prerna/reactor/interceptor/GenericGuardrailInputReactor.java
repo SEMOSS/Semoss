@@ -360,15 +360,25 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	}
 
 	/**
-	 * True when {@code skipOnToolContinuationForTools} is configured and the argument named by
-	 * {@code toolContinuationArg} (default {@value #DEFAULT_TOOL_CONTINUATION_ARG}) is a message
-	 * whose tool results are all for tool names in that list. No list configured, no tool result
-	 * on the message, or a mix of listed and unlisted tools all mean this returns false, so the
-	 * guardrail still runs - there is no blanket "skip every tool continuation" mode by design.
+	 * True when the guarded argument is a tool-result continuation this mount should
+	 * skip, never a real user turn.
+	 *
+	 * {@code skipOnToolContinuationForAllTools} (Boolean), when {@code true}, skips any
+	 * tool-result continuation and ignores {@code skipOnToolContinuationForTools}
+	 * entirely. Otherwise a non-empty {@code skipOnToolContinuationForTools} (List)
+	 * skips only when every tool result on the message names a listed tool.
+	 *
+	 * Either way, the argument named by {@code toolContinuationArg} (default
+	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) must be an {@link AbstractMessage} that
+	 * {@link AbstractMessage#hasToolResultPart()} - a real user turn is always screened,
+	 * regardless of either flag.
 	 */
-	private boolean isToolContinuation(ReactorInputHelper helper) {
+	static boolean isToolContinuation(ReactorInputHelper helper) {
+		boolean blanket = Boolean.TRUE
+				.equals(helper.getConfigParameter("skipOnToolContinuationForAllTools", Boolean.class));
+
 		List<?> allowedTools = helper.getConfigParameter("skipOnToolContinuationForTools", List.class);
-		if (allowedTools == null || allowedTools.isEmpty()) {
+		if (!blanket && (allowedTools == null || allowedTools.isEmpty())) {
 			return false;
 		}
 
@@ -378,7 +388,15 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		}
 		Object argValue = helper.getMethodArgument(argName);
 		if (!(argValue instanceof AbstractMessage) || !((AbstractMessage) argValue).hasToolResultPart()) {
-			return false;
+			return false; // not a tool continuation - always screen
+		}
+
+		if (blanket) {
+			String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
+			classLogger.warn("Guardrail '{}' skipped on a tool-result continuation "
+					+ "(skipOnToolContinuationForAllTools=true, toolContinuationArg='{}').", guardrailEngineId,
+					argName);
+			return true; // blanket ignores the allowlist
 		}
 
 		for (MessagePart part : ((AbstractMessage) argValue).getParts()) {
