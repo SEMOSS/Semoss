@@ -36,6 +36,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.reactor.AbstractReactor;
@@ -61,10 +62,15 @@ import prerna.util.Utility;
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputReactor.class);
+	private transient IEngine targetEngine;
 
 	public GenericGuardrailInputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
 		this.keysToGet = new String[] {};
+	}
+
+	public void setTargetEngine(IEngine targetEngine) {
+		this.targetEngine = targetEngine;
 	}
 
 	@Override
@@ -174,8 +180,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
 		}
 
-		// Call the guardrail engine's execute method
-		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
+		// Keep the actual engine out of all maps and nouns.
+		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null, this.targetEngine);
 
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
 
