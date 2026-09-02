@@ -33,13 +33,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -49,58 +45,63 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class GenericGuardrailInputOutputReactor extends AbstractReactor implements IInputReactor, IOutputReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputOutputReactor.class);
+/**
+ * Screens the return value of an intercepted engine method. A failing guardrail
+ * blocks that return value, which is the only outcome available once the method
+ * has run - there is no pending call left to mask or to answer on the caller's
+ * behalf.
+ *
+ * Any engine type can attach this to a pipeline slot. The intercepted method's
+ * return value is exposed as {@code result}, alongside the method's arguments.
+ *
+ * A return value that wraps its payload is unwrapped before the guardrail sees
+ * it, so a mapping to {@code result} resolves to the payload rather than to the
+ * wrapper; without that step the guardrail receives the object's default string
+ * form and passes everything. A dot path continues into the payload once it is
+ * unwrapped.
+ */
+public class GenericGuardrailOutputReactor extends AbstractReactor implements IOutputReactor {
 
 	public static final String RETURN_PROMPT_KEY = "returnPrompt";
 	public static final String FULL_DETAILS_KEY = "fullDetails";
+	private transient IEngine targetEngine;
 
-	public GenericGuardrailInputOutputReactor() {
+	public GenericGuardrailOutputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
 		this.keysToGet = new String[] {};
+	}
+
+	public void setTargetEngine(IEngine targetEngine) {
+		this.targetEngine = targetEngine;
 	}
 
 	@Override
 	public NounMetadata execute() {
 		ReactorInputHelper helper = new ReactorInputHelper(this.getNounStore());
-		// A temporary map to hold the values for the current guardrail engine call
-		Map<String, Object> guardrailEngineParams = new HashMap<>();
 		String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
 		if (guardrailEngineId == null || guardrailEngineId.isEmpty()) {
 			throw new SecurityException(
-					"GenericGuardrailInputReactor is not configured correctly. Missing 'guardrailEngineId'.");
+					"GenericGuardrailOutputReactor is not configured correctly. Missing 'guardrailEngineId'.");
 		}
 		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
 		}
 
-		guardrailEngineParams.put(guardrailEngineId, guardrailEngine.getEngineName());
-
-		// Get the input mapping for the guardrail engine
 		Map<String, Object> inputMapping = helper.getConfigParameter("inputMapping", Map.class);
 		if (inputMapping == null) {
 			inputMapping = new HashMap<>();
 		}
 
-		// TODO: how to incorporate masking ... or do we generate a new guardrail
-		// instead...
-		Boolean blockOnGuardrailFailure = helper.getConfigParameter("blockOnGuardrailFailure", Boolean.class);
-		if (blockOnGuardrailFailure == null) {
-			blockOnGuardrailFailure = true; // Default value
-		}
-
-		// Process the inputMapping to get parameters from the intercepted method's
-		// arguments
+		// The values for this guardrail engine call, keyed by the parameter name the
+		// guardrail reads.
+		Map<String, Object> guardrailEngineParams = new HashMap<>();
 		for (Map.Entry<String, Object> entry : inputMapping.entrySet()) {
 			String guardrailParamName = entry.getKey();
 			Object mappedValue = entry.getValue();
 
 			if (mappedValue instanceof String) {
-				String argName = (String) mappedValue;
-				Object argValue = helper.getMethodArgument(argName);
-				guardrailEngineParams.put(guardrailParamName, argValue);
+				guardrailEngineParams.put(guardrailParamName, resolveArgument(helper, (String) mappedValue));
 			} else if (mappedValue instanceof List) {
 				List<?> argNames = (List<?>) mappedValue;
 				StringBuilder combinedPrompt = new StringBuilder();
@@ -108,7 +109,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 
 				for (Object name : argNames) {
 					if (name instanceof String) {
-						Object argValue = helper.getMethodArgument((String) name);
+						Object argValue = resolveArgument(helper, (String) name);
 						if (argValue instanceof String) {
 							combinedPrompt.append(argValue).append(" ");
 						}
@@ -124,13 +125,14 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 					List<Object> values = new ArrayList<>();
 					for (Object name : argNames) {
 						if (name instanceof String) {
-							values.add(helper.getMethodArgument((String) name));
+							values.add(resolveArgument(helper, (String) name));
 						}
 					}
 					guardrailEngineParams.put(guardrailParamName, values);
 				}
 			} else {
-				// This case should ideally not happen for inputMapping
+				// a mapping value is a name or a list of names, so anything else is
+				// passed through as the literal it appears to be
 				guardrailEngineParams.put(guardrailParamName, mappedValue);
 			}
 		}
@@ -149,7 +151,7 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 
 			GenRowStruct nounGrs = guardrailInputNounStore.makeGenRowStruct(paramName);
 			if (paramValue instanceof Collection) {
-				Collection<Object> paramValueCollection = (Collection<Object>) paramValue;
+				Collection<?> paramValueCollection = (Collection<?>) paramValue;
 				for (Object paramValueEle : paramValueCollection) {
 					nounGrs.add(NounMetadata.predictNounMetadata(paramValueEle));
 				}
@@ -163,8 +165,8 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
 		}
 
-		// Call the guardrail engine's execute method
-		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
+		// The target engine is direct invocation context, never serialized input.
+		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null, this.targetEngine);
 
 		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
@@ -176,22 +178,48 @@ public class GenericGuardrailInputOutputReactor extends AbstractReactor implemen
 		Map<String, Object> processedArguments = helper.getArgumentsMap();
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
 		return new NounMetadata(processedArguments, PixelDataType.MAP);
-
-	}
-
-	private String convertResponseToGson(Object obj) {
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		String json = gson.toJson(obj);
-		return json;
 	}
 
 	/**
-	 * Helper method to create the interim result map (already exists)
-	 * 
-	 * @param guardrailEngineParams
-	 * @param pass
-	 * @param interceptorName
-	 * @return
+	 * Reads a mapped argument, unwrapping a wrapped return value so the guardrail
+	 * receives the payload rather than the wrapper. A dot path continues into that
+	 * payload, so {@code result.url} reads inside a map shaped payload even though
+	 * the wrapper itself is not a map.
+	 *
+	 * @param helper  reader for the intercepted call's arguments
+	 * @param argName argument name, optionally followed by a dot path
+	 * @return the value for the guardrail, or null when the path does not exist
+	 */
+	static Object resolveArgument(ReactorInputHelper helper, String argName) {
+		Object direct = helper.getMethodArgument(argName);
+		if (direct != null) {
+			return GuardrailValueReader.screenableValue(direct);
+		}
+
+		// A response object is not a map, so the helper cannot walk a path through
+		// it. Resolve the root on its own and read the rest from the payload.
+		int split = argName == null ? -1 : argName.indexOf('.');
+		if (split <= 0) {
+			return null;
+		}
+		Object root = helper.getMethodArgument(argName.substring(0, split));
+		if (!(root instanceof AbstractModelEngineResponse)) {
+			return null;
+		}
+		return ReactorInputHelper.resolveValuePath(((AbstractModelEngineResponse<?>) root).getResponse(),
+				argName.substring(split + 1));
+	}
+
+	/**
+	 * Builds the interim result the invocation handler reads to decide whether the
+	 * response is allowed through, and to audit what the guardrail saw.
+	 *
+	 * @param guardrailEngineParams values handed to the guardrail engine
+	 * @param output                the guardrail engine's verdict
+	 * @param interceptorName       class name recorded on the audit row
+	 * @param closeRoomOnBlock      whether a block also closes the room
+	 * @param blockErrorMessage     message returned in place of the response
+	 * @return the interim result map
 	 */
 	private Map<String, Object> createInterimResult(Map<String, Object> guardrailEngineParams,
 			GuardrailNounMetadata output, String interceptorName, Boolean closeRoomOnBlock, String blockErrorMessage) {

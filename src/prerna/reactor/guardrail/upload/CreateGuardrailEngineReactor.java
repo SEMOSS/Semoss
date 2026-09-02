@@ -155,6 +155,7 @@ public class CreateGuardrailEngineReactor extends AbstractReactor {
 			guardrail.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(guardrailId, guardrailName, guardrail, smssFile);
 			SecurityEngineUtils.addEngine(guardrailId, global, user);
+			SecurityEngineUtils.setDefaultEngineMarkdown(guardrailId, guardrail.getDefaultMarkdown());
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {

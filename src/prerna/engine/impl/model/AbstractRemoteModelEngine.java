@@ -56,6 +56,7 @@ import prerna.cluster.util.ZKClientFactory;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.RemoteModelStateEnum;
 import prerna.engine.impl.model.kserve.KServeAdapter;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
@@ -70,6 +71,7 @@ import prerna.util.Settings;
  */
 
 public class AbstractRemoteModelEngine extends AbstractModelEngine {
+
 	private static final Logger classLogger = LogManager.getLogger(AbstractRemoteModelEngine.class);
 
 	protected String model;
@@ -482,8 +484,8 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> hyperParameters) {
+	protected AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> hyperParameters) {
 		try {
 			checkModelUp();
 			String modelUrl = getModelUrl();
@@ -502,7 +504,7 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 			}
 
 			hyperParameters.put("stream", false);
-			return implementingEngineClass.askCall(question, fullPrompt, context, insight, roomId, hyperParameters);
+			return implementingEngineClass.askCall(inputMessage, insight, roomId, hyperParameters);
 		} catch (Exception e) {
 			classLogger.error("Error getting model URL or deploying model", e);
 			return null;
