@@ -144,7 +144,10 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATEDBY", VARCHAR_255),
 				Pair.with("CREATEDBYTYPE", VARCHAR_255),
 				Pair.with("DATECREATED", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("DATELASTEDITED", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("DATELASTEDITED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("PUBLISHEDCOMMITID", VARCHAR_255),
+				Pair.with("PUBLISHEDBY", VARCHAR_255),
+				Pair.with("PUBLISHEDAT", TIMESTAMP_DATATYPE_NAME)));
 
 		addTable("PROJECTPERMISSION", Arrays.asList(
 				Pair.with("PROJECTID", VARCHAR_255),

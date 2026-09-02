@@ -1215,6 +1215,80 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Records the git commit id that was live at the moment of a successful
+	 * {@code release=true} publish, distinct from the generic portal-publish
+	 * timestamp tracked by {@link #setPortalPublish(User, String)}. A DB write
+	 * failure here is logged and swallowed (matching {@code setPortalPublish}'s
+	 * convention) rather than thrown, since by the time this is called the
+	 * portal assets have already been pushed and failing the whole publish over
+	 * a bookkeeping column would misreport a successful publish as failed.
+	 *
+	 * @param user      the publishing user
+	 * @param projectId the project being published
+	 * @param commitId  the resolved HEAD commit id at publish time, or
+	 *                  {@code null} for a repository with no commits yet
+	 */
+	public static void setPublishMetadata(User user, String projectId, String commitId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		String updateQ = "UPDATE PROJECT SET PUBLISHEDCOMMITID=?, PUBLISHEDBY=?, PUBLISHEDAT=? WHERE PROJECTID=?";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQ);
+			int i = 1;
+			ps.setString(i++, commitId);
+			ps.setString(i++, token.getId());
+			ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(i++, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update project publish metadata for project {} commit {}", projectId,
+					commitId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Reads the {@code publishedCommitId}/{@code publishedBy}/{@code publishedAt}
+	 * metadata recorded by {@link #setPublishMetadata(User, String, String)}.
+	 * All 3 keys default to {@code null} for a project that has never been
+	 * released, or one predating this column set.
+	 *
+	 * @param projectId the project to look up
+	 * @return a map with keys {@code publishedCommitId} (String),
+	 *         {@code publishedBy} (String), and {@code publishedAt}
+	 *         ({@link SemossDate}), never {@code null}
+	 */
+	public static Map<String, Object> getPublishMetadata(String projectId) {
+		Map<String, Object> publishMetadata = new HashMap<>();
+		publishMetadata.put("publishedCommitId", null);
+		publishMetadata.put("publishedBy", null);
+		publishMetadata.put("publishedAt", null);
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__PUBLISHEDCOMMITID"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PUBLISHEDBY"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__PUBLISHEDAT"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			if (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				publishMetadata.put("publishedCommitId", values[0]);
+				publishMetadata.put("publishedBy", values[1]);
+				publishMetadata.put("publishedAt", values[2]);
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to retrieve project publish metadata for project {}", projectId, e);
+		}
+		return publishMetadata;
+	}
+
+	/**
 	 * 
 	 * @param projectId
 	 * @return

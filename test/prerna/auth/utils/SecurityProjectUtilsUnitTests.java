@@ -1709,6 +1709,58 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
+	/// getPublishMetadata & setPublishMetadata
+	///
+
+	@Test
+	void testGetPublishMetadata_defaultsNullForNeverPublishedProject() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		Map<String, Object> metadata = SecurityProjectUtils.getPublishMetadata("testProjectId");
+		assertNull(metadata.get("publishedCommitId"));
+		assertNull(metadata.get("publishedBy"));
+		assertNull(metadata.get("publishedAt"));
+	}
+
+	@Test
+	void testSetPublishMetadata_writesAllThreeFields() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		String expectedCommitId = "abc123def456";
+		SecurityProjectUtils.setPublishMetadata(user, "testProjectId", expectedCommitId);
+
+		Map<String, Object> metadata = SecurityProjectUtils.getPublishMetadata("testProjectId");
+		assertEquals(expectedCommitId, metadata.get("publishedCommitId"));
+		assertEquals(user.getAccessToken(user.getPrimaryLogin()).getId(), metadata.get("publishedBy"));
+		assertNotNull(metadata.get("publishedAt"));
+	}
+
+	@Test
+	void testSetPublishMetadata_nullCommitId_writesNullCommitId() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		SecurityProjectUtils.setPublishMetadata(user, "testProjectId", null);
+
+		Map<String, Object> metadata = SecurityProjectUtils.getPublishMetadata("testProjectId");
+		assertNull(metadata.get("publishedCommitId"));
+		assertNotNull(metadata.get("publishedBy"));
+		assertNotNull(metadata.get("publishedAt"));
+	}
+
+	@Test
+	void testSetPublishMetadata_doesNotAffectPortalPublishColumns() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		SecurityProjectUtils.setPublishMetadata(user, "testProjectId", "abc123");
+
+		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
+	}
+
+	///
 	/// getReactorCompilationTimestamp & setReactorCompilation
 	///
 
