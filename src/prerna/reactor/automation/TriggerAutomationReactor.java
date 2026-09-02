@@ -45,6 +45,8 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -56,6 +58,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 import prerna.util.EngineUtility;
+import prerna.util.insight.InsightUtility;
 
 /**
  * Executes automation through the project's authenticated Python insight one node at a time.
@@ -111,21 +114,23 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		streamRunStarted(runId, definition);
 
 		Map<String, Object> result;
+		Insight executionInsight = null;
 		try {
-			PyTranslator translator = this.insight.getPyTranslator();
+			executionInsight = createExecutionInsight(projectId);
+			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
-			AutomationPythonRunRegistry.register(runId, translator, this.insight, ThreadStore.getJobId());
+			AutomationPythonRunRegistry.register(runId, translator, executionInsight, ThreadStore.getJobId());
 
-			Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, this.insight.getUser());
+			Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
 			if (inputs != null) {
 				for (Map.Entry<String, Object> entry : inputs.entrySet()) {
 					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
 			Map<String, String> runNodeSources = AutomationDatabaseUtility.getRunNodeSources(runId);
-			result = executeInControlOrder(projectId, runId, definition, runNodes,
+			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
 					runNodeSources, scope, traceRoomIds);
 			finishRun(runId, projectId);
 		} catch (Exception e) {
@@ -134,6 +139,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			result = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationPythonRunRegistry.unregister(runId);
+			cleanupExecutionInsight(executionInsight);
 		}
 		return new NounMetadata(buildResult(runId, projectId, result), PixelDataType.MAP,
 				PixelOperationType.OPERATION);
@@ -149,7 +155,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				traceRoomIds, nodeSources);
 	}
 
-	private Map<String, Object> executeInControlOrder(String projectId, String runId,
+	private Map<String, Object> executeInControlOrder(Insight executionInsight, String projectId, String runId,
 			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
 			Map<String, String> nodeSources, Map<String, Object> scope, Map<String, String> traceRoomIds) {
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -179,12 +185,12 @@ public class TriggerAutomationReactor extends AbstractReactor {
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Map<String, Object> nodeResult;
 			if (AutomationConstants.NODE_START.equals(type)) {
-				nodeResult = executeStartNode(projectId, runId, node,
+				nodeResult = executeStartNode(executionInsight, projectId, runId, node,
 						AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)), scope);
 			} else if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
 				nodeResult = executeConditionNode(runId, node, scope);
 			} else {
-				nodeResult = executeNodeSource(projectId, runId, node,
+				nodeResult = executeNodeSource(executionInsight, projectId, runId, node,
 							nodeSources.get(nodeId),
 						scope, traceRoomIds.get(nodeId));
 			}
@@ -251,8 +257,8 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 	}
 
-	private Map<String, Object> executeStartNode(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, Object> scope) {
+	private Map<String, Object> executeStartNode(Insight executionInsight, String projectId, String runId,
+			Map<String, Object> node, String source, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
@@ -265,11 +271,11 @@ public class TriggerAutomationReactor extends AbstractReactor {
 					scope.put(entry.getKey(), entry.getValue());
 				}
 			}
-			PyTranslator translator = this.insight.getPyTranslator();
+			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
-			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
+			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
 					AutomationRuntime.buildTriggerInvocationScript(source, scope),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
@@ -307,13 +313,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		}
 	}
 
-	private Map<String, Object> executeNodeSource(String projectId, String runId, Map<String, Object> node,
-			String source, Map<String, Object> scope, String traceRoomId) {
+	private Map<String, Object> executeNodeSource(Insight executionInsight, String projectId, String runId,
+			Map<String, Object> node, String source, Map<String, Object> scope, String traceRoomId) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException("Automation node has no persisted Python source: "
 					+ node.get(AutomationConstants.NODE_FIELD_ID));
 		}
-		PyTranslator translator = this.insight.getPyTranslator();
+		PyTranslator translator = executionInsight.getPyTranslator();
 		if (translator == null) {
 			throw new IllegalStateException("Python runtime is not available for this insight.");
 		}
@@ -324,13 +330,13 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
 				trace(traceRoomId, null, null));
 		try {
-			prepareGeneratedAgentRoom(node, traceRoomId);
+			prepareGeneratedAgentRoom(executionInsight, node, traceRoomId);
 			Map<String, Object> nodeScope = scope;
 			if (traceRoomId != null) {
 				nodeScope = new LinkedHashMap<>(scope);
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
-			Object raw = translator.runScriptWithExplicitAssetPaths(this.insight,
+			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope),
 					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
@@ -348,7 +354,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void prepareGeneratedAgentRoom(Map<String, Object> node, String roomId) {
+	private void prepareGeneratedAgentRoom(Insight executionInsight, Map<String, Object> node, String roomId) {
 		if (roomId == null
 				|| !AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
 				|| !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
@@ -359,8 +365,35 @@ public class TriggerAutomationReactor extends AbstractReactor {
 				? (Map<String, Object>) map
 				: Map.of();
 		String workspaceId = stringValue(config.get(AutomationConstants.CONFIG_WORKSPACE_ID));
-		RoomUtils.createRoomIfNotExists(roomId, this.insight, null, null,
+		RoomUtils.createRoomIfNotExists(roomId, executionInsight, null, null,
 				workspaceId == null ? null : workspaceId.trim(), null, null, null, null);
+	}
+
+	private Insight createExecutionInsight(String projectId) {
+		Insight executionInsight = new Insight();
+		executionInsight.setUser(this.insight.getUser());
+		executionInsight.setBaseURL(this.insight.getBaseURL());
+		executionInsight.setSchedulerMode(this.insight.isSchedulerMode());
+		executionInsight.setProjectId(projectId);
+		IProject project = Utility.getProject(projectId);
+		if (project != null) {
+			executionInsight.setProjectName(project.getProjectName());
+		}
+		InsightStore.getInstance().put(executionInsight);
+		return executionInsight;
+	}
+
+	private static void cleanupExecutionInsight(Insight executionInsight) {
+		if (executionInsight == null) {
+			return;
+		}
+		try {
+			InsightUtility.dropInsight(executionInsight);
+		} catch (Exception e) {
+			classLogger.warn("Unable to fully clean up Automation execution insight '{}': {}",
+					executionInsight.getInsightId(), e.getMessage(), e);
+			InsightStore.getInstance().remove(executionInsight.getInsightId());
+		}
 	}
 
 	private static Map<String, String> allocateTraceRoomIds(List<Map<String, Object>> runNodes) {
