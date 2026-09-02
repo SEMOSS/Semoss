@@ -65,7 +65,10 @@ final class AutomationRuntime {
 			Map<String, Object> node = new LinkedHashMap<>(original);
 			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL,
 					node.get(AutomationConstants.NODE_FIELD_ID));
-			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
+			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
+				node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			} else if (!AutomationConstants.NODE_START.equals(nodeType)) {
 				node.putIfAbsent(AutomationConstants.NODE_FIELD_OUTPUT_VAR,
 						defaultOutputVariable(node));
 			}

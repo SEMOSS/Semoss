@@ -282,7 +282,11 @@ public final class AutomationMcpSync {
 				+ "and array items; object keys remain literal. A JSON-string configuration must contain a valid JSON "
 				+ "object with placeholders kept as quoted string values. Prefer native JSON shapes when preserving "
 				+ "typed values. "
-				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
+				+ "control.wait requires durationSeconds. "
+				+ "control.if requires an ordered clauses array shaped as "
+				+ "[{\"id\":\"stable-id\",\"condition\":\"${prior_output} == true\"}]. "
+				+ "The first matching clause is selected; else is the fallback. "
+				+ "developer.python is only for an external integration "
 				+ "that no supported engine node can perform or for dynamic Pixel that generated app.pixel rejects; "
 				+ "it requires config.source defining run(scope). scope is a read-only, run-local mapping of "
 				+ "trigger inputs, globals, "
@@ -298,11 +302,9 @@ public final class AutomationMcpSync {
 		properties.put("outputVar", stringProperty("Required unique Python-style variable name for this node's "
 				+ "business output. Omit it for control.if, which does not produce an output."));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
-		properties.put("branchPort", stringProperty("Required only when afterNodeId identifies a control.if node: "
-				+ "use 'then' or 'else' to select the path. Omit it for every other parent node.")
-				.put("enum", new JSONArray()
-						.put(AutomationConstants.CONTROL_PORT_THEN)
-						.put(AutomationConstants.CONTROL_PORT_ELSE)));
+		properties.put("branchPort", stringProperty("Required only when afterNodeId identifies a control.if node. "
+				+ "Use 'case:<clause-id>' for one of that node's configured clauses or 'else' for its fallback. "
+				+ "Omit it for every other parent node."));
 		return tool("AddAutomationStep", "Add Automation Step",
 				"Call GetAutomation first, then add one validated action from the user's chat request. "
 						+ "Prefer an engine-backed node whenever it "
@@ -415,8 +417,9 @@ public final class AutomationMcpSync {
 				.put(AutomationConstants.NODE_CONTROL_WAIT)
 				.put(AutomationConstants.NODE_CONTROL_IF)
 				.put(AutomationConstants.NODE_DEVELOPER_PYTHON);
-		return stringProperty("The typed action to add. control.if is a standalone branch node; add its "
-				+ "then and else children in later calls using afterNodeId and branchPort.").put("enum", values);
+		return stringProperty("The typed action to add. control.if is a standalone branch node with an ordered "
+				+ "config.clauses array; add each case child and the final else child in later calls using "
+				+ "afterNodeId and branchPort.").put("enum", values);
 	}
 
 	private static String description(String definitionJson) {

@@ -61,9 +61,10 @@ Supported native-Python runtime types are:
 - `function.execute`, `app.pixel`, `control.wait`, `control.if`
 - `agent.run`
 
-`control.if` is evaluated only by the bounded Java expression evaluator and selects one
-`then` or `else` edge. Arbitrary fan-out, loops, and parallel execution are rejected before
-execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
+`control.if` stores ordered `{ id, condition }` clauses evaluated only by the bounded Java
+expression evaluator. The first match selects its `case:<clause-id>` edge; otherwise the final
+`else` edge is selected. Arbitrary fan-out from one port, loops, and parallel execution are
+rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` is the canonical optional
 setup source (`python` is a compatibility alias). Java puts defaults in the runtime scope unless

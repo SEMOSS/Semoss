@@ -199,9 +199,10 @@ final class AutomationRunExecutionService {
 			}
 			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
 			if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
-				selectedPort = Boolean.TRUE.equals(nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE))
-						? AutomationConstants.CONTROL_PORT_THEN
-						: AutomationConstants.CONTROL_PORT_ELSE;
+				@SuppressWarnings("unchecked")
+				Map<String, Object> decision = (Map<String, Object>) nodeResult.get(
+						AutomationConstants.RESULT_OUTPUT_VALUE);
+				selectedPort = (String) decision.get("branch");
 			}
 			currentNodeId = controlTargets.getOrDefault(nodeId, Map.of()).get(selectedPort);
 		}
@@ -222,14 +223,22 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			String expression = (String) config.get(AutomationConstants.CONFIG_CONDITION);
-			boolean decision = AutomationConditionEvaluator.evaluate(expression, scope);
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config.get(
+					AutomationConstants.CONFIG_CLAUSES);
+			String selectedPort = AutomationConstants.CONTROL_PORT_ELSE;
+			boolean matched = false;
+			for (Map<String, Object> clause : clauses) {
+				String expression = (String) clause.get(AutomationConstants.CONFIG_CONDITION);
+				if (AutomationConditionEvaluator.evaluate(expression, scope)) {
+					selectedPort = AutomationConstants.CONTROL_PORT_CASE_PREFIX
+							+ clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+					matched = true;
+					break;
+				}
+			}
+			Map<String, Object> decision = Map.of("branch", selectedPort, "value", matched);
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation condition '" + nodeId + "' output");
-			Map<String, Object> prospectiveScope = new LinkedHashMap<>(scope);
-			prospectiveScope.put((String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), decision);
-			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
-					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
 			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,

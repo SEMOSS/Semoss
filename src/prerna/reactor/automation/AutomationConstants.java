@@ -146,6 +146,8 @@ public final class AutomationConstants {
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
 	public static final String CONFIG_OPERATION = "operation";
+	public static final String CONFIG_CLAUSES = "clauses";
+	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_VALUES = "values";
@@ -240,7 +242,7 @@ public final class AutomationConstants {
 	public static final String EDGE_KIND_DATA = "data";
 	public static final String CONTROL_PORT_IN = "in";
 	public static final String CONTROL_PORT_OUT = "out";
-	public static final String CONTROL_PORT_THEN = "then";
+	public static final String CONTROL_PORT_CASE_PREFIX = "case:";
 	public static final String CONTROL_PORT_ELSE = "else";
 	public static final String NODE_FIELD_CODE_MODE = "codeMode";
 	public static final String NODE_CODE_MODE_GENERATED = "generated";

@@ -122,7 +122,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);
 		updatedNodes.add(node);
-		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId, nodeType, sourcePort);
+		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId, nodeType, config, sourcePort);
 		Map<String, Object> updatedGraph = new LinkedHashMap<>(graph);
 		updatedGraph.put(AutomationConstants.DOC_NODES, updatedNodes);
 		updatedGraph.put(AutomationConstants.DOC_EDGES, updatedEdges);
@@ -178,22 +178,45 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String sourcePort(List<Map<String, Object>> nodes, String parentId, String branchPort) {
-		String parentType = nodes.stream()
+		Map<String, Object> parent = nodes.stream()
 				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))
-				.map(node -> (String) node.get(AutomationConstants.NODE_FIELD_TYPE))
 				.findFirst()
 				.orElseThrow();
+		String parentType = (String) parent.get(AutomationConstants.NODE_FIELD_TYPE);
 		if (!AutomationConstants.NODE_CONTROL_IF.equals(parentType)) {
 			if (branchPort != null && !branchPort.isBlank()) {
 				throw new IllegalArgumentException("branchPort can only be used when afterNodeId is a control.if node.");
 			}
 			return AutomationConstants.CONTROL_PORT_OUT;
 		}
-		if (!AutomationConstants.CONTROL_PORT_THEN.equals(branchPort)
-				&& !AutomationConstants.CONTROL_PORT_ELSE.equals(branchPort)) {
-			throw new IllegalArgumentException("Adding after a control.if node requires branchPort 'then' or 'else'.");
+		if (!isConfiguredBranchPort(parent, branchPort)) {
+			throw new IllegalArgumentException("Adding after a control.if node requires branchPort 'else' or "
+					+ "a configured 'case:<clause-id>' value.");
 		}
 		return branchPort;
+	}
+
+	private static boolean isConfiguredBranchPort(Map<String, Object> node, String branchPort) {
+		if (AutomationConstants.CONTROL_PORT_ELSE.equals(branchPort)) {
+			return true;
+		}
+		Object configValue = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		if (!(configValue instanceof Map<?, ?> config)) {
+			return false;
+		}
+		Object clausesValue = config.get(AutomationConstants.CONFIG_CLAUSES);
+		if (!(clausesValue instanceof List<?> clauses)) {
+			return false;
+		}
+		for (Object clauseValue : clauses) {
+			if (clauseValue instanceof Map<?, ?> clause
+					&& branchPort != null
+					&& branchPort.equals(AutomationConstants.CONTROL_PORT_CASE_PREFIX
+							+ clause.get(AutomationConstants.CONFIG_CLAUSE_ID))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static String customSource(String nodeType, Map<String, Object> config) {
@@ -256,7 +279,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static List<Map<String, Object>> insertAfter(List<Map<String, Object>> edges, String parentId,
-			String nodeId, String nodeType, String sourcePort) {
+			String nodeId, String nodeType, Map<String, Object> config, String sourcePort) {
 		List<Map<String, Object>> updated = new ArrayList<>();
 		Map<String, Object> replaced = null;
 		for (Map<String, Object> edge : edges) {
@@ -271,11 +294,24 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		updated.add(controlEdge(parentId, nodeId, sourcePort));
 		if (replaced != null) {
 			String nodePort = AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
-					? AutomationConstants.CONTROL_PORT_THEN
+					? firstCasePort(config)
 					: AutomationConstants.CONTROL_PORT_OUT;
 			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));
 		}
 		return updated;
+	}
+
+	private static String firstCasePort(Map<String, Object> config) {
+		Object value = config.get(AutomationConstants.CONFIG_CLAUSES);
+		if (!(value instanceof List<?> clauses) || clauses.isEmpty()
+				|| !(clauses.get(0) instanceof Map<?, ?> firstClause)) {
+			throw new IllegalArgumentException("control.if config.clauses must be a non-empty array.");
+		}
+		Object clauseId = firstClause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+		if (!(clauseId instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("control.if config.clauses[0].id must be a nonblank string.");
+		}
+		return AutomationConstants.CONTROL_PORT_CASE_PREFIX + id;
 	}
 
 	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
@@ -314,7 +350,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 			return "The existing node after which this node is inserted; defaults to the last graph node.";
 		}
 		if (BRANCH_PORT_KEY.equals(key)) {
-			return "The then or else port when inserting directly after a control.if node.";
+			return "The else or case:<clause-id> port when inserting directly after a control.if node.";
 		}
 		return super.getDescriptionForKey(key);
 	}
