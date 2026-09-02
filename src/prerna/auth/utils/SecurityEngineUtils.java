@@ -3516,8 +3516,23 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getEngineUsagePermissionMap(User user, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (user == null || engineId == null || engineId.trim().isEmpty()) {
+			return null;
+		}
+		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+		return getEngineUsagePermissionMapForUserId(userDetails.getValue0(), engineId);
+	}
+
+	/**
+	 * Get the engine usage restriction for a specific user id.
+	 *
+	 * @param userId   user identifier
+	 * @param engineId engine identifier
+	 * @return permission and restriction rows for the user and engine
+	 */
+	public static List<Map<String, Object>> getEngineUsagePermissionMapForUserId(String userId, String engineId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		if (userId == null || userId.trim().isEmpty() || engineId == null || engineId.trim().isEmpty()) {
 			return null;
 		}
 
@@ -3545,9 +3560,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__MAXCREDITS", Constants.ENGINE_MAX_CREDIT_KEY));
 
 		// filter to the engine
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userDetails.getValue0()));
+				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userId));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
 		// relationship between SMSS_USER and ENGINEPERMISSION tables
 		qs.addRelation("SMSS_USER", "ENGINEPERMISSION", "left.outer.join");

@@ -2106,9 +2106,33 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	 */
 	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, User user, String engineId,
 			ZonedDateTime currentDateTime, String frequency) {
+		if (user == null) {
+			return null;
+		}
+		String userId = user.getAccessToken(user.getLogins().get(0)).getId();
+		return getTotalTokensOrTotalResponseTime(restrictionMode, userId, engineId, currentDateTime, frequency);
+	}
+
+	/**
+	 * Calculates total usage for one user id and one engine for a frequency
+	 * window. This overload supports administrative usage lookups without
+	 * constructing an authenticated {@link User} object for the target user.
+	 *
+	 * @param restrictionMode usage mode
+	 * @param userId          user identifier to evaluate
+	 * @param engineId        engine identifier
+	 * @param currentDateTime reference date/time
+	 * @param frequency       usage window frequency
+	 * @return aggregate usage value, or {@code null} if unavailable
+	 */
+	public static Number getTotalTokensOrTotalResponseTime(String restrictionMode, String userId, String engineId,
+			ZonedDateTime currentDateTime, String frequency) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		if (restrictionMode == null) {
 			throw new IllegalArgumentException("Must pass in a valid restriction mode");
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			throw new IllegalArgumentException("Must pass in a valid user id");
 		}
 
 		// Get the date range based on the frequency specification
@@ -2137,7 +2161,7 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int psIndex = 1;
-			ps.setString(psIndex++, user.getAccessToken(user.getLogins().get(0)).getId());
+			ps.setString(psIndex++, userId);
 			ps.setString(psIndex++, engineId);
 			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(startDate.toLocalDateTime()));
 			ps.setTimestamp(psIndex++, java.sql.Timestamp.valueOf(endDate.toLocalDateTime()));
@@ -2158,7 +2182,7 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		} catch (Exception e) {
 			classLogger.error(
 					"Failed to calculate usage for userId '{}', engineId '{}', restrictionMode '{}', frequency '{}'.",
-					user.getAccessToken(user.getLogins().get(0)).getId(), engineId, restrictionMode, frequency, e);
+					userId, engineId, restrictionMode, frequency, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, rs);
 		}
