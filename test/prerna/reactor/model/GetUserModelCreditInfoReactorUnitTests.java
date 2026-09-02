@@ -179,8 +179,8 @@ class GetUserModelCreditInfoReactorUnitTests {
 		permission.put(Constants.ENGINE_USAGE_RESTRICTION_KEY, "credit");
 		permission.put(Constants.ENGINE_USAGE_FREQUENCY_KEY, "day");
 		permission.put(Constants.ENGINE_MAX_CREDIT_KEY, 10D);
-		reactor.keyValue.put("startDate", "2026-08-01");
-		reactor.keyValue.put("endDate", "2026-08-31");
+		reactor.keyValue.put(ReactorKeysEnum.START_DATE.getKey(), "2026-08-01");
+		reactor.keyValue.put(ReactorKeysEnum.END_DATE.getKey(), "2026-08-31");
 
 		try (MockedStatic<SecurityQueryUtils> queryUtils = Mockito.mockStatic(SecurityQueryUtils.class);
 				MockedStatic<SecurityEngineUtils> engineUtils = Mockito.mockStatic(SecurityEngineUtils.class);

@@ -59,11 +59,10 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 
 	private static final double TOKENS_PER_MILLION = 1_000_000D;
 	private static final String USER_ID_KEY = "userId";
-	private static final String START_DATE_KEY = "startDate";
-	private static final String END_DATE_KEY = "endDate";
 
 	public GetUserModelCreditInfoReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USER_ID_KEY, START_DATE_KEY, END_DATE_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), USER_ID_KEY,
+				ReactorKeysEnum.START_DATE.getKey(), ReactorKeysEnum.END_DATE.getKey() };
 		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
@@ -132,8 +131,9 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 		boolean restrictionEnabled = Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType)
 				&& maxCredits != null;
 		boolean trackingEnabled = Utility.isModelInferenceLogsEnabled();
-		Map<String, ZonedDateTime> customPeriod = parseCustomPeriod(this.keyValue.get(START_DATE_KEY),
-				this.keyValue.get(END_DATE_KEY));
+		Map<String, ZonedDateTime> customPeriod = parseCustomPeriod(
+				this.keyValue.get(ReactorKeysEnum.START_DATE.getKey()),
+				this.keyValue.get(ReactorKeysEnum.END_DATE.getKey()));
 		boolean customRange = customPeriod != null;
 
 		result.put("restrictionEnabled", restrictionEnabled);
@@ -255,7 +255,7 @@ public class GetUserModelCreditInfoReactor extends AbstractReactor {
 		if (key.equals(USER_ID_KEY)) {
 			return "Optional user id; defaults to the current user and requires admin access for another user";
 		}
-		if (key.equals(START_DATE_KEY) || key.equals(END_DATE_KEY)) {
+		if (key.equals(ReactorKeysEnum.START_DATE.getKey()) || key.equals(ReactorKeysEnum.END_DATE.getKey())) {
 			return "Optional custom usage range in YYYY-MM-DD format; both startDate and endDate are required";
 		}
 		return super.getDescriptionForKey(key);
