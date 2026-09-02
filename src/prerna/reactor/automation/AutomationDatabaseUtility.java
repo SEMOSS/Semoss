@@ -50,6 +50,7 @@ import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
 import static prerna.reactor.automation.AutomationConstants.INTEGER;
+import static prerna.reactor.automation.AutomationConstants.INPUT_SNAPSHOT;
 import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
 import static prerna.reactor.automation.AutomationConstants.MODEL_MESSAGE_ID;
 import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_ID;
@@ -148,9 +149,10 @@ public final class AutomationDatabaseUtility {
 	private static final String INSERT_RUN = """
 			INSERT INTO AUTOMATION_RUNS \
 			(RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
+			INPUT_SNAPSHOT, \
 			STATUS, TRIGGER_TYPE, \
 			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY) \
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
 
 	private static final String UPDATE_RUN_STATUS = """
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
@@ -375,7 +377,8 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void initializeRun(String runId, String projectId, String automationId,
 			int definitionVersion, String definitionHash, String definitionSnapshot,
-			String triggerType, String createdBy, List<Map<String, Object>> orderedNodes,
+			Map<String, Object> inputs, String triggerType, String createdBy,
+			List<Map<String, Object>> orderedNodes,
 			Map<String, String> traceRoomIds, Map<String, String> nodeSources) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
 		if (schedulerDb == null) {
@@ -392,9 +395,12 @@ public final class AutomationDatabaseUtility {
 				conn.setAutoCommit(false);
 			}
 			Timestamp now = toTimestamp(Instant.now());
+			String inputSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(
+					inputs != null ? inputs : Map.of(), AutomationConstants.RUN_INPUTS_MAX_BYTES,
+					"Automation run inputs");
 
 			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
-					definitionVersion, definitionHash, definitionSnapshot, triggerType,
+					definitionVersion, definitionHash, definitionSnapshot, inputSnapshot, triggerType,
 					orderedNodes.size(), createdBy, now);
 			insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
 			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
@@ -467,8 +473,8 @@ public final class AutomationDatabaseUtility {
 
 	private static void insertRun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
 			String projectId, String automationId, int definitionVersion, String definitionHash,
-			String definitionSnapshot, String triggerType, int totalNodes, String createdBy,
-			Timestamp now) throws SQLException, UnsupportedEncodingException {
+			String definitionSnapshot, String inputSnapshot, String triggerType, int totalNodes,
+			String createdBy, Timestamp now) throws SQLException, UnsupportedEncodingException {
 		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
 			int index = 1;
 			ps.setString(index++, runId);
@@ -477,6 +483,7 @@ public final class AutomationDatabaseUtility {
 			ps.setInt(index++, definitionVersion);
 			ps.setString(index++, definitionHash);
 			queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
+			queryUtil.handleInsertionOfClob(conn, ps, inputSnapshot, index++, AutomationRuntimeUtils.GSON);
 			ps.setString(index++, STATUS_SUBMITTED);
 			ps.setString(index++, triggerType);
 			ps.setTimestamp(index++, now);
@@ -757,6 +764,42 @@ public final class AutomationDatabaseUtility {
 			return results.get(0);
 		}
 		return null;
+	}
+
+	/**
+	 * Loads the immutable effective trigger inputs captured when a run was submitted. Runtime-owned
+	 * scope metadata is deliberately created at execution time and is never stored in this column.
+	 *
+	 * @param runId run whose input snapshot is loaded
+	 * @return mutable input map for the run-local execution scope
+	 */
+	public static Map<String, Object> getRunInputs(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run input snapshot");
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + INPUT_SNAPSHOT, INPUT_SNAPSHOT));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results == null || results.isEmpty()) {
+			throw new IllegalStateException("Automation run '" + runId + "' does not exist.");
+		}
+		Object value = results.get(0).get(INPUT_SNAPSHOT);
+		if (value == null || value.toString().isBlank()) {
+			return new LinkedHashMap<>();
+		}
+		try {
+			Map<String, Object> inputs = AutomationRuntimeUtils.GSON.fromJson(
+					value.toString(), AutomationRuntimeUtils.MAP_TYPE);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(inputs,
+					AutomationConstants.RUN_INPUTS_MAX_BYTES, "Persisted automation run inputs");
+			return new LinkedHashMap<>(inputs);
+		} catch (Exception e) {
+			throw new IllegalStateException("Automation run '" + runId
+					+ "' has an invalid input snapshot.", e);
+		}
 	}
 
 	/**
@@ -1059,15 +1102,15 @@ public final class AutomationDatabaseUtility {
 		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
 		if (!tableExists) {
 			String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH,
-					DEFINITION_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID,
+					DEFINITION_SNAPSHOT, INPUT_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID,
 					ERROR_MESSAGE, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY,
 					CANCEL_REQUESTED, RESULT_SUMMARY_COL };
 			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER, VARCHAR_255,
-					clobType, VARCHAR_50, VARCHAR_50, dateTimeType, dateTimeType, VARCHAR_255,
+					clobType, clobType, VARCHAR_50, VARCHAR_50, dateTimeType, dateTimeType, VARCHAR_255,
 					clobType, dateTimeType, INTEGER, INTEGER, VARCHAR_255,
 					queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
 			String[] constraints = { NOT_NULL, NOT_NULL, null, null, null,
-					null, NOT_NULL, NOT_NULL, NOT_NULL, null, null,
+					null, null, NOT_NULL, NOT_NULL, NOT_NULL, null, null,
 					null, null, null, null, null,
 					null, null };
 
@@ -1089,6 +1132,7 @@ public final class AutomationDatabaseUtility {
 		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_VERSION, INTEGER);
 		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_HASH, VARCHAR_255);
 		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_SNAPSHOT, clobType);
+		addColumnIfNotExists(conn, queryUtil, tableName, INPUT_SNAPSHOT, clobType);
 
 		// Primary key
 		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,

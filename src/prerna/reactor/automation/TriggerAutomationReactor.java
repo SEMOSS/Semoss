@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -67,22 +68,29 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 		validateInputs(inputs);
+		Map<String, Object> effectiveInputs = new LinkedHashMap<>(
+				AutomationRuntime.declaredGlobals(definition, files.nodeSources()));
+		if (inputs != null) {
+			effectiveInputs.putAll(inputs);
+		}
 		Map<String, String> traceRoomIds = AutomationRunExecutionService.allocateTraceRoomIds(runNodes);
 
-		initializeRun(runId, projectId, definition, runNodes, traceRoomIds, files.nodeSources());
+		initializeRun(runId, projectId, definition, effectiveInputs, runNodes, traceRoomIds,
+				files.nodeSources());
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
-				.executeInitializedRun(runId, projectId, definition, runNodes, inputs, traceRoomIds);
+				.executeInitializedRun(runId, projectId, definition, runNodes, traceRoomIds);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	private void initializeRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,
-			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds,
+			Map<String, Object> inputs, List<Map<String, Object>> runNodes,
+			Map<String, String> traceRoomIds,
 			Map<String, String> nodeSources) {
 		AutomationDatabaseUtility.initializeRun(runId, projectId,
 				AutomationConstants.DEFAULT_AUTOMATION_ID, AutomationConstants.PYTHON_DOC_CURRENT_VERSION,
-				definition.hash(), definition.snapshot(), getTriggerType(), getUserId(), runNodes,
+				definition.hash(), definition.snapshot(), inputs, getTriggerType(), getUserId(), runNodes,
 				traceRoomIds, nodeSources);
 	}
 

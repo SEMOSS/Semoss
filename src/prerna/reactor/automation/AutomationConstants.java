@@ -62,6 +62,7 @@ public final class AutomationConstants {
 	public static final String DEFINITION_VERSION = "DEFINITION_VERSION";
 	public static final String DEFINITION_HASH = "DEFINITION_HASH";
 	public static final String DEFINITION_SNAPSHOT = "DEFINITION_SNAPSHOT";
+	public static final String INPUT_SNAPSHOT = "INPUT_SNAPSHOT";
 	public static final String STATUS = "STATUS";
 	public static final String TRIGGER_TYPE = "TRIGGER_TYPE";
 	public static final String STARTED_AT = "STARTED_AT";
@@ -204,6 +205,7 @@ public final class AutomationConstants {
 	public static final int WAIT_CANCEL_CHECK_INTERVAL_SECONDS = 5;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
+	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
 	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
 

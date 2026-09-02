@@ -291,6 +291,7 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.DEFINITION_VERSION, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.DEFINITION_HASH, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.DEFINITION_SNAPSHOT, CLOB),
+				Pair.with(AutomationConstants.INPUT_SNAPSHOT, CLOB),
 				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.TRIGGER_TYPE, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),

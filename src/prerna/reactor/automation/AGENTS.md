@@ -41,7 +41,7 @@ Workflow artifacts live at the project asset root:
 ```
 TriggerAutomation (virtual thread)
   -> validates and snapshots the graph
-  -> inserts a SUBMITTED run, immutable node sources, and pending node outputs
+  -> inserts a SUBMITTED run, bounded effective inputs, immutable node sources, and pending node outputs
   -> atomically claims that run as RUNNING
   -> Java seeds trigger globals and executes trigger Python, then visits the selected control path
   -> PyTranslator.runScriptWithExplicitAssetPaths(...) executes that node's source only
@@ -71,7 +71,8 @@ inputs override them; the globals are returned by Trigger and become Playground 
 and custom-code nodes execute their own persisted `run(scope)` source. Node source may return any
 JSON-serializable value; Java persists it as the current node output. Generated sources import their documented
 `ai_server` engine class and invoke it directly; wait nodes use `time.sleep`.
-Each node receives a read-only, run-local `scope` mapping containing trigger inputs, globals, runtime metadata, and prior
+Each run reloads its persisted effective trigger-input snapshot before execution. Each node receives a read-only,
+run-local `scope` mapping containing trigger inputs, globals, runtime metadata, and prior
 outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
 generated-node configuration fields and are not rewritten inside custom source. Return a value so Java can store it
 under the node's `outputVar`.

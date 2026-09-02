@@ -95,14 +95,12 @@ final class AutomationRunExecutionService {
 	 * @param projectId Automation project identifier
 	 * @param definition validated graph snapshot for this run
 	 * @param runNodes nodes in deterministic history order
-	 * @param inputs optional trigger inputs copied into the run-local scope
 	 * @param traceRoomIds preallocated room identifiers keyed by traceable node ID
 	 * @return persisted run detail and node results
 	 */
 	Map<String, Object> executeInitializedRun(String runId, String projectId,
 			AutomationDefinitionValidator.ValidatedDefinition definition,
-			List<Map<String, Object>> runNodes, Map<String, Object> inputs,
-			Map<String, String> traceRoomIds) {
+			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds) {
 		if (!AutomationDatabaseUtility.claimRun(runId)) {
 			return buildCurrentRunResult(runId, projectId);
 		}
@@ -119,11 +117,7 @@ final class AutomationRunExecutionService {
 			AutomationPythonRunRegistry.register(runId, translator, executionInsight, streamJobId);
 
 			Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
-			if (inputs != null) {
-				for (Map.Entry<String, Object> entry : inputs.entrySet()) {
-					scope.put(entry.getKey(), entry.getValue());
-				}
-			}
+			scope.putAll(AutomationDatabaseUtility.getRunInputs(runId));
 			Map<String, String> runNodeSources = AutomationDatabaseUtility.getRunNodeSources(runId);
 			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
 					runNodeSources, scope, traceRoomIds);
