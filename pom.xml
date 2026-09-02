@@ -647,16 +647,16 @@
 				<artifactId>bcutil-jdk18on</artifactId>
 				<version>1.80.2</version>
 			</dependency>
-			<!-- GHSA-72hv-8253-57qq: force transitive jackson 2.15.x/2.17.x up to fixed version -->
+			<!-- Snyk remediation: force transitive Jackson 2.x to fixed 2.22.2 patch line. -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
-				<version>2.22.0</version>
+				<version>2.22.2</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.22.0</version>
+				<version>2.22.2</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
@@ -1019,6 +1019,13 @@
 			<groupId>commons-beanutils</groupId>
 			<artifactId>commons-beanutils</artifactId>
 			<version>1.11.0</version>
+			<exclusions>
+				<!-- Convergence alignment: use direct commons-logging 1.3.6. -->
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.zaxxer/HikariCP -->
 		<dependency>
@@ -1068,10 +1075,11 @@
 			<version>3.20.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/commons-logging/commons-logging -->
+		<!-- Convergence alignment: commons-configuration2 2.15.0 brings commons-logging 1.3.6. -->
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
-			<version>1.3.5</version>
+			<version>1.3.6</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1204,6 +1212,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<!-- Snyk remediation: fix H2 RCE, XXE, and information exposure findings. -->
 			<version>2.4.240</version>
 			<exclusions>
 				<exclusion>
@@ -1293,10 +1302,11 @@
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
 		<!-- required for apache jena -->
+		<!-- Snyk remediation: fix libthrift certificate validation and resource issues. -->
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
-			<version>0.22.0</version>
+			<version>0.24.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1338,7 +1348,8 @@
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<version>1.18.1</version>
+			<!-- Snyk remediation: fix jsoup XSS and resource exhaustion findings. -->
+			<version>1.23.2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1370,10 +1381,11 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
+		<!-- Snyk remediation: fix log4j-api output encoding issue. -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.25.4</version>
+			<version>2.25.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1385,7 +1397,8 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.25.4</version>
+			<!-- Convergence alignment: keep Log4j modules on the same patch line. -->
+			<version>2.25.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1404,7 +1417,8 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-jakarta-web</artifactId>
-			<version>2.25.4</version>
+			<!-- Convergence alignment: keep Log4j modules on the same patch line. -->
+			<version>2.25.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1415,7 +1429,8 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j2-impl</artifactId>
-			<version>2.25.4</version>
+			<!-- Convergence alignment: keep Log4j implementation with log4j-api 2.25.5. -->
+			<version>2.25.5</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.f4b6a3</groupId>
@@ -1795,10 +1810,11 @@
 			<version>2.0.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+		<!-- Snyk remediation: fix PostgreSQL JDBC authentication algorithm issue. -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.7.11</version>
+			<version>42.7.12</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.checkerframework</groupId>
@@ -1824,6 +1840,11 @@
 			<artifactId>commons-validator</artifactId>
 			<version>1.10.1</version>
 			<exclusions>
+				<!-- Convergence alignment: use direct commons-logging 1.3.6. -->
+				<exclusion>
+					<groupId>commons-logging</groupId>
+					<artifactId>commons-logging</artifactId>
+				</exclusion>
 				<exclusion>
 					<groupId>commons-beanutils</groupId>
 					<artifactId>commons-beanutils</artifactId>
@@ -1884,17 +1905,17 @@
 			<version>20240205</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
-		<!-- GHSA-72hv-8253-57qq: bumped from 2.20.0 -->
+		<!-- Snyk remediation: fix Jackson 2.x databind authorization and SSRF findings. -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.22.0</version>
+			<version>2.22.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.22.0</version>
+			<version>2.22.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
@@ -1906,13 +1927,14 @@
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.22.0</version>
+			<version>2.22.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
+		<!-- Snyk remediation: fix Redshift JDBC unsafe reflection critical finding. -->
 		<dependency>
 			<groupId>com.amazon.redshift</groupId>
 			<artifactId>redshift-jdbc42</artifactId>
-			<version>2.1.0.29</version>
+			<version>2.2.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.trino/trino-jdbc -->
 		<dependency>
@@ -2355,10 +2377,11 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-configuration2 -->
+		<!-- Snyk remediation: fix commons-configuration2 uncontrolled recursion finding. -->
 		<dependency>
 		    <groupId>org.apache.commons</groupId>
 		    <artifactId>commons-configuration2</artifactId>
-		    <version>2.13.0</version>
+		    <version>2.15.0</version>
 		</dependency>
 		<!-- html to pdf -->
 		<!-- Source: https://mvnrepository.com/artifact/org.xhtmlrenderer/flying-saucer-pdf -->
@@ -2606,10 +2629,11 @@
 			<version>1.0.19</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
+		<!-- Snyk remediation: fix ESAPI output neutralization finding. -->
 		<dependency>
 			<groupId>org.owasp.esapi</groupId>
 			<artifactId>esapi</artifactId>
-			<version>2.6.2.0</version>
+			<version>2.7.0.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
@@ -2847,10 +2871,11 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
+		<!-- Convergence alignment: commons-configuration2 2.15.0 brings commons-text 1.15.0. -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
-			<version>1.14.0</version>
+			<version>1.15.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
@@ -3270,10 +3295,11 @@
 			<version>2.5.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.modelcontextprotocol.sdk/mcp -->
+		<!-- Snyk remediation: move MCP to latest 2.0.x patch before Jackson 3 override work. -->
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
-			<version>2.0.0</version>
+			<version>2.0.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
