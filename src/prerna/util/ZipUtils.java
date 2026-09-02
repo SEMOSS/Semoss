@@ -72,6 +72,9 @@ public final class ZipUtils {
 	// which is generated on windows
 	public static final String FILE_SEPARATOR = "/";
 
+	private static final long MAX_TOTAL_UNCOMPRESSED_BYTES = 10L * 1024 * 1024 * 1024;
+	private static final int MAX_ENTRIES = 100_000;
+
 	private ZipUtils() {
 
 	}
@@ -261,21 +264,36 @@ public final class ZipUtils {
 		ZipFile zipIn = null;
 		try {
 			zipIn = new ZipFile(Utility.normalizePath(zipFilePath));
+			Path destinationRoot = Paths.get(Utility.normalizePath(destination));
+			Files.createDirectories(destinationRoot);
+			destinationRoot = destinationRoot.toRealPath();
+
 			Enumeration<? extends ZipEntry> entries = zipIn.entries();
+			int entryCount = 0;
+			long remainingBytes = MAX_TOTAL_UNCOMPRESSED_BYTES;
 			while (entries.hasMoreElements()) {
 				ZipEntry entry = entries.nextElement();
-				String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
+				if (++entryCount > MAX_ENTRIES) {
+					throw new IOException("Archive contains more than " + MAX_ENTRIES + " entries");
+				}
+				Path target;
+				try {
+					target = Utility.resolveWithin(destinationRoot, entry.getName());
+				} catch (IllegalArgumentException | SecurityException e) {
+					throw new IOException(
+							"Archive entry escapes the destination directory: " + Utility.cleanLogString(entry.getName()),
+							e);
+				}
 				if (entry.isDirectory()) {
-					File file = new File(filePath);
-					file.mkdirs();
+					Files.createDirectories(target);
 				} else {
-					File parent = new File(filePath).getParentFile();
-					if (!parent.exists()) {
-						parent.mkdirs();
+					Path parent = target.getParent();
+					if (parent != null) {
+						Files.createDirectories(parent);
 					}
-					InputStream is = zipIn.getInputStream(entry);
-					extractFile(is, filePath);
-					is.close();
+					try (InputStream is = zipIn.getInputStream(entry)) {
+						remainingBytes -= extractFile(is, target, remainingBytes);
+					}
 				}
 			}
 		} finally {
@@ -291,16 +309,24 @@ public final class ZipUtils {
 	 * Copy file to path
 	 * 
 	 * @param zipIn
-	 * @param filePath
+	 * @param target
+	 * @param remainingBytes Uncompressed budget left for the whole archive
+	 * @return Number of bytes written
 	 * @throws IOException
 	 */
-	private static void extractFile(InputStream zipIn, String filePath) throws IOException {
+	private static long extractFile(InputStream zipIn, Path target, long remainingBytes) throws IOException {
 		BufferedOutputStream bos = null;
+		long written = 0;
 		try {
-			bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
+			bos = new BufferedOutputStream(Files.newOutputStream(target));
 			byte[] bytesIn = buffer;
 			int read = 0;
 			while ((read = zipIn.read(bytesIn)) != -1) {
+				written += read;
+				if (written > remainingBytes) {
+					throw new IOException("Archive exceeds the maximum uncompressed size of "
+							+ MAX_TOTAL_UNCOMPRESSED_BYTES + " bytes");
+				}
 				bos.write(bytesIn, 0, read);
 			}
 		} finally {
@@ -309,9 +335,10 @@ public final class ZipUtils {
 					bos.close();
 				}
 			} catch (IOException e) {
-				classLogger.error("Failed to close output stream after extracting zip entry to '{}'", filePath, e);
+				classLogger.error("Failed to close output stream after extracting zip entry to '{}'", target, e);
 			}
 		}
+		return written;
 	}
 
 	/**
