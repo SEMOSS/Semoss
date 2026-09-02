@@ -134,6 +134,13 @@ import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.automation.AutomationConstants;
 
+/**
+ * Defines scheduler-owned database tables, column types, and relationships in the scheduler OWL.
+ *
+ * <p>
+ * This includes Automation run-history tables because their lifecycle is tied to scheduled and
+ * manual execution rather than project business data.
+ */
 public class SchedulerOwlCreator extends AbstractOwlCreator {
 
 	public SchedulerOwlCreator() {

@@ -165,6 +165,14 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
+/**
+ * Provides scheduler persistence and Quartz lifecycle operations backed by the SEMOSS scheduler
+ * database.
+ *
+ * <p>
+ * Callers use this utility for parameterized recipe, tag, execution, and audit operations. The
+ * logical database schema remains owned by {@link SchedulerOwlCreator}.
+ */
 public class SchedulerDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(SchedulerDatabaseUtility.class);

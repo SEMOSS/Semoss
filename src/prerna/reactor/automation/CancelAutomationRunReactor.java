@@ -95,15 +95,9 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 					"Can only cancel RUNNING automations. Current status: " + status);
 		}
 
-		// Signal cancellation. The cluster-safe DB flag is always set - this is what the pod
-		// actually executing the run (which may not be this pod) polls between nodes via
-		// AutomationDatabaseUtility.isCancelRequested(). The in-memory signal is a same-pod fast
-		// path only. Unlike the prior implementation, we no longer force the run's STATUS to
-		// CANCELLED when the in-memory signal isn't found on this pod - the run may genuinely
-		// still be executing on a different pod in a cluster, and overwriting its status here
-		// would be a lie. The executing pod transitions STATUS to CANCELLED itself once it
-		// observes the flag; a truly orphaned run (crashed, nobody polling) is caught by the
-		// periodic stale-heartbeat sweep (AutomationDatabaseUtility.markStaleRunsInterrupted).
+		// Persist the cluster-visible request before attempting the same-pod socket fast path.
+		// The executing pod owns the terminal status transition; stale recovery handles a run
+		// whose owner disappeared before observing the request.
 		AutomationDatabaseUtility.setCancelRequested(runId);
 		boolean signalledLocally = AutomationPythonRunRegistry.requestCancellation(runId);
 
@@ -121,4 +115,11 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		return "Requests cancellation of a running automation run for the given project.";
 	}
 
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (RUN_ID_KEY.equals(key)) {
+			return "Identifier of the running automation execution to cancel.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

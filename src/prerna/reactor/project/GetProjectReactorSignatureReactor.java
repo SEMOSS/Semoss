@@ -45,7 +45,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-/** Returns safe input metadata for one project-specific custom reactor. */
+/**
+ * Returns safe input metadata for one project-specific custom reactor.
+ *
+ * <p>
+ * The reactor first applies standard project alias and view-permission checks, then derives the
+ * parameter contract from the target reactor's MCP schema. It does not execute the project reactor.
+ *
+ * <p>Pixel: {@code GetProjectReactorSignature(project=["appId"], reactor=["ReactorName"])}
+ */
 public class GetProjectReactorSignatureReactor extends AbstractReactor {
 
 	private static final String REACTOR_KEY = "reactor";
@@ -73,6 +81,9 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 		}
 
 		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			throw new IllegalArgumentException("Project is not loaded: " + projectId);
+		}
 		IReactor reactor = project.getReactor(reactorName);
 		if (reactor == null) {
 			throw new IllegalArgumentException("Project does not contain reactor: " + reactorName);
@@ -118,5 +129,16 @@ public class GetProjectReactorSignatureReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Returns parameter metadata for a project-specific custom reactor.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The project ID or alias containing the custom reactor.";
+		}
+		if (REACTOR_KEY.equals(key)) {
+			return "Exact name of the project-specific reactor to inspect without executing it.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

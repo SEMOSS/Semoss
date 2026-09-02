@@ -33,10 +33,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Stream;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -248,7 +253,7 @@ public final class AutomationDefinitionService {
 		DefinitionFiles definition = load(projectId);
 		AutomationDefinitionValidator.ValidatedDefinition validated =
 				AutomationDefinitionValidator.parseAndValidateForAuthoring(definition.definition());
-		List<Path> paths = new java.util.ArrayList<>();
+		List<Path> paths = new ArrayList<>();
 		paths.add(definitionPath(folder));
 		for (Map<String, Object> node : validated.nodes()) {
 			if (requiresPythonSource(node)) {
@@ -506,7 +511,7 @@ public final class AutomationDefinitionService {
 	}
 
 	private static void copyTree(Path source, Path target) throws IOException {
-		try (java.util.stream.Stream<Path> paths = Files.walk(source)) {
+		try (Stream<Path> paths = Files.walk(source)) {
 			for (Path path : paths.toList()) {
 				Path destination = target.resolve(source.relativize(path));
 				if (Files.isDirectory(path)) {
@@ -531,8 +536,8 @@ public final class AutomationDefinitionService {
 		if (!Files.exists(folder)) {
 			return;
 		}
-		try (java.util.stream.Stream<Path> paths = Files.walk(folder)) {
-			for (Path path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) {
+		try (Stream<Path> paths = Files.walk(folder)) {
+			for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
 				Files.deleteIfExists(path);
 			}
 		}
@@ -613,7 +618,7 @@ public final class AutomationDefinitionService {
 
 	private static String stableNodeIdSuffix(String nodeId) {
 		if (nodeId.matches(".*[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$")) {
-			return nodeId.substring(nodeId.length() - 36).toLowerCase(java.util.Locale.ROOT);
+			return nodeId.substring(nodeId.length() - 36).toLowerCase(Locale.ROOT);
 		}
 		return sha256(nodeId);
 	}
@@ -623,7 +628,7 @@ public final class AutomationDefinitionService {
 			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
 			StringBuilder result = new StringBuilder(digest.length * 2);
 			for (byte digestByte : digest) {
-				result.append(String.format(java.util.Locale.ROOT, "%02x", digestByte & 0xff));
+				result.append(String.format(Locale.ROOT, "%02x", digestByte & 0xff));
 			}
 			return result.toString();
 		} catch (NoSuchAlgorithmException e) {
@@ -639,13 +644,13 @@ public final class AutomationDefinitionService {
 		if (value == null) {
 			return "";
 		}
-		return value.toLowerCase(java.util.Locale.ROOT)
+		return value.toLowerCase(Locale.ROOT)
 				.replaceAll("[^a-z0-9]+", "_")
 				.replaceAll("^_+|_+$", "");
 	}
 
 	private static String legacySafeNodeFileName(String nodeId) {
-		return java.util.Base64.getUrlEncoder().withoutPadding()
+		return Base64.getUrlEncoder().withoutPadding()
 				.encodeToString(nodeId.getBytes(StandardCharsets.UTF_8));
 	}
 
@@ -673,22 +678,22 @@ public final class AutomationDefinitionService {
 	}
 
 	private static String emptyDefinition() {
-		Map<String, Object> start = new java.util.LinkedHashMap<>();
+		Map<String, Object> start = new LinkedHashMap<>();
 		start.put(AutomationConstants.NODE_FIELD_ID, "start");
 		start.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_START);
 		start.put(AutomationConstants.NODE_FIELD_LABEL, "Start");
 		start.put("position", Map.of("x", 240, "y", 80));
 		start.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
 		start.put(AutomationConstants.NODE_FIELD_CONFIG, Map.of());
-		Map<String, Object> manualTrigger = new java.util.LinkedHashMap<>();
+		Map<String, Object> manualTrigger = new LinkedHashMap<>();
 		manualTrigger.put(AutomationConstants.NODE_FIELD_ID, "manual");
 		manualTrigger.put(AutomationConstants.NODE_FIELD_TYPE, "manual");
 
-		Map<String, Object> graph = new java.util.LinkedHashMap<>();
+		Map<String, Object> graph = new LinkedHashMap<>();
 		graph.put(AutomationConstants.DOC_NODES, List.of(start));
 		graph.put(AutomationConstants.DOC_EDGES, List.of());
 
-		Map<String, Object> definition = new java.util.LinkedHashMap<>();
+		Map<String, Object> definition = new LinkedHashMap<>();
 		definition.put(AutomationConstants.DOC_FORMAT_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
 		definition.put(AutomationConstants.DOC_DESCRIPTION, "");
 		definition.put(AutomationConstants.DOC_TRIGGER_BINDINGS, List.of(manualTrigger));
@@ -696,7 +701,12 @@ public final class AutomationDefinitionService {
 		return AutomationRuntimeUtils.GSON.toJson(definition);
 	}
 
-	/** Definition artifact contents. */
+	/**
+	 * Complete persisted Automation aggregate.
+	 *
+	 * @param definition canonical graph JSON
+	 * @param nodeSources immutable source map keyed by non-start node ID
+	 */
 	public record DefinitionFiles(String definition, Map<String, String> nodeSources) {
 		public DefinitionFiles {
 			nodeSources = Map.copyOf(nodeSources);

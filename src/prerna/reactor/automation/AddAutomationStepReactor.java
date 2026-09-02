@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -233,7 +234,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String uniqueNodeId(List<Map<String, Object>> nodes, String label) {
-		String prefix = label.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
+		String prefix = label.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
 				.replaceAll("^-+|-+$", "");
 		if (prefix.isBlank()) {
 			prefix = "step";
@@ -289,6 +290,32 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds one generated typed Python automation node after a specified node.";
+		return "Adds one typed automation node after a specified node.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The Automation project ID or alias to update.";
+		}
+		if (NODE_TYPE_KEY.equals(key)) {
+			return "The supported typed node to add, such as model.chat or developer.python.";
+		}
+		if (CONFIG_KEY.equals(key)) {
+			return "The node configuration as a JSON object or Base64-encoded JSON object.";
+		}
+		if (LABEL_KEY.equals(key)) {
+			return "The user-facing node label.";
+		}
+		if (OUTPUT_VAR_KEY.equals(key)) {
+			return "The Python identifier that stores this node's output; omitted for control.if.";
+		}
+		if (AFTER_NODE_ID_KEY.equals(key)) {
+			return "The existing node after which this node is inserted; defaults to the last graph node.";
+		}
+		if (BRANCH_PORT_KEY.equals(key)) {
+			return "The then or else port when inserting directly after a control.if node.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

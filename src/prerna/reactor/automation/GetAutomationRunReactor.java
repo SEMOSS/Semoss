@@ -32,9 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -44,13 +41,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Returns detail for a single automation run including per-node results.
  *
- * <p>Pixel: {@code GetAutomationRun(app=["appId"], runId=["uuid"])}
+ * <p>Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
  *
  * <p>Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
  */
 public class GetAutomationRunReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetAutomationRunReactor.class);
 
 	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
 	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
@@ -97,5 +92,13 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Returns detail for a single automation run, including per-node results.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (RUN_ID_KEY.equals(key)) {
+			return "Run identifier returned when the automation was triggered.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

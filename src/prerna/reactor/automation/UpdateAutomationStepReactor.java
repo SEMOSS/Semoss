@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
@@ -39,7 +40,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Reconfigures a generated node and regenerates only that node's managed source. */
+/**
+ * Reconfigures one generated Automation node and regenerates its managed source.
+ *
+ * <p>
+ * Custom source is intentionally excluded from this path so renderer-owned and user-owned code do
+ * not share mutation semantics.
+ */
 public class UpdateAutomationStepReactor extends AbstractReactor {
 
 	private static final String NODE_ID_KEY = "nodeId";
@@ -71,7 +78,7 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> graph = (Map<String, Object>) document.get(AutomationConstants.DOC_GRAPH);
 		Object rawNodes = graph.get(AutomationConstants.DOC_NODES);
-		if (!(rawNodes instanceof java.util.List<?> nodes)) {
+		if (!(rawNodes instanceof List<?> nodes)) {
 			throw new IllegalArgumentException("Automation graph is invalid.");
 		}
 
@@ -145,5 +152,22 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Updates configuration for one generated automation node.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The Automation project ID or alias to update.";
+		}
+		if (NODE_ID_KEY.equals(key)) {
+			return "The generated node ID to reconfigure.";
+		}
+		if (CONFIG_KEY.equals(key)) {
+			return "The complete node configuration as a JSON object or Base64-encoded JSON object.";
+		}
+		if (LABEL_KEY.equals(key)) {
+			return "An optional replacement user-facing node label.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

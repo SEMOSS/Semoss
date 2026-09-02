@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import prerna.reactor.automation.utils.AutomationRuntimeUtils;
-
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
 import static prerna.reactor.automation.AutomationConstants.AGENT_RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.BIGINT;
@@ -106,6 +104,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +117,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
@@ -126,12 +126,13 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
- * Database utility for the Automation Engine subsystem.
- * Manages Automation run, source-snapshot, node-output, and active-run tables in the
- * scheduler database.
+ * Persists Automation run, source-snapshot, node-output, and active-run state in the scheduler
+ * database.
  *
- * Follows the same patterns as {@link prerna.reactor.scheduler.SchedulerDatabaseUtility}.
- * Called at platform startup to create tables; provides CRUD for automation execution state.
+ * <p>
+ * Reads use SEMOSS query structures and writes use parameterized statements. The scheduler OWL
+ * owns the logical schema; startup initialization creates or migrates the corresponding physical
+ * tables for deployments that already have a scheduler database.
  */
 public final class AutomationDatabaseUtility {
 
@@ -144,7 +145,6 @@ public final class AutomationDatabaseUtility {
 	private static final String TABLE_ACTIVE_RUN = TABLE_AUTOMATION_ACTIVE_RUN;
 
 	private AutomationDatabaseUtility() {
-		// static utility - no instantiation
 	}
 
 	// -- SQL Statements (INSERT/UPDATE/DELETE - PreparedStatement per SEMOSS conventions) --
@@ -263,8 +263,9 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
-	 * On startup, marks any runs stuck in RUNNING as INTERRUPTED.
-	 * This handles the case where the server crashed mid-execution.
+	 * Marks RUNNING rows whose heartbeat crossed the stale threshold as INTERRUPTED and releases
+	 * their active-run claims. Called during scheduler startup and before rejecting a new run behind
+	 * an apparently occupied claim.
 	 */
 	public static void markStaleRunsInterrupted() {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
@@ -526,9 +527,9 @@ public final class AutomationDatabaseUtility {
 
 	/**
 	 * Sets the cluster-safe cancellation flag on a run. Called by {@code CancelAutomationRunReactor}
-	 * regardless of which pod receives the cancel request - unlike the in-memory
-	 * {@code TriggerAutomationReactor.CANCELLATION_FLAGS} map (a same-pod-only fast path), this is
-	 * visible to whichever pod is actually executing the run via {@link #isCancelRequested(String)}.
+	 * regardless of which pod receives the cancel request. Unlike the in-memory run registry, this
+	 * flag is visible to whichever pod is executing the run via
+	 * {@link #isCancelRequested(String)}.
 	 */
 	public static void setCancelRequested(String runId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation cancellation request");
@@ -623,7 +624,7 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Persists the human-readable outcome summary for a completed run.
 	 * Called after the run finishes, separately from {@link #completeRun} because the
-	 * summary is built by the caller ({@code TriggerAutomationReactor}) after the engine returns.
+	 * summary is built by {@link AutomationRunExecutionService} after node results are assembled.
 	 */
 	public static boolean updateRunSummary(String runId, String resultSummary) {
 		IRDBMSEngine schedulerDb = getSchedulerDb();
@@ -1028,8 +1029,7 @@ public final class AutomationDatabaseUtility {
 	/**
 	 * Builds a list of per-node result maps from the raw DB output rows returned by
 	 * {@link #getNodeOutputsForRun(String)}. The shape matches what
-	 * {@link prerna.reactor.automation.GetAutomationRunReactor} and
-	 * {@link prerna.reactor.automation.TriggerAutomationReactor} return to callers.
+	 * {@link GetAutomationRunReactor} and {@link TriggerAutomationReactor} return to callers.
 	 *
 	 * <p>Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
 	 * (falls back from outputValue when blank), outputValue, errorMessage, and an optional trace map.
@@ -1043,7 +1043,7 @@ public final class AutomationDatabaseUtility {
 			return nodeResults;
 		}
 		for (Map<String, Object> output : nodeOutputs) {
-			Map<String, Object> nodeResult = new java.util.HashMap<>();
+			Map<String, Object> nodeResult = new HashMap<>();
 			nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
 			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
 			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));

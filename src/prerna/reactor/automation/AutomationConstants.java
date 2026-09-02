@@ -27,6 +27,16 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import java.util.Set;
+
+/**
+ * Shared names and bounds for the persisted Automation graph and run-history contracts.
+ *
+ * <p>
+ * Values in this class cross Java, Python, scheduler-database, and UI boundaries. Renaming a
+ * persisted field, node type, status, or table identifier therefore requires an explicit format or
+ * schema migration rather than a local refactor.
+ */
 public final class AutomationConstants {
 
 	private AutomationConstants() {}
@@ -246,7 +256,7 @@ public final class AutomationConstants {
 	public static final String SCOPE_RUN_ID = "run_id";
 	/** Internal per-node room supplied only to conversational generated sources. */
 	public static final String SCOPE_ROOM_ID = "_automation_room_id";
-	public static final java.util.Set<String> RESERVED_SCOPE_KEYS = java.util.Set.of(
+	public static final Set<String> RESERVED_SCOPE_KEYS = Set.of(
 			SCOPE_DATE, SCOPE_TRIGGERED_AT, SCOPE_RUN_ID, SCOPE_ROOM_ID);
 	public static final String TEST_RUN_ID = "test";
 	public static final String SYSTEM_USER_ID = "system";
@@ -282,7 +292,7 @@ public final class AutomationConstants {
 	public static final String VARCHAR_50 = "VARCHAR(50)";
 	public static final String VARCHAR_255 = "VARCHAR(255)";
 	public static final String VARCHAR_500 = "VARCHAR(500)";
-	public static final String VARCHAR_2000 = "VARCHAR (2000)";
+	public static final String VARCHAR_2000 = "VARCHAR(2000)";
 	public static final String INTEGER = "INTEGER";
 	public static final String BIGINT = "BIGINT";
 	public static final String NOT_NULL = "NOT NULL";

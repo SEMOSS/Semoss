@@ -64,9 +64,9 @@ public final class AutomationRuntimeUtils {
 	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
 
 	/**
-	 * Shared Gson instance for the whole automation engine  - public so the
-	 * {@code nodes} sub-package has one shared instance to reuse instead of each
-	 * file declaring its own.
+	 * Shared Gson instance for the Automation persistence and execution boundaries. Keeping one
+	 * configured instance ensures temporal values, explicit nulls, and errors have the same JSON
+	 * representation across graph, scope, and run-history operations.
 	 */
 	public static final Gson GSON = new GsonBuilder()
 			.disableHtmlEscaping()
@@ -87,7 +87,8 @@ public final class AutomationRuntimeUtils {
 					(JsonSerializer<Throwable>) (src, t, ctx) -> new JsonPrimitive(src.toString()))
 			.create();
 
-	private AutomationRuntimeUtils() {}
+	private AutomationRuntimeUtils() {
+	}
 
 	// -- Scope building ------------------------------------------------------------
 
@@ -99,6 +100,7 @@ public final class AutomationRuntimeUtils {
 	 * @param user  the triggering user  - used to localise {@code date} and {@code triggered_at}
 	 *              to the user's configured timezone; falls back to UTC when {@code null} or
 	 *              when no zone has been set on the user
+	 * @return mutable scope used only by the current run
 	 */
 	public static Map<String, Object> buildInitialScope(String runId, User user) {
 		Map<String, Object> scope = new HashMap<>();
@@ -119,6 +121,11 @@ public final class AutomationRuntimeUtils {
 	 * Validates container depth before serialization, then limits the encoded UTF-8 payload.
 	 * Runtime values originate as JSON, so repeated container identity has no defined meaning and
 	 * is rejected with cycles before Gson can recurse indefinitely.
+	 *
+	 * @param value runtime value to serialize
+	 * @param maxBytes maximum UTF-8 payload size
+	 * @param valueName safe value name used in validation errors
+	 * @return serialized JSON
 	 */
 	public static String toBoundedRuntimeJson(Object value, int maxBytes, String valueName) {
 		validateRuntimeDepth(value, valueName);
@@ -168,7 +175,12 @@ public final class AutomationRuntimeUtils {
 		}
 	}
 
-	/** Truncates a string to {@link AutomationConstants#OUTPUT_PREVIEW_MAX_LENGTH} chars. */
+	/**
+	 * Truncates a value for run-history display.
+	 *
+	 * @param s value to preview
+	 * @return bounded preview, or {@code null} when the input is null
+	 */
 	public static String generatePreview(String s) {
 		if (s == null) return null;
 		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH

@@ -45,14 +45,17 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Creates a standard SEMOSS project after applying authentication, naming, and project-type
+ * policy checks.
+ *
+ * <p>
+ * Project types that require additional scaffolding are rejected and must be created through
+ * their dedicated reactors.
+ */
 public class CreateProjectReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
-
-	/*
-	 * This class is used to construct a new project This project only contains
-	 * insights
-	 */
 
 	public CreateProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),

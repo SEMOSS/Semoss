@@ -30,9 +30,6 @@ package prerna.reactor.automation;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -53,8 +50,6 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>Pixel: {@code GetActiveAutomationRun(project=["appId"])}
  */
 public class GetActiveAutomationRunReactor extends AbstractReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(GetActiveAutomationRunReactor.class);
 
 	public GetActiveAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
@@ -89,7 +84,9 @@ public class GetActiveAutomationRunReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) return "The project (app) ID or alias to check for an active run.";
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The project (app) ID or alias to check for an active run.";
+		}
 		return super.getDescriptionForKey(key);
 	}
 }

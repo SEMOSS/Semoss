@@ -51,7 +51,14 @@ import prerna.util.ProjectSyncUtility;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
-/** Coordinates project-level persistence for automation definitions and derived assets. */
+/**
+ * Coordinates project-level access, persistence, and derived assets for Automation projects.
+ *
+ * <p>
+ * All reads and mutations enter through standard SEMOSS project permission checks. Mutations hold
+ * the project lock while replacing the graph aggregate, regenerating MCP metadata, synchronizing
+ * cluster assets, and updating the project edit timestamp.
+ */
 public final class AutomationProjectUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationProjectUtils.class);
@@ -65,7 +72,6 @@ public final class AutomationProjectUtils {
 			AutomationConstants.NODE_VECTOR_DELETE);
 
 	private AutomationProjectUtils() {
-		// utility class
 	}
 
 	/**

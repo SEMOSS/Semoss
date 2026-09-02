@@ -57,6 +57,10 @@ import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Deletes projects owned by the caller and removes project-type-specific references before the
+ * project assets are torn down.
+ */
 public class DeleteProjectReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteProjectReactor.class);

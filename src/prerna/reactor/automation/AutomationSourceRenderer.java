@@ -31,7 +31,14 @@ import java.util.Map;
 
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
-/** Renders the default implementation for exactly one automation node. */
+/**
+ * Renders deterministic Python implementations for generated Automation nodes.
+ *
+ * <p>
+ * The renderer translates validated node configuration into a single {@code run(scope)} function.
+ * It does not select graph paths, authorize referenced engines, or execute source; Java retains
+ * those responsibilities at save and run boundaries.
+ */
 public final class AutomationSourceRenderer {
 
 	private static final String LEGACY_DEFAULT_SOURCE = """

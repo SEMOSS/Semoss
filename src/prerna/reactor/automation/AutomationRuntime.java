@@ -44,7 +44,14 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-/** Java-side graph ordering and one-node Python invocation support. */
+/**
+ * Provides Java-owned graph ordering and one-node Python invocation support.
+ *
+ * <p>
+ * Runtime traversal operates on the validated graph, while Python is invoked with only the source
+ * selected for the current node and a bounded JSON scope. This class never discovers or executes
+ * arbitrary project files.
+ */
 final class AutomationRuntime {
 
 	private static final Pattern GLOBAL_ASSIGNMENT = Pattern.compile(

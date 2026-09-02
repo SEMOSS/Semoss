@@ -28,6 +28,7 @@
 package prerna.reactor.automation;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
@@ -37,7 +38,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Updates source only for an explicitly custom node after an optimistic-lock check. */
+/**
+ * Replaces source for one explicitly custom Automation node.
+ *
+ * <p>
+ * The caller must provide the source hash returned by the latest definition read. Generated nodes
+ * remain renderer-owned and cannot be changed through this reactor.
+ */
 public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 
 	private static final String NODE_ID_KEY = "nodeId";
@@ -101,7 +108,7 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 				AutomationRuntimeUtils.MAP_TYPE);
 		Map<String, Object> graph = (Map<String, Object>) document.get(AutomationConstants.DOC_GRAPH);
 		Object rawNodes = graph.get(AutomationConstants.DOC_NODES);
-		if (!(rawNodes instanceof java.util.List<?> nodes)) {
+		if (!(rawNodes instanceof List<?> nodes)) {
 			throw new IllegalArgumentException("Automation graph is invalid.");
 		}
 		for (Object value : nodes) {
@@ -120,5 +127,22 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Updates one custom automation Python node after verifying its current source hash.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (ReactorKeysEnum.PROJECT.getKey().equals(key)) {
+			return "The Automation project ID or alias to update.";
+		}
+		if (NODE_ID_KEY.equals(key)) {
+			return "The custom node ID whose persisted Python source will be replaced.";
+		}
+		if (SOURCE_KEY.equals(key)) {
+			return "The complete replacement Python source defining run(scope).";
+		}
+		if (EXPECTED_SOURCE_HASH_KEY.equals(key)) {
+			return "The source hash returned by GetAutomation, used to reject stale edits.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

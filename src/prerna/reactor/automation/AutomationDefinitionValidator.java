@@ -696,7 +696,15 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	/** Validated graph and deterministic provenance snapshot. */
+	/**
+	 * Validated graph and deterministic provenance snapshot.
+	 *
+	 * @param definition parsed graph document
+	 * @param nodes validated node maps
+	 * @param edges validated edge maps
+	 * @param snapshot canonical JSON snapshot
+	 * @param hash lowercase SHA-256 hash of {@code snapshot}
+	 */
 	public record ValidatedDefinition(Map<String, Object> definition, List<Map<String, Object>> nodes,
 			List<Map<String, Object>> edges, String snapshot, String hash) {
 	}

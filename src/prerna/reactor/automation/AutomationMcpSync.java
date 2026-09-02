@@ -55,7 +55,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.util.AssetUtility;
 import prerna.util.Utility;
 
-/** Maintains the project-scoped MCP tools used by the Automation Workspace chat. */
+/**
+ * Maintains the generated, project-scoped MCP tools used by Automation Workspace chat.
+ *
+ * <p>
+ * Synchronization replaces only tools stamped with this generator's ID. User-authored MCP tools
+ * remain untouched, and all generated tools bind authoring operations to the Automation project
+ * supplied by the caller.
+ */
 public final class AutomationMcpSync {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationMcpSync.class);
@@ -64,6 +71,13 @@ public final class AutomationMcpSync {
 	private AutomationMcpSync() {
 	}
 
+	/**
+	 * Rebuilds the managed Automation MCP tool set from the persisted graph.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param definitionJson persisted graph definition
+	 * @param user user whose accessible engines and projects shape authoring guidance
+	 */
 	public static void sync(String projectId, String definitionJson, User user) {
 		IProject project = Utility.getProject(projectId);
 		if (project == null || definitionJson == null || definitionJson.isBlank()) {
@@ -270,12 +284,14 @@ public final class AutomationMcpSync {
 				+ "typed values. "
 				+ "control.wait requires durationSeconds. developer.python is only for an external integration "
 				+ "that no supported engine node can perform or for dynamic Pixel that generated app.pixel rejects; "
-				+ "it requires config.source defining run(scope). scope is a read-only, run-local mapping of trigger inputs, globals, "
+				+ "it requires config.source defining run(scope). scope is a read-only, run-local mapping of "
+				+ "trigger inputs, globals, "
 				+ "metadata, and prior outputs keyed by outputVar. Custom Python reads it directly, for example "
 				+ "scope['prior_output']; ${...} is not resolved in custom source. Never use "
 				+ "developer.python to invoke a SEMOSS agent or emulate agent.run. "
 				+ "Use ${prior_output} to reference an upstream output only in supported configuration fields; "
-				+ "generated database queries and app.pixel expressions reject placeholders. Field values are executable configuration, "
+				+ "generated database queries and app.pixel expressions reject placeholders. Field values are "
+				+ "executable configuration, "
 				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
 				+ "or arguments."));
 		properties.put("label", stringProperty("Short user-facing action label."));
@@ -430,7 +446,7 @@ public final class AutomationMcpSync {
 		if (value instanceof Number) {
 			return "number";
 		}
-		if (value instanceof java.util.List<?>) {
+		if (value instanceof List<?>) {
 			return "array";
 		}
 		if (value instanceof Map<?, ?>) {

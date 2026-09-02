@@ -40,7 +40,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Lists automation run history for a project.
  *
- * <p>Pixel: {@code ListAutomationRuns(app=["appId"], limit=["25"])}
+ * <p>Pixel: {@code ListAutomationRuns(project=["appId"], limit=["25"])}
  *
  * <p>Reads from AUTOMATION_RUNS in the scheduler DB.
  */

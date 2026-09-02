@@ -42,7 +42,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Removes one non-trigger node without leaving broken control or output references. */
+/**
+ * Removes one non-trigger node from the canonical Automation aggregate.
+ *
+ * <p>
+ * The mutation reconnects compatible control edges, rejects unresolved output references, and
+ * persists the graph and remaining node sources under the project lock.
+ */
 public class RemoveAutomationStepReactor extends AbstractReactor {
 
 	private static final String NODE_ID_KEY = "nodeId";

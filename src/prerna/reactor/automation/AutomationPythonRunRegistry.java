@@ -41,7 +41,13 @@ import org.apache.logging.log4j.Logger;
 import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
 
-/** Maintains same-pod cancellation and heartbeat state for a Python automation run. */
+/**
+ * Maintains same-pod cancellation and heartbeat state for active Python Automation runs.
+ *
+ * <p>
+ * Durable cancellation remains in the scheduler database. This registry adds only the local socket
+ * interrupt fast path and periodic liveness updates for runs owned by the current JVM.
+ */
 final class AutomationPythonRunRegistry {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationPythonRunRegistry.class);
