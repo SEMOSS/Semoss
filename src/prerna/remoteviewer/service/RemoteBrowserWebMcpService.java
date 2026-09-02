@@ -62,7 +62,7 @@ public final class RemoteBrowserWebMcpService {
 
 	private static final String JS_DISCOVER_TOOLS = """
 			async () => {
-			  const context = document.modelContext;
+			  const context = document.modelContext || globalThis.navigator?.modelContext;
 			  if (!context || typeof context.getTools !== 'function') {
 			    return {
 			      supported: false,
@@ -96,7 +96,7 @@ public final class RemoteBrowserWebMcpService {
 
 	private static final String JS_EXECUTE_TOOL = """
 			async payload => {
-			  const context = document.modelContext;
+			  const context = document.modelContext || globalThis.navigator?.modelContext;
 			  if (!context || typeof context.getTools !== 'function'
 			      || typeof context.executeTool !== 'function') {
 			    return { success: false, error: 'WebMCP is unavailable on the current page.' };

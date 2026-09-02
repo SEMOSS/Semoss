@@ -42,11 +42,11 @@ import org.junit.jupiter.api.Test;
 class PlanNextPlaywrightActionReactorTest {
 
 	@Test
-	void promptIncludesGoalCurrentStateHistoryAndOnlyActionIndexes() throws Exception {
-		String prompt = PlanNextPlaywrightActionReactor.buildPrompt("Search for Java", "User: use W3Schools",
+	void domPromptIncludesGoalCurrentStateHistoryAndOnlyActionIndexes() throws Exception {
+		String prompt = PlanNextPlaywrightActionReactor.buildDomPrompt("Search for Java", "User: use W3Schools",
 				"https://example.com", "Example", Map.of("visibleText", "Search"),
 				List.of(clickAction(), fieldAction("input", List.of())),
-				List.of(Map.of("type", "click", "label", "Search")), 2, 10);
+				List.of(Map.of("type", "click", "label", "Search")), 2, 10, "");
 
 		assertTrue(prompt.contains("Search for Java"));
 		assertTrue(prompt.contains("use W3Schools"));
@@ -55,6 +55,39 @@ class PlanNextPlaywrightActionReactorTest {
 		assertTrue(prompt.contains("AVAILABLE ACTIONS"));
 		assertTrue(prompt.contains("\"type\":\"scroll\""));
 		assertFalse(prompt.contains("button.search"));
+	}
+
+	@Test
+	void domPromptNeverOffersWebMcpToolsAndExplainsTheFallback() throws Exception {
+		String prompt = PlanNextPlaywrightActionReactor.buildDomPrompt("Add a laptop to the cart", "",
+				"https://shop.example.com", "Shop", Map.of("visibleText", "Cart"), List.of(clickAction()), List.of(), 3,
+				10, "No listed tool can complete checkout.");
+
+		assertTrue(prompt.contains("WHY PAGE TOOLS WERE NOT USED"));
+		assertTrue(prompt.contains("No listed tool can complete checkout."));
+		assertFalse(prompt.contains("\"type\":\"webmcp\""));
+		assertFalse(prompt.contains("inputSchema"));
+	}
+
+	@Test
+	void webMcpPromptOffersOnlyToolsAndCarriesPreviousToolResults() throws Exception {
+		List<Map<String, Object>> tools = PlanNextPlaywrightActionReactor.webMcpActions(List.of(
+				Map.of("name", "search_catalog", "title", "Search catalog", "description", "Finds products",
+						"origin", "https://shop.example.com", "inputSchema",
+						Map.of("type", "object", "properties", Map.of("query", Map.of("type", "string"))))));
+		String prompt = PlanNextPlaywrightActionReactor.buildWebMcpPrompt("Add a laptop to the cart", "User: budget 900",
+				"https://shop.example.com", "Shop", tools,
+				List.of(Map.of("type", "webmcp", "toolName", "search_catalog", "status", "success", "toolResult",
+						"{\"productId\":\"sku-42\"}")),
+				2, 10);
+
+		assertTrue(prompt.contains("AVAILABLE TOOLS"));
+		assertTrue(prompt.contains("search_catalog"));
+		assertTrue(prompt.contains("sku-42"));
+		assertFalse(prompt.contains("AVAILABLE ACTIONS"));
+		assertFalse(prompt.contains("\"type\":\"click\""));
+		assertFalse(prompt.contains("visibleState"));
+		assertFalse(prompt.contains("\"origin\""));
 	}
 
 	@Test

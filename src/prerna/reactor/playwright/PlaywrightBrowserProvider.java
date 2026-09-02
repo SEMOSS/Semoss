@@ -27,11 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
+import java.util.List;
+
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 
 public final class PlaywrightBrowserProvider {
+	private static final List<String> CHROMIUM_ARGS = List.of("--enable-features=WebMCP");
 
 	private static volatile Playwright playwright;
 	private static volatile Browser browser;
@@ -46,7 +49,8 @@ public final class PlaywrightBrowserProvider {
 			synchronized (PlaywrightBrowserProvider.class) {
 				if (browser == null) {
 					playwright = Playwright.create();
-					browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
+					browser = playwright.chromium()
+							.launch(new BrowserType.LaunchOptions().setHeadless(true).setArgs(CHROMIUM_ARGS));
 				}
 				localBrowser = browser;
 			}
