@@ -63,4 +63,21 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	 * @return
 	 */
 	GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow);
+
+	/**
+	 * Executes the guardrail with the actual engine whose method is being
+	 * intercepted. The engine is optional and must remain in-memory; callers must
+	 * not place it in a NounStore, pipeline argument map, audit payload, or verdict
+	 * details. Implementations that do not need engine context keep the existing
+	 * two-argument behavior.
+	 *
+	 * @param ns           guardrail inputs
+	 * @param curRow       current row, when applicable
+	 * @param targetEngine actual intercepted engine, or null outside a pipeline
+	 * @return the guardrail decision
+	 */
+	@IgnoreEngineLogging
+	default GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
+		return execute(ns, curRow);
+	}
 }
