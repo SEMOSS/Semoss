@@ -35,6 +35,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class GetUserModelUsageReactor extends AbstractReactor {
 
@@ -107,8 +109,9 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		// Ensure every requested engine has a row — fill zeros for engines with no usage
 		List<Map<String, Object>> result = new ArrayList<>();
 		for (String engineId : engineIds) {
+			Map<String, Object> row;
 			if (usageByEngineId.containsKey(engineId)) {
-				result.add(usageByEngineId.get(engineId));
+				row = usageByEngineId.get(engineId);
 			} else {
 				Map<String, Object> zeroRow = new HashMap<>();
 				zeroRow.put("ENGINE_ID", engineId);
@@ -124,11 +127,36 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 				tokenDetail.put("CACHE_CREATION_TOKENS", 0);
 				tokenDetail.put("THINKING_TOKENS", 0);
 				zeroRow.put("TOKEN_DETAIL", tokenDetail);
-				result.add(zeroRow);
+				row = zeroRow;
 			}
+			addRestrictionMetadata(row, user, engineId);
+			result.add(row);
 		}
 
 		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+
+	private static void addRestrictionMetadata(Map<String, Object> row, User user, String engineId) {
+		List<Map<String, Object>> permissions = SecurityEngineUtils.getEngineUsagePermissionMap(user, engineId);
+		Map<String, Object> permission = permissions == null || permissions.isEmpty() || permissions.get(0) == null
+				? Collections.emptyMap()
+				: permissions.get(0);
+		String restrictionType = asString(permission.get(Constants.ENGINE_USAGE_RESTRICTION_KEY));
+		Object configuredLimit = null;
+		if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType)) {
+			configuredLimit = permission.get(Constants.ENGINE_MAX_CREDIT_KEY);
+		} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType)) {
+			configuredLimit = permission.get(Constants.ENGINE_MAX_TOKEN_KEY);
+		} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType)) {
+			configuredLimit = permission.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
+		}
+		row.put("HAS_RESTRICTION", restrictionType != null && configuredLimit instanceof Number);
+		row.put("RESTRICTION_TYPE", restrictionType);
+		row.put("RESTRICTION_FREQUENCY", asString(permission.get(Constants.ENGINE_USAGE_FREQUENCY_KEY)));
+	}
+
+	private static String asString(Object value) {
+		return value == null ? null : value.toString();
 	}
 
 	/**
