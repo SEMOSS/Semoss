@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.engine;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -37,16 +37,16 @@ import prerna.util.git.ProjectGitStatusUtils.GitFileStatus;
 import prerna.util.git.ProjectGitStatusUtils.GitStatusResult;
 
 /**
- * Shared JSON-shape builder for the {@code ProjectGitStatus} payload, reused
- * by {@link ProjectGitStatusReactor} and every mutating project git reactor
+ * Shared JSON-shape builder for the {@code EngineGitStatus} payload, reused
+ * by {@link EngineGitStatusReactor} and every mutating engine git reactor
  * that embeds a refreshed status in its own response.
  */
-final class ProjectGitReactorUtils {
+final class EngineGitReactorUtils {
 
-	private ProjectGitReactorUtils() {
+	private EngineGitReactorUtils() {
 	}
 
-	static Map<String, Object> buildStatusMap(String projectId, GitStatusResult status) {
+	static Map<String, Object> buildStatusMap(String engineId, GitStatusResult status) {
 		Map<String, Object> map = new LinkedHashMap<>();
 		map.put("branch", status.branch);
 		map.put("detached", status.detached);

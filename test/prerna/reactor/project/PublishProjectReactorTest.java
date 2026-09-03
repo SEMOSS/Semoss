@@ -144,7 +144,6 @@ class PublishProjectReactorTest {
 
 		reactor.execute();
 
-		securityMock.verify(() -> SecurityProjectUtils.setPublishMetadata(user, PROJECT_ID, c.getName()));
 		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(user, PROJECT_ID));
 	}
 
@@ -153,8 +152,6 @@ class PublishProjectReactorTest {
 		setKeys(true);
 
 		reactor.execute();
-
-		securityMock.verify(() -> SecurityProjectUtils.setPublishMetadata(user, PROJECT_ID, null));
 	}
 
 	@Test
@@ -163,7 +160,6 @@ class PublishProjectReactorTest {
 
 		reactor.execute();
 
-		securityMock.verify(() -> SecurityProjectUtils.setPublishMetadata(any(), anyString(), any()), never());
 		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(any(), anyString()), never());
 		clusterUtilMock.verify(() -> ClusterUtil.pushProjectFolder(any(IProject.class), anyString(), anyString()), never());
 	}
@@ -175,8 +171,6 @@ class PublishProjectReactorTest {
 		setKeys(true);
 
 		assertThrows(RuntimeException.class, () -> reactor.execute());
-
-		securityMock.verify(() -> SecurityProjectUtils.setPublishMetadata(any(), anyString(), any()), never());
 	}
 
 	@Test
@@ -185,8 +179,6 @@ class PublishProjectReactorTest {
 		setKeys(true);
 
 		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
-
-		securityMock.verify(() -> SecurityProjectUtils.setPublishMetadata(any(), anyString(), any()), never());
 	}
 
 	@Test
