@@ -3711,6 +3711,14 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 						MESSAGE_TABLE_NAME + "THINKING_TOKENS", null),
 				new QueryConstantSelector(0), "DETAIL_THINKING_TOKENS"));
 
+		// Count rows carrying normalized granular token data. The reactor compares
+		// these counts with request count so mixed legacy/new ranges are not presented
+		// as a complete cache breakdown.
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				MESSAGE_TABLE_NAME + "INPUT_TOKENS", "DETAIL_INPUT_ROWS"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				MESSAGE_TABLE_NAME + "OUTPUT_TOKENS", "DETAIL_OUTPUT_ROWS"));
+
 		// Count number of requests (INPUT messages only)
 		QueryIfSelector requestIf = QueryIfSelector.makeQueryIfSelector(
 				SimpleQueryFilter.makeColToValFilter(MESSAGE_TABLE_NAME + "MESSAGE_TYPE", "==", "INPUT"),

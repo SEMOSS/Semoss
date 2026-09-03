@@ -401,6 +401,16 @@ public class ModelUsageRestrictionUtilityUnitTests extends SemossUnitTest {
 	// ========== Date Range Tests ==========
 
 	@Test
+	void getNonCachedInputTokens_SubtractsCacheCategories() {
+		assertEquals(65, ModelUsageRestrictionUtility.getNonCachedInputTokens(100, 25, 10));
+	}
+
+	@Test
+	void getNonCachedInputTokens_DoesNotReturnNegativeUsage() {
+		assertEquals(0, ModelUsageRestrictionUtility.getNonCachedInputTokens(10, 8, 5));
+	}
+
+	@Test
 	void getDateRangeFromFrequency_DAY() {
 		ZonedDateTime testDate = ZonedDateTime.of(2025, 1, 15, 14, 30, 45, 0, ZoneOffset.UTC);
 

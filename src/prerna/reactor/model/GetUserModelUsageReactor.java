@@ -95,11 +95,18 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		for (Map<String, Object> entry : usageData) {
 			String engineId = (String) entry.get("ENGINE_ID");
 			if (engineId != null) {
+				Number requestCount = asNumber(entry.get("TOTAL_REQUESTS"));
+				Number detailedInputRows = asNumber(entry.remove("DETAIL_INPUT_ROWS"));
+				Number detailedOutputRows = asNumber(entry.remove("DETAIL_OUTPUT_ROWS"));
 				// Nest DETAIL_* columns into TOKEN_DETAIL, stripping the prefix
 				Map<String, Object> tokenDetail = new HashMap<>();
 				for (String detailKey : detailKeys) {
 					tokenDetail.put(detailKey.substring("DETAIL_".length()), entry.remove(detailKey));
 				}
+				tokenDetail.put("AVAILABLE",
+						requestCount != null && detailedInputRows != null && detailedOutputRows != null
+								&& requestCount.longValue() == detailedInputRows.longValue()
+								&& requestCount.longValue() == detailedOutputRows.longValue());
 				entry.put("TOKEN_DETAIL", tokenDetail);
 				entry.put("ENGINE_NAME", idToAlias.get(engineId));
 				usageByEngineId.put(engineId, entry);
@@ -126,6 +133,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 				tokenDetail.put("CACHE_READ_TOKENS", 0);
 				tokenDetail.put("CACHE_CREATION_TOKENS", 0);
 				tokenDetail.put("THINKING_TOKENS", 0);
+				tokenDetail.put("AVAILABLE", true);
 				zeroRow.put("TOKEN_DETAIL", tokenDetail);
 				row = zeroRow;
 			}
@@ -157,6 +165,10 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 	private static String asString(Object value) {
 		return value == null ? null : value.toString();
+	}
+
+	private static Number asNumber(Object value) {
+		return value instanceof Number ? (Number) value : null;
 	}
 
 	/**

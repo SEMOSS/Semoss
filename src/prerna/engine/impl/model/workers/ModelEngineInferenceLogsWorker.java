@@ -37,6 +37,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.AbstractModelEngine;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.vector.AbstractVectorDatabaseEngine;
 import prerna.engine.impl.vector.PGVectorDatabaseEngine;
@@ -261,7 +262,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			if (inCredit != null && this.inputTokens != null) {
 				int cacheRead     = this.cacheReadTokens     != null ? this.cacheReadTokens     : 0;
 				int cacheCreation = this.cacheCreationTokens != null ? this.cacheCreationTokens : 0;
-				int newTokens     = this.inputTokens - cacheRead - cacheCreation;
+				int newTokens = ModelUsageRestrictionUtility.getNonCachedInputTokens(this.inputTokens, cacheRead,
+						cacheCreation);
 				double readMult   = this.cacheReadMultiplierOrDefault(ame);
 				double writeMult  = this.cacheWriteMultiplierOrDefault(ame);
 				inputBudget = newTokens * inCredit

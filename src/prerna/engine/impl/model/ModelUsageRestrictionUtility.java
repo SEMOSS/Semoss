@@ -310,7 +310,7 @@ public final class ModelUsageRestrictionUtility {
 				int inputTotal   = modelResponse.getNumberOfTokensInPrompt()    != null ? modelResponse.getNumberOfTokensInPrompt()    : 0;
 				int cacheRead    = modelResponse.getNumberOfCacheReadTokens()   != null ? modelResponse.getNumberOfCacheReadTokens()   : 0;
 				int cacheCreate  = modelResponse.getNumberOfCacheCreationTokens() != null ? modelResponse.getNumberOfCacheCreationTokens() : 0;
-				int newTokens    = inputTotal - cacheRead - cacheCreate;
+				int newTokens = getNonCachedInputTokens(inputTotal, cacheRead, cacheCreate);
 				int outputTokens = modelResponse.getNumberOfTokensInResponse()  != null ? modelResponse.getNumberOfTokensInResponse()  : 0;
 				int thinking     = modelResponse.getNumberOfThinkingTokens()    != null ? modelResponse.getNumberOfThinkingTokens()    : 0;
 				double readMult  = cacheReadMultiplier  != null ? cacheReadMultiplier  : 1.0;
@@ -329,6 +329,22 @@ public final class ModelUsageRestrictionUtility {
 			// now add this to the model response
 			modelResponse.setUsageRestriction(userRestrictionMap);
 		}
+	}
+
+	/**
+	 * Derives non-cached input from the normalized provider token totals. Providers
+	 * are expected to report input as the inclusive total of non-cached, cache-read,
+	 * and cache-write tokens.
+	 */
+	public static int getNonCachedInputTokens(int inputTokens, int cacheReadTokens, int cacheWriteTokens) {
+		int nonCachedInputTokens = inputTokens - cacheReadTokens - cacheWriteTokens;
+		if (nonCachedInputTokens < 0) {
+			classLogger.warn(
+					"Invalid model token totals: inputTokens={} is less than cacheReadTokens={} plus cacheWriteTokens={}. Treating non-cached input as zero.",
+					inputTokens, cacheReadTokens, cacheWriteTokens);
+			return 0;
+		}
+		return nonCachedInputTokens;
 	}
 
 	/**
