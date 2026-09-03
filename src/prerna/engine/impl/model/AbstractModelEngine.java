@@ -28,11 +28,17 @@
 package prerna.engine.impl.model;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,10 +48,15 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.impl.AbstractEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MediaMessagePart;
+import prerna.engine.impl.model.message.MessageIO;
+import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
@@ -95,43 +106,49 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected boolean inferenceLogsEnbaled = Utility.isModelInferenceLogsEnabled();
 
 	/**
-	 * The engine's saved built-in tool selection from MODELMETADATA - a JSON
-	 * object keyed by tool name. The security database is its only source of
-	 * truth (the value is deliberately kept out of the smss), and it rides
-	 * along on ask calls as the built_in_tools param unless the caller
-	 * supplies their own.
+	 * The engine's saved built-in tool selection from MODELMETADATA - a JSON object
+	 * keyed by tool name. The security database is its only source of truth (the
+	 * value is deliberately kept out of the smss), and it rides along on ask calls
+	 * as the built_in_tools param unless the caller supplies their own.
 	 */
 	protected Object builtinTools = null;
 
 	/**
-	 * The max output tokens to request when the caller does not name one -
-	 * the smss value when defined, otherwise the MODELMETADATA row's
-	 * maxOutputTokens. Null when neither names one, in which case the python
-	 * clients fall back to the model's own output cap.
+	 * The max output tokens to request when the caller does not name one - the smss
+	 * value when defined, otherwise the MODELMETADATA row's maxOutputTokens. Null
+	 * when neither names one, in which case the python clients fall back to the
+	 * model's own output cap.
 	 */
 	protected Long maxTokens = null;
 
 	/**
-	 * Whether the model is capable of thinking/reasoning per the MODELMETADATA
-	 * row. Null when the table does not say either way - only an explicit
-	 * false blocks a caller from requesting thinking.
+	 * Whether the model is capable of thinking/reasoning per the MODELMETADATA row.
+	 * Null when the table does not say either way - only an explicit false blocks a
+	 * caller from requesting thinking.
 	 */
 	protected Boolean reasoning = null;
 
 	/**
-	 * The model's reasoning config from MODELMETADATA - the catalog object
-	 * holding default_enabled, default_effort, mandatory and supported_efforts.
-	 * Null when the table does not define one, in which case caller-supplied
-	 * efforts are passed through unchecked.
+	 * The model's reasoning config from MODELMETADATA - the catalog object holding
+	 * default_enabled, default_effort, mandatory and supported_efforts. Null when
+	 * the table does not define one, in which case caller-supplied efforts are
+	 * passed through unchecked.
 	 */
 	protected Map<String, Object> reasoningConfig = null;
 
 	/**
-	 * Whether the model accepts a temperature per the MODELMETADATA row. Null
-	 * when the table does not say either way - only an explicit false makes us
-	 * drop a caller supplied temperature.
+	 * Whether the model accepts a temperature per the MODELMETADATA row. Null when
+	 * the table does not say either way - only an explicit false makes us drop a
+	 * caller supplied temperature.
 	 */
 	protected Boolean temperatureSupported = null;
+
+	/**
+	 * Input modalities configured in MODELMETADATA, overridable per engine by an
+	 * INPUT_MODALITIES smss property (an explicitly blank smss value disables
+	 * enforcement). Null means request content is not restricted.
+	 */
+	protected Set<ModelModalityEnum> inputModalities = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -140,6 +157,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		// backfill runtime settings from the MODELMETADATA table into the working
 		// smss properties - a value defined in the smss file always wins
 		fillModelSettingsFromMetadata();
+		applySmssInputModalitiesOverride();
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
@@ -151,10 +169,10 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * The effective max output tokens after the metadata merge: the smss file
-	 * wins under either key casing, then the metadata backfill placed under
-	 * the lowercase param key. A value that does not parse reads as unset
-	 * rather than failing engine open.
+	 * The effective max output tokens after the metadata merge: the smss file wins
+	 * under either key casing, then the metadata backfill placed under the
+	 * lowercase param key. A value that does not parse reads as unset rather than
+	 * failing engine open.
 	 */
 	private Long resolveMaxTokens() {
 		String value = this.smssProp.getProperty(Constants.MAX_TOKENS);
@@ -198,6 +216,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		fillIfMissing("context_window", metadata.get("contextWindow"));
 		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
 		this.builtinTools = metadata.get("builtinTools");
+		this.inputModalities = toModalitySet(metadata.get("inputModalities"));
 
 		if (metadata.get("reasoning") instanceof Boolean) {
 			this.reasoning = (Boolean) metadata.get("reasoning");
@@ -210,6 +229,45 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
 			this.reasoningConfig = config.isEmpty() ? null : config;
 		}
+	}
+
+	/**
+	 * The smss file wins over the MODELMETADATA row for input modalities, same as
+	 * the other metadata-backed settings. An INPUT_MODALITIES property that is
+	 * present but blank disables enforcement entirely - the per-engine escape hatch
+	 * when stored metadata is wrong.
+	 */
+	private void applySmssInputModalitiesOverride() {
+		String smssModalities = this.smssProp.getProperty(Constants.INPUT_MODALITIES);
+		if (smssModalities == null) {
+			return;
+		}
+		this.inputModalities = smssModalities.isBlank() ? null
+				: toModalitySet(Arrays.asList(smssModalities.split(",")));
+	}
+
+	/**
+	 * Normalize a stored modality list. Unrecognized values are logged and skipped
+	 * rather than thrown - a dirty metadata row must not stop the engine from
+	 * opening (strict validation happens at the write path).
+	 */
+	private Set<ModelModalityEnum> toModalitySet(Object value) {
+		if (!(value instanceof Collection<?>)) {
+			return null;
+		}
+		Set<ModelModalityEnum> modalities = EnumSet.noneOf(ModelModalityEnum.class);
+		for (Object modality : (Collection<?>) value) {
+			if (modality == null || modality.toString().isBlank()) {
+				continue;
+			}
+			try {
+				modalities.add(ModelModalityEnum.fromName(modality.toString()));
+			} catch (IllegalArgumentException e) {
+				classLogger.warn("Model {} has an unrecognized input modality '{}' - ignoring it", this.engineId,
+						modality);
+			}
+		}
+		return modalities.isEmpty() ? null : modalities;
 	}
 
 	/**
@@ -228,13 +286,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * Resolve the thinking params for an ask call against the model's
-	 * reasoning metadata. Caller-supplied values win, but a caller cannot turn
-	 * thinking on when the metadata marks reasoning false, and a named effort
-	 * must sit inside the config's supported_efforts list. When the caller
-	 * says nothing, the config's defaults (default_enabled/mandatory and
-	 * default_effort) ride along instead. Without a reasoning config the
-	 * caller's effort is passed through unchecked.
+	 * Resolve the thinking params for an ask call against the model's reasoning
+	 * metadata. Caller-supplied values win, but a caller cannot turn thinking on
+	 * when the metadata marks reasoning false, and a named effort must sit inside
+	 * the config's supported_efforts list. When the caller says nothing, the
+	 * config's defaults (default_enabled/mandatory and default_effort) ride along
+	 * instead. Without a reasoning config the caller's effort is passed through
+	 * unchecked.
 	 *
 	 * @return the parameters map, created when metadata defaults need a home
 	 */
@@ -280,11 +338,11 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * Drop a caller supplied temperature when the MODELMETADATA row marks the
-	 * model as not accepting one - the reasoning models in particular reject the
-	 * param outright, and callers (including our own reactors that hardcode a
-	 * temperature) should not have to know which model is behind the engine. A
-	 * null or true metadata value leaves the parameters untouched.
+	 * Drop a caller supplied temperature when the MODELMETADATA row marks the model
+	 * as not accepting one - the reasoning models in particular reject the param
+	 * outright, and callers (including our own reactors that hardcode a
+	 * temperature) should not have to know which model is behind the engine. A null
+	 * or true metadata value leaves the parameters untouched.
 	 *
 	 * @return the same parameters map, minus the temperature when unsupported
 	 */
@@ -298,7 +356,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map.Entry<String, Object> entry = entries.next();
 			if (entry.getKey() != null && TEMPERATURE.equalsIgnoreCase(entry.getKey().trim())) {
 				entries.remove();
-				classLogger.info("Dropping the temperature param for model {} - the model metadata says it is not supported",
+				classLogger.info(
+						"Dropping the temperature param for model {} - the model metadata says it is not supported",
 						Utility.cleanLogString(this.engineId));
 			}
 		}
@@ -306,9 +365,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * Whether a caller-supplied thinking param asks for thinking to be on -
-	 * either a truthy flag (mirroring the python string_to_bool values) or an
-	 * anthropic style config map whose type is enabled/adaptive.
+	 * Whether a caller-supplied thinking param asks for thinking to be on - either
+	 * a truthy flag (mirroring the python string_to_bool values) or an anthropic
+	 * style config map whose type is enabled/adaptive.
 	 */
 	private static boolean isThinkingRequested(Object thinkingParam) {
 		if (thinkingParam == null) {
@@ -330,9 +389,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * A caller-named effort must be one of the config's supported_efforts when
-	 * the config defines that list. Numeric token budgets are left for the
-	 * python side to bucket onto the effort ladder.
+	 * A caller-named effort must be one of the config's supported_efforts when the
+	 * config defines that list. Numeric token budgets are left for the python side
+	 * to bucket onto the effort ladder.
 	 */
 	private void validateEffortAllowed(Object effortParam) {
 		if (effortParam == null || effortParam instanceof Number) {
@@ -352,13 +411,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				return;
 			}
 		}
-		throw new IllegalArgumentException("Effort '" + effort
-				+ "' is not supported for this model. Supported efforts: " + supported);
+		throw new IllegalArgumentException(
+				"Effort '" + effort + "' is not supported for this model. Supported efforts: " + supported);
 	}
 
 	/**
-	 * The config's default_effort as a canonical lowercase string, or null
-	 * when the config does not name one.
+	 * The config's default_effort as a canonical lowercase string, or null when the
+	 * config does not name one.
 	 */
 	private String getDefaultEffort() {
 		if (this.reasoningConfig == null) {
@@ -372,23 +431,74 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * This is an abstract method for the implementation class such that tracking
-	 * occurs
+	 * Executes a model request using the current input message.
 	 *
-	 * @param question
-	 * @param fullPrompt
-	 * @param context
-	 * @param insight
-	 * @param roomId
-	 * @param hyperParameters
-	 * @return
+	 * @param inputMessage    current input sent to the model
+	 * @param insight         current insight
+	 * @param roomId          current room identifier
+	 * @param hyperParameters model request parameters
+	 * @return model response
 	 */
-	protected abstract AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, String roomId, Map<String, Object> hyperParameters);
+	protected abstract AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> hyperParameters);
+
+	/**
+	 * Adapts the legacy model request arguments to an {@link InputMessage}.
+	 *
+	 * @param question        input text
+	 * @param fullPrompt      optional full prompt
+	 * @param context         optional system prompt
+	 * @param insight         current insight
+	 * @param roomId          current room identifier
+	 * @param hyperParameters model request parameters
+	 * @return model response
+	 * @deprecated override and call
+	 *             {@link #askCall(InputMessage, Insight, String, Map)} instead
+	 */
+	@Deprecated
+	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
+			String roomId, Map<String, Object> hyperParameters) {
+		Room room = new Room();
+		room.setId(roomId);
+		room.setInsight(insight);
+
+		Map<String, Object> messageParameters = hyperParameters == null ? new HashMap<>()
+				: new HashMap<>(hyperParameters);
+		if (fullPrompt != null) {
+			messageParameters.put(FULL_PROMPT, fullPrompt);
+		}
+
+		InputMessage inputMessage = InputMessage.builder(room).withText(question).withSystemPrompt(context)
+				.withParamMap(messageParameters).build();
+		return askCall(inputMessage, insight, roomId, hyperParameters);
+	}
+
+	/**
+	 * Returns the final message in a full prompt as the input that owns the next
+	 * model response.
+	 *
+	 * @param messages normalized messages created from the full prompt
+	 * @return the final input message
+	 * @throws IllegalArgumentException when the full prompt does not end with an
+	 *                                  input message
+	 */
+	static InputMessage requireFinalInputMessage(List<AbstractMessage> messages) {
+		if (messages == null || messages.isEmpty()) {
+			throw new IllegalArgumentException("Full prompt must end with an input message");
+		}
+		AbstractMessage finalMessage = messages.get(messages.size() - 1);
+		if (!(finalMessage instanceof InputMessage)) {
+			throw new IllegalArgumentException("Full prompt must end with an input message");
+		}
+		return (InputMessage) finalMessage;
+	}
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
-			Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(InputMessage inputMessage, Room room, Map<String, Object> parameters) {
+		if (inputMessage == null) {
+			throw new IllegalArgumentException("Input message cannot be null");
+		}
+
 		/*
 		 * We will check if there are any restrictions for the user's current token
 		 * usage There might be a value set on the user-engine permission which takes
@@ -404,10 +514,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			parameters = new HashMap<String, Object>();
 		}
 
-		String context = null;
-		if (inputMessage instanceof InputMessage) {
-			context = ((InputMessage) inputMessage).getSystemPrompt();
-		}
+		String promptForLogs = inputMessage.getFullInputPrompt();
+		InputMessage inferenceInputMessage = inputMessage;
 
 		// if full prompt is being sent, convert the full prompt to a set of
 		// AbstractMessages
@@ -417,18 +525,24 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				.acquireMutationLock(fullPrompt != null ? room : null)) {
 			if (fullPrompt != null) {
 				List<AbstractMessage> messageList = MessageUtils.convertFullPrompt(fullPrompt, room, this);
+				inferenceInputMessage = requireFinalInputMessage(messageList);
 				Object appendFullPrompt = parameters.remove(APPEND_FULL_PROMPT);
 				if (appendFullPrompt != null && Boolean.parseBoolean(appendFullPrompt + "")) {
 					String userId = room.getInsight().getUser().getPrimaryLoginToken().getId();
 					RoomMessageStore.refreshFromLatestProjection(room, userId);
+					// the provider payload is the full merged list; validate it
+					// before mutating the room so a rejected request does not
+					// leave never-sent messages in the cached room history
+					List<AbstractMessage> outbound = new ArrayList<>(room.getMessages());
+					outbound.addAll(messageList);
+					validateInputModalities(outbound);
 					room.getMessages().addAll(messageList);
 					messageList = room.getMessages();
 				} else {
+					validateInputModalities(messageList);
 					room.setMessages(messageList);
 				}
-				String messageJson = RoomMessageStore.providerMessageHistory(room, messageList);
-				question = messageJson;
-				parameters.put("message_json", messageJson);
+				parameters.put("message_json", RoomMessageStore.providerMessageHistory(room, messageList));
 
 				Object toolChoiceObj = parameters.get("tool_choice");
 				if (toolChoiceObj != null) {
@@ -458,17 +572,20 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 					}
 				}
 
-				// when we convert from fullPrompt to semoss message structure
-				// inputMessage in the method is not the same as the message array of the room
-				// so update to the last message of the array
-				inputMessage = room.getMessages().getLast();
-
 				fullPrompt = MessageUtils.toJsonArray(room.getMessages());
-				question = MessageUtils.toJsonArray(room.getMessages());
+				promptForLogs = (String) fullPrompt;
+			}
+
+			if (fullPrompt == null) {
+				// incremental ask: the provider payload is the branch ending at
+				// inputMessage (the fullPrompt path validated its list above)
+				validateInputModalities(room.getMessages(), inferenceInputMessage);
+				parameters.put("message_json",
+						RoomMessageStore.messageHistoryWithNewMessage(room, inferenceInputMessage));
 			}
 
 			ZonedDateTime inputTime = ZonedDateTime.now();
-			AskModelEngineResponse askModelResponse = askCall(question, null, context, room.getInsight(), room.getId(),
+			AskModelEngineResponse askModelResponse = askCall(inferenceInputMessage, room.getInsight(), room.getId(),
 					parameters);
 			ZonedDateTime outputTime = ZonedDateTime.now();
 
@@ -498,7 +615,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			// @formatter:off
 			if (inferenceLogsEnbaled) {
 				Thread inferenceRecorder = new Thread(new ModelEngineInferenceLogsWorker (
-						/*messageId*/ inputMessage.getMessageId(),
+						/*messageId*/ inferenceInputMessage.getMessageId(),
 						/*transactionId*/askModelResponse.getMessageId(),
 						/*messageMethod*/inferenceLogMessageMethod("ask"),
 						/*engine*/this,
@@ -508,8 +625,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 						/*user*/room.getInsight().getUser(),
 						/*sessionId*/ThreadStore.getSessionId(),
 						/*roomId*/room.getId(),
-						/*context*/context,
-						/*prompt*/question,
+						/*context*/inferenceInputMessage.getSystemPrompt(),
+						/*prompt*/promptForLogs,
 						/*fullPrompt*/fullPrompt,
 						/*promptTokens*/askModelResponse.getNumberOfTokensInPrompt(),
 						/*inputTime*/inputTime,
@@ -556,14 +673,14 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 				room.getMessages().add(response);
 
 				// set transaction id for both pieces
-				inputMessage.setTransactionId(response.getMessageId());
-				inputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
-				inputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
+				inferenceInputMessage.setTransactionId(response.getMessageId());
+				inferenceInputMessage.setTokensInMessage(askModelResponse.getNumberOfTokensInPrompt());
+				inferenceInputMessage.setCacheReadTokens(askModelResponse.getNumberOfCacheReadTokens());
 				response.setTransactionId(response.getMessageId());
 
 				// Create the assistant's response message and add to history
 				response.setModel(this);
-				response.setParentMessageId(inputMessage.getMessageId());
+				response.setParentMessageId(inferenceInputMessage.getMessageId());
 				response.setTokensInMessage(askModelResponse.getNumberOfTokensInResponse());
 
 				RoomMessageStore.persist(room, room.getInsight().getUser().getPrimaryLoginToken().getId());
@@ -574,10 +691,128 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
+	 * Enforce the configured input modalities on the exact outbound message list.
+	 * The rules, chosen so enforcement never rejects content the model is not
+	 * actually asked to accept:
+	 * <ul>
+	 * <li>Only INPUT-direction messages are checked - the model's own responses in
+	 * history are its output, not caller input.</li>
+	 * <li>Only MEDIA parts are checked - a text command is required on every ask
+	 * and system prompts are platform-injected, so TEXT is never a basis for
+	 * rejection.</li>
+	 * <li>Media whose modality cannot be determined (no MIME type, opaque URL)
+	 * passes - enforcement fails open on unknowns; strict typing belongs to the
+	 * metadata write path.</li>
+	 * </ul>
+	 */
+	@Override
+	public void validateInputModalities(List<AbstractMessage> outboundMessages) {
+		if (this.inputModalities == null || outboundMessages == null) {
+			return;
+		}
+		for (AbstractMessage message : outboundMessages) {
+			validateInputModalities(message);
+		}
+	}
+
+	/**
+	 * Branch-scoped variant for the incremental ask path: validates the
+	 * root-to-leaf branch ending at {@code inputMessage} (or at the current tail
+	 * when null), matching the payload the provider history builders serialize.
+	 */
+	void validateInputModalities(List<AbstractMessage> messages, AbstractMessage inputMessage) {
+		if (this.inputModalities == null) {
+			return;
+		}
+		List<AbstractMessage> requestMessages = messages == null ? List.of() : messages;
+		AbstractMessage leaf = inputMessage;
+		if (leaf == null) {
+			if (requestMessages.isEmpty()) {
+				return;
+			}
+			leaf = requestMessages.get(requestMessages.size() - 1);
+		}
+		validateInputModalities(messageBranch(requestMessages, leaf));
+	}
+
+	/**
+	 * Lightweight root-to-leaf parent walk. Unlike the payload builders this only
+	 * needs to read part types, so it skips their tool-pruning deep copies. Broken
+	 * parent links end the walk; cycles are guarded.
+	 */
+	private static List<AbstractMessage> messageBranch(List<AbstractMessage> messages, AbstractMessage leaf) {
+		Map<String, AbstractMessage> messagesById = new HashMap<>();
+		for (AbstractMessage message : messages) {
+			if (message != null && message.getMessageId() != null) {
+				messagesById.put(message.getMessageId(), message);
+			}
+		}
+		List<AbstractMessage> branch = new ArrayList<>();
+		Set<String> visited = new HashSet<>();
+		AbstractMessage current = leaf;
+		while (current != null) {
+			String messageId = current.getMessageId();
+			if (messageId != null && !visited.add(messageId)) {
+				break;
+			}
+			branch.add(current);
+			String parentMessageId = current.getParentMessageId();
+			current = parentMessageId == null ? null : messagesById.get(parentMessageId);
+		}
+		return branch;
+	}
+
+	private void validateInputModalities(AbstractMessage message) {
+		if (message == null || message.getIo() == MessageIO.OUTPUT) {
+			return;
+		}
+		List<MessagePart> parts = message.getParts();
+		if (parts == null) {
+			return;
+		}
+		for (MessagePart part : parts) {
+			ModelModalityEnum modality = modalityFor(part);
+			if (modality != null) {
+				requireInputModalityAllowed(modality);
+			}
+		}
+	}
+
+	/**
+	 * Throw when the given modality is not in the configured input modalities.
+	 * No-op when the engine does not restrict input.
+	 */
+	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
+		if (this.inputModalities == null || this.inputModalities.contains(modality)) {
+			return;
+		}
+		String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
+		throw new IllegalArgumentException("Model " + model + " does not allow " + modality.name()
+				+ " input. Configured input modalities: " + this.inputModalities);
+	}
+
+	private static ModelModalityEnum modalityFor(MessagePart part) {
+		if (part == null) {
+			return null;
+		}
+		// exhaustive on purpose: a new part type must decide here whether it
+		// carries a validatable modality
+		return switch (part.getType()) {
+		case MEDIA -> modalityFor((MediaMessagePart) part);
+		case TEXT, SYSTEM, TOOL_CALL, TOOL_RESULT, THINKING, UNKNOWN -> null;
+		};
+	}
+
+	private static ModelModalityEnum modalityFor(MediaMessagePart part) {
+		MessageInputMedia media = part.getMediaInfo();
+		return media == null ? null : ModelModalityEnum.fromMimeType(media.resolveMimeType());
+	}
+
+	/**
 	 * messageMethod recorded on inference log rows written by this engine.
-	 * Delegating engines (e.g. the model router) override this to tag their
-	 * rows, so ask-history queries and usage aggregations can separate the
-	 * delegating row from the actual model call.
+	 * Delegating engines (e.g. the model router) override this to tag their rows,
+	 * so ask-history queries and usage aggregations can separate the delegating row
+	 * from the actual model call.
 	 */
 	protected String inferenceLogMessageMethod(String method) {
 		return method;
@@ -650,7 +885,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		return embeddingsResponse;
 	}
-
 
 	/**
 	 *

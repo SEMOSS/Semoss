@@ -280,7 +280,8 @@ public class GenerateInputValuesReactor extends AbstractReactor {
 	 */
 	private Map<String, Object> buildPair(InputMessage question, ResponseMessage answer) {
 		Map<String, Object> pair = new LinkedHashMap<>();
-		String questionText = question != null ? firstNonBlank(question.getInputUIPrompt(), question.getInputPrompt())
+		String questionText = question != null
+				? firstNonBlank(question.getInputUIPrompt(), question.getFullInputPrompt())
 				: null;
 		pair.put("question", questionText);
 

@@ -163,6 +163,7 @@ public final class AgentConfigLoader {
         b.modelParams(paramMap);
         b.agentParams(agentParams);
         b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
+        b.disabledDefaultTools(resolveDisabledDefaultTools(cfgJson));
 
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));
@@ -213,6 +214,28 @@ public final class AgentConfigLoader {
                     workspaceId, e.getMessage());
             return null;
         }
+    }
+
+    /** Reads {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
+    private static Set<String> resolveDisabledDefaultTools(JSONObject cfgJson) {
+        if (cfgJson == null) {
+            return Collections.emptySet();
+        }
+        JSONObject toolPolicy = cfgJson.optJSONObject("tool_policy");
+        JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
+        JSONArray disabled = defaultTools != null ? defaultTools.optJSONArray("disabled") : null;
+        if (disabled == null) {
+            return Collections.emptySet();
+        }
+
+        LinkedHashSet<String> names = new LinkedHashSet<>();
+        for (int i = 0; i < disabled.length(); i++) {
+            Object value = disabled.opt(i);
+            if (value instanceof String) {
+                names.add((String) value);
+            }
+        }
+        return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
     }
 
     /**

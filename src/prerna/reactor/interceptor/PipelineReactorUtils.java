@@ -48,6 +48,9 @@ public final class PipelineReactorUtils {
 	public static final String PASS = "pass";
 	public static final String PASS_DETAILS = "passDetails";
 	public static final String MASKED = "masked";
+	public static final String SHORT_CIRCUIT_RESPONSE = "shortCircuitResponse";
+	public static final String CLOSE_ROOM = "closeRoom";
+	public static final String BLOCK_ERROR_MESSAGE = "blockErrorMessage";
 
 	private PipelineReactorUtils() {
 		// private constructor to prevent instantiation

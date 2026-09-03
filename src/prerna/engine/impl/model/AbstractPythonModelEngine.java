@@ -45,9 +45,11 @@ import com.google.gson.Gson;
 
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.BatchListResponse;
@@ -278,8 +280,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> parameters) {
+	public AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> parameters) {
 		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), roomId)) {
 			throw new IllegalArgumentException(
 					"The room being referenced has been permanently closed. Please open a new room");
@@ -392,6 +394,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 		if (video == null) {
 			video = new ArrayList<>();
+		}
+
+		if (!image.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.IMAGE);
+		}
+		if (!video.isEmpty()) {
+			requireInputModalityAllowed(ModelModalityEnum.VIDEO);
 		}
 
 		StringBuilder callMaker = new StringBuilder();

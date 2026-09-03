@@ -50,6 +50,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
@@ -268,6 +269,15 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
+
+			// a function engine already describes its own name, purpose, and
+			// parameters, so present the executor as that function rather than as a
+			// tool taking an opaque map. this runs after the meta is stamped so
+			// SMSS_FUNCTION_NAME keeps pointing at the reactor being run
+			if (thisReactor instanceof ExecuteFunctionEngineReactor && engine instanceof IFunctionEngine) {
+				MCPFunctionEngineUtility.applyFunctionEngineDefinition(reactorTool, (IFunctionEngine) engine);
+			}
+
 			toolsArray.put(reactorTool);
 		}
 

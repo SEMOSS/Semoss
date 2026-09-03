@@ -55,8 +55,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
 				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
-				USE_DEFAULT_AGENT_TOOLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -187,6 +187,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			}
 			useDefaultTools = Boolean.valueOf(raw);
 		}
+		boolean disabledDefaultToolsProvided = getGenRowStruct(DISABLED_DEFAULT_TOOLS) != null;
+		List<String> disabledDefaultTools = disabledDefaultToolsProvided
+				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
+				: null;
 
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
@@ -205,7 +209,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
-					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools);
+					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools,
+					disabledDefaultToolsProvided, disabledDefaultTools);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",

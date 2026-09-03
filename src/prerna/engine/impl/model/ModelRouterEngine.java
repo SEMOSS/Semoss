@@ -70,29 +70,35 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * ModelRouterEngine is a routing {@link IModelEngine} that dispatches each
- * request to one of several backing model engines.
+ * <p>
+ * Routes each model request to one of several backing {@link IModelEngine model
+ * engines}.
+ * </p>
  *
- * <p>All routing configuration lives in a JSON file in the engine's assets
- * folder. By convention the engine loads <b>router.json</b>; the optional SMSS
- * property ROUTER_CONFIG overrides the file name. Beyond that, the SMSS file
- * only needs the standard engine identity keys:
+ * <p>
+ * Routing configuration lives in a JSON file in the engine's assets folder. By
+ * convention, the engine loads {@code router.json}. The optional
+ * {@value #ROUTER_CONFIG} SMSS property overrides the file name. The SMSS file
+ * otherwise needs only the standard engine identity keys:
+ * </p>
+ *
  * <pre>
  * ENGINE_TYPE = prerna.engine.impl.model.ModelRouterEngine
  * MODEL_TYPE  = MODEL_ROUTER
  * </pre>
  *
  * <h3>router.json schema</h3>
+ *
  * <pre>
  * {
  *   "mode": "keyword",                 // "keyword" | "llm" | "weighted"
- *   "sticky": true,                    // pin a conversation to the route that first serves it (default true)
+ *   "sticky": true,                    // pin a room to its first route (default true)
  *   "default_route": "&lt;engineId&gt;",     // used when no route matches (defaults to route 0)
  *   "fallbacks": ["&lt;engineId&gt;"],       // tried in order when the chosen target fails
  *   "classifier_engine": "&lt;engineId&gt;", // required for "llm" mode
  *   "embeddings_engine": "&lt;engineId&gt;", // required for the router to serve embeddings
  *   "routes": [
- *     { "name": "code",   "engine_id": "aa876e7e-...", "keywords": ["java", "python", "debug"],
+ *     { "name": "code", "engine_id": "aa876e7e-...", "keywords": ["java", "python", "debug"],
  *       "description": "Programming questions: debugging, writing and reviewing code", "weight": 70 },
  *     { "name": "sports", "engine_id": "8380e91f-...", "keywords": ["nba", "nfl", "score"],
  *       "description": "Sports questions: scores, players, teams and schedules", "weight": 30 }
@@ -100,58 +106,83 @@ import prerna.util.Utility;
  * }
  * </pre>
  *
- * <h3>Modes</h3>
+ * <h3>Routing modes</h3>
+ *
  * <ul>
- * <li><b>keyword</b> - first route with a whole-word keyword match on the
- * latest user message wins; otherwise the default route.</li>
- * <li><b>llm</b> - the classifier engine picks a route by reading each route's
- * description (required on every route in this mode); falls back to keyword
- * matching when classification fails, so keywords are the optional safety
- * net here.</li>
- * <li><b>weighted</b> - deterministic weighted round-robin across routes with
- * weight &gt; 0 (weights 30/70 give an exact 30/70 split every cycle).</li>
+ * <li><b>keyword</b>: The first route with a whole-word keyword match on the
+ * latest input wins. Otherwise, the default route is used.</li>
+ * <li><b>llm</b>: The classifier engine selects a route from each route's
+ * description. Every route requires a description. Keyword matching is used as
+ * a fallback when classification fails.</li>
+ * <li><b>weighted</b>: Deterministic weighted round-robin is applied across
+ * routes whose weight is greater than zero. For example, weights of 30 and 70
+ * produce an exact 30/70 split during each cycle.</li>
  * </ul>
  *
  * <h3>Sticky routing</h3>
- * When sticky is on (the default), the first turn of a room selects a route
- * and later turns reuse it, so a conversation stays on one model and llm mode
- * pays the classifier cost only once per room. Under weighted mode this makes
- * the traffic split per-conversation rather than per-request. A pin is dropped
- * when its engine fails and the turn is served by a failover candidate. Pins
- * are held in a bounded in-memory map per router instance, so they reset on
- * engine reload and are not shared across nodes.
+ *
+ * <p>
+ * Sticky routing is enabled by default. The first turn selects a route, and
+ * later turns in that room reuse it. This keeps a conversation on one model and
+ * avoids repeated classifier calls in {@code llm} mode. In {@code weighted}
+ * mode, traffic is therefore divided by conversation rather than by request.
+ * </p>
+ *
+ * <p>
+ * A pin is removed when its engine fails and a fallback serves the request.
+ * Pins are stored in a bounded in-memory map per router instance. They reset
+ * when the engine reloads and are not shared across nodes.
+ * </p>
  *
  * <h3>Failover</h3>
- * When the chosen target fails (engine will not load, or the ask errors), the
- * router tries the fallbacks list in order and finally the default route. The
- * last failure is rethrown when every candidate fails.
+ *
+ * <p>
+ * When the selected engine cannot load or its request fails, the router tries
+ * the configured fallbacks in order and then the default route. The last error
+ * is rethrown when every candidate fails.
+ * </p>
  *
  * <h3>Access control</h3>
- * Access to the router does NOT implicitly grant its backing engines: each
- * candidate target (ask and embeddings) is checked with
- * {@link SecurityEngineUtils#userCanViewEngine(User, String)} for the calling
- * user, and denied candidates are skipped. The classifier engine is exempt -
- * it is internal plumbing whose output the user never sees directly.
  *
- * <h3>Inference logs</h3>
- * Requests are logged twice by design: once under this router's engine id
- * (user-facing attribution) and once under the delegated engine's id (actual
- * model usage). The router's rows are tagged with messageMethod "route_ask" /
- * "route_embeddings" so ask-history queries and usage aggregations only count
- * the delegated engine's "ask" / "embeddings" rows.
+ * <p>
+ * Access to the router does not grant access to its backing engines. Every ask
+ * and embeddings candidate is checked with
+ * {@link SecurityEngineUtils#userCanViewEngine(User, String)}. Candidates the
+ * caller cannot access are skipped. The classifier engine is exempt because it
+ * is internal routing infrastructure and its output is not returned directly.
+ * </p>
  *
- * <p>The chosen target is surfaced on the response metadata under the
- * router_engine_id / routed_engine_id / routed_route_name keys.
+ * <h3>Inference logging</h3>
  *
- * <p>The configuration can be edited at runtime through the
- * GetModelRouterConfig / UpdateModelRouterConfig reactors, which read and
- * rewrite the config file and then {@link #reloadConfig()} the live instance.
+ * <p>
+ * Requests are logged once under the router for user-facing attribution and
+ * once under the delegated engine for actual model usage. Router rows use
+ * {@code route_ask} or {@code route_embeddings}; usage and history queries
+ * count only the delegated engine's {@code ask} or {@code embeddings} rows.
+ * </p>
+ *
+ * <h3>Response metadata</h3>
+ *
+ * <p>
+ * The selected target is returned under {@code router_engine_id},
+ * {@code routed_engine_id}, and {@code routed_route_name}.
+ * </p>
+ *
+ * <h3>Runtime updates</h3>
+ *
+ * <p>
+ * The {@code GetModelRouterConfig} and {@code UpdateModelRouterConfig} reactors
+ * read and update the configuration file. Updates call {@link #reloadConfig()}
+ * on the live router instance.
+ * </p>
  */
 public class ModelRouterEngine extends AbstractModelEngine implements IModelRouterEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(ModelRouterEngine.class);
 
-	/** Optional SMSS property overriding the config file name in the assets folder. */
+	/**
+	 * Optional SMSS property overriding the config file name in the assets folder.
+	 */
 	public static final String ROUTER_CONFIG = "ROUTER_CONFIG";
 	/** Conventional config file name looked up when ROUTER_CONFIG is not set. */
 	public static final String DEFAULT_CONFIG_FILE = "router.json";
@@ -168,8 +199,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	public static final String METADATA_ROUTED_ENGINE_ID = "routed_engine_id";
 	public static final String METADATA_ROUTED_ROUTE_NAME = "routed_route_name";
 
-	private static final String MODE_KEYWORD  = "keyword";
-	private static final String MODE_LLM      = "llm";
+	private static final String MODE_KEYWORD = "keyword";
+	private static final String MODE_LLM = "llm";
 	private static final String MODE_WEIGHTED = "weighted";
 
 	private static final String MESSAGE_JSON = "message_json";
@@ -207,13 +238,20 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	private volatile String classifierEngineId;
 	private volatile String embeddingsEngineId;
 	private volatile int totalWeight = 0;
-	/** Round-robin counter for weighted mode - increments on every weighted call. */
+	/**
+	 * Round-robin counter for weighted mode - increments on every weighted call.
+	 */
 	private final AtomicInteger rrCounter = new AtomicInteger(0);
-	/** Lazily computed min context window across serving targets; null = not yet computed. */
+	/**
+	 * Lazily computed min context window across serving targets; null = not yet
+	 * computed.
+	 */
 	private volatile Integer derivedContextWindow;
-	/** LRU of roomId -> engineId that last served the room, used when sticky is on. */
-	private final Map<String, String> roomRoutePins = Collections.synchronizedMap(
-			new LinkedHashMap<String, String>(128, 0.75f, true) {
+	/**
+	 * LRU of roomId -> engineId that last served the room, used when sticky is on.
+	 */
+	private final Map<String, String> roomRoutePins = Collections
+			.synchronizedMap(new LinkedHashMap<String, String>(128, 0.75f, true) {
 				@Override
 				protected boolean removeEldestEntry(Map.Entry<String, String> eldest) {
 					return size() > MAX_STICKY_ROOMS;
@@ -230,16 +268,16 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	@Override
-	public void close() throws IOException {}
+	public void close() throws IOException {
+	}
 
 	/**
-	 * Callers sizing work off this engine (e.g. agent auto-compaction) cannot
-	 * know which route will serve them, so answer with the smallest context
-	 * window among the serving targets: routes, default route, and fallbacks.
-	 * An explicit CONTEXT_WINDOW in the smss/metadata still wins. Targets that
-	 * fail to load or do not report a window are skipped; when none report one,
-	 * 0 is returned and callers treat it as unknown. Computed once per config
-	 * (re)load.
+	 * Callers sizing work off this engine (e.g. agent auto-compaction) cannot know
+	 * which route will serve them, so answer with the smallest context window among
+	 * the serving targets: routes, default route, and fallbacks. An explicit
+	 * CONTEXT_WINDOW in the smss/metadata still wins. Targets that fail to load or
+	 * do not report a window are skipped; when none report one, 0 is returned and
+	 * callers treat it as unknown. Computed once per config (re)load.
 	 */
 	@Override
 	public int getContextWindow() {
@@ -293,18 +331,21 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 		reloadConfig();
-		classLogger.info("ModelRouterEngine '{}' loaded: {} route(s), mode={}, sticky={}",
-				this.engineId, this.routes.size(), this.routingMode, this.sticky);
+		classLogger.info("ModelRouterEngine '{}' loaded: {} route(s), mode={}, sticky={}", this.engineId,
+				this.routes.size(), this.routingMode, this.sticky);
 	}
 
-	/** The config file this router reads: assets/&lt;ROUTER_CONFIG or router.json&gt;. */
+	/**
+	 * The config file this router reads: assets/&lt;ROUTER_CONFIG or
+	 * router.json&gt;.
+	 */
 	public File resolveConfigFile() {
 		String configFileName = this.smssProp.getProperty(ROUTER_CONFIG);
 		if (configFileName == null || configFileName.trim().isEmpty()) {
 			configFileName = DEFAULT_CONFIG_FILE;
 		}
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(
-				IEngine.CATALOG_TYPE.MODEL, this.engineId, this.engineName);
+		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.MODEL, this.engineId,
+				this.engineName);
 		return new File((assetsFolder + "/" + configFileName.trim()).replace("\\", "/"));
 	}
 
@@ -319,8 +360,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * Re-reads and applies the config file on the live instance. Used at open
-	 * and after {@link #updateConfig(String)} rewrites the file.
+	 * Re-reads and applies the config file on the live instance. Used at open and
+	 * after {@link #updateConfig(String)} rewrites the file.
 	 */
 	@Override
 	public synchronized void reloadConfig() throws IOException {
@@ -330,8 +371,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 		if (!configFile.exists()) {
 			throw new IOException("ModelRouterEngine: routing config not found at " + configFile.getAbsolutePath()
-					+ ". Place a " + DEFAULT_CONFIG_FILE + " in the engine assets folder"
-					+ " (or set " + ROUTER_CONFIG + " in the SMSS to use a different file name).");
+					+ ". Place a " + DEFAULT_CONFIG_FILE + " in the engine assets folder" + " (or set " + ROUTER_CONFIG
+					+ " in the SMSS to use a different file name).");
 		}
 		String json = new String(Files.readAllBytes(configFile.toPath()), StandardCharsets.UTF_8);
 		RouterConfig cfg = parseAndValidateConfig(json, configFile.getName(), this.engineId);
@@ -339,9 +380,9 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * Seed the config file from the ROUTER_CONFIG_JSON smss property when the
-	 * file does not exist yet - engine creation opens the engine before any
-	 * asset can be uploaded. Never overwrites an existing file.
+	 * Seed the config file from the ROUTER_CONFIG_JSON smss property when the file
+	 * does not exist yet - engine creation opens the engine before any asset can be
+	 * uploaded. Never overwrites an existing file.
 	 */
 	private void bootstrapConfigFileIfNeeded(File configFile) throws IOException {
 		String bootstrapJson = this.smssProp.getProperty(ROUTER_CONFIG_JSON);
@@ -350,18 +391,19 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		}
 		File parentFolder = configFile.getParentFile();
 		if (parentFolder != null && !parentFolder.exists() && !parentFolder.mkdirs()) {
-			throw new IOException("ModelRouterEngine: could not create assets folder " + parentFolder.getAbsolutePath());
+			throw new IOException(
+					"ModelRouterEngine: could not create assets folder " + parentFolder.getAbsolutePath());
 		}
 		try (Writer writer = new OutputStreamWriter(new FileOutputStream(configFile), StandardCharsets.UTF_8)) {
 			writer.write(bootstrapJson.trim());
 		}
-		classLogger.info("ModelRouterEngine '{}' seeded {} from the {} smss property",
-				this.engineId, configFile.getName(), ROUTER_CONFIG_JSON);
+		classLogger.info("ModelRouterEngine '{}' seeded {} from the {} smss property", this.engineId,
+				configFile.getName(), ROUTER_CONFIG_JSON);
 	}
 
 	/**
-	 * Validates the given JSON, persists it to the config file, and applies it
-	 * to the live instance. Nothing is written when validation fails.
+	 * Validates the given JSON, persists it to the config file, and applies it to
+	 * the live instance. Nothing is written when validation fails.
 	 */
 	@Override
 	public synchronized void updateConfig(String json) throws IOException {
@@ -371,16 +413,16 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			writer.write(json);
 		}
 		applyConfig(cfg);
-		classLogger.info("ModelRouterEngine '{}' config updated: {} route(s), mode={}, sticky={}",
-				this.engineId, this.routes.size(), this.routingMode, this.sticky);
+		classLogger.info("ModelRouterEngine '{}' config updated: {} route(s), mode={}, sticky={}", this.engineId,
+				this.routes.size(), this.routingMode, this.sticky);
 	}
 
 	/**
-	 * Parses and validates router config JSON without touching any engine
-	 * state, so both engine open and the update reactor share one set of
-	 * rules. Fails on configurations that would otherwise silently degrade at
-	 * request time (unknown mode, llm without a classifier or descriptions,
-	 * weighted without weights, a route pointing back at the router).
+	 * Parses and validates router config JSON without touching any engine state, so
+	 * both engine open and the update reactor share one set of rules. Fails on
+	 * configurations that would otherwise silently degrade at request time (unknown
+	 * mode, llm without a classifier or descriptions, weighted without weights, a
+	 * route pointing back at the router).
 	 *
 	 * @param json           the raw config JSON
 	 * @param configName     file/source name used in error messages
@@ -392,7 +434,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		try {
 			cfg = new Gson().fromJson(json, RouterConfig.class);
 		} catch (JsonSyntaxException e) {
-			throw new IllegalArgumentException("ModelRouterEngine: " + configName + " is not valid JSON - " + e.getMessage(), e);
+			throw new IllegalArgumentException(
+					"ModelRouterEngine: " + configName + " is not valid JSON - " + e.getMessage(), e);
 		}
 		if (cfg == null || cfg.routes == null || cfg.routes.isEmpty()) {
 			throw new IllegalArgumentException("ModelRouterEngine: " + configName + " must define at least one route");
@@ -410,30 +453,36 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		for (int i = 0; i < cfg.routes.size(); i++) {
 			RouteConfig rc = cfg.routes.get(i);
 			if (rc.engine_id == null || rc.engine_id.trim().isEmpty()) {
-				throw new IllegalArgumentException("ModelRouterEngine: route " + i + " in " + configName + " is missing engine_id");
+				throw new IllegalArgumentException(
+						"ModelRouterEngine: route " + i + " in " + configName + " is missing engine_id");
 			}
 			String name = resolvedRouteName(rc, i);
 			if (!seenNames.add(name.toLowerCase())) {
-				throw new IllegalArgumentException("ModelRouterEngine: duplicate route name '" + name + "' in " + configName);
+				throw new IllegalArgumentException(
+						"ModelRouterEngine: duplicate route name '" + name + "' in " + configName);
 			}
 			rejectSelfReference(rc.engine_id.trim(), "route '" + name + "'", configName, routerEngineId);
 			totalWeight += Math.max(0, rc.weight);
 			anyKeywords = anyKeywords || (rc.keywords != null && !rc.keywords.isEmpty());
 
 			if (MODE_LLM.equals(mode) && trimOrNull(rc.description) == null) {
-				throw new IllegalArgumentException("ModelRouterEngine: mode 'llm' requires a description on every route - route '"
-						+ name + "' in " + configName + " is missing one");
+				throw new IllegalArgumentException(
+						"ModelRouterEngine: mode 'llm' requires a description on every route - route '" + name + "' in "
+								+ configName + " is missing one");
 			}
 		}
 
 		if (MODE_LLM.equals(mode) && trimOrNull(cfg.classifier_engine) == null) {
-			throw new IllegalArgumentException("ModelRouterEngine: mode 'llm' requires classifier_engine in " + configName);
+			throw new IllegalArgumentException(
+					"ModelRouterEngine: mode 'llm' requires classifier_engine in " + configName);
 		}
 		if (MODE_WEIGHTED.equals(mode) && totalWeight <= 0) {
-			throw new IllegalArgumentException("ModelRouterEngine: mode 'weighted' requires at least one route with weight > 0 in " + configName);
+			throw new IllegalArgumentException(
+					"ModelRouterEngine: mode 'weighted' requires at least one route with weight > 0 in " + configName);
 		}
 		if (MODE_KEYWORD.equals(mode) && !anyKeywords) {
-			classLogger.warn("ModelRouterEngine ({}): mode is 'keyword' but no route defines keywords - every request will use the default route",
+			classLogger.warn(
+					"ModelRouterEngine ({}): mode is 'keyword' but no route defines keywords - every request will use the default route",
 					configName);
 		}
 
@@ -515,8 +564,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * Case-insensitive whole-word alternation over the route's keywords. Word
-	 * edges are checked with alphanumeric lookarounds instead of \b so keywords
+	 * Case-insensitive whole-word alternation over the route's keywords. Word edges
+	 * are checked with alphanumeric lookarounds instead of \b so keywords
 	 * containing symbols (e.g. "c++") still match.
 	 */
 	private static Pattern buildKeywordPattern(List<String> keywords) {
@@ -563,9 +612,18 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		return "route_" + method;
 	}
 
+	/**
+	 * The router delegates - its own metadata row does not restrict content.
+	 * Enforcement runs in askCall against each routed target's configured input
+	 * modalities.
+	 */
 	@Override
-	protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context,
-			Insight insight, String roomId, Map<String, Object> hyperParameters) {
+	public void validateInputModalities(List<AbstractMessage> outboundMessages) {
+	}
+
+	@Override
+	protected AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> hyperParameters) {
 
 		// Reuses the caller's already-loaded room; the stateless lookup avoids
 		// re-acquiring the room mutation lock this request may already hold.
@@ -577,16 +635,15 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			String pinned = roomRoutePins.get(roomId);
 			if (pinned != null && userCanUseTarget(user, pinned)) {
 				primaryEngineId = pinned;
-				classLogger.debug("ModelRouterEngine '{}' room {} reusing pinned engineId={}",
-						this.engineId, roomId, pinned);
+				classLogger.debug("ModelRouterEngine '{}' room {} reusing pinned engineId={}", this.engineId, roomId,
+						pinned);
 			}
 		}
 		if (primaryEngineId == null) {
-			String routingText = extractRoutingText(question, room);
+			String routingText = extractRoutingText(inputMessage, room);
 			primaryEngineId = selectRoute(routingText, insight, room);
 			if (classLogger.isDebugEnabled()) {
-				classLogger.debug("ModelRouterEngine '{}' routing text: {}",
-						this.engineId, truncate(routingText, 200));
+				classLogger.debug("ModelRouterEngine '{}' routing text: {}", this.engineId, truncate(routingText, 200));
 			}
 		}
 
@@ -594,7 +651,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		Exception lastFailure = null;
 		for (String candidateId : candidates) {
 			if (!userCanUseTarget(user, candidateId)) {
-				classLogger.warn("ModelRouterEngine '{}': user does not have access to engineId={} - skipping candidate",
+				classLogger.warn(
+						"ModelRouterEngine '{}': user does not have access to engineId={} - skipping candidate",
 						this.engineId, candidateId);
 				continue;
 			}
@@ -609,19 +667,15 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				continue;
 			}
 
-			classLogger.info("ModelRouterEngine '{}' routing room {} to engineId={}",
-					this.engineId, roomId, candidateId);
+			classLogger.info("ModelRouterEngine '{}' routing room {} to engineId={}", this.engineId, roomId,
+					candidateId);
 			try {
-				Map<String, Object> params = hyperParameters != null
-						? new HashMap<>(hyperParameters)
-						: new HashMap<>();
-				InputMessage msg = InputMessage.builder(room)
-						.withSystemPrompt(context)
-						.withText(question)
-						.withModelType(targetEngine.getModelType())
-						.withParamMap(params)
-						.build();
-				AskModelEngineResponse response = targetEngine.askRoom(question, room, msg, params);
+				if (targetEngine instanceof AbstractModelEngine targetModel) {
+					targetModel.validateInputModalities(room.getMessages(), inputMessage);
+				}
+
+				Map<String, Object> params = hyperParameters != null ? new HashMap<>(hyperParameters) : new HashMap<>();
+				AskModelEngineResponse response = targetEngine.askRoom(inputMessage, room, params);
 
 				if (this.sticky && roomId != null) {
 					roomRoutePins.put(roomId, candidateId);
@@ -629,7 +683,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				attachRouteMetadata(response, candidateId);
 				return response;
 			} catch (Exception e) {
-				classLogger.warn("ModelRouterEngine '{}': engineId={} failed to serve the request - trying next candidate",
+				classLogger.warn(
+						"ModelRouterEngine '{}': engineId={} failed to serve the request - trying next candidate",
 						this.engineId, candidateId, e);
 				lastFailure = e;
 				if (this.sticky && roomId != null) {
@@ -648,8 +703,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	@Override
-	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed,
-			Insight insight, Map<String, Object> parameters) {
+	protected EmbeddingsModelEngineResponse embeddingsCall(List<String> stringsToEmbed, Insight insight,
+			Map<String, Object> parameters) {
 
 		String engId = this.embeddingsEngineId;
 		if (engId == null) {
@@ -670,16 +725,17 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	// -------------------------------------------------------------------------
 
 	/**
-	 * On the full-prompt path askCall receives the serialized conversation JSON
-	 * as the question; routing on that blob would match keywords in the system
-	 * prompt, tool definitions, and stale turns. Pull the latest user-authored
-	 * message off the room instead, and fall back to the raw question text.
+	 * Routes on the resolved input message, preferring the UI prompt when present.
+	 * Falls back to the latest input in the room when the resolved message has no
+	 * text.
 	 */
-	private static String extractRoutingText(String question, Room room) {
-		String raw = question != null ? question.trim() : "";
-		if (!raw.startsWith("[")) {
-			// plain-question path: askCall already received the user's text
-			return raw;
+	private static String extractRoutingText(InputMessage inputMessage, Room room) {
+		String raw = inputMessage.getInputUIPrompt();
+		if (raw == null || raw.trim().isEmpty()) {
+			raw = inputMessage.getFullInputPrompt();
+		}
+		if (raw != null && !raw.trim().isEmpty()) {
+			return raw.trim();
 		}
 		List<AbstractMessage> messages = room.getMessages();
 		for (int i = messages.size() - 1; i >= 0; i--) {
@@ -689,14 +745,14 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 				// tool-result input messages in agent loops
 				String text = im.getInputUIPrompt();
 				if (text == null || text.trim().isEmpty()) {
-					text = im.getInputPrompt();
+					text = im.getFullInputPrompt();
 				}
 				if (text != null && !text.trim().isEmpty()) {
 					return text.trim();
 				}
 			}
 		}
-		return raw;
+		return "";
 	}
 
 	private String selectRoute(String routingText, Insight insight, Room room) {
@@ -710,10 +766,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * Weighted round-robin routing: distributes traffic in strict proportion to
-	 * the route weights. A counter cycles 0..total-1 and each route owns a slice.
-	 * e.g. weights 30/70 give positions 0-29 to route 0 and 30-99 to route 1,
-	 * repeating exactly, so the split is exact over every full cycle.
+	 * Weighted round-robin routing: distributes traffic in strict proportion to the
+	 * route weights. A counter cycles 0..total-1 and each route owns a slice. e.g.
+	 * weights 30/70 give positions 0-29 to route 0 and 30-99 to route 1, repeating
+	 * exactly, so the split is exact over every full cycle.
 	 */
 	private String selectRouteByWeight() {
 		final int total = this.totalWeight;
@@ -729,8 +785,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 			}
 			cumulative += r.weight;
 			if (pos < cumulative) {
-				classLogger.info("ModelRouterEngine round-robin pos {}/{} -> route '{}' (weight {})",
-						pos, total, r.name, r.weight);
+				classLogger.info("ModelRouterEngine round-robin pos {}/{} -> route '{}' (weight {})", pos, total,
+						r.name, r.weight);
 				return r.engineId;
 			}
 		}
@@ -738,8 +794,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	}
 
 	/**
-	 * Keyword routing: returns the first route with a whole-word keyword match
-	 * in the routing text. Falls back to the default engine.
+	 * Keyword routing: returns the first route with a whole-word keyword match in
+	 * the routing text. Falls back to the default engine.
 	 */
 	private String selectRouteByKeyword(String routingText) {
 		for (Route route : this.routes) {
@@ -770,30 +826,22 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 					routeList.append(": ").append(r.description);
 				} else if (!r.keywords.isEmpty()) {
 					// defensive only - llm mode validates descriptions at open
-					routeList.append(" (for questions about: ")
-							.append(String.join(", ", r.keywords))
-							.append(")");
+					routeList.append(" (for questions about: ").append(String.join(", ", r.keywords)).append(")");
 				}
 				routeList.append("\n");
 			}
 
-			String classificationPrompt =
-					"You are a routing classifier. Given the user question below, "
+			String classificationPrompt = "You are a routing classifier. Given the user question below, "
 					+ "reply with ONLY the single route name that best matches - no explanation, no punctuation, no quotes.\n\n"
-					+ "Available routes:\n" + routeList
-					+ "\nUser question: " + routingText
-					+ "\n\nRoute name:";
+					+ "Available routes:\n" + routeList + "\nUser question: " + routingText + "\n\nRoute name:";
 
 			IModelEngine classifierEngine = resolveEngine(this.classifierEngineId);
 
 			Map<String, Object> params = new HashMap<>();
-			InputMessage msg = InputMessage.builder(room)
-					.withText(classificationPrompt)
-					.withModelType(classifierEngine.getModelType())
-					.withParamMap(params)
-					.build();
+			InputMessage msg = InputMessage.builder(room).withText(classificationPrompt)
+					.withModelType(classifierEngine.getModelType()).withParamMap(params).build();
 			params.put(MESSAGE_JSON, MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg)));
-			AskModelEngineResponse response = classifierEngine.askRoom(classificationPrompt, room, msg, params);
+			AskModelEngineResponse response = classifierEngine.askRoom(msg, room, params);
 
 			String routeName = response.getStringResponse();
 			routeName = routeName != null ? routeName.trim() : "";
@@ -843,8 +891,8 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 
 	/**
 	 * Access to the router does not implicitly grant its backing engines; the
-	 * caller must be able to view the target engine. Internal calls without a
-	 * user are allowed through.
+	 * caller must be able to view the target engine. Internal calls without a user
+	 * are allowed through.
 	 */
 	private boolean userCanUseTarget(User user, String engineId) {
 		if (user == null) {
