@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -49,6 +50,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
@@ -66,6 +68,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import prerna.auth.utils.SecurityEngineUtils;
@@ -1549,9 +1552,49 @@ class CentralCloudStorageUnitTests {
 		// ------- pushEngine happy path -------
 
 		@Test
-		void testPushEngine_happyPath_noFileLocks(@TempDir Path testDir) throws Exception {
+		void testPushEngine_databaseWithoutPrimaryFileLocks_isClosedAndReopened(@TempDir Path testDir) throws Exception {
 			IEngine mockEngine = mock(IEngine.class);
 			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.DATABASE);
+			when(mockEngine.holdsFileLocks()).thenReturn(false);
+			ReentrantLock lock = new ReentrantLock();
+
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<ClusterUtil> clusterMock = mockStatic(ClusterUtil.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+
+				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
+				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
+				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+						.thenReturn(testDir.toString());
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+
+				instance.pushEngine("eng1");
+
+				InOrder closeBeforeSync = inOrder(mockEngine, mockStorageEngine);
+				closeBeforeSync.verify(mockEngine).close();
+				closeBeforeSync.verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("MyEngine__eng1.smss")),
+						argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)), any());
+				utilMock.verify(() -> Utility.getEngine("eng1", false), times(2));
+				assertFalse(lock.isLocked());
+			}
+		}
+
+		@Test
+		void testPushEngine_nonDatabaseWithoutFileLocks_staysOpen(@TempDir Path testDir) throws Exception {
+			IEngine mockEngine = mock(IEngine.class);
+			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.MODEL);
 			when(mockEngine.holdsFileLocks()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
@@ -1564,19 +1607,54 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
-				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
-				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL))
 						.thenReturn(testDir.toString());
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
 
 				instance.pushEngine("eng1");
 
-				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("MyEngine__eng1.smss")),
-						argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)), any());
 				verify(mockEngine, never()).close();
+				utilMock.verify(() -> Utility.getEngine("eng1", false), times(1));
+				assertFalse(lock.isLocked());
+			}
+		}
+
+		@Test
+		void testPushEngine_databaseReopensAndUnlocksWhenTransferFails(@TempDir Path testDir) throws Exception {
+			IEngine mockEngine = mock(IEngine.class);
+			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.DATABASE);
+			when(mockEngine.holdsFileLocks()).thenReturn(false);
+			when(mockStorageEngine.syncLocalToStorage(anyString(), anyString(), isNull()))
+					.thenThrow(new IOException("simulated transfer failure"));
+			ReentrantLock lock = new ReentrantLock();
+
+			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
+					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
+					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
+					MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class);
+					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class);
+					MockedStatic<ClusterUtil> clusterMock = mockStatic(ClusterUtil.class);
+					MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
+
+				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
+				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
+				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
+				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+						.thenReturn(testDir.toString());
+				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
+				DIHelper mockDI = mock(DIHelper.class);
+				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
+
+				assertThrows(IOException.class, () -> instance.pushEngine("eng1"));
+
+				verify(mockEngine).close();
+				utilMock.verify(() -> Utility.getEngine("eng1", false), times(2));
+				assertFalse(lock.isLocked());
 			}
 		}
 
