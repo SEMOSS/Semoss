@@ -29,6 +29,7 @@ package prerna.om;
 
 import java.io.File;
 import java.io.Serializable;
+import java.nio.file.FileSystems;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -84,6 +85,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
+import prerna.logging.AppLogManager;
 
 public class Insight implements Serializable {
 
@@ -93,7 +95,7 @@ public class Insight implements Serializable {
 	public static final String DEFAULT_SHEET_LABEL = "Sheet1";
 
 	private static final Logger classLogger = LogManager.getLogger(Insight.class);
-	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
+	private static final String DIR_SEPARATOR = FileSystems.getDefault().getSeparator();
 
 	// special VarStore key pointing to the currently active frame
 	public static transient final String CUR_FRAME_KEY = "$CUR_FRAME_KEY";
@@ -674,6 +676,10 @@ public class Insight implements Serializable {
 
 			String appRootFolder = AssetUtility.getProjectAssetsFolder(resolvedName, projectId);
 			this.getCmdUtil().setWorkingDir(appRootFolder);
+			// Register a per-project log appender the first time this app is loaded.
+			// AppLogManager is idempotent - subsequent setContext() calls for the same
+			// project are a no-op.
+			AppLogManager.ensureAppender(projectId, resolvedName);
 		}
 
 		// if we have a chroot, mount the project for that user.
