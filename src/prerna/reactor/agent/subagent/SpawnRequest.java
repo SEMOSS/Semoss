@@ -28,6 +28,7 @@
 package prerna.reactor.agent.subagent;
 
 import prerna.om.Insight;
+import prerna.reactor.agent.AgentRunTarget;
 
 /**
  * Input to {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
@@ -80,13 +81,19 @@ public final class SpawnRequest {
     /**
      * Optional absolute working-directory override for the child agent. When set, the
      * child's {@code RunAgent} call receives this as {@code working_dir} and
-     * {@link prerna.reactor.agent.AgentRunner#resolveWorkingDir} honors it (with a
+     * {@link prerna.reactor.agent.AgentRunner#resolveWorkingTarget} honors it (with a
      * containment check against the SEMOSS base folder) instead of defaulting to the
      * child room's own folder. Used by {@code inherit_parent_workdir=true} so the
-     * child operates on the parent's room folder while still having its own roomId
+     * child operates on the parent's resolved working directory while still having its own roomId
      * for stream + history isolation. {@code null} = use the default child room folder.
      */
     public String workingDirOverride;
+
+    /**
+     * Resolved parent target for an inherited child working directory. The child
+     * re-authorizes this target from its own Insight before running.
+     */
+    public AgentRunTarget inheritedTarget;
 
     /** Caller's live insight - used for user, projectId, base URL inheritance. Required. */
     public Insight callerInsight;

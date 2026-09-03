@@ -58,6 +58,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
@@ -535,6 +536,7 @@ final class HarnessToolExecutor {
 	private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params, AgentRunContext ctx,
 			java.util.List<SubAgentSpec> specs, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
 		Room parentRoom = ctx.getRoom();
+		AgentRunTarget parentTarget = ctx.getAgentTarget();
 		// Do not read instructions back from the live room here. SemossAgentHarness
 		// temporarily replaces them with its fully composed runtime prompt while tools run.
 		String parentAuthoredSystemPrompt = ctx.getAgentConfig().getAuthoredPrompt();
@@ -543,7 +545,7 @@ final class HarnessToolExecutor {
 				return perTurnRejectedJson(ctx);
 			}
 			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId,
-					parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 		}
 		if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
 			Object jobIdObj = params == null ? null : params.get("jobId");
@@ -573,7 +575,7 @@ final class HarnessToolExecutor {
 			return perTurnRejectedJson(ctx);
 		}
 		return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId,
-				parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 	}
 
 	/** Atomic claim against the per-turn spawn budget; restores on miss. */

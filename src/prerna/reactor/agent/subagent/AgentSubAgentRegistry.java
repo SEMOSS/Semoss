@@ -48,6 +48,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.AgentConfig;
@@ -312,9 +313,10 @@ public final class AgentSubAgentRegistry {
                         .computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
                         .add(childRunId);
             }
+            Map<String, Object> childParamMap = inheritedTargetParams(req.inheritedTarget);
             RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
                     req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
-                    null, null, null, null, childInsight).withParentRunId(req.parentJobId);
+                    childParamMap, null, null, null, childInsight).withParentRunId(req.parentJobId);
             RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
             childStarted = true;
 
@@ -362,6 +364,21 @@ public final class AgentSubAgentRegistry {
             }
             throw e;
         }
+    }
+
+    /**
+     * Re-authorize an inherited project/user target in the child run rather than
+     * reducing it to a bare room working_dir. Insight targets retain the room
+     * override because their parent room path is the target itself.
+     */
+    private static Map<String, Object> inheritedTargetParams(AgentRunTarget target) {
+        Map<String, Object> params = new HashMap<>();
+        if (target == null || target.isInsight()) {
+            return params;
+        }
+        params.put(AgentRunner.PARAM_SPACE, target.getSpace());
+        params.put(AgentRunner.PARAM_SUBDIR, target.getWorkingSubdir());
+        return params;
     }
 
     /** Look up the metadata for a spawned subagent. {@code null} when the jobId is unknown. */
