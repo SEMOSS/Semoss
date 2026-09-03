@@ -91,6 +91,7 @@ public final class AutomationConstants {
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
+	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
 	public static final String AGENT_RUN_ID = "AGENT_RUN_ID";
 
@@ -273,8 +274,15 @@ public final class AutomationConstants {
 	/** Internal generated-node trace/control metadata; removed before history/scope persistence. */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
 	public static final String TRACE_ROOM_ID = "roomId";
+	public static final String TRACE_WORKSPACE_ID = "workspaceId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";
 	public static final String TRACE_AGENT_RUN_ID = "agentRunId";
+	/** Immutable Automation run that produced this node trace. */
+	public static final String TRACE_AUTOMATION_RUN_ID = "automationRunId";
+	/** Immutable Automation node that produced this trace. */
+	public static final String TRACE_NODE_ID = "nodeId";
+	/** Durable agent-run status (e.g. RUNNING, INPUT_REQUIRED) as of the last observed change. */
+	public static final String TRACE_AGENT_STATUS = "agentStatus";
 	public static final String RESULT_GLOBALS = DOC_GLOBALS;
 	/** Aggregate optimistic-concurrency revision for the graph and all persisted node sources. */
 	public static final String RESULT_REVISION = "revision";

@@ -203,6 +203,30 @@ public final class AgentRunActionStore {
 	}
 
 	/**
+	 * Loads an action regardless of owner for Automation's trace-authorized edit
+	 * route. It must not be used by generic agent APIs.
+	 */
+	public Map<String, Object> getActionByIdForAutomation(String actionId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
+					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE ACTION_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, actionId);
+			rs = ps.executeQuery();
+			return rs.next() ? rowToMap(rs) : null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN_ACTION actionId=" + actionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
 	 * Claim a pending action before executing a side-effecting tool. Only one
 	 * request can move the action from PENDING to EXECUTING.
 	 */

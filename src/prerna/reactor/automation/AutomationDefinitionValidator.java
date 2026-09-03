@@ -274,9 +274,9 @@ public final class AutomationDefinitionValidator {
 				validateOptionalConfigObject(nodeId, config, "paramMap");
 				validateOptionalConfigObject(nodeId, config, "agentParams");
 				Object wait = config.get(AutomationConstants.CONFIG_WAIT);
-				if (wait != null && !Boolean.TRUE.equals(wait)) {
+				if (wait != null && !(wait instanceof Boolean)) {
 					throw new IllegalArgumentException("Automation agent node '" + nodeId
-							+ "' must wait for its durable agent run to finish.");
+							+ "' wait configuration must be a boolean when provided.");
 				}
 			}
 			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);

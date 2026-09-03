@@ -42,6 +42,7 @@ import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
@@ -95,8 +96,33 @@ public final class AgentToolDecisionHandler {
 	 */
 	public String handleDecision(String actionId, String decision, String passthroughResult, String toolStatus,
 			Map<String, Object> callerParams, Map<String, String> callerContext) {
-		String userId = this.insight != null ? this.insight.getUserId() : null;
-		Map<String, Object> pendingAction = loadAndValidateAction(actionId, userId);
+		return handleDecision(actionId, decision, passthroughResult, toolStatus, callerParams, callerContext, false,
+				null);
+	}
+
+	/**
+	 * Applies a decision through Automation's already-authorized trace route.
+	 * The action remains persisted under the durable run owner, while MCP/model
+	 * execution receives the approving editor's current insight.
+	 */
+	public String handleAutomationDecision(String actionId, String expectedRunId, String decision,
+			String passthroughResult, String toolStatus, Map<String, Object> callerParams) {
+		Map<String, String> context = new HashMap<>();
+		context.put(CTX_RUN_ID, expectedRunId);
+		return handleDecision(actionId, decision, passthroughResult, toolStatus, callerParams, context, true,
+				expectedRunId);
+	}
+
+	private String handleDecision(String actionId, String decision, String passthroughResult, String toolStatus,
+			Map<String, Object> callerParams, Map<String, String> callerContext, boolean automationAuthorized,
+			String expectedRunId) {
+		String requestingUserId = this.insight != null ? this.insight.getUserId() : null;
+		Map<String, Object> pendingAction = loadAndValidateAction(actionId, requestingUserId, automationAuthorized,
+				expectedRunId);
+		String actionOwnerUserId = stringValue(pendingAction.get("userId"));
+		if (actionOwnerUserId == null) {
+			throw new IllegalStateException("Agent HITL action has no durable owner actionId=" + actionId);
+		}
 		String normalizedDecision = normalizeDecision(decision);
 
 		// derive the run context from the row, validating caller-supplied values
@@ -110,7 +136,7 @@ public final class AgentToolDecisionHandler {
 		// idempotent replay: the action was already decided (retry/duplicate call)
 		if (isDecidedAction(pendingAction)) {
 			return replayDecidedAction(pendingAction, runId, roomId, toolCallId, parentMessageId, toolStatus, actionId,
-					normalizedDecision, userId);
+					normalizedDecision, actionOwnerUserId, automationAuthorized);
 		}
 
 		// reject/respond record a manual result without executing the tool
@@ -119,7 +145,7 @@ public final class AgentToolDecisionHandler {
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, manualResult,
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
-					userId, true);
+					actionOwnerUserId, true, automationAuthorized);
 			publishDecisionToolItem(runId, toolCallId, stringValue(pendingAction.get("toolName")),
 					resolveDisplayTitle(pendingAction), resolveToolParamsForDecision(pendingAction, callerParams),
 					DECISION_REJECT.equals(normalizedDecision) ? AgentStreamItems.TOOL_REJECTED
@@ -138,7 +164,7 @@ public final class AgentToolDecisionHandler {
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		if (roomId != null && !roomId.isBlank()) {
-			Room executionRoom = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			Room executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
@@ -148,12 +174,14 @@ public final class AgentToolDecisionHandler {
 		}
 
 		AgentRunActionStore actionStore = new AgentRunActionStore();
-		if (!actionStore.claimForExecution(actionId, runId, userId)) {
-			Map<String, Object> latestAction = actionStore.getActionById(actionId, userId);
+		if (!actionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
+			Map<String, Object> latestAction = automationAuthorized
+					? actionStore.getActionByIdForAutomation(actionId)
+					: actionStore.getActionById(actionId, actionOwnerUserId);
 			if (isDecidedAction(latestAction)) {
 				// a concurrent handler already decided it; replay the stored result
 				return replayDecidedAction(latestAction, runId, roomId, toolCallId, parentMessageId, toolStatus,
-						actionId, normalizedDecision, userId);
+						actionId, normalizedDecision, actionOwnerUserId, automationAuthorized);
 			}
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
@@ -163,11 +191,11 @@ public final class AgentToolDecisionHandler {
 		String executedToolStatus = toolResult.getStatusValue();
 		try {
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr, executedToolStatus, actionId,
-					normalizedDecision, paramMap, pendingAction, userId, true);
+					normalizedDecision, paramMap, pendingAction, actionOwnerUserId, true, automationAuthorized);
 		} catch (RuntimeException e) {
 			// release the claim so a retry is not wedged on EXECUTING; the tool already
 			// ran, so the retry replays via the decided/claim-race path if it was marked
-			actionStore.releaseExecutionClaim(actionId, runId, userId);
+			actionStore.releaseExecutionClaim(actionId, runId, actionOwnerUserId);
 			throw e;
 		}
 		publishDecisionToolItem(runId, toolCallId, toolName, resolveDisplayTitle(pendingAction), paramMap,
@@ -233,7 +261,8 @@ public final class AgentToolDecisionHandler {
 	 * Replays the stored result of an already-decided action without re-executing.
 	 */
 	private String replayDecidedAction(Map<String, Object> action, String runId, String roomId, String toolCallId,
-			String parentMessageId, String toolStatus, String actionId, String normalizedDecision, String userId) {
+			String parentMessageId, String toolStatus, String actionId, String normalizedDecision, String userId,
+			boolean automationAuthorized) {
 		String storedResult = stringValue(action.get("result"));
 		if (storedResult == null) {
 			throw new IllegalStateException(
@@ -245,7 +274,7 @@ public final class AgentToolDecisionHandler {
 				storedToolStatus != null ? storedToolStatus
 						: (toolStatus != null ? toolStatus
 								: toolStatusForActionStatus(stringValue(action.get("status")))),
-				actionId, normalizedDecision, retryParams, action, userId, false);
+				actionId, normalizedDecision, retryParams, action, userId, false, automationAuthorized);
 		return storedResult;
 	}
 
@@ -256,11 +285,11 @@ public final class AgentToolDecisionHandler {
 	 */
 	private void writeToRoomAndResume(String runId, String roomId, String toolCallId, String parentMessageId,
 			String toolResult, String toolStatus, String actionId, String decision, Map<String, Object> toolParams,
-			Map<String, Object> pendingAction, String userId, boolean markActionDecided) {
+			Map<String, Object> pendingAction, String userId, boolean markActionDecided, boolean automationAuthorized) {
 		if (pendingAction == null) {
 			throw new IllegalArgumentException("pendingAction is required to resume an agent HITL tool call");
 		}
-		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+		Room room = loadRoom(roomId, userId, automationAuthorized);
 		if (room == null) {
 			throw new IllegalStateException("Cannot resume agent run because room was not found roomId=" + roomId);
 		}
@@ -269,7 +298,8 @@ public final class AgentToolDecisionHandler {
 		String modelId = room.getModelId();
 		if (modelId == null || modelId.trim().isEmpty()) {
 			AgentRunStore runStore = new AgentRunStore();
-			AgentRunRecord record = runStore.getRun(runId, this.insight);
+			AgentRunRecord record = automationAuthorized ? runStore.getRunForAutomation(runId, this.insight)
+					: runStore.getRun(runId, this.insight);
 			if (record != null && record.getRequest() != null) {
 				modelId = record.getRequest().getEngineIdFallback();
 			}
@@ -319,7 +349,8 @@ public final class AgentToolDecisionHandler {
 			AgentRunStore runStore = new AgentRunStore();
 			boolean resumed = runStore.markResumed(runId, runId);
 			if (!resumed) {
-				AgentRunRecord record = runStore.getRun(runId, this.insight);
+				AgentRunRecord record = automationAuthorized ? runStore.getRunForAutomation(runId, this.insight)
+						: runStore.getRun(runId, this.insight);
 				AgentRunStatus status = record != null ? record.getStatus() : null;
 				if (status == AgentRunStatus.INPUT_REQUIRED) {
 					throw new IllegalStateException(
@@ -328,7 +359,11 @@ public final class AgentToolDecisionHandler {
 				logger.info("AgentToolDecisionHandler: runId={} already resumed or terminal status={}", runId, status);
 				return;
 			}
-			AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
+			if (automationAuthorized) {
+				AgentRuntimeManager.get().signalWorkerForAutomationResume(runId, this.insight, room);
+			} else {
+				AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
+			}
 			logger.info("AgentToolDecisionHandler: resumed agent runId={} roomId={} toolCallId={}", runId, roomId,
 					toolCallId);
 		} else {
@@ -346,7 +381,8 @@ public final class AgentToolDecisionHandler {
 		}
 	}
 
-	private Map<String, Object> loadAndValidateAction(String actionId, String userId) {
+	private Map<String, Object> loadAndValidateAction(String actionId, String userId, boolean automationAuthorized,
+			String expectedRunId) {
 		if (actionId == null || actionId.trim().isEmpty()) {
 			throw new IllegalArgumentException("actionId is required to resume an agent HITL tool call");
 		}
@@ -354,9 +390,13 @@ public final class AgentToolDecisionHandler {
 			throw new SecurityException("Agent HITL resume requires an authenticated user");
 		}
 		AgentRunActionStore actionStore = new AgentRunActionStore();
-		Map<String, Object> action = actionStore.getActionById(actionId.trim(), userId.trim());
+		Map<String, Object> action = automationAuthorized ? actionStore.getActionByIdForAutomation(actionId.trim())
+				: actionStore.getActionById(actionId.trim(), userId.trim());
 		if (action == null) {
 			throw new SecurityException("No agent action found for actionId=" + actionId);
+		}
+		if (expectedRunId != null) {
+			requireEquals(CTX_RUN_ID, expectedRunId, stringValue(action.get(CTX_RUN_ID)));
 		}
 		String status = stringValue(action.get("status"));
 		if (STATUS_EXECUTING.equals(status)) {
@@ -366,6 +406,15 @@ public final class AgentToolDecisionHandler {
 			throw new IllegalStateException("Agent HITL action cannot be resumed from status=" + status);
 		}
 		return action;
+	}
+
+	private Room loadRoom(String roomId, String ownerUserId, boolean automationAuthorized) {
+		Room room = automationAuthorized ? ModelInferenceLogsUtils.getRoomById(roomId, ownerUserId)
+				: RoomUtils.getOrLoadRoom(roomId, this.insight);
+		if (room != null) {
+			room.setInsight(this.insight);
+		}
+		return room;
 	}
 
 	/**

@@ -124,6 +124,34 @@ public final class AgentRunStore {
 		}
 	}
 
+	/**
+	 * Load an agent run irrespective of owner. This is deliberately named for
+	 * Automation and is only called after AutomationAgentRunAccess has verified a
+	 * project-authorized, exact durable trace link.
+	 */
+	public AgentRunRecord getRunForAutomation(String runId, Insight insight) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT RUN_ID, PARENT_RUN_ID, ROOM_ID, WORKSPACE_ID, MODEL_ID, HARNESS_TYPE, STATUS, INPUT, REQUEST_JSON, "
+					+ "USER_ID, JOB_ID FROM AGENT_RUN WHERE RUN_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, runId);
+			rs = ps.executeQuery();
+			if (!rs.next()) {
+				return null;
+			}
+			RunAgentRequest request = requestFromRow(rs, insight);
+			return new AgentRunRecord(rs.getString("RUN_ID"), rs.getString("ROOM_ID"),
+					parseRunStatus(rs.getString("STATUS")), request, rs.getString("USER_ID"), rs.getString("JOB_ID"));
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN row for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
 	public Map<String, Object> getRunMap(String runId, Insight insight) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -145,6 +173,28 @@ public final class AgentRunStore {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Load an agent run detail map irrespective of owner for the Automation-only
+	 * trace-authorized access path. Generic callers must use {@link #getRunMap}.
+	 */
+	public Map<String, Object> getRunMapForAutomation(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
+					+ " WHERE ar.RUN_ID = ?";
+			ps = db.getPreparedStatement(query);
+			ps.setString(1, runId);
+			rs = ps.executeQuery();
+			return rs.next() ? runMapFromRow(rs) : null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN details for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}

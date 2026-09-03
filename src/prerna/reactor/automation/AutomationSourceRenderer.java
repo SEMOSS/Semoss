@@ -399,7 +399,9 @@ public final class AutomationSourceRenderer {
 				WORKSPACE_ID = %s
 				MAX_TURNS = %s
 				MAX_REFLECTIONS = %s
-				WAIT = %s
+				# Automation monitors this durable child run so it can publish its trace
+				# immediately and remain active while the agent waits for human input.
+				WAIT = False
 				WAIT_TIMEOUT_MS = %s
 				PARAM_MAP = %s
 				AGENT_PARAMS = %s
@@ -460,7 +462,6 @@ public final class AutomationSourceRenderer {
 				value(config, AutomationConstants.CONFIG_WORKSPACE_ID),
 				value(config, AutomationConstants.CONFIG_MAX_TURNS),
 				value(config, AutomationConstants.CONFIG_MAX_REFLECTIONS),
-				valueOrDefault(config, AutomationConstants.CONFIG_WAIT, true),
 				value(config, AutomationConstants.CONFIG_WAIT_TIMEOUT_MS),
 				agentMapValue(config.containsKey("paramMap")
 						? config.get("paramMap")
@@ -511,10 +512,6 @@ public final class AutomationSourceRenderer {
 			return "__import__(\"json\").loads(" + AutomationRuntimeUtils.GSON.toJson(json) + ")";
 		}
 		return AutomationRuntimeUtils.GSON.toJson(value);
-	}
-
-	private static String valueOrDefault(Map<String, Object> config, String key, Object defaultValue) {
-		return pythonValue(config.getOrDefault(key, defaultValue));
 	}
 
 	private static String agentMapValue(Object value) {

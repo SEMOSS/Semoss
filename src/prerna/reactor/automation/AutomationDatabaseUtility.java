@@ -89,6 +89,7 @@ import static prerna.reactor.automation.AutomationConstants.VARCHAR_2000;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_255;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_50;
 import static prerna.reactor.automation.AutomationConstants.VARCHAR_500;
+import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
@@ -188,8 +189,8 @@ public final class AutomationDatabaseUtility {
 	// AUTOMATION_NODE_OUTPUTS
 	private static final String INSERT_NODE_OUTPUT = """
 			INSERT INTO AUTOMATION_NODE_OUTPUTS \
-			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID) \
-			VALUES (?, ?, ?, ?, ?, ?)""";
+			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID, WORKSPACE_ID) \
+			VALUES (?, ?, ?, ?, ?, ?, ?)""";
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
@@ -205,6 +206,9 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
 			AGENT_RUN_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
+
+	private static final String UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE =
+			"UPDATE AUTOMATION_NODE_OUTPUTS SET AGENT_RUN_ID = ? WHERE RUN_ID = ? AND NODE_ID = ?";
 
 	private static final String UPDATE_NODE_STATUS =
 			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ? WHERE RUN_ID = ? AND NODE_ID = ?";
@@ -508,6 +512,7 @@ public final class AutomationDatabaseUtility {
 				setNullableString(ps, index++, traceRoomIds == null
 						? null
 						: traceRoomIds.get((String) node.get(NODE_FIELD_ID)));
+				setNullableString(ps, index++, configuredAgentWorkspaceId(node));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -940,6 +945,35 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
+	 * Persists the durable agent-run ID as soon as an asynchronous child is submitted, while the
+	 * automation node remains RUNNING. This makes active agent nodes inspectable before terminal
+	 * output exists.
+	 */
+	public static void updateNodeAgentRunTrace(String runId, String nodeId, String agentRunId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation agent run trace");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE)) {
+				setNullableString(ps, 1, agentRunId);
+				ps.setString(2, runId);
+				ps.setString(3, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the agent run trace", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to persist agent run trace for run '{}', node '{}'", runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the automation agent run trace.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
 	 * Updates a node output after failed execution.
 	 */
 	public static void updateNodeFailed(String runId, String nodeId, Timestamp startedAt,
@@ -975,8 +1009,8 @@ public final class AutomationDatabaseUtility {
 
 	/**
 	 * Persists a failed durable agent result without discarding the run reference or terminal
-	 * output. This keeps Agent Activity reachable from failed, cancelled, timed-out, and
-	 * input-required automation nodes.
+	 * output. This keeps Agent Activity reachable from failed, cancelled, and timed-out
+	 * automation nodes.
 	 */
 	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt,
 			long durationMs, String outputVar, String outputValue, String outputPreview,
@@ -1022,6 +1056,7 @@ public final class AutomationDatabaseUtility {
 		if (schedulerDb == null) return new ArrayList<>();
 
 		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + RUN_ID, RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_ID, NODE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_LABEL, NODE_LABEL));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + EXECUTION_ORDER, EXECUTION_ORDER));
@@ -1033,6 +1068,7 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ROOM_ID, ROOM_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + WORKSPACE_ID, WORKSPACE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + MODEL_MESSAGE_ID, MODEL_MESSAGE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, AGENT_RUN_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
@@ -1044,6 +1080,46 @@ public final class AutomationDatabaseUtility {
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		return results != null ? results : new ArrayList<>();
+	}
+
+	/**
+	 * Confirms that a durable agent run was explicitly persisted as the trace for one exact
+	 * Automation project run and node. This is intentionally an existence check rather than an
+	 * agent-run lookup: callers must first establish the requesting user's project permission.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param automationRunId Automation run identifier
+	 * @param nodeId Automation node identifier
+	 * @param agentRunId durable agent run identifier
+	 * @return {@code true} only when all four identifiers describe one persisted trace row
+	 */
+	public static boolean hasAgentRunTrace(String projectId, String automationRunId, String nodeId,
+			String agentRunId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return false;
+		}
+
+		PreparedStatement ps = null;
+		java.sql.ResultSet rs = null;
+		try {
+			String query = "SELECT 1 FROM " + TABLE_AUTOMATION_NODE_OUTPUTS + " nodeOutput "
+					+ "INNER JOIN " + TABLE_AUTOMATION_RUNS + " automationRun "
+					+ "ON nodeOutput.RUN_ID = automationRun.RUN_ID "
+					+ "WHERE automationRun.PROJECT_ID = ? AND nodeOutput.RUN_ID = ? "
+					+ "AND nodeOutput.NODE_ID = ? AND nodeOutput.AGENT_RUN_ID = ?";
+			ps = schedulerDb.getPreparedStatement(query);
+			ps.setString(1, projectId);
+			ps.setString(2, automationRunId);
+			ps.setString(3, nodeId);
+			ps.setString(4, agentRunId);
+			rs = ps.executeQuery();
+			return rs.next();
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to verify the Automation agent-run trace.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(schedulerDb, null, ps, rs);
+		}
 	}
 
 	// -- Result Assembly -----------------------------------------------------------
@@ -1078,8 +1154,14 @@ public final class AutomationDatabaseUtility {
 			nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 			Map<String, Object> trace = new LinkedHashMap<>();
+			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID,
+					output.get(AutomationConstants.RUN_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_NODE_ID,
+					output.get(AutomationConstants.NODE_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_ROOM_ID,
 					output.get(AutomationConstants.ROOM_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_WORKSPACE_ID,
+					output.get(AutomationConstants.WORKSPACE_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_MODEL_MESSAGE_ID,
 					output.get(AutomationConstants.MODEL_MESSAGE_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_AGENT_RUN_ID,
@@ -1180,13 +1262,14 @@ public final class AutomationDatabaseUtility {
 		if (!tableExists) {
 			String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS,
 					STARTED_AT, COMPLETED_AT, DURATION_MS, OUTPUT_VAR,
-					OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, MODEL_MESSAGE_ID, AGENT_RUN_ID, ERROR_MESSAGE };
+					OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID, AGENT_RUN_ID,
+					ERROR_MESSAGE };
 			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50,
 					dateTimeType, dateTimeType, BIGINT, VARCHAR_255,
-					clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, clobType };
+					clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, VARCHAR_50, clobType };
 			String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
 					null, null, null, null,
-					null, null, null, null, null, null };
+					null, null, null, null, null, null, null };
 
 			String sql;
 			if (allowIfExists) {
@@ -1202,6 +1285,7 @@ public final class AutomationDatabaseUtility {
 
 		// Additive trace migration for existing installations.
 		addColumnIfNotExists(conn, queryUtil, tableName, ROOM_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, WORKSPACE_ID, VARCHAR_50);
 		addColumnIfNotExists(conn, queryUtil, tableName, MODEL_MESSAGE_ID, VARCHAR_50);
 		addColumnIfNotExists(conn, queryUtil, tableName, AGENT_RUN_ID, VARCHAR_50);
 
@@ -1224,6 +1308,23 @@ public final class AutomationDatabaseUtility {
 		if (value != null && !value.toString().isBlank()) {
 			target.put(key, value);
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String configuredAgentWorkspaceId(Map<String, Object> node) {
+		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			return null;
+		}
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		if (!(rawConfig instanceof Map<?, ?> config)) {
+			return null;
+		}
+		Object workspaceId = ((Map<String, Object>) config).get(AutomationConstants.CONFIG_WORKSPACE_ID);
+		if (workspaceId == null) {
+			return null;
+		}
+		String value = workspaceId.toString().trim();
+		return value.isEmpty() ? null : value;
 	}
 
 	// -- Helpers -------------------------------------------------------------------
