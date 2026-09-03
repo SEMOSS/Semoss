@@ -1,0 +1,1491 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.automation;
+
+import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
+import static prerna.reactor.automation.AutomationConstants.AGENT_RUN_ID;
+import static prerna.reactor.automation.AutomationConstants.BIGINT;
+import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
+import static prerna.reactor.automation.AutomationConstants.RESULT_SUMMARY_COL;
+import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
+import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
+import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_HASH;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_SNAPSHOT;
+import static prerna.reactor.automation.AutomationConstants.DEFINITION_VERSION;
+import static prerna.reactor.automation.AutomationConstants.DURATION_MS;
+import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
+import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
+import static prerna.reactor.automation.AutomationConstants.FAILED_NODE_ID;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_AGENT_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_MODEL_MSG;
+import static prerna.reactor.automation.AutomationConstants.IDX_ANO_ROOM;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
+import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
+import static prerna.reactor.automation.AutomationConstants.INTEGER;
+import static prerna.reactor.automation.AutomationConstants.INPUT_SNAPSHOT;
+import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
+import static prerna.reactor.automation.AutomationConstants.MODEL_MESSAGE_ID;
+import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_ID;
+import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_LABEL;
+import static prerna.reactor.automation.AutomationConstants.NODE_ID;
+import static prerna.reactor.automation.AutomationConstants.NODE_LABEL;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_FAILED;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_PENDING;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_RUNNING;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SKIPPED;
+import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
+import static prerna.reactor.automation.AutomationConstants.NOT_NULL;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
+import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
+import static prerna.reactor.automation.AutomationConstants.RUN_ID;
+import static prerna.reactor.automation.AutomationConstants.ROOM_ID;
+import static prerna.reactor.automation.AutomationConstants.STALE_HEARTBEAT_THRESHOLD_MINUTES;
+import static prerna.reactor.automation.AutomationConstants.STARTED_AT;
+import static prerna.reactor.automation.AutomationConstants.STATUS;
+import static prerna.reactor.automation.AutomationConstants.STATUS_INTERRUPTED;
+import static prerna.reactor.automation.AutomationConstants.STATUS_RUNNING;
+import static prerna.reactor.automation.AutomationConstants.STATUS_SUBMITTED;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.SOURCE_CODE;
+import static prerna.reactor.automation.AutomationConstants.SOURCE_HASH;
+import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
+import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_2000;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_255;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_50;
+import static prerna.reactor.automation.AutomationConstants.VARCHAR_500;
+import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
+
+import java.io.UnsupportedEncodingException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.OrQueryFilter;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
+import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
+
+/**
+ * Persists Automation run, source-snapshot, and node-output state in the scheduler database.
+ *
+ * <p>
+ * Reads use SEMOSS query structures and writes use parameterized statements. The scheduler OWL
+ * owns the logical schema; startup initialization creates or migrates the corresponding physical
+ * tables for deployments that already have a scheduler database.
+ */
+public final class AutomationDatabaseUtility {
+
+	private static final Logger classLogger = LogManager.getLogger(AutomationDatabaseUtility.class);
+
+	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
+	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
+	private static final String TABLE_RUN_SOURCES = TABLE_AUTOMATION_RUN_NODE_SOURCES;
+	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
+	private AutomationDatabaseUtility() {
+	}
+
+	// -- SQL Statements (INSERT/UPDATE/DELETE - PreparedStatement per SEMOSS conventions) --
+
+	// AUTOMATION_RUNS
+	private static final String INSERT_RUN = """
+			INSERT INTO AUTOMATION_RUNS \
+			(RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH, DEFINITION_SNAPSHOT, \
+			INPUT_SNAPSHOT, \
+			STATUS, TRIGGER_TYPE, \
+			STARTED_AT, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY) \
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)""";
+
+	private static final String UPDATE_RUN_STATUS = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
+			FAILED_NODE_ID = ?, ERROR_MESSAGE = ? \
+			WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS = ?""";
+
+	private static final String UPDATE_RUN_SUMMARY =
+			"UPDATE AUTOMATION_RUNS SET RESULT_SUMMARY = ? WHERE RUN_ID = ?";
+
+	private static final String UPDATE_HEARTBEAT =
+			"UPDATE AUTOMATION_RUNS SET LAST_HEARTBEAT = ?, COMPLETED_NODES = ? WHERE RUN_ID = ?";
+
+	private static final String TOUCH_HEARTBEAT =
+			"UPDATE AUTOMATION_RUNS SET LAST_HEARTBEAT = ? WHERE RUN_ID = ?";
+
+	private static final String SET_CANCEL_REQUESTED =
+			"UPDATE AUTOMATION_RUNS SET CANCEL_REQUESTED = ? WHERE RUN_ID = ?";
+
+	private static final String CLAIM_RUN = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, STARTED_AT = ?, LAST_HEARTBEAT = ? \
+			WHERE RUN_ID = ? AND STATUS = ?""";
+
+	private static final String MARK_STALE_INTERRUPTED = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
+			ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ? \
+			AND (LAST_HEARTBEAT IS NULL OR LAST_HEARTBEAT <= ?)""";
+
+	// AUTOMATION_RUN_NODE_SOURCES
+	private static final String INSERT_RUN_NODE_SOURCE = """
+			INSERT INTO AUTOMATION_RUN_NODE_SOURCES \
+			(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE) VALUES (?, ?, ?, ?)""";
+
+	// AUTOMATION_NODE_OUTPUTS
+	private static final String INSERT_NODE_OUTPUT = """
+			INSERT INTO AUTOMATION_NODE_OUTPUTS \
+			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID, WORKSPACE_ID) \
+			VALUES (?, ?, ?, ?, ?, ?, ?)""";
+
+	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
+			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
+			WHERE RUN_ID = ? AND NODE_ID = ?""";
+
+	private static final String UPDATE_NODE_OUTPUT_FAILED = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
+			DURATION_MS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
+
+	private static final String UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
+			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			AGENT_RUN_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
+
+	private static final String UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE =
+			"UPDATE AUTOMATION_NODE_OUTPUTS SET AGENT_RUN_ID = ? WHERE RUN_ID = ? AND NODE_ID = ?";
+
+	private static final String UPDATE_NODE_STATUS =
+			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ? WHERE RUN_ID = ? AND NODE_ID = ?";
+
+	private static final String SKIP_PENDING_NODE_OUTPUTS =
+			"UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ?";
+
+	// -- Initialization ------------------------------------------------------------
+
+	/**
+	 * Creates and migrates the physical automation tables in the scheduler DB.
+	 * The scheduler's authoritative OWL schema is owned by
+	 * {@link prerna.reactor.scheduler.SchedulerOwlCreator}. Called at platform
+	 * startup after the scheduler DB and its OWL are initialized. Safe to call on
+	 * every startup (uses IF NOT EXISTS / metadata checks).
+	 */
+	public static void initialize() {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			classLogger.warn("Scheduler DB not available - automation tables will not be created");
+			return;
+		}
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+			String database = schedulerDb.getDatabase();
+			String schema = schedulerDb.getSchema();
+
+			boolean allowIfExists = queryUtil.allowsIfExistsTableSyntax();
+			String dateTimeType = queryUtil.getDateWithTimeDataType();
+			String clobType = queryUtil.getClobDataTypeName();
+
+			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
+			createAutomationRunNodeSourcesTable(conn, queryUtil, database, schema, allowIfExists, clobType);
+			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
+
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+
+			classLogger.info("Automation engine tables initialized successfully");
+		} catch (Exception e) {
+			classLogger.error("Failed to initialize automation engine tables", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Marks submitted or running rows whose heartbeat crossed the stale threshold as interrupted.
+	 * Called during scheduler startup so abandoned runs do not remain active indefinitely.
+	 */
+	public static void markStaleRunsInterrupted() {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + LAST_HEARTBEAT, LAST_HEARTBEAT));
+		OrQueryFilter activeStatus = new OrQueryFilter();
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_SUBMITTED, PixelDataType.CONST_STRING));
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(activeStatus);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results == null || results.isEmpty()) {
+			return;
+		}
+
+		Timestamp threshold = toTimestamp(Instant.now().minusSeconds(
+				STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
+		Timestamp now = toTimestamp(Instant.now());
+
+		Connection conn = null;
+		boolean originalAutoCommit = false;
+		try {
+			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			for (Map<String, Object> row : results) {
+				String runId = (String) row.get(RUN_ID);
+				String currentStatus = (String) row.get(STATUS);
+
+				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
+				// heartbeat is still alive (e.g. executing on another node in a cluster), so
+				// interrupting it would clobber active work. A missing/unparseable heartbeat
+				// is treated as stale (a crashed run that never checkpointed).
+				Timestamp lastHeartbeat = toTimestampSafe(row.get(LAST_HEARTBEAT));
+				if (lastHeartbeat != null && lastHeartbeat.after(threshold)) {
+					classLogger.debug("Skipping automation run {} - heartbeat {} is newer than stale threshold {}",
+							runId, lastHeartbeat, threshold);
+					continue;
+				}
+
+				try (PreparedStatement ps = conn.prepareStatement(MARK_STALE_INTERRUPTED)) {
+					int index = 1;
+					ps.setString(index++, STATUS_INTERRUPTED);
+					ps.setTimestamp(index++, now);
+					ps.setString(index++, "Server restarted before or during execution");
+					ps.setString(index++, runId);
+					ps.setString(index++, currentStatus);
+					ps.setTimestamp(index++, threshold);
+					int updated = ps.executeUpdate();
+					if (updated > 0) {
+						classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
+					} else {
+						classLogger.debug("Automation run {} changed while stale recovery was in progress; "
+								+ "leaving its status unchanged", runId);
+					}
+				}
+			}
+			conn.commit();
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to mark stale automation runs", e);
+		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	// -- AUTOMATION_RUNS CRUD --------------------------------------------------------
+
+	/**
+	 * Returns the newest submitted or running Automation run for a project.
+	 *
+	 * @param projectId project whose active runs are queried
+	 * @return the active run ID, or null if no run is active
+	 */
+	public static String getActiveRun(String projectId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return null;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
+		OrQueryFilter activeStatus = new OrQueryFilter();
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_SUBMITTED, PixelDataType.CONST_STRING));
+		activeStatus.addFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + STATUS, "==", STATUS_RUNNING, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(activeStatus);
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results != null && !results.isEmpty()) {
+			Object runId = results.get(0).get(RUN_ID);
+			return runId != null ? runId.toString() : null;
+		}
+		return null;
+	}
+
+	/**
+	 * Creates a submitted run together with its source snapshot and pending node rows in one
+	 * transaction. Runs are independent; another active run for the same project does not block
+	 * initialization.
+	 *
+	 * @throws IllegalStateException when the scheduler database is unavailable or history cannot be
+	 *                               initialized
+	 */
+	public static void initializeRun(String runId, String projectId, String automationId,
+			int definitionVersion, String definitionHash, String definitionSnapshot,
+			Map<String, Object> inputs, String triggerType, String createdBy,
+			List<Map<String, Object>> orderedNodes,
+			Map<String, String> traceRoomIds, Map<String, String> nodeSources) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			throw new IllegalStateException(
+					"Scheduler DB is not available; automation run history cannot be initialized.");
+		}
+
+		Connection conn = null;
+		boolean originalAutoCommit = false;
+		try {
+			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			Timestamp now = toTimestamp(Instant.now());
+			String inputSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(
+					inputs != null ? inputs : Map.of(), AutomationConstants.RUN_INPUTS_MAX_BYTES,
+					"Automation run inputs");
+
+			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId,
+					definitionVersion, definitionHash, definitionSnapshot, inputSnapshot, triggerType,
+					orderedNodes.size(), createdBy, now);
+			insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
+			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
+			conn.commit();
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to initialize automation run '{}' for project '{}'", runId, projectId, e);
+			throw new IllegalStateException("Unable to initialize automation run history.", e);
+		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Atomically transitions one submitted run to running.
+	 *
+	 * @param runId run to claim
+	 * @return {@code true} when this caller claimed the run; {@code false} when it was already
+	 *         claimed or reached another state
+	 */
+	public static boolean claimRun(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("claim the submitted automation run");
+		Timestamp now = toTimestamp(Instant.now());
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN)) {
+				int index = 1;
+				ps.setString(index++, STATUS_RUNNING);
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, runId);
+				ps.setString(index++, STATUS_SUBMITTED);
+				boolean claimed = ps.executeUpdate() == 1;
+				if (!conn.getAutoCommit()) {
+					conn.commit();
+				}
+				return claimed;
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to claim submitted automation run '{}'", runId, e);
+			throw new IllegalStateException("Unable to claim the submitted automation run.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	private static void insertAllRunNodeSources(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String runId, Map<String, String> nodeSources)
+			throws SQLException, UnsupportedEncodingException {
+		if (nodeSources == null || nodeSources.isEmpty()) {
+			return;
+		}
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_NODE_SOURCE)) {
+			for (Map.Entry<String, String> entry : nodeSources.entrySet()) {
+				int index = 1;
+				ps.setString(index++, runId);
+				ps.setString(index++, entry.getKey());
+				ps.setString(index++, AutomationDefinitionService.calculateSourceHash(entry.getValue()));
+				queryUtil.handleInsertionOfClob(conn, ps, entry.getValue(), index,
+						AutomationRuntimeUtils.GSON);
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		}
+	}
+
+	private static void insertRun(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			String projectId, String automationId, int definitionVersion, String definitionHash,
+			String definitionSnapshot, String inputSnapshot, String triggerType, int totalNodes,
+			String createdBy, Timestamp now) throws SQLException, UnsupportedEncodingException {
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN)) {
+			int index = 1;
+			ps.setString(index++, runId);
+			ps.setString(index++, projectId);
+			ps.setString(index++, automationId);
+			ps.setInt(index++, definitionVersion);
+			ps.setString(index++, definitionHash);
+			queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
+			queryUtil.handleInsertionOfClob(conn, ps, inputSnapshot, index++, AutomationRuntimeUtils.GSON);
+			ps.setString(index++, STATUS_SUBMITTED);
+			ps.setString(index++, triggerType);
+			ps.setTimestamp(index++, now);
+			ps.setTimestamp(index++, now);
+			ps.setInt(index++, totalNodes);
+			ps.setString(index++, createdBy);
+			ps.executeUpdate();
+		}
+	}
+
+	private static void insertAllNodeOutputs(Connection conn, String runId,
+			List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
+			for (int i = 0; i < orderedNodes.size(); i++) {
+				Map<String, Object> node = orderedNodes.get(i);
+				int index = 1;
+				ps.setString(index++, runId);
+				ps.setString(index++, (String) node.get(NODE_FIELD_ID));
+				ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
+				ps.setInt(index++, i);
+				ps.setString(index++, NODE_STATUS_PENDING);
+				setNullableString(ps, index++, traceRoomIds == null
+						? null
+						: traceRoomIds.get((String) node.get(NODE_FIELD_ID)));
+				setNullableString(ps, index++, configuredAgentWorkspaceId(node));
+				ps.addBatch();
+			}
+			ps.executeBatch();
+		}
+	}
+
+	/**
+	 * Sets the cluster-safe cancellation flag on a run. Called by {@code CancelAutomationRunReactor}
+	 * regardless of which pod receives the cancel request. Unlike the in-memory run registry, this
+	 * flag is visible to whichever pod is executing the run via
+	 * {@link #isCancelRequested(String)}.
+	 */
+	public static void setCancelRequested(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation cancellation request");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(SET_CANCEL_REQUESTED)) {
+				ps.setBoolean(1, true);
+				ps.setString(2, runId);
+				requireSingleRow(ps.executeUpdate(), "set the cancellation flag", runId, null);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to set cancel-requested flag for run '{}'", runId, e);
+			throw new IllegalStateException("Unable to persist the automation cancellation request.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Checks the cluster-safe cancellation flag for a run. Polled by the executing pod's
+	 * between-node cancellation check in addition to the local in-memory flag, so a cancel
+	 * request landing on a different pod than the one executing the run is still honored.
+	 */
+	public static boolean isCancelRequested(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CANCEL_REQUESTED,
+				CANCEL_REQUESTED));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results == null || results.isEmpty()) {
+			return false;
+		}
+		Object flag = results.get(0).get(CANCEL_REQUESTED);
+		if (flag instanceof Boolean) {
+			return (Boolean) flag;
+		}
+		return flag != null && Boolean.parseBoolean(flag.toString());
+	}
+
+	/**
+	 * Persists a terminal status for a running Automation run.
+	 */
+	public static void completeRun(String runId, String projectId, String status,
+			String failedNodeId, String errorMessage) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("complete the automation run");
+
+		Connection conn = null;
+		boolean originalAutoCommit = false;
+		try {
+			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_STATUS)) {
+				int index = 1;
+				ps.setString(index++, status);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				setNullableString(ps, index++, failedNodeId);
+				setNullableString(ps, index++, errorMessage);
+				ps.setString(index++, runId);
+				ps.setString(index++, projectId);
+				ps.setString(index++, STATUS_RUNNING);
+				requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
+			}
+			conn.commit();
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to complete run '{}' for project '{}'", runId, projectId, e);
+			throw new IllegalStateException("Unable to persist the completed automation run.", e);
+		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Persists the human-readable outcome summary for a completed run.
+	 * Called after the run finishes, separately from {@link #completeRun} because the
+	 * summary is built by {@link AutomationRunExecutionService} after node results are assembled.
+	 */
+	public static boolean updateRunSummary(String runId, String resultSummary) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_SUMMARY)) {
+				setNullableString(ps, 1, resultSummary);
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to update run summary for '{}'", runId, e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Updates the heartbeat timestamp and completed node count for a running automation.
+	 */
+	public static boolean updateHeartbeat(String runId, int completedNodes) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_HEARTBEAT)) {
+				int index = 1;
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setInt(index++, completedNodes);
+				ps.setString(index++, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to update heartbeat for run '{}'", runId, e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Updates only the heartbeat timestamp for a running automation.
+	 * Used when the node count hasn't changed but liveness needs to be signaled.
+	 */
+	public static boolean touchHeartbeat(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return false;
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(TOUCH_HEARTBEAT)) {
+				ps.setTimestamp(1, toTimestamp(Instant.now()));
+				ps.setString(2, runId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return true;
+		} catch (SQLException e) {
+			classLogger.error("Failed to touch heartbeat for run '{}'", runId, e);
+			return false;
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Lists automation runs for a project, newest first.
+	 *
+	 * @param projectId the project to query
+	 * @param limit     max number of runs to return
+	 * @return list of run summary maps
+	 */
+	public static List<Map<String, Object>> getRunsForProject(String projectId, int limit) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return new ArrayList<>();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + FAILED_NODE_ID, FAILED_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_RUNS + "__" + STARTED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setLimit(limit);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		return results != null ? results : new ArrayList<>();
+	}
+
+	/**
+	 * Gets a single run detail by run ID (includes error message).
+	 */
+	public static Map<String, Object> getRunDetail(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return null;
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + PROJECT_ID, PROJECT_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + AUTOMATION_ID, AUTOMATION_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + FAILED_NODE_ID, FAILED_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TOTAL_NODES, TOTAL_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + COMPLETED_NODES, COMPLETED_NODES));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + CREATED_BY, CREATED_BY));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + RESULT_SUMMARY_COL, RESULT_SUMMARY_COL));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results != null && !results.isEmpty()) {
+			return results.get(0);
+		}
+		return null;
+	}
+
+	/**
+	 * Loads the immutable effective trigger inputs captured when a run was submitted. Runtime-owned
+	 * scope metadata is deliberately created at execution time and is never stored in this column.
+	 *
+	 * @param runId run whose input snapshot is loaded
+	 * @return mutable input map for the run-local execution scope
+	 */
+	public static Map<String, Object> getRunInputs(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run input snapshot");
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + INPUT_SNAPSHOT, INPUT_SNAPSHOT));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUNS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.setLimit(1);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		if (results == null || results.isEmpty()) {
+			throw new IllegalStateException("Automation run '" + runId + "' does not exist.");
+		}
+		Object value = results.get(0).get(INPUT_SNAPSHOT);
+		if (value == null || value.toString().isBlank()) {
+			return new LinkedHashMap<>();
+		}
+		try {
+			Map<String, Object> inputs = AutomationRuntimeUtils.GSON.fromJson(
+					value.toString(), AutomationRuntimeUtils.MAP_TYPE);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(inputs,
+					AutomationConstants.RUN_INPUTS_MAX_BYTES, "Persisted automation run inputs");
+			return new LinkedHashMap<>(inputs);
+		} catch (Exception e) {
+			throw new IllegalStateException("Automation run '" + runId
+					+ "' has an invalid input snapshot.", e);
+		}
+	}
+
+	/**
+	 * Loads the immutable Python source snapshot captured when a run was created.
+	 * Source hashes are checked before any source is returned for execution.
+	 */
+	public static Map<String, String> getRunNodeSources(String runId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run source snapshot");
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + NODE_ID, NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + SOURCE_HASH, SOURCE_HASH));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + SOURCE_CODE, SOURCE_CODE));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUN_SOURCES + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		Map<String, String> sources = new LinkedHashMap<>();
+		if (rows == null) {
+			return sources;
+		}
+		for (Map<String, Object> row : rows) {
+			String nodeId = String.valueOf(row.get(NODE_ID));
+			Object sourceValue = row.get(SOURCE_CODE);
+			String source = sourceValue == null ? null : sourceValue.toString();
+			String expectedHash = String.valueOf(row.get(SOURCE_HASH));
+			if (source == null || !expectedHash.equals(
+					AutomationDefinitionService.calculateSourceHash(source))) {
+				throw new IllegalStateException("Automation run source snapshot is invalid for node '"
+						+ nodeId + "'.");
+			}
+			sources.put(nodeId, source);
+		}
+		return sources;
+	}
+
+	// -- AUTOMATION_NODE_OUTPUTS CRUD ------------------------------------------------
+
+	/**
+	 * Marks a node as RUNNING (before pixel execution starts).
+	 */
+	public static void markNodeRunning(String runId, String nodeId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("mark the automation node as running");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_STATUS)) {
+				int index = 1;
+				ps.setString(index++, NODE_STATUS_RUNNING);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				requireSingleRow(ps.executeUpdate(), "mark the node as running", runId, nodeId);
+			}
+
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to mark node running for run '{}', node '{}'",
+					runId, nodeId, e);
+			throw new IllegalStateException("Unable to mark the automation node as running.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Marks all nodes that did not start because the run reached a terminal state as skipped.
+	 */
+	public static void skipPendingNodes(String runId, String reason) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist skipped automation nodes");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUTS)) {
+				ps.setString(1, NODE_STATUS_SKIPPED);
+				setNullableString(ps, 2, reason);
+				ps.setString(3, runId);
+				ps.setString(4, NODE_STATUS_PENDING);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			rollback(conn, e);
+			classLogger.error("Failed to skip pending nodes for run '{}'", runId, e);
+			throw new IllegalStateException("Unable to persist skipped automation nodes.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Updates a node output after successful execution.
+	 */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt,
+			long durationMs, String outputVar, String outputValue, String outputPreview,
+			String modelMessageId, String agentRunId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the successful automation node result");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_SUCCESS)) {
+				int index = 1;
+				ps.setString(index++, NODE_STATUS_SUCCESS);
+				ps.setTimestamp(index++, startedAt);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setLong(index++, durationMs);
+				ps.setString(index++, outputVar);
+				// Handle CLOB for potentially large output values
+				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
+				ps.setString(index++, outputPreview);
+				setNullableString(ps, index++, modelMessageId);
+				setNullableString(ps, index++, agentRunId);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to update node success for run '{}', node '{}'",
+					runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the successful automation node result.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Persists the durable agent-run ID as soon as an asynchronous child is submitted, while the
+	 * automation node remains RUNNING. This makes active agent nodes inspectable before terminal
+	 * output exists.
+	 */
+	public static void updateNodeAgentRunTrace(String runId, String nodeId, String agentRunId) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation agent run trace");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE)) {
+				setNullableString(ps, 1, agentRunId);
+				ps.setString(2, runId);
+				ps.setString(3, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the agent run trace", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to persist agent run trace for run '{}', node '{}'", runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the automation agent run trace.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Updates a node output after failed execution.
+	 */
+	public static void updateNodeFailed(String runId, String nodeId, Timestamp startedAt,
+			long durationMs, String errorMessage) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation node result");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED)) {
+				int index = 1;
+				ps.setString(index++, NODE_STATUS_FAILED);
+				ps.setTimestamp(index++, startedAt);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setLong(index++, durationMs);
+				setNullableString(ps, index++, errorMessage);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the failed node result", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to update node failed for run '{}', node '{}'",
+					runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the failed automation node result.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Persists a failed durable agent result without discarding the run reference or terminal
+	 * output. This keeps Agent Activity reachable from failed, cancelled, and timed-out
+	 * automation nodes.
+	 */
+	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt,
+			long durationMs, String outputVar, String outputValue, String outputPreview,
+			String agentRunId, String errorMessage) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation agent result");
+
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT)) {
+				int index = 1;
+				ps.setString(index++, NODE_STATUS_FAILED);
+				ps.setTimestamp(index++, startedAt);
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setLong(index++, durationMs);
+				ps.setString(index++, outputVar);
+				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
+				ps.setString(index++, outputPreview);
+				setNullableString(ps, index++, agentRunId);
+				setNullableString(ps, index++, errorMessage);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				requireSingleRow(ps.executeUpdate(), "persist the failed agent node result", runId, nodeId);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to update agent node failure for run '{}', node '{}'", runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the failed automation agent result.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Gets all node outputs for a run, ordered by execution order.
+	 */
+	public static List<Map<String, Object>> getNodeOutputsForRun(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) return new ArrayList<>();
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_ID, NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_LABEL, NODE_LABEL));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + EXECUTION_ORDER, EXECUTION_ORDER));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + STATUS, STATUS));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + STARTED_AT, STARTED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + COMPLETED_AT, COMPLETED_AT));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + DURATION_MS, DURATION_MS));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR, OUTPUT_VAR));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ROOM_ID, ROOM_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + WORKSPACE_ID, WORKSPACE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + MODEL_MESSAGE_ID, MODEL_MESSAGE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, AGENT_RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
+
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		qs.addOrderBy(TABLE_NODE_OUTPUTS + "__" + EXECUTION_ORDER,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.ASC.toString());
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		return results != null ? results : new ArrayList<>();
+	}
+
+	/**
+	 * Confirms that a durable agent run was explicitly persisted as the trace for one exact
+	 * Automation project run and node. This is intentionally an existence check rather than an
+	 * agent-run lookup: callers must first establish the requesting user's project permission.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param automationRunId Automation run identifier
+	 * @param nodeId Automation node identifier
+	 * @param agentRunId durable agent run identifier
+	 * @return {@code true} only when all four identifiers describe one persisted trace row
+	 */
+	public static boolean hasAgentRunTrace(String projectId, String automationRunId, String nodeId,
+			String agentRunId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return false;
+		}
+
+		PreparedStatement ps = null;
+		java.sql.ResultSet rs = null;
+		try {
+			String query = "SELECT 1 FROM " + TABLE_AUTOMATION_NODE_OUTPUTS + " nodeOutput "
+					+ "INNER JOIN " + TABLE_AUTOMATION_RUNS + " automationRun "
+					+ "ON nodeOutput.RUN_ID = automationRun.RUN_ID "
+					+ "WHERE automationRun.PROJECT_ID = ? AND nodeOutput.RUN_ID = ? "
+					+ "AND nodeOutput.NODE_ID = ? AND nodeOutput.AGENT_RUN_ID = ?";
+			ps = schedulerDb.getPreparedStatement(query);
+			ps.setString(1, projectId);
+			ps.setString(2, automationRunId);
+			ps.setString(3, nodeId);
+			ps.setString(4, agentRunId);
+			rs = ps.executeQuery();
+			return rs.next();
+		} catch (Exception e) {
+			throw new IllegalStateException("Unable to verify the Automation agent-run trace.", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(schedulerDb, null, ps, rs);
+		}
+	}
+
+	// -- Result Assembly -----------------------------------------------------------
+
+	/**
+	 * Builds a list of per-node result maps from the raw DB output rows returned by
+	 * {@link #getNodeOutputsForRun(String)}. The shape matches what
+	 * {@link GetAutomationRunReactor} and {@link TriggerAutomationReactor} return to callers.
+	 *
+	 * <p>Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
+	 * (falls back from outputValue when blank), outputValue, errorMessage, and an optional trace map.
+	 *
+	 * @param nodeOutputs ordered rows from {@link #getNodeOutputsForRun(String)}
+	 * @return mutable list of node result maps (empty when {@code nodeOutputs} is null)
+	 */
+	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs) {
+		List<Map<String, Object>> nodeResults = new ArrayList<>();
+		if (nodeOutputs == null) {
+			return nodeResults;
+		}
+		for (Map<String, Object> output : nodeOutputs) {
+			Map<String, Object> nodeResult = new HashMap<>();
+			nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
+			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
+			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
+			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
+			String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_VALUE);
+			if (outputForDisplay == null || outputForDisplay.isBlank()) {
+				outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
+			}
+			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
+			nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
+			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
+			Map<String, Object> trace = new LinkedHashMap<>();
+			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID,
+					output.get(AutomationConstants.RUN_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_NODE_ID,
+					output.get(AutomationConstants.NODE_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_ROOM_ID,
+					output.get(AutomationConstants.ROOM_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_WORKSPACE_ID,
+					output.get(AutomationConstants.WORKSPACE_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_MODEL_MESSAGE_ID,
+					output.get(AutomationConstants.MODEL_MESSAGE_ID));
+			putIfPresent(trace, AutomationConstants.TRACE_AGENT_RUN_ID,
+					output.get(AutomationConstants.AGENT_RUN_ID));
+			if (!trace.isEmpty()) {
+				nodeResult.put(AutomationConstants.RESULT_TRACE, trace);
+			}
+			nodeResults.add(nodeResult);
+		}
+		return nodeResults;
+	}
+
+	// -- Table Creation ------------------------------------------------------------
+
+	private static void createAutomationRunsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
+
+		String tableName = TABLE_AUTOMATION_RUNS;
+
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH,
+					DEFINITION_SNAPSHOT, INPUT_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID,
+					ERROR_MESSAGE, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY,
+					CANCEL_REQUESTED, RESULT_SUMMARY_COL };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER, VARCHAR_255,
+					clobType, clobType, VARCHAR_50, VARCHAR_50, dateTimeType, dateTimeType, VARCHAR_255,
+					clobType, dateTimeType, INTEGER, INTEGER, VARCHAR_255,
+					queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
+			String[] constraints = { NOT_NULL, NOT_NULL, null, null, null,
+					null, null, NOT_NULL, NOT_NULL, NOT_NULL, null, null,
+					null, null, null, null, null,
+					null, null };
+
+			String sql;
+			if (allowIfExists) {
+				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+			} else {
+				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			}
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		}
+
+		// Additive migration for existing installations.
+		addColumnIfNotExists(conn, queryUtil, tableName, CANCEL_REQUESTED, queryUtil.getBooleanDataTypeName());
+		addColumnIfNotExists(conn, queryUtil, tableName, RESULT_SUMMARY_COL, VARCHAR_2000);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_VERSION, INTEGER);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_HASH, VARCHAR_255);
+		addColumnIfNotExists(conn, queryUtil, tableName, DEFINITION_SNAPSHOT, clobType);
+		addColumnIfNotExists(conn, queryUtil, tableName, INPUT_SNAPSHOT, clobType);
+
+		// Primary key
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,
+				new String[]{ RUN_ID });
+
+		// Indexes
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_PROJECT, tableName,
+				new String[]{ PROJECT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STATUS, tableName,
+				new String[]{ PROJECT_ID, STATUS });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STARTED, tableName,
+				new String[]{ PROJECT_ID, STARTED_AT });
+	}
+
+	private static void createAutomationRunNodeSourcesTable(Connection conn,
+			AbstractSqlQueryUtil queryUtil, String database, String schema, boolean allowIfExists,
+			String clobType) throws SQLException {
+
+		String tableName = TABLE_AUTOMATION_RUN_NODE_SOURCES;
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, clobType };
+			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
+			String sql = allowIfExists
+					? queryUtil.createTableIfNotExistsWithCustomConstraints(
+							tableName, colNames, types, constraints)
+					: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		}
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_RUN_SOURCE,
+				new String[]{ RUN_ID, NODE_ID });
+	}
+
+	private static void createAutomationNodeOutputsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
+
+		String tableName = TABLE_AUTOMATION_NODE_OUTPUTS;
+
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS,
+					STARTED_AT, COMPLETED_AT, DURATION_MS, OUTPUT_VAR,
+					OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID, AGENT_RUN_ID,
+					ERROR_MESSAGE };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50,
+					dateTimeType, dateTimeType, BIGINT, VARCHAR_255,
+					clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, VARCHAR_50, clobType };
+			String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL,
+					null, null, null, null,
+					null, null, null, null, null, null, null };
+
+			String sql;
+			if (allowIfExists) {
+				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
+			} else {
+				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			}
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		}
+
+		// Additive trace migration for existing installations.
+		addColumnIfNotExists(conn, queryUtil, tableName, ROOM_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, WORKSPACE_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, MODEL_MESSAGE_ID, VARCHAR_50);
+		addColumnIfNotExists(conn, queryUtil, tableName, AGENT_RUN_ID, VARCHAR_50);
+
+		// Composite primary key
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_NODE_OUT,
+				new String[]{ RUN_ID, NODE_ID });
+
+		// Indexes
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_RUN, tableName,
+				new String[]{ RUN_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_ROOM, tableName,
+				new String[]{ ROOM_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_MODEL_MSG, tableName,
+				new String[]{ MODEL_MESSAGE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_AGENT_RUN, tableName,
+				new String[]{ AGENT_RUN_ID });
+	}
+
+	private static void putIfPresent(Map<String, Object> target, String key, Object value) {
+		if (value != null && !value.toString().isBlank()) {
+			target.put(key, value);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static String configuredAgentWorkspaceId(Map<String, Object> node) {
+		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			return null;
+		}
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		if (!(rawConfig instanceof Map<?, ?> config)) {
+			return null;
+		}
+		Object workspaceId = ((Map<String, Object>) config).get(AutomationConstants.CONFIG_WORKSPACE_ID);
+		if (workspaceId == null) {
+			return null;
+		}
+		String value = workspaceId.toString().trim();
+		return value.isEmpty() ? null : value;
+	}
+
+	// -- Helpers -------------------------------------------------------------------
+
+	private static IRDBMSEngine getSchedulerDb() {
+		try {
+			return SystemEngineRegistry.getSchedulerDb();
+		} catch (Exception e) {
+			classLogger.warn("Could not obtain scheduler DB: {}", e.getMessage());
+			return null;
+		}
+	}
+
+	private static IRDBMSEngine requireSchedulerDb(String operation) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			throw new IllegalStateException("Scheduler DB is not available; unable to " + operation + ".");
+		}
+		return schedulerDb;
+	}
+
+	private static void closeConnection(IRDBMSEngine engine, Connection conn) {
+		ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
+	}
+
+	private static void rollback(Connection conn, Exception cause) {
+		if (conn == null) {
+			return;
+		}
+		try {
+			if (!conn.getAutoCommit()) {
+				conn.rollback();
+			}
+		} catch (SQLException rollbackError) {
+			cause.addSuppressed(rollbackError);
+			classLogger.error("Failed to roll back automation database transaction", rollbackError);
+		}
+	}
+
+	private static void requireSingleRow(int updatedRows, String operation, String runId, String nodeId) {
+		if (updatedRows == 1) {
+			return;
+		}
+		String nodeContext = nodeId == null ? "" : ", node '" + nodeId + "'";
+		throw new IllegalStateException("Unable to " + operation + " for run '" + runId + "'"
+				+ nodeContext + ": expected one row but updated " + updatedRows + ".");
+	}
+
+	private static void restoreAutoCommit(Connection conn, boolean originalAutoCommit) {
+		if (conn == null || !originalAutoCommit) {
+			return;
+		}
+		try {
+			conn.setAutoCommit(true);
+		} catch (SQLException e) {
+			classLogger.warn("Failed to restore scheduler database autocommit before closing connection", e);
+		}
+	}
+
+	/**
+	 * Binds a nullable VARCHAR column value, using {@code setNull(Types.VARCHAR)} instead of
+	 * {@code setString(index, null)} when the value is absent - some JDBC drivers require an
+	 * explicit SQL type for a null bind rather than inferring it from a null String argument.
+	 */
+	private static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
+		if (value != null) {
+			ps.setString(index, value);
+		} else {
+			ps.setNull(index, Types.VARCHAR);
+		}
+	}
+
+	private static Timestamp toTimestamp(Instant instant) {
+		return Utility.getSqlTimestampUTC(
+				LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
+	}
+
+	/**
+	 * Best-effort conversion of a value read from the result set into a {@link Timestamp}.
+	 * Handles {@link Timestamp}, any {@link Date}, and parseable timestamp strings.
+	 * Returns null when the value is null or cannot be interpreted.
+	 */
+	private static Timestamp toTimestampSafe(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Timestamp) {
+			return (Timestamp) value;
+		}
+		if (value instanceof Date) {
+			return new Timestamp(((Date) value).getTime());
+		}
+		try {
+			return Timestamp.valueOf(value.toString().trim());
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
+	}
+
+	private static void addPrimaryKeyIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String tableName, String database, String schema, String pkName, String[] columns) {
+		try {
+			if (queryUtil.tableConstraintExists(conn, pkName, tableName, database, schema)) {
+				return;
+			}
+			if (queryUtil.allowIfExistsAddConstraint()) {
+				String colList = String.join(", ", columns);
+				String sql = "ALTER TABLE " + tableName + " ADD CONSTRAINT IF NOT EXISTS " +
+						pkName + " PRIMARY KEY (" + colList + ")";
+				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					ps.execute();
+				}
+			} else {
+				String colList = String.join(", ", columns);
+				String sql = "ALTER TABLE " + tableName + " ADD CONSTRAINT " +
+						pkName + " PRIMARY KEY (" + colList + ")";
+				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					ps.execute();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.debug("Primary key {} may already exist on {}: {}", pkName, tableName, e.getMessage());
+		}
+	}
+
+	/**
+	 * Adds a column to an existing table if it isn't already present - used to migrate
+	 * installs that predate a column addition. Errors (column already exists) are swallowed.
+	 */
+	private static void addColumnIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String tableName, String columnName, String columnType) {
+		try {
+			String sql = queryUtil.allowIfExistsModifyColumnSyntax()
+					? queryUtil.alterTableAddColumnIfNotExists(tableName, columnName, columnType)
+					: queryUtil.alterTableAddColumn(tableName, columnName, columnType);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		} catch (Exception e) {
+			classLogger.debug("Column {} may already exist on {}: {}", columnName, tableName, e.getMessage());
+		}
+	}
+
+	private static void createIndexIfNotExists(Connection conn, AbstractSqlQueryUtil queryUtil,
+			boolean allowIfExists, String indexName, String tableName, String[] columns) {
+		try {
+			List<String> colList = Arrays.asList(columns);
+			String sql;
+			if (allowIfExists && queryUtil.allowIfExistsIndexSyntax()) {
+				sql = queryUtil.createIndexIfNotExists(indexName, tableName, colList);
+			} else {
+				sql = queryUtil.createIndex(indexName, tableName, colList);
+			}
+			if (sql != null && !sql.isEmpty()) {
+				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					ps.execute();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.debug("Index {} may already exist on {}: {}", indexName, tableName, e.getMessage());
+		}
+	}
+
+}

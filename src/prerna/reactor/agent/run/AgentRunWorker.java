@@ -40,6 +40,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
@@ -64,6 +65,7 @@ final class AgentRunWorker {
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
+	private final Map<String, Room> automationResumeRoomsByRun = new ConcurrentHashMap<>();
 	private final Map<String, Thread> activeThreadsByRun = new ConcurrentHashMap<>();
 	private final Set<String> localActiveRooms = ConcurrentHashMap.newKeySet();
 
@@ -78,6 +80,14 @@ final class AgentRunWorker {
 			return;
 		}
 		insightsByRun.put(runId, cloneInsight(runId, insight));
+	}
+
+	void rememberAutomationResume(String runId, Insight insight, Room ownerRoom) {
+		if (runId == null || insight == null || ownerRoom == null) {
+			return;
+		}
+		automationResumeRoomsByRun.put(runId, ownerRoom);
+		rememberInsight(runId, insight);
 	}
 
 	void signal() {
@@ -183,11 +193,17 @@ final class AgentRunWorker {
 			// Detect resume: the persisted request always has resumeMode=false on initial
 			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
 			boolean resumeMode = request.isResumeMode() || new AgentRunActionStore().hasAnyActions(runId);
-			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
-					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
-					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
-					resumeMode);
+			Room automationResumeRoom = automationResumeRoomsByRun.remove(runId);
+			AgentHarnessResult result = automationResumeRoom == null
+					? AgentRunner.run(request.getRoomId(), request.getInput(), request.getEngineIdFallback(),
+							request.getHarnessType(), request.getMaxTurns(), request.getMaxReflections(),
+							request.getParamMap(), request.getAgentParamMap(), request.getMediaInputPaths(),
+							request.getMediaUrls(), runId, insightHandle.insight, resumeMode)
+					: AgentRunner.resumeAutomationRun(request.getRoomId(), request.getInput(),
+							request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
+							request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
+							request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
+							automationResumeRoom);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -276,6 +292,7 @@ final class AgentRunWorker {
 	}
 
 	private void cleanupInsight(String runId, InsightHandle insightHandle) {
+		automationResumeRoomsByRun.remove(runId);
 		InsightHandle removed = insightsByRun.remove(runId);
 		InsightHandle toCleanup = removed != null ? removed : insightHandle;
 		if (toCleanup != null && toCleanup.insightId != null) {

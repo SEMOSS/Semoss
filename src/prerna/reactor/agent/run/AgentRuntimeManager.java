@@ -133,6 +133,28 @@ public final class AgentRuntimeManager {
 		worker.signal();
 	}
 
+	/**
+	 * Resume a trace-authorized Automation run using its owner room while retaining
+	 * the Automation editor's insight for normal model and tool authorization.
+	 * Generic agent-run resumes must continue to use {@link #signalWorkerForResume}.
+	 */
+	public void signalWorkerForAutomationResume(String runId, Insight insight, Room ownerRoom) {
+		if (runId == null || runId.trim().isEmpty() || insight == null || ownerRoom == null) {
+			throw new IllegalArgumentException("Automation resume requires runId, insight, and owner room.");
+		}
+		worker.rememberAutomationResume(runId, insight, ownerRoom);
+		try {
+			AgentRunRecord record = store.getRunForAutomation(runId, insight);
+			if (record != null && record.getRequest() != null
+					&& isSemossHarness(record.getRequest().getHarnessType())) {
+				AgentRunStreamService.get().register(runId);
+			}
+		} catch (Exception e) {
+			// stream re-registration is best-effort
+		}
+		worker.signal();
+	}
+
 	public Map<String, Object> getRun(String runId, Insight insight) {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
@@ -141,30 +163,54 @@ public final class AgentRuntimeManager {
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		// Always present, matching getRunSnapshot's contract - populated only
-		// when the run is paused for user input to approve/decline or open portal URLs.
-		run.put("pendingActions", new ArrayList<>());
-		String status = String.valueOf(run.get("status"));
-		if (AgentRunStatus.INPUT_REQUIRED.name().equals(status)) {
-			try {
-				AgentRunActionStore actionStore = new AgentRunActionStore();
-				List<Map<String, Object>> pendingActions = actionStore.getPendingActions(runId);
-				run.put("pendingActions", normalizePendingActions(pendingActions));
-			} catch (Exception e) {
-				// best-effort - don't fail the getRun call
-			}
-		}
+		populatePendingActions(run, runId);
 		return run;
 	}
 
 	public Map<String, Object> getRun(String runId, Insight insight, boolean includeMessages) {
 		Map<String, Object> run = getRun(runId, insight);
-		if (!includeMessages) {
-			return run;
-		}
+		return includeMessages ? attachMessages(run, runId, resolveUserId(insight)) : run;
+	}
 
+	/**
+	 * Returns an Automation trace-authorized run without applying the generic
+	 * owner filter. Authorization is intentionally enforced by the dedicated
+	 * Automation reactors before this method is invoked.
+	 */
+	public Map<String, Object> getRunForAutomation(String runId, Insight insight, boolean includeMessages) {
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		Map<String, Object> run = store.getRunMapForAutomation(runId);
+		if (run == null) {
+			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
+		}
+		populatePendingActions(run, runId);
+		if (includeMessages) {
+			attachMessages(run, runId, trimToNull(run.get("userId")));
+		}
+		run.remove("userId");
+		return run;
+	}
+
+	/**
+	 * Always present, matching getRunSnapshot's contract - populated only when the run
+	 * is paused for user input to approve/decline or open portal URLs. Best-effort: a
+	 * failure here still returns a readable run with an empty pending-actions list.
+	 */
+	private static void populatePendingActions(Map<String, Object> run, String runId) {
+		run.put("pendingActions", new ArrayList<>());
+		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
+			try {
+				run.put("pendingActions", normalizePendingActions(new AgentRunActionStore().getPendingActions(runId)));
+			} catch (Exception e) {
+				// best-effort - don't fail the caller over pending-action lookup
+			}
+		}
+	}
+
+	private static Map<String, Object> attachMessages(Map<String, Object> run, String runId, String userId) {
 		String roomId = trimToNull(run.get("roomId"));
-		String userId = resolveUserId(insight);
 		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
 		List<Map<String, Object>> messages = room == null ? new ArrayList<>() : collectRunMessages(room, runId);
 		if (ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(run.get("harnessType")))) {
@@ -213,6 +259,27 @@ public final class AgentRuntimeManager {
 			notifyStreamCancelled(runId, "Agent run cancelled");
 		}
 		return getRun(runId, insight);
+	}
+
+	/**
+	 * Stops an Automation trace-authorized run. The corresponding Automation
+	 * reactor verifies editor permission and the exact durable trace before this
+	 * owner-independent operation is reachable.
+	 */
+	public Map<String, Object> stopForAutomation(String runId, Insight insight) {
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalArgumentException("runId is required");
+		}
+		AgentRunRecord record = store.getRunForAutomation(runId, insight);
+		if (record == null) {
+			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
+		}
+		worker.cancel(runId);
+		prerna.reactor.agent.AgentCancelHook.onStop(runId);
+		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled by an Automation project editor")) {
+			notifyStreamCancelled(runId, "Agent run cancelled by an Automation project editor");
+		}
+		return getRunForAutomation(runId, insight, false);
 	}
 
 	public boolean cancelRun(String runId, String roomId, String reason) {
