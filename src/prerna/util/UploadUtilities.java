@@ -568,6 +568,7 @@ public final class UploadUtilities {
 					writeSmssProperty(bufferedWriter, Constants.TINKER_FILE, tinkerFilePath + "." + tinkerDriverType);
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write Tinker database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -675,6 +676,7 @@ public final class UploadUtilities {
 					writeSmssProperty(bufferedWriter, Constants.RDF_FILE_TYPE, "RDF/XML");
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write RDF database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
@@ -762,6 +764,7 @@ public final class UploadUtilities {
 				// name map
 				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write JanusGraph database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -855,6 +858,7 @@ public final class UploadUtilities {
 				// name map
 				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write external Tinker database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -953,6 +957,7 @@ public final class UploadUtilities {
 				// name map
 				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write DataStax database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1029,6 +1034,7 @@ public final class UploadUtilities {
 				// name map
 				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write external Neo4j database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1102,6 +1108,7 @@ public final class UploadUtilities {
 				// name map
 				writeSmssProperty(bufferedWriter, Constants.NAME_MAP, GSON.toJson(nameMap));
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException ex) {
 			classLogger.error("Failed to write embedded Neo4j database smss file for database {}: {}", databaseName,
 					ex.getMessage(), ex);
@@ -1209,6 +1216,7 @@ public final class UploadUtilities {
 					writeSmssProperty(bufferedWriter, key, jdbcPropertiesMap.get(key));
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write external RDBMS database smss file for database {}: {}", databaseName,
 					e.getMessage(), e);
@@ -1292,6 +1300,7 @@ public final class UploadUtilities {
 							GSON.toJson(additionalDataTypeMap));
 				}
 			}
+			writeSmssProperty(bufferedWriter, IEngine.PIPELINE, "pipeline.json");
 		} catch (IOException e) {
 			classLogger.error("Failed to write R native engine smss file for database {}: {}", databaseName,
 					e.getMessage(), e);

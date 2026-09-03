@@ -1369,6 +1369,23 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
 						```
 
+						Multiple SQL Statements<br/>
+						`SqlQuery` splits a multi-statement script, verifies database access for every
+						statement before execution, and executes the statements in order. It returns an ordered array in
+						`pixelReturn[0].output`. Each item includes `statement`, normalized `query`, `route`, `status`,
+						`type`, `timeToRun`, and either table `output` or a `message`. Execution stops on the first error;
+						later entries are marked `SKIPPED`.
+						A batch is not atomic: with `commit = true`, each successful write uses the normal committed write
+						path, so earlier writes remain committed if a later statement fails.
+						```
+						SqlQuery(
+						  database = "<engineid>",
+						  query = "<encode> SELECT COUNT(*) AS before_count FROM orders; INSERT INTO orders(id) VALUES (42); SELECT COUNT(*) AS after_count FROM orders; </encode>",
+						  limit = 500,
+						  commit = true
+						);
+						```
+
 						Example Output (select query)
 
 						A select query returns a tabular result inside `pixelReturn[0].output`. `data.values` is an array of row arrays aligned to `data.headers` (display names) and `data.rawHeaders` (physical column names). `headerInfo` describes each column (`dataType`/`type`, and `derived = true` for computed columns), `sources` lists the engine(s) queried, `numCollected` is the number of rows returned (bounded by `limit`), and `taskId` references the server-side task iterator. Rows and columns are trimmed below for brevity.
@@ -1453,6 +1470,30 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						const { headers, values } = pixelReturn[0].output.data;
 						// headers: ["ID", "AGE", "GENDER"]
 						// values:  [["1000", 59, "female"], ["1001", 68, "female"]]
+						```
+
+						For multiple statements, read the result array instead:
+
+						```typescript
+						const sql = `
+						  SELECT COUNT(*) AS before_count FROM orders;
+						  INSERT INTO orders(id) VALUES (42);
+						  SELECT COUNT(*) AS after_count FROM orders;
+						`;
+
+						const { errors, pixelReturn } = await runPixel(
+						  `SqlQuery(database="${DATABASE_ID}", query="<encode>${sql}</encode>", limit=500, commit=true);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						for (const result of pixelReturn[0].output) {
+						  if (result.type === "TABLE") {
+						    console.log(result.output.headers, result.output.values);
+						  } else {
+						    console.log(result.status, result.message);
+						  }
+						}
 						```
 
 						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `output` is the same map documented in the Pixel section (`data.values`, `data.headers`, `data.rawHeaders`, `headerInfo`, `sources`, `numCollected`).
