@@ -574,7 +574,7 @@ public final class AgentRunner {
 				// Subdir is intentionally ignored when an absolute override is supplied -
 				// the room option already names the final path.
 				params.remove(PARAM_SUBDIR);
-				return AgentRunTarget.inherited(canonical);
+				return resolveRoomWorkingDirectory(room, insight, params, canonical);
 			}
 		}
 
@@ -600,6 +600,31 @@ public final class AgentRunner {
 			return target;
 		}
 		return target.withWorkingDirectory(joinSubdir(rootDirectory, subdir, targetLabel));
+	}
+
+	/**
+	 * Applies a room-level working-directory override. A legacy
+	 * {@code paramValues.project} identifies the asset target for Git and cluster
+	 * lifecycle operations; the override may select a directory within that target.
+	 */
+	private static AgentRunTarget resolveRoomWorkingDirectory(Room room, Insight insight, Map<String, Object> params,
+			String workingDirectory) {
+		if (trimToNull(params.get(PARAM_PROJECT)) == null) {
+			return AgentRunTarget.inherited(workingDirectory);
+		}
+
+		AgentRunTarget target = resolveAssetTarget(room, insight, params);
+		String targetRoot;
+		try {
+			targetRoot = new File(target.getRootDirectory()).getCanonicalPath();
+		} catch (IOException ioe) {
+			throw new IllegalArgumentException("AgentRunner: could not canonicalize selected target root", ioe);
+		}
+		if (!workingDirectory.equals(targetRoot) && !workingDirectory.startsWith(targetRoot + File.separator)) {
+			throw new IllegalArgumentException("AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+					+ " is outside the selected target root: " + workingDirectory);
+		}
+		return target.withWorkingDirectory(workingDirectory);
 	}
 
 	private static AgentRunTarget resolveAssetTarget(Room room, Insight insight, Map<String, Object> params) {

@@ -79,6 +79,34 @@ public final class AgentRunTarget {
 		return new AgentRunTarget(space, project, rootDirectory, workingDirectory, gitFolder);
 	}
 
+	/**
+	 * Returns the asset-space selector that can be re-authorized for a child run.
+	 * This is {@code USER} for user assets, a project id for project assets, and
+	 * {@code INSIGHT} for room-local targets.
+	 */
+	public String getSpace() {
+		return space;
+	}
+
+	/**
+	 * Returns the working directory relative to this target's authorized root.
+	 * A root-level working directory is represented by {@code "."} so a child
+	 * run does not apply its workspace's default subdir instead.
+	 */
+	public String getWorkingSubdir() {
+		try {
+			java.nio.file.Path root = new java.io.File(rootDirectory).getCanonicalFile().toPath();
+			java.nio.file.Path working = new java.io.File(workingDirectory).getCanonicalFile().toPath();
+			if (!working.startsWith(root)) {
+				throw new IllegalStateException("Agent working directory is outside its authorized root");
+			}
+			java.nio.file.Path relative = root.relativize(working);
+			return relative.getNameCount() == 0 ? "." : relative.toString();
+		} catch (java.io.IOException | java.nio.file.InvalidPathException e) {
+			throw new IllegalStateException("Agent target contains an invalid filesystem path", e);
+		}
+	}
+
 	public String getProjectId() {
 		return project == null ? null : project.getProjectId();
 	}
