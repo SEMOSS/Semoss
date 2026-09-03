@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.rdf.util;
 
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,18 +39,11 @@ import org.apache.logging.log4j.Logger;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.BinaryExpression;
-import net.sf.jsqlparser.expression.DateValue;
-import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
-import net.sf.jsqlparser.expression.StringValue;
-import net.sf.jsqlparser.expression.TimeValue;
 import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
 import net.sf.jsqlparser.expression.operators.relational.IsNullExpression;
-import net.sf.jsqlparser.parser.CCJSqlParserManager;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -60,19 +52,31 @@ import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SetOperationList;
 
+/**
+ * Reads a SQL SELECT and describes it the way the RDF side expects: tables
+ * become concepts, projected columns become properties, and each join becomes a
+ * triple linking the two concepts it connects.
+ * <p>
+ * Joins are picked up from two places, an explicit ON clause and an equality
+ * between two columns in the WHERE clause, because both express the same
+ * relationship. Only SELECT is handled; anything else is logged and ignored.
+ */
 public class SQLQueryParser extends AbstractQueryParser {
 
 	private static final Logger classLogger = LogManager.getLogger(SQLQueryParser.class);
 
 	public static final String conceptUri = "http://semoss.org/ontologies/Concept/";
 	public static final String propertyUri = "http://semoss.org/ontologies/Relation/Contains/";
+	private static final String relationUri = "http://semoss.org/ontologies/Relation/";
 
+	// the relationship uri to the {fromTable, fromColumn, toTable, toColumn} it was
+	// built from. Keying by the uri is what collapses the duplicate joins that the
+	// SEMOSS outer join syntax produces
 	private Map<String, String[]> tripleMappings = new HashMap<String, String[]>();
+	// every column the WHERE clause mentions
 	private Map<String, String> whereClauseVars = new HashMap<String, String>();
 
 	public SQLQueryParser() {
@@ -84,7 +88,9 @@ public class SQLQueryParser extends AbstractQueryParser {
 	}
 
 	/**
-	 * parse the query into pieces
+	 * Parse the query into the tables, properties, return variables and triples
+	 * that describe it. A query that cannot be parsed is logged and leaves this
+	 * parser empty rather than raising.
 	 */
 	@Override
 	public void parseQuery() {
@@ -93,19 +99,12 @@ public class SQLQueryParser extends AbstractQueryParser {
 		try {
 			statement = CCJSqlParserUtil.parse(query);
 
-			// only support parsing select at this time, we don't need update and insert
-			// parsing in the forseeable future
+			// only SELECT is supported; update and insert are not needed here
 			if (statement instanceof Select) {
-				// the joins in sql are important because they help us figure out the triples,
-				// processAllTableJoins
-
-				// generate the props/and partially generate the joins.
+				// the tables have to be resolved first, because the joins below are
+				// expressed in terms of aliases that only this pass knows about
 				parseTablesAndAlias(statement);
-
-				// generate the return variables list and properties list
-				// as well other part of the joins
 				parseAllPropertiesAndVarsFromQuery(statement);
-
 			} else {
 				classLogger.error("An error occurred, the sql statement you are trying to parse is not parseable {}",
 						query);
@@ -116,18 +115,15 @@ public class SQLQueryParser extends AbstractQueryParser {
 	}
 
 	/**
-	 * Get the tables and their aliases from the select statement generate a partial
-	 * list of joins (these would be the explicit inner/outer joins)
-	 * 
-	 * @param statement
-	 * @throws JSQLParserException
+	 * Record every table and alias in the statement, and turn the explicit ON
+	 * clauses into triples.
+	 *
+	 * @param statement the SELECT to read
+	 * @throws JSQLParserException if the statement cannot be read
 	 */
 	private void parseTablesAndAlias(Statement statement) throws JSQLParserException {
 		HashMap<Column, Column> joinColumnsMap = new HashMap<Column, Column>();
-		CCJSqlParserManager parserManager = new CCJSqlParserManager();
 		Select selectStatement = (Select) statement;
-
-		statement = parserManager.parse(new StringReader(query));
 
 		List<PlainSelect> plainSelectList = getPlainSelectList(selectStatement);
 		if (plainSelectList != null && plainSelectList.size() > 0) {
@@ -140,33 +136,24 @@ public class SQLQueryParser extends AbstractQueryParser {
 					List<Join> psJoins = ps.getJoins();
 					if (psJoins != null) {
 						for (Join psJoin : psJoins) {
-							// System.out.println("join INFO " + psJoin.toString());
-							Expression exp = psJoin.getOnExpression();
-							if (exp != null) {
-								// TODO: what if it is an AndExpression or OrExpression etc.
-								// TODO: do we need to take these into consideration???
+							// a join can carry several ON expressions, and cross joins carry none at all
+							for (Expression exp : psJoin.getOnExpressions()) {
+								// TODO: an AndExpression or OrExpression in the ON clause is skipped
 								if (exp instanceof EqualsTo) {
 									EqualsTo joinExp = (EqualsTo) exp;
-									// left part of the join
-									Expression leftExpression = joinExp.getLeftExpression();
-									Column leftJoinColumn = (Column) leftExpression;
-									// right part of the join
-									Expression rightExpression = joinExp.getRightExpression();
-									Column rightJoinColumn = (Column) rightExpression;
+									Column leftJoinColumn = (Column) joinExp.getLeftExpression();
+									Column rightJoinColumn = (Column) joinExp.getRightExpression();
 
-									// since this is a map full of Column objects, you may get duplicates being
-									// added
-									// (if you are doing the SEMOSS outerjoin syntax, then you'll have a union
-									// of two tables with the same joins, just left join vs right join
-									// we'll filter the duplicates out later when we create tripleMappings.
+									// the SEMOSS outer join syntax emits the same join twice, once per
+									// side, and the duplicates collapse later when the triples are keyed
+									// by their relationship uri
 									joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
 								}
 							}
-							// so get the table name from the join
+							// the joined table itself also has to be registered
 							FromItem psJoinTable = psJoin.getRightItem();
 							if (psJoinTable != null) {
-								Table joinsTable = (Table) psJoinTable;
-								setTableAndAlias(joinsTable);
+								setTableAndAlias((Table) psJoinTable);
 							}
 						}
 					}
@@ -178,87 +165,75 @@ public class SQLQueryParser extends AbstractQueryParser {
 	}
 
 	/**
-	 * The joinColumnsMap will contain the <left, right> columns of the join. We
-	 * will take the alias that comes in and determine the table name linked to that
-	 * alias, then store the name of the table and the join column as a map within
-	 * the columnMappings. This way we can figure out the triples
-	 * 
-	 * T.Title = N.Title_FK Figure out the table name for T - Title Figure out the
-	 * table name for N - Nominated
-	 * 
-	 * leftColumnMap will be a map of Title Title
-	 * 
-	 * @param joinColumnsMap
+	 * Turn each joined pair of columns into a triple, resolving the alias each
+	 * column is qualified by back to its real table.
+	 * <p>
+	 * So {@code T.Title = N.Title_FK}, where T is Title and N is Nominated, becomes
+	 * the relationship {@code Title.Title.Nominated.Title_FK}. Keying by that
+	 * relationship is what collapses the two halves of a SEMOSS outer join into one
+	 * triple.
+	 *
+	 * @param joinColumnsMap the left column of each join to its right column
 	 */
 	private void processAllTableJoins(HashMap<Column, Column> joinColumnsMap) {
-		String joinColumnTable = ""; // may be the table name or alias, will use this as if its an alias to look up
-										// the table name
-		String joinColumnTableName = "";
-		String joinColumnName = "";
-
-		// now I have my tables and their aliases, I can be sure I am grabbing the right
-		// table name from the join, and build the join/triple properly
 		for (Column leftColumn : joinColumnsMap.keySet()) {
-			String[] relationships = new String[4];
-			// process the left Column info first!
-			// get the column name and column's table alias from the join information
-			joinColumnTable = leftColumn.getTable().getName();
-			joinColumnName = leftColumn.getColumnName();
-
-			// look up the table name from the aliasTableMap
-			joinColumnTableName = aliasTableMap.get(joinColumnTable);
-
-			// now add the column and the table name to a map
-			relationships[0] = joinColumnTableName;
-			relationships[1] = joinColumnName;
-
-			// now process the right column info
 			Column rightColumn = joinColumnsMap.get(leftColumn);
 
-			// get the column name and column's table alias from the join information
-			joinColumnTable = rightColumn.getTable().getName();
-			joinColumnName = rightColumn.getColumnName();
+			// {fromTable, fromColumn, toTable, toColumn}
+			String[] relationships = new String[4];
+			relationships[0] = resolveTableName(leftColumn);
+			relationships[1] = leftColumn.getColumnName();
+			relationships[2] = resolveTableName(rightColumn);
+			relationships[3] = rightColumn.getColumnName();
 
-			// look up the table name from the aliasTableMap
-			joinColumnTableName = aliasTableMap.get(joinColumnTable);
-
-			// now add the column and the table name to a map
-			relationships[2] = joinColumnTableName;
-			relationships[3] = joinColumnName;
-
-			// now add the left and right join info to the map
-			// this is where the duplicates resolve
-			String relTriple = "http://semoss.org/ontologies/Relation/" + Arrays.toString(relationships)
-					.replace(",", ".").replace("[", "").replace("]", "").replaceAll("\\s+", "");
+			String relTriple = relationUri + Arrays.toString(relationships).replace(",", ".").replace("[", "")
+					.replace("]", "").replaceAll("\\s+", "");
 			tripleMappings.put(relTriple, relationships);
-
 		}
 	}
 
+	/**
+	 * The real table a column is qualified by, which may have been written as an
+	 * alias.
+	 *
+	 * @param column the qualified column
+	 * @return the table name behind the qualifier
+	 */
+	private String resolveTableName(Column column) {
+		return aliasTableMap.get(column.getTable().getName());
+	}
+
+	/**
+	 * Read the WHERE clause of every select for implicit joins, then collect the
+	 * projections.
+	 *
+	 * @param statement the SELECT to read
+	 * @throws JSQLParserException if the statement cannot be read
+	 */
 	private void parseAllPropertiesAndVarsFromQuery(Statement statement) throws JSQLParserException {
-		CCJSqlParserManager parserManager = new CCJSqlParserManager();
-
 		Select selectStatement = (Select) statement;
-
-		statement = parserManager.parse(new StringReader(query));
 
 		List<PlainSelect> plainSelectList = getPlainSelectList(selectStatement);
 		if (plainSelectList != null && plainSelectList.size() > 0) {
 			for (PlainSelect ps : plainSelectList) {
 				if (ps.getWhere() != null) {
-					// System.out.println("Your where clause: " + ps.getWhere().toString());
-					Expression whereClause = ps.getWhere();
-					getIndividualWhereClauseValues(props, whereClause); // gets the joins here too
+					// this also picks up the joins written as a WHERE equality
+					getIndividualWhereClauseValues(props, ps.getWhere());
 				}
 			}
 		}
-		parseReturnVariables(statement);
+		parseReturnVariables(selectStatement);
 	}
 
+	/**
+	 * Parse a query in isolation and report just its return variables.
+	 *
+	 * @param query the SQL to read
+	 * @return the return variables, empty when the query cannot be parsed
+	 */
 	public Map<String, Map<String, String>> getReturnVarsFromQuery(String query) {
-		CCJSqlParserManager parserManager = new CCJSqlParserManager();
 		try {
-			Select selectStatement = (Select) parserManager.parse(new StringReader(query));
+			Select selectStatement = (Select) CCJSqlParserUtil.parse(query);
 			parseTablesAndAlias(selectStatement);
 			if (!aliasTableMap.isEmpty()) {
 				parseReturnVariables(selectStatement);
@@ -271,82 +246,89 @@ public class SQLQueryParser extends AbstractQueryParser {
 	}
 
 	/**
-	 * Take in the Table object and parse out the table name and alias
-	 * 
-	 * @param addTable
+	 * Register a table as a concept, and its alias if it has one. The alias is the
+	 * key rather than the table name, because the same table can be joined several
+	 * times in one query under different aliases.
+	 *
+	 * @param addTable the table to register
 	 */
 	private void setTableAndAlias(Table addTable) {
 		Alias tableAlias = addTable.getAlias();
 		String tableName = addTable.getName();
-		String tableAliasText = tableName; // so if there is no table alias, use the table name by default
 		if (tableAlias != null) {
-			tableAliasText = tableAlias.getName();
-			aliasTableMap.put(tableAliasText, tableName); // the alias is the key because you can join the same table
-															// several times in a query
+			aliasTableMap.put(tableAlias.getName(), tableName);
 		}
 
 		types.put(tableName, conceptUri + tableName);
 	}
 
+	/**
+	 * Collect the projections as return variables, and record the ones that are
+	 * plain columns as properties of the table they came from.
+	 *
+	 * @param statement the SELECT to read
+	 * @throws JSQLParserException if the statement cannot be read
+	 */
 	private void parseReturnVariables(Statement statement) throws JSQLParserException {
-		CCJSqlParserManager parserManager = new CCJSqlParserManager();
-
 		Select selectStatement = (Select) statement;
-		statement = parserManager.parse(new StringReader(query));
 		List<PlainSelect> plainSelectList = getPlainSelectList(selectStatement);
 		if (plainSelectList != null && plainSelectList.size() > 0) {
 			for (PlainSelect ps : plainSelectList) {
-				List<SelectItem> selectList = ps.getSelectItems();
+				List<SelectItem<?>> selectList = ps.getSelectItems();
 				for (int i = 0; i < selectList.size(); i++) {
-					SelectItem selectedItem = selectList.get(i);
-					SelectExpressionItem se = (SelectExpressionItem) selectedItem;
+					SelectItem<?> se = selectList.get(i);
 					Alias alias = se.getAlias();
-					String expressionAlias = "";
-					if (alias != null) {
-						expressionAlias = alias.getName(); // heres the alias for the select clause expression you are
-															// working with, unused at the moment
-					} else {
-						expressionAlias = se.toString();
-					}
+					// with no alias the whole select item text stands in as its name
+					String expressionAlias = alias != null ? alias.getName() : se.toString();
+
 					Expression expression = se.getExpression();
-					String expressionValue = expression.toString();
-					returnVariables.add(expressionValue);
+					returnVariables.add(expression.toString());
 					if (expression instanceof Function) {
 						hasColumnAggregatorFunction = true;
 					}
+					// only a plain column can be attributed to a table; an expression or a
+					// function has no single column to hang off one
 					if (expression instanceof Column) {
 						Column returnColumn = (Column) expression;
-						String tableAliasName = returnColumn.getTable().getName();
-						// String fullyQualifiedName = returnColumn.getFullyQualifiedName();
 						String columnName = returnColumn.getColumnName();
-						String tableName = aliasTableMap.get(tableAliasName);
-						// only add the property if the column is not the same as the table name.
+						String tableName = resolveTableName(returnColumn);
 						addToVariablesMap(typePropVariables, tableName, expressionAlias, columnName);
 						addToVariablesMap(typeReturnVariables, tableName, expressionAlias, columnName);
 					}
-					// expression returned MAY contain the table name/table alias prior to the
-					// expression value. Keeping this for now
-
-					// to do, actually save it as expression, table alias, so you can look up the
-					// table if you need to
-					// (don't want to do table because your table alias could be referring to a
-					// subquery)
 				}
 			}
 		}
 	}
 
 	/**
-	 * generate a partial list of joins (these would be the implicit inner/outer
-	 * joins) also maintain the where clause variables (unused at this time)
-	 * 
-	 * @param props
-	 * @param exp
+	 * Walk a WHERE predicate for the joins written as an equality between two
+	 * columns, recording every column it mentions along the way.
+	 * <p>
+	 * A predicate is a left leaning tree, so this descends the left hand side one
+	 * comparison at a time and stops once the left hand side is a plain column,
+	 * meaning the bottom of the tree has been reached.
+	 *
+	 * @param props unused, kept for signature compatibility with the callers
+	 * @param exp   the predicate to walk
 	 */
 	private void getIndividualWhereClauseValues(Map<String, String> props, Expression exp) {
-		if (exp instanceof Parenthesis) {
-			Expression x = ((Parenthesis) exp).getExpression();
-			getIndividualWhereClauseValues(props, x);
+		if (exp instanceof ParenthesedExpressionList) {
+			ParenthesedExpressionList<?> parenthesed = (ParenthesedExpressionList<?>) exp;
+			if (!parenthesed.isEmpty()) {
+				getIndividualWhereClauseValues(props, parenthesed.get(0));
+			}
+			return;
+		}
+		if (exp instanceof IsNullExpression) {
+			// IS NULL carries only a left hand side, so there is no comparison to walk
+			Expression nullCheckOn = ((IsNullExpression) exp).getLeftExpression();
+			if (nullCheckOn instanceof Column) {
+				setWhereClauseDetails((Column) nullCheckOn);
+			}
+			return;
+		}
+		if (!(exp instanceof BinaryExpression)) {
+			// anything else is a predicate shape this parser does not model
 			return;
 		}
 		BinaryExpression individualExpressions = (BinaryExpression) exp;
@@ -354,84 +336,65 @@ public class SQLQueryParser extends AbstractQueryParser {
 		while (individualExpressions.getLeftExpression() != null) {
 			Expression leftExpression = individualExpressions.getLeftExpression();
 			Expression rightExpression = individualExpressions.getRightExpression();
-			if ((leftExpression != null && rightExpression != null)
-					&& (leftExpression instanceof Column && rightExpression instanceof Column)) {
-				// if both left and right expressions are columns, special logic! You will add
-				// these to the joins map,
-				// later you will compare this against the owl to figure out if this is a legit
-				// join
-
-				// update the properties objects first
-				Column rightJoinColumn = (Column) rightExpression;
-				setWhereClauseDetails(rightJoinColumn);
+			if (leftExpression instanceof Column && rightExpression instanceof Column) {
+				// a column on both sides is a join rather than a value comparison, and is
+				// checked against the owl later to decide whether it is a real one
 				Column leftJoinColumn = (Column) leftExpression;
+				Column rightJoinColumn = (Column) rightExpression;
 				setWhereClauseDetails(leftJoinColumn);
+				setWhereClauseDetails(rightJoinColumn);
 
-				// generate joins list!
 				joinColumnsMap.put(leftJoinColumn, rightJoinColumn);
 
 				if (individualExpressions instanceof EqualsTo) {
 					break;
 				}
-
 			} else {
-				if (rightExpression != null) {
-					// if you needed the right hand value assignment/bind, you can get it here.
-					// for now we are setting the variable rightHandAssignmentValue but not using it
-					// use individualExpressions.getRightExpression().getRightExpression, then check
-					// cast as necessary to get values.
-					String rightHandAssignmentValue = "";
-					if (rightExpression instanceof DateValue) {
-						DateValue bindValue = (DateValue) rightExpression;
-						rightHandAssignmentValue = bindValue.getValue().toString();
-					} else if (rightExpression instanceof DoubleValue) {
-						DoubleValue bindValue = (DoubleValue) rightExpression;
-						rightHandAssignmentValue = Double.toString(bindValue.getValue());
-					} else if (rightExpression instanceof LongValue) {
-						LongValue bindValue = (LongValue) rightExpression;
-						rightHandAssignmentValue = bindValue.getStringValue();
-					} else if (rightExpression instanceof NullValue) {
-						rightHandAssignmentValue = "null";
-					} else if (rightExpression instanceof StringValue) {
-						StringValue bindValue = (StringValue) rightExpression;
-						rightHandAssignmentValue = bindValue.getValue();
-					} else if (rightExpression instanceof TimeValue) {
-						TimeValue bindValue = (TimeValue) rightExpression;
-						rightHandAssignmentValue = bindValue.getValue().toString();
-					} else if (rightExpression instanceof Column) {
-						Column columnDetail = (Column) rightExpression;
-						setWhereClauseDetails(columnDetail);
-					} else if (rightExpression instanceof IsNullExpression) {
-						Expression expNull = ((IsNullExpression) rightExpression).getLeftExpression();
-						Column columnDetail = (Column) expNull;
-						setWhereClauseDetails(columnDetail);
-						rightHandAssignmentValue = "null";
-					} else {
-						getIndividualWhereClauseValues(props, individualExpressions.getRightExpression());
+				// a literal on the right carries no column to record, so only the shapes
+				// that hold one are followed
+				if (rightExpression instanceof Column) {
+					setWhereClauseDetails((Column) rightExpression);
+				} else if (rightExpression instanceof IsNullExpression) {
+					Expression expNull = ((IsNullExpression) rightExpression).getLeftExpression();
+					if (expNull instanceof Column) {
+						setWhereClauseDetails((Column) expNull);
 					}
-
+				} else if (rightExpression instanceof BinaryExpression
+						|| rightExpression instanceof ParenthesedExpressionList) {
+					// the other half of a conjunction, which is a predicate in its own right
+					getIndividualWhereClauseValues(props, rightExpression);
 				}
 
-				if (individualExpressions instanceof EqualsTo) {
-					Column columnDetail = (Column) leftExpression;
-					setWhereClauseDetails(columnDetail);
+				// a column on the left means this is a leaf comparison rather than a
+				// conjunction, so there is nothing further down the left to walk
+				if (leftExpression instanceof Column) {
+					setWhereClauseDetails((Column) leftExpression);
 					break;
 				}
 			}
-			individualExpressions = (BinaryExpression) individualExpressions.getLeftExpression();
-
+			Expression nextLeft = individualExpressions.getLeftExpression();
+			if (!(nextLeft instanceof BinaryExpression)) {
+				break;
+			}
+			individualExpressions = (BinaryExpression) nextLeft;
 		}
 		processAllTableJoins(joinColumnsMap);
 
 	}
 
 	/**
-	 * 
-	 * @param columnDetail
+	 * Record a column referenced by the WHERE clause, keyed by the qualifier it was
+	 * written under.
+	 *
+	 * @param columnDetail the column to record
 	 */
 	private void setWhereClauseDetails(Column columnDetail) {
 		String columnName = columnDetail.getColumnName();
 		Table tableName = columnDetail.getTable();
+		if (tableName == null) {
+			// an unqualified column, so there is no table to key it against
+			return;
+		}
 		String tableFullName = tableName.getName();
 		Alias tableAlias = tableName.getAlias();
 		String tableAliasText = tableFullName;
@@ -441,128 +404,47 @@ public class SQLQueryParser extends AbstractQueryParser {
 		whereClauseVars.put(tableAliasText + "__" + columnName, propertyUri + columnName);
 	}
 
+	/**
+	 * Flatten a statement into the individual selects it is made of, so that a
+	 * union is read the same way as a single select.
+	 *
+	 * @param selectStatement the statement to flatten
+	 * @return each PlainSelect in it, empty for a shape holding none
+	 */
 	private List<PlainSelect> getPlainSelectList(Select selectStatement) {
 		List<PlainSelect> plainSelectList = new ArrayList<PlainSelect>();
-		// so basically if you have a more complex query
-		try {
-			SetOperationList setList = (SetOperationList) selectStatement.getSelectBody();
-			List<SelectBody> allSelectors = setList.getSelects();
-			for (SelectBody s : allSelectors) {
+		if (selectStatement instanceof SetOperationList) {
+			for (Select s : ((SetOperationList) selectStatement).getSelects()) {
 				if (s instanceof PlainSelect) {
 					plainSelectList.add((PlainSelect) s);
 				}
 			}
-		} catch (Exception e) {
-			// System.out.println("more simple query");
-			PlainSelect plainSel = (PlainSelect) selectStatement.getSelectBody();
-			plainSelectList.add(plainSel);
+		} else if (selectStatement instanceof PlainSelect) {
+			plainSelectList.add((PlainSelect) selectStatement);
 		}
 		return plainSelectList;
 	}
 
+	/**
+	 * The joins as {fromConcept, relationship, toConcept} triples. The columns the
+	 * join was built from are part of the relationship uri rather than separate
+	 * entries.
+	 *
+	 * @return one triple per distinct join
+	 */
 	@Override
 	public List<String[]> getTriplesData() {
-
 		for (String key : tripleMappings.keySet()) {
-			String[] triple = new String[3];
 			String[] mapping = tripleMappings.get(key);
-			String nodeFrom = conceptUri + mapping[0];
-			String nodeFromProperty = mapping[1];
-			String nodeTo = conceptUri + mapping[2];
-			String nodeToProperty = mapping[3];
 
-			String relTriple = key;
-
-			triple[0] = nodeFrom;
-			triple[1] = relTriple;
-			triple[2] = nodeTo;
+			String[] triple = new String[3];
+			triple[0] = conceptUri + mapping[0];
+			triple[1] = key;
+			triple[2] = conceptUri + mapping[2];
 
 			triplesData.add(triple);
 		}
 		return triplesData;
-	}
-
-	///////////////////////// tester methods/////////////////////////
-
-//	public static void main(String[] args) throws Exception {
-//		basicParseTest();
-//	}
-
-	private static void basicParseTest() {
-		// yes most of these queries are not real, but they are good tests to work with.
-		String sql = "SELECT 1 as r,2,a,b FROM MY_TABLE1 MT, yourtable YT, andanothertable AAT where YT.x=1 and YT.r = MT.F and MT.T is not null";
-
-		String subquery = "select x.col1, y.col2 from (select col1, col3 from newtable) x, anothertable y";
-
-		String anotherAdvSql = "SELECT  DISTINCT N.Nominated AS MOOVIENOMINATED , count(N.Nominated) AS MOOVIENOMINATED2  "
-				+ "FROM  Title T LEFT JOIN Nominated N ON T.Title=N.Title_FK GROUP BY N.Nominated UNION SELECT  "
-				+ "DISTINCT N.Nominated AS MOOVIENOMINATED , count(N.Nominated) AS MOOVIENOMINATED2  FROM  Title T "
-				+ "RIGHT JOIN Nominated N ON T.Title=N.Title_FK GROUP BY N.Nominated";
-		// sql = anotherAdvSql;
-
-		String anotherJoin = "select n.nominated, t.title from title t, nominated n where n.title_fk = t.title";
-		// sql = anotherAdvSql; // sql = anotherJoin;
-		String aggregateFunc = "SELECT  DISTINCT N.Nominated AS MOOVIENOMINATED , count(N.Nominated) AS MOOVIENOMINATED2  "
-				+ "FROM  Title T LEFT JOIN Nominated N ON T.Title=N.Title_FK GROUP BY N.Nominated UNION "
-				+ "SELECT  DISTINCT N.Nominated AS MOOVIENOMINATED , count(N.Nominated) AS MOOVIENOMINATED2 "
-				+ " FROM  Title T RIGHT JOIN Nominated N ON T.Title=N.Title_FK GROUP BY N.Nominated";
-		String sqlOrs = "SELECT  DISTINCT T.TITLE AS TITLE , T.MOVIEBUDGET AS TITLE__MOVIEBUDGET , N.NOMINATED AS NOMINATED  "
-				+ "FROM  Title T LEFT JOIN Nominated N ON T.Title=N.Title_FK WHERE  ( T.TITLE = '127_Hours' "
-				+ "OR T.TITLE = '12_Years_a_Slave' OR T.TITLE = '16_Blocks' OR T.TITLE = '17_Again' "
-				+ "OR T.TITLE = '200_Cigarettes' OR T.TITLE = '47_Ronin' OR T.TITLE = '50-50' ) ";
-		/*
-		 * +
-		 * " UNION SELECT  DISTINCT T.TITLE AS TITLE , T.MOVIEBUDGET AS TITLE__MOVIEBUDGET , "
-		 * +
-		 * "N.NOMINATED AS NOMINATED  FROM  Title T RIGHT JOIN Nominated N ON T.Title=N.Title_FK WHERE"
-		 * +
-		 * "  ( T.TITLE = '127_Hours' OR T.TITLE = '12_Years_a_Slave' OR T.TITLE = '16_Blocks' OR T.TITLE = "
-		 * +
-		 * "'17_Again' OR T.TITLE = '200_Cigarettes' OR T.TITLE = '47_Ronin' OR T.TITLE = '50-50' ) "
-		 * ;
-		 */
-
-		String oneMoreTest = "SELECT  DISTINCT T.TITLE AS TITLE , T.MOVIEBUDGET AS TITLE__MOVIEBUDGET , N.NOMINATED AS NOMINATED  FROM  Title T LEFT JOIN Nominated N ON T.Title=N.Title_FK WHERE  ( T.TITLE = '127_Hours' OR T.TITLE = '12_Years_a_Slave' OR T.TITLE = '16_Blocks' OR T.TITLE = '17_Again' OR T.TITLE = '200_Cigarettes' OR T.TITLE = '47_Ronin' OR T.TITLE = '50-50' )  UNION SELECT  DISTINCT T.TITLE AS TITLE , T.MOVIEBUDGET AS TITLE__MOVIEBUDGET , N.NOMINATED AS NOMINATED  FROM  Title T RIGHT JOIN Nominated N ON T.Title=N.Title_FK WHERE  ( T.TITLE = '127_Hours' OR T.TITLE = '12_Years_a_Slave' OR T.TITLE = '16_Blocks' OR T.TITLE = '17_Again' OR T.TITLE = '200_Cigarettes' OR T.TITLE = '47_Ronin' OR T.TITLE = '50-50' )";
-
-		sql = oneMoreTest;
-
-		AbstractQueryParser qryParse = new SQLQueryParser(sql);
-		qryParse.setQuery(sql);
-		qryParse.parseQuery();
-		///////////////////////////
-		Map<String, String> nodes = qryParse.getNodesFromQuery();
-		for (String key : nodes.keySet()) {
-			classLogger.info("Node : {}", key);
-		}
-
-		Map<String, Map<String, String>> propsVariables = qryParse.getPropertiesFromQuery();
-		for (String key : propsVariables.keySet()) {
-			classLogger.info("Iterate through props table : {}", key);
-			Map<String, String> variablesInTable = propsVariables.get(key);
-			for (String singleVariable : variablesInTable.keySet()) {
-				classLogger.info("props table : {} column alias {} column name {}", key, singleVariable,
-						variablesInTable.get(singleVariable));
-			}
-		}
-
-		List<String[]> triplesArr = qryParse.getTriplesData();
-		for (String[] eachItem : triplesArr) {
-			classLogger.info("each Triple : {}", Arrays.toString(eachItem));
-		}
-
-		Map<String, Map<String, String>> returnVariables = qryParse.getReturnVariables();
-
-		for (String key : returnVariables.keySet()) {
-			classLogger.info("Iterate through returns table : {}", key);
-			Map<String, String> variablesInTable = returnVariables.get(key);
-			for (String singleVariable : variablesInTable.keySet()) {
-				classLogger.info("returns table : {} column alias {} column name {}", key, singleVariable,
-						variablesInTable.get(singleVariable));
-			}
-		}
-
-		boolean aggregate = qryParse.hasAggregateFunction();
-		classLogger.info("is this an aggregate query {}", aggregate);
 	}
 
 }
