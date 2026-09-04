@@ -51,6 +51,8 @@ public class SystemDefaultEngines {
 	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
+	private static final List<String> SYSTEM_APPS = List.of(Constants.APP_REACT_TEMPLATE);
+
 	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
 			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE,
 			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FUNCTIONS, Constants.SKILL_MODEL,
@@ -91,6 +93,10 @@ public class SystemDefaultEngines {
 
 	public static List<String> getDatabaseIgnoreSecurity() {
 		return DATABASE_IGNORE_SECURITY;
+	}
+
+	public static List<String> getSystemApps() {
+		return SYSTEM_APPS;
 	}
 
 	public static List<String> getSystemSkills() {

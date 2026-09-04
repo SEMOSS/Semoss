@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import prerna.query.parsers.GenExpressionWrapper;
-import prerna.query.parsers.SqlParser2;
+import prerna.query.parsers.SqlParser;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -63,7 +63,7 @@ public class ParseSQL2Wrapper extends AbstractReactor {
 		try {
 			String sql = keyValue.get(keysToGet[0]);
 
-			SqlParser2 sqlParser = new SqlParser2();
+			SqlParser sqlParser = new SqlParser();
 			sqlParser.parameterize = true;
 			GenExpressionWrapper wrapper = sqlParser.processQuery(sql);
 
