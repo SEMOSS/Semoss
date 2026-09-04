@@ -46,7 +46,7 @@ import prerna.util.Utility;
  * Persistence layer for the {@code AGENT_RUN_ACTION} table.
  *
  * <p>Each row represents a single MCP tool call that was paused because its
- * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness creates rows when
+ * {@code SMSS_MCP_EXECUTION} is {@code "ask"} or {@code "yesno"}. The harness creates rows when
  * it transitions a run to {@code INPUT_REQUIRED}; {@code RunMCPToolReactor}
  * updates them when the user decides; {@code GetAgentRunReactor} reads them
  * to surface pending actions to the UI.

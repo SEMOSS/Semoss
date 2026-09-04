@@ -946,8 +946,8 @@ public abstract class AbstractReactor implements IReactor {
 	 * <p>
 	 * Supported keys (use {@link MCPUtility} constants):
 	 * <ul>
-	 * <li>{@code SMSS_MCP_EXECUTION} - "auto", "ask", or "disabled" (defaults to
-	 * "auto" if omitted)</li>
+	 * <li>{@code SMSS_MCP_EXECUTION} - "auto", "ask", "disabled", or "yesno"
+	 * (defaults to "auto" if omitted)</li>
 	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
 	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
 	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
