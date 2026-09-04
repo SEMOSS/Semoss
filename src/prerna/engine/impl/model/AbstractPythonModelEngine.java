@@ -433,8 +433,12 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	// ------------------------------------------------------------------
 	// Batch model calls -- delegate to the Python client (same hop as askCall).
-	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types;
-	// other Python engines inherit these overrides but reject via supportsBatch().
+	// Native batch is gated to OpenAI / Azure OpenAI / Anthropic model types,
+	// plus VERTEX (Anthropic-on-Vertex and Gemini-on-Vertex, both staged
+	// through a GCS storage engine -- see BatchLLMReactor's STORAGE key);
+	// other Python engines inherit these overrides but reject via
+	// supportsBatch(). A future non-batch-capable VERTEX provider would pass
+	// this gate but fail cleanly Python-side via NotImplementedError.
 	// ------------------------------------------------------------------
 
 	private static final Gson BATCH_GSON = new Gson();
@@ -442,7 +446,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	@Override
 	public boolean supportsBatch() {
 		ModelTypeEnum type = this.getModelType();
-		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC;
+		return type == ModelTypeEnum.OPEN_AI || type == ModelTypeEnum.AZURE_OPEN_AI || type == ModelTypeEnum.ANTHROPIC
+				|| type == ModelTypeEnum.VERTEX;
 	}
 
 	private void assertBatchSupported() {
