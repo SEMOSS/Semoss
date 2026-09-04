@@ -36,9 +36,10 @@ This class is implemented as a singleton and provides the core logic for interac
     *   `pushEngine(String engineId)`:
         *   Takes an `engineId`.
         *   Retrieves the local engine's folder (e.g., `SEMOSS_HOME/db/<EngineName>__<engineId>/`) and its `.smss` file.
-        *   If the engine `holdsFileLocks()`, it's temporarily closed and removed from `DIHelper`'s cache.
+        *   Database engines are temporarily closed and removed from `DIHelper`'s cache before their folders are uploaded. Other engine types are closed when `holdsFileLocks()` is `true`.
         *   Syncs the entire local engine folder to a corresponding path in the central storage (e.g., `<DB_CONTAINER_PREFIX>/<engineId>/`).
         *   Copies the local `.smss` file to a separate location in central storage (e.g., `<DB_CONTAINER_PREFIX>/<engineId>-smss/`).
+        *   Reopens an engine that was closed for synchronization, including when the transfer fails.
         *   Uses `EngineSyncUtility.getEngineLock(engineId)` to ensure exclusive access during the operation.
     *   `pullEngine(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineAlreadyLoaded)`:
         *   Downloads the engine's folder and `.smss` file from the central store to the corresponding local SEMOSS directories.
@@ -66,6 +67,12 @@ This class is implemented as a singleton and provides the core logic for interac
 
 *   To prevent race conditions and ensure data integrity in a multi-instance environment, `CentralCloudStorage` uses `java.util.concurrent.locks.ReentrantLock`.
 *   `EngineSyncUtility.getEngineLock(engineId)` and `ProjectSyncUtility.getProjectLock(projectId)` provide static methods to obtain a lock specific to an engine ID or project ID. This ensures that operations on the same asset are serialized across different threads or even different SEMOSS instances (if the lock mechanism is cluster-aware, though its direct cluster-awareness isn't detailed in this class itself; ZooKeeper likely handles distributed locking aspects).
+
+#### Database audit files
+
+Every database engine can own a local modification-audit database in its engine folder, such as `audit_log_database.mv.db`. This remains true for an external database whose primary data and connection are remote. An external database can therefore return `false` from `holdsFileLocks()` while its local H2 audit database still has an active background writer.
+
+`pushEngine` closes all database engines before synchronizing their folders. Closing the engine flushes and closes the local audit database so the storage provider reads a stable file. Uploading a live H2 MVStore file is unsafe: compaction can shorten the file after an uploader records its original length, which can cause a zero-progress chunked upload and block other storage requests. The engine is reloaded in the `finally` path so both successful and failed transfers restore normal availability.
 
 ### Interaction with Cluster Synchronizer (ZooKeeper)
 
