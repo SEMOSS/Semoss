@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -170,7 +169,8 @@ final class PlatformAgentToolHandlers {
 		add(tools, handler("GrepFiles",
 				"Searches file contents with a regular expression.",
 				objectSchema(props(
-						prop("pattern", stringProp("Regex pattern to search for.")),
+						prop("pattern", stringProp(
+								"RE2-compatible regex pattern to search for; lookarounds and backreferences are unsupported.")),
 						prop("path", stringProp("Optional path to search, relative to the working directory.")),
 						prop("glob", stringProp("Optional file glob filter, such as *.java.")),
 						prop("output_mode", stringProp("files_with_matches, content, or count. Defaults to files_with_matches.")),
@@ -503,11 +503,10 @@ final class PlatformAgentToolHandlers {
 		if (headLimit <= 0) {
 			headLimit = DEFAULT_GREP_HEAD_LIMIT;
 		}
-		int flags = parseBoolean(params.get("case_insensitive")) ? Pattern.CASE_INSENSITIVE : 0;
-		Pattern regex;
+		com.google.re2j.Pattern regex;
 		try {
-			regex = Pattern.compile(patternStr, flags);
-		} catch (PatternSyntaxException e) {
+			regex = compileGrepPattern(patternStr, parseBoolean(params.get("case_insensitive")));
+		} catch (com.google.re2j.PatternSyntaxException e) {
 			return "Error: invalid regex pattern: " + e.getMessage();
 		}
 		File baseDir = tc.resolve(basePath);
@@ -561,6 +560,18 @@ final class PlatformAgentToolHandlers {
 			}
 		}
 		return results.isEmpty() ? "No matches found for: " + patternStr : String.join("\n", results);
+	}
+
+	/**
+	 * Compiles agent-provided search expressions with RE2/J. Agent tool parameters
+	 * can originate from user prompts or model output, so Java's backtracking regex
+	 * engine would allow a crafted expression to consume excessive CPU while scanning
+	 * files. RE2/J evaluates supported expressions in linear time and preserves the
+	 * regex behavior needed by the grep tool.
+	 */
+	static com.google.re2j.Pattern compileGrepPattern(String pattern, boolean caseInsensitive) {
+		int flags = caseInsensitive ? com.google.re2j.Pattern.CASE_INSENSITIVE : 0;
+		return com.google.re2j.Pattern.compile(pattern, flags);
 	}
 
 	private static String listDirectory(Map<String, Object> params, ToolContext tc) {
@@ -788,7 +799,8 @@ final class PlatformAgentToolHandlers {
 		}
 	}
 
-	private static void addContentMatches(List<String> results, Pattern regex, String[] lines, String relPath,
+	private static void addContentMatches(List<String> results, com.google.re2j.Pattern regex, String[] lines,
+			String relPath,
 			int before, int after, int headLimit) {
 		Set<Integer> printed = new HashSet<>();
 		for (int i = 0; i < lines.length && results.size() < headLimit; i++) {
