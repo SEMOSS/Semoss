@@ -58,10 +58,10 @@ import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * This reactor returns paginated commit details from a project's git repository.
- * Each commit includes the commit SHA, author information, date, commit message,
- * parent commit ids, and any refs (local branches, remote branches, tags)
- * pointing to that commit.
+ * This reactor returns paginated commit details from a project's git
+ * repository. Each commit includes the commit SHA, author information, date,
+ * commit message, parent commit ids, and any refs (local branches, remote
+ * branches, tags) pointing to that commit.
  */
 public class ProjectCommitDetailsReactor extends AbstractReactor {
 
@@ -119,8 +119,8 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 		List<Map<String, Object>> commits = new ArrayList<>();
 
 		IProject project = Utility.getProject(projectId);
-		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
-				projectId, project.getEngineName());
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
+				project.getEngineName());
 
 		File gitDir = new File(versionFolder, ".git");
 		if (!gitDir.exists()) {
@@ -218,8 +218,8 @@ public class ProjectCommitDetailsReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Records a ref entry keyed by its target commit's SHA, but only when that
-	 * SHA is one of the commits in the current paginated page.
+	 * Records a ref entry keyed by its target commit's SHA, but only when that SHA
+	 * is one of the commits in the current paginated page.
 	 */
 	private void addRefIfOnPage(Map<String, List<Map<String, String>>> refsBySha, Set<String> pageShas,
 			org.eclipse.jgit.lib.AnyObjectId target, String name, String type) {
