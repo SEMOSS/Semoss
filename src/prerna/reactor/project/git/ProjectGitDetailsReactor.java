@@ -25,61 +25,60 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
+package prerna.reactor.project.git;
 
-import org.apache.commons.lang3.StringUtils;
+import java.util.HashMap;
+import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
-public class PublishProjectReactor extends AbstractReactor {
+/**
+ * This reactor returns the git provider and repository details for a given
+ * project.
+ */
+public class ProjectGitDetailsReactor extends AbstractReactor {
 
-	public PublishProjectReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.RELEASE.getKey() };
+	public ProjectGitDetailsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		Boolean release = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[1]) + "");
-		if (StringUtils.isBlank(projectId)) {
-			throw new IllegalArgumentException("Must input an project id");
+		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new SemossPixelException("Must input a project id");
 		}
 
 		User user = this.insight.getUser();
-		if (!SecurityProjectUtils.userIsOwner(user, projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user is not an owner of the project");
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new SemossPixelException("Project does not exist or user does not have access to the project");
 		}
 
 		IProject project = Utility.getProject(projectId);
-		project.setRepublish(true);
-		if (release) {
-			SecurityProjectUtils.setPortalPublish(user, projectId);
-			ClusterUtil.pushProjectFolder(project,
-					AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
-					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+
+		String gitProvider = project.getProjectGitProvider();
+		if (gitProvider == null) {
+			gitProvider = "";
+		}
+		String gitRepo = project.getProjectGitRepo();
+		if (gitRepo == null) {
+			gitRepo = "";
 		}
 
-		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
-				+ Constants.PORTALS_FOLDER + "/";
-		NounMetadata noun = new NounMetadata(url, PixelDataType.CONST_STRING);
-		if (release) {
-			noun.addAdditionalReturn(
-					NounMetadata.getSuccessNounMessage("Successfully published and released the project"));
-		} else {
-			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully published the project"));
-		}
-		return noun;
+		Map<String, String> gitDetails = new HashMap<>();
+		gitDetails.put("gitProvider", gitProvider);
+		gitDetails.put("gitRepo", gitRepo);
+		return new NounMetadata(gitDetails, PixelDataType.MAP);
 	}
 
 }

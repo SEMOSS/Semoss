@@ -348,7 +348,7 @@ public class GitRepoUtils {
 	 * @param repoLabel human-readable repository identifier for the error message
 	 * @throws IOException if a symbolic link is found, or the tree cannot be read
 	 */
-	private static void assertNoSymlinks(Repository repo, ObjectId commitId, String repoLabel) throws IOException {
+	public static void assertNoSymlinks(Repository repo, ObjectId commitId, String repoLabel) throws IOException {
 		try (RevWalk revWalk = new RevWalk(repo)) {
 			RevTree tree = revWalk.parseCommit(commitId).getTree();
 			try (TreeWalk treeWalk = new TreeWalk(repo)) {

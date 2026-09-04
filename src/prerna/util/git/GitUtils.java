@@ -87,7 +87,7 @@ public class GitUtils {
 	public static GitHub login(String oAuth, int attempt) {
 		GitHub gh = null;
 		if (attempt < 3) {
-			System.out.println("Attempting login " + attempt);
+			classLogger.info("Attempting login {}", attempt);
 			try {
 				gh = GitHub.connectUsingOAuth(oAuth);
 				gh.getMyself();
