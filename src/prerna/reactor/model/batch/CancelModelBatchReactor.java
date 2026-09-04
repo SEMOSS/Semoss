@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.model.batch;
 
-import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchStatusResponse;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,9 +50,8 @@ public class CancelModelBatchReactor extends AbstractModelBatchReactor {
 		organizeKeys();
 		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
-		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
-		BatchStatusResponse response = engine.cancelBatch(batchId, baseParams());
+		BatchStatusResponse response = ModelBatchManager.cancel(getUser(), engineId, batchId, baseParams());
 		return new NounMetadata(response.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

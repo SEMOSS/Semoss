@@ -36,6 +36,8 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
@@ -64,9 +66,10 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 				ReactorKeysEnum.ENGINE.getKey(),
 				ReactorKeysEnum.BATCH_REQUESTS.getKey(),
 				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.ROOM_ID.getKey()
+				ReactorKeysEnum.ROOM_ID.getKey(),
+				ReactorKeysEnum.STORAGE.getKey()
 		};
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -95,7 +98,17 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			enrichWithMedia(requests, engine, sharedModelParams);
 		}
 
-		BatchSubmissionResponse response = engine.submitBatch(requests, batchParams);
+		String storageId = this.keyValue.get(ReactorKeysEnum.STORAGE.getKey());
+		BatchSubmissionResponse response;
+		if (storageId != null && !storageId.isEmpty()) {
+			if (engine.getModelType() != ModelTypeEnum.VERTEX) {
+				throw new IllegalArgumentException("The storage key is only applicable to Vertex-hosted engines");
+			}
+			IStorageEngine storage = ModelBatchManager.resolveStorage(getUser(), storageId);
+			response = ModelBatchManager.submitVertexBatch(engine, storage, storageId, requests, batchParams);
+		} else {
+			response = engine.submitBatch(requests, batchParams);
+		}
 		if (response.getProviderBatchId() != null) {
 			ModelBatchManager.recordBatchSubmission(getUser(), engine, response.getProviderBatchId(), requests,
 					this.insight.getInsightId(), ThreadStore.getSessionId());
@@ -310,6 +323,10 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "Shared model parameters (max_tokens, temperature, etc.) applied to every request as defaults. "
 					+ "Per-request values take precedence.";
+		} else if (key.equals(ReactorKeysEnum.STORAGE.getKey())) {
+			return "Optional id of a Google Cloud Storage engine. Required only when the target engine's batch "
+					+ "requests must be staged through Cloud Storage (e.g. an Anthropic model hosted on Vertex AI); "
+					+ "ignored by providers with a native hosted batch API (OpenAI, direct Anthropic).";
 		}
 		return super.getDescriptionForKey(key);
 	}
