@@ -29,7 +29,6 @@ package prerna.reactor.agent.run;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,17 +43,19 @@ import prerna.om.Insight;
 import prerna.util.Utility;
 
 /**
- * Asynchronous background naming shared by agent runs and Playground room asks.
- * Generates a short LLM title from the initial user request and falls back to
- * the truncated request text when the model call fails.
+ * Fire-and-forget background naming for agent-run rooms, mirroring the
+ * playground's GenerateRoomName flow. Generates a short LLM title from the
+ * run's initial user request and falls back to the truncated request text
+ * when the model call fails.
  *
- * The rename runs on a daemon thread alongside the primary model request:
+ * The rename runs on a daemon thread and must never block, delay, or fail
+ * the agent run:
  * - the title ask uses a DETACHED Room instance loaded straight from the DB
- * row (never the cached instance in the user's room hash), so it cannot
- * contend for the run's room lock;
+ *   row (never the cached instance in the user's room hash), so it cannot
+ *   contend for the run's room lock;
  * - persistence is a single conditional UPDATE that only replaces an unset
- * name or the auto-derived truncated-input default - a name set by the
- * user (e.g. via RenameRoom) is never overwritten;
+ *   name or the auto-derived truncated-input default - a name set by the
+ *   user (e.g. via RenameRoom) is never overwritten;
  * - every failure is logged and swallowed.
  */
 public final class AgentRoomNamer {
@@ -64,13 +65,11 @@ public final class AgentRoomNamer {
     /** Must match the room-creation default in RoomUtils.createRoomRowIfMissing. */
     private static final int DEFAULT_NAME_CHAR_LIMIT = 100;
 
-    /** Truncate the request before sending it to the model. */
+    /** Truncate the request before sending it to the model (same as GenerateRoomNameReactor). */
     private static final int PROMPT_CHAR_LIMIT = 500;
 
-    /** A 3-5 word title should never inherit the engine's full output budget. */
-    private static final int TITLE_MAX_TOKENS = 32;
-
-    private static final String TITLE_INSTRUCTION = "Generate a concise 3-5 word title summarizing the topic of the following user message. "
+    private static final String TITLE_INSTRUCTION =
+            "Generate a concise 3-5 word title summarizing the topic of the following user message. "
             + "Return ONLY the title. No punctuation, no quotes, no explanation.";
 
     private AgentRoomNamer() {
@@ -78,9 +77,9 @@ public final class AgentRoomNamer {
     }
 
     /**
-     * Names the room from its initial user input on a background daemon thread.
-     * Returns immediately; the primary request proceeds regardless of the naming
-     * outcome.
+     * Names the room from the run's initial user input on a background daemon
+     * thread. Returns immediately; the agent run proceeds regardless of the
+     * naming outcome.
      *
      * @param roomId  room to name
      * @param input   the user's original request for this run
@@ -88,41 +87,32 @@ public final class AgentRoomNamer {
      *                null/blank the name falls back to the truncated input
      * @param userId  owner user id on the ROOM row
      * @param insight caller insight used for the one-off model ask
-     * @return future containing the persisted room name, or {@code null} when
-     *         naming could not be completed
      */
-    public static CompletableFuture<String> nameRoomAsync(String roomId, String input, String modelId, String userId,
-            Insight insight) {
-        CompletableFuture<String> roomNameFuture = new CompletableFuture<>();
+    public static void nameRoomAsync(String roomId, String input, String modelId, String userId, Insight insight) {
         if (roomId == null || roomId.trim().isEmpty()
                 || input == null || input.trim().isEmpty()
                 || userId == null || userId.trim().isEmpty()) {
-            roomNameFuture.complete(null);
-            return roomNameFuture;
+            return;
         }
         Thread namer = new Thread(() -> {
             try {
-                roomNameFuture.complete(nameRoom(roomId, input, modelId, userId, insight));
+                nameRoom(roomId, input, modelId, userId, insight);
             } catch (Exception e) {
-                logger.warn("AgentRoomNamer: room rename failed for room='{}' - request unaffected: {}",
+                logger.warn("AgentRoomNamer: room rename failed for room='{}' - run unaffected: {}",
                         roomId, e.getMessage(), e);
-                roomNameFuture.complete(null);
             }
         }, "agent-room-namer-" + roomId);
         namer.setDaemon(true);
         namer.start();
-        return roomNameFuture;
     }
 
-    private static String nameRoom(String roomId, String input, String modelId, String userId, Insight insight) {
-        // Match RoomUtils.createRoomRowIfMissing exactly; this value is used by
-        // the conditional update that protects custom room names.
-        String defaultName = truncate(input, DEFAULT_NAME_CHAR_LIMIT);
+    private static void nameRoom(String roomId, String input, String modelId, String userId, Insight insight) {
+        String defaultName = truncate(input.trim(), DEFAULT_NAME_CHAR_LIMIT);
 
         // Skip the model call entirely when the room already carries a custom name.
         String currentName = ModelInferenceLogsUtils.doGetRoomName(userId, roomId);
         if (currentName != null && !currentName.trim().isEmpty() && !currentName.equals(defaultName)) {
-            return currentName;
+            return;
         }
 
         String title = generateTitle(roomId, input, modelId, userId, insight);
@@ -134,19 +124,16 @@ public final class AgentRoomNamer {
         if (updated) {
             syncCachedRoomName(roomId, title, insight);
             logger.info("AgentRoomNamer: room='{}' named '{}'", roomId, title);
-            return title;
         }
-        return ModelInferenceLogsUtils.doGetRoomName(userId, roomId);
     }
 
     /**
-     * One-off title generation: use_history off and appendToHistory=false so
-     * nothing is written back to the room.
+     * One-off title generation mirroring GenerateRoomNameReactor: use_history
+     * off and appendToHistory=false so nothing is written back to the room.
      * Runs against a detached Room instance so the shared room lock held by
      * the run's own asks is never touched.
      *
-     * @return cleaned title, or {@code null} when generation is unavailable or
-     *         fails
+     * @return cleaned title, or {@code null} when generation is unavailable or fails
      */
     private static String generateTitle(String roomId, String input, String modelId, String userId, Insight insight) {
         if (modelId == null || modelId.trim().isEmpty()) {
@@ -165,8 +152,6 @@ public final class AgentRoomNamer {
 
             Map<String, Object> paramMap = new HashMap<>();
             paramMap.put("use_history", false);
-            paramMap.put("stream", false);
-            paramMap.put("max_tokens", TITLE_MAX_TOKENS);
 
             InputMessage inputMsg = InputMessage.builder(detached)
                     .withText(TITLE_INSTRUCTION + "\n\n" + truncate(input, PROMPT_CHAR_LIMIT))

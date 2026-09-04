@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -113,13 +112,11 @@ public class AskRoomReactor extends AbstractReactor {
 				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
 
 		List<AbstractMessage> extraMessages = new ArrayList<>();
-		CompletableFuture<String> roomNameFuture = CompletableFuture.completedFuture(null);
 		ResponseMessage responseMessage;
 		if (responseParts != null) {
 			responseMessage = room.commitPrebuiltTurn(inputMessage, modelEngine, parentMessageId, responseParts,
 					hiddenMessage, extraMessages);
 		} else {
-			roomNameFuture = beforeRoomAsk(room, question, engineId);
 			responseMessage = room.ask(inputMessage, modelEngine, parentMessageId);
 			if (responseMessage.getMessageType() == MessageType.RESPONSE_TEXT) {
 				RoomMessageStore.persist(room, user.getPrimaryLoginToken().getId());
@@ -135,10 +132,6 @@ public class AskRoomReactor extends AbstractReactor {
 		}
 		pixelReturn.put("inputMessage", inputMap);
 		pixelReturn.put("responseMessage", jsonToMap(MessageUtils.toJsonWithImage(responseMessage)));
-		String roomName = roomNameFuture.join();
-		if (roomName != null && !roomName.trim().isEmpty()) {
-			pixelReturn.put("roomName", roomName);
-		}
 
 		List<Map<String, Object>> extraMessagesList = new ArrayList<>();
 		for (int i = 0; i + 1 < extraMessages.size(); i += 2) {
@@ -165,19 +158,6 @@ public class AskRoomReactor extends AbstractReactor {
 	 */
 	protected boolean shouldHideSystemMessages() {
 		return false;
-	}
-
-	/**
-	 * Hook invoked immediately before a live model ask. Prebuilt turns, such as
-	 * cancel recovery, do not invoke this hook.
-	 *
-	 * @param room     room receiving the turn
-	 * @param question user input for the turn
-	 * @param engineId model engine used for the turn
-	 * @return future containing the room name to expose with the completed ask
-	 */
-	protected CompletableFuture<String> beforeRoomAsk(Room room, String question, String engineId) {
-		return CompletableFuture.completedFuture(null);
 	}
 
 	@Override

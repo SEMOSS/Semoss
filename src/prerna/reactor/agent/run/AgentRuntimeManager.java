@@ -247,13 +247,6 @@ public final class AgentRuntimeManager {
 		snapshot.put("finalOutputMessageId", run.get("finalOutputMessageId"));
 		snapshot.put("finalText", run.get("finalText"));
 		snapshot.put("errorMessage", run.get("errorMessage"));
-		String roomName = run.get("roomName") == null ? null : String.valueOf(run.get("roomName"));
-		String input = run.get("input") == null ? null : String.valueOf(run.get("input"));
-		String defaultName = input == null ? null : input.substring(0, Math.min(input.length(), 100));
-		boolean completed = AgentRunStatus.COMPLETED.name().equals(String.valueOf(run.get("status")));
-		if (roomName != null && (completed || !roomName.equals(defaultName))) {
-			snapshot.put("roomName", roomName);
-		}
 		List<Map<String, Object>> pendingActions = new ArrayList<>();
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			try {
