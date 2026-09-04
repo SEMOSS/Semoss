@@ -25,7 +25,7 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.engine.impl.guardrail;
+package prerna.query.parsers;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -34,10 +34,12 @@ import java.util.Locale;
 import java.util.Set;
 
 import net.sf.jsqlparser.expression.AnalyticExpression;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.NextValExpression;
 import net.sf.jsqlparser.expression.TimeKeyExpression;
 import net.sf.jsqlparser.expression.UserVariable;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParser;
 import net.sf.jsqlparser.parser.StringProvider;
 import net.sf.jsqlparser.schema.Column;
@@ -64,26 +66,27 @@ import net.sf.jsqlparser.statement.drop.Drop;
 import net.sf.jsqlparser.statement.execute.Execute;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.merge.Merge;
-import net.sf.jsqlparser.statement.replace.Replace;
 import net.sf.jsqlparser.statement.select.AllColumns;
-import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.FromItemVisitorAdapter;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.LateralSubSelect;
-import net.sf.jsqlparser.statement.select.ParenthesisFromItem;
+import net.sf.jsqlparser.statement.select.ParenthesedFromItem;
+import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
+import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.statement.select.SelectVisitorAdapter;
 import net.sf.jsqlparser.statement.select.SetOperationList;
-import net.sf.jsqlparser.statement.select.SubJoin;
-import net.sf.jsqlparser.statement.select.SubSelect;
 import net.sf.jsqlparser.statement.select.TableFunction;
+import net.sf.jsqlparser.statement.select.Values;
 import net.sf.jsqlparser.statement.select.WithItem;
+import net.sf.jsqlparser.statement.show.ShowIndexStatement;
+import net.sf.jsqlparser.statement.show.ShowTablesStatement;
 import net.sf.jsqlparser.statement.truncate.Truncate;
 import net.sf.jsqlparser.statement.update.Update;
+import net.sf.jsqlparser.statement.update.UpdateSet;
 import net.sf.jsqlparser.statement.upsert.Upsert;
-import net.sf.jsqlparser.statement.values.ValuesStatement;
+import net.sf.jsqlparser.statement.upsert.UpsertType;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 
 /**
@@ -92,7 +95,7 @@ import net.sf.jsqlparser.util.TablesNamesFinder;
  * dialect construct remains a parser failure for the guardrail policy to
  * decide.
  */
-final class SqlQueryPolicyParser {
+public final class SqlQueryPolicyParser {
 
 	// The SQL AST represents these unparenthesized context expressions as
 	// unqualified Column nodes. Only promote recognized context expressions;
@@ -105,28 +108,31 @@ final class SqlQueryPolicyParser {
 	private SqlQueryPolicyParser() {
 	}
 
-	static Analysis parse(String query, boolean squareBracketQuotation) throws Exception {
+	public static Analysis parse(String query, boolean squareBracketQuotation) throws Exception {
 		CCJSqlParser parser = new CCJSqlParser(new StringProvider(query));
 		parser.withSquareBracketQuotation(squareBracketQuotation);
 		parser.setErrorRecovery(false);
 		Statements parsed = parser.Statements();
 
 		Analysis analysis = new Analysis();
-		analysis.statementCount = parsed.getStatements().size();
-		for (Statement statement : parsed.getStatements()) {
+		analysis.statementCount = parsed.size();
+		for (Statement statement : parsed) {
 			inspectStatement(statement, analysis);
 		}
 		return analysis;
 	}
 
 	private static void inspectStatement(Statement statement, Analysis analysis) {
-		if (statement instanceof Select) {
+		if (statement instanceof Values) {
+			analysis.operations.add(Operation.VALUES);
+		} else if (statement instanceof Select) {
 			analysis.operations.add(Operation.SELECT);
 			inspectSelect((Select) statement, analysis);
 		} else if (statement instanceof Insert) {
 			Insert insert = (Insert) statement;
 			analysis.operations.add(Operation.INSERT);
-			if (insert.isUseDuplicate()) {
+			List<UpdateSet> duplicateUpdateSets = insert.getDuplicateUpdateSets();
+			if (duplicateUpdateSets != null && !duplicateUpdateSets.isEmpty()) {
 				analysis.operations.add(Operation.UPSERT);
 			}
 			inspectSelect(insert.getSelect(), analysis);
@@ -136,7 +142,7 @@ final class SqlQueryPolicyParser {
 			if (update.getWhere() == null) {
 				analysis.updateWithoutWhere = true;
 			}
-			inspectSelect(update.getSelect(), analysis);
+			inspectUpdateSets(update.getUpdateSets(), analysis);
 			inspectDmlFromAndJoins(update.getFromItem(), update.getStartJoins(), update.getJoins(), analysis);
 		} else if (statement instanceof Delete) {
 			Delete delete = (Delete) statement;
@@ -148,14 +154,11 @@ final class SqlQueryPolicyParser {
 		} else if (statement instanceof Merge) {
 			Merge merge = (Merge) statement;
 			analysis.operations.add(Operation.MERGE);
-			if (merge.getUsingSelect() != null) {
-				inspectSelectBody(merge.getUsingSelect().getSelectBody(), analysis);
-			}
+			inspectDmlFromAndJoins(merge.getFromItem(), null, null, analysis);
 		} else if (statement instanceof Upsert) {
-			analysis.operations.add(Operation.UPSERT);
-			inspectSelect(((Upsert) statement).getSelect(), analysis);
-		} else if (statement instanceof Replace) {
-			analysis.operations.add(Operation.REPLACE);
+			Upsert upsert = (Upsert) statement;
+			analysis.operations.add(isReplace(upsert) ? Operation.REPLACE : Operation.UPSERT);
+			inspectSelect(upsert.getSelect(), analysis);
 		} else if (statement instanceof Truncate) {
 			analysis.operations.add(Operation.TRUNCATE);
 		} else if (statement instanceof CreateTable) {
@@ -191,20 +194,19 @@ final class SqlQueryPolicyParser {
 			analysis.operations.add(Operation.COMMIT);
 		} else if (statement instanceof DeclareStatement) {
 			analysis.operations.add(Operation.DECLARE);
-		} else if (statement instanceof ShowColumnsStatement || statement instanceof ShowStatement) {
+		} else if (statement instanceof ShowColumnsStatement || statement instanceof ShowStatement
+				|| statement instanceof ShowTablesStatement || statement instanceof ShowIndexStatement) {
 			analysis.operations.add(Operation.SHOW);
 		} else if (statement instanceof DescribeStatement) {
 			analysis.operations.add(Operation.DESCRIBE);
 		} else if (statement instanceof ExplainStatement) {
 			analysis.operations.add(Operation.EXPLAIN);
 			inspectSelect(((ExplainStatement) statement).getStatement(), analysis);
-		} else if (statement instanceof ValuesStatement) {
-			analysis.operations.add(Operation.VALUES);
 		} else if (statement instanceof Block) {
 			analysis.operations.add(Operation.BLOCK);
 			Statements nested = ((Block) statement).getStatements();
 			if (nested != null) {
-				for (Statement nestedStatement : nested.getStatements()) {
+				for (Statement nestedStatement : nested) {
 					inspectStatement(nestedStatement, analysis);
 				}
 			}
@@ -215,24 +217,36 @@ final class SqlQueryPolicyParser {
 		inspectIdentifiers(statement, analysis);
 	}
 
+	private static boolean isReplace(Upsert upsert) {
+		UpsertType upsertType = upsert.getUpsertType();
+		return upsertType == UpsertType.REPLACE || upsertType == UpsertType.REPLACE_SET
+				|| upsertType == UpsertType.INSERT_OR_REPLACE;
+	}
+
 	private static void inspectSelect(Select select, Analysis analysis) {
 		if (select == null) {
 			return;
 		}
-		SelectShapeInspector inspector = new SelectShapeInspector(analysis);
-		if (select.getWithItemsList() != null) {
-			for (WithItem withItem : select.getWithItemsList()) {
-				withItem.accept(inspector);
-			}
-		}
-		if (select.getSelectBody() != null) {
-			select.getSelectBody().accept(inspector);
-		}
+		new SelectShapeInspector(analysis).inspect(select);
 	}
 
-	private static void inspectSelectBody(SelectBody selectBody, Analysis analysis) {
-		if (selectBody != null) {
-			selectBody.accept(new SelectShapeInspector(analysis));
+	/**
+	 * An assigned value can itself be a subquery, so every SET value is inspected
+	 * for select shape rather than only the first one.
+	 */
+	private static void inspectUpdateSets(List<UpdateSet> updateSets, Analysis analysis) {
+		if (updateSets == null) {
+			return;
+		}
+		for (UpdateSet updateSet : updateSets) {
+			if (updateSet.getValues() == null) {
+				continue;
+			}
+			for (Expression value : updateSet.getValues()) {
+				if (value instanceof Select) {
+					inspectSelect((Select) value, analysis);
+				}
+			}
 		}
 	}
 
@@ -240,7 +254,7 @@ final class SqlQueryPolicyParser {
 			List<Join> startJoins, List<Join> joins, Analysis analysis) {
 		SelectShapeInspector inspector = new SelectShapeInspector(analysis);
 		if (fromItem != null) {
-			fromItem.accept(inspector.fromItemVisitor);
+			fromItem.accept(inspector.fromItemVisitor, null);
 		}
 		inspector.inspectJoins(startJoins);
 		inspector.inspectJoins(joins);
@@ -251,16 +265,17 @@ final class SqlQueryPolicyParser {
 		List<String> tables = new ArrayList<>();
 		try {
 			if (statement instanceof Select || statement instanceof Delete || statement instanceof Update
-					|| statement instanceof Insert || statement instanceof Replace || statement instanceof Truncate
-					|| statement instanceof CreateTable || statement instanceof Merge || statement instanceof Upsert
-					|| statement instanceof ValuesStatement || statement instanceof Comment
+					|| statement instanceof Insert || statement instanceof Truncate || statement instanceof CreateTable
+					|| statement instanceof Merge || statement instanceof Upsert || statement instanceof Comment
 					|| statement instanceof DescribeStatement || statement instanceof ExplainStatement) {
-				tables.addAll(inventory.getTableList(statement));
+				tables.addAll(inventory.getTables(statement));
 			} else if (statement instanceof CreateView) {
 				CreateView create = (CreateView) statement;
 				addTable(tables, create.getView());
 				if (create.getSelect() != null) {
-					tables.addAll(inventory.getTableList(create.getSelect()));
+					// Select is both a Statement and an Expression, so the overload has to be
+					// pinned down
+					tables.addAll(inventory.getTables((Statement) create.getSelect()));
 				}
 			} else if (statement instanceof AlterView) {
 				addTable(tables, ((AlterView) statement).getView());
@@ -272,27 +287,31 @@ final class SqlQueryPolicyParser {
 				addTable(tables, ((Drop) statement).getName());
 			} else if (statement instanceof Execute) {
 				Execute execute = (Execute) statement;
-				if (execute.getExprList() != null) {
-					for (net.sf.jsqlparser.expression.Expression expression : execute.getExprList().getExpressions()) {
-						inventory.getTableList(expression);
+				ExpressionList<?> arguments = execute.getExprList();
+				if (arguments != null) {
+					for (Expression expression : arguments) {
+						inventory.getTables(expression);
 					}
 				}
 			} else if (statement instanceof SetStatement) {
 				SetStatement set = (SetStatement) statement;
 				for (int i = 0; i < set.getCount(); i++) {
-					if (set.getExpression(i) != null) {
-						inventory.getTableList(set.getExpression(i));
+					List<Expression> expressions = set.getExpressions(i);
+					if (expressions != null) {
+						for (Expression expression : expressions) {
+							inventory.getTables(expression);
+						}
 					}
 				}
 			} else if (statement instanceof DeclareStatement) {
 				UserVariable variable = ((DeclareStatement) statement).getUserVariable();
 				if (variable != null) {
-					inventory.visit(variable);
+					inventory.visit(variable, null);
 				}
 			}
 		} catch (UnsupportedOperationException e) {
-			// The operation is still represented by its Statement subclass. JSQLParser
-			// 3.1's table finder does not support every DDL node.
+			// The operation is still represented by its Statement subclass. JSQLParser's
+			// table finder does not support every DDL node.
 		}
 
 		for (String table : tables) {
@@ -335,11 +354,11 @@ final class SqlQueryPolicyParser {
 				&& UNQUALIFIED_KEYWORD_EXPRESSIONS.contains(canonicalIdentifier(identifier));
 	}
 
-	enum OperationGroup {
+	public enum OperationGroup {
 		READ, METADATA, WRITE, DDL, ROUTINE, SESSION, TRANSACTION, LOCK, UNKNOWN
 	}
 
-	enum Operation {
+	public enum Operation {
 		SELECT(OperationGroup.READ), VALUES(OperationGroup.READ), EXPLAIN(OperationGroup.READ),
 		SHOW(OperationGroup.METADATA), DESCRIBE(OperationGroup.METADATA), INSERT(OperationGroup.WRITE),
 		UPDATE(OperationGroup.WRITE), DELETE(OperationGroup.WRITE), MERGE(OperationGroup.WRITE),
@@ -351,47 +370,48 @@ final class SqlQueryPolicyParser {
 		DECLARE(OperationGroup.SESSION), COMMIT(OperationGroup.TRANSACTION), SELECT_FOR_UPDATE(OperationGroup.LOCK),
 		UNKNOWN(OperationGroup.UNKNOWN);
 
-		final OperationGroup group;
+		public final OperationGroup group;
 
 		Operation(OperationGroup group) {
 			this.group = group;
 		}
 	}
 
-	static final class Analysis {
-		int statementCount;
-		final Set<Operation> operations = new LinkedHashSet<>();
-		final Set<String> functions = new LinkedHashSet<>();
-		final Set<String> variables = new LinkedHashSet<>();
-		final Set<String> keywords = new LinkedHashSet<>();
-		final Set<String> relations = new LinkedHashSet<>();
-		final Set<String> routines = new LinkedHashSet<>();
-		boolean deleteWithoutWhere;
-		boolean updateWithoutWhere;
-		boolean selectStar;
-		boolean cartesianJoin;
-		boolean recursiveCte;
-		int joinCount;
+	public static final class Analysis {
+		public int statementCount;
+		public final Set<Operation> operations = new LinkedHashSet<>();
+		public final Set<String> functions = new LinkedHashSet<>();
+		public final Set<String> variables = new LinkedHashSet<>();
+		public final Set<String> keywords = new LinkedHashSet<>();
+		public final Set<String> relations = new LinkedHashSet<>();
+		public final Set<String> routines = new LinkedHashSet<>();
+		public boolean deleteWithoutWhere;
+		public boolean updateWithoutWhere;
+		public boolean selectStar;
+		public boolean cartesianJoin;
+		public boolean recursiveCte;
+		public int joinCount;
 	}
 
-	private static final class AstInventory extends TablesNamesFinder {
+	private static final class AstInventory extends TablesNamesFinder<Void> {
 		private final Set<String> functions = new LinkedHashSet<>();
 		private final Set<String> variables = new LinkedHashSet<>();
 		private final Set<String> keywords = new LinkedHashSet<>();
 
 		@Override
-		public void visit(Function function) {
+		public <S> Void visit(Function function, S context) {
 			addIdentifier(functions, function.getName());
-			super.visit(function);
+			return super.visit(function, context);
 		}
 
 		@Override
-		public void visit(UserVariable variable) {
+		public <S> Void visit(UserVariable variable, S context) {
 			addIdentifier(variables, variable.toString());
+			return null;
 		}
 
 		@Override
-		public void visit(Column column) {
+		public <S> Void visit(Column column, S context) {
 			if (column.getTable() == null || column.getTable().getName() == null
 					|| column.getTable().getName().isBlank()) {
 				String columnName = column.getColumnName();
@@ -399,63 +419,61 @@ final class SqlQueryPolicyParser {
 					addIdentifier(keywords, columnName);
 				}
 			}
-			super.visit(column);
+			return super.visit(column, context);
 		}
 
 		@Override
-		public void visit(TableFunction tableFunction) {
+		public <S> Void visit(TableFunction tableFunction, S context) {
 			if (tableFunction.getFunction() != null) {
-				tableFunction.getFunction().accept(this);
+				tableFunction.getFunction().accept(this, context);
 			}
+			return null;
 		}
 
 		@Override
-		public void visit(AnalyticExpression analytic) {
+		public <S> Void visit(AnalyticExpression analytic, S context) {
 			addIdentifier(functions, analytic.getName());
 			if (analytic.getExpression() != null) {
-				analytic.getExpression().accept(this);
+				analytic.getExpression().accept(this, context);
 			}
+			return null;
 		}
 
 		@Override
-		public void visit(NextValExpression nextVal) {
+		public <S> Void visit(NextValExpression nextVal, S context) {
 			addIdentifier(functions, "NEXTVAL");
+			return null;
 		}
 
 		@Override
-		public void visit(TimeKeyExpression keyword) {
+		public <S> Void visit(TimeKeyExpression keyword, S context) {
 			addIdentifier(keywords, keyword.getStringValue());
+			return null;
 		}
 	}
 
-	private static final class SelectShapeInspector extends SelectVisitorAdapter {
+	private static final class SelectShapeInspector extends SelectVisitorAdapter<Void> {
 		private final Analysis analysis;
-		private final FromItemVisitorAdapter fromItemVisitor = new FromItemVisitorAdapter() {
+		private final FromItemVisitorAdapter<Void> fromItemVisitor = new FromItemVisitorAdapter<Void>() {
 			@Override
-			public void visit(SubSelect subSelect) {
-				inspectSubSelect(subSelect);
+			public <S> Void visit(ParenthesedSelect parenthesedSelect, S context) {
+				inspectParenthesedSelect(parenthesedSelect);
+				return null;
 			}
 
 			@Override
-			public void visit(LateralSubSelect lateralSubSelect) {
-				if (lateralSubSelect.getSubSelect() != null) {
-					inspectSubSelect(lateralSubSelect.getSubSelect());
-				}
+			public <S> Void visit(LateralSubSelect lateralSubSelect, S context) {
+				inspectParenthesedSelect(lateralSubSelect);
+				return null;
 			}
 
 			@Override
-			public void visit(SubJoin subJoin) {
-				if (subJoin.getLeft() != null) {
-					subJoin.getLeft().accept(this);
+			public <S> Void visit(ParenthesedFromItem parenthesedFromItem, S context) {
+				if (parenthesedFromItem.getFromItem() != null) {
+					parenthesedFromItem.getFromItem().accept(this, context);
 				}
-				inspectJoins(subJoin.getJoinList());
-			}
-
-			@Override
-			public void visit(ParenthesisFromItem parenthesis) {
-				if (parenthesis.getFromItem() != null) {
-					parenthesis.getFromItem().accept(this);
-				}
+				inspectJoins(parenthesedFromItem.getJoins());
+				return null;
 			}
 		};
 
@@ -463,49 +481,68 @@ final class SqlQueryPolicyParser {
 			this.analysis = analysis;
 		}
 
+		private void inspect(Select select) {
+			if (select.getWithItemsList() != null) {
+				for (WithItem<?> withItem : select.getWithItemsList()) {
+					visit(withItem, null);
+				}
+			}
+			select.accept(this, null);
+		}
+
 		@Override
-		public void visit(PlainSelect select) {
+		public <S> Void visit(PlainSelect select, S context) {
 			if (select.getIntoTables() != null && !select.getIntoTables().isEmpty()) {
 				analysis.operations.add(Operation.SELECT_INTO);
 			}
-			if (select.isForUpdate()) {
+			if (select.getForMode() != null) {
 				analysis.operations.add(Operation.SELECT_FOR_UPDATE);
 			}
 			if (select.getSelectItems() != null) {
-				analysis.selectStar |= select.getSelectItems().stream()
-						.anyMatch(item -> item instanceof AllColumns || item instanceof AllTableColumns);
+				// AllTableColumns extends AllColumns, so both t.* and * land on this check
+				analysis.selectStar |= select.getSelectItems().stream().map(SelectItem::getExpression)
+						.anyMatch(expression -> expression instanceof AllColumns);
 			}
 			if (select.getFromItem() != null) {
-				select.getFromItem().accept(fromItemVisitor);
+				select.getFromItem().accept(fromItemVisitor, context);
 			}
 			inspectJoins(select.getJoins());
+			return null;
 		}
 
 		@Override
-		public void visit(SetOperationList setOperationList) {
+		public <S> Void visit(ParenthesedSelect parenthesedSelect, S context) {
+			inspectParenthesedSelect(parenthesedSelect);
+			return null;
+		}
+
+		@Override
+		public <S> Void visit(SetOperationList setOperationList, S context) {
 			if (setOperationList.getSelects() != null) {
-				for (SelectBody body : setOperationList.getSelects()) {
-					body.accept(this);
+				for (Select body : setOperationList.getSelects()) {
+					body.accept(this, context);
 				}
 			}
+			return null;
 		}
 
 		@Override
-		public void visit(WithItem withItem) {
+		public <S> Void visit(WithItem<?> withItem, S context) {
 			analysis.recursiveCte |= withItem.isRecursive();
-			if (withItem.getSelectBody() != null) {
-				withItem.getSelectBody().accept(this);
+			if (withItem.getSelect() != null) {
+				withItem.getSelect().accept(this, context);
 			}
+			return null;
 		}
 
-		private void inspectSubSelect(SubSelect subSelect) {
-			if (subSelect.getWithItemsList() != null) {
-				for (WithItem withItem : subSelect.getWithItemsList()) {
-					withItem.accept(this);
+		private void inspectParenthesedSelect(ParenthesedSelect parenthesedSelect) {
+			if (parenthesedSelect.getWithItemsList() != null) {
+				for (WithItem<?> withItem : parenthesedSelect.getWithItemsList()) {
+					visit(withItem, null);
 				}
 			}
-			if (subSelect.getSelectBody() != null) {
-				subSelect.getSelectBody().accept(this);
+			if (parenthesedSelect.getSelect() != null) {
+				parenthesedSelect.getSelect().accept(this, null);
 			}
 		}
 
@@ -515,10 +552,12 @@ final class SqlQueryPolicyParser {
 			}
 			analysis.joinCount += joins.size();
 			for (Join join : joins) {
+				// getOnExpressions and getUsingColumns are never null, so absence is an empty
+				// list
 				analysis.cartesianJoin |= join.isCross()
-						|| (join.isSimple() && join.getOnExpression() == null && join.getUsingColumns() == null);
+						|| (join.isSimple() && join.getOnExpressions().isEmpty() && join.getUsingColumns().isEmpty());
 				if (join.getRightItem() != null) {
-					join.getRightItem().accept(fromItemVisitor);
+					join.getRightItem().accept(fromItemVisitor, null);
 				}
 			}
 		}
