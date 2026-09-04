@@ -27,8 +27,10 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -50,6 +52,22 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 class RoomUtilsTest {
+
+	@Test
+	void roomFolderPathRejectsOnlyTraversalSegments() {
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn("/semoss");
+
+			assertEquals("/semoss" + java.io.File.separator + "room" + java.io.File.separator
+					+ "Legacy room.v2 ? 世界", Room.roomFolderPath("Legacy room.v2 ? 世界"));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath("../other-room"));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath("folder/room"));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath("folder\\room"));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath("."));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath(".."));
+			assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath("room\0id"));
+		}
+	}
 
 	@Test
 	void cachedRoomRefreshHoldsMutationLock() {

@@ -2089,6 +2089,10 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
+		if (roomId != null && (roomId.indexOf('\0') >= 0 || roomId.indexOf('/') >= 0 || roomId.indexOf('\\') >= 0
+				|| ".".equals(roomId) || "..".equals(roomId))) {
+			throw new IllegalArgumentException("Room id must be a single path segment");
+		}
 		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
 	}
 
