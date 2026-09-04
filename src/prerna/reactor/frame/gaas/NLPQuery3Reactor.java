@@ -47,7 +47,7 @@ import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.parsers.GenExpressionWrapper;
-import prerna.query.parsers.SqlParser2;
+import prerna.query.parsers.SqlParser;
 import prerna.query.querystruct.GenExpression;
 import prerna.query.querystruct.HardSelectQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -67,7 +67,6 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 	// convert text to sql through pipeline
 	// plug the pipeline into insight
 
-	//
 	private static final Logger classLogger = LogManager.getLogger(NLPQuery3Reactor.class);
 
 	public NLPQuery3Reactor() {
@@ -198,7 +197,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 			if (end >= 0) {
 				response = response.substring(0, end);
 			}
-			classLogger.info(response);
+			classLogger.info("Extracted SQL from the model response: {}", response);
 			output = response;
 			// get the string
 			// make a frame
@@ -240,7 +239,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				insight.getPyTranslator().runEmptyPy(frameMaker);
 				String sampleOut = insight.getPyTranslator().runDirectPy(frameName + ".head(20)") + "";
 
-				System.err.println(sampleOut);
+				classLogger.info("Frame sample: {}", sampleOut);
 				// send information
 				// check to see if the variable was created
 				// if not this is a bad query
@@ -417,7 +416,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 	private boolean isSameColumns(String sqlDFQuery, ITableDataFrame thisFrame) {
 		boolean sameColumns = true;
 		try {
-			SqlParser2 p2 = new SqlParser2();
+			SqlParser p2 = new SqlParser();
 			GenExpressionWrapper wrapper = p2.processQuery(sqlDFQuery);
 
 			String[] columnHeaders = thisFrame.getColumnHeaders();
@@ -449,7 +448,7 @@ public class NLPQuery3Reactor extends AbstractFrameReactor {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.info(e.getMessage());
+			classLogger.error("Failed to compare the frame columns", e);
 			sameColumns = false;
 		}
 		return sameColumns;

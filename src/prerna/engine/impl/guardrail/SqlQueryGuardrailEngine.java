@@ -45,6 +45,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.logging.IgnoreEngineLogging;
 import prerna.om.Insight;
+import prerna.query.parsers.SqlQueryPolicyParser;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
@@ -412,6 +413,10 @@ public class SqlQueryGuardrailEngine extends AbstractGuardrailReactorFunctionEng
 		case READ:
 		case METADATA:
 			return Requirement.READ_ONLY;
+		case ROUTINE:
+			// running a stored routine hands control to code the guardrail cannot see,
+			// so it is denied outright rather than being treated as an ordinary write
+			return Requirement.DENY;
 		case UNKNOWN:
 			return Requirement.DENY;
 		default:

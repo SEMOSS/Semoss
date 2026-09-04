@@ -1382,10 +1382,11 @@
 			<artifactId>commonmark-ext-gfm-tables</artifactId>
 			<version>0.28.0</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/com.github.jsqlparser/jsqlparser -->
 		<dependency>
-			<groupId>com.github.jsqlparser</groupId>
-			<artifactId>jsqlparser</artifactId>
-			<version>3.1</version>
+		    <groupId>com.github.jsqlparser</groupId>
+		    <artifactId>jsqlparser</artifactId>
+		    <version>5.3</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
