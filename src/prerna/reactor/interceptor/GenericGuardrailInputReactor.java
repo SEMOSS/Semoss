@@ -38,6 +38,10 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -62,6 +66,10 @@ import prerna.util.Utility;
 public class GenericGuardrailInputReactor extends AbstractReactor implements IInputReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GenericGuardrailInputReactor.class);
+
+	// default guardrail input param whose mapped argument gets overwritten when masking
+	private static final String DEFAULT_MASK_TARGET_PARAM = "prompt";
+	private static final String DEFAULT_TOOL_CONTINUATION_ARG = "arg2";
 	private transient IEngine targetEngine;
 
 	public GenericGuardrailInputReactor() {
@@ -85,6 +93,15 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(guardrailEngineId);
 		if (guardrailEngine == null) {
 			throw new SecurityException("Guardrail engine with ID '" + guardrailEngineId + "' not found.");
+		}
+
+		// Some mounts (e.g. prompt-injection classifiers tuned on user-typed text) should
+		// only ever see real user turns - askRoom is reused for tool-result continuations,
+		// so skip this mount when the guarded argument is a tool result from a listed tool.
+		if (isToolContinuation(helper)) {
+			Map<String, Object> processedArguments = helper.getArgumentsMap();
+			processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, createSkippedInterimResult());
+			return new NounMetadata(processedArguments, PixelDataType.MAP);
 		}
 
 		// Get the input mapping for the guardrail engine
@@ -339,6 +356,66 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
 		}
 
+		return resultMap;
+	}
+
+	/**
+	 * True when the guarded argument is a tool-result continuation this mount should
+	 * skip, never a real user turn.
+	 *
+	 * {@code skipOnToolContinuationForAllTools} (Boolean), when {@code true}, skips any
+	 * tool-result continuation and ignores {@code skipOnToolContinuationForTools}
+	 * entirely. Otherwise a non-empty {@code skipOnToolContinuationForTools} (List)
+	 * skips only when every tool result on the message names a listed tool.
+	 *
+	 * Either way, the argument named by {@code toolContinuationArg} (default
+	 * {@value #DEFAULT_TOOL_CONTINUATION_ARG}) must be an {@link AbstractMessage} that
+	 * {@link AbstractMessage#hasToolResultPart()} - a real user turn is always screened,
+	 * regardless of either flag.
+	 */
+	static boolean isToolContinuation(ReactorInputHelper helper) {
+		boolean blanket = Boolean.TRUE
+				.equals(helper.getConfigParameter("skipOnToolContinuationForAllTools", Boolean.class));
+
+		List<?> allowedTools = helper.getConfigParameter("skipOnToolContinuationForTools", List.class);
+		if (!blanket && (allowedTools == null || allowedTools.isEmpty())) {
+			return false;
+		}
+
+		String argName = helper.getConfigParameter("toolContinuationArg", String.class);
+		if (argName == null || argName.isEmpty()) {
+			argName = DEFAULT_TOOL_CONTINUATION_ARG;
+		}
+		Object argValue = helper.getMethodArgument(argName);
+		if (!(argValue instanceof AbstractMessage) || !((AbstractMessage) argValue).hasToolResultPart()) {
+			return false; // not a tool continuation - always screen
+		}
+
+		if (blanket) {
+			String guardrailEngineId = helper.getConfigParameter("guardrailEngineId", String.class);
+			classLogger.warn("Guardrail '{}' skipped on a tool-result continuation "
+					+ "(skipOnToolContinuationForAllTools=true, toolContinuationArg='{}').", guardrailEngineId,
+					argName);
+			return true; // blanket ignores the allowlist
+		}
+
+		for (MessagePart part : ((AbstractMessage) argValue).getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult == null || !allowedTools.contains(toolResult.getToolName())) {
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	private Map<String, Object> createSkippedInterimResult() {
+		Map<String, Object> resultMap = new HashMap<>();
+		resultMap.put(PipelineReactorUtils.INTERCEPTOR, this.getClass().getName());
+		resultMap.put(PipelineReactorUtils.PASS, true);
+		resultMap.put(PipelineReactorUtils.PASS_DETAILS, "Skipped: tool-result continuation, not a user prompt");
+		resultMap.put(PipelineReactorUtils.MASKED, false);
 		return resultMap;
 	}
 }
