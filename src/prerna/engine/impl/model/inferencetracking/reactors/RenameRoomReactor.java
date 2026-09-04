@@ -30,6 +30,7 @@ package prerna.engine.impl.model.inferencetracking.reactors;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -44,6 +45,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -64,8 +66,8 @@ public class RenameRoomReactor extends AbstractReactor {
 	
 	public RenameRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.NAME.getKey(),
-				ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+				ReactorKeysEnum.MODEL.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -80,9 +82,6 @@ public class RenameRoomReactor extends AbstractReactor {
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String roomName = this.keyValue.get(ReactorKeysEnum.NAME.getKey());
 		String modelId = this.keyValue.get(ReactorKeysEnum.MODEL.getKey());
-		if (modelId == null || modelId.trim().isEmpty()) {
-			modelId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
-		}
 
 		String userId = user.getPrimaryLoginToken().getId();
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
@@ -90,10 +89,14 @@ public class RenameRoomReactor extends AbstractReactor {
 			throw new IllegalArgumentException("A room name must be provided");
 		}
 
-		String sourceOrName = roomName.trim();
-		String finalName = sourceOrName;
+		String requestedName = roomName.trim();
+		String finalName;
 		if (modelId != null && !modelId.trim().isEmpty()) {
-			finalName = generateRoomTitle(user, modelId.trim(), sourceOrName);
+			// Generated rename: treat name as source text for the title model.
+			finalName = generateRoomTitle(user, modelId.trim(), requestedName);
+		} else {
+			// Manual rename: use the supplied name without calling a model.
+			finalName = requestedName;
 		}
 
 		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
@@ -136,7 +139,8 @@ public class RenameRoomReactor extends AbstractReactor {
 
 			ResponseMessage response = titleRoom.ask(titleMessage, modelEngine, null, false);
 			String rawTitle = response == null ? null : response.getContent();
-			String title = cleanTitle(rawTitle);
+			String title = rawTitle == null ? null
+					: StringUtils.normalizeSpace(PixelUtility.removeSurroundingQuotes(rawTitle));
 			if (title == null || title.isEmpty()) {
 				throw new IllegalStateException("Model did not return a room name");
 			}
@@ -151,16 +155,6 @@ public class RenameRoomReactor extends AbstractReactor {
 				}
 			}
 		}
-	}
-
-	private static String cleanTitle(String value) {
-		if (value == null) {
-			return null;
-		}
-		return value.trim()
-				.replaceAll("^[\\\"']+|[\\\"']+$", "")
-				.replaceAll("\\s+", " ")
-				.trim();
 	}
 
 	private static String truncate(String value, int maxLength) {
@@ -180,8 +174,6 @@ public class RenameRoomReactor extends AbstractReactor {
 			return "The literal room name, or the source text to summarize when a model is provided.";
 		} else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
 			return "Optional model ID used to generate a title from the supplied name text.";
-		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Deprecated alias for model.";
 		}
 		return super.getDescriptionForKey(key);
 	}
