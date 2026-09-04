@@ -40,10 +40,11 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 
 	private static final String START_URL = "start_url";
 	private static final String RECORDING_NAME_HINT = "recording_name_hint";
+	private static final String CAPTURE_FULL_PAGE_AT_END = "capture_full_page_at_end";
 
 	public OpenPlaywrightSocketsRoomRecordingReactor() {
-		this.keysToGet = new String[] { START_URL, RECORDING_NAME_HINT };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { START_URL, RECORDING_NAME_HINT, CAPTURE_FULL_PAGE_AT_END };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -56,8 +57,10 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 		result.put("status", "ui_required");
 		result.put("start_url", startUrl);
 		result.put("recording_name_hint", recordingNameHint);
+		result.put(CAPTURE_FULL_PAGE_AT_END,
+				Boolean.parseBoolean(trim(this.keyValue.get(CAPTURE_FULL_PAGE_AT_END))));
 		result.put("instructions",
-				"The Playwright Sockets UI will open, start recording, and save the recording to the current Playground room when returned.");
+				"The Playwright Sockets UI will open, start recording, and save the recording to the current Playground room when returned. Native browser downloads are captured automatically and saved as individual assets under /browser-downloads/<run-id>/; the response returns saved insight paths and any per-file errors.");
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -78,7 +81,7 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Opens the Playwright Sockets remote browser, navigates to a URL, and starts a recording that can be saved to the current Playground room.";
+		return "Opens the Playwright Sockets remote browser, navigates to a URL, and starts a recording that can be saved to the current Playground room. Native browser downloads are automatically saved as individual assets in the current insight and returned as metadata and insight paths.";
 	}
 
 	@Override
@@ -88,6 +91,9 @@ public class OpenPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 		}
 		if (RECORDING_NAME_HINT.equals(key)) {
 			return "Optional short name or description for the recording.";
+		}
+		if (CAPTURE_FULL_PAGE_AT_END.equals(key)) {
+			return "When returning the recording to Playground, auto-scroll the final page and return its rendered text as context. Best effort; capture errors do not fail the save.";
 		}
 		return super.getDescriptionForKey(key);
 	}

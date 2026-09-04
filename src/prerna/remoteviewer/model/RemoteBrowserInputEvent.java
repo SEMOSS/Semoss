@@ -102,6 +102,8 @@ public class RemoteBrowserInputEvent {
 	private Boolean required;
 	/** Optional replay playground flag. */
 	private Boolean sendToPlayground;
+	/** Whether replay should wait for a native browser download after this action. */
+	private Boolean downloadExpected;
 	/** For switch-tab events: the tab ID to activate. */
 	private String targetTabId;
 	/** Internal source tab captured before dispatch; clients may omit it. */
@@ -114,6 +116,12 @@ public class RemoteBrowserInputEvent {
 	private Boolean reuseActiveTab;
 	/** Recorded child-tab ID expected from a replayed popup-triggering action. */
 	private String replayTriggerTabId;
+	/** Optional recording/replay step id associated with this action. */
+	private Integer stepId;
+	/** Enables or pauses browser diagnostic event collection. */
+	private Boolean debugEnabled;
+	/** Clears pending browser diagnostic events. */
+	private Boolean clear;
 
 	// ---- getters & setters ----
 
@@ -373,6 +381,14 @@ public class RemoteBrowserInputEvent {
 		this.sendToPlayground = sendToPlayground;
 	}
 
+	public Boolean getDownloadExpected() {
+		return downloadExpected;
+	}
+
+	public void setDownloadExpected(Boolean downloadExpected) {
+		this.downloadExpected = downloadExpected;
+	}
+
 	public String getTargetTabId() {
 		return targetTabId;
 	}
@@ -411,5 +427,29 @@ public class RemoteBrowserInputEvent {
 
 	public void setReplayTriggerTabId(String replayTriggerTabId) {
 		this.replayTriggerTabId = replayTriggerTabId;
+	}
+
+	public Integer getStepId() {
+		return stepId;
+	}
+
+	public void setStepId(Integer stepId) {
+		this.stepId = stepId;
+	}
+
+	public Boolean getDebugEnabled() {
+		return debugEnabled;
+	}
+
+	public void setDebugEnabled(Boolean debugEnabled) {
+		this.debugEnabled = debugEnabled;
+	}
+
+	public Boolean getClear() {
+		return clear;
+	}
+
+	public void setClear(Boolean clear) {
+		this.clear = clear;
 	}
 }
