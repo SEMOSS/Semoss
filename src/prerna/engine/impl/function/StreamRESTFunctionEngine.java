@@ -61,9 +61,11 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.engine.api.FunctionTypeEnum;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.comm.PixelJobRunner;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
@@ -111,10 +113,15 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		if (parameterValues == null) {
+			throw new IllegalArgumentException("Must provide the job id for streaming output");
+		}
 		String jobId = (String) parameterValues.remove(PixelJobRunner.JOB_KEY);
 		if (jobId == null) {
 			throw new IllegalArgumentException("Must provide the job id for streaming output");
 		}
+		// remove insight
+		parameterValues.remove(Constants.INSIGHT);
 
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
@@ -239,6 +246,6 @@ public class StreamRESTFunctionEngine extends AbstractFunctionEngine {
 
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
+		return FunctionTypeEnum.STREAM_REST.getFunctionName();
 	}
 }
