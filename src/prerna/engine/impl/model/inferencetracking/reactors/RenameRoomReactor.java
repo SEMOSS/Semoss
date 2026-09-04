@@ -65,7 +65,7 @@ public class RenameRoomReactor extends AbstractReactor {
 	public RenameRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ROOM_ID.getKey(), ReactorKeysEnum.NAME.getKey(),
 				ReactorKeysEnum.MODEL.getKey(), ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -86,17 +86,17 @@ public class RenameRoomReactor extends AbstractReactor {
 
 		String userId = user.getPrimaryLoginToken().getId();
 		ModelInferenceLogsUtils.validUserRoom(roomId, userId);
-		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
-
-		String finalName;
-		if (modelId != null && !modelId.trim().isEmpty()) {
-			finalName = generateRoomTitle(room, user, modelId.trim());
-		} else if (roomName != null && !roomName.trim().isEmpty()) {
-			finalName = roomName.trim();
-		} else {
-			throw new IllegalArgumentException("A room name or model must be provided");
+		if (roomName == null || roomName.trim().isEmpty()) {
+			throw new IllegalArgumentException("A room name must be provided");
 		}
 
+		String sourceOrName = roomName.trim();
+		String finalName = sourceOrName;
+		if (modelId != null && !modelId.trim().isEmpty()) {
+			finalName = generateRoomTitle(user, modelId.trim(), sourceOrName);
+		}
+
+		Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 		room.setRoomName(finalName);
 		if (!ModelInferenceLogsUtils.doSetNameForRoom(userId, roomId, finalName)) {
 			throw new IllegalStateException("Room name could not be persisted");
@@ -105,7 +105,7 @@ public class RenameRoomReactor extends AbstractReactor {
 		return new NounMetadata(finalName, PixelDataType.CONST_STRING);
 	}
 
-	private String generateRoomTitle(Room room, User user, String modelId) {
+	private String generateRoomTitle(User user, String modelId, String source) {
 		if (!SecurityEngineUtils.userCanViewEngine(user, modelId)) {
 			throw new IllegalArgumentException(
 					"Model " + modelId + " does not exist or user does not have access to this model");
@@ -115,14 +115,6 @@ public class RenameRoomReactor extends AbstractReactor {
 		if (modelEngine == null) {
 			throw new IllegalArgumentException("Could not load model engine " + modelId);
 		}
-
-		String source = room.getMessages().stream()
-				.filter(InputMessage.class::isInstance)
-				.map(InputMessage.class::cast)
-				.map(InputMessage::getInputUIPrompt)
-				.filter(prompt -> prompt != null && !prompt.trim().isEmpty())
-				.findFirst()
-				.orElseThrow(() -> new IllegalArgumentException("The room does not contain a user message to summarize"));
 
 		Room titleRoom = null;
 		String titleRoomId = GUID.v7().toUUID().toString();
@@ -177,7 +169,7 @@ public class RenameRoomReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Renames a room directly, or generates a title from its first user message when a model is provided.";
+		return "Renames a room directly, or uses a model to generate a title from the supplied name text.";
 	}
 
 	@Override
@@ -185,9 +177,9 @@ public class RenameRoomReactor extends AbstractReactor {
 		if (key.equals(ReactorKeysEnum.ROOM_ID.getKey())) {
 			return "The room ID to rename.";
 		} else if (key.equals(ReactorKeysEnum.NAME.getKey())) {
-			return "The new room name. Required when a model is not provided.";
+			return "The literal room name, or the source text to summarize when a model is provided.";
 		} else if (key.equals(ReactorKeysEnum.MODEL.getKey())) {
-			return "Optional model ID used to generate a title from the room's first user message.";
+			return "Optional model ID used to generate a title from the supplied name text.";
 		} else if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
 			return "Deprecated alias for model.";
 		}
