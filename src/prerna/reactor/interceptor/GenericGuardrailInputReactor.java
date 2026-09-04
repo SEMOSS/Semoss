@@ -223,10 +223,11 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		}
 
 		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
+		Boolean logoutOnBlock = helper.getConfigParameter("logoutOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);
 
-		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked, cannedResponse,
-				closeRoomOnBlock, blockErrorMessage);
+		Map<String, Object> resultMap = createInterimResult(output, this.getClass().getName(), masked,
+				cannedResponse, closeRoomOnBlock, logoutOnBlock, blockErrorMessage);
 
 		// Update the processedArguments with the interim result
 		processedArguments.put(PipelineReactorUtils.INTERIM_RESULT, resultMap);
@@ -321,7 +322,8 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 	 * @return
 	 */
 	private Map<String, Object> createInterimResult(GuardrailNounMetadata results, String interceptorName,
-			boolean masked, String cannedResponse, Boolean closeRoomOnBlock, String blockErrorMessage) {
+			boolean masked, String cannedResponse, Boolean closeRoomOnBlock, Boolean logoutOnBlock,
+			String blockErrorMessage) {
 		Map<String, Object> resultMap = new HashMap<>();
 		resultMap.put(PipelineReactorUtils.INTERCEPTOR, interceptorName);
 		// when we masked the input we neutralized the failure, so let it pass
@@ -334,6 +336,9 @@ public class GenericGuardrailInputReactor extends AbstractReactor implements IIn
 		}
 		if (Boolean.TRUE.equals(closeRoomOnBlock) && !results.isPass() && !masked && cannedResponse == null) {
 			resultMap.put(PipelineReactorUtils.CLOSE_ROOM, true);
+		}
+		if (Boolean.TRUE.equals(logoutOnBlock) && !results.isPass() && !masked && cannedResponse == null) {
+			resultMap.put(PipelineReactorUtils.LOGOUT_USER, true);
 		}
 		if (blockErrorMessage != null && !blockErrorMessage.isEmpty()) {
 			resultMap.put(PipelineReactorUtils.BLOCK_ERROR_MESSAGE, blockErrorMessage);
