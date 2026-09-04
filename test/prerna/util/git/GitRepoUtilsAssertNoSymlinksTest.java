@@ -52,8 +52,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Confirms {@link GitRepoUtils#assertNoSymlinks(Repository, ObjectId, String)}
- * behaves as before after being widened from {@code private} to
- * {@code public} for reuse by the project git working-tree reactors.
+ * behaves as before after being widened from {@code private} to {@code public}
+ * for reuse by the project git working-tree reactors.
  */
 class GitRepoUtilsAssertNoSymlinksTest {
 
