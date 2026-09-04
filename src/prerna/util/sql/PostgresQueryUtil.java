@@ -421,6 +421,21 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public QueryFunctionSelector getSearchableBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		// Unlike CONVERT_FROM, ENCODE(..., 'escape') is defined for any byte
+		// sequence, so legacy rows with invalid UTF-8 bytes can't abort the search.
+		// Printable ASCII passes through unchanged, so LIKE matching on ordinary
+		// search terms still works.
+		QueryFunctionSelector fun = new QueryFunctionSelector();
+		fun.setFunction("ENCODE");
+		fun.addInnerSelector(innerSelector);
+		fun.addInnerSelector(new QueryConstantSelector("escape"));
+		fun.setDataType("TEXT");
+		fun.setAlias(alias);
+		return fun;
+	}
+
+	@Override
 	public String tableExistsQuery(String tableName, String database, String schema) {
 		return "select table_name, table_type from information_schema.tables where table_schema='"
 				+ schema.toLowerCase() + "' and table_name='" + tableName.toLowerCase() + "'";

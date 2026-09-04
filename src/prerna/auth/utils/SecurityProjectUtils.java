@@ -124,6 +124,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
+		boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
 
 		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 		if (projectName == null) {
@@ -149,7 +150,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if (!projectExists) {
-			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], global, user);
+			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], global, isTemplate, user);
 		} else if (projectExists) {
 			// delete values if currently present
 			deleteInsightsFromProjectForRecreation(projectId);
@@ -464,6 +465,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
 			String projectCost, boolean global, User user) {
+		addProject(projectId, projectName, projectDisplayName, projectType, projectCost, global, false, user);
+	}
+
+	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
+			String projectCost, boolean global, boolean isTemplate, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -478,7 +484,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
-			ps.setBoolean(parameterIndex++, false);
+			ps.setBoolean(parameterIndex++, isTemplate);
 			if (user != null) {
 				AuthProvider ap = user.getPrimaryLogin();
 				AccessToken token = user.getAccessToken(ap);
@@ -1829,12 +1835,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean setProjectTemplate(User user, String projectId, boolean isTemplate)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
 		}
+		return setProjectTemplate(projectId, isTemplate);
+	}
 
+	/**
+	 * System variant of {@link #setProjectTemplate(User, String, boolean)} with no
+	 * permission check. Used at boot to heal the template flag on platform
+	 * projects from their smss; must never be exposed to user input.
+	 *
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 */
+	public static boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET IS_TEMPLATE=? WHERE PROJECTID=?");
