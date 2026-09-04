@@ -51,12 +51,15 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(EditWorkspaceReactor.class);
 
+	/** Max length for the agent's scripted opening message. */
+	private static final int MAX_GREETING_LENGTH = 2000;
+
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
 				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
-				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -192,6 +195,24 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
 				: null;
 
+		// Scripted opening message shown as the first bubble in a new room.
+		// Presence-detected so omitting the key leaves any existing
+		// CONFIG_JSON.greeting untouched; passing it blank clears it.
+		boolean greetingProvided = getGenRowStruct(GREETING) != null;
+		String greeting = greetingProvided ? this.keyValue.get(GREETING) : null;
+		if (greetingProvided && greeting != null && greeting.length() > MAX_GREETING_LENGTH) {
+			return getError(GREETING + " must be " + MAX_GREETING_LENGTH + " characters or fewer");
+		}
+		boolean greetingEnabledProvided = getGenRowStruct(GREETING_ENABLED) != null;
+		Boolean greetingEnabled = null;
+		if (greetingEnabledProvided) {
+			String raw = this.keyValue.get(GREETING_ENABLED);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(GREETING_ENABLED + " must be true or false");
+			}
+			greetingEnabled = Boolean.valueOf(raw);
+		}
+
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
 					workspaceSystemPrompt, isActive, workspaceResources);
@@ -210,7 +231,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
 					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools,
-					disabledDefaultToolsProvided, disabledDefaultTools);
+					disabledDefaultToolsProvided, disabledDefaultTools, greetingProvided, greeting,
+					greetingEnabledProvided, greetingEnabled);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",

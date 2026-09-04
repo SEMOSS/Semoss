@@ -100,6 +100,10 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String SUBAGENTS = "subagents";
 	/** Request key for agent lifecycle hooks (CONFIG_JSON.hooks[]). */
 	static final String HOOKS = "hooks";
+	/** Request key for the agent's scripted opening message (CONFIG_JSON.greeting). Never sent to the model. */
+	static final String GREETING = "greeting";
+	/** Request key controlling whether {@code greeting} is shown (CONFIG_JSON.greeting_enabled). */
+	static final String GREETING_ENABLED = "greetingEnabled";
 
 	/**
 	 * Builds a workspace resource row for an engine, including engine type metadata.
@@ -242,7 +246,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			if (!Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
 				throw new IllegalArgumentException("Subagent workspace is inactive: " + targetWorkspaceId);
 			}
-			
+
 			String targetName = targetWorkspace.get("name").toString().trim();
 			targetName = targetName.isEmpty() ? null : targetName;
 			if (targetName == null) {
@@ -329,13 +333,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null, false, null, false, null, false, null);
+				false, null, false, null, false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null, false, null, false, null, false, null);
+				null, null, false, null, false, null, false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
@@ -346,7 +350,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
 				budgetUpdates, spawnPolicyUpdates, subagentsProvided, subagents, hooksProvided, hooks,
-				useDefaultToolsProvided, useDefaultTools, false, null);
+				useDefaultToolsProvided, useDefaultTools, false, null, false, null, false, null);
 	}
 
 	/**
@@ -380,13 +384,25 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *                           default-tool list; when {@code false}, it is left untouched.
 	 * @param disabledDefaultTools exact, validated names to replace the stored list with;
 	 *                           an empty list clears it.
+	 * @param greetingProvided   whether the caller passed the agent's scripted opening
+	 *                           message; when {@code false}, {@code CONFIG_JSON.greeting}
+	 *                           is left untouched.
+	 * @param greeting           text to store; blank removes the key rather than storing
+	 *                           an empty string. Ignored when {@code greetingProvided} is
+	 *                           {@code false}. Presentation only - never sent to the model.
+	 * @param greetingEnabledProvided whether the caller passed the greeting on/off switch;
+	 *                           when {@code false}, {@code CONFIG_JSON.greeting_enabled} is
+	 *                           left untouched.
+	 * @param greetingEnabled    value for {@code CONFIG_JSON.greeting_enabled}. Toggling
+	 *                           this off hides the greeting without discarding {@code greeting}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
 			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
 			boolean useDefaultToolsProvided, Boolean useDefaultTools, boolean disabledDefaultToolsProvided,
-			List<String> disabledDefaultTools)
+			List<String> disabledDefaultTools, boolean greetingProvided, String greeting,
+			boolean greetingEnabledProvided, Boolean greetingEnabled)
 			throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
@@ -421,6 +437,16 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			defaultTools.put("disabled", new JSONArray(disabledDefaultTools != null ? disabledDefaultTools : List.of()));
 			toolPolicy.put("default_tools", defaultTools);
 			cfg.put("tool_policy", toolPolicy);
+		}
+		if (greetingProvided) {
+			if (greeting != null && !greeting.trim().isEmpty()) {
+				cfg.put("greeting", greeting.trim());
+			} else {
+				cfg.remove("greeting");
+			}
+		}
+		if (greetingEnabledProvided) {
+			cfg.put("greeting_enabled", Boolean.TRUE.equals(greetingEnabled));
 		}
 
 		JSONArray mcpsJson = new JSONArray();
