@@ -162,7 +162,16 @@ public class ModelBatchManager {
 
 	public static BatchSubmissionResponse submit(User user, String engineId, List<Map<String, Object>> requests,
 			Map<String, Object> parameters) {
-		return resolveEngine(user, engineId).submitBatch(requests, parameters);
+		IModelEngine engine = resolveEngine(user, engineId);
+		if (engine.getModelType() == ModelTypeEnum.VERTEX) {
+			// Vertex has no hosted batch API -- submitting requires staging the
+			// requests through Cloud Storage first (see submitVertexBatch). A bare
+			// engine.submitBatch() call here would silently build the input JSONL
+			// and stop, never creating a job.
+			throw new IllegalArgumentException(
+					"Model " + engineId + " requires GCS staging storage to submit a batch; use submitVertexBatch");
+		}
+		return engine.submitBatch(requests, parameters);
 	}
 
 	public static BatchStatusResponse status(User user, String engineId, String providerBatchId,

@@ -107,6 +107,15 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 			IStorageEngine storage = ModelBatchManager.resolveStorage(getUser(), storageId);
 			response = ModelBatchManager.submitVertexBatch(engine, storage, storageId, requests, batchParams);
 		} else {
+			if (engine.getModelType() == ModelTypeEnum.VERTEX) {
+				// Vertex has no hosted batch API -- it requires staging the requests
+				// through Cloud Storage first. Without a storage engine, calling
+				// engine.submitBatch() directly would silently build the input JSONL
+				// and stop there, returning a non-error "BUILT" status with no
+				// upload and no Vertex job ever created.
+				throw new IllegalArgumentException(
+						"The storage key is required to submit a batch for this Vertex-hosted engine");
+			}
 			response = engine.submitBatch(requests, batchParams);
 		}
 		if (response.getProviderBatchId() != null) {

@@ -99,3 +99,54 @@ def normalize_result_line(line: Dict[str, Any]) -> Dict[str, Any]:
         "input_tokens": (usage or {}).get("input_tokens"),
         "output_tokens": (usage or {}).get("output_tokens"),
     }
+
+
+def normalize_gemini_result_line(line: Dict[str, Any]) -> Dict[str, Any]:
+    """Normalizes one output JSONL line for a Gemini-on-Vertex batch item to
+    {"custom_id", "ok", "message", "error", "input_tokens", "output_tokens"}.
+
+    Gemini's batch output shape (confirmed against Google Cloud's public batch
+    prediction sample files/docs) is {"id", "status", "processed_time",
+    "request", "response"} -- unlike Anthropic's format there is no "custom_id"
+    field; Vertex instead echoes back whatever arbitrary "id" key was set on
+    the input line (Vertex itself ignores "id"/"custom_id" for routing, but
+    still passes it through), and "response" is a plain GenerateContentResponse
+    when present. "status" is an empty string on success and an error message
+    otherwise.
+    """
+    custom_id = line.get("id")
+    status = line.get("status")
+    response = line.get("response")
+
+    if status or not isinstance(response, dict):
+        return {
+            "custom_id": custom_id,
+            "ok": False,
+            "message": None,
+            "error": status or "No response returned for this request",
+            "input_tokens": None,
+            "output_tokens": None,
+        }
+
+    candidates = response.get("candidates") or []
+    role = None
+    text_parts = []
+    if candidates:
+        content = candidates[0].get("content") or {}
+        role = content.get("role")
+        for part in content.get("parts") or []:
+            if isinstance(part, dict) and "text" in part:
+                text_parts.append(part["text"])
+
+    usage = response.get("usageMetadata") or {}
+    return {
+        "custom_id": custom_id,
+        "ok": True,
+        "message": {
+            "role": role,
+            "content": "".join(text_parts),
+        },
+        "error": None,
+        "input_tokens": usage.get("promptTokenCount"),
+        "output_tokens": usage.get("candidatesTokenCount"),
+    }

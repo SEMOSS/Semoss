@@ -34,6 +34,7 @@ import java.util.Map;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
@@ -68,6 +69,13 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 		Map<String, Object> params = baseParams();
 
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		if (engine.getModelType() == ModelTypeEnum.VERTEX) {
+			// Vertex has no hosted batch API -- it requires staging the requests
+			// through Cloud Storage first, which this reactor has no key for.
+			// Use BatchLLM with the storage key for Vertex-hosted engines instead.
+			throw new UnsupportedOperationException(
+					"SubmitModelBatch does not support Vertex-hosted engines; use BatchLLM with the storage key");
+		}
 		BatchSubmissionResponse response = engine.submitBatch(requests, params);
 		if (response.getProviderBatchId() != null) {
 			ModelBatchManager.recordBatchSubmission(getUser(), engine, response.getProviderBatchId(), requests,

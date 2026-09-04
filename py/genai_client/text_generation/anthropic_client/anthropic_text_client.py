@@ -106,6 +106,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 region=kwargs.pop("region", None),
                 project=kwargs.pop("project", None),
                 api_key=kwargs.pop("api_key", None),
+                # Accept either .smss property name -- BATCH_REGION and
+                # GCP_BATCH_REGION have both been used across engines.
+                batch_region=kwargs.pop("batch_region", None) or kwargs.pop("gcp_batch_region", None),
             )
             return GoogleClient(config=self.client_config).anthropic_client
         elif self.provider == "bedrock":
@@ -1132,24 +1135,32 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     # for regular, non-batch inference. Fall back to a real region only for
     # batch calls; every batch call site must agree on the same fallback
     # since a job's resource name is region-qualified.
-    _VERTEX_BATCH_REGION_FALLBACK = "us-east5"
-
     def _vertex_genai_client(self):
         """A google.genai.Client configured for Vertex AI, for .batches.*.
         Reuses this engine's own Vertex project/credentials (already loaded
         for non-batch Anthropic-on-Vertex inference) -- unrelated to whatever
-        GCS storage engine's credentials a batch call was given. See
-        _VERTEX_BATCH_REGION_FALLBACK for why the region can differ from the
-        engine's own configured region."""
+        GCS storage engine's credentials a batch call was given.
+
+        Unlike regular inference, a Vertex AI batch prediction job for
+        Anthropic models is a regional resource and rejects region="global"
+        outright -- raise rather than silently substituting a region the
+        caller never configured, since a wrong guess would create the job
+        somewhere the caller doesn't expect (and later status/results calls
+        must agree on the same region to find it again)."""
         from ...clients.google_clients import (
             GoogleClient,
             GoogleClientConfig,
             GoogleClientType,
         )
 
-        region = self.client_config.region
+        region = self.client_config.batch_region or self.client_config.region
         if not region or region.strip().lower() == "global":
-            region = self._VERTEX_BATCH_REGION_FALLBACK
+            raise ValueError(
+                "Vertex AI batch prediction requires a real (non-global) region for "
+                "Anthropic-on-Vertex models. This engine's REGION is "
+                f"{self.client_config.region!r}; set BATCH_REGION on the engine's "
+                ".smss to a supported Anthropic-on-Vertex region (e.g. 'us-east5')."
+            )
 
         config = GoogleClientConfig(
             type=GoogleClientType.GOOGLE,
