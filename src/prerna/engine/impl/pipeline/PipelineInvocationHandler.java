@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.sql.DataSource;
@@ -87,6 +88,8 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.reactor.IReactor;
+import prerna.reactor.interceptor.GenericGuardrailInputReactor;
+import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
 import prerna.reactor.interceptor.IInputReactor;
 import prerna.reactor.interceptor.IOutputReactor;
 import prerna.reactor.interceptor.PipelineReactorUtils;
@@ -153,6 +156,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	private final Supplier<Logger> getEngineLogger;
 	private final Supplier<Boolean> keepInputOutput;
+	private final Consumer<IReactor> targetEngineBinder;
 
 	/**
 	 * 
@@ -169,6 +173,13 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 		this.getEngineLogger = () -> realEngine.getEngineLogger("EngineLogger");
 		this.keepInputOutput = () -> realEngine.keepInputOutput();
+		this.targetEngineBinder = reactor -> {
+			if (reactor.getClass() == GenericGuardrailInputReactor.class) {
+				((GenericGuardrailInputReactor) reactor).setTargetEngine(realEngine);
+			} else if (reactor.getClass() == GenericGuardrailOutputReactor.class) {
+				((GenericGuardrailOutputReactor) reactor).setTargetEngine(realEngine);
+			}
+		};
 
 		String pipelineJson = getJsonData(jsonFile);
 		parseAndLoadPipelines(pipelineJson);
@@ -276,7 +287,10 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			{
 				int size = inputPipelines.size();
 				for (int pipelineIndex = 0; pipelineIndex < size; pipelineIndex++) {
-					IInputReactor reactor = inputPipelines.get(pipelineIndex);
+					IInputReactor reactor = newInvocationReactor(inputPipelines.get(pipelineIndex),
+							IInputReactor.class);
+					bindTargetEngine(reactor);
+					setContextInsight(reactor, args);
 					// Each reactor receives only the current method arguments plus the
 					// context added below. Internal state from the previous reactor must not
 					// leak into this handoff or its audit record.
@@ -399,17 +413,12 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			{
 				int size = outputPipelines.size();
 				for (int pipelineIndex = 0; pipelineIndex < size; pipelineIndex++) {
-					IOutputReactor reactor = outputPipelines.get(pipelineIndex);
+					IOutputReactor reactor = newInvocationReactor(outputPipelines.get(pipelineIndex),
+							IOutputReactor.class);
+					bindTargetEngine(reactor);
 					processedArguments = mapArguments(null, method, args, new LinkedHashMap<>());
 					processedArguments.put(PipelineReactorUtils.RESULT, result);
-					// Output reactors also receive the Insight directly when the intercepted
-					// method includes it as an argument.
-					for (int argsIndex = 0; argsIndex < args.length; argsIndex++) {
-						if (args[argsIndex] instanceof Insight) {
-							reactor.setInsight((Insight) args[argsIndex]);
-							break;
-						}
-					}
+					setContextInsight(reactor, args);
 
 					NounStore outputNouns = new NounStore("output-pipeline");
 					GenRowStruct grs = new GenRowStruct();
@@ -698,6 +707,22 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	}
 
 	/**
+	 * Pipeline definitions retain reactor prototypes, but execution uses a fresh
+	 * instance. Reactors carry mutable Insight and NounStore state and an engine
+	 * proxy can serve concurrent callers, so sharing the configured instance would
+	 * create cross-request state and authorization races.
+	 */
+	private <T extends IReactor> T newInvocationReactor(T prototype, Class<T> reactorType) {
+		try {
+			return reactorType.cast(prototype.getClass().getDeclaredConstructor().newInstance());
+		} catch (Exception e) {
+			classLogger.error("Failed to create invocation-scoped reactor: {}", prototype.getClass().getName(), e);
+			throw new RuntimeException("Failed to create invocation-scoped reactor: " + prototype.getClass().getName(),
+					e);
+		}
+	}
+
+	/**
 	 * 
 	 * 
 	 * @param reactor
@@ -716,6 +741,35 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			processedArguments.put(parameters[i].getName(), args[i]);
 		}
 		return processedArguments;
+	}
+
+	private void bindTargetEngine(IReactor reactor) {
+		this.targetEngineBinder.accept(reactor);
+	}
+
+	/**
+	 * Engine methods such as database execQuery do not carry an Insight argument.
+	 * In that case, recover the current insight from ThreadStore so an
+	 * authorization guardrail evaluates the actual caller rather than an anonymous
+	 * context.
+	 */
+	private void setContextInsight(IReactor reactor, Object[] args) {
+		Insight contextInsight = null;
+		if (args != null) {
+			for (Object arg : args) {
+				if (arg instanceof Insight) {
+					contextInsight = (Insight) arg;
+					break;
+				}
+			}
+		}
+		if (contextInsight == null) {
+			String insightId = ThreadStore.getInsightId();
+			if (insightId != null) {
+				contextInsight = InsightStore.getInstance().get(insightId);
+			}
+		}
+		reactor.setInsight(contextInsight);
 	}
 
 	/*

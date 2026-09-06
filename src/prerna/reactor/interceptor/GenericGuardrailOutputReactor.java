@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.engine.api.IEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
 import prerna.reactor.AbstractReactor;
@@ -63,10 +64,15 @@ public class GenericGuardrailOutputReactor extends AbstractReactor implements IO
 
 	public static final String RETURN_PROMPT_KEY = "returnPrompt";
 	public static final String FULL_DETAILS_KEY = "fullDetails";
+	private transient IEngine targetEngine;
 
 	public GenericGuardrailOutputReactor() {
 		// No keysToGet needed as we use ReactorInputHelper
 		this.keysToGet = new String[] {};
+	}
+
+	public void setTargetEngine(IEngine targetEngine) {
+		this.targetEngine = targetEngine;
 	}
 
 	@Override
@@ -159,8 +165,8 @@ public class GenericGuardrailOutputReactor extends AbstractReactor implements IO
 			insightGrs.add(NounMetadata.predictNounMetadata(this.insight));
 		}
 
-		// Call the guardrail engine's execute method
-		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null);
+		// The target engine is direct invocation context, never serialized input.
+		GuardrailNounMetadata output = guardrailEngine.execute(guardrailInputNounStore, null, this.targetEngine);
 
 		Boolean closeRoomOnBlock = helper.getConfigParameter("closeRoomOnBlock", Boolean.class);
 		String blockErrorMessage = helper.getConfigParameter("blockErrorMessage", String.class);

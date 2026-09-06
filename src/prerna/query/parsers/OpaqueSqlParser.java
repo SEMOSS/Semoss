@@ -27,11 +27,15 @@
  *******************************************************************************/
 package prerna.query.parsers;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
-import java.util.Hashtable;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import net.sf.jsqlparser.expression.Alias;
 import net.sf.jsqlparser.expression.DateValue;
@@ -39,7 +43,6 @@ import net.sf.jsqlparser.expression.DoubleValue;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.NullValue;
-import net.sf.jsqlparser.expression.Parenthesis;
 import net.sf.jsqlparser.expression.SignedExpression;
 import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
@@ -49,11 +52,11 @@ import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
 import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.InExpression;
-import net.sf.jsqlparser.expression.operators.relational.ItemsList;
 import net.sf.jsqlparser.expression.operators.relational.LikeExpression;
 import net.sf.jsqlparser.expression.operators.relational.MinorThan;
 import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
 import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.ParenthesedExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -65,7 +68,6 @@ import net.sf.jsqlparser.statement.select.Limit;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectExpressionItem;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -80,25 +82,27 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class OpaqueSqlParser {
 
+	private static final Logger classLogger = LogManager.getLogger(OpaqueSqlParser.class);
+
 	// keep table alias
 	private Map<String, String> tableAlias = null;
 	// keep column alias
 	private Map<String, String> columnAlias = null;
 
 	public OpaqueSqlParser() {
-		this.tableAlias = new Hashtable <String, String>();
-		this.columnAlias = new Hashtable <String, String>();
+		this.tableAlias = new HashMap<String, String>();
+		this.columnAlias = new HashMap<String, String>();
 	}
 
 	public SelectQueryStruct processQuery(String query) throws Exception {
 		SelectQueryStruct qs = new SelectQueryStruct();
 		// parse the sql
 		Statement stmt = CCJSqlParserUtil.parse(query);
-		Select select = ((Select)stmt);
-		PlainSelect sb = (PlainSelect)select.getSelectBody();
+		Select select = ((Select) stmt);
+		PlainSelect sb = (PlainSelect) select;
 
 		// get the list of select expression terms
-		List<SelectItem> items = sb.getSelectItems();
+		List<SelectItem<?>> items = sb.getSelectItems();
 
 		// we will go through the joins first
 		// because we need to figure out how to do all the aliases
@@ -109,7 +113,7 @@ public class OpaqueSqlParser {
 		// if there is no alias
 		// we will determine to set the table as the alias
 		Alias fromTableAliasObj = fromTable.getAlias();
-		if(fromTableAliasObj != null) {
+		if (fromTableAliasObj != null) {
 			tableAlias.put(fromTable.getAlias().getName(), fromTable.getName());
 		} else {
 			tableAlias.put(fromTableName, fromTableName);
@@ -138,36 +142,35 @@ public class OpaqueSqlParser {
 		return qs;
 	}
 
-
 	/**
 	 * Add the selectors into the query struct
+	 * 
 	 * @param qs
 	 * @param selects
 	 */
-	public void fillSelects(SelectQueryStruct qs, List<SelectItem> selects, String originalFromTable) {
-		for(int selectIndex = 0;selectIndex < selects.size();selectIndex++) {
+	public void fillSelects(SelectQueryStruct qs, List<SelectItem<?>> selects, String originalFromTable) {
+		for (int selectIndex = 0; selectIndex < selects.size(); selectIndex++) {
 			IQuerySelector thisSelect = null;
-			
-			SelectItem si = selects.get(selectIndex);
-			if(si instanceof SelectExpressionItem) {
-				SelectExpressionItem sei = (SelectExpressionItem) si;
-				Alias seiAlias = sei.getAlias();
-				Expression expr = sei.getExpression();
+
+			SelectItem<?> si = selects.get(selectIndex);
+			Expression expr = si.getExpression();
+			// AllColumns and AllTableColumns are the expression of the select item
+			if (expr instanceof AllColumns) {
+				thisSelect = new QueryOpaqueSelector(si.toString());
+				((QueryOpaqueSelector) thisSelect).setTable(originalFromTable);
+			} else {
+				Alias seiAlias = si.getAlias();
 				// get eth selector
 				// method does this recursively to determine operations
-				
-				if(seiAlias != null) {
+
+				if (seiAlias != null) {
 					thisSelect = determineSelector(expr, seiAlias.getName());
 				} else {
 					thisSelect = determineSelector(expr, null);
 				}
-				qs.addSelector(thisSelect);
-			} else if(si instanceof AllColumns) {
-				thisSelect = new QueryOpaqueSelector(si.toString());
-				((QueryOpaqueSelector) thisSelect).setTable(originalFromTable);
 			}
-			
-			if(thisSelect != null) {
+
+			if (thisSelect != null) {
 				qs.addSelector(thisSelect);
 			}
 		}
@@ -175,6 +178,7 @@ public class OpaqueSqlParser {
 
 	/**
 	 * Return the selector based on the expression input
+	 * 
 	 * @param expr
 	 * @param parentQuerySelector
 	 * @param expressionType
@@ -184,15 +188,16 @@ public class OpaqueSqlParser {
 	private IQuerySelector determineSelector(Expression expr, String alias) {
 		// see if it is a basic operation
 		IQuerySelector basic = processBasicSelector(expr);
-		if(basic != null) {
+		if (basic != null) {
 			return basic;
-		};
+		}
+		;
 
 		// not basic
 		// i dont care what it is
 		// just shove the expression into the selector location
 		QueryOpaqueSelector selector = new QueryOpaqueSelector(expr.toString());
-		if(tableAlias.size() == 1) {
+		if (tableAlias.size() == 1) {
 			selector.setTable(tableAlias.keySet().iterator().next());
 		}
 		selector.setAlias(alias);
@@ -201,6 +206,7 @@ public class OpaqueSqlParser {
 
 	/**
 	 * Process a basic selector
+	 * 
 	 * @param expr
 	 * @return
 	 */
@@ -212,40 +218,40 @@ public class OpaqueSqlParser {
 		// init the basic selector
 		IQuerySelector constSelector = null;
 
-		if(expr instanceof LongValue) {
+		if (expr instanceof LongValue) {
 			long longValue = ((LongValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(longValue);
+			((QueryConstantSelector) constSelector).setConstant(longValue);
 		} else if (expr instanceof DoubleValue) {
 			double doubleValue = ((DoubleValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(doubleValue);
-		}  else if(expr instanceof SignedExpression) {
+			((QueryConstantSelector) constSelector).setConstant(doubleValue);
+		} else if (expr instanceof SignedExpression) {
 			Expression innerExpression = ((SignedExpression) expr).getExpression();
-			if(innerExpression instanceof LongValue) {
+			if (innerExpression instanceof LongValue) {
 				long longValue = ((LongValue) innerExpression).getValue();
 				constSelector = new QueryConstantSelector();
-				((QueryConstantSelector)constSelector).setConstant(-1 * longValue);
+				((QueryConstantSelector) constSelector).setConstant(-1 * longValue);
 			} else if (innerExpression instanceof DoubleValue) {
 				double doubleValue = ((DoubleValue) innerExpression).getValue();
 				constSelector = new QueryConstantSelector();
-				((QueryConstantSelector)constSelector).setConstant(-1 * doubleValue);
+				((QueryConstantSelector) constSelector).setConstant(-1 * doubleValue);
 			}
-		} else if(expr instanceof StringValue) {
+		} else if (expr instanceof StringValue) {
 			String strValue = ((StringValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(strValue);
-		} else if(expr instanceof DateValue) {
+			((QueryConstantSelector) constSelector).setConstant(strValue);
+		} else if (expr instanceof DateValue) {
 			// need to see about this
 			Date dateValue = ((DateValue) expr).getValue();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(dateValue);
-		} else if(expr instanceof NullValue) {
+			((QueryConstantSelector) constSelector).setConstant(dateValue);
+		} else if (expr instanceof NullValue) {
 			// need to see about this as well
 			String strValue = ((NullValue) expr).toString();
 			constSelector = new QueryConstantSelector();
-			((QueryConstantSelector)constSelector).setConstant(strValue);
-		} 
+			((QueryConstantSelector) constSelector).setConstant(strValue);
+		}
 //		else if(expr instanceof Column) {
 //			String colValue = ((Column) expr).getColumnName();
 //			// need a way to get the alias
@@ -266,14 +272,15 @@ public class OpaqueSqlParser {
 
 	/**
 	 * Add the joins and store table aliases used
+	 * 
 	 * @param qs
 	 * @param tableName
 	 * @param joins
 	 */
-	public void fillJoins(SelectQueryStruct qs, String tableName, List <Join> joins) {
+	public void fillJoins(SelectQueryStruct qs, String tableName, List<Join> joins) {
 		// if there are no joins
 		// nothing to do
-		if(joins == null || joins.isEmpty()) {
+		if (joins == null || joins.isEmpty()) {
 			return;
 		}
 
@@ -287,41 +294,44 @@ public class OpaqueSqlParser {
 		// sb.joins.get(index).rightitem - table and alias
 		// sb.join.get(index).onExpression - tells you the quals to expression
 
-		for(int joinIndex = 0; joinIndex < joins.size(); joinIndex++) {
+		for (int joinIndex = 0; joinIndex < joins.size(); joinIndex++) {
 			Join thisJoin = joins.get(joinIndex);
-			Table rightTable = (Table)thisJoin.getRightItem();
+			Table rightTable = (Table) thisJoin.getRightItem();
 			// add the alias
 			String rightTableName = rightTable.getName();
 			String rightTableAlias = rightTableName;
-			if(rightTable.getAlias() != null) {
+			if (rightTable.getAlias() != null) {
 				rightTableAlias = rightTable.getAlias().getName();
 			}
 
-			// if somebody -- need to see if sql grammar can accomodate for stupidity where alias and table are same kind of
-			//tableAlias.put(rightTableName, rightTableAlias);
+			// if somebody -- need to see if sql grammar can accomodate for stupidity where
+			// alias and table are same kind of
+			// tableAlias.put(rightTableName, rightTableAlias);
 			tableAlias.put(rightTableAlias, rightTableName);
 			boolean simple = thisJoin.isSimple();
-			if(!simple) {
-				EqualsTo joinExpr = (EqualsTo)thisJoin.getOnExpression();
-				String toTable = ((Column)joinExpr.getRightExpression()).getTable().getName();
-				String toColumn = ((Column)joinExpr.getRightExpression()).getColumnName();
+			// a join can carry several ON expressions, and cross joins carry none at all
+			Collection<Expression> onExpressions = thisJoin.getOnExpressions();
+			if (!simple && !onExpressions.isEmpty()) {
+				EqualsTo joinExpr = (EqualsTo) onExpressions.iterator().next();
+				String toTable = ((Column) joinExpr.getRightExpression()).getTable().getName();
+				String toColumn = ((Column) joinExpr.getRightExpression()).getColumnName();
 				String fromTable = tableName;
-				String fromColumn = ((Column)joinExpr.getLeftExpression()).getColumnName();
+				String fromColumn = ((Column) joinExpr.getLeftExpression()).getColumnName();
 				String joinType = null;
 
 				// need to translate the alias into column name
-				String full_from = fromTable  + "__" + fromColumn;
+				String full_from = fromTable + "__" + fromColumn;
 				String full_To = rightTableName + "__" + toColumn;
 
-				if(thisJoin.isInner()) {
+				if (thisJoin.isInner()) {
 					joinType = "inner.join";
-				} else if(thisJoin.isLeft()) {
+				} else if (thisJoin.isLeft()) {
 					joinType = "left.outer.join";
-				} else if(thisJoin.isRight()) {
+				} else if (thisJoin.isRight()) {
 					joinType = "right.outer.join";
-				} else if(thisJoin.isOuter()) {
+				} else if (thisJoin.isOuter()) {
 					joinType = "outer.join";
-				} else if(thisJoin.isFull()) {
+				} else if (thisJoin.isFull()) {
 					joinType = "full.join";
 				}
 				qs.addRelation(full_from, full_To, joinType);
@@ -334,85 +344,90 @@ public class OpaqueSqlParser {
 	// things I need to recurse
 	// Main Query Struct
 	// What was previously executed
-	// for instance if the previous piece was and and this is or, I need to close and start it ?
+	// for instance if the previous piece was and and this is or, I need to close
+	// and start it ?
 	// Need some way to jump back to the previous level
 
 	// I need some way to go in and go out kind of like the sablecc here
 	// so I will do this artifically
 	// Start of with a simple query filter or even a null
-	// if the first one is an and/or 
+	// if the first one is an and/or
 	// I create the and/or filter and call this with left expression
 	// and right expression
 	// With the filter as a curFilter
 	// if the expression is simple
 	// it will continue to add itself as a simple filter
-	// if the expression is complex then it will create another filter and add it into it - FE cant handle it right now
+	// if the expression is complex then it will create another filter and add it
+	// into it - FE cant handle it right now
 	// Once complete, there is nothing to change, since at this point it is all done
-	// everytime I finish up with the expression which is a simple one like equals etc. 
+	// everytime I finish up with the expression which is a simple one like equals
+	// etc.
 
 	public void fillFilters(SelectQueryStruct qs, IQueryFilter curFilter, Expression expr) {
 		// this is a simple one just go ahead and process it like anything else
-		// this should go first.. 
+		// this should go first..
 		// if unable to process it is only then we should attempt to create other pieces
 		IQueryFilter filter = processFilter(expr);
-		if(filter != null) {
-			if(curFilter != null) {		
-				if(curFilter instanceof AndQueryFilter) {
-					((AndQueryFilter)curFilter).addFilter(filter);
-				}else {
-					((OrQueryFilter)curFilter).addFilter(filter);
+		if (filter != null) {
+			if (curFilter != null) {
+				if (curFilter instanceof AndQueryFilter) {
+					((AndQueryFilter) curFilter).addFilter(filter);
+				} else {
+					((OrQueryFilter) curFilter).addFilter(filter);
 				}
 			} else {
 				curFilter = filter;
-				qs.addImplicitFilter(curFilter);				
+				qs.addImplicitFilter(curFilter);
 			}
-		} else {	
-			if(expr instanceof AndExpression) {
+		} else {
+			if (expr instanceof AndExpression) {
 				AndQueryFilter newFilter = null;
-				if(curFilter == null) {
+				if (curFilter == null) {
 					curFilter = new AndQueryFilter();
 					qs.addImplicitFilter(curFilter);
-				} else if(!(curFilter instanceof AndQueryFilter)) {
+				} else if (!(curFilter instanceof AndQueryFilter)) {
 					newFilter = new AndQueryFilter();
 					// I need something which adds this to the curFilter
 					// at this point the cur filter has to be an or
 					// it could be a subfilter
 					// for now I will process it as a or
-					((OrQueryFilter)curFilter).addFilter(newFilter);				
+					((OrQueryFilter) curFilter).addFilter(newFilter);
 					curFilter = newFilter;
-				}		
+				}
 
 				// process left
-				fillFilters(qs,curFilter, ((AndExpression) expr).getLeftExpression());
+				fillFilters(qs, curFilter, ((AndExpression) expr).getLeftExpression());
 				// process right
-				fillFilters(qs,curFilter, ((AndExpression) expr).getRightExpression());
-			} else if(expr instanceof OrExpression) {
+				fillFilters(qs, curFilter, ((AndExpression) expr).getRightExpression());
+			} else if (expr instanceof OrExpression) {
 				OrQueryFilter newFilter = null;
-				if(curFilter == null) {
+				if (curFilter == null) {
 					curFilter = new OrQueryFilter();
 					qs.addImplicitFilter(curFilter);
-				} else if(!(curFilter instanceof OrQueryFilter)) {
+				} else if (!(curFilter instanceof OrQueryFilter)) {
 					newFilter = new OrQueryFilter();
 
 					// I need something which adds this to the curFilter
 					// at this point the cur filter has to be an or
 					// it could be a subfilter
 					// for now I will process it as a or
-					((AndQueryFilter)curFilter).addFilter(newFilter);				
+					((AndQueryFilter) curFilter).addFilter(newFilter);
 					curFilter = newFilter;
-				}		
+				}
 
 				// process left
-				fillFilters(qs,curFilter, ((OrExpression) expr).getLeftExpression());
+				fillFilters(qs, curFilter, ((OrExpression) expr).getLeftExpression());
 				// process right
 				fillFilters(qs, curFilter, ((OrExpression) expr).getRightExpression());
-			} else if (expr instanceof Parenthesis) {
-				System.out.println("This is where it is struck");
-				fillFilters(qs, curFilter, ((Parenthesis)expr).getExpression());
+			} else if (expr instanceof ParenthesedExpressionList) {
+				classLogger.debug("Descending into parenthesized filter {}", expr);
+				ParenthesedExpressionList<?> parenthesed = (ParenthesedExpressionList<?>) expr;
+				if (!parenthesed.isEmpty()) {
+					fillFilters(qs, curFilter, parenthesed.get(0));
+				}
 			}
 		}
 	}
-
 
 	public IQueryFilter processFilter(Expression expr) {
 		IQueryFilter retFilter = null;
@@ -427,113 +442,112 @@ public class OpaqueSqlParser {
 		// AndExpression
 		// OrExpression
 
-		if(expr instanceof EqualsTo) {
-			EqualsTo eExpr = (EqualsTo)expr;
+		if (expr instanceof EqualsTo) {
+			EqualsTo eExpr = (EqualsTo) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, "==", r);
-		} else if(expr instanceof NotEqualsTo) {
-			NotEqualsTo eExpr = (NotEqualsTo)expr;
+		} else if (expr instanceof NotEqualsTo) {
+			NotEqualsTo eExpr = (NotEqualsTo) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, "!=", r);
-		} else if(expr instanceof GreaterThan) {
-			GreaterThan eExpr = (GreaterThan)expr;
+		} else if (expr instanceof GreaterThan) {
+			GreaterThan eExpr = (GreaterThan) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, ">", r);
-		} else if(expr instanceof MinorThan) {
-			MinorThan eExpr = (MinorThan)expr;
+		} else if (expr instanceof MinorThan) {
+			MinorThan eExpr = (MinorThan) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, "<", r);
-		} else if(expr instanceof GreaterThanEquals) {
-			GreaterThanEquals eExpr = (GreaterThanEquals)expr;
+		} else if (expr instanceof GreaterThanEquals) {
+			GreaterThanEquals eExpr = (GreaterThanEquals) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, ">=", r);
-		} else if(expr instanceof MinorThanEquals) {
-			MinorThanEquals eExpr = (MinorThanEquals)expr;
+		} else if (expr instanceof MinorThanEquals) {
+			MinorThanEquals eExpr = (MinorThanEquals) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, "<=", r);
-		} else if(expr instanceof LikeExpression) {
-			LikeExpression eExpr = (LikeExpression)expr;
+		} else if (expr instanceof LikeExpression) {
+			LikeExpression eExpr = (LikeExpression) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
 			NounMetadata r = getNoun(eExpr.getRightExpression());
-			if(l == null) {
+			if (l == null) {
 				l = new NounMetadata(eExpr.getLeftExpression().toString(), PixelDataType.CONST_STRING);
 			}
-			if(r == null) {
+			if (r == null) {
 				r = new NounMetadata(eExpr.getRightExpression().toString(), PixelDataType.CONST_STRING);
 			}
 			retFilter = new SimpleQueryFilter(l, "?like", r);
-		} else if(expr instanceof InExpression) {
-			InExpression eExpr = (InExpression)expr;
+		} else if (expr instanceof InExpression) {
+			InExpression eExpr = (InExpression) expr;
 			// there are only three choices may be four ok
 			NounMetadata l = getNoun(eExpr.getLeftExpression());
-			ItemsList list = eExpr.getRightItemsList();
+			Expression list = eExpr.getRightExpression();
 			NounMetadata r = null;
-			if(list instanceof ExpressionList) {
-				List<Expression> el = ((ExpressionList)list).getExpressions();
-				List <Object> ol = new Vector<Object>();
-				for(int elIndex = 0;elIndex < el.size();elIndex++) {
+			if (list instanceof ExpressionList) {
+				List<? extends Expression> el = (ExpressionList<?>) list;
+				List<Object> ol = new ArrayList<Object>();
+				for (int elIndex = 0; elIndex < el.size(); elIndex++) {
 					NounMetadata thisVal = getNoun(el.get(elIndex));
 					ol.add(thisVal.getValue());
 				}
 
 				r = new NounMetadata(ol, PixelDataType.VECTOR);
 			}
-			if(l != null && r != null) {
+			if (l != null && r != null) {
 				retFilter = new SimpleQueryFilter(l, "?like", r);
 			}
 		}
 		return retFilter;
 	}
-
 
 	private NounMetadata getNoun(Expression expr) {
 		// Column
@@ -547,20 +561,20 @@ public class OpaqueSqlParser {
 
 		NounMetadata retData = null;
 
-		if(expr instanceof LongValue) {
+		if (expr instanceof LongValue) {
 			long longValue = ((LongValue) expr).getValue();
 			retData = new NounMetadata(longValue, PixelDataType.CONST_DECIMAL);
-		} else if(expr instanceof DoubleValue) {
+		} else if (expr instanceof DoubleValue) {
 			double longValue = ((DoubleValue) expr).getValue();
 			retData = new NounMetadata(longValue, PixelDataType.CONST_DECIMAL);
-		} else if(expr instanceof StringValue) {
+		} else if (expr instanceof StringValue) {
 			String strValue = ((StringValue) expr).getValue();
 			retData = new NounMetadata(strValue, PixelDataType.CONST_STRING);
-		} else if(expr instanceof DateValue) {
+		} else if (expr instanceof DateValue) {
 			// need to see about this
 			Date dateValue = ((DateValue) expr).getValue();
-			retData = new NounMetadata(dateValue+"", PixelDataType.CONST_STRING);
-		} else if(expr instanceof NullValue) {
+			retData = new NounMetadata(dateValue + "", PixelDataType.CONST_STRING);
+		} else if (expr instanceof NullValue) {
 			// need to see about this as well
 			String strValue = ((NullValue) expr).toString();
 			retData = new NounMetadata(strValue, PixelDataType.CONST_STRING);
@@ -574,81 +588,84 @@ public class OpaqueSqlParser {
 
 	/**
 	 * Fills in the limit and offset for the query
+	 * 
 	 * @param qs
 	 * @param limit
 	 */
 	public void fillLimitOffset(SelectQueryStruct qs, Limit limit) {
-		if(limit == null) {
+		if (limit == null) {
 			return;
 		}
 		// add limit
-		if(limit.getRowCount() instanceof LongValue) {
-			long limitRow =  ((LongValue)limit.getRowCount()).getValue();
+		if (limit.getRowCount() instanceof LongValue) {
+			long limitRow = ((LongValue) limit.getRowCount()).getValue();
 			qs.setLimit(limitRow);
 		}
 
 		// add offset
-		if(limit.getOffset() instanceof LongValue) {
-			long offset =  ((LongValue)limit.getOffset()).getValue();
+		if (limit.getOffset() instanceof LongValue) {
+			long offset = ((LongValue) limit.getOffset()).getValue();
 			qs.setOffSet(offset);
 		}
 	}
 
 	/**
 	 * Add in the order by
+	 * 
 	 * @param qs
 	 * @param orders
 	 */
-	public void fillOrder(SelectQueryStruct qs, List <OrderByElement> orders) {
-		if(orders == null || orders.isEmpty()) {
+	public void fillOrder(SelectQueryStruct qs, List<OrderByElement> orders) {
+		if (orders == null || orders.isEmpty()) {
 			return;
 		}
 
-		for(int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
+		for (int orderIndex = 0; orderIndex < orders.size(); orderIndex++) {
 			OrderByElement thisElement = orders.get(orderIndex);
 			Expression expr = thisElement.getExpression();
 			String sortDir = "ASC";
-			if(thisElement.isAscDescPresent() && !thisElement.isAsc()) {
+			if (thisElement.isAscDescPresent() && !thisElement.isAsc()) {
 				sortDir = "DESC";
 			}
 
-			if(expr instanceof Column) {
-				String colName = ((Column)expr).getColumnName();
-				if(columnAlias.containsKey(colName)) {
+			if (expr instanceof Column) {
+				String colName = ((Column) expr).getColumnName();
+				if (columnAlias.containsKey(colName)) {
 					String fullColumn = columnAlias.get(colName);
-					String [] colParts = fullColumn.split("__");
+					String[] colParts = fullColumn.split("__");
 					String concept = colParts[0];
 					String property = colParts[1];
 					qs.addOrderBy(concept, property, sortDir);
 				}
-			}			
+			}
 		}
 	}
 
 	/**
 	 * Add in the group bys
+	 * 
 	 * @param qs
 	 * @param groupByElement
 	 */
 	public void fillGroups(SelectQueryStruct qs, GroupByElement groups) {
-		if(groups == null) {
+		if (groups == null) {
 			return;
 		}
-		List<Expression> groupByElement = groups.getGroupByExpressions();
-		if(groupByElement == null || groupByElement.isEmpty()) {
+		ExpressionList<?> groupByElement = groups.getGroupByExpressionList();
+		if (groupByElement == null || groupByElement.isEmpty()) {
 			return;
 		}
-		
-		for(int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
+
+		for (int groupIndex = 0; groupIndex < groupByElement.size(); groupIndex++) {
 			Expression expr = groupByElement.get(groupIndex);
 			// this has to be a column
 			// right now this assumption is wrong
 			// it could be an alias of a derived column
-			if(expr instanceof Column) {
+			if (expr instanceof Column) {
 				String colName = ((Column) expr).getColumnName();
-				if(columnAlias.containsKey(colName)) {
+				if (columnAlias.containsKey(colName)) {
 					String fullColumn = columnAlias.get(colName);
-					String [] colParts = fullColumn.split("__");
+					String[] colParts = fullColumn.split("__");
 					String concept = colParts[0];
 					String property = colParts[1];
 					qs.addGroupBy(concept, property);
@@ -669,4 +686,3 @@ public class OpaqueSqlParser {
 //		test.processQuery(query);
 //	}
 }
-
