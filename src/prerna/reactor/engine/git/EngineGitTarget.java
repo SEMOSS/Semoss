@@ -25,59 +25,66 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.project;
-
-import java.util.HashMap;
-import java.util.Map;
+package prerna.reactor.engine.git;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
-import prerna.project.api.IProject;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineUtility;
 import prerna.util.Utility;
+import prerna.util.git.GitReactorTarget;
+import prerna.util.git.GitTargetHandle;
 
 /**
- * This reactor returns the git provider and repository details for a given project.
+ * Binds the shared git working-tree reactors to engines: the engine pixel key,
+ * engine security, and the engine version folder.
  */
-public class ProjectGitDetailsReactor extends AbstractReactor {
+public final class EngineGitTarget implements GitReactorTarget {
 
-	public ProjectGitDetailsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
+	public static final GitReactorTarget INSTANCE = new EngineGitTarget();
+
+	private EngineGitTarget() {
+
 	}
 
 	@Override
-	public NounMetadata execute() {
-		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new SemossPixelException("Must input a project id");
-		}
-
-		User user = this.insight.getUser();
-		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-			throw new SemossPixelException("Project does not exist or user does not have access to the project");
-		}
-
-		IProject project = Utility.getProject(projectId);
-
-		String gitProvider = project.getProjectGitProvider();
-		if (gitProvider == null) {
-			gitProvider = "";
-		}
-		String gitRepo = project.getProjectGitRepo();
-		if (gitRepo == null) {
-			gitRepo = "";
-		}
-
-		Map<String, String> gitDetails = new HashMap<>();
-		gitDetails.put("gitProvider", gitProvider);
-		gitDetails.put("gitRepo", gitRepo);
-		return new NounMetadata(gitDetails, PixelDataType.MAP);
+	public String getIdKey() {
+		return ReactorKeysEnum.ENGINE.getKey();
 	}
 
+	@Override
+	public String getLabel() {
+		return "engine";
+	}
+
+	@Override
+	public String getLabelWithArticle() {
+		return "an engine";
+	}
+
+	@Override
+	public PixelOperationType getOpType() {
+		return PixelOperationType.ENGINE_INFO;
+	}
+
+	@Override
+	public boolean userCanView(User user, String targetId) {
+		return SecurityEngineUtils.userCanViewEngine(user, targetId);
+	}
+
+	@Override
+	public boolean userCanEdit(User user, String targetId) {
+		return SecurityEngineUtils.userCanEditEngine(user, targetId);
+	}
+
+	@Override
+	public GitTargetHandle resolve(String targetId) {
+		IEngine engine = Utility.getEngine(targetId);
+		String versionFolder = EngineUtility.getSpecificEngineVersionFolder(engine.getCatalogType(), targetId,
+				engine.getEngineName());
+		return new GitTargetHandle(targetId, versionFolder, () -> ClusterUtil.pushEngineFolder(engine, versionFolder));
+	}
 }
