@@ -172,6 +172,11 @@ public class Project implements IProject {
 
 	// publish portals
 	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
+	private static final String PORTAL_SDK_IMPORTMAP_ID = "semoss-sdk-importmap";
+	/** Path of the built SDK inside the FE webapp. */
+	private static final String SDK_DIST_PATH = "/libs/sdk/dist";
+	/** Entry file the "@semoss/sdk" bare specifier maps to. */
+	private static final String SDK_ENTRY_FILE = "/index.mjs";
 	private SemossDate lastPortalPublishDate = null;
 	private boolean publishedPortal = false;
 	private boolean republishPortal = false;
@@ -1318,12 +1323,25 @@ public class Project implements IProject {
 		return blocksF;
 	}
 
+	/**
+	 * Writes the platform's two auto-generated tags into the head of the portal's
+	 * index.html:
+	 *
+	 * <pre>
+	 * &lt;script id="semoss-sdk-importmap" type="importmap"&gt;
+	 * {"imports":{"@semoss/sdk":"/{route - optional}/{fe webapp}/libs/sdk/dist/index.mjs"}}
+	 * &lt;/script&gt;
+	 * &lt;script id="semoss-env" type="application/json"&gt;
+	 * {"APP": "&lt;project_id&gt;", "MODULE": "/{route - optional}/{context - usually just Monolith}"}
+	 * &lt;/script&gt;
+	 * </pre>
+	 *
+	 * The import map lets a portal built without a bundler write
+	 * {@code import { Insight } from "@semoss/sdk"} in a module script, and the env
+	 * script carries the app id and backend module the SDK reads on initialize.
+	 * Both are keyed by element id so republishing updates them in place.
+	 */
 	private void rewritePortalIndexHtml(String indexHtmlPath) {
-		/*
-		 * <script> window.SEMOSS = { "APP": "<project_id>", "MODULE":
-		 * "/{route - optional}/{context - usually just Monolith}" } </script>
-		 */
-		// add the route if this is server deployment
 		File indexHtmlF = new File(indexHtmlPath);
 		if (!indexHtmlF.exists() || !indexHtmlF.isFile()) {
 			return;
@@ -1333,14 +1351,27 @@ public class Project implements IProject {
 		org.jsoup.nodes.Document document;
 		try {
 			document = Jsoup.parse(indexHtmlF, "UTF-8");
+			// pretty-printing re-indents the whole document which causes issues with
+			// agent's editing an index.html because every change will affect future string
+			// replacement attempts
+			document.outputSettings().prettyPrint(false);
+			Element head = document.selectFirst("head");
+			if (head == null) {
+				classLogger.warn("Portal index html has no head element, skipping rewrite {}",
+						indexHtmlF.getAbsolutePath());
+				return;
+			}
+
 			String scriptContent = "{\"APP\": \"" + projectId + "\",\"MODULE\": \"" + module + "\"}";
 			Element autoGenScript = document.getElementById(PORTAL_INDEX_SCRIPT_ID);
 			if (autoGenScript == null) {
-				document.selectFirst("head").child(0).before("<script id=\"" + PORTAL_INDEX_SCRIPT_ID
-						+ "\" type=\"application/json\">" + scriptContent + "</script>");
+				head.prepend("<script id=\"" + PORTAL_INDEX_SCRIPT_ID + "\" type=\"application/json\">" + scriptContent
+						+ "</script>");
 			} else {
 				autoGenScript.html(scriptContent);
 			}
+
+			writeSdkImportMap(document, head);
 
 			String newHtml = document.html();
 			try (FileWriter fw = new FileWriter(indexHtmlF, false)) {
@@ -1350,6 +1381,40 @@ public class Project implements IProject {
 		} catch (Exception e) {
 			classLogger.error("Failed to rewrite portal index html {}", indexHtmlF.getAbsolutePath(), e);
 		}
+	}
+
+	/**
+	 * Puts the SDK import map first in the head, where it precedes every module
+	 * script on the page as the import map spec requires.
+	 *
+	 * <p>
+	 * A document may only carry one import map, so a portal that ships its own
+	 * (anything built through a bundler) is left alone and resolves
+	 * {@code @semoss/sdk} through its own build instead.
+	 */
+	private static void writeSdkImportMap(org.jsoup.nodes.Document document, Element head) {
+		String importMap = "{\"imports\":{\"@semoss/sdk\":\"" + resolveSdkEntryUrl() + "\"}}";
+		Element existing = document.getElementById(PORTAL_SDK_IMPORTMAP_ID);
+		if (existing != null) {
+			existing.html(importMap);
+		} else if (document.selectFirst("script[type=importmap]") == null) {
+			head.prepend(
+					"<script id=\"" + PORTAL_SDK_IMPORTMAP_ID + "\" type=\"importmap\">" + importMap + "</script>");
+		}
+	}
+
+	/**
+	 * URL the {@code @semoss/sdk} bare specifier resolves to in a published portal.
+	 *
+	 * <p>
+	 * Points at the built SDK inside the FE webapp, which the war packages and
+	 * serves as static content on the same origin as the portal, so the module and
+	 * the page it is imported from always come from the same deployment.
+	 */
+	private static String resolveSdkEntryUrl() {
+		String route = Utility.getApplicationOptionalRoutePath();
+		String routePrefix = (route == null || route.isEmpty()) ? "" : "/" + route;
+		return routePrefix + "/" + Utility.getFEWebAppName() + SDK_DIST_PATH + SDK_ENTRY_FILE;
 	}
 
 	@Override
