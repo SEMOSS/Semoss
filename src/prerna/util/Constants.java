@@ -1080,6 +1080,9 @@ public class Constants {
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
 
+	// default agent workspace: applied to ad-hoc rooms that have no explicit workspace
+	public static final String DEFAULT_AGENT_KEY = "default-agent";
+
 	// system (platform) app names
 	public static final String APP_REACT_TEMPLATE = "react-template";
 
