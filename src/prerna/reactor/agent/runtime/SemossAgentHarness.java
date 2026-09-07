@@ -61,9 +61,9 @@ import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.skill.SkillScanner;
+import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
-import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 import prerna.reactor.model.CompactRoomMessagesReactor;
@@ -265,8 +265,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				completeActiveItems(ctx.getRunId(), response);
 			} else {
 				// --- Normal mode: initial ask ---
-				AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx,
-						!autoCompactionContextWarningLogged);
+				AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
 				if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
 					autoCompactionContextWarningLogged = true;
 				}
@@ -408,26 +407,28 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 	}
 
-	private static AutoCompactionOutcome autoCompactIfNeeded(AgentRunContext ctx,
-			boolean logMissingContextWindow) throws Exception {
+	private static AutoCompactionOutcome autoCompactIfNeeded(AgentRunContext ctx, boolean logMissingContextWindow)
+			throws Exception {
 		Room room = ctx.getRoom();
 		int contextWindow;
 		try {
 			contextWindow = ctx.getModelEngine().getContextWindow();
 		} catch (RuntimeException e) {
 			if (logMissingContextWindow) {
-				logger.warn("SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
-						+ "context window could not be resolved", ctx.getRunId(), room.getId(),
-						ctx.getModelEngine().getEngineId(), e);
+				logger.warn(
+						"SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
+								+ "context window could not be resolved",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), e);
 			}
 			return AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE;
 		}
 
 		if (contextWindow <= 0) {
 			if (logMissingContextWindow) {
-				logger.warn("SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
-						+ "context window is {}", ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(),
-						contextWindow);
+				logger.warn(
+						"SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
+								+ "context window is {}",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextWindow);
 			}
 			return AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE;
 		}
@@ -469,10 +470,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (Boolean.TRUE.equals(result.get("success"))) {
 				int tokensAfter = currentContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
 						room.getMessages().getLast().getMessageId()));
-				logger.info("SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
-						+ "tokensBefore={} tokensAfter={} contextWindow={}", ctx.getRunId(), room.getId(),
-						ctx.getModelEngine().getEngineId(), result.get("type"), contextTokens, tokensAfter,
-						contextWindow);
+				logger.info(
+						"SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
+								+ "tokensBefore={} tokensAfter={} contextWindow={}",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), result.get("type"),
+						contextTokens, tokensAfter, contextWindow);
 				return AutoCompactionOutcome.COMPACTED;
 			}
 		}
@@ -550,17 +552,13 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	private static String autoCompactionDiagnostic(AgentRunContext ctx, int contextTokens, int contextWindow,
 			String result) {
-		return "SemossAgentHarness: automatic compaction could not free context before inference"
-				+ " run=" + ctx.getRunId() + " room=" + ctx.getRoom().getId() + " model="
-				+ ctx.getModelEngine().getEngineId() + " estimatedTokens=" + contextTokens + " contextWindow="
-				+ contextWindow + " result=" + result;
+		return "SemossAgentHarness: automatic compaction could not free context before inference" + " run="
+				+ ctx.getRunId() + " room=" + ctx.getRoom().getId() + " model=" + ctx.getModelEngine().getEngineId()
+				+ " estimatedTokens=" + contextTokens + " contextWindow=" + contextWindow + " result=" + result;
 	}
 
 	private enum AutoCompactionOutcome {
-		NOT_NEEDED,
-		CONTEXT_WINDOW_UNAVAILABLE,
-		COMPACTED,
-		SKIPPED
+		NOT_NEEDED, CONTEXT_WINDOW_UNAVAILABLE, COMPACTED, SKIPPED
 	}
 
 	private static void completeActiveItems(String runId, ResponseMessage response) {
@@ -703,8 +701,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * True when the response contains at least one tool call the harness must
 	 * execute. Provider-executed built-in tools (flagged {@code server_tool}) are
 	 * excluded - the provider already ran them mid-turn and their results are
-	 * embedded in the response, so a response containing only server tool calls
-	 * is a normal assistant text turn.
+	 * embedded in the response, so a response containing only server tool calls is
+	 * a normal assistant text turn.
 	 */
 	private static boolean hasAssistantToolCalls(ResponseMessage message) {
 		if (message == null || !message.hasToolResponses()) {
@@ -1093,6 +1091,14 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * the {@code ListSkill} tool uses -- so the prompt and the tool agree on what's
 	 * available. The {@code <location>} of each skill is its working-dir-relative
 	 * folder (e.g. {@code .claude/skills/pdf}).
+	 *
+	 * <p>
+	 * The catalog is followed by the instruction for what to do with it, because a
+	 * bare list of names and descriptions reads as reference material the model can
+	 * skip. The instruction lives here rather than in
+	 * {@link SemossHarnessPrompts#SYSTEM_PROMPT}, which is deliberately
+	 * domain-neutral and names no tools, and it ships only when at least one skill
+	 * is present.
 	 */
 	private static String buildAvailableSkillsPromptBlock(String workingDir) {
 		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir);
@@ -1112,7 +1118,16 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("    <location>").append(xmlEscape(skill.getDirectory())).append("</location>\n");
 			sb.append("  </skill>\n");
 		}
-		sb.append("</available_skills>");
+		sb.append("</available_skills>\n");
+		sb.append("\n");
+		sb.append("Each entry above is a packaged set of instructions for a recurring task, ");
+		sb.append("written because getting that task right from memory is unreliable. When the ");
+		sb.append("work in front of you is covered by one, call LoadSkill(skill_name=\"<name>\") ");
+		sb.append("and follow what it says before writing anything. A description is all you get ");
+		sb.append("here; the actual patterns, parameters, and output shapes are only in the body. ");
+		sb.append("Loading a skill that turns out not to apply costs one tool call, so load it ");
+		sb.append("when unsure rather than guessing. This list is already complete -- you do not ");
+		sb.append("need ListSkill to discover these.");
 		return sb.toString();
 	}
 
