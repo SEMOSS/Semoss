@@ -40,6 +40,8 @@ import org.junit.jupiter.api.Test;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -155,6 +157,136 @@ class GenericGuardrailInputReactorUnitTests {
 		// a list cannot take a single masked string without changing its type
 		assertFalse(replaced);
 		assertEquals(List.of("chunk one", "chunk two"), arguments.get("arg0"));
+	}
+
+	@Test
+	void blanketSkipFiresForAnUnlistedTool() {
+		Room room = new Room();
+		room.setId("room-id");
+		InputMessage message = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart toolResult = new ToolResultPart();
+		toolResult.setToolName("some-unlisted-tool");
+		message.addPart(new ToolResultMessagePart(toolResult));
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("arg2", message);
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", Boolean.TRUE));
+
+		assertTrue(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
+	}
+
+	@Test
+	void blanketSkipNeverFiresOnARealUserTurn() {
+		Room room = new Room();
+		room.setId("room-id");
+		InputMessage message = InputMessage.builder(room).withText("a real user question").build();
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("arg2", message);
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", Boolean.TRUE));
+
+		// the invariant: no tool result means a real user turn
+		assertFalse(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
+	}
+
+	@Test
+	void blanketSkipRequiresAnActualMessage() {
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("arg2", "just a plain string, not a message");
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", Boolean.TRUE));
+
+		assertFalse(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
+	}
+
+	@Test
+	void blanketSkipWinsOverAnUnrelatedAllowlist() {
+		Room room = new Room();
+		room.setId("room-id");
+		InputMessage message = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart toolResult = new ToolResultPart();
+		toolResult.setToolName("not-on-the-list");
+		message.addPart(new ToolResultMessagePart(toolResult));
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("arg2", message);
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", Boolean.TRUE,
+				"skipOnToolContinuationForTools", List.of("completely-different-tool")));
+
+		assertTrue(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
+	}
+
+	@Test
+	void allowlistBehaviorIsUnchangedWhenBlanketIsNotSet() {
+		Room room = new Room();
+		room.setId("room-id");
+
+		// all listed -> skips
+		InputMessage allListed = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart listedResult = new ToolResultPart();
+		listedResult.setToolName("search");
+		allListed.addPart(new ToolResultMessagePart(listedResult));
+		Map<String, Object> allListedArgs = new HashMap<>();
+		allListedArgs.put("arg2", allListed);
+		allListedArgs.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForTools", List.of("search")));
+		assertTrue(GenericGuardrailInputReactor.isToolContinuation(helperFor(allListedArgs)));
+
+		// mixed listed/unlisted -> does not skip
+		InputMessage mixed = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart listed = new ToolResultPart();
+		listed.setToolName("search");
+		ToolResultPart unlisted = new ToolResultPart();
+		unlisted.setToolName("delete_file");
+		mixed.addPart(new ToolResultMessagePart(listed));
+		mixed.addPart(new ToolResultMessagePart(unlisted));
+		Map<String, Object> mixedArgs = new HashMap<>();
+		mixedArgs.put("arg2", mixed);
+		mixedArgs.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForTools", List.of("search")));
+		assertFalse(GenericGuardrailInputReactor.isToolContinuation(helperFor(mixedArgs)));
+
+		// empty allowlist -> does not skip
+		InputMessage anyToolResult = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart anyResult = new ToolResultPart();
+		anyResult.setToolName("search");
+		anyToolResult.addPart(new ToolResultMessagePart(anyResult));
+		Map<String, Object> emptyListArgs = new HashMap<>();
+		emptyListArgs.put("arg2", anyToolResult);
+		emptyListArgs.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForTools", List.of()));
+		assertFalse(GenericGuardrailInputReactor.isToolContinuation(helperFor(emptyListArgs)));
+	}
+
+	@Test
+	void blanketSkipIgnoresAStringFlag() {
+		Room room = new Room();
+		room.setId("room-id");
+		InputMessage message = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart toolResult = new ToolResultPart();
+		toolResult.setToolName("some-tool");
+		message.addPart(new ToolResultMessagePart(toolResult));
+
+		Map<String, Object> arguments = new HashMap<>();
+		arguments.put("arg2", message);
+		// String "true" isn't Boolean.TRUE - no coercion, so this must fail closed
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", "true"));
+
+		assertFalse(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
+	}
+
+	@Test
+	void blanketSkipHonorsACustomToolContinuationArg() {
+		Room room = new Room();
+		room.setId("room-id");
+		InputMessage message = InputMessage.builder(room).withText("tool result follows").build();
+		ToolResultPart toolResult = new ToolResultPart();
+		toolResult.setToolName("some-tool");
+		message.addPart(new ToolResultMessagePart(toolResult));
+
+		Map<String, Object> arguments = new HashMap<>();
+		// not "arg2" - proves the custom name is honored
+		arguments.put("customArg", message);
+		arguments.put(PipelineReactorUtils.CONFIG, Map.of("skipOnToolContinuationForAllTools", Boolean.TRUE,
+				"toolContinuationArg", "customArg"));
+
+		assertTrue(GenericGuardrailInputReactor.isToolContinuation(helperFor(arguments)));
 	}
 
 	/**
