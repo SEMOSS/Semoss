@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -2451,27 +2452,31 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists
-			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-					"select count(*) from " + Constants.USER_METAKEYS)) {
-				if (wrapper.hasNext()) {
-					int count = ((Number) wrapper.next().getValues()[0]).intValue();
-					if (count == 0) {
-						int order = 0;
-						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
-								new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
-						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
-								new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
+			// Seed required USERMETAKEYS rows — insert any that are missing
+			{
+				String[][] metakeySeed = {
+					{ Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "0" },
+					{ Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "1" },
+					{ Constants.DEFAULT_AGENT_KEY,                 "2" },
+				};
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select distinct METAKEY from " + Constants.USER_METAKEYS)) {
+					Set<String> existingKeys = new HashSet<>();
+					while (wrapper.hasNext()) {
+						existingKeys.add((String) wrapper.next().getValues()[0]);
 					}
+					for (String[] entry : metakeySeed) {
+						String metakey = entry[0];
+						int displayOrder = Integer.parseInt(entry[1]);
+						if (!existingKeys.contains(metakey)) {
+							securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
+									new Object[] { metakey, "single", displayOrder, "select-box", null }));
+						}
+					}
+				} catch (Exception e) {
+					classLogger.error("Error seeding USERMETAKEYS rows.", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error initializing default USER_METAKEYS rows.", e);
 			}
-
-			// Ensure keys added after initial seeding exist on pre-populated databases too.
-			ensureMetakeyExists(securityDb, queryUtil, colNames, types, Constants.DEFAULT_AGENT_KEY, "single", "select-box");
 
 			// JIRA_CONNECTIONS
 			colNames = new String[] { "ID", "ALIAS", "CLIENTID", "CLIENTSECRET", "SCOPE", "USERPROFILEURL" };
@@ -3416,37 +3421,6 @@ public abstract class AbstractSecurityUtils {
 		}
 		LocalDateTime formattedEndDate = endDate.getLocalDateTime();
 		return formattedEndDate.isBefore(currentTime);
-	}
-
-	/**
-	 * Inserts a USERMETAKEYS row for {@code metakey} if one does not already exist.
-	 * Safe to call on both fresh and pre-populated databases.
-	 */
-	private static void ensureMetakeyExists(IRDBMSEngine securityDb, AbstractSqlQueryUtil queryUtil,
-			String[] colNames, String[] types, String metakey, String singleMulti, String displayOptions) {
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-				"select count(*) from " + Constants.USER_METAKEYS + " where METAKEY = '" + metakey + "'")) {
-			if (wrapper.hasNext()) {
-				int count = ((Number) wrapper.next().getValues()[0]).intValue();
-				if (count == 0) {
-					try (IRawSelectWrapper orderWrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-							"select max(DISPLAYORDER) from " + Constants.USER_METAKEYS)) {
-						int nextOrder = 0;
-						if (orderWrapper.hasNext()) {
-							Object val = orderWrapper.next().getValues()[0];
-							if (val != null) {
-								nextOrder = ((Number) val).intValue() + 1;
-							}
-						}
-						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
-								new Object[] { metakey, singleMulti, nextOrder, displayOptions, null }));
-						classLogger.info("Seeded USERMETAKEYS row for '{}'", metakey);
-					}
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Error ensuring USERMETAKEYS row for '{}'", metakey, e);
-		}
 	}
 
 }
