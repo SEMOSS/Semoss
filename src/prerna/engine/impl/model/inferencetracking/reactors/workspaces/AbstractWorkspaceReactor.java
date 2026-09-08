@@ -46,6 +46,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.IAgentHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -267,16 +268,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Validates each hook entry has a known {@code kind}, plus the one kind-specific
-	 * required field known today ({@code kind="pixel"} requires a non-empty {@code pixel}
-	 * field). Mirrors the validation the standalone {@code SetAgentHooksReactor} used to
-	 * perform before hooks were folded into this same write path as every other agent-config
-	 * field.
+	 * Validates each hook entry has a known {@code kind}, then delegates kind-specific
+	 * validation to a fresh hook instance. This uses the same registry and
+	 * {@link IAgentHook#configure(JSONObject)} contract as the read/execute path, so invalid
+	 * configuration is rejected when saved rather than being silently skipped at run time.
 	 *
 	 * <p>Unlike {@link #validateAndNormalizeSubagents}, this does not reconstruct entries
-	 * field-by-field - hook schemas are open-ended per kind (e.g. {@code pixel}'s optional
-	 * {@code events} array, and future kinds may carry their own fields this reactor doesn't
-	 * need to know about), so validated entries are persisted as-is.
+	 * field-by-field - hook schemas are open-ended per kind, so validated entries are
+	 * persisted as-is.
 	 *
 	 * @throws IllegalArgumentException with a human-readable message on validation failure
 	 *                                   (callers catch and convert to {@code getError(...)})
@@ -296,12 +295,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException(
 						"hooks[" + i + "] unknown kind '" + kind + "'. Known kinds: " + AgentHookRegistry.knownKinds());
 			}
-			if (AgentHookRegistry.PIXEL.equals(kind)) {
-				Object pixelObj = entry.get("pixel");
-				if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
-					throw new IllegalArgumentException(
-							"hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
-				}
+			IAgentHook hook = AgentHookRegistry.resolve(kind);
+			try {
+				hook.configure(new JSONObject(entry));
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("hooks[" + i + "] " + e.getMessage(), e);
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"hooks[" + i + "] kind='" + kind + "' configuration is invalid: " + e.getMessage(), e);
 			}
 		}
 	}
