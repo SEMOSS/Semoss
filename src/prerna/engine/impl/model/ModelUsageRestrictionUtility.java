@@ -104,17 +104,17 @@ public final class ModelUsageRestrictionUtility {
 							Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime,
 							engineLvlModelUsageFrequency);
 
-					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
+					if (currentUsage.longValue() > engineLvlModelUsageMaxTokens.longValue()) {
 						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
+								currentUsage.longValue(), engineLvlModelUsageMaxTokens.longValue()));
 					}
 
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
 							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
+							currentUsage.longValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							engineLvlModelUsageMaxTokens.intValue());
+							engineLvlModelUsageMaxTokens.longValue());
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
@@ -151,16 +151,16 @@ public final class ModelUsageRestrictionUtility {
 					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE,
 							user, engineId, currentDateTime, userLvlModelUsageFrequency);
 
-					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
+					if (currentUsage.longValue() > userLvlModelUsageMaxTokens.longValue()) {
 						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
+								currentUsage.longValue(), userLvlModelUsageMaxTokens.longValue()));
 					}
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
 							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
+							currentUsage.longValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							userLvlModelUsageMaxTokens.intValue());
+							userLvlModelUsageMaxTokens.longValue());
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(userLvlModelUsageRestriction)) {

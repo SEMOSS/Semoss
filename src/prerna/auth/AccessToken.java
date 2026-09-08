@@ -70,7 +70,7 @@ public class AccessToken implements Serializable {
 	private String phoneExtension = null;
 	private String countryCode = null;
 
-	private int modelMaxTokens = 0;
+	private long modelMaxTokens = 0L;
 	private double modelMaxResponseTime = 0.0;
 	private String modelUsageFrequency = null;
 	private String modelUsageRestriction = null;
@@ -628,16 +628,16 @@ public class AccessToken implements Serializable {
 	 * 
 	 * @return maximum token count
 	 */
-	public int getModelMaxTokens() {
+	public long getModelMaxTokens() {
 		return modelMaxTokens;
 	}
 
 	/**
 	 * Sets the maximum number of tokens for model requests.
-	 * 
+	 *
 	 * @param modelMaxTokens maximum token count
 	 */
-	public void setModelMaxTokens(int modelMaxTokens) {
+	public void setModelMaxTokens(long modelMaxTokens) {
 		this.modelMaxTokens = modelMaxTokens;
 	}
 

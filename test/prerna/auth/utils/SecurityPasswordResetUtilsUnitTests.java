@@ -55,7 +55,7 @@ public class SecurityPasswordResetUtilsUnitTests extends AbstractSecurityUtilsUn
 		boolean exporter = false;
 		String modelUsageRestriction = null;
 		String modelUsageFrequency = null;
-		Integer modelMaxTokens = null;
+		Long modelMaxTokens = null;
 		Double modelMaxResponseTime = null;
 
 		boolean success = SecurityUpdateUtils.registerUser(id, name, email, password, type, phone, phoneextension,

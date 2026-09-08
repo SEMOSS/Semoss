@@ -122,7 +122,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENDDATE", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USAGERESTRICTION", VARCHAR_255),
 				Pair.with("USAGEFREQUENCY", VARCHAR_255),
-				Pair.with("MAXTOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("MAXTOKENS", "BIGINT"),
 				Pair.with("MAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
 
 		addTable("PROJECT", Arrays.asList(
@@ -240,7 +240,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("COUNTRYCODE", VARCHAR_255),
 				Pair.with("MODELUSAGERESTRICTION", VARCHAR_255),
 				Pair.with("MODELUSAGEFREQUENCY", VARCHAR_255),
-				Pair.with("MODELMAXTOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("MODELMAXTOKENS", "BIGINT"),
 				Pair.with("MODELMAXRESPONSETIME", DOUBLE_DATATYPE_NAME)));
 
 		addTable("SMSS_USER_ACCESS_KEYS", Arrays.asList(

@@ -144,10 +144,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setString(parameterIndex++, newUser.getEmail());
 						}
 						ps.setTimestamp(parameterIndex++, timestamp);
-						if (newUser.getModelMaxTokens() == 0) {
-							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+						if (newUser.getModelMaxTokens() == 0L) {
+							ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 						} else {
-							ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+							ps.setLong(parameterIndex++, newUser.getModelMaxTokens());
 						}
 						if (newUser.getModelMaxResponseTime() == 0.0) {
 							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -272,13 +272,13 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setBoolean(parameterIndex++, !adminSetExporter());
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
-							if (newUser.getModelMaxTokens() == 0) {
-								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+							if (newUser.getModelMaxTokens() == 0L) {
+								ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 							} else {
-								ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+								ps.setLong(parameterIndex++, newUser.getModelMaxTokens());
 							}
 							if (newUser.getModelMaxResponseTime() == 0.0) {
-								ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+								ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 							} else {
 								ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 							}
@@ -585,7 +585,7 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean registerUser(String id, String name, String email, String password, String type, String phone,
 			String phoneextension, String countrycode, boolean admin, boolean publisher, boolean exporter,
-			String modelUsageRestriction, String modelUsageFrequency, Integer modelMaxTokens,
+			String modelUsageRestriction, String modelUsageFrequency, Long modelMaxTokens,
 			Double modelMaxResponseTime) throws IllegalArgumentException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean isExistingUser = SecurityQueryUtils.checkUserExist(id);
@@ -688,10 +688,10 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			}
-			if (modelMaxTokens != null && modelMaxTokens > 0) {
-				ps.setInt(parameterIndex++, modelMaxTokens);
+			if (modelMaxTokens != null && modelMaxTokens > 0L) {
+				ps.setLong(parameterIndex++, modelMaxTokens);
 			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 			}
 			if (modelMaxResponseTime != null && modelMaxResponseTime > 0) {
 				ps.setDouble(parameterIndex++, modelMaxResponseTime);

@@ -1015,7 +1015,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 * @throws IllegalAccessException
 	 */
 	public static void addEngineUser(User user, String newUserId, String engineId, String permission, String endDate,
-			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime)
+			String usageRestriction, String usageFrequency, long maxTokens, double maxResponseTime)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
@@ -1073,10 +1073,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setString(parameterIndex++, usageFrequency);
 			}
-			if (maxTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			if (maxTokens == 0L) {
+				ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 			} else {
-				ps.setInt(parameterIndex++, maxTokens);
+				ps.setLong(parameterIndex++, maxTokens);
 			}
 			if (maxResponseTime == 0.0) {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1177,9 +1177,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+					ps.setLong(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).longValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
@@ -1230,7 +1230,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	 */
 	public static void editEngineUserPermission(User user, String existingUserId, String existingUserType,
 			String engineId, String newPermission, String endDate, String usageRestriction, String usageFrequency,
-			int maxTokens, double maxResponseTime) throws IllegalAccessException {
+			long maxTokens, double maxResponseTime) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure user can edit the database
 		int userPermissionLvl = getMaxUserEnginePermission(user, engineId);
@@ -1292,10 +1292,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setString(parameterIndex++, usageFrequency);
 			}
-			if (maxTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			if (maxTokens == 0L) {
+				ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 			} else {
-				ps.setInt(parameterIndex++, maxTokens);
+				ps.setLong(parameterIndex++, maxTokens);
 			}
 			if (maxResponseTime == 0.0) {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -2176,9 +2176,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					insertTargetEnginePermissionStatement.setString(6, (String) row[5]);
 				}
 				if (row[6] == null) {
-					insertTargetEnginePermissionStatement.setNull(7, java.sql.Types.INTEGER);
+					insertTargetEnginePermissionStatement.setNull(7, java.sql.Types.BIGINT);
 				} else {
-					insertTargetEnginePermissionStatement.setInt(7, ((Number) row[6]).intValue());
+					insertTargetEnginePermissionStatement.setLong(7, ((Number) row[6]).longValue());
 				}
 				if (row[7] == null) {
 					insertTargetEnginePermissionStatement.setNull(8, java.sql.Types.DOUBLE);

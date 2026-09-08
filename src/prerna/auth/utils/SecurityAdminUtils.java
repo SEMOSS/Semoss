@@ -897,13 +897,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String modelUsageFrequency = userInfo.get("model_usage_frequency") != null
 				? userInfo.get("model_usage_frequency").toString()
 				: null;
-		Integer modelMaxTokens = null;
+		Long modelMaxTokens = null;
 		if (userInfo.get("model_max_tokens") != null) {
 			try {
-				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).intValue();
+				modelMaxTokens = ((Number) userInfo.get("model_max_tokens")).longValue();
 			} catch (ClassCastException e) {
 				classLogger.error("Failed to update user account information in the security database", e);
-				throw new IllegalArgumentException("model_max_tokens must be a valid integer value");
+				throw new IllegalArgumentException("model_max_tokens must be a valid long value");
 			}
 		}
 		Double modelMaxResponseTime = null;
@@ -1039,9 +1039,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				editUserPs.setString(i++, modelUsageRestriction);
 			}
 			if (modelMaxTokens == null) {
-				editUserPs.setNull(i++, java.sql.Types.INTEGER);
+				editUserPs.setNull(i++, java.sql.Types.BIGINT);
 			} else {
-				editUserPs.setInt(i++, modelMaxTokens);
+				editUserPs.setLong(i++, modelMaxTokens);
 			}
 			if (modelMaxResponseTime == null) {
 				editUserPs.setNull(i++, java.sql.Types.DOUBLE);
@@ -1853,7 +1853,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param maxResponseTime
 	 */
 	public void addEngineUser(String newUserId, String engineId, String permission, User user, String endDate,
-			String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
+			String usageRestriction, String usageFrequency, long maxTokens, double maxResponseTime) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -1894,10 +1894,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setString(parameterIndex++, usageFrequency);
 			}
-			if (maxTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			if (maxTokens == 0L) {
+				ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 			} else {
-				ps.setInt(parameterIndex++, maxTokens);
+				ps.setLong(parameterIndex++, maxTokens);
 			}
 			if (maxResponseTime == 0.0) {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -1983,9 +1983,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+					ps.setLong(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).longValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
@@ -2677,7 +2677,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param usageFrequency
 	 */
 	public void editEngineUserPermission(String existingUserId, String engineId, String newPermission, User user,
-			String endDate, String usageRestriction, String usageFrequency, int maxTokens, double maxResponseTime) {
+			String endDate, String usageRestriction, String usageFrequency, long maxTokens, double maxResponseTime) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// make sure we are trying to edit a permission that exists
 		Integer existingUserPermission = SecurityUserEngineUtils.getUserEnginePermission(existingUserId, engineId);
@@ -2715,10 +2715,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			} else {
 				ps.setString(parameterIndex++, usageFrequency);
 			}
-			if (maxTokens == 0) {
-				ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+			if (maxTokens == 0L) {
+				ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 			} else {
-				ps.setInt(parameterIndex++, maxTokens);
+				ps.setLong(parameterIndex++, maxTokens);
 			}
 			if (maxResponseTime == 0.0) {
 				ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
@@ -2814,9 +2814,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
 				if (thisPermissionMap.get("maxTokens") != null) {
-					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+					ps.setLong(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).longValue());
 				} else {
-					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+					ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 				}
 				if (thisPermissionMap.get("maxResponseTime") != null) {
 					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());

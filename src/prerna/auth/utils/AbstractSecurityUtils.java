@@ -963,7 +963,7 @@ public abstract class AbstractSecurityUtils {
 					"MAXTOKENS", "MAXRESPONSETIME", "USAGEFREQUENCY" };
 			types = new String[] { VARCHAR_255, INTEGER_DATATYPE_NAME, VARCHAR_255, BOOLEAN_DATATYPE_NAME,
 					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
-					VARCHAR_255, INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME, VARCHAR_255 };
+					VARCHAR_255, "BIGINT", DOBLE_DATATYPE_NAME, VARCHAR_255 };
 			defaultValues = new Object[] { null, null, null, true, false, null, null, null, null, null, null, null,
 					null };
 			if (allowIfExistsTable) {
@@ -990,6 +990,24 @@ public abstract class AbstractSecurityUtils {
 						String addColumnSql = queryUtil.alterTableAddColumn("ENGINEPERMISSION", col, types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// Upgrade ENGINEPERMISSION.MAXTOKENS from INT to BIGINT - ADDED 2026-09-03
+			if (queryUtil.allowRedefineColumn()) {
+				String[] maxTokensDetails = queryUtil.getColumnDetails(conn, "ENGINEPERMISSION", "MAXTOKENS", database, schema);
+				if (maxTokensDetails != null) {
+					String currentType = maxTokensDetails[1].toUpperCase();
+					// upgrade if still stored as a plain integer (INT, INT4, INTEGER) rather than BIGINT/INT8
+					if (!currentType.startsWith("BIGINT") && !currentType.startsWith("INT8")
+							&& (currentType.startsWith("INT") || currentType.startsWith("INTEGER"))) {
+						classLogger.info("Upgrading ENGINEPERMISSION.MAXTOKENS from {} to BIGINT", currentType);
+						String alterSql = queryUtil.modColumnType("ENGINEPERMISSION", "MAXTOKENS", "BIGINT");
+						classLogger.info("Running sql {}", alterSql);
+						securityDb.insertData(alterSql);
+						if (!conn.getAutoCommit()) {
+							conn.commit();
+						}
 					}
 				}
 			}
@@ -1703,7 +1721,7 @@ public abstract class AbstractSecurityUtils {
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
 					VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
 					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER_DATATYPE_NAME, DOBLE_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, "BIGINT", DOBLE_DATATYPE_NAME,
 					VARCHAR_255 };
 			// TEMPORARY CHECK! - 2021-01-17 this table used to be USER
 			// but some rdbms types (postgres) does not allow it
@@ -1738,6 +1756,24 @@ public abstract class AbstractSecurityUtils {
 						String addColumnSql = queryUtil.alterTableAddColumn("SMSS_USER", col, types[i]);
 						classLogger.info("Running sql {}", addColumnSql);
 						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// Upgrade SMSS_USER.MODELMAXTOKENS from INT to BIGINT - ADDED 2026-09-03
+			if (queryUtil.allowRedefineColumn()) {
+				String[] modelMaxTokensDetails = queryUtil.getColumnDetails(conn, "SMSS_USER", "MODELMAXTOKENS", database, schema);
+				if (modelMaxTokensDetails != null) {
+					String currentType = modelMaxTokensDetails[1].toUpperCase();
+					// upgrade if still stored as a plain integer (INT, INT4, INTEGER) rather than BIGINT/INT8
+					if (!currentType.startsWith("BIGINT") && !currentType.startsWith("INT8")
+							&& (currentType.startsWith("INT") || currentType.startsWith("INTEGER"))) {
+						classLogger.info("Upgrading SMSS_USER.MODELMAXTOKENS from {} to BIGINT", currentType);
+						String alterSql = queryUtil.modColumnType("SMSS_USER", "MODELMAXTOKENS", "BIGINT");
+						classLogger.info("Running sql {}", alterSql);
+						securityDb.insertData(alterSql);
+						if (!conn.getAutoCommit()) {
+							conn.commit();
+						}
 					}
 				}
 			}

@@ -171,13 +171,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
 					}
-					if (newUser.getModelMaxTokens() == 0) {
-						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					if (newUser.getModelMaxTokens() == 0L) {
+						ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 					} else {
-						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+						ps.setLong(parameterIndex++, newUser.getModelMaxTokens());
 					}
 					if (newUser.getModelMaxResponseTime() == 0.0) {
-						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}
@@ -283,13 +283,13 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					} else {
 						ps.setString(parameterIndex++, newUser.getCountryCode());
 					}
-					if (newUser.getModelMaxTokens() == 0) {
-						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+					if (newUser.getModelMaxTokens() == 0L) {
+						ps.setNull(parameterIndex++, java.sql.Types.BIGINT);
 					} else {
-						ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
+						ps.setLong(parameterIndex++, newUser.getModelMaxTokens());
 					}
 					if (newUser.getModelMaxResponseTime() == 0.0) {
-						ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}

@@ -86,7 +86,7 @@ public class SecurityUserAccessKeyUtilsUnitTests extends AbstractSecurityUtilsUn
 	private boolean exporter = false;
 	private String modelUsageRestriction = null;
 	private String modelUsageFrequency = null;
-	private Integer modelMaxTokens = null;
+	private Long modelMaxTokens = null;
 	private Double modelMaxResponseTime = null;
 	AccessToken accessToken = null;
 

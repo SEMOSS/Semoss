@@ -247,7 +247,7 @@ public class ModelUsageRestrictionUtilityUnitTests extends SemossUnitTest {
 			Map<String, Object> permissionMap = new HashMap<>();
 			permissionMap.put(Constants.USER_USAGE_RESTRICTION_KEY, "token");
 			permissionMap.put(Constants.USER_MODEL_USAGE_FREQUENCY_KEY, "MONTH");
-			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 20000);
+			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 20000L);
 
 			List<Map<String, Object>> permissions = new ArrayList<>();
 			permissions.add(permissionMap);
@@ -280,7 +280,7 @@ public class ModelUsageRestrictionUtilityUnitTests extends SemossUnitTest {
 			Map<String, Object> permissionMap = new HashMap<>();
 			permissionMap.put(Constants.USER_USAGE_RESTRICTION_KEY, "token");
 			permissionMap.put(Constants.USER_MODEL_USAGE_FREQUENCY_KEY, "ALL_TIME");
-			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 5000);
+			permissionMap.put(Constants.USER_MODEL_MAX_TOKEN_KEY, 5000L);
 
 			List<Map<String, Object>> permissions = new ArrayList<>();
 			permissions.add(permissionMap);

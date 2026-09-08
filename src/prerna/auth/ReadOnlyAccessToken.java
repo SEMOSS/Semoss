@@ -213,7 +213,7 @@ public class ReadOnlyAccessToken extends AccessToken implements Serializable {
 	}
 
 	@Override
-	public void setModelMaxTokens(int modelMaxTokens) {
+	public void setModelMaxTokens(long modelMaxTokens) {
 		throw new IllegalArgumentException("This object cannot be modified");
 	}
 
