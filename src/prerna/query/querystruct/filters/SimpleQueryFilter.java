@@ -33,8 +33,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector;
@@ -377,7 +378,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 		}
 
 		if (regexPattern1 != null) {
-			Pattern p = Pattern.compile(".*" + regexPattern1 + ".*", Pattern.CASE_INSENSITIVE);
+			Pattern p = compileRegexSearchPattern(regexPattern1);
 			for (Object value : list1) {
 				Matcher match = p.matcher(value + "");
 				if (match.matches()) {
@@ -386,7 +387,7 @@ public class SimpleQueryFilter implements IQueryFilter {
 			}
 		}
 		if (biDirectional && regexPattern2 != null) {
-			Pattern p = Pattern.compile(".*" + regexPattern2 + ".*", Pattern.CASE_INSENSITIVE);
+			Pattern p = compileRegexSearchPattern(regexPattern2);
 			for (Object value : list2) {
 				Matcher match = p.matcher(value + "");
 				if (match.matches()) {
@@ -398,6 +399,15 @@ public class SimpleQueryFilter implements IQueryFilter {
 		// got to this point
 		// they match
 		return false;
+	}
+
+	/**
+	 * Compiles filter expressions with RE2/J because filter values can originate
+	 * from user input. RE2/J preserves the intended regex search behavior while
+	 * preventing crafted expressions from causing catastrophic backtracking.
+	 */
+	private static Pattern compileRegexSearchPattern(String regexPattern) {
+		return Pattern.compile(".*" + regexPattern + ".*", Pattern.CASE_INSENSITIVE);
 	}
 
 	public boolean subtractInstanceFilters(SimpleQueryFilter otherQueryFilter) {
