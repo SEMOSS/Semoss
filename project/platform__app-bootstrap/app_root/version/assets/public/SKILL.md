@@ -262,15 +262,22 @@ Access keys are sent as HTTP basic auth. Because basic auth is not cookie-based 
 CSRF-forgeable, so the SDK skips the CSRF handshake entirely when both keys are set. That is a
 dev-only path: never ship the keys.
 
-The `semoss-env` tag is written into `portals/index.html` by the server on publish, as the first
-child of `<head>`:
+Publish writes two tags into the head of `portals/index.html`:
 
 ```html
+<script id="semoss-sdk-importmap" type="importmap">
+{"imports":{"@semoss/sdk":"/semoss-ui/libs/sdk/dist/index.mjs"}}
+</script>
 <script id="semoss-env" type="application/json">{"APP": "<project-id>","MODULE": "/Monolith"}</script>
 ```
 
-Do not add that tag to your source `index.html` by hand. A hardcoded app id is wrong the moment
-the project is cloned or promoted to another server.
+The import map lets a no-build app write `import { Insight } from "@semoss/sdk"` with no bundler,
+resolved against the SDK the server ships. It is skipped when the page already has an import map
+of its own, which is the case for anything built through Vite.
+
+Do not add either tag to your source `index.html` by hand. A hardcoded app id is wrong the moment
+the project is cloned or promoted to another server, and a hand-written import map suppresses the
+injected one.
 
 ### Embedded in an iframe
 
@@ -495,7 +502,7 @@ it when they finish.
 2. `Env.update(...)` runs once at module scope, before anything constructs an `Insight`.
 3. `await waitForEmbedAuth()` before `initialize()` if the app can be embedded.
 4. Exactly one `Insight` for the session.
-5. Source `index.html` has no `semoss-env` tag.
+5. Source `index.html` has no `semoss-env` tag and no hand-written import map.
 6. Nothing renders before `isInitialized`, nothing protected before `isAuthorized`, no pixel runs
    before `isReady`.
 7. Every pixel call goes through one wrapper that passes `insightId` and checks `errors`.
@@ -506,6 +513,7 @@ it when they finish.
 | Symptom | Cause |
 | --- | --- |
 | Blank screen, `module is required` | `Env.MODULE` empty: missing `MODULE` in `client/.env`, or the published `index.html` lost its `semoss-env` tag |
+| `Failed to resolve module specifier "@semoss/sdk"` in a no-build app | the page has not been published yet, so the import map is not in it, or the page carries its own import map and publish left it alone |
 | `Error("No response")` from `actions.run` | the session died; `UnauthorizedError` was swallowed and `isAuthorized` is now false |
 | Login page never clears after a correct password | logged in with the bare `login()` instead of `actions.login()`, so no insight was created |
 | Generic pixels work, project pixels do not | insight created without `SetContext`: `Env.APP` was empty, or the call ran with no `insightId` |

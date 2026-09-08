@@ -114,7 +114,9 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		Path clientDir = projectAssetsDir.resolve(CLIENT_DIR).normalize();
 
 		if (!Files.isDirectory(clientDir)) {
-			return error("Client folder not found: " + clientDir);
+			return getWarning("No client folder found at " + clientDir
+					+ ". BuildAndPublishApp compiles client source from assets/client. For a project whose portal assets already run as-is, such as a plain index.html app, use PublishProject(project=['"
+					+ projectId + "'], release=true).");
 		}
 
 		Path tempZip = null;
