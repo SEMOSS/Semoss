@@ -128,6 +128,9 @@ public class User implements Serializable {
 	private boolean anonymous;
 	private String anonymousId;
 
+	private boolean pendingRevocation;
+	private String revocationReason;
+
 	private transient volatile String[] cachedTemporalAccessSecretKey = null;
 
 	public User() {
@@ -223,6 +226,32 @@ public class User implements Serializable {
 	 */
 	public List<AuthProvider> getLogins() {
 		return loggedInProfiles;
+	}
+
+	/**
+	 * Marks this session as pending revocation without touching {@code loggedInProfiles}
+	 * or {@code accessTokens} — unlike an immediate logout, this keeps the session fully
+	 * alive. That's deliberate: the request that triggered this still needs to finish and
+	 * carry the block back to the client (see {@code PipelineInvocationHandler}, which
+	 * both attaches {@code USER_LOGGED_OUT_ERROR} to the response and refuses further
+	 * model calls once this flag is set), and the client performs the real logout, through
+	 * {@code /api/auth/logout/all}, only once the user acknowledges the dialog it shows.
+	 *
+	 * @param reason short cause for the revocation, for logging and the dialog's re-delivery path
+	 */
+	public void markPendingRevocation(String reason) {
+		AccessToken token = getPrimaryLoginToken();
+		classLogger.warn("Marking user {} logged out: {}", token != null ? token.getId() : "UNKNOWN", reason);
+		this.pendingRevocation = true;
+		this.revocationReason = reason;
+	}
+
+	public boolean isPendingRevocation() {
+		return this.pendingRevocation;
+	}
+
+	public String getRevocationReason() {
+		return this.revocationReason;
 	}
 
 	public boolean isLoggedIn() {

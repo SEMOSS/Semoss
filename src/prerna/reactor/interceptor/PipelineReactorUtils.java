@@ -50,6 +50,7 @@ public final class PipelineReactorUtils {
 	public static final String MASKED = "masked";
 	public static final String SHORT_CIRCUIT_RESPONSE = "shortCircuitResponse";
 	public static final String CLOSE_ROOM = "closeRoom";
+	public static final String LOGOUT_USER = "logoutUser";
 	public static final String BLOCK_ERROR_MESSAGE = "blockErrorMessage";
 
 	private PipelineReactorUtils() {

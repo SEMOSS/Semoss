@@ -67,6 +67,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
+import prerna.auth.AccessToken;
+import prerna.auth.User;
 import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -96,6 +98,7 @@ import prerna.reactor.interceptor.PipelineReactorUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.gson.LocalDateTimeAdapter;
@@ -136,6 +139,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	// took
 	private static final String GUARDRAIL_ACTION_MASK = "MASK";
 	private static final String GUARDRAIL_ACTION_BLOCK = "BLOCK";
+	private static final String GUARDRAIL_ACTION_BLOCK_LOGOUT = "BLOCK_LOGOUT";
 	private static final String GUARDRAIL_ACTION_RESPOND = "RESPOND";
 
 	private final ZoneId UTC_ZONE_ID = ZoneId.of("UTC");
@@ -188,6 +192,16 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	@SuppressWarnings("unchecked")
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+		{
+			User pendingUser = resolveUser(args);
+			if (pendingUser != null && pendingUser.isPendingRevocation()) {
+				throw new SemossPixelException(NounMetadata.getErrorNounMessage(
+						"Unable to process this request; your session has been revoked following a content "
+								+ "policy block. Please sign out to continue.",
+						PixelOperationType.USER_LOGGED_OUT_ERROR));
+			}
+		}
+
 		if (method.isAnnotationPresent(IgnoreEngineLogging.class)) {
 			try {
 				return this.engineInvoker.invoke(method, args);
@@ -331,7 +345,9 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					// request, RESPOND when it supplied the answer itself, null when it ran clean
 					// - queryable via the GUARDRAIL_ACTION column
 					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
-							: masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+							: masked ? GUARDRAIL_ACTION_MASK
+							: (!pass ? (Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))
+									? GUARDRAIL_ACTION_BLOCK_LOGOUT : GUARDRAIL_ACTION_BLOCK) : null);
 
 					String request = null;
 					String response = null;
@@ -360,8 +376,14 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
-						throw new SemossPixelException(blockMessageOrDefault(resultMap,
-								"Unable to process this request due to content policy (guardrail input exception)"));
+						boolean loggedOut = logoutIfRequested(resultMap, args);
+						String blockMsg = blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail input exception)");
+						if (loggedOut) {
+							throw new SemossPixelException(
+									NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+						}
+						throw new SemossPixelException(blockMsg);
 					}
 				}
 			}
@@ -444,7 +466,11 @@ public class PipelineInvocationHandler implements InvocationHandler {
 							.get(PipelineReactorUtils.INTERIM_RESULT);
 					boolean pass = (boolean) resultMap.get(PipelineReactorUtils.PASS);
 					boolean masked = Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.MASKED));
-					String guardrailAction = masked ? GUARDRAIL_ACTION_MASK : (!pass ? GUARDRAIL_ACTION_BLOCK : null);
+					String cannedResponse = (String) resultMap.get(PipelineReactorUtils.SHORT_CIRCUIT_RESPONSE);
+					String guardrailAction = cannedResponse != null ? GUARDRAIL_ACTION_RESPOND
+							: masked ? GUARDRAIL_ACTION_MASK
+							: (!pass ? (Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))
+									? GUARDRAIL_ACTION_BLOCK_LOGOUT : GUARDRAIL_ACTION_BLOCK) : null);
 
 					String request = null;
 					String response = null;
@@ -462,10 +488,33 @@ public class PipelineInvocationHandler implements InvocationHandler {
 					logEngineCall(engineSpecificLogger, start, end, pass, request, response, null,
 							reactor.getClass().getSimpleName(), null, null, guardrailAction);
 
+					if (cannedResponse != null) {
+						if (!AskModelEngineResponse.class.isAssignableFrom(method.getReturnType())) {
+							closeRoomIfRequested(resultMap, args);
+							boolean loggedOut = logoutIfRequested(resultMap, args);
+							String blockMsg = blockMessageOrDefault(resultMap,
+									"Unable to process this request due to content policy (guardrail output exception)");
+							if (loggedOut) {
+								throw new SemossPixelException(
+										NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+							}
+							throw new SemossPixelException(blockMsg);
+						}
+						classLogger.warn("Guardrail {} short-circuited the model call with a canned response",
+								reactor.getClass().getSimpleName());
+						return new AskStringModelEngineResponse(cannedResponse, 0, 0);
+					}
+
 					if (!pass) {
 						closeRoomIfRequested(resultMap, args);
-						throw new SemossPixelException(blockMessageOrDefault(resultMap,
-								"Unable to process this request due to content policy (guardrail output exception)"));
+						boolean loggedOut = logoutIfRequested(resultMap, args);
+						String blockMsg = blockMessageOrDefault(resultMap,
+								"Unable to process this request due to content policy (guardrail output exception)");
+						if (loggedOut) {
+							throw new SemossPixelException(
+									NounMetadata.getErrorNounMessage(blockMsg, PixelOperationType.USER_LOGGED_OUT_ERROR));
+						}
+						throw new SemossPixelException(blockMsg);
 					}
 
 					result = processedArguments.get(PipelineReactorUtils.RESULT);
@@ -494,6 +543,63 @@ public class PipelineInvocationHandler implements InvocationHandler {
 				return;
 			}
 		}
+	}
+
+	/**
+	 * @return true only if a session was actually marked pending revocation. Callers
+	 *         use this — not whether logoutOnBlock was configured — to decide whether
+	 *         to tag the block as a logout, since an anonymous user has no session to
+	 *         revoke and no-ops below.
+	 */
+	private boolean logoutIfRequested(Map<String, Object> resultMap, Object[] args) {
+		if (!Boolean.TRUE.equals(resultMap.get(PipelineReactorUtils.LOGOUT_USER))) {
+			return false;
+		}
+		try {
+			User user = resolveUser(args);
+			if (user == null) {
+				classLogger.warn("logoutOnBlock is configured but no user could be resolved from the guardrail call");
+				return false;
+			}
+			if (user.isAnonymous()) {
+				classLogger.info("Guardrail block on anonymous user; nothing to log out");
+				return false;
+			}
+
+			AccessToken token = user.getPrimaryLoginToken();
+			String userId = token != null ? token.getId() : null;
+
+			user.markPendingRevocation("GUARDRAIL");
+			classLogger.warn("Guardrail marked user {} pending revocation after a block; session stays live until "
+					+ "the client acknowledges and logs out", userId);
+			return true;
+		} catch (Exception e) {
+			// never let this suppress the block itself
+			classLogger.error("Failed to mark user pending revocation after guardrail block", e);
+			return false;
+		}
+	}
+
+	/**
+	 * Resolves the {@link User} tied to this call, trying a {@link Room} argument first
+	 * (the {@code askRoom} path), then an {@link Insight} argument (the plain, deprecated
+	 * {@code ask} path), then falling back to {@link ThreadStore}.
+	 */
+	private User resolveUser(Object[] args) {
+		if (args == null) {
+			return null;
+		}
+		for (Object arg : args) {
+			if (arg instanceof Room) {
+				return ((Room) arg).getInsight().getUser();
+			}
+		}
+		for (Object arg : args) {
+			if (arg instanceof Insight) {
+				return ((Insight) arg).getUser();
+			}
+		}
+		return ThreadStore.getUser();
 	}
 
 	private String blockMessageOrDefault(Map<String, Object> resultMap, String fallback) {
