@@ -47,6 +47,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.function.GetFunctionEngineDefinitionReactor;
 import prerna.reactor.project.GetProjectAvailableReactorsReactor;
 import prerna.reactor.project.GetProjectReactorSignatureReactor;
 import prerna.reactor.project.MyProjectsReactor;
@@ -86,6 +87,7 @@ public final class AutomationMcpSync {
 		try {
 			JSONArray generated = new JSONArray()
 					.put(myEnginesTool())
+					.put(functionDefinitionTool())
 					.put(myProjectsTool())
 					.put(projectReactorsTool())
 					.put(projectReactorSignatureTool())
@@ -166,6 +168,20 @@ public final class AutomationMcpSync {
 		JSONObject inputSchema = tool.getJSONObject("inputSchema");
 		inputSchema.put("properties", properties);
 		inputSchema.put("required", new JSONArray().put(ReactorKeysEnum.PROJECT_TYPE.getKey()));
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
+	}
+
+	private static JSONObject functionDefinitionTool() {
+		JSONObject properties = new JSONObject();
+		properties.put(ReactorKeysEnum.ENGINE.getKey(), stringProperty(
+				"Exact FUNCTION engine_id returned by MyEngines."));
+		JSONObject tool = tool(new GetFunctionEngineDefinitionReactor().asMcpTool().getString("name"),
+				"Get Function Engine Definition",
+				"Return the declared parameters and required parameters for one accessible function engine. "
+						+ "Call this after MyEngines and before authoring function.execute. Use the returned "
+						+ "parameter names exactly as keys in config.arguments and include every required parameter.",
+				properties, new JSONArray().put(ReactorKeysEnum.ENGINE.getKey()));
 		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
 		return tool;
 	}
@@ -261,7 +277,9 @@ public final class AutomationMcpSync {
 				+ "model.ner requires engineId, text, and entities as a non-empty JSON array of strings. "
 				+ "storage nodes require engineId and path; upload/download also require destination. "
 				+ "vector nodes require engineId and value; vector.search may include limit. "
-				+ "function.execute requires engineId and arguments as a JSON object or valid JSON-object string. "
+				+ "Before configuring function.execute, call GetFunctionEngineDefinition for the selected FUNCTION "
+				+ "engine. function.execute requires engineId and arguments as a JSON object whose keys exactly match "
+				+ "the returned parameter names and which includes every returned required parameter. "
 				+ "For app.pixel, call MyProjects with "
 				+ "projectType=['CODE','BLOCKS'], use its project_id exactly as appId, then call "
 				+ "GetProjectAvailableReactors and GetProjectReactorSignature; pixel must use the exact reactor "
@@ -344,6 +362,8 @@ public final class AutomationMcpSync {
 		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
 				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
 				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
+				+ "For function.execute, call GetFunctionEngineDefinition and use its exact parameter names as "
+				+ "config.arguments keys, including every required parameter. "
 				+ "Generated model nodes expose their response business value and agent.run exposes finalText; "
 				+ "do not configure downstream nodes to parse their transport envelopes. "
 				+ "For app.pixel, use an appId from MyProjects projectType=['CODE','BLOCKS'] and a pixel template "
