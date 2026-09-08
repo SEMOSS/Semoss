@@ -441,11 +441,12 @@ and publishes the project, which is when the server injects the `semoss-env` tag
 ## Without a build step
 
 If the app does not need compiling there is no `client/` folder at all: put `index.html` straight
-into `portals/`, import the SDK from the CDN, and publish with `PublishProject`. See
+into `portals/`, import the SDK by name, and publish with `PublishProject`. Publish writes the
+import map that resolves the bare specifier, so no CDN URL and no bundler is involved. See
 `references/vanilla-app.md` for the complete version.
 
 ```html
 <script type="module">
-  import { Insight } from "https://cdn.jsdelivr.net/npm/@semoss/sdk@latest/+esm";
+  import { Insight } from "@semoss/sdk";
 </script>
 ```

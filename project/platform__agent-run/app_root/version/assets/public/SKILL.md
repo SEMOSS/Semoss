@@ -5,11 +5,11 @@ description: Use when writing code in an app that starts, streams, or resumes a 
 
 # Agent Run
 
-An **agent run** is a server-driven, multi-turn agentic loop (`RunAgent`) — the model calls tools, gets results, and keeps going on its own until it produces a final answer, hits a limit, or pauses for a human decision. This is different from a plain `LLM()` turn (see the `room` skill), which is a single request/response with no autonomous looping. All agent-run calls go through `@semoss/sdk`'s dedicated functions, not raw `runPixel` — they wrap `RunAgent`, `GetAgentRun`, `GetSubagentRuns`, and `RunMCPTool`.
+An **agent run** is a server-driven, multi-turn agentic loop (`RunAgent`) - the model calls tools, gets results, and keeps going on its own until it produces a final answer, hits a limit, or pauses for a human decision. This is different from a plain `LLM()` turn (see the `room` skill), which is a single request/response with no autonomous looping. All agent-run calls go through `@semoss/sdk`'s dedicated functions, not raw `runPixel` - they wrap `RunAgent`, `GetAgentRun`, `GetSubagentRuns`, and `RunMCPTool`.
 
 A run is identified by its own `runId` (also its `jobId`, the model-facing handle) and writes its messages into a normal room (`roomId`), so `GetPlaygroundMessages` on that room shows the same message history a plain chat turn would.
 
-## Usage — start and stream a run
+## Usage - start and stream a run
 
 ```typescript
 import { runAgent, subscribeRunAgent } from "@semoss/sdk";
@@ -26,7 +26,7 @@ const { runId } = await runAgent(
 const subscription = subscribeRunAgent(runId, {
   onEvent: (event, items) => {
     // event.type: "item.started" | "item.updated" | "item.completed"
-    // items.itemsById / items.itemOrder hold the accumulated view — see "Item events" below.
+    // items.itemsById / items.itemOrder hold the accumulated view - see "Item events" below.
   },
   onSnapshot: (snapshot) => {
     // snapshot.status: SUBMITTED | RUNNING | INPUT_REQUIRED | COMPLETED | FAILED | CANCELLED
@@ -41,11 +41,11 @@ const subscription = subscribeRunAgent(runId, {
 subscription.stop();
 ```
 
-`runAgent` always returns immediately with `status: "SUBMITTED"` — it never waits for the run to finish. Stream progress with `subscribeRunAgent`.
+`runAgent` always returns immediately with `status: "SUBMITTED"` - it never waits for the run to finish. Stream progress with `subscribeRunAgent`.
 
 ## Run lifecycle
 
-### Start — `runAgent` (`RunAgent`)
+### Start - `runAgent` (`RunAgent`)
 
 ```typescript
 runAgent(
@@ -64,13 +64,13 @@ runAgent(
 );
 ```
 
-Returns `{ runId, roomId, status }` — a thin handle, not a full snapshot. Fetch `getAgentRun(runId)` if you need the rest immediately.
+Returns `{ runId, roomId, status }` - a thin handle, not a full snapshot. Fetch `getAgentRun(runId)` if you need the rest immediately.
 
-> `agentId` is sent to the backend as `workspaceId` (a workspace record IS the backend's agent) — use `agentId` here, it's the term callers should reach for.
+> `agentId` is sent to the backend as `workspaceId` (a workspace record IS the backend's agent) - use `agentId` here, it's the term callers should reach for.
 
-### Stream progress — `subscribeRunAgent`
+### Stream progress - `subscribeRunAgent`
 
-Polls a run to completion, handling dedup, ordering, and retry/backoff internally — a transport failure never concludes the run failed.
+Polls a run to completion, handling dedup, ordering, and retry/backoff internally - a transport failure never concludes the run failed.
 
 ```typescript
 subscribeRunAgent(
@@ -89,13 +89,13 @@ subscribeRunAgent(
 );
 ```
 
-Returns an `AgentRunSubscription`: `stop()` (stop polling locally, does not cancel the run), `getItems()` (current items-state, for seeding a late-joining renderer), `pokeNow()` (poll immediately instead of waiting out the current interval — use right after an action you know changed the run, e.g. deciding a paused tool call).
+Returns an `AgentRunSubscription`: `stop()` (stop polling locally, does not cancel the run), `getItems()` (current items-state, for seeding a late-joining renderer), `pokeNow()` (poll immediately instead of waiting out the current interval - use right after an action you know changed the run, e.g. deciding a paused tool call).
 
 If you'd rather drive polling yourself instead of using `subscribeRunAgent`, the lower-level pieces are exposed too: `pollAgentRun(runId)` drains one batch of events plus the current snapshot, and `applyAgentRunItemEvent`/`createAgentRunItemsState` do the same event-accumulation `subscribeRunAgent` does internally, for a custom reducer.
 
 ### Reconnect after a page reload
 
-`subscribeRunAgent` only starts from your own `runAgent` call in memory — it does not survive a reload. Persist `runId` alongside whatever message it's tied to, and on reload:
+`subscribeRunAgent` only starts from your own `runAgent` call in memory - it does not survive a reload. Persist `runId` alongside whatever message it's tied to, and on reload:
 
 ```typescript
 import { getAgentRun, subscribeRunAgent } from "@semoss/sdk";
@@ -103,10 +103,10 @@ import { getAgentRun, subscribeRunAgent } from "@semoss/sdk";
 const snapshot = await getAgentRun(runId, { includeMessages: true }, insightId);
 
 if (snapshot.status === "RUNNING" || snapshot.status === "INPUT_REQUIRED") {
-  // still going (or paused) — resume streaming
+  // still going (or paused) - resume streaming
   subscribeRunAgent(runId, handlers);
 } else {
-  // already terminal — snapshot.finalText / snapshot.errorMessage has the answer
+  // already terminal - snapshot.finalText / snapshot.errorMessage has the answer
 }
 ```
 
@@ -114,16 +114,16 @@ if (snapshot.status === "RUNNING" || snapshot.status === "INPUT_REQUIRED") {
 
 Each `AgentRunItem` is one of four kinds, discriminated by `kind`:
 
-- `"message"` — assistant text. `text` accumulates via `item.updated`'s `delta`, or arrives whole on `item.started`.
-- `"reasoning"` — a reasoning/thinking summary, same accumulation pattern as `message`.
-- `"tool"` — a tool call. `name`, `arguments`, `status` (`QUEUED` → `RUNNING` → a terminal status), `output`/`error` once it finishes.
-- `"subagent"` — a subagent the run spawned (see below). `childRunId`, `alias?` (only for named subagents), `status` (an `AgentRunStatusValue`), `resultPreview?`/`error?` once terminal.
+- `"message"` - assistant text. `text` accumulates via `item.updated`'s `delta`, or arrives whole on `item.started`.
+- `"reasoning"` - a reasoning/thinking summary, same accumulation pattern as `message`.
+- `"tool"` - a tool call. `name`, `arguments`, `status` (`QUEUED` -> `RUNNING` -> a terminal status), `output`/`error` once it finishes.
+- `"subagent"` - a subagent the run spawned (see below). `childRunId`, `alias?` (only for named subagents), `status` (an `AgentRunStatusValue`), `resultPreview?`/`error?` once terminal.
 
-`item.updated` events carry either `delta` (message/reasoning) or `patch` (tool/subagent) — never both.
+`item.updated` events carry either `delta` (message/reasoning) or `patch` (tool/subagent) - never both.
 
 ### Resuming a paused run (human-in-the-loop tool decisions)
 
-When `status` is `INPUT_REQUIRED`, `pendingActions` (from `onReconcile` or `getAgentRun`) lists the paused tool calls awaiting a decision. Resolve one with `submitAgentToolDecision` — it auto-resolves to `"approve"` or `"edit"` depending on whether you pass changed arguments — or `decideAgentRunAction` for the raw `approve`/`edit`/`reject`/`respond` decision:
+When `status` is `INPUT_REQUIRED`, `pendingActions` (from `onReconcile` or `getAgentRun`) lists the paused tool calls awaiting a decision. Resolve one with `submitAgentToolDecision` - it auto-resolves to `"approve"` or `"edit"` depending on whether you pass changed arguments - or `decideAgentRunAction` for the raw `approve`/`edit`/`reject`/`respond` decision:
 
 ```typescript
 import { submitAgentToolDecision } from "@semoss/sdk";
@@ -139,22 +139,22 @@ Either call pokes the run's live `subscribeRunAgent` subscription (if one is act
 
 ### Subagents
 
-A run can spawn subagents — independent agent runs with their own room, delegated a subtask. Live subagent activity arrives as ordinary `kind: "subagent"` items on the **parent's own** stream; no extra subscription is needed while both are active in the same session.
+A run can spawn subagents - independent agent runs with their own room, delegated a subtask. Live subagent activity arrives as ordinary `kind: "subagent"` items on the **parent's own** stream; no extra subscription is needed while both are active in the same session.
 
-To reconstruct subagent state after a reload (the live stream is ephemeral and doesn't replay), or to inspect a specific subagent directly, use `getSubagentRuns` — durable and DB-backed:
+To reconstruct subagent state after a reload (the live stream is ephemeral and doesn't replay), or to inspect a specific subagent directly, use `getSubagentRuns` - durable and DB-backed:
 
 ```typescript
 import { getSubagentRuns } from "@semoss/sdk";
 
 const subagents = await getSubagentRuns(parentRunId, insightId);
-// subagents[i]: { runId, status, input, finalText, errorMessage, alias is NOT included — see note below }
+// subagents[i]: { runId, status, input, finalText, errorMessage, alias is NOT included - see note below }
 ```
 
-`SubagentRunSummary` does not carry an `alias` field — named-subagent aliases are only known live, off the stream item, never persisted. If you need to show a subagent's alias after a reload, capture it from the `kind: "subagent"` item while it's live and store it alongside your own message data.
+`SubagentRunSummary` does not carry an `alias` field - named-subagent aliases are only known live, off the stream item, never persisted. If you need to show a subagent's alias after a reload, capture it from the `kind: "subagent"` item while it's live and store it alongside your own message data.
 
-### Known limitation — cancellation is not reliable yet
+### Known limitation - cancellation is not reliable yet
 
-The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellation, but the underlying interrupt can be silently swallowed while the harness is blocked on a model call, so the run may keep going past the cancel request. Don't build a user-facing "Stop" control on top of it without confirming this has been fixed — the platform Playground app itself currently shows a plain spinner instead of a working Stop button during an agent run, for this reason.
+The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellation, but the underlying interrupt can be silently swallowed while the harness is blocked on a model call, so the run may keep going past the cancel request. Don't build a user-facing "Stop" control on top of it without confirming this has been fixed - the platform Playground app itself currently shows a plain spinner instead of a working Stop button during an agent run, for this reason.
 
 ## Response shapes
 
@@ -171,5 +171,5 @@ The backend exposes a `StopAgentRun(runId=[...])` pixel that requests cancellati
 
 ## Related
 
-- `room` — plain one-shot `LLM()` turns; use `agent-run` instead when the model needs to autonomously call tools across multiple turns without the caller driving each step.
-- `model` — `LLM()` reference for single-turn completions.
+- `room` - plain one-shot `LLM()` turns; use `agent-run` instead when the model needs to autonomously call tools across multiple turns without the caller driving each step.
+- `model` - `LLM()` reference for single-turn completions.
