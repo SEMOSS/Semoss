@@ -92,14 +92,9 @@ final class PlatformAgentToolHandlers {
 	private static final String PARAM_PATH = "path";
 	private static final String PARAM_NEW_PATH = "new_path";
 
-	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
-			"pwd", "ls", "dir", "find", "cat", "head", "tail", "wc", "stat",
-			"grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff",
-			"python", "python3",
-			"mkdir", "touch", "cp", "mv",
-			"curl", "wget",
-			"zip", "unzip",
-			"jq", "which"));
+	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList("pwd", "ls", "dir", "find", "cat",
+			"head", "tail", "wc", "stat", "grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff", "python",
+			"python3", "mkdir", "touch", "cp", "mv", "curl", "wget", "zip", "unzip", "jq", "which"));
 
 	private PlatformAgentToolHandlers() {
 	}
@@ -114,109 +109,107 @@ final class PlatformAgentToolHandlers {
 
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
-		add(tools, handler("ReadFile",
-				"Reads a file from the working directory. Returns content with line numbers "
-						+ "and a continuation marker when more lines remain.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Path to read, relative to the working directory.")),
-						prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
-						prop("limit", integerProp("Maximum lines to return. Defaults to 2000."))),
-						List.of(PARAM_PATH)),
-				PlatformAgentToolHandlers::readFile));
+		add(tools,
+				handler("ReadFile",
+						"Reads a file from the working directory. Returns content with line numbers "
+								+ "and a continuation marker when more lines remain.",
+						objectSchema(
+								props(prop(PARAM_PATH, stringProp("Path to read, relative to the working directory.")),
+										prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
+										prop("limit", integerProp("Maximum lines to return. Defaults to 2000."))),
+								List.of(PARAM_PATH)),
+						PlatformAgentToolHandlers::readFile));
 		add(tools, handler("WriteFile",
 				"Writes text to a file under the working directory, creating parent directories as needed.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
-						prop("content", stringProp("Complete file content."))),
-						List.of(PARAM_PATH, "content")),
+				objectSchema(props(prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
+						prop("content", stringProp("Complete file content."))), List.of(PARAM_PATH, "content")),
 				PlatformAgentToolHandlers::writeFile));
 		add(tools, handler("EditFile",
 				"Performs one exact string replacement in a file. Fails if the old string is not unique unless replace_all=true.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
-						prop("old_string", stringProp("Exact text to replace.")),
-						prop("new_string", stringProp("Replacement text.")),
-						prop("replace_all", booleanProp("Replace every occurrence instead of requiring uniqueness."))),
+				objectSchema(
+						props(prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
+								prop("old_string", stringProp("Exact text to replace.")),
+								prop("new_string", stringProp("Replacement text.")),
+								prop("replace_all",
+										booleanProp("Replace every occurrence instead of requiring uniqueness."))),
 						List.of(PARAM_PATH, "old_string", "new_string")),
 				PlatformAgentToolHandlers::editFile));
 		add(tools, handler("MultiEdit",
 				"Applies multiple exact string replacements to one file in a single all-or-nothing operation.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
+				objectSchema(props(prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
 						prop("edits_json", stringProp(
 								"JSON array of edits: [{\"old_string\":\"...\",\"new_string\":\"...\",\"replace_all\":false}]."))),
 						List.of(PARAM_PATH, "edits_json")),
 				PlatformAgentToolHandlers::multiEdit));
-		add(tools, handler("MoveFile",
-				"Moves or renames a path under the working directory.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Existing path, relative to the working directory.")),
-						prop(PARAM_NEW_PATH, stringProp("New path, relative to the working directory."))),
-						List.of(PARAM_PATH, PARAM_NEW_PATH)),
-				PlatformAgentToolHandlers::moveFile));
-		add(tools, handler("DeleteFile",
-				"Deletes a file or directory under the working directory.",
-				objectSchema(props(
-						prop(PARAM_PATH, stringProp("Path to delete, relative to the working directory."))),
-						List.of(PARAM_PATH)),
-				PlatformAgentToolHandlers::deleteFile));
-		add(tools, handler("GlobFiles",
-				"Finds files matching a glob pattern under the working directory.",
-				objectSchema(props(
-						prop("pattern", stringProp("Glob pattern such as **/*.java or src/**/*.ts.")),
-						prop("path", stringProp("Optional directory to search, relative to the working directory."))),
-						List.of("pattern")),
-				PlatformAgentToolHandlers::globFiles));
-		add(tools, handler("GrepFiles",
-				"Searches file contents with a regular expression.",
-				objectSchema(props(
-						prop("pattern", stringProp("Regex pattern to search for.")),
-						prop("path", stringProp("Optional path to search, relative to the working directory.")),
-						prop("glob", stringProp("Optional file glob filter, such as *.java.")),
-						prop("output_mode", stringProp("files_with_matches, content, or count. Defaults to files_with_matches.")),
-						prop("after_context", integerProp("Lines after each match.")),
-						prop("before_context", integerProp("Lines before each match.")),
-						prop("context", integerProp("Lines before and after each match.")),
-						prop("case_insensitive", booleanProp("Case-insensitive matching.")),
-						prop("head_limit", integerProp("Maximum result lines. Defaults to 200."))),
-						List.of("pattern")),
-				PlatformAgentToolHandlers::grepFiles));
-		add(tools, handler("ListDirectory",
-				"Lists directory contents under the working directory.",
-				objectSchema(props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
-						Collections.emptyList()),
-				PlatformAgentToolHandlers::listDirectory));
+		add(tools,
+				handler("MoveFile", "Moves or renames a path under the working directory.",
+						objectSchema(
+								props(prop(PARAM_PATH, stringProp("Existing path, relative to the working directory.")),
+										prop(PARAM_NEW_PATH,
+												stringProp("New path, relative to the working directory."))),
+								List.of(PARAM_PATH, PARAM_NEW_PATH)),
+						PlatformAgentToolHandlers::moveFile));
+		add(tools,
+				handler("DeleteFile", "Deletes a file or directory under the working directory.", objectSchema(
+						props(prop(PARAM_PATH, stringProp("Path to delete, relative to the working directory."))),
+						List.of(PARAM_PATH)), PlatformAgentToolHandlers::deleteFile));
+		add(tools,
+				handler("GlobFiles", "Finds files matching a glob pattern under the working directory.",
+						objectSchema(
+								props(prop("pattern", stringProp("Glob pattern such as **/*.java or src/**/*.ts.")),
+										prop("path", stringProp(
+												"Optional directory to search, relative to the working directory."))),
+								List.of("pattern")),
+						PlatformAgentToolHandlers::globFiles));
+		add(tools,
+				handler("GrepFiles", "Searches file contents with a regular expression.", objectSchema(
+						props(prop("pattern", stringProp("Regex pattern to search for.")),
+								prop("path", stringProp("Optional path to search, relative to the working directory.")),
+								prop("glob", stringProp("Optional file glob filter, such as *.java.")),
+								prop("output_mode", stringProp(
+										"files_with_matches, content, or count. Defaults to files_with_matches.")),
+								prop("after_context", integerProp("Lines after each match.")),
+								prop("before_context", integerProp("Lines before each match.")),
+								prop("context", integerProp("Lines before and after each match.")),
+								prop("case_insensitive", booleanProp("Case-insensitive matching.")),
+								prop("head_limit", integerProp("Maximum result lines. Defaults to 200."))),
+						List.of("pattern")), PlatformAgentToolHandlers::grepFiles));
+		add(tools,
+				handler("ListDirectory", "Lists directory contents under the working directory.", objectSchema(
+						props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
+						Collections.emptyList()), PlatformAgentToolHandlers::listDirectory));
 		if (isBashEnabled()) {
-			add(tools, handler("BashCommand",
-					"Executes one allowlisted shell command in the working directory.",
-					objectSchema(props(
-							prop("command", stringProp("Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
+			add(tools, handler("BashCommand", "Executes one allowlisted shell command in the working directory.",
+					objectSchema(props(prop("command", stringProp(
+							"Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
 							prop("description", stringProp("Short reason for running the command."))),
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
 		}
-		add(tools, handler("TodoWrite",
-				"Replaces the current todo list with a validated full-state JSON array.",
+		add(tools, handler("TodoWrite", "Replaces the current todo list with a validated full-state JSON array.",
 				objectSchema(props(prop("items_json", stringProp(
 						"JSON array of todo items: [{\"id\":\"...\",\"content\":\"...\",\"status\":\"pending|in_progress|completed\",\"priority\":\"high|medium|low\"}]."))),
 						List.of("items_json")),
 				PlatformAgentToolHandlers::todoWrite));
-		add(tools, handler("TodoRead",
-				"Reads the current todo list from todos.json in the working directory.",
-				objectSchema(new LinkedHashMap<>(), Collections.emptyList()),
-				PlatformAgentToolHandlers::todoRead));
+		add(tools, handler("TodoRead", "Reads the current todo list from todos.json in the working directory.",
+				objectSchema(new LinkedHashMap<>(), Collections.emptyList()), PlatformAgentToolHandlers::todoRead));
 		add(tools, handler("ListSkill",
-				"Lists skills discovered under conventional skill folders in the working directory.",
-				objectSchema(new LinkedHashMap<>(), Collections.emptyList()),
-				PlatformAgentToolHandlers::listSkill));
-		add(tools, handler("LoadSkill",
-				"Loads a chunk of a named skill from SKILL.md under the working directory.",
-				objectSchema(props(
-						prop("skill_name", stringProp("Skill folder name to load.")),
-						prop("offset", integerProp("Byte offset to start at. Defaults to 0.")),
-						prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
-						List.of("skill_name")),
-				PlatformAgentToolHandlers::loadSkill));
+				"Rescans the working directory for skills and returns each name, path, and description. "
+						+ "The available_skills block in the system prompt already lists the same set, so use "
+						+ "this only to pick up a skill created or attached partway through the run.",
+				objectSchema(new LinkedHashMap<>(), Collections.emptyList()), PlatformAgentToolHandlers::listSkill));
+		add(tools,
+				handler("LoadSkill",
+						"Loads a named skill's instructions so you can follow them. Call this before starting work "
+								+ "the skill covers, rather than working from memory -- a skill exists because that "
+								+ "task is unreliable to get right by guessing. Returns up to max_bytes and reports "
+								+ "what remains; call again with offset to read the rest.",
+						objectSchema(
+								props(prop("skill_name", stringProp("Skill folder name to load.")),
+										prop("offset", integerProp("Byte offset to start at. Defaults to 0.")),
+										prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
+								List.of("skill_name")),
+						PlatformAgentToolHandlers::loadSkill));
 		return Collections.unmodifiableMap(tools);
 	}
 
@@ -459,13 +452,10 @@ final class PlatformAgentToolHandlers {
 		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 		List<Path> matches = new ArrayList<>();
 		try (Stream<Path> paths = Files.walk(baseDir.toPath())) {
-			paths.filter(p -> !Files.isDirectory(p))
-					.filter(p -> {
-						Path rel = baseDir.toPath().relativize(p);
-						return matcher.matches(rel) || matcher.matches(p.getFileName());
-					})
-					.limit(MAX_GLOB_RESULTS)
-					.forEach(matches::add);
+			paths.filter(p -> !Files.isDirectory(p)).filter(p -> {
+				Path rel = baseDir.toPath().relativize(p);
+				return matcher.matches(rel) || matcher.matches(p.getFileName());
+			}).limit(MAX_GLOB_RESULTS).forEach(matches::add);
 		}
 		if (matches.isEmpty()) {
 			return "No files matched pattern: " + pattern;
@@ -522,11 +512,9 @@ final class PlatformAgentToolHandlers {
 		List<String> results = new ArrayList<>();
 		List<Path> paths = new ArrayList<>();
 		try (Stream<Path> walk = Files.walk(baseDir.toPath())) {
-			walk.filter(p -> !Files.isDirectory(p))
-					.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
-							|| fileMatcher.matches(baseDir.toPath().relativize(p)))
-					.sorted()
-					.forEach(paths::add);
+			walk.filter(p -> !Files.isDirectory(p)).filter(p -> fileMatcher == null
+					|| fileMatcher.matches(p.getFileName()) || fileMatcher.matches(baseDir.toPath().relativize(p)))
+					.sorted().forEach(paths::add);
 		}
 		for (Path p : paths) {
 			if (results.size() >= headLimit) {
@@ -587,16 +575,15 @@ final class PlatformAgentToolHandlers {
 		for (File f : files) {
 			String type = f.isDirectory() ? "DIR " : "FILE";
 			String size = f.isDirectory() ? "         " : String.format("%9d", f.length());
-			sb.append(String.format("%s  %s  %s  %s%n", type,
-					sdf.format(new java.util.Date(f.lastModified())), size, f.getName()));
+			sb.append(String.format("%s  %s  %s  %s%n", type, sdf.format(new java.util.Date(f.lastModified())), size,
+					f.getName()));
 		}
 		return sb.toString().trim();
 	}
 
 	private static String bashCommand(Map<String, Object> params, ToolContext tc) {
 		if (!isBashEnabled()) {
-			return "Error: BashCommand is disabled. Enable CHROOT_ENABLE or "
-					+ PROP_ENABLE_BASH + " to use it.";
+			return "Error: BashCommand is disabled. Enable CHROOT_ENABLE or " + PROP_ENABLE_BASH + " to use it.";
 		}
 		String command = stringParam(params, "command");
 		String description = stringParam(params, "description");
@@ -686,8 +673,8 @@ final class PlatformAgentToolHandlers {
 		doc.put("updated_at", Instant.now().toString());
 		doc.put("items", validated);
 		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), tc);
-		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed",
-				validated.length(), pending, inProgress, completed);
+		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed", validated.length(), pending,
+				inProgress, completed);
 	}
 
 	private static String todoRead(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -816,7 +803,7 @@ final class PlatformAgentToolHandlers {
 			return "[empty: offset " + offset + " is at or past end-of-file (" + size + " bytes total)]";
 		}
 		long remaining = size - offset;
-		int toRead = (int) Math.min(remaining, (long) maxBytes);
+		int toRead = (int) Math.min(remaining, maxBytes);
 		byte[] bytes = new byte[toRead];
 		try (RandomAccessFile raf = new RandomAccessFile(skillFile, "r")) {
 			raf.seek(offset);
@@ -847,8 +834,8 @@ final class PlatformAgentToolHandlers {
 					.append(" bytes remaining. To read more call LoadSkill(skill_name=\"").append(name)
 					.append("\", offset=").append(endOffset).append("). ---]");
 		} else if (offset > 0) {
-			body.append("\n\n[--- end of skill: bytes ").append(offset).append('-').append(endOffset - 1)
-					.append(" of ").append(size).append(" (final chunk). ---]");
+			body.append("\n\n[--- end of skill: bytes ").append(offset).append('-').append(endOffset - 1).append(" of ")
+					.append(size).append(" (final chunk). ---]");
 		}
 		return body.toString();
 	}
@@ -871,12 +858,12 @@ final class PlatformAgentToolHandlers {
 			return "Error: items[" + index + "].content too long (max " + MAX_TODO_CONTENT_LEN + ")";
 		}
 		if (status == null || !VALID_TODO_STATUSES.contains(status)) {
-			return "Error: items[" + index + "].status must be one of " + VALID_TODO_STATUSES
-					+ " (got '" + status + "')";
+			return "Error: items[" + index + "].status must be one of " + VALID_TODO_STATUSES + " (got '" + status
+					+ "')";
 		}
 		if (priority != null && !priority.isEmpty() && !VALID_TODO_PRIORITIES.contains(priority)) {
-			return "Error: items[" + index + "].priority must be one of " + VALID_TODO_PRIORITIES
-					+ " or omitted (got '" + priority + "')";
+			return "Error: items[" + index + "].priority must be one of " + VALID_TODO_PRIORITIES + " or omitted (got '"
+					+ priority + "')";
 		}
 		return null;
 	}
@@ -885,8 +872,8 @@ final class PlatformAgentToolHandlers {
 		if (containsUnquoted(command, '>') || containsUnquoted(command, '<')) {
 			return "Redirects (>, <, >>) are not allowed. Use curl/wget -o to write files.";
 		}
-		if (containsUnquoted(command, '|') || containsUnquoted(command, ';')
-				|| containsUnquotedSequence(command, "&&") || containsUnquotedSequence(command, "||")) {
+		if (containsUnquoted(command, '|') || containsUnquoted(command, ';') || containsUnquotedSequence(command, "&&")
+				|| containsUnquotedSequence(command, "||")) {
 			return "Command chaining and pipes are not allowed. Run one command per BashCommand call.";
 		}
 		if (command.contains("`")) {

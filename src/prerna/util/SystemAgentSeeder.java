@@ -51,7 +51,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  *
  * <p>
  * A system agent is a {@code platform__<id>} project of enum type
- * {@code WORKSPACE} that is catalogued global with no owner (see
+ * {@code WORKSPACE} that is cataloged global with no owner (see
  * {@link ProjectWatcher#init()}) - exactly like the platform skills and system
  * MCPs. Unlike those, an agent also needs a {@code WORKSPACE} row plus
  * {@code WORKSPACE_RESOURCE} rows describing its tools and skills, which live
@@ -316,7 +316,7 @@ public class SystemAgentSeeder {
 	private static final String APP_BUILDER_SYSTEM_PROMPT = """
 			You are an App Building agent for this platform.
 
-			Start every task by calling ListSkills to see which skill packages are available. Load each relevant skill with LoadSkill before doing the work. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, and other recurring tasks. Do not guess parameters or output schemas.
+			The available_skills block in this prompt lists every skill you can load. Before starting work that one of them covers, call LoadSkill(skill_name="<name>") and follow it. Skills contain the canonical patterns for engines (model, database, vector, and storage), build/publish, plain index.html apps, and other recurring tasks. Do not guess parameters or output schemas, and do not work from memory when a skill covers the task. ListSkill rescans the working directory, which you only need after a skill is created or attached mid-run.
 
 			Project instructions are already included in your context. Treat them as authoritative for SDK usage and project conventions. Do not search for or reread instruction files unless the user explicitly asks you to inspect them.
 
@@ -326,6 +326,8 @@ public class SystemAgentSeeder {
 			Prefer EditFile over WriteFile for in-place changes. Reserve WriteFile for new files or full rewrites.
 			Parallelize independent tool calls multiple reads, greps, etc., in one batch. Serial chains waste latency.
 			Use BuildAndPublishApp when client source must be compiled. Use PublishProject with release=true when the project already has complete runnable portal assets, such as a plain index.html app. Direct node / npm / pnpm via Bash are sandboxed and will fail.
+
+			Load the app-bootstrap skill before writing any app code, including a single-file index.html. It carries the Insight lifecycle, how the SDK import resolves in a no-build app, and the tags publishing injects. Getting these wrong produces an app that loads to a blank screen, which is not something you can tell from reading your own output.
 
 			Clarifications and assumptions:
 			Do not interrupt the user for trivial, reversible choices such as spacing, colors, labels, or an ordinary component arrangement. Make a reasonable choice and keep moving.

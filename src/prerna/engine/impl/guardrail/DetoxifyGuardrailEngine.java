@@ -124,4 +124,47 @@ public class DetoxifyGuardrailEngine extends AbstractPythonGuardrailReactorFunct
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_DETOXIFY;
 	}
+
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# Detoxify guardrail
+
+				This guardrail runs the local Detoxify `original` model over selected text. It fails when any toxicity, severe-toxicity, obscene, threat, insult, or identity-attack score is greater than the threshold.
+
+				Set `DEFAULT_THRESHOLD` in the guardrail SMSS to choose the engine-wide threshold; it defaults to `0.7`. A pipeline may override it for one intercepted method through `directParameters`. Higher thresholds are more permissive. Tune the value against representative application traffic before production use.
+
+				## Example: block toxic model input
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "input": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "arg0"
+				            },
+				            "directParameters": {
+				              "threshold": 0.8
+				            },
+				            "blockOnGuardrailFailure": true,
+				            "blockErrorMessage": "The message did not pass the toxicity check."
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				`arg0` is the `InputMessage`; the interceptor evaluates its model-bound text. Detoxify returns the original text, so use this guardrail to block rather than mask. The model is not called when the score breaches the threshold.
+				"""
+				.formatted(getEngineId());
+	}
 }

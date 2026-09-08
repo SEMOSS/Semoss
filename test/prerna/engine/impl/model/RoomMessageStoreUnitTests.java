@@ -32,19 +32,20 @@
 package prerna.engine.impl.model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 
 class RoomMessageStoreUnitTests {
 
-	private static final String INVALID_PARENT_JSON = "["
-			+ "{\"io\":\"INPUT\",\"messageId\":\"child\",\"parentMessageId\":\"missing\",\"parts\":[]}"
-			+ "]";
+	private static final String INVALID_PARENT_JSON = "[{\"io\":\"INPUT\",\"messageId\":\"child\",\"parentMessageId\":\"missing\",\"parts\":[]}]";
 
 	@Test
 	void loadAllowsMessagesWithInvalidParents() {
@@ -62,8 +63,7 @@ class RoomMessageStoreUnitTests {
 		Room room = roomWithId();
 		List<AbstractMessage> messages = RoomMessageStore.loadFromPersistedJson(room, INVALID_PARENT_JSON);
 
-		assertThrows(IllegalStateException.class,
-				() -> RoomMessageStore.providerMessageHistory(room, messages));
+		assertThrows(IllegalStateException.class, () -> RoomMessageStore.providerMessageHistory(room, messages));
 	}
 
 	@Test
@@ -72,6 +72,20 @@ class RoomMessageStoreUnitTests {
 		room.setMessages(RoomMessageStore.loadFromPersistedJson(room, INVALID_PARENT_JSON));
 
 		assertThrows(IllegalStateException.class, () -> RoomMessageStore.persist(room, "user-id"));
+	}
+
+	@Test
+	void providerPayloadUsesTheGuardrailReplacementMessage() {
+		Room room = roomWithId();
+		InputMessage original = InputMessage.builder(room).withText("api_key=secret").build();
+		room.getMessages().add(original);
+		original.setFullInputPrompt("api_key=[masked]");
+
+		String payload = RoomMessageStore.messageHistoryWithNewMessage(room, original);
+
+		assertTrue(payload.contains("api_key=[masked]"));
+		assertFalse(payload.contains("api_key=secret"));
+		assertEquals("api_key=[masked]", original.getFullInputPrompt());
 	}
 
 	private static Room roomWithId() {

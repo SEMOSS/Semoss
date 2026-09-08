@@ -1,0 +1,18 @@
+{
+	"java.configuration.updateBuildConfiguration": "automatic",
+	"java.compile.nullAnalysis.mode": "automatic",
+	"editor.formatOnSave": true,
+	"editor.codeActionsOnSave": {
+		"source.organizeImports.biome": "explicit",
+		"source.fixAll.biome": "explicit"
+	},
+	"files.associations": {
+		"*.css": "tailwindcss"
+	},
+	"[java]": {
+		"editor.defaultFormatter": null,
+		"editor.formatOnSave": false,
+		"editor.codeActionsOnSave": {}
+	},
+	"editor.defaultFormatter": "biomejs.biome"
+}

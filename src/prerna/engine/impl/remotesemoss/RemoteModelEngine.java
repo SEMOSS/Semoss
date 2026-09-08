@@ -38,7 +38,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
@@ -54,7 +54,6 @@ public class RemoteModelEngine implements IModelEngine {
 	public void setEngineId(String engineId) {
 		// TODO Auto-generated method stub
 		smssProp.put(Constants.ENGINE, engineId);
-
 	}
 
 	@Override
@@ -183,8 +182,7 @@ public class RemoteModelEngine implements IModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askRoom(String question, Room room, AbstractMessage inputMessage,
-			Map<String, Object> parameters) {
+	public AskModelEngineResponse askRoom(InputMessage inputMessage, Room room, Map<String, Object> parameters) {
 		// TODO Auto-generated method stub
 		return null;
 	}

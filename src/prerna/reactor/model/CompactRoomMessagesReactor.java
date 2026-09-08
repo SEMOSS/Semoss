@@ -495,7 +495,7 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 	private static String getMessageText(AbstractMessage m) {
 		if (m instanceof InputMessage) {
 			InputMessage input = (InputMessage) m;
-			String text = input.getInputPrompt();
+			String text = input.getInputText();
 			if (text == null || text.isBlank()) {
 				text = input.getInputUIPrompt();
 			}
