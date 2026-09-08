@@ -27,56 +27,29 @@
  *******************************************************************************/
 package prerna.remoteviewer.model;
 
-import prerna.reactor.playwright.Viewport;
+/**
+ * Sanitized browser diagnostic metadata sent to the remote browser viewer.
+ * Null fields are omitted by the socket serializer.
+ */
+public record RemoteBrowserDebugEvent(String id, String kind, String phase, String requestId, long timestamp,
+		String tabId, String method, String url, String resourceType, Integer status, String statusText,
+		Long durationMs, String error, String level, String message, String source) {
 
-public class RemoteBrowserSessionCreateResponse {
-
-	/**
-	 * Device scale factor for remote browser sessions (see RemoteBrowserSessionManager).
-	 */
-	private static final double DEVICE_SCALE_FACTOR = 1.0;
-
-	private String sessionId;
-	private String webSocketUrl;
-	private Viewport viewport;
-	private String currentUrl;
-	private RemoteBrowserContextLimits contextLimits;
-
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
-		this(sessionId, webSocketUrl, vpWidth, vpHeight, null);
+	public static RemoteBrowserDebugEvent network(String id, String phase, String requestId, long timestamp,
+			String tabId, String method, String url, String resourceType, Integer status, String statusText,
+			Long durationMs, String error) {
+		return new RemoteBrowserDebugEvent(id, "network", phase, requestId, timestamp, tabId, method, url,
+				resourceType, status, statusText, durationMs, error, null, null, null);
 	}
 
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
-			String currentUrl) {
-		this(sessionId, webSocketUrl, vpWidth, vpHeight, currentUrl, null);
+	public static RemoteBrowserDebugEvent console(String id, long timestamp, String tabId, String level,
+			String message, String source) {
+		return new RemoteBrowserDebugEvent(id, "console", null, null, timestamp, tabId, null, null, null, null,
+				null, null, null, level, message, source);
 	}
 
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
-			String currentUrl, RemoteBrowserContextLimits contextLimits) {
-		this.sessionId = sessionId;
-		this.webSocketUrl = webSocketUrl;
-		this.viewport = new Viewport(vpWidth, vpHeight, DEVICE_SCALE_FACTOR);
-		this.currentUrl = currentUrl;
-		this.contextLimits = contextLimits;
-	}
-
-	public String getSessionId() {
-		return sessionId;
-	}
-
-	public String getWebSocketUrl() {
-		return webSocketUrl;
-	}
-
-	public Viewport getViewport() {
-		return viewport;
-	}
-
-	public String getCurrentUrl() {
-		return currentUrl;
-	}
-
-	public RemoteBrowserContextLimits getContextLimits() {
-		return contextLimits;
+	public static RemoteBrowserDebugEvent pageError(String id, long timestamp, String tabId, String message) {
+		return new RemoteBrowserDebugEvent(id, "page-error", null, null, timestamp, tabId, null, null, null, null,
+				null, null, null, "error", message, null);
 	}
 }

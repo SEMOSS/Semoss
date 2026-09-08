@@ -47,8 +47,9 @@ public class RemoteBrowserInputEventValidator {
 
 	private static final Set<String> ALLOWED_EVENT_TYPES = new HashSet<>(Arrays.asList("mouse-click", "mouse-move",
 			"mouse-down", "mouse-up", "wheel", "type-text", "key", "navigate", "close-session", "navigate-back",
-			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context", "switch-tab",
-			"switch-replay-tab", "prepare-replay", "new-tab", "close-tab", "fill-element"));
+			"navigate-forward", "reload", "recording", "recording-control", "selected-text-context",
+			"full-page-text-context", "switch-tab",
+			"switch-replay-tab", "prepare-replay", "new-tab", "close-tab", "fill-element", "debug-control"));
 	private static final int MAX_WAIT_AFTER_MS = 60_000;
 
 	private static final Set<String> ALLOWED_BUTTONS = new HashSet<>(Arrays.asList("left", "right", "middle"));
@@ -76,6 +77,9 @@ public class RemoteBrowserInputEventValidator {
 		}
 		if (event.getRequestId() != null && event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
 			throw new IllegalArgumentException("requestId exceeds max length " + MAX_REQUEST_ID_LENGTH);
+		}
+		if (event.getStepId() != null && event.getStepId() < 0) {
+			throw new IllegalArgumentException("stepId must be non-negative");
 		}
 		if (event.getExpectedUrl() != null && event.getExpectedUrl().length() > MAX_URL_LENGTH) {
 			throw new IllegalArgumentException("expectedUrl exceeds max length " + MAX_URL_LENGTH);
@@ -190,6 +194,17 @@ public class RemoteBrowserInputEventValidator {
 			}
 			break;
 
+		case "full-page-text-context":
+			validateRequestId(event);
+			break;
+
+		case "debug-control":
+			validateRequestId(event);
+			if (event.getDebugEnabled() == null && !Boolean.TRUE.equals(event.getClear())) {
+				throw new IllegalArgumentException("debug-control requires debugEnabled or clear=true");
+			}
+			break;
+
 		// close-session, navigate-back, navigate-forward, reload - no payload to
 		// validate
 		default:
@@ -199,10 +214,10 @@ public class RemoteBrowserInputEventValidator {
 
 	private static void validateRequestId(RemoteBrowserInputEvent event) {
 		if (event.getRequestId() == null || event.getRequestId().isBlank()) {
-			throw new IllegalArgumentException("selected-text-context requires requestId");
+			throw new IllegalArgumentException(event.getType() + " requires requestId");
 		}
 		if (event.getRequestId().length() > MAX_REQUEST_ID_LENGTH) {
-			throw new IllegalArgumentException("selected-text-context requestId exceeds max length");
+			throw new IllegalArgumentException(event.getType() + " requestId exceeds max length");
 		}
 	}
 

@@ -163,7 +163,7 @@ public class RemoteBrowserRecordingService {
 		}
 		PlaywrightStep step = new PlaywrightStep(0, PlaywrightStepType.NAVIGATE, url, null, null, null, null, null,
 				null, null, 100, viewport(session, null), System.currentTimeMillis(), null, null, false, false, null,
-				null, Boolean.TRUE, Boolean.FALSE, null, null);
+				null, Boolean.TRUE, Boolean.FALSE, null, null, null);
 		String recordingTabId = session.getRecordingTabId(session.getActiveTabId());
 		session.appendRemoteBrowserRecordedStep(recordingTabId, step, true);
 		session.startNextRemoteBrowserRecordedStepOnNewPage(recordingTabId);
@@ -186,7 +186,8 @@ public class RemoteBrowserRecordingService {
 				"Extract selected website text", null, null, null, null, null, viewport(session, event),
 				System.currentTimeMillis(),
 				event.getLabel() == null || event.getLabel().isBlank() ? "Selected website text" : event.getLabel(),
-				event.getDescription(), false, false, null, null, Boolean.TRUE, Boolean.FALSE, Boolean.TRUE, null);
+				event.getDescription(), false, false, null, null, Boolean.TRUE, Boolean.FALSE, Boolean.TRUE, null,
+				null);
 		appendStep(session, event, step, false);
 	}
 
@@ -203,7 +204,7 @@ public class RemoteBrowserRecordingService {
 					viewport(session, event), previous.timestamp(), label(event, previous),
 					description(event, previous), previous.isPassword(), storeValue(event, previous),
 					selectorOrPrevious(event, previous), previous.isTriggerNewTab(), shouldRun(event), required(event),
-					sendToPlayground(event), tag(event, previous));
+					sendToPlayground(event), tag(event, previous), previous.downloadExpected());
 			session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
 
 			session.setPendingTypeStep(signature, updated);
@@ -241,7 +242,7 @@ public class RemoteBrowserRecordingService {
 					previous.deltaY(), previous.waitUntil(), previous.waitAfterMs(), previous.viewport(),
 					previous.timestamp(), previous.label(), previous.description(), previous.isPassword(),
 					previous.storeValue(), previous.selector(), previous.isTriggerNewTab(), previous.shouldRun(),
-					previous.required(), previous.sendToPlayground(), previous.tag());
+					previous.required(), previous.sendToPlayground(), previous.tag(), previous.downloadExpected());
 			session.replaceLastRemoteBrowserRecordedStep(tabId(session, event), updated);
 			session.setPendingTypeStep(selectorSignature(event), updated);
 			return;
@@ -259,7 +260,8 @@ public class RemoteBrowserRecordingService {
 				previous.waitUntil(), previous.waitAfterMs(), previous.viewport(), previous.timestamp(),
 				label(event, previous), description(event, previous), previous.isPassword(),
 				storeValue(event, previous), selectorOrPrevious(event, previous), previous.isTriggerNewTab(),
-				shouldRun(event), required(event), sendToPlayground(event), tag(event, previous));
+				shouldRun(event), required(event), sendToPlayground(event), tag(event, previous),
+				previous.downloadExpected());
 	}
 
 	private static boolean isModifierKey(String key) {
@@ -282,7 +284,7 @@ public class RemoteBrowserRecordingService {
 		return new PlaywrightStep(0, type, url, coords, null, null, text, null, deltaY, event.getWaitUntil(),
 				waitAfterMs, viewport(session, event), System.currentTimeMillis(), event.getLabel(),
 				event.getDescription(), isPassword, storeValue, event.getSelector(), trigger, shouldRun(event),
-				required(event), sendToPlayground(event), event.getTag());
+				required(event), sendToPlayground(event), event.getTag(), event.getDownloadExpected());
 	}
 
 	private static String tabId(RemoteBrowserSession session, RemoteBrowserInputEvent event) {

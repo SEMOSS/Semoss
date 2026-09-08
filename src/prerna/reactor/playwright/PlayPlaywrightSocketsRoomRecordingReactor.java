@@ -42,10 +42,12 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	private static final String RECORDING_FILE = "recording_file";
 	private static final String PROJECT_ID = "project_id";
 	private static final String START_URL = "start_url";
+	private static final String CAPTURE_FULL_PAGE_AT_END = "capture_full_page_at_end";
 
 	public PlayPlaywrightSocketsRoomRecordingReactor() {
-		this.keysToGet = new String[] { RECORDING_NAME_HINT, RECORDING_FILE, PROJECT_ID, START_URL };
-		this.keyRequired = new int[] { 0, 0, 0, 0 };
+		this.keysToGet = new String[] { RECORDING_NAME_HINT, RECORDING_FILE, PROJECT_ID, START_URL,
+				CAPTURE_FULL_PAGE_AT_END };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -70,8 +72,10 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 		result.put("recording_file", fileName);
 		result.put("project_id", trim(this.keyValue.get(PROJECT_ID)));
 		result.put("start_url", startUrl);
+		result.put(CAPTURE_FULL_PAGE_AT_END,
+				Boolean.parseBoolean(trim(this.keyValue.get(CAPTURE_FULL_PAGE_AT_END))));
 		result.put("instructions",
-				"The Playwright Sockets UI will open, find the closest matching recording in the current Playground room, and replay it. An accessible project recording may be used as a fallback.");
+				"The Playwright Sockets UI will open, find the closest matching recording in the current Playground room, and replay it. An accessible project recording may be used as a fallback. Native browser downloads are captured automatically, saved as individual assets under /browser-downloads/<run-id>/, and returned as insight paths with per-file errors when applicable.");
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -81,7 +85,7 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Opens Playwright Sockets and replays the current Playground room recording that best matches a natural-language description or filename.";
+		return "Opens Playwright Sockets and replays the current Playground room recording that best matches a natural-language description or filename. Native browser downloads are automatically saved to the current insight and returned as metadata and insight paths.";
 	}
 
 	@Override
@@ -97,6 +101,9 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 		}
 		if (START_URL.equals(key)) {
 			return "Optional URL override to open before replaying the recording.";
+		}
+		if (CAPTURE_FULL_PAGE_AT_END.equals(key)) {
+			return "After successful replay, auto-scroll the final page and return its rendered text as context. Best effort; capture errors do not fail replay.";
 		}
 		return super.getDescriptionForKey(key);
 	}

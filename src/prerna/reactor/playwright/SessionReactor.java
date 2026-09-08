@@ -55,7 +55,7 @@ public class SessionReactor extends AbstractReactor {
 		BrowserContext ctx = this.insight.getUser().getSharedPlaywrightContext();
 		if (ctx == null) {
 			Browser.NewContextOptions ctxOps = new Browser.NewContextOptions().setViewportSize(width, height)
-					.setDeviceScaleFactor(dpr);
+					.setDeviceScaleFactor(dpr).setAcceptDownloads(true);
 			ctx = browser.newContext(ctxOps);
 			ctx.setDefaultTimeout(60_000);
 			ctx.setDefaultNavigationTimeout(60_000);
