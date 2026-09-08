@@ -12,9 +12,9 @@ description: Use when writing React code in an app that renders a long or growin
 | `useIteratorPixel` | a pixel that reports a **total count** | `data.length < totalCount` |
 | `useIteratorApi` | any `(limit, offset) => Promise<T[]>` | a page came back **shorter than `limit`** |
 
-If your pixel does not return a total count, do not force `useIteratorPixel` — wrap the `runPixel` call in a `fetchPage` function and use `useIteratorApi`'s short-page detection instead.
+If your pixel does not return a total count, do not force `useIteratorPixel` - wrap the `runPixel` call in a `fetchPage` function and use `useIteratorApi`'s short-page detection instead.
 
-## useIteratorPixel — paged pixel with a total count
+## useIteratorPixel - paged pixel with a total count
 
 ```tsx
 import { useIteratorPixel } from "@semoss/sdk/react";
@@ -30,12 +30,12 @@ const { data, totalCount, isLoading, isError, error, hasMore, next, reset } =
   );
 ```
 
-- The query builder receives `(limit, offset)` — always interpolate both, or every "page" returns the same rows and the list duplicates.
+- The query builder receives `(limit, offset)` - always interpolate both, or every "page" returns the same rows and the list duplicates.
 - The pixel must be a **single statement** (it runs through `usePixel`, which does not split on `;`).
 - The last positional argument is a dependency list: when any value changes the hook resets to offset 0 and clears accumulated data. Put the search term, filters, and parent ids there.
 - Options: `limit` (page size), `insightId` (defaults to the app's shared insight from context), `onSuccess(data, isLoadingMore)`, `onError(error)`.
 
-## useIteratorApi — paged REST / promise fetching
+## useIteratorApi - paged REST / promise fetching
 
 ```tsx
 import { useIteratorApi } from "@semoss/sdk/react";
@@ -51,15 +51,15 @@ const { data, isLoading, hasMore, next, reset, update } = useIteratorApi<User>(
 );
 ```
 
-- Paging stops when a page returns fewer than `limit` rows — no total count needed.
-- `enabled: false` suspends fetching entirely (a dropdown that has not opened yet). Flipping it to `true` loads page 0. Do **not** toggle `enabled` to force a refetch — put the driving state in the deps array instead.
-- `update(prev => next)` patches loaded rows in place with no network call and no scroll jump — use it after a confirmed mutation (e.g. remove one row after a delete) instead of `reset()`.
+- Paging stops when a page returns fewer than `limit` rows - no total count needed.
+- `enabled: false` suspends fetching entirely (a dropdown that has not opened yet). Flipping it to `true` loads page 0. Do **not** toggle `enabled` to force a refetch - put the driving state in the deps array instead.
+- `update(prev => next)` patches loaded rows in place with no network call and no scroll jump - use it after a confirmed mutation (e.g. remove one row after a delete) instead of `reset()`.
 - `reset()` refetches from offset 0 but deliberately leaves the stale rows visible until the new page 0 arrives, so a search-term change does not flash the list to empty.
 
 ## Hard rules for both hooks
 
 - **`limit` must be constant for the hook's lifetime.** Changing it at runtime re-fetches at the current offset without resetting and corrupts the accumulated pages. If page size is user-configurable, remount the component (`key={pageSize}`).
-- **Changing deps resets; calling `next()` appends.** Never call `next()` from an effect that also watches the deps — let the scroll/button drive it. `next()` already no-ops while a page is loading or when the end is reached.
+- **Changing deps resets; calling `next()` appends.** Never call `next()` from an effect that also watches the deps - let the scroll/button drive it. `next()` already no-ops while a page is loading or when the end is reached.
 - Render the sentinel from state, e.g. show the "load more" trigger only when `hasMore && !isLoading`.
 
 ## Wiring an infinite scroll sentinel
@@ -108,4 +108,4 @@ const list = useIteratorApi(
 );
 ```
 
-`@semoss/sdk/react` also exports `useDebouncedValue` and `useDebouncedCallback`, but both are marked deprecated (in favor of `@semoss/ui/next`, which plain apps may not have) — the inline effect above has no dependency and is the safe default.
+`@semoss/sdk/react` also exports `useDebouncedValue` and `useDebouncedCallback`, but both are marked deprecated (in favor of `@semoss/ui/next`, which plain apps may not have) - the inline effect above has no dependency and is the safe default.

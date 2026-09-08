@@ -41,6 +41,7 @@ import prerna.engine.impl.function.LocalPythonCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.LocalPythonFunctionEngine;
 import prerna.engine.impl.function.OpenAITranscribeFunctionEngine;
 import prerna.engine.impl.function.RESTFunctionEngine;
+import prerna.engine.impl.function.StreamRESTFunctionEngine;
 import prerna.engine.impl.function.mail.engine.ExchangeIMAPFunctionEngine;
 import prerna.engine.impl.function.mail.engine.ExchangePOP3FunctionEngine;
 import prerna.engine.impl.function.mail.engine.ExchangeSMTPFunctionEngine;
@@ -54,6 +55,8 @@ public enum FunctionTypeEnum {
 	// normal function engines
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonFunctionEngine.class.getName()),
 	REST("REST", RESTFunctionEngine.class.getName()),
+	// streaming rest
+	STREAM_REST("STREAM_REST", StreamRESTFunctionEngine.class.getName()),
 
 	BING_SEARCH("BING_SEARCH", BingSearchFunctionEngine.class.getName()),
 	BRAVE_SEARCH("BRAVE_SEARCH", BraveSearchFunctionEngine.class.getName()),
