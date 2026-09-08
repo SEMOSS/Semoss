@@ -57,7 +57,8 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 	private String modelName = null;
 	private List<String> defaultLabels = null;
 	private Double defaultThreshold = .7;
-	// template used when masking a matched entity; {label} is replaced with the entity label
+	// template used when masking a matched entity; {label} is replaced with the
+	// entity label
 	private String maskTemplate = "[{label}]";
 
 	public GLiNERGuardrailEngine() {
@@ -105,7 +106,7 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 						+ defaultThreshold));
 
 		if (this.defaultLabels != null && !this.defaultLabels.isEmpty()) {
-			this.requiredParameters = new ArrayList<>(Arrays.asList("labels"));
+			this.requiredParameters = new ArrayList<>(Arrays.asList("prompt"));
 		} else {
 			this.requiredParameters = new ArrayList<>(Arrays.asList("prompt", "labels"));
 		}
@@ -167,10 +168,10 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 
 	/**
 	 * Build a masked copy of the prompt where every flagged entity span is replaced
-	 * with the configured mask template (default {@code [label]}). Spans are replaced
-	 * from right to left so the character offsets returned by GLiNER stay valid as the
-	 * string is rewritten. Overlapping spans are skipped defensively. When there are no
-	 * flagged entities the original prompt is returned unchanged.
+	 * with the configured mask template (default {@code [label]}). Spans are
+	 * replaced from right to left so the character offsets returned by GLiNER stay
+	 * valid as the string is rewritten. Overlapping spans are skipped defensively.
+	 * When there are no flagged entities the original prompt is returned unchanged.
 	 *
 	 * @param prompt  the original prompt
 	 * @param flagged the entity predictions (each a map with start/end/label) that
@@ -181,13 +182,15 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 		if (prompt == null || flagged == null || flagged.isEmpty()) {
 			return prompt;
 		}
-		// sort a copy by start offset descending so right-to-left splicing keeps offsets valid
+		// sort a copy by start offset descending so right-to-left splicing keeps
+		// offsets valid
 		List<Map<String, Object>> ordered = new ArrayList<>(flagged);
 		ordered.sort((a, b) -> Integer.compare(getInt(b.get("start")), getInt(a.get("start"))));
 
 		StringBuilder masked = new StringBuilder(prompt);
 		// tracks the left edge of the last span we replaced; the next span must end at
-		// or before this to be a non-overlapping, still-valid region of the original text
+		// or before this to be a non-overlapping, still-valid region of the original
+		// text
 		int lastStart = prompt.length();
 		for (Map<String, Object> entity : ordered) {
 			int start = getInt(entity.get("start"));
@@ -235,5 +238,49 @@ public class GLiNERGuardrailEngine extends AbstractPythonGuardrailReactorFunctio
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_GLINER;
+	}
+
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# GLiNER guardrail
+
+				This guardrail detects named entities with the configured GLiNER model. Any entity whose score is greater than the threshold fails the check. Its returned prompt replaces flagged spans with `MASK_TEMPLATE`, which defaults to `[{label}]`.
+
+				`MODEL_NAME` is required in the guardrail SMSS. `NER_LABELS` may hold the default JSON label list, while `DEFAULT_THRESHOLD` and `MASK_TEMPLATE` control matching and replacement. Labels and the threshold can also be supplied by a pipeline for a specific use case.
+
+				## Example: mask sensitive entities before model inference
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "input": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "arg0"
+				            },
+				            "directParameters": {
+				              "labels": ["person", "email address", "phone number", "account number"],
+				              "threshold": 0.7
+				            },
+				            "maskOnGuardrailFailure": true,
+				            "blockOnGuardrailFailure": false
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				When an entity is found, the interceptor writes GLiNER's masked prompt back to the same input that was evaluated. For `askRoom`, it updates the `InputMessage` object before refreshing the provider payload. If the masked value cannot be written back safely, the request is blocked.
+				"""
+				.formatted(getEngineId());
 	}
 }

@@ -524,6 +524,42 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Initialize an engine's markdown metadata without replacing existing content.
+	 *
+	 * @param engineId        engine whose metadata should be initialized
+	 * @param defaultMarkdown markdown supplied by the engine implementation
+	 */
+	public static void setDefaultEngineMarkdown(String engineId, String defaultMarkdown) {
+		if (defaultMarkdown == null || defaultMarkdown.trim().isEmpty()) {
+			return;
+		}
+
+		Map<String, Object> metadata = getAggregateEngineMetadata(engineId, List.of(Constants.MARKDOWN), false);
+		if (hasMetadataValue(metadata.get(Constants.MARKDOWN))) {
+			return;
+		}
+
+		Map<String, Object> defaultMetadata = new HashMap<>();
+		defaultMetadata.put(Constants.MARKDOWN, defaultMarkdown);
+		updateEngineMetadata(engineId, defaultMetadata);
+	}
+
+	private static boolean hasMetadataValue(Object value) {
+		if (value == null) {
+			return false;
+		}
+		if (value instanceof Collection) {
+			for (Object item : (Collection<?>) value) {
+				if (hasMetadataValue(item)) {
+					return true;
+				}
+			}
+			return false;
+		}
+		return !value.toString().trim().isEmpty();
+	}
+
+	/**
 	 * Get the engine permissions for a specific user
 	 * 
 	 * @param singleUserId

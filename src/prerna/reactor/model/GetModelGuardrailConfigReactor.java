@@ -29,14 +29,25 @@ package prerna.reactor.model;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Parameter;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -44,9 +55,13 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.interceptor.GenericGuardrailInputOutputReactor;
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
+import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
+import prerna.reactor.interceptor.PipelineReactorUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -57,17 +72,31 @@ import prerna.util.Utility;
 /**
  * Returns a model engine's guardrail pipeline configuration (the file the
  * PIPELINE smss key points at) so the settings UI can load it. Missing or
- * malformed configuration is reported in the response instead of thrown so
- * the UI can offer to create or reset it. Requires edit access - the config
- * exposes the engine ids of the attached guardrail engines.
+ * malformed configuration is reported in the response instead of thrown so the
+ * UI can offer to create or reset it. The response also carries the model
+ * engine methods a pipeline can intercept, so the editor can offer the method
+ * and argument names the runtime actually resolves rather than asking for them
+ * as free text. Requires edit access - the config exposes the engine ids of the
+ * attached guardrail engines.
  */
 public class GetModelGuardrailConfigReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(GetModelGuardrailConfigReactor.class);
 
 	private static final String PIPELINES_KEY = "pipelines";
 	private static final String INPUT_KEY = "input";
 	private static final String OUTPUT_KEY = "output";
 	private static final String PARAMS_KEY = "params";
 	private static final String GUARDRAIL_ENGINE_ID_KEY = "guardrailEngineId";
+
+	/**
+	 * Method names surfaced first so the picker leads with the calls that carry
+	 * user content. Everything else follows alphabetically.
+	 */
+	private static final List<String> METHOD_DISPLAY_ORDER = Arrays.asList("askRoom", "embeddings",
+			"multiModalEmbeddings");
+
+	private static final List<Map<String, Object>> INTERCEPTABLE_METHODS = buildInterceptableMethods();
 
 	public GetModelGuardrailConfigReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
@@ -79,7 +108,8 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		User user = this.insight.getUser();
 		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalArgumentException("Engine " + engineId + " does not exist or user does not have edit access to it");
+			throw new IllegalArgumentException(
+					"Engine " + engineId + " does not exist or user does not have edit access to it");
 		}
 		Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 		if (typeAndSubtype[0] != IEngine.CATALOG_TYPE.MODEL) {
@@ -130,20 +160,134 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 		response.put("guardrailEngines", getGuardrailEngineDetails(user, pipelines));
 
 		Map<String, Object> allowedReactorClasses = new HashMap<>();
-		allowedReactorClasses.put(INPUT_KEY, Arrays.asList(
-				GenericGuardrailInputReactor.class.getName(),
-				GenericGuardrailInputOutputReactor.class.getName()));
-		allowedReactorClasses.put(OUTPUT_KEY, Arrays.asList(
-				GenericGuardrailInputOutputReactor.class.getName()));
+		allowedReactorClasses.put(INPUT_KEY, Arrays.asList(GenericGuardrailInputReactor.class.getName()));
+		allowedReactorClasses.put(OUTPUT_KEY, Arrays.asList(GenericGuardrailOutputReactor.class.getName()));
 		response.put("allowedReactorClasses", allowedReactorClasses);
+
+		response.put("interceptableMethods", INTERCEPTABLE_METHODS);
+		response.put("resultArgumentName", PipelineReactorUtils.RESULT);
 
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	/**
-	 * Resolve name/type details for every guardrail engine referenced in the
-	 * config so the UI can label them without extra pixel calls. Referenced
-	 * engines that no longer exist are reported with exists=false.
+	 * The model engine methods a guardrail pipeline can intercept, each with the
+	 * argument names a guardrail maps its parameters from. Methods annotated with
+	 * {@link IgnoreEngineLogging} are left out because
+	 * {@link prerna.engine.impl.pipeline.PipelineInvocationHandler} invokes the
+	 * real engine directly for them, so no pipeline runs.
+	 *
+	 * Argument names come from {@link Parameter#getName()}, the same lookup the
+	 * invocation handler uses to build its argument map. That yields arg0, arg1,
+	 * ... unless the interface was compiled with -parameters, in which case the
+	 * source names are returned; nameIsFromSource reports which one the running
+	 * build produced.
+	 *
+	 * @return one entry per interceptable method, ordered for display
+	 */
+	private static List<Map<String, Object>> buildInterceptableMethods() {
+		List<Map<String, Object>> interceptable = new ArrayList<>();
+		try {
+			List<Method> methods = new ArrayList<>();
+			for (Method method : IModelEngine.class.getDeclaredMethods()) {
+				if (method.isSynthetic() || Modifier.isStatic(method.getModifiers())
+						|| method.isAnnotationPresent(IgnoreEngineLogging.class)) {
+					continue;
+				}
+				methods.add(method);
+			}
+			methods.sort(Comparator.comparingInt((Method method) -> {
+				int rank = METHOD_DISPLAY_ORDER.indexOf(method.getName());
+				return rank < 0 ? METHOD_DISPLAY_ORDER.size() : rank;
+			}).thenComparing(Method::getName));
+
+			for (Method method : methods) {
+				Map<String, Object> entry = new LinkedHashMap<>();
+				entry.put("name", method.getName());
+				entry.put("deprecated", method.isAnnotationPresent(Deprecated.class));
+				entry.put("returnType", readableTypeName(method.getGenericReturnType()));
+				entry.put("returnsModelResponse",
+						AbstractModelEngineResponse.class.isAssignableFrom(method.getReturnType()));
+
+				List<Map<String, Object>> arguments = new ArrayList<>();
+				Parameter[] parameters = method.getParameters();
+				for (int i = 0; i < parameters.length; i++) {
+					Map<String, Object> argument = new LinkedHashMap<>();
+					argument.put("name", parameters[i].getName());
+					argument.put("position", i);
+					argument.put("nameIsFromSource", parameters[i].isNamePresent());
+					argument.put("type", readableTypeName(parameters[i].getParameterizedType()));
+					argument.put("guardable", isGuardableArgument(parameters[i]));
+					arguments.add(argument);
+				}
+				entry.put("arguments", arguments);
+				interceptable.add(entry);
+			}
+		} catch (RuntimeException e) {
+			// the settings UI falls back to free-text entry when this list is empty,
+			// so a reflection problem must not take the whole reactor down
+			classLogger.error("Unable to reflect the interceptable model engine methods", e);
+		}
+		return interceptable;
+	}
+
+	/**
+	 * Whether a guardrail can screen this argument's value. The interceptors reduce
+	 * strings, messages, and collections of either to text; every other argument is
+	 * call plumbing such as the Insight, the Room, or the provider parameter map,
+	 * which a guardrail has no text to read from.
+	 *
+	 * @param parameter
+	 * @return
+	 */
+	private static boolean isGuardableArgument(Parameter parameter) {
+		Type generic = parameter.getParameterizedType();
+		if (isScreenableType(generic)) {
+			return true;
+		}
+		if (Collection.class.isAssignableFrom(parameter.getType()) && generic instanceof ParameterizedType) {
+			Type[] typeArguments = ((ParameterizedType) generic).getActualTypeArguments();
+			return typeArguments.length == 1 && isScreenableType(typeArguments[0]);
+		}
+		return false;
+	}
+
+	/**
+	 * Whether {@link prerna.reactor.interceptor.GuardrailValueReader} can reduce
+	 * this type to text: a string, a message, or a map serialized to JSON. A
+	 * wildcard or type variable is reported as unscreenable even though the
+	 * interceptor would still reduce whatever arrives, so the editor understates
+	 * rather than promises.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private static boolean isScreenableType(Type type) {
+		if (type instanceof ParameterizedType) {
+			return isScreenableType(((ParameterizedType) type).getRawType());
+		}
+		if (!(type instanceof Class)) {
+			return false;
+		}
+		Class<?> raw = (Class<?>) type;
+		return raw == String.class || AbstractMessage.class.isAssignableFrom(raw) || Map.class.isAssignableFrom(raw);
+	}
+
+	/**
+	 * Drops package qualifiers so the UI prints List&lt;String&gt; rather than
+	 * java.util.List&lt;java.lang.String&gt;.
+	 *
+	 * @param type
+	 * @return
+	 */
+	private static String readableTypeName(Type type) {
+		return type.getTypeName().replaceAll("(\\w+\\.)+", "");
+	}
+
+	/**
+	 * Resolve name/type details for every guardrail engine referenced in the config
+	 * so the UI can label them without extra pixel calls. Referenced engines that
+	 * no longer exist are reported with exists=false.
 	 *
 	 * @param user
 	 * @param pipelines
@@ -180,9 +324,9 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Walk the parsed pipelines and pull out every guardrailEngineId. The
-	 * walk is defensive - malformed nodes are skipped, not thrown, since this
-	 * reactor reports config problems instead of failing on them.
+	 * Walk the parsed pipelines and pull out every guardrailEngineId. The walk is
+	 * defensive - malformed nodes are skipped, not thrown, since this reactor
+	 * reports config problems instead of failing on them.
 	 *
 	 * @param pipelines
 	 * @return
@@ -221,7 +365,7 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the guardrail pipeline configuration (pipeline.json contents) for a model engine, along with name and type details for every referenced guardrail engine. Requires edit access to the engine.";
+		return "Returns the guardrail pipeline configuration (pipeline.json contents) for a model engine, along with name and type details for every referenced guardrail engine and the list of model engine methods a pipeline can intercept. Requires edit access to the engine.";
 	}
 
 	@Override

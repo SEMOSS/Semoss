@@ -234,7 +234,8 @@ public class GetRoomConversationHistoryReactor extends AbstractReactor {
 	 */
 	private static Map<String, Object> buildPair(InputMessage question, ResponseMessage answer, boolean complete) {
 		Map<String, Object> pair = new LinkedHashMap<>();
-		String questionText = question != null ? firstNonBlank(question.getInputUIPrompt(), question.getInputPrompt())
+		String questionText = question != null
+				? firstNonBlank(question.getInputUIPrompt(), question.getFullInputPrompt())
 				: null;
 		pair.put("question", questionText);
 		pair.put("questionId", question != null ? question.getMessageId() : null);

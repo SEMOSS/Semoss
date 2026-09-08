@@ -41,7 +41,9 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.engine.api.FunctionTypeEnum;
 import prerna.security.HttpHelperUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RESTFunctionEngine extends AbstractFunctionEngine {
@@ -51,66 +53,70 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 	private String httpMethod;
 	private String url;
 	private Map<String, String> headers;
-	
+
 	private String contentType = "JSON";
-	
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		
+
 		this.httpMethod = smssProp.getProperty("HTTP_METHOD");
-		if(this.httpMethod == null 
-				|| (this.httpMethod=this.httpMethod.trim().toUpperCase()).isEmpty()
-				|| (!this.httpMethod.equals("GET") && !this.httpMethod.equals("POST") 
-						&& !this.httpMethod.equals("PUT") && !this.httpMethod.equals("HEAD")
-						)) {
+		if (this.httpMethod == null || (this.httpMethod = this.httpMethod.trim().toUpperCase()).isEmpty()
+				|| (!this.httpMethod.equals("GET") && !this.httpMethod.equals("POST") && !this.httpMethod.equals("PUT")
+						&& !this.httpMethod.equals("HEAD"))) {
 			throw new IllegalArgumentException("RESTFunctionEngine only supports GET, HEAD, POST, or PUT requests");
 		}
-		
+
 		this.url = smssProp.getProperty("URL");
-		if(this.url == null 
-				|| (this.url=this.url.trim()).isEmpty()) {
+		if (this.url == null || (this.url = this.url.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Must provide a URL");
 		}
 		Utility.checkIfValidDomain(url);
-		
+
 		String headersStr = smssProp.getProperty("HEADERS");
-		if(headersStr!= null && !(headersStr=headersStr.trim()).isEmpty()) {
-			this.headers = new GsonBuilder().disableHtmlEscaping().create().fromJson(headersStr, new TypeToken<Map<String, String>>() {}.getType());
+		if (headersStr != null && !(headersStr = headersStr.trim()).isEmpty()) {
+			this.headers = new GsonBuilder().disableHtmlEscaping().create().fromJson(headersStr,
+					new TypeToken<Map<String, String>>() {
+					}.getType());
 		}
-		
-		if(smssProp.containsKey("CONTENT_TYPE")) {
+
+		if (smssProp.containsKey("CONTENT_TYPE")) {
 			this.contentType = smssProp.getProperty("CONTENT_TYPE");
 		}
 	}
-	
+
 	@Override
 	public void close() throws IOException {
 		// i dont have anything to do here...
-		
+
 	}
 
 	@Override
 	public Object execute(Map<String, Object> parameterValues) {
+		if (parameterValues != null) {
+			// remove insight
+			parameterValues.remove(Constants.INSIGHT);
+		}
+
 		Object output = null;
 		// validate all the required keys are set
-		if(this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
+		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
-			for(String requiredP : this.requiredParameters) {
-				if(!parameterValues.containsKey(requiredP)) {
+			for (String requiredP : this.requiredParameters) {
+				if (!parameterValues.containsKey(requiredP)) {
 					missingPs.add(requiredP);
 				}
 			}
-			if(!missingPs.isEmpty()) {
+			if (!missingPs.isEmpty()) {
 				throw new IllegalArgumentException("Must define required keys = " + missingPs);
 			}
 		}
-		
-		if(httpMethod.equalsIgnoreCase("GET")) {
+
+		if (httpMethod.equalsIgnoreCase("GET")) {
 			StringBuffer queryString = new StringBuffer();
 			boolean first = true;
-			for(String k : parameterValues.keySet()) {
-				if(!first) {
+			for (String k : parameterValues.keySet()) {
+				if (!first) {
 					queryString.append("&");
 				}
 				queryString.append(k).append("=").append(parameterValues.get(k));
@@ -118,11 +124,11 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 			}
 			String runTimeUrl = url + "?" + queryString;
 			output = HttpHelperUtility.getRequest(runTimeUrl, this.headers, null, null, null);
-		} else if(httpMethod.equalsIgnoreCase("HEAD")) {
+		} else if (httpMethod.equalsIgnoreCase("HEAD")) {
 			StringBuffer queryString = new StringBuffer();
 			boolean first = true;
-			for(String k : parameterValues.keySet()) {
-				if(!first) {
+			for (String k : parameterValues.keySet()) {
+				if (!first) {
 					queryString.append("&");
 				}
 				queryString.append(k).append("=").append(parameterValues.get(k));
@@ -130,26 +136,30 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 			}
 			String runTimeUrl = url + "?" + queryString;
 			output = HttpHelperUtility.headRequest(runTimeUrl, this.headers, null, null, null);
-		} else if(httpMethod.equalsIgnoreCase("PUT")) {
+		} else if (httpMethod.equalsIgnoreCase("PUT")) {
 			// for PUT, will assume we are constructing a JSON body
-			if(this.contentType.equalsIgnoreCase("JSON")) {
+			if (this.contentType.equalsIgnoreCase("JSON")) {
 				// gson the input as is
-				output = HttpHelperUtility.putRequestStringBody(this.url, this.headers, new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues), ContentType.APPLICATION_JSON, null, null, null);
+				output = HttpHelperUtility.putRequestStringBody(this.url, this.headers,
+						new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues),
+						ContentType.APPLICATION_JSON, null, null, null);
 			} else {
 				Map<String, String> bodyMap = new HashMap<>();
-				for(String k : parameterValues.keySet()) {
+				for (String k : parameterValues.keySet()) {
 					bodyMap.put(k, parameterValues.get(k) + "");
 				}
 				output = HttpHelperUtility.putRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
 			}
 		} else {
 			// for POST, will assume we are constructing a JSON body
-			if(this.contentType.equalsIgnoreCase("JSON")) {
+			if (this.contentType.equalsIgnoreCase("JSON")) {
 				// gson the input as is
-				output = HttpHelperUtility.postRequestStringBody(this.url, this.headers, new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues), ContentType.APPLICATION_JSON, null, null, null);
+				output = HttpHelperUtility.postRequestStringBody(this.url, this.headers,
+						new GsonBuilder().disableHtmlEscaping().create().toJson(parameterValues),
+						ContentType.APPLICATION_JSON, null, null, null);
 			} else {
 				Map<String, String> bodyMap = new HashMap<>();
-				for(String k : parameterValues.keySet()) {
+				for (String k : parameterValues.keySet()) {
 					bodyMap.put(k, parameterValues.get(k) + "");
 				}
 				output = HttpHelperUtility.postRequestUrlEncodedBody(this.url, this.headers, bodyMap, null, null, null);
@@ -157,47 +167,10 @@ public class RESTFunctionEngine extends AbstractFunctionEngine {
 		}
 		return output;
 	}
-	
+
 	@Override
 	public String getCatalogSubType(Properties smssProp) {
-		return "REST";
+		return FunctionTypeEnum.REST.getFunctionName();
 	}
-	
-	//////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Testing
-	 */
-//	
-//	public static void main(String[] args) throws Exception {
-//		Properties tempSmss = new Properties();
-//		tempSmss.put("URL", "http://127.0.0.1:5000/runML");
-//		tempSmss.put("HTTP_METHOD", "post");
-//		tempSmss.put("HEADERS", "{Content-Type: 'application/json'}");
-//		tempSmss.put("CONTENT_TYPE", "JSON");
-//		tempSmss.put(IFunctionEngine.NAME_KEY, "myExampleExecution");
-//		tempSmss.put(IFunctionEngine.DESCRIPTION_KEY, "Perform addition");
-//		List<FunctionParameter> parameters = new ArrayList<>();
-//		parameters.add(new FunctionParameter("number1", "double", "the first number to use"));
-//		parameters.add(new FunctionParameter("number2", "double", "the second number to use"));
-//		tempSmss.put(IFunctionEngine.PARAMETER_KEY, new Gson().toJson(parameters));
-//		tempSmss.put(IFunctionEngine.REQUIRED_PARAMETER_KEY, new Gson().toJson(Arrays.asList("number1", "number2")));
-//		RESTFunctionEngine engine = new RESTFunctionEngine();
-//		engine.open(tempSmss);
-//		Map<String, Object> execMap = new HashMap<>();
-//		execMap.put("number1", 1);
-//		execMap.put("number2", 2);
-//		Object output = engine.execute(execMap);
-//		System.out.println(">>>>>>>>>>>>>>>>>>>>");
-//		System.out.println("My output = " + output);
-//		System.out.println(">>>>>>>>>>>>>>>>>>>>");
-//		System.out.println(engine.getFunctionDefintionJson());
-//		
-//		engine.close();
-//	}
 
 }

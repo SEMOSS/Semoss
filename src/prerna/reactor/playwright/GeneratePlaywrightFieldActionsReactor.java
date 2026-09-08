@@ -509,7 +509,7 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 			String content;
 			if (message instanceof InputMessage input) {
 				role = "User";
-				content = firstNonBlank(input.getInputUIPrompt(), input.getInputPrompt());
+				content = firstNonBlank(input.getInputUIPrompt(), input.getFullInputPrompt());
 			} else if (message instanceof ResponseMessage response) {
 				role = "Assistant";
 				content = responseText(response);
