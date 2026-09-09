@@ -123,7 +123,8 @@ public final class AgentRunner {
 	public static final String PARAM_SANDBOX_ENFORCE = "sandbox_enforce";
 
 	private AgentRunner() {
-		/* static utility */ }
+
+	}
 
 	/**
 	 * Run the agent loop.
@@ -176,8 +177,9 @@ public final class AgentRunner {
 		if (input == null || input.trim().isEmpty()) {
 			throw new IllegalArgumentException("input is required");
 		}
-		// One-agent-per-room is enforced by ActiveRunRegistry, which every caller goes
-		// through: AgentRunWorker claims the room before dispatching here and releases
+		// One-agent-per-room is enforced by AgentRunRegistry, which every caller goes
+		// through: AgentRunQueueLoop claims the room before dispatching here and
+		// releases
 		// it when the run settles or is cancelled. Claiming again here would be a
 		// second lock on the same invariant, and the two could disagree.
 		IModelEngine modelEngine = null;

@@ -52,9 +52,9 @@ import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
 import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
-import prerna.reactor.agent.run.AgentRuntimeManager;
-import prerna.reactor.agent.run.RunAgentRequest;
-import prerna.reactor.agent.run.RunAgentResult;
+import prerna.reactor.agent.run.AgentRunHandle;
+import prerna.reactor.agent.run.AgentRunRequest;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.comm.PixelJobManager;
 
 /**
@@ -62,10 +62,10 @@ import prerna.sablecc2.comm.PixelJobManager;
  *
  * <p>
  * Heavy lifting (queueing, status, execution, interrupt) lives in
- * {@link AgentRuntimeManager}; this registry holds the metadata that lets a
- * parent agent address its children - alias, parent jobId, child room id,
- * target workspace - and emits a {@code subagent-spawned} envelope into the
- * parent stream when a child is launched.
+ * {@link AgentRunService}; this registry holds the metadata that lets a parent
+ * agent address its children - alias, parent jobId, child room id, target
+ * workspace - and emits a {@code subagent-spawned} envelope into the parent
+ * stream when a child is launched.
  *
  * <p>
  * Each spawn becomes a normal async {@code AgentRun}. The returned
@@ -133,8 +133,7 @@ public final class AgentSubAgentRegistry {
 	 * workspaceId), seed the child's {@code options.workspace} so
 	 * {@code AgentConfigLoader} loads the child's own CONFIG_JSON.</li>
 	 * <li>Build a fresh {@link Insight} owned by the parent's user.</li>
-	 * <li>Submit an async child {@code AgentRun} via
-	 * {@link AgentRuntimeManager}.</li>
+	 * <li>Submit an async child {@code AgentRun} via {@link AgentRunService}.</li>
 	 * <li>Stash {@link SubAgentMeta} keyed by the new runId/jobId and append the
 	 * jobId to {@code childrenByParent[parentJobId]}.</li>
 	 * <li>Emit a {@code subagent-spawned} envelope into the parent's stream queue
@@ -317,17 +316,17 @@ public final class AgentSubAgentRegistry {
 				childrenByParent.computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
 						.add(childRunId);
 			}
-			RunAgentRequest runRequest = new RunAgentRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
+			AgentRunRequest runRequest = new AgentRunRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
 					req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS, null,
 					null, null, null, childInsight).withParentRunId(req.parentJobId);
-			RunAgentResult runResult = AgentRuntimeManager.get().runWithId(childRunId, runRequest);
+			AgentRunHandle runHandle = AgentRunService.get().runWithId(childRunId, runRequest);
 			childStarted = true;
 
 			// 7. Notify the parent's stream so a frontend can mount a child pane.
 			if (req.parentJobId != null && !req.parentJobId.isBlank()) {
-				String childStatus = runResult.getStatus() == null
+				String childStatus = runHandle.status() == null
 						? prerna.reactor.agent.run.AgentRunStatus.SUBMITTED.name()
-						: runResult.getStatus().name();
+						: runHandle.status().name();
 				prerna.reactor.agent.stream.AgentRunStreamService.get().publishSubagentStarted(req.parentJobId,
 						prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, childRoomId,
 								req.workspaceId, childStatus));
@@ -339,7 +338,7 @@ public final class AgentSubAgentRegistry {
 				data.put("workspaceId", req.workspaceId);
 				data.put("roomId", childRoomId);
 				data.put("spawnedAt", meta.getSpawnedAt());
-				data.put("status", runResult.getStatus() == null ? null : runResult.getStatus().name());
+				data.put("status", runHandle.status() == null ? null : runHandle.status().name());
 				Map<String, Object> envelope = new LinkedHashMap<>();
 				envelope.put("stream_type", "subagent-spawned");
 				envelope.put("data", data);
@@ -358,7 +357,7 @@ public final class AgentSubAgentRegistry {
 			logger.info(
 					"AgentSubAgentRegistry: spawned subagent jobId={} parentJobId={} alias={} workspaceId={} roomId={}",
 					childRunId, req.parentJobId, req.alias, req.workspaceId, childRoomId);
-			return new SpawnResult(childRunId, childRoomId, req.alias, runResult.getStatus());
+			return new SpawnResult(childRunId, childRoomId, req.alias, runHandle.status());
 		} catch (RuntimeException | Error e) {
 			if (!childStarted && childJobIdForCleanup != null) {
 				byJobId.remove(childJobIdForCleanup);
@@ -438,7 +437,7 @@ public final class AgentSubAgentRegistry {
 				logger.warn("cascadeCancel: stream emit failed childJobId={}: {}", childJobId, streamErr.toString());
 			}
 			try {
-				boolean cancelled = AgentRuntimeManager.get().cancelRun(childJobId, "parent-cancelled");
+				boolean cancelled = AgentRunService.get().cancelRun(childJobId, "parent-cancelled");
 				logger.info("cascadeCancel: cancelRun(childJobId={}) -> {}", childJobId, cancelled);
 				if (cancelled) {
 					count++;

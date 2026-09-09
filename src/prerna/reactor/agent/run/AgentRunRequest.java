@@ -37,7 +37,22 @@ import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
 
-public final class RunAgentRequest {
+/**
+ * Everything needed to execute one agent run: the room, the user's input, the
+ * model and harness to use, the turn and reflection budgets, media inputs, and
+ * the caller's {@link Insight}.
+ *
+ * <p>
+ * Immutable. {@link #withParentRunId} returns a copy, which is how a subagent
+ * run records the parent that spawned it.
+ *
+ * <p>
+ * {@link #toPersistedMap()} and {@link #fromPersistedMap} are the
+ * {@code REQUEST_JSON} column contract. The persisted form drops the
+ * {@code Insight}, since identity cannot be serialized, so a rehydrated request
+ * is handed the executing node's insight instead.
+ */
+public final class AgentRunRequest {
 
 	private final String roomId;
 	private final String parentRunId;
@@ -54,22 +69,21 @@ public final class RunAgentRequest {
 	private final Insight insight;
 	private final boolean resumeMode;
 
-	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
-			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
-			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
+	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null);
 	}
 
-	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
-			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
-			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
-			boolean resumeMode) {
+	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight, boolean resumeMode) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null);
 	}
 
-	private RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
+	private AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
 			boolean resumeMode, String parentRunId) {
@@ -92,9 +106,9 @@ public final class RunAgentRequest {
 		this.resumeMode = resumeMode;
 	}
 
-	public RunAgentRequest(String roomId, String input, String engineIdFallback, String harnessType,
-			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
-			Map<String, Object> agentParamMap, Insight insight) {
+	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, null, null, insight);
 	}
@@ -109,11 +123,12 @@ public final class RunAgentRequest {
 
 	/**
 	 * Returns an immutable copy associated with the durable run that spawned it.
-	 * Root runs use the original request and therefore retain a {@code null} parent.
+	 * Root runs use the original request and therefore retain a {@code null}
+	 * parent.
 	 */
-	public RunAgentRequest withParentRunId(String parentRunId) {
-		return new RunAgentRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns,
-				maxReflections, paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId);
+	public AgentRunRequest withParentRunId(String parentRunId) {
+		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
+				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId);
 	}
 
 	public String getInput() {
@@ -183,25 +198,18 @@ public final class RunAgentRequest {
 	}
 
 	@SuppressWarnings("unchecked")
-	public static RunAgentRequest fromPersistedMap(Map<String, Object> map, Insight insight) {
+	public static AgentRunRequest fromPersistedMap(Map<String, Object> map, Insight insight) {
 		if (map == null) {
 			return null;
 		}
-		return new RunAgentRequest(
-				stringValue(map.get("roomId")),
-				stringValue(map.get("input")),
-				stringValue(map.get("engineIdFallback")),
-				stringValue(map.get("harnessType")),
-				stringValue(map.get("workspaceId")),
-				intValue(map.get("maxTurns"), AgentRunContext.DEFAULT_MAX_TURNS),
+		return new AgentRunRequest(stringValue(map.get("roomId")), stringValue(map.get("input")),
+				stringValue(map.get("engineIdFallback")), stringValue(map.get("harnessType")),
+				stringValue(map.get("workspaceId")), intValue(map.get("maxTurns"), AgentRunContext.DEFAULT_MAX_TURNS),
 				intValue(map.get("maxReflections"), AgentRunContext.DEFAULT_MAX_REFLECTIONS),
 				map.get("paramMap") instanceof Map ? (Map<String, Object>) map.get("paramMap") : null,
 				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
-				listValue(map.get("mediaInputPaths")),
-				listValue(map.get("mediaUrls")),
-				insight,
-				booleanValue(map.get("resumeMode")),
-				stringValue(map.get("parentRunId")));
+				listValue(map.get("mediaInputPaths")), listValue(map.get("mediaUrls")), insight,
+				booleanValue(map.get("resumeMode")), stringValue(map.get("parentRunId")));
 	}
 
 	private static List<String> immutableStringList(List<String> values) {

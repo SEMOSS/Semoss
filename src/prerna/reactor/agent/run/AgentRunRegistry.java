@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.reactor.agent.run.AgentRunQueueCoordinator.ActiveRunLease;
+import prerna.reactor.agent.run.ClusterRoomTurnLock.RoomTurnLease;
 
 /**
  * In-memory record of the agent runs this node is executing, and the single
@@ -48,12 +48,11 @@ import prerna.reactor.agent.run.AgentRunQueueCoordinator.ActiveRunLease;
  * the executing thread, the cluster turn lease -- lives on that one object and
  * is released by one call to {@link ActiveRun#close()}.
  *
- * <h3>Why the state is centralized</h3> These gates were previously four maps
- * plus a static set spread across the worker and {@code AgentRunner}, each
- * released at its own call sites. Any site that disagreed with the others
- * leaked a room, and a leaked room is unrecoverable without a restart: every
- * later run on it fails to start. One owner with one teardown path removes that
- * whole class of bug.
+ * <h3>Why the state is centralized</h3> A leaked room is unrecoverable without
+ * a restart, because every later run in that room fails to start. Keeping all
+ * of a run's gates on one object with one teardown path is what makes leaking
+ * one impossible: there is no call site that can release the thread but forget
+ * the room, or free the room but leave the lease held.
  *
  * <h3>Ownership, and why release is safe</h3> Cancelling interrupts the run's
  * thread, but an interrupt does not free a thread parked in a non-interruptible
@@ -72,9 +71,9 @@ import prerna.reactor.agent.run.AgentRunQueueCoordinator.ActiveRunLease;
  * Instances are safe for concurrent use. {@link ActiveRun#close()} is
  * idempotent and may be called from any thread.
  */
-final class ActiveRunRegistry {
+final class AgentRunRegistry {
 
-	private static final Logger logger = LogManager.getLogger(ActiveRunRegistry.class);
+	private static final Logger logger = LogManager.getLogger(AgentRunRegistry.class);
 
 	/**
 	 * roomId to the run currently holding it. This map is the room lock: presence
@@ -106,7 +105,7 @@ final class ActiveRunRegistry {
 		ActiveRun candidate = new ActiveRun(runId, roomId);
 		ActiveRun roomHolder = byRoom.putIfAbsent(roomId, candidate);
 		if (roomHolder != null) {
-			logger.debug("ActiveRunRegistry: room '{}' busy with runId='{}', not claiming for runId='{}'", roomId,
+			logger.debug("AgentRunRegistry: room '{}' busy with runId='{}', not claiming for runId='{}'", roomId,
 					roomHolder.runId, runId);
 			return Optional.empty();
 		}
@@ -115,7 +114,7 @@ final class ActiveRunRegistry {
 		ActiveRun runHolder = byRun.putIfAbsent(runId, candidate);
 		if (runHolder != null) {
 			byRoom.remove(roomId, candidate);
-			logger.warn("ActiveRunRegistry: runId='{}' is already registered, releasing room '{}'", runId, roomId);
+			logger.warn("AgentRunRegistry: runId='{}' is already registered, releasing room '{}'", runId, roomId);
 			return Optional.empty();
 		}
 		return Optional.of(candidate);
@@ -135,7 +134,7 @@ final class ActiveRunRegistry {
 	boolean requestCancel(String runId) {
 		ActiveRun run = byRun.get(runId);
 		if (run == null) {
-			logger.debug("ActiveRunRegistry: no active run to cancel for runId='{}'", runId);
+			logger.debug("AgentRunRegistry: no active run to cancel for runId='{}'", runId);
 			return false;
 		}
 		run.cancelRequested.set(true);
@@ -143,7 +142,7 @@ final class ActiveRunRegistry {
 		if (thread != null) {
 			thread.interrupt();
 		}
-		logger.info("ActiveRunRegistry: cancel requested for runId='{}' room='{}' (thread {})", run.runId, run.roomId,
+		logger.info("AgentRunRegistry: cancel requested for runId='{}' room='{}' (thread {})", run.runId, run.roomId,
 				thread == null ? "not yet started" : "interrupted");
 		run.close();
 		return true;
@@ -167,7 +166,7 @@ final class ActiveRunRegistry {
 		/** Set by {@link #attachThread}; null until the run's thread exists. */
 		private volatile Thread thread;
 		/** Set by {@link #attachLease}; null when the cluster queue is disabled. */
-		private volatile ActiveRunLease lease;
+		private volatile RoomTurnLease lease;
 
 		private ActiveRun(String runId, String roomId) {
 			this.runId = runId;
@@ -179,7 +178,7 @@ final class ActiveRunRegistry {
 		 * it. Call it as soon as the turn is granted, so a cancel arriving before the
 		 * thread starts still closes the lease.
 		 */
-		void attachLease(ActiveRunLease lease) {
+		void attachLease(RoomTurnLease lease) {
 			this.lease = lease;
 		}
 
@@ -194,7 +193,7 @@ final class ActiveRunRegistry {
 		}
 
 		/**
-		 * Whether {@link ActiveRunRegistry#requestCancel} has been called for this run.
+		 * Whether {@link AgentRunRegistry#requestCancel} has been called for this run.
 		 *
 		 * <p>
 		 * Read it from this object, not by looking the run up by id: cancelling
@@ -228,11 +227,11 @@ final class ActiveRunRegistry {
 				try {
 					lease.close();
 				} catch (RuntimeException e) {
-					logger.warn("ActiveRunRegistry: failed to close turn lease for runId='{}': {}", runId,
+					logger.warn("AgentRunRegistry: failed to close turn lease for runId='{}': {}", runId,
 							e.getMessage(), e);
 				}
 			}
-			logger.debug("ActiveRunRegistry: released runId='{}' room='{}'", runId, roomId);
+			logger.debug("AgentRunRegistry: released runId='{}' room='{}'", runId, roomId);
 		}
 
 		@Override
