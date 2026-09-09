@@ -37,18 +37,33 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.redis.RedisConnectionConfig;
 import prerna.util.Utility;
 
-final class AgentRunQueueCoordinator {
+/**
+ * The cluster-wide half of the one-agent-per-room rule: a room's turn is held
+ * by at most one node at a time.
+ *
+ * <p>
+ * {@link AgentRunRegistry} enforces the same rule inside a single JVM. This
+ * lock is what keeps two nodes from starting agents in the same room, and the
+ * Redis commands behind it live in {@code RoomMessageRedisClient}. What is
+ * decided here is the policy around them: whether the lock is used at all, the
+ * fencing token that makes release and renewal safe, the lease TTL, and the
+ * heartbeat that keeps a long run's claim alive.
+ *
+ * <p>
+ * When the queue is disabled the claim always succeeds and returns
+ * {@link RoomTurnLease#NO_OP}, so callers take one code path and the in-JVM
+ * registry is the only gate.
+ */
+final class ClusterRoomTurnLock {
 
-	private static final Logger logger = LogManager.getLogger(AgentRunQueueCoordinator.class);
+	private static final Logger logger = LogManager.getLogger(ClusterRoomTurnLock.class);
 
 	private static final String QUEUE_ENABLED = "AGENT_RUN_QUEUE_ENABLED";
 	private static final String ACTIVE_TTL_MS = "AGENT_RUN_ACTIVE_TTL_MS";
 	private static final long DEFAULT_ACTIVE_TTL_MS = 300000L;
 
-	private final AgentRunStore store;
+	private ClusterRoomTurnLock() {
 
-	AgentRunQueueCoordinator(AgentRunStore store) {
-		this.store = store;
 	}
 
 	static boolean isQueueEnabled() {
@@ -60,9 +75,15 @@ final class AgentRunQueueCoordinator {
 		return Boolean.parseBoolean(configured.trim()) && RedisConnectionConfig.isRedisEnabled();
 	}
 
-	ActiveRunLease tryClaimTurn(String runId, String roomId) {
+	/**
+	 * Claims {@code roomId}'s turn for {@code runId} across the cluster.
+	 *
+	 * @return the lease, which the caller must close when the run settles, or
+	 *         {@code null} when another node holds the room
+	 */
+	static RoomTurnLease tryClaim(String runId, String roomId) {
 		if (!isQueueEnabled()) {
-			return ActiveRunLease.NO_OP;
+			return RoomTurnLease.NO_OP;
 		}
 		long activeTtlMs = Math.max(1000L, getLongProperty(ACTIVE_TTL_MS, DEFAULT_ACTIVE_TTL_MS));
 		RoomMessageRedisClient redis = RoomMessageStore.redisClient();
@@ -70,7 +91,7 @@ final class AgentRunQueueCoordinator {
 		if (!redis.tryClaimActiveRun(roomId, runId, token, activeTtlMs)) {
 			return null;
 		}
-		ActiveRunLease lease = new ActiveRunLease(redis, roomId, runId, token, activeTtlMs);
+		RoomTurnLease lease = new RoomTurnLease(redis, roomId, runId, token, activeTtlMs);
 		lease.startRenewal();
 		return lease;
 	}
@@ -87,8 +108,8 @@ final class AgentRunQueueCoordinator {
 		}
 	}
 
-	static final class ActiveRunLease implements AutoCloseable {
-		static final ActiveRunLease NO_OP = new ActiveRunLease(null, null, null, null, 0L);
+	static final class RoomTurnLease implements AutoCloseable {
+		static final RoomTurnLease NO_OP = new RoomTurnLease(null, null, null, null, 0L);
 
 		private final RoomMessageRedisClient redis;
 		private final String roomId;
@@ -97,7 +118,7 @@ final class AgentRunQueueCoordinator {
 		private final long ttlMs;
 		private volatile boolean closed;
 
-		private ActiveRunLease(RoomMessageRedisClient redis, String roomId, String runId, String token, long ttlMs) {
+		private RoomTurnLease(RoomMessageRedisClient redis, String roomId, String runId, String token, long ttlMs) {
 			this.redis = redis;
 			this.roomId = roomId;
 			this.runId = runId;

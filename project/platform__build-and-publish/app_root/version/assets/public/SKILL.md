@@ -38,3 +38,11 @@ PublishProject(project="<PROJECT_ID>", release=true)
 ## If the build fails
 
 `BuildAndPublishApp` returns build errors in its response. Read the errors, edit the relevant source files, and invoke `BuildAndPublishApp` again. Do not fall back to Bash to diagnose - the build logs in the tool response are the canonical source.
+
+## If the build succeeds but is not published
+
+`BuildAndPublishApp` inspects the output before publishing, so a compile that succeeds can still be held back. The response says which check stopped it.
+
+**"it produced absolute asset urls"** - `portals/index.html` references an asset as `/assets/...`. A portal is served from a project-scoped path rather than the server root, so those urls 404 and the app loads as a blank page. Add `base: "./"` to `client/vite.config.ts` and build again. The previously published portal stays live until a clean build replaces it, so the app is not left broken while you fix this.
+
+Treat any held-back build as a failure: the source is wrong, and rerunning the tool unchanged returns the same response. See the `app-bootstrap` skill for the config invariants behind these checks.
