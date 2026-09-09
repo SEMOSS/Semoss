@@ -25,8 +25,37 @@ already uses it.
 | `@semoss/sdk` | no | `Insight`, `Env`, `runPixel`, auth, uploads, websocket, utilities |
 | `@semoss/sdk/react` | yes | all of the above, plus `InsightProvider` and the hooks |
 
+Both rows are the same package. `@semoss/sdk` is the only entry in `dependencies`; `/react` is a
+subpath export of it. `@semoss/sdk-react` is not a package.
+
 For what a given pixel does and returns, use the task skills: `database`, `model`, `vector`,
 `room`, `agent-run`, `file-uploads`. For compiling and publishing, use `build-and-publish`.
+
+---
+
+## Before you write any config file
+
+**If the project already has a `client/` folder, its config is already correct.** Edit
+`client/src/`. Do not rewrite `package.json`, `tsconfig.json`, or `vite.config.ts`, and do not
+replace them with your own; the only change either needs is a new dependency that your source
+actually imports.
+
+**If you are creating `client/` from nothing, read `references/react-app.md` in full first** (or
+`references/vanilla-app.md` for an app with no framework) and copy the file contents from it. Those
+sections are exact, not illustrative. Reconstructing them from memory is how the failures below get
+shipped.
+
+Three invariants decide whether the app renders at all:
+
+1. **`base: "./"` in `vite.config.ts`.** A portal is served from a project-scoped path, never from
+   the server root. Without it Vite emits `/assets/index-<hash>.js` and every asset 404s, so the
+   page paints the background from `index.html` and stops.
+2. **`root: "src"` and `build.outDir: "../../portals"`.** The server publishes and serves
+   `portals/`. A build that writes anywhere else publishes nothing.
+3. **`@semoss/sdk/react`, a subpath of the one package.** There is no `@semoss/sdk-react` package
+   and no separate React package of any name. The single dependency is `@semoss/sdk`. Importing a
+   package that does not exist throws at module evaluation, so React never mounts and the console
+   shows one resolve error on an otherwise blank page.
 
 ---
 
@@ -39,7 +68,7 @@ A platform app is a project folder. The parts that matter:
   client/                  source you edit (omit entirely for a no-build HTML app)
     .env                   committed defaults (ENDPOINT, MODULE)
     .env.local             local only, never committed (APP, VITE_ACCESS_KEY, VITE_SECRET_KEY)
-    vite.config.ts         root: "src", build.outDir: "../../portals"
+    vite.config.ts         root: "src", base: "./", build.outDir: "../../portals"
     src/
       index.html           entry html - do NOT put a semoss-env tag here
   portals/                 build output - this is what the server publishes and serves
@@ -512,6 +541,8 @@ it when they finish.
 
 | Symptom | Cause |
 | --- | --- |
+| Styled background paints but nothing renders, and the network tab 404s `/assets/index-<hash>.js` | `base: "./"` missing from `vite.config.ts`, so asset URLs resolve against the server root instead of the project-scoped portal path |
+| Styled background paints but nothing renders, and the console shows one module resolve error | an import of a package that does not exist, usually `@semoss/sdk-react` in place of the `@semoss/sdk/react` subpath. The whole module graph fails, so React never mounts |
 | Blank screen, `module is required` | `Env.MODULE` empty: missing `MODULE` in `client/.env`, or the published `index.html` lost its `semoss-env` tag |
 | `Failed to resolve module specifier "@semoss/sdk"` in a no-build app | the page has not been published yet, so the import map is not in it, or the page carries its own import map and publish left it alone |
 | `Error("No response")` from `actions.run` | the session died; `UnauthorizedError` was swallowed and `isAuthorized` is now false |
@@ -526,6 +557,13 @@ it when they finish.
 
 ## Do not
 
+- Do not rewrite an existing `package.json`, `tsconfig.json`, or `vite.config.ts`. Add a dependency
+  if the source needs one; leave the rest alone.
+- Do not write those files from memory when creating an app. Copy them from
+  `references/react-app.md`.
+- Do not omit `base: "./"` from `vite.config.ts`.
+- Do not add a React-specific SEMOSS package to `dependencies`. `@semoss/sdk` is the only one, and
+  `@semoss/sdk/react` is a subpath of it.
 - Do not reach for React to use this SDK. The core entry is complete on its own.
 - Do not create more than one `Insight` for the app.
 - Do not read or write `insight._store`.
@@ -537,7 +575,11 @@ it when they finish.
 
 ## Reference files
 
+Read the one that matches the app before writing its config files. They hold the exact file
+contents; this file holds the concepts.
+
+- `references/react-app.md` - the React scaffold. Required reading before hand-writing
+  `package.json`, `vite.config.ts`, or `index.html` for a React app.
 - `references/vanilla-app.md` - a complete app with no framework, both no-build HTML and a
-  bundled TypeScript build.
-- `references/react-app.md` - the React scaffold, for apps that already use React.
+  bundled TypeScript build. Required reading before hand-writing the config for either.
 - `references/api-surface.md` - every export, and which ones need React.
