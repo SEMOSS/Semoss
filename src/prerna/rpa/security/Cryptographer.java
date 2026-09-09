@@ -32,9 +32,9 @@ import java.io.UnsupportedEncodingException;
 import java.security.AlgorithmParameters;
 import java.security.GeneralSecurityException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
-import java.util.Random;
 import java.util.Scanner;
 
 import javax.crypto.Cipher;
@@ -56,6 +56,7 @@ public class Cryptographer {
 	
 	private static final int ITERATION_COUNT = 40000;
 	private static final int KEY_LENGTH = 128;
+	private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 	
 	public static void main(String[] args) throws IOException {
 		
@@ -103,10 +104,9 @@ public class Cryptographer {
     
     // Salt is used to prevent equivalent strings from being encrypted to the same string
 	public static String getSalt() {
-		Random rand = new Random();
 		StringBuilder saltString = new StringBuilder();
 		for (int i = 0; i < 10; i ++) {
-			saltString.append(rand.nextInt(10));
+			saltString.append(SECURE_RANDOM.nextInt(10));
 		}
 		return saltString.toString();
 	}
