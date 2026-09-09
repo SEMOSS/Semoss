@@ -38,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.agent.IAgentHook;
-import prerna.reactor.agent.IAgentRunHook;
 
 /**
  * Static registry for {@link IAgentHook} kinds. One source of truth for both
@@ -46,90 +45,98 @@ import prerna.reactor.agent.IAgentRunHook;
  * used by {@code EditWorkspace}) and the resolve-on-read path
  * ({@code AgentConfigLoader.resolveHook}).
  *
- * <p>Built-in hooks registered at class-load time:
+ * <p>
+ * Built-in hooks registered at class-load time:
  * <ul>
- *   <li>{@code "git_commit"} -> {@link GitCommitAgentHook} - runs
- *       {@code git add . && git commit} after each successful agent run.</li>
+ * <li>{@code "git_commit"} -> {@link GitCommitAgentHook} - runs
+ * {@code git add . && git commit} after each successful agent run.</li>
  * </ul>
  *
- * <p>Custom hooks can be registered at application startup via
- * {@link #register(String, Supplier)}. Each entry is a factory ({@link Supplier})
- * so the registry can produce fresh instances per run if a hook ever needs
- * per-call state - today's built-in hook is stateless.
+ * <p>
+ * Custom hooks can be registered at application startup via
+ * {@link #register(String, Supplier)}. Each entry is a factory
+ * ({@link Supplier}) so the registry can produce fresh instances per run if a
+ * hook ever needs per-call state - today's built-in hook is stateless.
  *
- * <p>Mirrors {@code AgentHarnessRegistry} in shape; the only meaningful
- * difference is the factory-based registration so hooks can be stateful.
+ * <p>
+ * Mirrors {@code AgentHarnessRegistry} in shape; the only meaningful difference
+ * is the factory-based registration so hooks can be stateful.
  */
 public final class AgentHookRegistry {
 
-    private static final Logger logger = LogManager.getLogger(AgentHookRegistry.class);
+	private static final Logger logger = LogManager.getLogger(AgentHookRegistry.class);
 
-    private static final Map<String, Supplier<? extends IAgentHook>> REGISTRY;
+	private static final Map<String, Supplier<? extends IAgentHook>> REGISTRY;
 
-    /** JSON {@code kind} value for {@link GitCommitAgentHook}. */
-    public static final String GIT_COMMIT = "git_commit";
+	/** JSON {@code kind} value for {@link GitCommitAgentHook}. */
+	public static final String GIT_COMMIT = "git_commit";
 
-    /** JSON {@code kind} value for {@link LoggingToolHook}. */
-    public static final String LOG_TOOLS = "log_tools";
-    
-    public static final String PPT_TO_PDF = "ppt_to_pdf";
+	/** JSON {@code kind} value for {@link LoggingToolHook}. */
+	public static final String LOG_TOOLS = "log_tools";
 
-    /** JSON {@code kind} value for {@link PixelReactorHook}. */
-    public static final String PIXEL = "pixel";
+	public static final String PPT_TO_PDF = "ppt_to_pdf";
 
-    static {
-        Map<String, Supplier<? extends IAgentHook>> m = new HashMap<>();
-        m.put(GIT_COMMIT, GitCommitAgentHook::new);
-        m.put(LOG_TOOLS,  LoggingToolHook::new);
-        m.put(PIXEL,      PixelReactorHook::new);
-        m.put(PPT_TO_PDF, JdocFileConvertHook::new);
-        REGISTRY = Collections.synchronizedMap(m);
-    }
+	/** JSON {@code kind} value for {@link PixelReactorHook}. */
+	public static final String PIXEL = "pixel";
 
-    private AgentHookRegistry() { /* static utility */ }
+	static {
+		Map<String, Supplier<? extends IAgentHook>> m = new HashMap<>();
+		m.put(GIT_COMMIT, GitCommitAgentHook::new);
+		m.put(LOG_TOOLS, LoggingToolHook::new);
+		m.put(PIXEL, PixelReactorHook::new);
+		m.put(PPT_TO_PDF, JdocFileConvertHook::new);
+		REGISTRY = Collections.synchronizedMap(m);
+	}
 
-    /**
-     * Register (or overwrite) a hook factory under the given kind. Intended
-     * for application-startup wiring; the built-ins are already populated.
-     *
-     * @param kind    JSON {@code kind} string clients write into CONFIG_JSON.hooks[]
-     * @param factory zero-arg supplier producing a fresh hook instance per call
-     */
-    public static void register(String kind, Supplier<? extends IAgentHook> factory) {
-        if (kind == null || kind.trim().isEmpty()) {
-            throw new IllegalArgumentException("kind must not be null or empty");
-        }
-        if (factory == null) {
-            throw new IllegalArgumentException("factory must not be null");
-        }
-        REGISTRY.put(kind, factory);
-        logger.info("AgentHookRegistry: registered hook '{}'", kind);
-    }
+	private AgentHookRegistry() {
 
-    /**
-     * Returns a fresh hook instance for the given kind, or {@code null} when
-     * the kind is unknown. Callers should log + skip on null rather than
-     * throwing - preserves forward-compat against newer CONFIG_JSON written
-     * by a future server version.
-     */
-    public static IAgentHook resolve(String kind) {
-        if (kind == null) return null;
-        Supplier<? extends IAgentHook> factory = REGISTRY.get(kind);
-        return factory == null ? null : factory.get();
-    }
+	}
 
-    /** {@code true} when a factory is registered under {@code kind}. */
-    public static boolean isKnown(String kind) {
-        return kind != null && REGISTRY.containsKey(kind);
-    }
+	/**
+	 * Register (or overwrite) a hook factory under the given kind. Intended for
+	 * application-startup wiring; the built-ins are already populated.
+	 *
+	 * @param kind    JSON {@code kind} string clients write into
+	 *                CONFIG_JSON.hooks[]
+	 * @param factory zero-arg supplier producing a fresh hook instance per call
+	 */
+	public static void register(String kind, Supplier<? extends IAgentHook> factory) {
+		if (kind == null || kind.trim().isEmpty()) {
+			throw new IllegalArgumentException("kind must not be null or empty");
+		}
+		if (factory == null) {
+			throw new IllegalArgumentException("factory must not be null");
+		}
+		REGISTRY.put(kind, factory);
+		logger.info("AgentHookRegistry: registered hook '{}'", kind);
+	}
 
-    /**
-     * Snapshot of currently-known kinds. Stable order isn't guaranteed; use
-     * for error messages and FE option lists, not for protocol identity.
-     */
-    public static Set<String> knownKinds() {
-        synchronized (REGISTRY) {
-            return Collections.unmodifiableSet(new LinkedHashSet<>(REGISTRY.keySet()));
-        }
-    }
+	/**
+	 * Returns a fresh hook instance for the given kind, or {@code null} when the
+	 * kind is unknown. Callers should log + skip on null rather than throwing -
+	 * preserves forward-compat against newer CONFIG_JSON written by a future server
+	 * version.
+	 */
+	public static IAgentHook resolve(String kind) {
+		if (kind == null) {
+			return null;
+		}
+		Supplier<? extends IAgentHook> factory = REGISTRY.get(kind);
+		return factory == null ? null : factory.get();
+	}
+
+	/** {@code true} when a factory is registered under {@code kind}. */
+	public static boolean isKnown(String kind) {
+		return kind != null && REGISTRY.containsKey(kind);
+	}
+
+	/**
+	 * Snapshot of currently-known kinds. Stable order isn't guaranteed; use for
+	 * error messages and FE option lists, not for protocol identity.
+	 */
+	public static Set<String> knownKinds() {
+		synchronized (REGISTRY) {
+			return Collections.unmodifiableSet(new LinkedHashSet<>(REGISTRY.keySet()));
+		}
+	}
 }

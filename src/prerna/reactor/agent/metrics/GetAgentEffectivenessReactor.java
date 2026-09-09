@@ -38,8 +38,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStore;
-import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -50,7 +50,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * use, identical-retry waste, skill loading, turn counts, token usage) plus
  * room-level inference stats from the model inference logs. Works for both the
  * semoss and claude_code harnesses because it consumes the projected message
- * contract from AgentRuntimeManager rather than harness-native records.
+ * contract from AgentRunService rather than harness-native records.
  */
 public class GetAgentEffectivenessReactor extends AbstractReactor {
 
@@ -80,7 +80,7 @@ public class GetAgentEffectivenessReactor extends AbstractReactor {
 				|| Boolean.parseBoolean(this.keyValue.get(INCLUDE_RUNS_KEY));
 		int limit = parseLimit(this.keyValue.get(LIMIT_KEY));
 
-		AgentRuntimeManager runtime = AgentRuntimeManager.get();
+		AgentRunService runtime = AgentRunService.get();
 		List<Map<String, Object>> runMetrics = new ArrayList<>();
 
 		if (runId != null) {
@@ -91,7 +91,7 @@ public class GetAgentEffectivenessReactor extends AbstractReactor {
 			}
 			runMetrics.add(AgentEffectivenessCalculator.computeRunMetrics(run));
 		} else {
-			List<Map<String, Object>> runs = new AgentRunStore().getRunsForRoom(this.insight, roomId);
+			List<Map<String, Object>> runs = AgentRunStore.getRunsForRoom(this.insight, roomId);
 			// store order is newest-first; score the most recent runs and report
 			// them chronologically
 			if (runs.size() > limit) {
@@ -107,8 +107,8 @@ public class GetAgentEffectivenessReactor extends AbstractReactor {
 					Map<String, Object> fullRun = runtime.getRun(currentRunId, this.insight, true);
 					runMetrics.add(AgentEffectivenessCalculator.computeRunMetrics(fullRun));
 				} catch (Exception e) {
-					classLogger.warn("Skipping unreadable run '{}' while scoring roomId '{}'.", currentRunId,
-							roomId, e);
+					classLogger.warn("Skipping unreadable run '{}' while scoring roomId '{}'.", currentRunId, roomId,
+							e);
 				}
 			}
 		}

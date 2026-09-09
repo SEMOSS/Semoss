@@ -30,37 +30,24 @@ package prerna.reactor.agent.run;
 import java.util.HashMap;
 import java.util.Map;
 
-// Async submit handle returned by AgentRuntimeManager.run/runWithId. The run executes
-// on a background worker; terminal results are read from the durable AGENT_RUN record
-// (via waitForRun/getRun), not from this handle.
-public final class RunAgentResult {
+/**
+ * The receipt for a submitted agent run: its id, its room, and the status at
+ * submission time.
+ *
+ * <p>
+ * Submission is asynchronous, so this carries no output. The run executes on a
+ * background worker and its result is read from the durable {@code AGENT_RUN}
+ * record through {@link AgentRunService#getRun} or
+ * {@link AgentRunService#waitForRun}. Use the {@code runId} here to make those
+ * calls.
+ *
+ * @param runId  durable id of the submitted run
+ * @param roomId room the run was submitted to
+ * @param status status at submission
+ */
+public record AgentRunHandle(String runId, String roomId, AgentRunStatus status) {
 
-	private final String runId;
-	private final AgentRunStatus status;
-	private final String roomId;
-
-	public RunAgentResult(String runId, AgentRunStatus status) {
-		this(runId, null, status);
-	}
-
-	public RunAgentResult(String runId, String roomId, AgentRunStatus status) {
-		this.runId = runId;
-		this.roomId = roomId;
-		this.status = status;
-	}
-
-	public String getRunId() {
-		return runId;
-	}
-
-	public String getRoomId() {
-		return roomId;
-	}
-
-	public AgentRunStatus getStatus() {
-		return status;
-	}
-
+	/** Null-tolerant, so the map allows null {@code roomId} and {@code status}. */
 	public Map<String, Object> toMap() {
 		Map<String, Object> map = new HashMap<>();
 		map.put("runId", runId);
