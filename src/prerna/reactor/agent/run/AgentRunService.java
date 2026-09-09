@@ -52,92 +52,105 @@ import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
-import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
-public final class AgentRuntimeManager {
+/**
+ * The entry point for agent runs. Reactors, REST resources, and subagent
+ * spawning all go through this singleton rather than touching the store or the
+ * queue loop directly.
+ *
+ * <p>
+ * Submitting is asynchronous: {@link #run} and {@link #runWithId} persist an
+ * {@code AGENT_RUN} row, wake the queue loop, and return an
+ * {@link AgentRunHandle} immediately, so the caller's HTTP request is never
+ * held open for the length of an agent run. Callers that do want to block ask
+ * for it explicitly with {@link #waitForRun}, which polls until the run settles
+ * or the timeout expires.
+ *
+ * <p>
+ * {@link #stop} and {@link #cancelRun} both end a run. They differ in who is
+ * asking: {@code stop} serves a user request and validates the run exists
+ * first, while {@code cancelRun} serves the platform cancelling on its own
+ * behalf, such as a parent run cascading a cancel to its subagents. Either way
+ * the durable status is what stops a run executing on another node.
+ */
+public final class AgentRunService {
 
-	private static final Logger logger = LogManager.getLogger(AgentRuntimeManager.class);
+	private static final Logger logger = LogManager.getLogger(AgentRunService.class);
 	private static final Gson GSON = new Gson();
 
-	private static final int MAX_ERROR_LENGTH = 8000;
 	private static final String WAIT_TIMEOUT_MS = "AGENT_RUN_WAIT_TIMEOUT_MS";
 	private static final long DEFAULT_WAIT_TIMEOUT_MS = 3600000L;
-	private static final AgentRuntimeManager INSTANCE = new AgentRuntimeManager(new AgentRunStore());
+	private static final AgentRunService INSTANCE = new AgentRunService();
 
-	private final AgentRunStore store;
-	private final AgentRunQueueCoordinator queueCoordinator;
-	private final AgentRunWorker worker;
+	private final AgentRunQueueLoop queueLoop;
 
-	public static AgentRuntimeManager get() {
+	public static AgentRunService get() {
 		return INSTANCE;
 	}
 
-	AgentRuntimeManager(AgentRunStore store) {
-		this.store = store;
-		this.queueCoordinator = new AgentRunQueueCoordinator(store);
-		this.worker = new AgentRunWorker(this, store, queueCoordinator);
+	private AgentRunService() {
+		this.queueLoop = new AgentRunQueueLoop();
 	}
 
-	public RunAgentResult run(RunAgentRequest request) {
+	public AgentRunHandle run(AgentRunRequest request) {
 		String runId = resolveRunId(request.getInsight());
 		return runWithId(runId, request);
 	}
 
-	public RunAgentResult runWithId(String runId, RunAgentRequest request) {
+	public AgentRunHandle runWithId(String runId, AgentRunRequest request) {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
 		String resolvedRunId = runId.trim();
-		if (store.runExists(resolvedRunId)) {
+		if (AgentRunStore.runExists(resolvedRunId)) {
 			throw new IllegalArgumentException("AGENT_RUN already exists for runId=" + resolvedRunId);
 		}
 		String userId = resolveUserId(request.getInsight());
-		store.insertSubmitted(resolvedRunId, request, userId);
+		AgentRunStore.insertSubmitted(resolvedRunId, request, userId);
 		if (supportsCanonicalStreaming(request.getHarnessType())) {
 			AgentRunStreamService.get().register(resolvedRunId);
 		}
-		worker.rememberInsight(resolvedRunId, request.getInsight());
-		worker.signal();
-		return new RunAgentResult(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
+		queueLoop.rememberInsight(resolvedRunId, request.getInsight());
+		queueLoop.signal();
+		return new AgentRunHandle(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
 	}
 
 	/**
-	 * Wake up the agent run worker to scan for SUBMITTED runs. Called by
+	 * Wake up the queue loop to scan for SUBMITTED runs. Called by
 	 * {@code RunMCPToolReactor} after transitioning a run from
 	 * {@code INPUT_REQUIRED} back to {@code SUBMITTED}.
 	 */
 	public void signalWorker() {
-		worker.signal();
+		queueLoop.signal();
 	}
 
 	/**
-	 * Wake up the worker and remember the insight for a resumed run. Called by
-	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread
-	 * and has a valid Insight. This ensures the worker can resume the run on
-	 * this node without needing cross-node insight reconstruction.
+	 * Wake up the queue loop and remember the insight for a resumed run. Called by
+	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread and
+	 * has a valid Insight. This ensures the queue loop can resume the run on this
+	 * node without needing cross-node insight reconstruction.
 	 */
 	public void signalWorkerForResume(String runId, prerna.om.Insight insight) {
 		if (runId != null && !runId.trim().isEmpty() && insight != null) {
-			worker.rememberInsight(runId, insight);
+			queueLoop.rememberInsight(runId, insight);
 			try {
-				AgentRunRecord record = store.getRun(runId, insight);
-				if (record != null && record.getRequest() != null
-						&& isSemossHarness(record.getRequest().getHarnessType())) {
+				AgentRunRecord record = AgentRunStore.getRun(runId, insight);
+				if (record != null && record.request() != null && isSemossHarness(record.request().getHarnessType())) {
 					AgentRunStreamService.get().register(runId);
 				}
 			} catch (Exception e) {
 				// stream re-registration is best-effort
 			}
 		}
-		worker.signal();
+		queueLoop.signal();
 	}
 
 	public Map<String, Object> getRun(String runId, Insight insight) {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
-		Map<String, Object> run = store.getRunMap(runId, insight);
+		Map<String, Object> run = AgentRunStore.getRunMap(runId, insight);
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
@@ -147,8 +160,7 @@ public final class AgentRuntimeManager {
 		String status = String.valueOf(run.get("status"));
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(status)) {
 			try {
-				AgentRunActionStore actionStore = new AgentRunActionStore();
-				List<Map<String, Object>> pendingActions = actionStore.getPendingActions(runId);
+				List<Map<String, Object>> pendingActions = AgentRunActionStore.getPendingActions(runId);
 				run.put("pendingActions", normalizePendingActions(pendingActions));
 			} catch (Exception e) {
 				// best-effort - don't fail the getRun call
@@ -203,25 +215,36 @@ public final class AgentRuntimeManager {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
-		AgentRunRecord record = store.getRun(runId, insight);
+		AgentRunRecord record = AgentRunStore.getRun(runId, insight);
 		if (record == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
-		worker.cancel(runId);
+		// Frees the room even when the run's thread cannot be interrupted out of a
+		// blocking call. A run queued here or executing on another node has nothing to
+		// free locally; marking it cancelled below is what stops it.
+		queueLoop.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
-		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
+		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
 			notifyStreamCancelled(runId, "Agent run cancelled");
 		}
 		return getRun(runId, insight);
 	}
 
-	public boolean cancelRun(String runId, String roomId, String reason) {
+	/**
+	 * Cancels a run without the caller-facing checks {@link #stop} performs. Used
+	 * for cascades, where the run is being cancelled on the platform's behalf
+	 * rather than a user's.
+	 *
+	 * @return {@code true} when this call moved the run to CANCELLED, {@code false}
+	 *         when it had already settled
+	 */
+	public boolean cancelRun(String runId, String reason) {
 		if (runId == null || runId.trim().isEmpty()) {
 			return false;
 		}
 		String message = reason == null || reason.trim().isEmpty() ? "Agent run cancelled" : reason.trim();
-		worker.cancel(runId);
-		boolean cancelled = store.markCancelledIfNotTerminal(runId, runId, message);
+		queueLoop.cancel(runId);
+		boolean cancelled = AgentRunStore.markCancelledIfNotTerminal(runId, runId, message);
 		if (cancelled) {
 			notifyStreamCancelled(runId, message);
 		}
@@ -235,7 +258,7 @@ public final class AgentRuntimeManager {
 		if (runId == null || runId.trim().isEmpty()) {
 			throw new IllegalArgumentException("runId is required");
 		}
-		Map<String, Object> run = store.getRunMap(runId, insight);
+		Map<String, Object> run = AgentRunStore.getRunMap(runId, insight);
 		if (run == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
@@ -250,7 +273,7 @@ public final class AgentRuntimeManager {
 		List<Map<String, Object>> pendingActions = new ArrayList<>();
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			try {
-				pendingActions = normalizePendingActions(new AgentRunActionStore().getPendingActions(runId));
+				pendingActions = normalizePendingActions(AgentRunActionStore.getPendingActions(runId));
 			} catch (Exception e) {
 				// best-effort - snapshot still carries the run status
 			}
@@ -265,8 +288,7 @@ public final class AgentRuntimeManager {
 	}
 
 	private static boolean supportsCanonicalStreaming(String harnessType) {
-		return isSemossHarness(harnessType)
-				|| ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
+		return isSemossHarness(harnessType) || ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
 	}
 
 	private static void notifyStreamCancelled(String runId, String message) {
@@ -308,30 +330,8 @@ public final class AgentRuntimeManager {
 			action.put(key, parsed instanceof Map ? parsed : null);
 		} catch (Exception e) {
 			action.put(key, null);
-			logger.warn("AgentRuntimeManager: malformed {} JSON on actionId={}", key, action.get("actionId"));
+			logger.warn("AgentRunService: malformed {} JSON on actionId={}", key, action.get("actionId"));
 		}
-	}
-
-	boolean isCancelled(Throwable t) {
-		Throwable cur = t;
-		while (cur != null) {
-			if (cur instanceof AgentCancelledException) {
-				return true;
-			}
-			cur = cur.getCause();
-		}
-		return Thread.currentThread().isInterrupted();
-	}
-
-	String boundedError(Throwable t) {
-		String message = t == null ? null : t.getMessage();
-		if (message == null || message.trim().isEmpty()) {
-			message = t == null ? "Unknown agent run failure" : t.getClass().getName();
-		}
-		if (message.length() <= MAX_ERROR_LENGTH) {
-			return message;
-		}
-		return message.substring(0, MAX_ERROR_LENGTH);
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {
@@ -384,23 +384,15 @@ public final class AgentRuntimeManager {
 		String threadJobId = ThreadStore.getJobId();
 		if (threadJobId != null && !threadJobId.trim().isEmpty()) {
 			String candidate = threadJobId.trim();
-			if (!store.runExists(candidate)) {
+			if (!AgentRunStore.runExists(candidate)) {
 				return candidate;
 			}
 		}
 		return GUID.v7().toUUID().toString();
 	}
 
-	String firstNonBlank(String first, String second) {
-		if (first != null && !first.trim().isEmpty()) {
-			return first;
-		}
-		return second;
-	}
-
 	private static boolean isTerminalStatus(String status) {
-		return AgentRunStatus.COMPLETED.name().equals(status)
-				|| AgentRunStatus.FAILED.name().equals(status)
+		return AgentRunStatus.COMPLETED.name().equals(status) || AgentRunStatus.FAILED.name().equals(status)
 				|| AgentRunStatus.CANCELLED.name().equals(status)
 				|| AgentRunStatus.INPUT_REQUIRED.name().equals(status);
 	}

@@ -3,6 +3,11 @@
 The concrete file set for a new React app, with the contents that matter. Everything here is the
 plumbing described in SKILL.md; the app's own features go on top of it.
 
+**Copy these contents, do not paraphrase them.** `base: "./"` in `vite.config.ts` and the
+`@semoss/sdk/react` subpath import are both load-bearing: an app that gets either wrong renders a
+blank page with a clean-looking build. If the project already has these files, edit `src/` and
+leave the config alone.
+
 **React is optional.** `@semoss/sdk/react` is a thin binding over the same core covered in
 SKILL.md - `InsightProvider` creates one `Insight` and calls `initialize()`, `useInsight()` reads
 its getters, `usePixel` wraps `runPixel`. Use this file when the app already uses React or wants
@@ -46,6 +51,42 @@ assets/
 ```
 
 Every folder gets an `index.ts` barrel with explicit named re-exports.
+
+## client/package.json
+
+The minimum that supports the `vite.config.ts` below. `@semoss/sdk` is the only SEMOSS entry:
+`@semoss/sdk/react` is a subpath export of it, so there is nothing else to add for React. Add
+feature dependencies on top of this set; do not remove anything
+from it, and do not invent a SEMOSS package name.
+
+```json
+{
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@semoss/sdk": "^1.0.0-beta.38",
+    "@tailwindcss/vite": "^4.2.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.2",
+    "tailwindcss": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "@types/react": "^18.3.28",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^5.1.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.5"
+  }
+}
+```
+
+`BuildAndPublishApp` runs `pnpm install --no-frozen-lockfile && pnpm run build`, so the `build`
+script must exist and every import in `src/` must resolve to something listed here.
 
 ## client/.env
 
