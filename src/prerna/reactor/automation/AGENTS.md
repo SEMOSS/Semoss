@@ -77,8 +77,10 @@ run-local `scope` mapping containing trigger inputs, globals, runtime metadata, 
 outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
 generated-node configuration fields and are not rewritten inside custom source. Generated nodes use the documented
 engine SDK unless an existing Pixel reactor owns required server policy. Generated database reads use `SqlQuery`,
-which retains SQL routing, authorization, configured engine-pipeline guardrails, and bounded row collection. Return a
-value so Java can store it under the node's `outputVar`.
+which retains SQL routing, authorization, configured engine-pipeline guardrails, and bounded row collection. Generated
+database writes use the database SDK's `ExecQuery` path, which retains edit authorization, audit logging, commit
+behavior, and configured `insertData` guardrails. Generated updates always require a `WHERE` clause; use custom Python
+for an intentionally unbounded operation. Return a value so Java can store it under the node's `outputVar`.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine

@@ -509,14 +509,9 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Database update node '" + nodeId
 						+ "' must contain an UPDATE statement.");
 			}
-			Object allowFullTable = config.get("allowFullTable");
-			if (allowFullTable != null && !(allowFullTable instanceof Boolean)) {
+			if (update.getWhere() == null) {
 				throw new IllegalArgumentException("Database update node '" + nodeId
-						+ "' config.allowFullTable must be a boolean.");
-			}
-			if (update.getWhere() == null && !Boolean.TRUE.equals(allowFullTable)) {
-				throw new IllegalArgumentException("Database update node '" + nodeId
-						+ "' requires a WHERE clause unless config.allowFullTable is true.");
+						+ "' requires a WHERE clause.");
 			}
 		}
 	}
