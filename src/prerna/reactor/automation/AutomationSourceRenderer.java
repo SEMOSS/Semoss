@@ -108,6 +108,7 @@ public final class AutomationSourceRenderer {
 				# Query through SEMOSS so SQL routing, configured engine guardrails, permissions,
 				# and row limits stay server-owned.
 				from semoss import Insight
+				import base64
 				import json
 
 				ENGINE_ID = %s
@@ -118,13 +119,18 @@ public final class AutomationSourceRenderer {
 				    return name + "=[" + json.dumps(value) + "]"
 
 				def run(scope):
-				    query = "<encode>" + scope.resolve(QUERY) + "</encode>"
-				    pixel = "SqlQuery(" + ", ".join([
+				    query = scope.resolve(QUERY)
+				    encoded_query = base64.b64encode(query.encode("utf-8")).decode("ascii")
+				    pixel = "SqlQueryBase64(" + ", ".join([
 				        _pixel_value("database", scope.resolve(ENGINE_ID)),
-				        _pixel_value("query", query),
+				        _pixel_value("query", encoded_query),
 				        _pixel_value("limit", int(scope.resolve(LIMIT))),
 				    ]) + ");"
-				    return Insight().run_pixel(pixel, raw=False)
+				    response = Insight().run_pixel(pixel, raw=True)
+				    result = response[0]["pixelReturn"][-1]
+				    if "ERROR" in result.get("operationType", []):
+				        raise RuntimeError(result.get("output") or "SQL query failed")
+				    return result.get("output")
 				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
 						value(config, AutomationConstants.CONFIG_LIMIT));
 	}
