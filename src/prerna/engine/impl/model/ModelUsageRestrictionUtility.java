@@ -32,7 +32,10 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -53,8 +56,10 @@ public final class ModelUsageRestrictionUtility {
 	// exception Message for throttle limit
 	public static final String USER_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for user level : You have used %d tokens, but the limit is %d";
 	public static final String USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for user level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+	public static final String USER_CREDIT_LIMIT_EXCEEDED_MESSAGE = "Credit limit exceeded for user level: You have used %.2f credits, but the limit is %.2f";
 	public static final String ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE = "Token limit exceeded for engine level: You have used %d tokens, but the limit is %d";
 	public static final String ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE = "Response time limit exceeded for engine level : You have reached %.2f seconds, but the limit is %.2f seconds.";
+	public static final String ENGINE_CREDIT_LIMIT_EXCEEDED_MESSAGE = "Credit limit exceeded for engine level: You have used %.2f credits, but the limit is %.2f";
 
 	/**
 	 * 
@@ -63,131 +68,204 @@ public final class ModelUsageRestrictionUtility {
 	 * @return
 	 */
 	public static Map<String, Object> getModelUsageRestriction(User user, String engineId) {
-		Map<String, Object> userRestrictionMap = new HashMap<>();
+		Map<String, Object> userRestrictionMap = new LinkedHashMap<>();
 
-		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user,
-				engineId);
-		if (engineUserPermission != null && !engineUserPermission.isEmpty()) {
-			// there should only 1 row in this object
-			Map<String, Object> engineUserPermissionMap = engineUserPermission.get(0);
-			// lets see if any restriction is applied
+		List<Map<String, Object>> engineUserPermission = SecurityEngineUtils.getEngineUsagePermissionMap(user, engineId);
+		if (engineUserPermission == null || engineUserPermission.isEmpty()) {
+			return userRestrictionMap;
+		}
+		Map<String, Object> engineUserPermissionMap = engineUserPermission.get(0);
 
-			String userLvlModelUsageRestriction = (String) engineUserPermissionMap
-					.get(Constants.USER_USAGE_RESTRICTION_KEY);
-			String userLvlModelUsageFrequency = (String) engineUserPermissionMap
-					.get(Constants.USER_MODEL_USAGE_FREQUENCY_KEY);
-			Number userLvlModelUsageMaxTokens = (Number) engineUserPermissionMap
-					.get(Constants.USER_MODEL_MAX_TOKEN_KEY);
-			Number userLvlModelUsageMaxResponseTime = (Number) engineUserPermissionMap
-					.get(Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY);
+		// Individual engine-level fields (engine-scoped usage)
+		String engineLvlRestriction      = (String) engineUserPermissionMap.get(Constants.ENGINE_USAGE_RESTRICTION_KEY);
+		String engineLvlFrequency        = (String) engineUserPermissionMap.get(Constants.ENGINE_USAGE_FREQUENCY_KEY);
+		Number engineLvlMaxTokens        = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_TOKEN_KEY);
+		Number engineLvlMaxResponseTime  = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
+		Number engineLvlMaxCredits       = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_CREDIT_KEY);
 
-			String engineLvlModelUsageRestriction = (String) engineUserPermissionMap
-					.get(Constants.ENGINE_USAGE_RESTRICTION_KEY);
-			String engineLvlModelUsageFrequency = (String) engineUserPermissionMap
-					.get(Constants.ENGINE_USAGE_FREQUENCY_KEY);
-			Number engineLvlModelUsageMaxTokens = (Number) engineUserPermissionMap.get(Constants.ENGINE_MAX_TOKEN_KEY);
-			Number engineLvlModelUsageMaxResponseTime = (Number) engineUserPermissionMap
-					.get(Constants.ENGINE_MAX_RESPONSE_TIME_KEY);
+		// Individual user-level fields (cross-engine usage — always additive)
+		String userLvlRestriction        = (String) engineUserPermissionMap.get(Constants.USER_USAGE_RESTRICTION_KEY);
+		String userLvlFrequency          = (String) engineUserPermissionMap.get(Constants.USER_MODEL_USAGE_FREQUENCY_KEY);
+		Number userLvlMaxTokens          = (Number) engineUserPermissionMap.get(Constants.USER_MODEL_MAX_TOKEN_KEY);
+		Number userLvlMaxResponseTime    = (Number) engineUserPermissionMap.get(Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY);
+		Number userLvlMaxCredits         = (Number) engineUserPermissionMap.get(Constants.USER_MODEL_MAX_CREDIT_KEY);
 
-			ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
+		boolean anyIndividualRestriction = (engineLvlRestriction != null && !engineLvlRestriction.isEmpty())
+				|| (userLvlRestriction != null && !userLvlRestriction.isEmpty());
 
-			Number currentUsage = null;
-			// engine specific restriction
-			if (engineLvlModelUsageRestriction != null && !engineLvlModelUsageRestriction.isEmpty()) {
-				if (!Utility.isModelInferenceLogsEnabled()) {
-					throw new IllegalArgumentException(
-							"Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
-				}
-
-				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
-					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
-							Constants.MODEL_TOKEN_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							engineLvlModelUsageFrequency);
-
-					if (currentUsage.intValue() > engineLvlModelUsageMaxTokens.intValue()) {
-						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.intValue(), engineLvlModelUsageMaxTokens.intValue()));
-					}
-
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							engineLvlModelUsageMaxTokens.intValue());
-
-				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
-						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
-					currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
-							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							engineLvlModelUsageFrequency);
-
-					if (currentUsage.doubleValue() > engineLvlModelUsageMaxResponseTime.doubleValue()) {
-						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.doubleValue(), engineLvlModelUsageMaxResponseTime.doubleValue()));
-					}
-
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							engineLvlModelUsageMaxResponseTime.intValue());
-
-				} else {
-					classLogger.warn("Unknown engine level model restriction type = '" + engineLvlModelUsageRestriction
-							+ "' for user = " + User.getSingleLogginName(user));
-				}
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			if (anyIndividualRestriction) {
+				throw new IllegalArgumentException(
+						"Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
 			}
-			// user general restriction
-			else if (userLvlModelUsageRestriction != null && !userLvlModelUsageRestriction.isEmpty()) {
-				if (!Utility.isModelInferenceLogsEnabled()) {
-					throw new IllegalArgumentException(
-							"User model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+			return userRestrictionMap;
+		}
+
+		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
+
+		// === ENGINE-SCOPE RESTRICTION ===
+		List<Map<String, Object>> allRestrictions = new ArrayList<>();
+
+		if (engineLvlRestriction != null && !engineLvlRestriction.isEmpty()) {
+			Number limit = null;
+			if      (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction))       limit = engineLvlMaxCredits;
+			else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction))        limit = engineLvlMaxTokens;
+			else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) limit = engineLvlMaxResponseTime;
+			if (limit != null) {
+				Number currentUsage = ModelInferenceLogsUtils.getTotalTokensOrTotalResponseTime(
+						engineLvlRestriction, user, engineId, currentDateTime, engineLvlFrequency);
+				if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.doubleValue() > limit.doubleValue())
+						throw new IllegalArgumentException(String.format(ENGINE_CREDIT_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
+				} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.intValue() > limit.intValue())
+						throw new IllegalArgumentException(String.format(ENGINE_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), limit.intValue()));
+				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(engineLvlRestriction)) {
+					if (currentUsage.doubleValue() > limit.doubleValue())
+						throw new IllegalArgumentException(String.format(ENGINE_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
 				}
-
-				if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlModelUsageRestriction)) {
-
-					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(Constants.MODEL_TOKEN_RESTRICTION_VALUE,
-							user, engineId, currentDateTime, userLvlModelUsageFrequency);
-
-					if (currentUsage.intValue() > userLvlModelUsageMaxTokens.intValue()) {
-						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.intValue(), userLvlModelUsageMaxTokens.intValue()));
-					}
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-							Constants.MODEL_TOKEN_RESTRICTION_VALUE);
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							userLvlModelUsageMaxTokens.intValue());
-
-				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
-						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
-
-					currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
-							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE, user, engineId, currentDateTime,
-							userLvlModelUsageFrequency);
-
-					if (currentUsage.doubleValue() > userLvlModelUsageMaxResponseTime.doubleValue()) {
-						throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE,
-								currentUsage.doubleValue(), userLvlModelUsageMaxResponseTime.doubleValue()));
-					}
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,
-							Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE);
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-							currentUsage.intValue());
-					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
-							userLvlModelUsageMaxResponseTime.intValue());
-
-				} else {
-					classLogger.warn("Unknown user level model restriction type = '" + userLvlModelUsageRestriction
-							+ "' for user = " + User.getSingleLogginName(user));
-				}
+				allRestrictions.add(buildRestrictionEntry(engineLvlRestriction, engineLvlFrequency, limit.doubleValue(), currentUsage, "engine", null));
+			} else {
+				classLogger.warn("Unknown engine level restriction type = '" + engineLvlRestriction + "' for user = " + User.getSingleLogginName(user));
 			}
 		}
 
+		// === USER-SCOPE RESTRICTION (cross-engine, always additive) ===
+		if (userLvlRestriction != null && !userLvlRestriction.isEmpty()) {
+			Number userLimit = null;
+			if      (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction))       userLimit = userLvlMaxCredits;
+			else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction))        userLimit = userLvlMaxTokens;
+			else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction)) userLimit = userLvlMaxResponseTime;
+
+			if (userLimit != null) {
+				Number userCurrentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(
+						userLvlRestriction, user, engineId, currentDateTime, userLvlFrequency);
+
+				if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction)) {
+					if (userCurrentUsage.doubleValue() > userLimit.doubleValue())
+						throw new IllegalArgumentException(String.format(USER_CREDIT_LIMIT_EXCEEDED_MESSAGE, userCurrentUsage.doubleValue(), userLimit.doubleValue()));
+				} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction)) {
+					if (userCurrentUsage.intValue() > userLimit.intValue())
+						throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE, userCurrentUsage.intValue(), userLimit.intValue()));
+				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(userLvlRestriction)) {
+					if (userCurrentUsage.doubleValue() > userLimit.doubleValue())
+						throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, userCurrentUsage.doubleValue(), userLimit.doubleValue()));
+				}
+
+				allRestrictions.add(buildRestrictionEntry(userLvlRestriction, userLvlFrequency, userLimit.doubleValue(), userCurrentUsage, "user", null));
+			} else {
+				classLogger.warn("Unknown user level restriction type = '" + userLvlRestriction + "' for user = " + User.getSingleLogginName(user));
+			}
+		}
+
+		// === POPULATE FLAT MAP WITH PRIMARY + FULL RESTRICTIONS LIST ===
+		// Sort: credit first, then by frequency (DAY → WEEK → MONTH → YEAR → ALL_TIME).
+		// First item after sort becomes the primary shown in the flat map.
+		if (!allRestrictions.isEmpty()) {
+			allRestrictions.sort(Comparator
+					.comparingInt((Map<String, Object> e) -> typePriority((String) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE)))
+					.thenComparingInt(e -> frequencyPriority((String) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY)))
+					.thenComparingDouble((Map<String, Object> e) -> ((Number) e.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE)).doubleValue()));
+
+			Map<String, Object> primary = allRestrictions.get(0);
+			String pType    = (String) primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE);
+			String pSource  = (String) primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE);
+			String pGroupId = (String) primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME);
+			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,        pType);
+			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,   primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY));
+			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, pSource);
+			if (pGroupId != null) userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME, pGroupId);
+			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+			userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     primary.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE));
+			userRestrictionMap.put(AbstractModelEngineResponse.RESTRICTIONS, allRestrictions);
+		}
+
 		return userRestrictionMap;
+	}
+
+	/**
+	 * Returns only the user-level (cross-engine) restriction for the given user,
+	 * with no engine context. Used when ENGINE is not specified in the reactor.
+	 */
+	public static Map<String, Object> getUserLevelRestriction(User user) {
+		Map<String, Object> result = new LinkedHashMap<>();
+		Map<String, Object> userMap = SecurityEngineUtils.getUserLevelRestrictionMap(user);
+		if (userMap == null) {
+			return result;
+		}
+		String restriction = (String) userMap.get(Constants.USER_USAGE_RESTRICTION_KEY);
+		String frequency   = (String) userMap.get(Constants.USER_MODEL_USAGE_FREQUENCY_KEY);
+		if (restriction == null || restriction.isEmpty()) {
+			return result;
+		}
+		Number limit = null;
+		if      (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restriction))       limit = (Number) userMap.get(Constants.USER_MODEL_MAX_CREDIT_KEY);
+		else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restriction))        limit = (Number) userMap.get(Constants.USER_MODEL_MAX_TOKEN_KEY);
+		else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) limit = (Number) userMap.get(Constants.USER_MODEL_MAX_RESPONSE_TIME_KEY);
+		if (limit == null) {
+			return result;
+		}
+		if (!Utility.isModelInferenceLogsEnabled()) {
+			throw new IllegalArgumentException(
+					"Model restrictions have been enabled but not properly configured on the platform. Please reach out to a system administrator");
+		}
+		ZonedDateTime currentDateTime = Utility.getCurrentZonedDateTimeUTC();
+		Number currentUsage = ModelInferenceLogsUtils.getTotalUsageForUser(restriction, user, null, currentDateTime, frequency);
+		if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) {
+			if (currentUsage.doubleValue() > limit.doubleValue())
+				throw new IllegalArgumentException(String.format(USER_CREDIT_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
+		} else if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) {
+			if (currentUsage.intValue() > limit.intValue())
+				throw new IllegalArgumentException(String.format(USER_TOKEN_LIMIT_EXCEEDED_MESSAGE, currentUsage.intValue(), limit.intValue()));
+		} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE.equalsIgnoreCase(restriction)) {
+			if (currentUsage.doubleValue() > limit.doubleValue())
+				throw new IllegalArgumentException(String.format(USER_RESPONSE_TIME_LIMIT_EXCEEDED_MESSAGE, currentUsage.doubleValue(), limit.doubleValue()));
+		}
+		Map<String, Object> entry = buildRestrictionEntry(restriction, frequency, limit.doubleValue(), currentUsage, "user", null);
+		result.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,         restriction);
+		result.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,    frequency);
+		result.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, "user");
+		result.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, entry.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE));
+		result.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     entry.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE));
+		List<Map<String, Object>> allRestrictions = new ArrayList<>();
+		allRestrictions.add(entry);
+		result.put(AbstractModelEngineResponse.RESTRICTIONS, allRestrictions);
+		return result;
+	}
+
+	private static int typePriority(String restrictionType) {
+		if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType))       return 0;
+		if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionType))        return 1;
+		return 2;
+	}
+
+	private static int frequencyPriority(String frequency) {
+		if (frequency == null) return 0;
+		switch (frequency.toUpperCase()) {
+			case "DAY":      return 0;
+			case "WEEK":     return 1;
+			case "MONTH":    return 2;
+			case "YEAR":     return 3;
+			case "ALL_TIME": return 4;
+			default:         return 0;
+		}
+	}
+
+	private static Map<String, Object> buildRestrictionEntry(String type, String frequency, double limit,
+			Number currentUsage, String limitSource, String limitSourceName) {
+		Map<String, Object> entry = new HashMap<>();
+		entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE,      type);
+		entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,  frequency);
+		entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE, limitSource);
+		if (limitSourceName != null) entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_LIMIT_SOURCE_NAME, limitSourceName);
+		if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(type)) {
+			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.intValue());
+			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     (int) limit);
+		} else {
+			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE, currentUsage.doubleValue());
+			entry.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,     limit);
+		}
+		return entry;
 	}
 
 	/**
@@ -199,14 +277,20 @@ public final class ModelUsageRestrictionUtility {
 	 */
 	public static void updateRestrictionMapCurrentUsage(Map<String, Object> userRestrictionMap,
 			AbstractModelEngineResponse<?> modelResponse, ZonedDateTime inputTime, ZonedDateTime outputTime) {
+		updateRestrictionMapCurrentUsage(userRestrictionMap, modelResponse, inputTime, outputTime, null, null, null,
+				null);
+	}
+
+	public static void updateRestrictionMapCurrentUsage(Map<String, Object> userRestrictionMap,
+			AbstractModelEngineResponse<?> modelResponse, ZonedDateTime inputTime, ZonedDateTime outputTime,
+			Double inputTokenCredit, Double outputTokenCredit, Double cacheReadMultiplier,
+			Double cacheWriteMultiplier) {
 		if (userRestrictionMap != null && !userRestrictionMap.isEmpty()) {
 			String restrictionMode = (String) userRestrictionMap
 					.get(AbstractModelEngineResponse.USAGE_RESTRICTION_MODE);
 
 			if (Constants.MODEL_TOKEN_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)) {
 				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-						// put in the new value of the current usage we calculated + the number of
-						// tokens we just created
 						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
 								.intValue() + modelResponse.getNumberOfTokensInPrompt()
 								+ modelResponse.getNumberOfTokensInResponse());
@@ -218,10 +302,28 @@ public final class ModelUsageRestrictionUtility {
 				Double millisecondsDouble = (double) millisecondsDifference;
 
 				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
-						// put in the new value of the current usage we calculated + the time for this
-						// new response
 						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
 								.doubleValue() + millisecondsDouble);
+
+			} else if (Constants.MODEL_CREDIT_RESTRICTION_VALUE.equalsIgnoreCase(restrictionMode)
+					&& inputTokenCredit != null && outputTokenCredit != null) {
+				int inputTotal   = modelResponse.getNumberOfTokensInPrompt()    != null ? modelResponse.getNumberOfTokensInPrompt()    : 0;
+				int cacheRead    = modelResponse.getNumberOfCacheReadTokens()   != null ? modelResponse.getNumberOfCacheReadTokens()   : 0;
+				int cacheCreate  = modelResponse.getNumberOfCacheCreationTokens() != null ? modelResponse.getNumberOfCacheCreationTokens() : 0;
+				int newTokens    = inputTotal - cacheRead - cacheCreate;
+				int outputTokens = modelResponse.getNumberOfTokensInResponse()  != null ? modelResponse.getNumberOfTokensInResponse()  : 0;
+				int thinking     = modelResponse.getNumberOfThinkingTokens()    != null ? modelResponse.getNumberOfThinkingTokens()    : 0;
+				double readMult  = cacheReadMultiplier  != null ? cacheReadMultiplier  : 1.0;
+				double writeMult = cacheWriteMultiplier != null ? cacheWriteMultiplier : 1.0;
+
+				double requestBudget = newTokens    * inputTokenCredit
+						+ cacheRead   * inputTokenCredit * readMult
+						+ cacheCreate * inputTokenCredit * writeMult
+						+ (outputTokens + thinking) * outputTokenCredit;
+
+				userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE,
+						((Number) userRestrictionMap.get(AbstractModelEngineResponse.USAGE_RESTRICTION_CURRENT_VALUE))
+								.doubleValue() + requestBudget);
 			}
 
 			// now add this to the model response
