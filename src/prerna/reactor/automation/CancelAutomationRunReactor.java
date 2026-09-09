@@ -34,14 +34,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Requests cancellation of a running automation. Takes effect between nodes (cannot interrupt
- * mid-pixel), or mid-wait for nodes that check the flag during blocking operations.
+ * Requests cancellation of a running or agent-waiting automation. Active execution stops between
+ * nodes (or inside blocking operations that observe cancellation). An agent-waiting run cancels
+ * its trace-linked child agent and transitions the durable Automation wait to a terminal state.
  *
  * <p>Pixel: {@code CancelAutomationRun(project=["appId"], runId=["running-run-id"])}
  *
@@ -49,8 +51,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * {@link AutomationDatabaseUtility#setCancelRequested(String)}) that the executing pod polls
  * regardless of which pod owns the Python run. The same-pod fast path also interrupts the
  * matching Python socket job, allowing native Python and blocking bridge calls to stop promptly.
- * The run's {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
- * reactor; a truly orphaned run is caught by the periodic stale-heartbeat sweep.
+ * A running run's {@code STATUS} is transitioned to CANCELLED by the executing pod, not by this
+ * reactor; a truly orphaned run is caught by the periodic stale-heartbeat sweep. A waiting run has
+ * no executing pod, so this reactor reconciles its terminal state after stopping the child agent.
  */
 public class CancelAutomationRunReactor extends AbstractReactor {
 
@@ -81,7 +84,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		projectId = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(), projectId)
 				.getProjectId();
 
-		// Validate the run exists, belongs to this project, and is running. Scoping by
+		// Validate the run exists and belongs to this project. Scoping by
 		// PROJECT_ID prevents a user with edit access to their own project from cancelling
 		// a run that belongs to a project they were never granted access to.
 		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
@@ -90,9 +93,12 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		}
 
 		String status = (String) runDetail.get(AutomationConstants.STATUS);
+		if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(status)) {
+			return cancelWaitingAgentRun(projectId, runId);
+		}
 		if (!AutomationConstants.STATUS_RUNNING.equals(status)) {
 			throw new IllegalArgumentException(
-					"Can only cancel RUNNING automations. Current status: " + status);
+					"Can only cancel RUNNING or WAITING_FOR_INPUT automations. Current status: " + status);
 		}
 
 		// Persist the cluster-visible request before attempting the same-pod socket fast path.
@@ -110,9 +116,30 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
+	/** Cancels the trace-linked child agent and terminally reconciles a durable waiting run. */
+	private NounMetadata cancelWaitingAgentRun(String projectId, String runId) {
+		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
+		if (wait == null) {
+			throw new IllegalStateException("Waiting Automation run has no active input boundary: " + runId);
+		}
+		String nodeId = String.valueOf(wait.get(AutomationConstants.NODE_ID));
+		String agentRunId = String.valueOf(wait.get(AutomationConstants.AGENT_RUN_ID));
+		AutomationAgentRunAccess.authorizeEdit(this.insight, projectId, runId, nodeId, agentRunId);
+		AgentRuntimeManager.get().stopForAutomation(agentRunId, this.insight);
+		Map<String, Object> run = new AutomationRunExecutionService(this.insight, null)
+				.resumeWaitingRun(runId, projectId);
+
+		Map<String, Object> result = new HashMap<>();
+		result.put(AutomationConstants.RUN_ID, runId);
+		result.put(AutomationConstants.RESULT_CANCEL_REQUESTED, true);
+		result.put(AutomationConstants.RESULT_SIGNALLED_LOCALLY, false);
+		result.put(AutomationConstants.STATUS, run.get(AutomationConstants.STATUS));
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
 	@Override
 	public String getReactorDescription() {
-		return "Requests cancellation of a running automation run for the given project.";
+		return "Requests cancellation of a running or agent-waiting Automation run for the given project.";
 	}
 
 	@Override

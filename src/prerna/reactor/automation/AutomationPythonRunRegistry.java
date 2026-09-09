@@ -63,7 +63,13 @@ final class AutomationPythonRunRegistry {
 	}
 
 	static void register(String runId, PyTranslator translator, Insight insight, String jobId) {
-		ActivePythonRun active = new ActivePythonRun(translator, insight.getInsightId(), jobId);
+		register(runId, translator, insight, jobId, 0);
+	}
+
+	static void register(String runId, PyTranslator translator, Insight insight, String jobId,
+			int completedNodes) {
+		ActivePythonRun active = new ActivePythonRun(
+				translator, insight.getInsightId(), jobId, completedNodes);
 		if (RUNS.putIfAbsent(runId, active) != null) {
 			throw new IllegalStateException("Python automation run is already registered: " + runId);
 		}
@@ -117,13 +123,15 @@ final class AutomationPythonRunRegistry {
 		private final String insightId;
 		private final String jobId;
 		private final AtomicBoolean cancelled = new AtomicBoolean();
-		private final AtomicInteger completedNodes = new AtomicInteger();
+		private final AtomicInteger completedNodes;
 		private ScheduledFuture<?> heartbeat;
 
-		private ActivePythonRun(PyTranslator translator, String insightId, String jobId) {
+		private ActivePythonRun(PyTranslator translator, String insightId, String jobId,
+				int completedNodes) {
 			this.translator = translator;
 			this.insightId = insightId;
 			this.jobId = jobId;
+			this.completedNodes = new AtomicInteger(Math.max(0, completedNodes));
 		}
 	}
 }

@@ -49,6 +49,8 @@ import static prerna.reactor.automation.AutomationConstants.IDX_ANO_ROOM;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
+import static prerna.reactor.automation.AutomationConstants.IDX_ARW_AGENT_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ARW_RUN;
 import static prerna.reactor.automation.AutomationConstants.INTEGER;
 import static prerna.reactor.automation.AutomationConstants.INPUT_SNAPSHOT;
 import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
@@ -69,6 +71,7 @@ import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_WAIT;
 import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
 import static prerna.reactor.automation.AutomationConstants.RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.ROOM_ID;
@@ -81,6 +84,7 @@ import static prerna.reactor.automation.AutomationConstants.STATUS_SUBMITTED;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_WAITS;
 import static prerna.reactor.automation.AutomationConstants.SOURCE_CODE;
 import static prerna.reactor.automation.AutomationConstants.SOURCE_HASH;
 import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
@@ -107,6 +111,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -141,6 +146,7 @@ public final class AutomationDatabaseUtility {
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
 	private static final String TABLE_RUN_SOURCES = TABLE_AUTOMATION_RUN_NODE_SOURCES;
 	private static final String TABLE_NODE_OUTPUTS = TABLE_AUTOMATION_NODE_OUTPUTS;
+	private static final String TABLE_RUN_WAITS = TABLE_AUTOMATION_RUN_WAITS;
 	private AutomationDatabaseUtility() {
 	}
 
@@ -180,6 +186,34 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_RUNS SET STATUS = ?, COMPLETED_AT = ?, \
 			ERROR_MESSAGE = ? WHERE RUN_ID = ? AND STATUS = ? \
 			AND (LAST_HEARTBEAT IS NULL OR LAST_HEARTBEAT <= ?)""";
+
+	// AUTOMATION_RUN_WAITS
+	private static final String INSERT_RUN_WAIT = """
+			INSERT INTO AUTOMATION_RUN_WAITS \
+			(WAIT_ID, RUN_ID, NODE_ID, WAIT_TYPE, AGENT_RUN_ID, ROOM_ID, RESUME_NODE_ID, \
+			STATUS, CREATED_BY, STARTED_AT, EXPIRES_AT) \
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+
+	private static final String MARK_RUN_WAITING = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, LAST_HEARTBEAT = ? \
+			WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS = ?""";
+
+	private static final String MARK_NODE_WAITING = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, DURATION_MS = ?, \
+			OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, AGENT_RUN_ID = ? \
+			WHERE RUN_ID = ? AND NODE_ID = ? AND STATUS = ?""";
+
+	private static final String CLAIM_WAITING_RUN = """
+			UPDATE AUTOMATION_RUNS SET STATUS = ?, LAST_HEARTBEAT = ? \
+			WHERE RUN_ID = ? AND PROJECT_ID = ? AND STATUS = ?""";
+
+	private static final String CLAIM_RUN_WAIT = """
+			UPDATE AUTOMATION_RUN_WAITS SET STATUS = ? \
+			WHERE WAIT_ID = ? AND RUN_ID = ? AND STATUS = ?""";
+
+	private static final String RESOLVE_RUN_WAIT = """
+			UPDATE AUTOMATION_RUN_WAITS SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ? \
+			WHERE WAIT_ID = ? AND RUN_ID = ? AND STATUS = ?""";
 
 	// AUTOMATION_RUN_NODE_SOURCES
 	private static final String INSERT_RUN_NODE_SOURCE = """
@@ -246,6 +280,7 @@ public final class AutomationDatabaseUtility {
 			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
 			createAutomationRunNodeSourcesTable(conn, queryUtil, database, schema, allowIfExists, clobType);
 			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
+			createAutomationRunWaitsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -450,6 +485,206 @@ public final class AutomationDatabaseUtility {
 			rollback(conn, e);
 			classLogger.error("Failed to claim submitted automation run '{}'", runId, e);
 			throw new IllegalStateException("Unable to claim the submitted automation run.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Persists an agent input boundary and releases the Automation run from its executing worker.
+	 * Agent action arguments remain authoritative in the model-inference agent tables.
+	 *
+	 * @param runId Automation run identifier
+	 * @param projectId owning Automation project
+	 * @param nodeId waiting agent node
+	 * @param outputVar node output variable
+	 * @param outputValue bounded interim output, usually {@code null}
+	 * @param outputPreview bounded display preview
+	 * @param agentRunId durable agent run identifier
+	 * @param roomId durable agent room identifier
+	 * @param resumeNodeId next control node, or {@code null} when this is the final graph node
+	 * @param createdBy principal that initiated the Automation run
+	 * @param expiresAt approval deadline retained for policy and cleanup processing
+	 * @param durationMs elapsed execution time before the input boundary
+	 * @return persisted wait identifier
+	 */
+	public static String persistAgentWait(String runId, String projectId, String nodeId,
+			String outputVar, String outputValue, String outputPreview, String agentRunId,
+			String roomId, String resumeNodeId, String createdBy, Instant expiresAt, long durationMs) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation agent wait");
+		String waitId = UUID.randomUUID().toString();
+		Timestamp now = toTimestamp(Instant.now());
+		Connection conn = null;
+		boolean originalAutoCommit = false;
+		try {
+			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			try (PreparedStatement ps = conn.prepareStatement(MARK_NODE_WAITING)) {
+				int index = 1;
+				ps.setString(index++, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT);
+				ps.setLong(index++, durationMs);
+				setNullableString(ps, index++, outputVar);
+				schedulerDb.getQueryUtil().handleInsertionOfClob(conn, ps, outputValue, index++,
+						AutomationRuntimeUtils.GSON);
+				setNullableString(ps, index++, outputPreview);
+				ps.setString(index++, agentRunId);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				ps.setString(index++, NODE_STATUS_RUNNING);
+				requireSingleRow(ps.executeUpdate(), "mark the agent node waiting", runId, nodeId);
+			}
+			try (PreparedStatement ps = conn.prepareStatement(MARK_RUN_WAITING)) {
+				ps.setString(1, AutomationConstants.STATUS_WAITING_FOR_INPUT);
+				ps.setTimestamp(2, now);
+				ps.setString(3, runId);
+				ps.setString(4, projectId);
+				ps.setString(5, STATUS_RUNNING);
+				requireSingleRow(ps.executeUpdate(), "mark the automation run waiting", runId, nodeId);
+			}
+			try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_WAIT)) {
+				int index = 1;
+				ps.setString(index++, waitId);
+				ps.setString(index++, runId);
+				ps.setString(index++, nodeId);
+				ps.setString(index++, AutomationConstants.WAIT_TYPE_AGENT_ACTION);
+				ps.setString(index++, agentRunId);
+				ps.setString(index++, roomId);
+				setNullableString(ps, index++, resumeNodeId);
+				ps.setString(index++, AutomationConstants.WAIT_STATUS_PENDING);
+				setNullableString(ps, index++, createdBy);
+				ps.setTimestamp(index++, now);
+				ps.setTimestamp(index, toTimestamp(expiresAt));
+				ps.executeUpdate();
+			}
+			conn.commit();
+			return waitId;
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to persist agent wait for run '{}', node '{}'", runId, nodeId, e);
+			throw new IllegalStateException("Unable to persist the automation agent wait.", e);
+		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Returns the newest pending or claimed input boundary for a run.
+	 *
+	 * @param runId Automation run identifier
+	 * @return active wait row, or {@code null}
+	 */
+	public static Map<String, Object> getActiveWait(String runId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return null;
+		}
+		SelectQueryStruct qs = new SelectQueryStruct();
+		for (String column : new String[] { AutomationConstants.WAIT_ID, RUN_ID, NODE_ID,
+				AutomationConstants.WAIT_TYPE, AGENT_RUN_ID, ROOM_ID,
+				AutomationConstants.RESUME_NODE_ID, STATUS, CREATED_BY, STARTED_AT,
+				AutomationConstants.EXPIRES_AT }) {
+			qs.addSelector(new QueryColumnSelector(TABLE_RUN_WAITS + "__" + column, column));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+				TABLE_RUN_WAITS + "__" + RUN_ID, "==", runId, PixelDataType.CONST_STRING));
+		OrQueryFilter active = new OrQueryFilter();
+		active.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUN_WAITS + "__" + STATUS,
+				"==", AutomationConstants.WAIT_STATUS_PENDING, PixelDataType.CONST_STRING));
+		active.addFilter(SimpleQueryFilter.makeColToValFilter(TABLE_RUN_WAITS + "__" + STATUS,
+				"==", AutomationConstants.WAIT_STATUS_RESUMING, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(active);
+		qs.addOrderBy(TABLE_RUN_WAITS + "__" + STARTED_AT,
+				QueryColumnOrderBySelector.ORDER_BY_DIRECTION.DESC.toString());
+		qs.setLimit(1);
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		return rows == null || rows.isEmpty() ? null : rows.get(0);
+	}
+
+	/**
+	 * Atomically claims one waiting run and its input boundary for continuation.
+	 *
+	 * @param runId Automation run identifier
+	 * @param projectId owning Automation project
+	 * @return claimed wait row, or {@code null} when another caller already claimed it
+	 */
+	public static Map<String, Object> claimWaitingRun(String runId, String projectId) {
+		Map<String, Object> wait = getActiveWait(runId);
+		if (wait == null || !AutomationConstants.WAIT_STATUS_PENDING.equals(wait.get(STATUS))) {
+			return null;
+		}
+		IRDBMSEngine schedulerDb = requireSchedulerDb("claim the waiting automation run");
+		Connection conn = null;
+		boolean originalAutoCommit = false;
+		try {
+			conn = schedulerDb.getConnection();
+			originalAutoCommit = conn.getAutoCommit();
+			if (originalAutoCommit) {
+				conn.setAutoCommit(false);
+			}
+			try (PreparedStatement ps = conn.prepareStatement(CLAIM_WAITING_RUN)) {
+				ps.setString(1, STATUS_RUNNING);
+				ps.setTimestamp(2, toTimestamp(Instant.now()));
+				ps.setString(3, runId);
+				ps.setString(4, projectId);
+				ps.setString(5, AutomationConstants.STATUS_WAITING_FOR_INPUT);
+				if (ps.executeUpdate() != 1) {
+					conn.rollback();
+					return null;
+				}
+			}
+			try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN_WAIT)) {
+				ps.setString(1, AutomationConstants.WAIT_STATUS_RESUMING);
+				ps.setString(2, String.valueOf(wait.get(AutomationConstants.WAIT_ID)));
+				ps.setString(3, runId);
+				ps.setString(4, AutomationConstants.WAIT_STATUS_PENDING);
+				requireSingleRow(ps.executeUpdate(), "claim the automation wait", runId,
+						String.valueOf(wait.get(NODE_ID)));
+			}
+			conn.commit();
+			wait.put(STATUS, AutomationConstants.WAIT_STATUS_RESUMING);
+			return wait;
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to claim waiting automation run '{}'", runId, e);
+			throw new IllegalStateException("Unable to claim the waiting automation run.", e);
+		} finally {
+			restoreAutoCommit(conn, originalAutoCommit);
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
+	 * Marks a claimed input boundary resolved after its agent node reaches a terminal state.
+	 *
+	 * @param runId Automation run identifier
+	 * @param waitId wait identifier
+	 * @param resolvedBy project editor who reconciled the completed agent run
+	 */
+	public static void resolveWait(String runId, String waitId, String resolvedBy) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("resolve the automation wait");
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(RESOLVE_RUN_WAIT)) {
+				ps.setString(1, AutomationConstants.WAIT_STATUS_RESOLVED);
+				ps.setTimestamp(2, toTimestamp(Instant.now()));
+				setNullableString(ps, 3, resolvedBy);
+				ps.setString(4, waitId);
+				ps.setString(5, runId);
+				ps.setString(6, AutomationConstants.WAIT_STATUS_RESUMING);
+				requireSingleRow(ps.executeUpdate(), "resolve the automation wait", runId, null);
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			rollback(conn, e);
+			classLogger.error("Failed to resolve wait '{}' for run '{}'", waitId, runId, e);
+			throw new IllegalStateException("Unable to resolve the automation wait.", e);
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
@@ -1166,6 +1401,10 @@ public final class AutomationDatabaseUtility {
 					output.get(AutomationConstants.MODEL_MESSAGE_ID));
 			putIfPresent(trace, AutomationConstants.TRACE_AGENT_RUN_ID,
 					output.get(AutomationConstants.AGENT_RUN_ID));
+			if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT.equals(
+					output.get(AutomationConstants.STATUS))) {
+				trace.put(AutomationConstants.TRACE_AGENT_STATUS, "INPUT_REQUIRED");
+			}
 			if (!trace.isEmpty()) {
 				nodeResult.put(AutomationConstants.RESULT_TRACE, trace);
 			}
@@ -1301,6 +1540,37 @@ public final class AutomationDatabaseUtility {
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_MODEL_MSG, tableName,
 				new String[]{ MODEL_MESSAGE_ID });
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_AGENT_RUN, tableName,
+				new String[]{ AGENT_RUN_ID });
+	}
+
+	private static void createAutomationRunWaitsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
+			String database, String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
+		String tableName = TABLE_AUTOMATION_RUN_WAITS;
+		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
+		if (!tableExists) {
+			String[] colNames = { AutomationConstants.WAIT_ID, RUN_ID, NODE_ID,
+					AutomationConstants.WAIT_TYPE, AGENT_RUN_ID, ROOM_ID,
+					AutomationConstants.RESUME_NODE_ID, STATUS, CREATED_BY, STARTED_AT,
+					AutomationConstants.EXPIRES_AT, AutomationConstants.RESOLVED_AT,
+					AutomationConstants.RESOLVED_BY };
+			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_50, VARCHAR_50,
+					VARCHAR_50, VARCHAR_255, VARCHAR_50, VARCHAR_255, dateTimeType, dateTimeType,
+					dateTimeType, VARCHAR_255 };
+			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
+					NOT_NULL, null, NOT_NULL, null, NOT_NULL, NOT_NULL, null, null };
+			String sql = allowIfExists
+					? queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints)
+					: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+			classLogger.info("Creating table {}: {}", tableName, sql);
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.execute();
+			}
+		}
+		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_RUN_WAIT,
+				new String[]{ AutomationConstants.WAIT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_RUN, tableName,
+				new String[]{ RUN_ID, STATUS });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_AGENT_RUN, tableName,
 				new String[]{ AGENT_RUN_ID });
 	}
 

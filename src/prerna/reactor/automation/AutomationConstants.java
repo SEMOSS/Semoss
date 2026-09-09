@@ -53,6 +53,7 @@ public final class AutomationConstants {
 	public static final String TABLE_AUTOMATION_RUNS = "AUTOMATION_RUNS";
 	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
+	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
 
 	// -- AUTOMATION_RUNS columns ---------------------------------------------------
 
@@ -95,6 +96,19 @@ public final class AutomationConstants {
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
 	public static final String AGENT_RUN_ID = "AGENT_RUN_ID";
 
+	// -- AUTOMATION_RUN_WAITS columns ---------------------------------------------
+
+	public static final String WAIT_ID = "WAIT_ID";
+	public static final String WAIT_TYPE = "WAIT_TYPE";
+	public static final String RESUME_NODE_ID = "RESUME_NODE_ID";
+	public static final String EXPIRES_AT = "EXPIRES_AT";
+	public static final String RESOLVED_AT = "RESOLVED_AT";
+	public static final String RESOLVED_BY = "RESOLVED_BY";
+	public static final String WAIT_TYPE_AGENT_ACTION = "AGENT_ACTION";
+	public static final String WAIT_STATUS_PENDING = "PENDING";
+	public static final String WAIT_STATUS_RESUMING = "RESUMING";
+	public static final String WAIT_STATUS_RESOLVED = "RESOLVED";
+
 	// -- Run statuses --------------------------------------------------------------
 
 	public static final String STATUS_SUBMITTED = "SUBMITTED";
@@ -103,6 +117,7 @@ public final class AutomationConstants {
 	public static final String STATUS_FAILED = "FAILED";
 	public static final String STATUS_INTERRUPTED = "INTERRUPTED";
 	public static final String STATUS_CANCELLED = "CANCELLED";
+	public static final String STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
 
 	// -- Node statuses -------------------------------------------------------------
 
@@ -111,6 +126,7 @@ public final class AutomationConstants {
 	public static final String NODE_STATUS_SUCCESS = "SUCCESS";
 	public static final String NODE_STATUS_FAILED = "FAILED";
 	public static final String NODE_STATUS_SKIPPED = "SKIPPED";
+	public static final String NODE_STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
 
 	// -- Trigger types -------------------------------------------------------------
 
@@ -310,6 +326,7 @@ public final class AutomationConstants {
 	public static final String PK_AUTOMATION_RUNS = "PK_AUTOMATION_RUNS";
 	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
 	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
+	public static final String PK_AUTO_RUN_WAIT = "PK_AUTO_RUN_WAIT";
 	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";
 	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
 	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
@@ -317,6 +334,8 @@ public final class AutomationConstants {
 	public static final String IDX_ANO_ROOM = "IDX_ANO_ROOM";
 	public static final String IDX_ANO_MODEL_MSG = "IDX_ANO_MODEL_MSG";
 	public static final String IDX_ANO_AGENT_RUN = "IDX_ANO_AGENT_RUN";
+	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
+	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
 
 	// -- Defaults ------------------------------------------------------------------
 

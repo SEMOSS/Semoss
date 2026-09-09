@@ -27,11 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -39,19 +37,18 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns detail for a single automation run including per-node results.
+ * Continues a durable Automation run after its trace-linked child agent reaches a terminal state.
  *
- * <p>Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
+ * <p>Pixel: {@code ResumeAutomationRun(project=["id"], runId=["id"])}
  *
- * <p>Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
+ * <p>The execution service uses a compare-and-set claim, so repeated calls are safe and concurrent
+ * callers cannot execute the remainder of the graph twice.
  */
-public class GetAutomationRunReactor extends AbstractReactor {
+public class ResumeAutomationRunReactor extends AbstractReactor {
 
-	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
-	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
-	public GetAutomationRunReactor() {
+	public ResumeAutomationRunReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), RUN_ID_KEY };
 		this.keyRequired = new int[] { 1, 1 };
 	}
@@ -59,49 +56,41 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		String runId = this.keyValue.get(this.keysToGet[1]);
-
-		if (projectId == null || projectId.isEmpty()) {
-			throw new IllegalArgumentException("Must provide a project id");
-		}
-		if (runId == null || runId.isEmpty()) {
+		String requestedProjectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		String runId = this.keyValue.get(RUN_ID_KEY);
+		if (runId == null || runId.isBlank()) {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(), projectId)
-				.getProjectId();
-
-		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
-		// Scope by PROJECT_ID so a user with view access to one project cannot read another
-		// project's run detail/node outputs by guessing or reusing a runId.
-		if (runDetail == null || !projectId.equals(runDetail.get(AutomationConstants.PROJECT_ID))) {
-			Map<String, Object> notFound = new HashMap<>();
-			notFound.put(AutomationConstants.RUN_ID, runId);
-			notFound.put(AutomationConstants.RESULT_NODE_RESULTS, new ArrayList<>());
-			return new NounMetadata(notFound, PixelDataType.MAP, PixelOperationType.OPERATION);
+		IProject project = AutomationProjectUtils.getEditableAutomationProject(
+				this.insight.getUser(), requestedProjectId);
+		String projectId = project.getProjectId();
+		Map<String, Object> run = AutomationDatabaseUtility.getRunDetail(runId);
+		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
+			throw new IllegalArgumentException("Automation run not found: " + runId);
 		}
 
-		List<Map<String, Object>> nodeOutputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
-		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility.buildNodeResults(nodeOutputs);
-
-		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
 		if (wait != null) {
-			runDetail.put("wait", wait);
+			AutomationAgentRunAccess.authorizeEdit(this.insight, projectId, runId,
+					String.valueOf(wait.get(AutomationConstants.NODE_ID)),
+					String.valueOf(wait.get(AutomationConstants.AGENT_RUN_ID)));
 		}
-		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
+
+		Map<String, Object> result = new AutomationRunExecutionService(this.insight, null)
+				.resumeWaitingRun(runId, projectId);
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns detail for a single automation run, including per-node results.";
+		return "Continues a waiting Automation run after its child agent input flow completes.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (RUN_ID_KEY.equals(key)) {
-			return "Run identifier returned when the automation was triggered.";
+			return "Waiting Automation run identifier.";
 		}
 		return super.getDescriptionForKey(key);
 	}
