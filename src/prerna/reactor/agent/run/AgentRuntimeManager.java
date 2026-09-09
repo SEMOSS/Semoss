@@ -46,13 +46,13 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.ClaudeCodeAgentHarness;
+import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
-import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.util.Utility;
 
 public final class AgentRuntimeManager {
@@ -113,9 +113,9 @@ public final class AgentRuntimeManager {
 
 	/**
 	 * Wake up the worker and remember the insight for a resumed run. Called by
-	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread
-	 * and has a valid Insight. This ensures the worker can resume the run on
-	 * this node without needing cross-node insight reconstruction.
+	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread and
+	 * has a valid Insight. This ensures the worker can resume the run on this node
+	 * without needing cross-node insight reconstruction.
 	 */
 	public void signalWorkerForResume(String runId, prerna.om.Insight insight) {
 		if (runId != null && !runId.trim().isEmpty() && insight != null) {
@@ -207,6 +207,9 @@ public final class AgentRuntimeManager {
 		if (record == null) {
 			throw new IllegalArgumentException("No AGENT_RUN found for runId=" + runId);
 		}
+		// Frees the room even when the run's thread cannot be interrupted out of a
+		// blocking call. A run queued here or executing on another node has nothing to
+		// free locally; marking it cancelled below is what stops it.
 		worker.cancel(runId);
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
 		if (store.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
@@ -215,7 +218,15 @@ public final class AgentRuntimeManager {
 		return getRun(runId, insight);
 	}
 
-	public boolean cancelRun(String runId, String roomId, String reason) {
+	/**
+	 * Cancels a run without the caller-facing checks {@link #stop} performs. Used
+	 * for cascades, where the run is being cancelled on the platform's behalf
+	 * rather than a user's.
+	 *
+	 * @return {@code true} when this call moved the run to CANCELLED, {@code false}
+	 *         when it had already settled
+	 */
+	public boolean cancelRun(String runId, String reason) {
 		if (runId == null || runId.trim().isEmpty()) {
 			return false;
 		}
@@ -265,8 +276,7 @@ public final class AgentRuntimeManager {
 	}
 
 	private static boolean supportsCanonicalStreaming(String harnessType) {
-		return isSemossHarness(harnessType)
-				|| ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
+		return isSemossHarness(harnessType) || ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
 	}
 
 	private static void notifyStreamCancelled(String runId, String message) {
@@ -399,8 +409,7 @@ public final class AgentRuntimeManager {
 	}
 
 	private static boolean isTerminalStatus(String status) {
-		return AgentRunStatus.COMPLETED.name().equals(status)
-				|| AgentRunStatus.FAILED.name().equals(status)
+		return AgentRunStatus.COMPLETED.name().equals(status) || AgentRunStatus.FAILED.name().equals(status)
 				|| AgentRunStatus.CANCELLED.name().equals(status)
 				|| AgentRunStatus.INPUT_REQUIRED.name().equals(status);
 	}

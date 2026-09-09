@@ -30,7 +30,7 @@ package prerna.reactor.agent.run;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -40,10 +40,10 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
 
 import prerna.auth.User;
+import prerna.logging.SemossLogUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
-import prerna.logging.SemossLogUtils;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
@@ -64,8 +64,8 @@ final class AgentRunWorker {
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
-	private final Map<String, Thread> activeThreadsByRun = new ConcurrentHashMap<>();
-	private final Set<String> localActiveRooms = ConcurrentHashMap.newKeySet();
+	/** Owns the room lock, the run threads, and the turn leases for this node. */
+	private final ActiveRunRegistry activeRuns = new ActiveRunRegistry();
 
 	AgentRunWorker(AgentRuntimeManager runtime, AgentRunStore store, AgentRunQueueCoordinator queueCoordinator) {
 		this.runtime = runtime;
@@ -87,11 +87,15 @@ final class AgentRunWorker {
 		}
 	}
 
-	void cancel(String runId) {
-		Thread activeThread = activeThreadsByRun.get(runId);
-		if (activeThread != null) {
-			activeThread.interrupt();
-		}
+	/**
+	 * Stops the run and frees its room. See
+	 * {@link ActiveRunRegistry#requestCancel(String)} for why the room is released
+	 * without waiting for the run's thread to unwind.
+	 *
+	 * @return {@code true} when this node was executing the run
+	 */
+	boolean cancel(String runId) {
+		return activeRuns.requestCancel(runId);
 	}
 
 	private void start() {
@@ -126,58 +130,86 @@ final class AgentRunWorker {
 		}
 	}
 
+	/**
+	 * Starts {@code record} if this node can take it: the run must be the oldest
+	 * queued one for its room, the room must be free here, and the cluster must
+	 * grant this node the room's turn.
+	 *
+	 * <p>
+	 * From the moment the room is claimed, {@code activeRun.close()} is the only
+	 * teardown: every path that gives up below runs it, and the run's own thread
+	 * runs it in a {@code finally}. It is idempotent, so overlapping releases are
+	 * fine.
+	 *
+	 * @return {@code true} when a run was started, which tells the queue loop to
+	 *         keep scanning instead of going idle
+	 */
 	private boolean tryExecute(AgentRunRecord record, InsightHandle insightHandle) {
 		String runId = record.getRunId();
 		String roomId = record.getRoomId();
 		if (!store.isOldestSubmittedRunForRoom(runId, roomId)) {
 			return false;
 		}
-		if (!localActiveRooms.add(roomId)) {
+		Optional<ActiveRunRegistry.ActiveRun> claim = activeRuns.claimRoom(runId, roomId);
+		if (claim.isEmpty()) {
 			return false;
 		}
+		ActiveRunRegistry.ActiveRun activeRun = claim.get();
 
-		AgentRunQueueCoordinator.ActiveRunLease lease = null;
 		try {
-			lease = queueCoordinator.tryClaimTurn(runId, roomId);
+			AgentRunQueueCoordinator.ActiveRunLease lease = queueCoordinator.tryClaimTurn(runId, roomId);
 			if (lease == null) {
-				localActiveRooms.remove(roomId);
+				// Another node holds this room's turn. Stay SUBMITTED and retry later.
+				activeRun.close();
 				return false;
 			}
-			String jobId = runId;
-			if (!store.markRunningIfSubmitted(runId, jobId)) {
-				lease.close();
-				localActiveRooms.remove(roomId);
+			// Attach immediately so a cancel arriving before the thread starts still
+			// finds the lease to close.
+			activeRun.attachLease(lease);
+
+			if (!store.markRunningIfSubmitted(runId, runId)) {
+				// Already claimed, cancelled, or otherwise no longer SUBMITTED.
+				activeRun.close();
 				cleanupInsight(runId, insightHandle);
 				return false;
 			}
-			final AgentRunQueueCoordinator.ActiveRunLease claimedLease = lease;
+
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
 				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap)) {
-					execute(record, insightHandle);
+					execute(record, insightHandle, activeRun);
 				} finally {
-					activeThreadsByRun.remove(runId);
-					claimedLease.close();
-					localActiveRooms.remove(roomId);
+					activeRun.close();
 				}
 			});
-			activeThreadsByRun.put(runId, thread);
+			activeRun.attachThread(thread);
 			thread.start();
 			return true;
 		} catch (RuntimeException e) {
-			if (lease != null) {
-				lease.close();
-			}
-			localActiveRooms.remove(roomId);
+			activeRun.close();
 			throw e;
 		}
 	}
 
-	private void execute(AgentRunRecord record, InsightHandle insightHandle) {
+	/**
+	 * Runs the harness on this run's own thread and records the outcome.
+	 *
+	 * <p>
+	 * {@code activeRun} is passed rather than looked up by id because a cancel
+	 * unregisters the run as it releases the room; the object outlives the registry
+	 * entry and is what still carries the cancel flag.
+	 */
+	private void execute(AgentRunRecord record, InsightHandle insightHandle, ActiveRunRegistry.ActiveRun activeRun) {
 		String runId = record.getRunId();
 		String jobId = runId;
 		String parentRunId = record.getRequest() != null ? record.getRequest().getParentRunId() : null;
 		try {
 			seedThreadStore(runId, insightHandle);
+			// A cancel can land after the room is claimed but before this thread starts,
+			// and interrupting an unstarted thread does nothing. The flag is the only
+			// record of it, so check before announcing RUNNING or doing any work.
+			if (activeRun.isCancelRequested()) {
+				throw new AgentCancelledException();
+			}
 			publishSubagentPatch(parentRunId, runId, AgentRunStatus.RUNNING);
 			RunAgentRequest request = record.getRequest();
 			// Detect resume: the persisted request always has resumeMode=false on initial
@@ -186,8 +218,7 @@ final class AgentRunWorker {
 			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
 					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
 					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight,
-					resumeMode);
+					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight, resumeMode);
 			if (result != null) {
 				store.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -299,9 +330,8 @@ final class AgentRunWorker {
 		if (sessionId == null || sessionId.trim().isEmpty()) {
 			sessionId = log4jContextMap.get(SemossLogUtils.SESSION_ID);
 		}
-		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(),
-				ThreadStore.getLocalHostname(), ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(),
-				log4jContextMap);
+		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(), ThreadStore.getLocalHostname(),
+				ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(), log4jContextMap);
 	}
 
 	private static Map<String, String> captureLog4jContext(String runId, User user) {
