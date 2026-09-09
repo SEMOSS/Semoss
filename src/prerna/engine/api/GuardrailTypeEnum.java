@@ -32,8 +32,9 @@ import prerna.engine.impl.guardrail.DetoxifyGuardrailEngine;
 import prerna.engine.impl.guardrail.GLiNERGuardrailEngine;
 import prerna.engine.impl.guardrail.LocalPythonGuardrailReactorFunctionEngine;
 import prerna.engine.impl.guardrail.OnTopicGuardrailEngine;
-import prerna.engine.impl.guardrail.PromptInjectionGuardrailEngine;
 import prerna.engine.impl.guardrail.PolicyComplianceGuardrailEngine;
+import prerna.engine.impl.guardrail.PromptInjectionGuardrailEngine;
+import prerna.engine.impl.guardrail.SqlQueryGuardrailEngine;
 
 public enum GuardrailTypeEnum {
 
@@ -43,6 +44,7 @@ public enum GuardrailTypeEnum {
 	EMBEDDED_ON_TOPIC("EMBEDDED_ON_TOPIC", OnTopicGuardrailEngine.class.getName()),
 	EMBEDDED_PROMPT_INJECTION("EMBEDDED_PROMPT_INJECTION", PromptInjectionGuardrailEngine.class.getName()),
 	EMBEDDED_POLICY_COMPLIANCE("EMBEDDED_POLICY_COMPLIANCE", PolicyComplianceGuardrailEngine.class.getName()),
+	EMBEDDED_SQL_QUERY("EMBEDDED_SQL_QUERY", SqlQueryGuardrailEngine.class.getName()),
 	LOCAL_PYTHON("LOCAL_PYTHON", LocalPythonGuardrailReactorFunctionEngine.class.getName());
 
 	private String guardrailName;

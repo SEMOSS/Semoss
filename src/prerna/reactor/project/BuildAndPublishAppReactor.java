@@ -36,13 +36,16 @@ import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.URL;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -76,6 +79,16 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 	private static final String CLIENT_DIR = "client";
 	private static final String NODE_SERVER_ENDPOINT = "NODE_SERVER_ENDPOINT";
 	private static final String BUILD_CMD = "pnpm install --no-frozen-lockfile && pnpm run build";
+	private static final String INDEX_HTML = "index.html";
+
+	/**
+	 * Matches a {@code src="/..."} or {@code href="/..."} pointing at a script or
+	 * stylesheet. Requiring a non-slash after the leading one excludes
+	 * protocol-relative {@code //host/...} URLs. Only double-quoted attributes are
+	 * considered, which is what every bundler emits.
+	 */
+	private static final Pattern ABSOLUTE_ASSET_URL = Pattern
+			.compile("(?:src|href)=\"(/[^/\"][^\"]*\\.(?:js|mjs|css))\"", Pattern.CASE_INSENSITIVE);
 
 	public BuildAndPublishAppReactor() {
 		this.keysToGet = new String[] { PROJECT_ID };
@@ -114,7 +127,9 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		Path clientDir = projectAssetsDir.resolve(CLIENT_DIR).normalize();
 
 		if (!Files.isDirectory(clientDir)) {
-			return error("Client folder not found: " + clientDir);
+			return getWarning("No client folder found at " + clientDir
+					+ ". BuildAndPublishApp compiles client source from assets/client. For a project whose portal assets already run as-is, such as a plain index.html app, use PublishProject(project=['"
+					+ projectId + "'], release=true).");
 		}
 
 		Path tempZip = null;
@@ -141,10 +156,27 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 			unzip(portalsZip, portalsDir, Constants.PORTALS_FOLDER);
 			classLogger.info("Extracted portals -> {}", portalsDir);
 
-			// 4 - Re-publish and release the project so the public portal is refreshed.
+			// 4 - Refuse to publish a build whose asset URLs are absolute. Serving would
+			// 404 every asset and leave a blank page, so stop while the last good portal
+			// is still the published one.
+			String absoluteAsset = findAbsoluteAssetUrl(portalsDir);
+			if (absoluteAsset != null) {
+				classLogger.warn(
+						"BuildAndPublishApp: absolute asset url '" + absoluteAsset + "' in " + Constants.PORTALS_FOLDER
+								+ "/" + INDEX_HTML + " for project " + projectId + "; skipping publish");
+				return getWarning("""
+						Build completed but was not published: it produced absolute asset urls. \
+						%s/%s references "%s", and a portal is served from a project-scoped path, \
+						not from the server root, so that url 404s and the app renders a blank page. \
+						Set base: "./" in client/vite.config.ts and build again. The portal currently \
+						published for [%s] is unchanged.\
+						""".formatted(Constants.PORTALS_FOLDER, INDEX_HTML, absoluteAsset, projectId));
+			}
+
+			// 5 - Re-publish and release the project so the public portal is refreshed.
 			this.insight.runPixel("PublishProject(project='" + projectId + "', release=true);");
 
-			// 5 - Push project to central storage so other pods see the changes
+			// 6 - Push project to central storage so other pods see the changes
 			try {
 				ClusterUtil.pushProject(projectId);
 			} catch (Exception e) {
@@ -156,16 +188,16 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 
 		} catch (Exception e) {
 			classLogger.error("BuildAndPublishApp failed for project {}", projectId, e);
-			return error(e.getMessage());
+			return getError(e.getMessage());
 		} finally {
 			quietDelete(tempZip);
 			quietDelete(portalsZip);
 		}
 	}
 
-	private void postMultipart(String url, Path zipFile, Path destFile) throws IOException {
+	private void postMultipart(String url, Path zipFile, Path destFile) throws IOException, URISyntaxException {
 		String boundary = "----SemossBuild" + Long.toHexString(System.currentTimeMillis());
-		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		HttpURLConnection conn = (HttpURLConnection) new URI(url).toURL().openConnection();
 		conn.setRequestMethod("POST");
 		conn.setDoOutput(true);
 		conn.setConnectTimeout(15_000);
@@ -286,13 +318,39 @@ public class BuildAndPublishAppReactor extends AbstractReactor {
 		return rawUrl.trim().replaceAll("/$", "");
 	}
 
-	private NounMetadata error(String msg) {
-		return new NounMetadata(msg, PixelDataType.CONST_STRING, PixelOperationType.ERROR);
+	/**
+	 * Look for an absolute script or stylesheet url in the built index.html.
+	 *
+	 * A portal is served from a project-scoped path, so a reference such as
+	 * {@code src="/assets/index-abc123.js"} resolves against the server root and
+	 * always 404s, leaving a page that paints whatever index.html inlines and
+	 * nothing else. Vite emits absolute urls unless {@code base} is set to
+	 * {@code "./"}, and the build itself succeeds either way, which is what makes
+	 * this worth catching here rather than at runtime.
+	 *
+	 * @param portalsDir the extracted build output
+	 * @return the offending attribute value, or null when there is no index.html,
+	 *         it cannot be read, or all of its asset urls are relative
+	 */
+	private String findAbsoluteAssetUrl(Path portalsDir) {
+		Path indexHtml = portalsDir.resolve(INDEX_HTML).normalize();
+		if (!Files.isRegularFile(indexHtml)) {
+			return null;
+		}
+		try {
+			Matcher matcher = ABSOLUTE_ASSET_URL.matcher(Files.readString(indexHtml, StandardCharsets.UTF_8));
+			if (matcher.find()) {
+				return matcher.group(1);
+			}
+		} catch (IOException e) {
+			classLogger.warn("BuildAndPublishApp: could not read " + indexHtml + " to check asset urls", e);
+		}
+		return null;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project.";
+		return "Build the app from assets/client using the configured builder service, write output to assets/portals, and publish the project. Output that could not be served, such as absolute asset urls from a missing base setting, is reported instead of published.";
 	}
 
 	@Override

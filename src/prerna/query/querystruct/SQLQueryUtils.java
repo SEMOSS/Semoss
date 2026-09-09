@@ -46,7 +46,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.SqlInterpreter;
 import prerna.query.parsers.GenExpressionWrapper;
-import prerna.query.parsers.SqlParser2;
+import prerna.query.parsers.SqlParser;
 import prerna.query.querystruct.AbstractQueryStruct.QUERY_STRUCT_TYPE;
 import prerna.reactor.imports.NativeImporter;
 import prerna.sablecc2.om.Join;
@@ -70,7 +70,7 @@ public class SQLQueryUtils {
 		// or do it through relationsets
 		// with gen expression we can start to move to other pieces
 
-		SqlParser2 parser2 = new SqlParser2();
+		SqlParser parser2 = new SqlParser();
 		parser2.parameterize = false;
 		try {
 			IQueryInterpreter interp = curQS.retrieveQueryStructEngine().getQueryInterpreter();
@@ -124,7 +124,7 @@ public class SQLQueryUtils {
 
 		Map<String, String> aliasTranslationMap = new HashMap<String, String>();
 
-		SqlParser2 parser = new SqlParser2();
+		SqlParser parser = new SqlParser();
 		parser.parameterize = false;
 
 		GenExpression retExpression = new GenExpression();
@@ -434,7 +434,7 @@ public class SQLQueryUtils {
 			IRDBMSEngine engine = (IRDBMSEngine) subQueryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 
-			SqlParser2 parser = new SqlParser2();
+			SqlParser parser = new SqlParser();
 			parser.parameterize = false;
 
 			interp.setQueryStruct(subQueryStruct);
@@ -495,7 +495,7 @@ public class SQLQueryUtils {
 			IDatabaseEngine engine = queryStruct.retrieveQueryStructEngine();
 			IQueryInterpreter interp = engine.getQueryInterpreter();
 
-			SqlParser2 parser = new SqlParser2();
+			SqlParser parser = new SqlParser();
 			parser.parameterize = false;
 
 			interp.setQueryStruct(queryStruct);
@@ -535,7 +535,7 @@ public class SQLQueryUtils {
 		// or do it through relationsets
 		// with gen expression we can start to move to other pieces
 
-		SqlParser2 parser2 = new SqlParser2();
+		SqlParser parser2 = new SqlParser();
 		parser2.parameterize = false;
 
 		try {
@@ -595,7 +595,7 @@ public class SQLQueryUtils {
 
 		Map<String, String> aliasTranslationMap = new HashMap<String, String>();
 
-		SqlParser2 parser = new SqlParser2();
+		SqlParser parser = new SqlParser();
 		parser.parameterize = false;
 
 		// need to subquery this as well

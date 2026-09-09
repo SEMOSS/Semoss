@@ -582,6 +582,7 @@ public class Constants {
 	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
+	public static final String IS_TEMPLATE = "IS_TEMPLATE";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
 	// old values in web.xml
@@ -1032,6 +1033,12 @@ public class Constants {
 	public static final String USER_MODEL_MAX_TOKEN_KEY = "user_model_max_token";
 	public static final String USER_MODEL_MAX_RESPONSE_TIME_KEY = "user_model_max_response_time";
 	public static final String USER_MODEL_MAX_CREDIT_KEY = "user_model_max_credit";
+	// keys for group engine restrictions
+	public static final String GROUP_USAGE_RESTRICTION_KEY = "group_usage_restriction";
+	public static final String GROUP_USAGE_FREQUENCY_KEY = "group_usage_frequency";
+	public static final String GROUP_MAX_TOKEN_KEY = "group_max_token";
+	public static final String GROUP_MAX_RESPONSE_TIME_KEY = "group_max_response_time";
+	public static final String GROUP_MAX_CREDIT_KEY = "group_max_credit";
 	// model restriction types
 	public static final String MODEL_TOKEN_RESTRICTION_VALUE = "token";
 	public static final String MODEL_COMPUTE_TIME_RESTRICTION_VALUE = "compute";
@@ -1081,6 +1088,9 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// system (platform) app names
+	public static final String APP_REACT_TEMPLATE = "react-template";
 
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
