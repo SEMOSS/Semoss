@@ -216,6 +216,10 @@ public final class AutomationConstants {
 	// -- Node execution defaults / bounds --------------------------------------------
 
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
+	/** Smallest row limit accepted by a generated database query node. */
+	public static final int DB_QUERY_MIN_LIMIT = 1;
+	/** Largest row limit accepted by a generated database query node. */
+	public static final int DB_QUERY_MAX_LIMIT = 1_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;

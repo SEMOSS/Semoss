@@ -105,16 +105,28 @@ public final class AutomationSourceRenderer {
 
 	private static String databaseQuerySource(Map<String, Object> config) {
 		return """
-				# Query a SEMOSS database directly through the Python SDK.
-				from ai_server import DatabaseEngine
+				# Query through SEMOSS so SQL routing, configured engine guardrails, permissions,
+				# and row limits stay server-owned.
+				from semoss import Insight
+				import json
 
 				ENGINE_ID = %s
 				QUERY = %s
+				LIMIT = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
 
 				def run(scope):
-				    database = DatabaseEngine(engine_id=scope.resolve(ENGINE_ID))
-				    return database.execQuery(query=scope.resolve(QUERY), return_pandas=False)
-				""".formatted(value(config, "engineId"), value(config, "query"));
+				    query = "<encode>" + scope.resolve(QUERY) + "</encode>"
+				    pixel = "SqlQuery(" + ", ".join([
+				        _pixel_value("database", scope.resolve(ENGINE_ID)),
+				        _pixel_value("query", query),
+				        _pixel_value("limit", int(scope.resolve(LIMIT))),
+				    ]) + ");"
+				    return Insight().run_pixel(pixel, raw=False)
+				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
+						value(config, AutomationConstants.CONFIG_LIMIT));
 	}
 
 	private static String databaseWriteSource(Map<String, Object> config, String method) {

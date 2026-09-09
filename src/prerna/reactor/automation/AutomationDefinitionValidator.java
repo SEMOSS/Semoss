@@ -238,8 +238,11 @@ public final class AutomationDefinitionValidator {
 		}
 
 		switch (nodeType) {
-			case AutomationConstants.NODE_DATABASE_QUERY,
-					AutomationConstants.NODE_DATABASE_INSERT,
+			case AutomationConstants.NODE_DATABASE_QUERY -> {
+				requireConfigString(nodeId, config, "query");
+				validateDatabaseQueryLimit(nodeId, config);
+			}
+			case AutomationConstants.NODE_DATABASE_INSERT,
 					AutomationConstants.NODE_DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
 			case AutomationConstants.NODE_MODEL_CHAT -> {
 				requireConfigString(nodeId, config, "prompt");
@@ -284,6 +287,31 @@ public final class AutomationDefinitionValidator {
 			default -> {
 				// All supported node types are covered above or require only an engine ID.
 			}
+		}
+	}
+
+	/**
+	 * Require generated database reads to declare a finite integer row bound. The
+	 * limit is enforced again by the server-owned {@code SqlQuery} execution path.
+	 *
+	 * @param nodeId node whose configuration is being validated
+	 * @param config generated node configuration
+	 */
+	private static void validateDatabaseQueryLimit(String nodeId, Map<String, Object> config) {
+		Object value = config.get(AutomationConstants.CONFIG_LIMIT);
+		if (!(value instanceof Number number)) {
+			throw new IllegalArgumentException("Database query node '" + nodeId + "' config.limit must be a number from "
+					+ AutomationConstants.DB_QUERY_MIN_LIMIT + " through "
+					+ AutomationConstants.DB_QUERY_MAX_LIMIT + ".");
+		}
+
+		double limit = number.doubleValue();
+		if (!Double.isFinite(limit) || limit != Math.rint(limit)
+				|| limit < AutomationConstants.DB_QUERY_MIN_LIMIT
+				|| limit > AutomationConstants.DB_QUERY_MAX_LIMIT) {
+			throw new IllegalArgumentException("Database query node '" + nodeId
+					+ "' config.limit must be a whole number from " + AutomationConstants.DB_QUERY_MIN_LIMIT
+					+ " through " + AutomationConstants.DB_QUERY_MAX_LIMIT + ".");
 		}
 	}
 

@@ -270,8 +270,10 @@ public final class AutomationMcpSync {
 		properties.put("nodeType", nodeTypeProperty());
 		properties.put("config", stringProperty("JSON configuration. Before configuring any engine-backed node, call "
 				+ "MyEngines filtered to the required engine type and use the returned engine_id exactly. Never invent, "
-				+ "shorten, or normalize an engine name. database.query, database.insert, and "
-				+ "database.update require engineId and query. model.chat requires engineId and prompt; "
+				+ "shorten, or normalize an engine name. database.query requires engineId, query, and a numeric "
+				+ "limit from " + AutomationConstants.DB_QUERY_MIN_LIMIT + " through "
+				+ AutomationConstants.DB_QUERY_MAX_LIMIT + "; database.insert and database.update require engineId "
+				+ "and query. model.chat requires engineId and prompt; "
 				+ "optionally systemPrompt and paramValues as a JSON object or valid JSON-object string. "
 				+ "model.embeddings requires engineId and text. "
 				+ "model.ner requires engineId, text, and entities as a non-empty JSON array of strings. "
@@ -362,6 +364,8 @@ public final class AutomationMcpSync {
 		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
 				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
 				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
+				+ "database.query requires a numeric limit from " + AutomationConstants.DB_QUERY_MIN_LIMIT
+				+ " through " + AutomationConstants.DB_QUERY_MAX_LIMIT + ". "
 				+ "For function.execute, call GetFunctionEngineDefinition and use its exact parameter names as "
 				+ "config.arguments keys, including every required parameter. "
 				+ "Generated model nodes expose their response business value and agent.run exposes finalText; "

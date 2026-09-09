@@ -75,8 +75,10 @@ JSON-serializable value; Java persists it as the current node output. Generated 
 Each run reloads its persisted effective trigger-input snapshot before execution. Each node receives a read-only,
 run-local `scope` mapping containing trigger inputs, globals, runtime metadata, and prior
 outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
-generated-node configuration fields and are not rewritten inside custom source. Return a value so Java can store it
-under the node's `outputVar`.
+generated-node configuration fields and are not rewritten inside custom source. Generated nodes use the documented
+engine SDK unless an existing Pixel reactor owns required server policy. Generated database reads use `SqlQuery`,
+which retains SQL routing, authorization, configured engine-pipeline guardrails, and bounded row collection. Return a
+value so Java can store it under the node's `outputVar`.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine
