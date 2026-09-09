@@ -1,6 +1,5 @@
 {
-	"java.configuration.updateBuildConfiguration": "automatic",
-	"java.compile.nullAnalysis.mode": "automatic",
+  	"editor.defaultFormatter": "biomejs.biome",
 	"editor.formatOnSave": true,
 	"editor.codeActionsOnSave": {
 		"source.organizeImports.biome": "explicit",
@@ -14,5 +13,13 @@
 		"editor.formatOnSave": false,
 		"editor.codeActionsOnSave": {}
 	},
-	"editor.defaultFormatter": "biomejs.biome"
+	 "[javascript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+	},
+	"[typescript]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	},
+	"[json]": {
+		"editor.defaultFormatter": "biomejs.biome"
+	}
 }
