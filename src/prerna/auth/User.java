@@ -66,7 +66,6 @@ import prerna.reactor.mgmt.MgmtUtil;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.tcp.client.SocketClient;
 import prerna.util.Constants;
-import prerna.util.DIHelper;
 import prerna.util.Settings;
 import prerna.util.SymlinkHelper;
 import prerna.util.Utility;
@@ -306,16 +305,9 @@ public class User implements Serializable {
 			return null;
 		}
 
-		// In a cluster the user asset folder is pulled from cloud storage once, when the
-		// project is first loaded on this pod (Utility.getUserAssetProject pulls under the
-		// project lock). This method used to also run an rclone sync on every call. That
-		// raced with the git add/commit/push done by the user asset reactors: a sync that
-		// lands between a commit and its push deletes the fresh loose objects and leaves
-		// HEAD pointing at a missing commit ("Missing unknown <sha>"). Cross-pod staleness
-		// is handled by the cluster synchronizer's PULL_USER_ASSET broadcast after every
-		// push, so a per-call pull is not needed for correctness.
-		if (ClusterUtil.IS_CLUSTER && DIHelper.getInstance().getProjectProperty(projectId) == null) {
-			Utility.getUserAssetProject(projectId);
+		// TODO actually sync the pull, not sure pull it
+		if (ClusterUtil.IS_CLUSTER) {
+			ClusterUtil.pullUserAsset(projectId, false);
 		}
 
 		return projectId;

@@ -315,11 +315,6 @@ public enum ReactorKeysEnum {
 	TABLE_HEADER("theader", 									"Header specific to this table if any / title"),
 	TABLE_FOOTER("tfooter", 									"Footer specific to this table if any "),
 	TAGS("tags",												"Metadata tags for an app or insight"),		
-	TARGET_PATH("targetPath", 									"Relative file path of the destination within the target space"),
-	TARGET_SPACE("targetSpace", 								"""
-			Space that the targetPath is relative to. Accepts the same values as space: \
-			"user" for the logged in user's space, a project id, a room id, or "insight" (the default) for the current insight. \
-			"""),
 	TASK("task", 												"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 											"Unique id of the task within the insight"),
 	TRAVERSAL("traversal", 										"The traversal path within the map"),

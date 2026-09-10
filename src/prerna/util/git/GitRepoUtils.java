@@ -35,7 +35,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -60,7 +59,6 @@ import org.eclipse.jgit.api.ResetCommand.ResetType;
 import org.eclipse.jgit.api.RmCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.errors.CorruptObjectException;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
@@ -879,9 +877,7 @@ public class GitRepoUtils {
 		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
 		try {
 			ac.call();
-		} catch (GitAPIException | JGitInternalException e) {
-			// JGitInternalException is JGit's RuntimeException wrapper around index and
-			// object database IOExceptions. Staging is bookkeeping - never fail the caller.
+		} catch (GitAPIException e) {
 			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
 		}
 		thisGit.close();
@@ -924,9 +920,7 @@ public class GitRepoUtils {
 		classLogger.debug("Git add file patterns {} in repo {}", normalizedPatterns, localRepository);
 		try {
 			ac.call();
-		} catch (GitAPIException | JGitInternalException e) {
-			// JGitInternalException is JGit's RuntimeException wrapper around index and
-			// object database IOExceptions. Staging is bookkeeping - never fail the caller.
+		} catch (GitAPIException e) {
 			classLogger.error("Failed to stage files {} in repo {}", normalizedPatterns, localRepository, e);
 		}
 		thisGit.close();
@@ -992,178 +986,39 @@ public class GitRepoUtils {
 	 * @throws IllegalArgumentException if the repository cannot be opened
 	 */
 	public static void commitAddedFiles(String gitFolder, String message, String author, String email) {
-		if (message == null || message.isEmpty()) {
-			message = GitUtils.getDateMessage("Commited on.. ");
-		}
-		if (author == null || author.isEmpty()) {
-			author = "SEMOSS";
-		}
-		if (email == null || email.isEmpty()) {
-			email = "semoss@semoss.org";
-		}
-
 		try (Git thisGit = Git.open(new File(gitFolder))) {
-			// Check if there are actually staged changes before committing
-			Status status = thisGit.status().call();
-			boolean hasStagedChanges = !status.getAdded().isEmpty() || !status.getChanged().isEmpty()
-					|| !status.getRemoved().isEmpty();
+			try {
+				// Check if there are actually staged changes before committing
+				Status status = thisGit.status().call();
+				boolean hasStagedChanges = !status.getAdded().isEmpty() || !status.getChanged().isEmpty()
+						|| !status.getRemoved().isEmpty();
 
-			if (!hasStagedChanges) {
-				classLogger.warn("Skipping commit in {} - no staged changes to commit", gitFolder);
-				return;
-			}
+				if (!hasStagedChanges) {
+					classLogger.warn("Skipping commit in {} - no staged changes to commit", gitFolder);
+					return;
+				}
 
-			CommitCommand cc = thisGit.commit();
-			cc.setMessage(message).setAuthor(author, email).call();
-			classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
-		} catch (GitAPIException e) {
-			classLogger.error("Failed to commit in {}", gitFolder, e);
-		} catch (JGitInternalException e) {
-			// JGit wraps object database IOExceptions (MissingObjectException,
-			// CorruptObjectException) in this RuntimeException. It used to escape this
-			// method and fail the caller's pixel even though the file was already written
-			// to disk. Git history on asset folders is bookkeeping: recover the repository
-			// when it is corrupt, otherwise log and move on.
-			if (isCorruptRepositoryError(e)) {
-				classLogger.error("Git repository at {} is corrupt ({}). Reinitializing it and committing the working tree",
-						gitFolder, e.getMessage());
-				reinitializeRepository(gitFolder,
-						message + " (git history reinitialized after repository corruption: " + e.getMessage() + ")",
-						author, email);
-			} else {
+				if (message == null || message.isEmpty()) {
+					message = GitUtils.getDateMessage("Commited on.. ");
+				}
+				if (author == null || author.isEmpty()) {
+					author = "SEMOSS";
+				}
+				if (email == null || email.isEmpty()) {
+					email = "semoss@semoss.org";
+				}
+
+				CommitCommand cc = thisGit.commit();
+				cc.setMessage(message).setAuthor(author, email).call();
+				classLogger.debug("Committed to {} with message '{}'", gitFolder, message);
+			} catch (GitAPIException e) {
 				classLogger.error("Failed to commit in {}", gitFolder, e);
 			}
 		} catch (IOException e) {
 			classLogger.error("Unable to connect to Git directory at {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
 		}
-	}
 
-	/**
-	 * Stages the given repository-relative paths as-is. Unlike
-	 * {@link #addSpecificFiles(String, List)} this performs no "version/" prefix
-	 * stripping, so a path such as {@code assets/reports/conversion.pptx} is staged
-	 * exactly as given. Failures are logged rather than thrown, except when the
-	 * repository cannot be opened at all.
-	 *
-	 * @param gitFolder         path to the local git working directory
-	 * @param repoRelativePaths paths relative to {@code gitFolder}
-	 * @throws IllegalArgumentException if the repository cannot be opened
-	 */
-	public static void addFilesRelativeToRepo(String gitFolder, List<String> repoRelativePaths) {
-		if (repoRelativePaths == null || repoRelativePaths.isEmpty()) {
-			return;
-		}
-		List<String> patterns = new ArrayList<>();
-		for (String path : repoRelativePaths) {
-			patterns.add(normalizeGitFilePattern(path));
-		}
-		try (Git thisGit = Git.open(new File(Utility.normalizePath(gitFolder)))) {
-			AddCommand ac = thisGit.add();
-			for (String pattern : patterns) {
-				ac.addFilepattern(pattern);
-			}
-			ac.call();
-			classLogger.debug("Git add file patterns {} in repo {}", patterns, gitFolder);
-		} catch (IOException e) {
-			classLogger.error("Unable to connect to Git directory at {}", gitFolder, e);
-			throw new IllegalArgumentException("Unable to connect to Git directory at " + gitFolder);
-		} catch (GitAPIException | JGitInternalException e) {
-			classLogger.error("Failed to stage files {} in repo {}", patterns, gitFolder, e);
-		}
-	}
-
-	/**
-	 * Whether the exception (or anything in its cause chain) indicates the git
-	 * object database is missing or corrupt, i.e. a ref or the index points at an
-	 * object that no longer exists. In a cluster this happens when an rclone sync of
-	 * the folder lands between a commit and its push and deletes the fresh objects.
-	 *
-	 * @param error the exception to inspect
-	 * @return {@code true} if the repository metadata is unusable
-	 */
-	public static boolean isCorruptRepositoryError(Throwable error) {
-		Throwable current = error;
-		int depth = 0;
-		while (current != null && depth++ < 16) {
-			if (current instanceof MissingObjectException || current instanceof CorruptObjectException) {
-				return true;
-			}
-			current = current.getCause();
-		}
-		return false;
-	}
-
-	/**
-	 * Discards the {@code .git} metadata of a corrupt repository and recreates it
-	 * from the current working tree: init, stage everything, and commit once with
-	 * the given message. The previous HEAD reference is logged for forensics. Files
-	 * on disk are never touched. Failures are logged rather than thrown.
-	 *
-	 * @param gitFolder path to the local git working directory
-	 * @param message   commit message for the reinitialized history
-	 * @param author    commit author name
-	 * @param email     commit author email
-	 * @return {@code true} if the repository was recreated (with or without a
-	 *         commit), {@code false} if the metadata could not be replaced
-	 */
-	public static boolean reinitializeRepository(String gitFolder, String message, String author, String email) {
-		File repoDir = new File(Utility.normalizePath(gitFolder));
-		File gitDir = new File(repoDir, ".git");
-
-		String previousHead = null;
-		try {
-			File headFile = new File(gitDir, "HEAD");
-			if (headFile.isFile()) {
-				previousHead = FileUtils.readFileToString(headFile, StandardCharsets.UTF_8).trim();
-				if (previousHead.startsWith("ref: ")) {
-					File refFile = new File(gitDir, previousHead.substring("ref: ".length()));
-					if (refFile.isFile()) {
-						previousHead += " -> " + FileUtils.readFileToString(refFile, StandardCharsets.UTF_8).trim();
-					}
-				}
-			}
-		} catch (IOException e) {
-			classLogger.debug("Unable to read previous HEAD of {}", gitDir, e);
-		}
-		classLogger.warn("Discarding corrupt git metadata at {} (previous HEAD: {})", gitDir, previousHead);
-
-		try {
-			if (gitDir.exists()) {
-				FileUtils.deleteDirectory(gitDir);
-			}
-		} catch (IOException e) {
-			classLogger.error("Unable to remove corrupt git metadata at {}", gitDir, e);
-			return false;
-		}
-
-		if (message == null || message.isEmpty()) {
-			message = "Reinitialized git history after repository corruption";
-		}
-		if (author == null || author.isEmpty()) {
-			author = "SEMOSS";
-		}
-		if (email == null || email.isEmpty()) {
-			email = "semoss@semoss.org";
-		}
-
-		try (Git thisGit = Git.init().setDirectory(repoDir).call()) {
-			if (!new File(repoDir, ".gitignore").exists()) {
-				addGitIgnore(gitFolder);
-			}
-			thisGit.add().addFilepattern(".").call();
-			Status status = thisGit.status().call();
-			if (status.getAdded().isEmpty() && status.getChanged().isEmpty()) {
-				classLogger.info("Reinitialized empty git repository at {}", gitFolder);
-				return true;
-			}
-			thisGit.commit().setMessage(message).setAuthor(author, email).call();
-			classLogger.info("Reinitialized git repository at {} and committed the working tree", gitFolder);
-			return true;
-		} catch (GitAPIException | JGitInternalException e) {
-			classLogger.error("Failed to reinitialize git repository at {}", gitFolder, e);
-			return false;
-		}
 	}
 
 	/**
@@ -1302,20 +1157,6 @@ public class GitRepoUtils {
 			thisGit.commit().setMessage(message).setAuthor(author, email).call();
 			classLogger.debug("Committed all changes to {} with message '{}'", gitFolder, message);
 		} catch (IOException | GitAPIException e) {
-			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
-			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
-		} catch (JGitInternalException e) {
-			// see commitAddedFiles - recover a corrupt object database instead of failing
-			if (isCorruptRepositoryError(e)) {
-				classLogger.error("Git repository at {} is corrupt ({}). Reinitializing it and committing the working tree",
-						gitFolder, e.getMessage());
-				if (reinitializeRepository(gitFolder,
-						(message == null ? "" : message + " ") + "(git history reinitialized after repository corruption: "
-								+ e.getMessage() + ")",
-						author, email)) {
-					return;
-				}
-			}
 			classLogger.error("Failed to add+commit all changes in {}", gitFolder, e);
 			throw new IllegalArgumentException("Unable to add+commit all changes in Git directory at " + gitFolder);
 		}
