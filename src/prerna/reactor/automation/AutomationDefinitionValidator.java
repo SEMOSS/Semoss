@@ -35,6 +35,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -481,6 +482,11 @@ public final class AutomationDefinitionValidator {
 		if (query.contains("${")) {
 			throw new IllegalArgumentException("Generated database node '" + nodeId
 					+ "' cannot use unresolved placeholders until bound SQL parameters are supported.");
+		}
+		if (AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType)
+				&& query.toLowerCase(Locale.ROOT).contains("</encode>")) {
+			throw new IllegalArgumentException("Generated database node '" + nodeId
+					+ "' query cannot contain the reserved </encode> token.");
 		}
 
 		List<Statement> statements;

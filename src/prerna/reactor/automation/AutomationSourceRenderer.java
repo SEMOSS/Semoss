@@ -108,7 +108,6 @@ public final class AutomationSourceRenderer {
 				# Query through SEMOSS so SQL routing, configured engine guardrails, permissions,
 				# and row limits stay server-owned.
 				from semoss import Insight
-				import base64
 				import json
 
 				ENGINE_ID = %s
@@ -118,19 +117,39 @@ public final class AutomationSourceRenderer {
 				def _pixel_value(name, value):
 				    return name + "=[" + json.dumps(value) + "]"
 
+				def _query_rows(value):
+				    if not isinstance(value, str):
+				        output = value
+				    else:
+				        try:
+				            output = json.loads(value)
+				        except json.JSONDecodeError:
+				            return value
+				    if not isinstance(output, dict) or not isinstance(output.get("data"), dict):
+				        return output
+				    headers = output["data"].get("headers")
+				    values = output["data"].get("values")
+				    if not isinstance(headers, list) or not isinstance(values, list):
+				        return output
+				    rows = []
+				    for row in values:
+				        if not isinstance(row, list) or len(row) != len(headers):
+				            raise ValueError("SEMOSS SQL query returned an invalid row shape.")
+				        rows.append(dict(zip(headers, row)))
+				    return rows
+
 				def run(scope):
 				    query = scope.resolve(QUERY)
-				    encoded_query = base64.b64encode(query.encode("utf-8")).decode("ascii")
-				    pixel = "SqlQueryBase64(" + ", ".join([
+				    pixel = "SqlQuery(" + ", ".join([
 				        _pixel_value("database", scope.resolve(ENGINE_ID)),
-				        _pixel_value("query", encoded_query),
+				        'query=["<encode>' + query + '</encode>"]',
 				        _pixel_value("limit", int(scope.resolve(LIMIT))),
 				    ]) + ");"
 				    response = Insight().run_pixel(pixel, raw=True)
 				    result = response[0]["pixelReturn"][-1]
 				    if "ERROR" in result.get("operationType", []):
 				        raise RuntimeError(result.get("output") or "SQL query failed")
-				    return result.get("output")
+				    return _query_rows(result.get("output"))
 				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
 						value(config, AutomationConstants.CONFIG_LIMIT));
 	}
