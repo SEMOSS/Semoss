@@ -150,6 +150,15 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 */
 	protected Set<ModelModalityEnum> inputModalities = null;
 
+	/**
+	 * Whether the model accepts document attachments per the MODELMETADATA row
+	 * (the static catalog's attachment flag). The catalog has no "file" input
+	 * modality - its vocabulary stops at text/image/audio/video/pdf - so this flag
+	 * is what lets generic FILE media (pptx, docx, xlsx, ...) through the input
+	 * modality gate. Null when the table does not say.
+	 */
+	protected Boolean attachmentSupported = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -223,6 +232,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		}
 		if (metadata.get("temperature") instanceof Boolean) {
 			this.temperatureSupported = (Boolean) metadata.get("temperature");
+		}
+		if (metadata.get("attachment") instanceof Boolean) {
+			this.attachmentSupported = (Boolean) metadata.get("attachment");
 		}
 		if (metadata.get("reasoningConfig") instanceof Map) {
 			@SuppressWarnings("unchecked")
@@ -781,14 +793,34 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * Throw when the given modality is not in the configured input modalities.
 	 * No-op when the engine does not restrict input.
+	 * <p>
+	 * FILE is special-cased: the static catalog never declares a "file" modality,
+	 * so a generic document (pptx, docx, xlsx, json, ...) is also allowed when the
+	 * model accepts attachments or already accepts PDF documents. The provider
+	 * remains the authority on which specific file types it can parse.
 	 */
 	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
 		if (this.inputModalities == null || this.inputModalities.contains(modality)) {
 			return;
 		}
+		if (modality == ModelModalityEnum.FILE && allowsGenericFileInput()) {
+			return;
+		}
 		String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
 		throw new IllegalArgumentException("Model " + model + " does not allow " + modality.name()
 				+ " input. Configured input modalities: " + this.inputModalities);
+	}
+
+	/**
+	 * Whether generic FILE media may be sent even though FILE is not listed in the
+	 * configured input modalities: true when the metadata row flags attachment
+	 * support or when PDF documents are already accepted.
+	 */
+	private boolean allowsGenericFileInput() {
+		if (Boolean.TRUE.equals(this.attachmentSupported)) {
+			return true;
+		}
+		return this.inputModalities != null && this.inputModalities.contains(ModelModalityEnum.PDF);
 	}
 
 	private static ModelModalityEnum modalityFor(MessagePart part) {
