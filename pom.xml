@@ -1212,8 +1212,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<!-- Snyk remediation: fix H2 RCE, XXE, and information exposure findings. -->
-			<version>2.4.240</version>
+			<version>1.4.200</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
