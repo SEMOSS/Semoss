@@ -49,8 +49,10 @@ import prerna.util.Utility;
  * <p>Unlike python (user-facing, gated by {@code USE_PYTHON}), the node worker
  * is reachable only through the agent harness platform tools. It is OFF by
  * default and requires both {@code AGENT_DEFAULT_TOOLS_ENABLE_NODE=true} and a
- * resolvable {@code NODE_HOME} in RDF_Map.prop. There is deliberately no Pixel
- * reactor and no REST endpoint for it.
+ * resolvable {@code NODE_HOME}. Both resolve the env var first, then the
+ * RDF_Map.prop entry, so containers can opt in via the environment without
+ * editing the seeded RDF_Map line. There is deliberately no Pixel reactor and
+ * no REST endpoint for it.
  */
 public class NodeUtils {
 
@@ -67,8 +69,10 @@ public class NodeUtils {
 
 	/**
 	 * Whether the agent node code-execution tool should be exposed. Requires the
-	 * explicit opt-in property, respects the blanket {@code DISABLE_TERMINAL}
-	 * kill switch, and verifies the node executable actually resolves.
+	 * explicit opt-in (the {@code AGENT_DEFAULT_TOOLS_ENABLE_NODE} env var wins
+	 * over the RDF_Map entry, mirroring {@code NODE_HOME} resolution), respects
+	 * the blanket {@code DISABLE_TERMINAL} kill switch, and verifies the node
+	 * executable actually resolves.
 	 *
 	 * @return true when the ExecuteNodeCode agent tool should be registered
 	 */
@@ -77,7 +81,10 @@ public class NodeUtils {
 		if (disableTerminal != null && Boolean.parseBoolean(disableTerminal.trim())) {
 			return false;
 		}
-		String enabled = Utility.getDIHelperProperty(AGENT_DEFAULT_TOOLS_ENABLE_NODE);
+		String enabled = System.getenv(AGENT_DEFAULT_TOOLS_ENABLE_NODE);
+		if (enabled == null || enabled.trim().isEmpty()) {
+			enabled = Utility.getDIHelperProperty(AGENT_DEFAULT_TOOLS_ENABLE_NODE);
+		}
 		if (enabled == null || !Boolean.parseBoolean(enabled.trim())) {
 			return false;
 		}
