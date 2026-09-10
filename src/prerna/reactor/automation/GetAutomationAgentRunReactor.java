@@ -30,7 +30,7 @@ package prerna.reactor.automation;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -62,7 +62,7 @@ public class GetAutomationAgentRunReactor extends AbstractReactor {
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY),
 				this.keyValue.get(NODE_ID_KEY), this.keyValue.get(AGENT_RUN_ID_KEY));
 		boolean includeMessages = Boolean.parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY));
-		Map<String, Object> run = AgentRuntimeManager.get().getRunForAutomation(
+		Map<String, Object> run = AgentRunService.get().getRunForAutomation(
 				this.keyValue.get(AGENT_RUN_ID_KEY), this.insight, includeMessages);
 		run.put("canControl", access.canControl());
 		run.put("projectId", access.projectId());

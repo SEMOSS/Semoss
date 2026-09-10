@@ -1335,25 +1335,22 @@ public final class AutomationDatabaseUtility {
 			return false;
 		}
 
-		PreparedStatement ps = null;
-		java.sql.ResultSet rs = null;
 		try {
-			String query = "SELECT 1 FROM " + TABLE_AUTOMATION_NODE_OUTPUTS + " nodeOutput "
-					+ "INNER JOIN " + TABLE_AUTOMATION_RUNS + " automationRun "
-					+ "ON nodeOutput.RUN_ID = automationRun.RUN_ID "
-					+ "WHERE automationRun.PROJECT_ID = ? AND nodeOutput.RUN_ID = ? "
-					+ "AND nodeOutput.NODE_ID = ? AND nodeOutput.AGENT_RUN_ID = ?";
-			ps = schedulerDb.getPreparedStatement(query);
-			ps.setString(1, projectId);
-			ps.setString(2, automationRunId);
-			ps.setString(3, nodeId);
-			ps.setString(4, agentRunId);
-			rs = ps.executeQuery();
-			return rs.next();
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + RUN_ID, RUN_ID));
+			qs.addRelation(TABLE_NODE_OUTPUTS + "__" + RUN_ID, TABLE_RUNS + "__" + RUN_ID, "inner.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+					TABLE_RUNS + "__" + PROJECT_ID, "==", projectId, PixelDataType.CONST_STRING));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+					TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", automationRunId, PixelDataType.CONST_STRING));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+					TABLE_NODE_OUTPUTS + "__" + NODE_ID, "==", nodeId, PixelDataType.CONST_STRING));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(
+					TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, "==", agentRunId, PixelDataType.CONST_STRING));
+			qs.setLimit(1L);
+			return !QueryExecutionUtility.flushRsToMap(schedulerDb, qs).isEmpty();
 		} catch (Exception e) {
 			throw new IllegalStateException("Unable to verify the Automation agent-run trace.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(schedulerDb, null, ps, rs);
 		}
 	}
 

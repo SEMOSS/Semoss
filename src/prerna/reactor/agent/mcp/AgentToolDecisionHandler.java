@@ -52,9 +52,9 @@ import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.AgentRunRecord;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
-import prerna.reactor.agent.run.AgentRuntimeManager;
 import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
@@ -101,9 +101,15 @@ public final class AgentToolDecisionHandler {
 	}
 
 	/**
-	 * Applies a decision through Automation's already-authorized trace route.
-	 * The action remains persisted under the durable run owner, while MCP/model
-	 * execution receives the approving editor's current insight.
+	 * Applies a decision through Automation's trace-authorized edit route.
+	 *
+	 * @param actionId agent action identifier
+	 * @param expectedRunId agent run identifier already verified by Automation
+	 * @param decision requested approval decision
+	 * @param passthroughResult result supplied for reject or respond decisions
+	 * @param toolStatus optional tool status
+	 * @param callerParams optional edited tool parameters
+	 * @return tool result written to the room
 	 */
 	public String handleAutomationDecision(String actionId, String expectedRunId, String decision,
 			String passthroughResult, String toolStatus, Map<String, Object> callerParams) {
@@ -160,7 +166,8 @@ public final class AgentToolDecisionHandler {
 					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
-		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
+		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction),
+				this.insight);
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		if (roomId != null && !roomId.isBlank()) {
@@ -173,11 +180,10 @@ public final class AgentToolDecisionHandler {
 			toolName = executionRoom.resolveOriginalToolName(toolName);
 		}
 
-		AgentRunActionStore actionStore = new AgentRunActionStore();
-		if (!actionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
+		if (!AgentRunActionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
 			Map<String, Object> latestAction = automationAuthorized
-					? actionStore.getActionByIdForAutomation(actionId)
-					: actionStore.getActionById(actionId, actionOwnerUserId);
+					? AgentRunActionStore.getActionByIdForAutomation(actionId)
+					: AgentRunActionStore.getActionById(actionId, actionOwnerUserId);
 			if (isDecidedAction(latestAction)) {
 				// a concurrent handler already decided it; replay the stored result
 				return replayDecidedAction(latestAction, runId, roomId, toolCallId, parentMessageId, toolStatus,
@@ -195,7 +201,7 @@ public final class AgentToolDecisionHandler {
 		} catch (RuntimeException e) {
 			// release the claim so a retry is not wedged on EXECUTING; the tool already
 			// ran, so the retry replays via the decided/claim-race path if it was marked
-			actionStore.releaseExecutionClaim(actionId, runId, actionOwnerUserId);
+			AgentRunActionStore.releaseExecutionClaim(actionId, runId, actionOwnerUserId);
 			throw e;
 		}
 		publishDecisionToolItem(runId, toolCallId, toolName, resolveDisplayTitle(pendingAction), paramMap,
@@ -205,9 +211,9 @@ public final class AgentToolDecisionHandler {
 	}
 
 	/**
-	 * Resolve a human-readable title for a pending action's tool. The row only
-	 * ever stores the raw, engine-id-prefixed {@code toolName}; the display
-	 * name lives in {@code toolMeta.SMSS_ORIGINAL_TOOL_NAME}, persisted by
+	 * Resolve a human-readable title for a pending action's tool. The row only ever
+	 * stores the raw, engine-id-prefixed {@code toolName}; the display name lives
+	 * in {@code toolMeta.SMSS_ORIGINAL_TOOL_NAME}, persisted by
 	 * SemossAgentHarness#persistPendingActions from the already-resolved
 	 * ResponseMessage tool-call map.
 	 */
@@ -297,11 +303,10 @@ public final class AgentToolDecisionHandler {
 		// Resolve the model engine from the room or the agent run record.
 		String modelId = room.getModelId();
 		if (modelId == null || modelId.trim().isEmpty()) {
-			AgentRunStore runStore = new AgentRunStore();
-			AgentRunRecord record = automationAuthorized ? runStore.getRunForAutomation(runId, this.insight)
-					: runStore.getRun(runId, this.insight);
-			if (record != null && record.getRequest() != null) {
-				modelId = record.getRequest().getEngineIdFallback();
+			AgentRunRecord record = automationAuthorized ? AgentRunStore.getRunForAutomation(runId, this.insight)
+					: AgentRunStore.getRun(runId, this.insight);
+			if (record != null && record.request() != null) {
+				modelId = record.request().getEngineIdFallback();
 			}
 		}
 		IModelEngine modelEngine = null;
@@ -318,10 +323,9 @@ public final class AgentToolDecisionHandler {
 		boolean argsChanged = storedArgs == null ? (toolParams != null && !toolParams.isEmpty())
 				: !storedArgs.equals(toolParams);
 		Object editedArgs = (DECISION_EDIT.equalsIgnoreCase(decision) || argsChanged) ? toolParams : null;
-		AgentRunActionStore actionStore = new AgentRunActionStore();
 		if (markActionDecided) {
-			boolean marked = actionStore.markDecided(actionId, runId, userId, editedArgs, toolResult, actionStatus,
-					toolStatus);
+			boolean marked = AgentRunActionStore.markDecided(actionId, runId, userId, editedArgs, toolResult,
+					actionStatus, toolStatus);
 			if (!marked) {
 				throw new IllegalStateException("Pending action was not updated for actionId=" + actionId);
 			}
@@ -345,13 +349,12 @@ public final class AgentToolDecisionHandler {
 		// actions in the batch are decided. For N>1 tool calls, the run must
 		// not re-queue until every tool has a result; the resumed harness performs
 		// the model continuation once the batch is complete.
-		if (actionStore.allActionsDecided(runId)) {
-			AgentRunStore runStore = new AgentRunStore();
-			boolean resumed = runStore.markResumed(runId, runId);
+		if (AgentRunActionStore.allActionsDecided(runId)) {
+			boolean resumed = AgentRunStore.markResumed(runId, runId);
 			if (!resumed) {
-				AgentRunRecord record = automationAuthorized ? runStore.getRunForAutomation(runId, this.insight)
-						: runStore.getRun(runId, this.insight);
-				AgentRunStatus status = record != null ? record.getStatus() : null;
+				AgentRunRecord record = automationAuthorized ? AgentRunStore.getRunForAutomation(runId, this.insight)
+						: AgentRunStore.getRun(runId, this.insight);
+				AgentRunStatus status = record != null ? record.status() : null;
 				if (status == AgentRunStatus.INPUT_REQUIRED) {
 					throw new IllegalStateException(
 							"Agent run was not resumed because it is still INPUT_REQUIRED: " + runId);
@@ -360,9 +363,9 @@ public final class AgentToolDecisionHandler {
 				return;
 			}
 			if (automationAuthorized) {
-				AgentRuntimeManager.get().signalWorkerForAutomationResume(runId, this.insight, room);
+				AgentRunService.get().signalWorkerForAutomationResume(runId, this.insight, room);
 			} else {
-				AgentRuntimeManager.get().signalWorkerForResume(runId, this.insight);
+				AgentRunService.get().signalWorkerForResume(runId, this.insight);
 			}
 			logger.info("AgentToolDecisionHandler: resumed agent runId={} roomId={} toolCallId={}", runId, roomId,
 					toolCallId);
@@ -389,9 +392,9 @@ public final class AgentToolDecisionHandler {
 		if (userId == null || userId.trim().isEmpty() || "-1".equals(userId)) {
 			throw new SecurityException("Agent HITL resume requires an authenticated user");
 		}
-		AgentRunActionStore actionStore = new AgentRunActionStore();
-		Map<String, Object> action = automationAuthorized ? actionStore.getActionByIdForAutomation(actionId.trim())
-				: actionStore.getActionById(actionId.trim(), userId.trim());
+		Map<String, Object> action = automationAuthorized
+				? AgentRunActionStore.getActionByIdForAutomation(actionId.trim())
+				: AgentRunActionStore.getActionById(actionId.trim(), userId.trim());
 		if (action == null) {
 			throw new SecurityException("No agent action found for actionId=" + actionId);
 		}

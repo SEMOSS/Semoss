@@ -30,7 +30,7 @@ package prerna.reactor.automation;
 import java.util.Map;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -55,7 +55,7 @@ public class StopAutomationAgentRunReactor extends AbstractReactor {
 		AutomationAgentRunAccess.authorizeEdit(this.insight, this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()),
 				this.keyValue.get(AUTOMATION_RUN_ID_KEY), this.keyValue.get(NODE_ID_KEY),
 				this.keyValue.get(AGENT_RUN_ID_KEY));
-		Map<String, Object> run = AgentRuntimeManager.get().stopForAutomation(this.keyValue.get(AGENT_RUN_ID_KEY),
+		Map<String, Object> run = AgentRunService.get().stopForAutomation(this.keyValue.get(AGENT_RUN_ID_KEY),
 				this.insight);
 		run.put("canControl", true);
 		return new NounMetadata(run, PixelDataType.MAP, PixelOperationType.OPERATION);

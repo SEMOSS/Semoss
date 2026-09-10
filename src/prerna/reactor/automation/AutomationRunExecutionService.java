@@ -53,7 +53,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.project.api.IProject;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.util.EngineUtility;
@@ -447,10 +447,10 @@ final class AutomationRunExecutionService {
 				if (AutomationPythonRunRegistry.isCancellationRequested(automationRunId)
 						&& !cancellationSignalled) {
 					cancellationSignalled = true;
-					AgentRuntimeManager.get().cancelRun(agentRunId, traceRoomId, "Automation run cancelled");
+					AgentRunService.get().cancelRun(agentRunId, "Automation run cancelled");
 				}
 
-				Map<String, Object> durableRun = AgentRuntimeManager.get().getRun(agentRunId, executionInsight);
+				Map<String, Object> durableRun = AgentRunService.get().getRun(agentRunId, executionInsight);
 				Map<String, Object> currentRun = normalizeAgentResult(node, durableRun, traceRoomId);
 				String status = stringValue(currentRun.get("status"));
 				if (status == null) {
@@ -471,7 +471,7 @@ final class AutomationRunExecutionService {
 				if (waitTimeout.isExpired()) {
 					if (!cancellationSignalled) {
 						cancellationSignalled = true;
-						AgentRuntimeManager.get().cancelRun(agentRunId, traceRoomId,
+						AgentRunService.get().cancelRun(agentRunId,
 								"Automation agent wait timeout");
 					}
 					currentRun.put("status", "FAILED");
@@ -525,7 +525,7 @@ final class AutomationRunExecutionService {
 	private static void cancelAgentRunAfterMonitoringFailure(String agentRunId, String traceRoomId,
 			String reason, Throwable monitoringFailure) {
 		try {
-			AgentRuntimeManager.get().cancelRun(agentRunId, traceRoomId, reason);
+			AgentRunService.get().cancelRun(agentRunId, reason);
 		} catch (RuntimeException cancellationFailure) {
 			monitoringFailure.addSuppressed(cancellationFailure);
 		}
@@ -757,7 +757,7 @@ final class AutomationRunExecutionService {
 		}
 		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
 		String agentRunId = stringValue(wait.get(AutomationConstants.AGENT_RUN_ID));
-		Map<String, Object> agent = AgentRuntimeManager.get().getRunForAutomation(
+		Map<String, Object> agent = AgentRunService.get().getRunForAutomation(
 				agentRunId, requestInsight, false);
 		if (!String.valueOf(wait.get(AutomationConstants.ROOM_ID)).equals(stringValue(agent.get("roomId")))) {
 			throw new IllegalStateException("Agent run room does not match the Automation wait reference.");

@@ -34,7 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -125,7 +125,7 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		String nodeId = String.valueOf(wait.get(AutomationConstants.NODE_ID));
 		String agentRunId = String.valueOf(wait.get(AutomationConstants.AGENT_RUN_ID));
 		AutomationAgentRunAccess.authorizeEdit(this.insight, projectId, runId, nodeId, agentRunId);
-		AgentRuntimeManager.get().stopForAutomation(agentRunId, this.insight);
+		AgentRunService.get().stopForAutomation(agentRunId, this.insight);
 		Map<String, Object> run = new AutomationRunExecutionService(this.insight, null)
 				.resumeWaitingRun(runId, projectId);
 
