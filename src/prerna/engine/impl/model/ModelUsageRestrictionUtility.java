@@ -115,6 +115,9 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,
+							engineLvlModelUsageFrequency);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_UNIT, "tokens");
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(engineLvlModelUsageRestriction)) {
@@ -133,6 +136,9 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							engineLvlModelUsageMaxResponseTime.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,
+							engineLvlModelUsageFrequency);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_UNIT, "seconds");
 
 				} else {
 					classLogger.warn("Unknown engine level model restriction type = '" + engineLvlModelUsageRestriction
@@ -161,6 +167,9 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxTokens.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,
+							userLvlModelUsageFrequency);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_UNIT, "tokens");
 
 				} else if (Constants.MODEL_COMPUTE_TIME_RESTRICTION_VALUE
 						.equalsIgnoreCase(userLvlModelUsageRestriction)) {
@@ -179,6 +188,9 @@ public final class ModelUsageRestrictionUtility {
 							currentUsage.intValue());
 					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_MAX_VALUE,
 							userLvlModelUsageMaxResponseTime.intValue());
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_FREQUENCY,
+							userLvlModelUsageFrequency);
+					userRestrictionMap.put(AbstractModelEngineResponse.USAGE_RESTRICTION_UNIT, "seconds");
 
 				} else {
 					classLogger.warn("Unknown user level model restriction type = '" + userLvlModelUsageRestriction

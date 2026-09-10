@@ -41,6 +41,7 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,7 +53,7 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 	public GetUserModelUsageReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.START_DATE.getKey(),
 				ReactorKeysEnum.END_DATE.getKey() };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -66,9 +67,9 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 
 		// Get the parameters
 		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
-		// Validate we have at least one engine
 		if (engineIds == null || engineIds.isEmpty()) {
-			throw new IllegalArgumentException("At least one engine ID must be provided");
+			engineIds = SecurityEngineUtils.getUserEngineIdList(user,
+					List.of(IEngine.CATALOG_TYPE.MODEL.name()), true, true, true);
 		}
 
 		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
@@ -190,14 +191,14 @@ public class GetUserModelUsageReactor extends AbstractReactor {
 		return """
 				Returns model usage for the current user over a specified time period, broken down by engine. \
 				Reports INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, \
-				TOTAL_TOKENS, and TOTAL_REQUESTS. Requires a list of engine IDs and optionally accepts a date range.
+				TOTAL_TOKENS, and TOTAL_REQUESTS. Optionally accepts a list of engine IDs (single, multiple, or omit for all accessible models) and a date range.
 				""";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Required list of engine IDs to get usage for (can be a single engine or multiple engines).";
+			return "Optional list of engine IDs to get usage for (single engine, multiple engines, or omit for all accessible models).";
 		} else if (key.equals(ReactorKeysEnum.START_DATE.getKey())) {
 			return "Optional start date (format: YYYY-MM-DD). Must be provided with endDate.";
 		} else if (key.equals(ReactorKeysEnum.END_DATE.getKey())) {

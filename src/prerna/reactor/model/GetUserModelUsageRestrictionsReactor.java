@@ -27,10 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -41,37 +44,55 @@ public class GetUserModelUsageRestrictionsReactor extends AbstractReactor {
 
 	public GetUserModelUsageRestrictionsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = insight.getUser();
-		String engineId = this.keyValue.get(ReactorKeysEnum.ENGINE.getKey());
 
 		if (user == null) {
 			throw new IllegalArgumentException("You are not properly logged in");
 		}
 
-		if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
-			throw new IllegalArgumentException(
-					"Model " + engineId + " does not exist or user does not have access to this model");
-		}
-		Map<String, Object> userRestrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(user, engineId);
+		List<String> engineIds = getList(ReactorKeysEnum.ENGINE.getKey());
+		boolean explicitEngines = engineIds != null && !engineIds.isEmpty();
 
-		return new NounMetadata(userRestrictionMap, PixelDataType.MAP);
+		if (!explicitEngines) {
+			engineIds = SecurityEngineUtils.getUserEngineIdList(user,
+					List.of(IEngine.CATALOG_TYPE.MODEL.name()), true, true, true);
+		} else {
+			for (String engineId : engineIds) {
+				if (!SecurityEngineUtils.userCanViewEngine(user, engineId)) {
+					throw new IllegalArgumentException(
+							"Model " + engineId + " does not exist or user does not have access to this model");
+				}
+			}
+		}
+
+		Map<Object, Object> idToAlias = SecurityEngineUtils.getEngineAliasForIds(engineIds);
+
+		List<Map<String, Object>> result = new ArrayList<>();
+		for (String engineId : engineIds) {
+			Map<String, Object> restrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(user, engineId);
+			restrictionMap.put("ENGINE_ID", engineId);
+			restrictionMap.put("ENGINE_NAME", idToAlias.get(engineId));
+			result.add(restrictionMap);
+		}
+
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns model usage restrictions for a user.";
+		return "Returns model usage restrictions for the current user. Accepts a single engine ID, a list of engine IDs, or omit to return restrictions for all accessible models.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
-			return "Engine id for which to check model usage restrictions";
+			return "Optional engine ID or list of engine IDs to check restrictions for. Omit to return restrictions for all accessible models.";
 		}
 		return super.getDescriptionForKey(key);
 	}
