@@ -96,6 +96,9 @@ public class User implements Serializable {
 	private transient ClientProcessWrapper pythonCPW = new ClientProcessWrapper();
 	private transient Process pyProcess = null;
 
+	// node.js agent execution environment - lazily spawned, agent-tool only
+	private transient ClientProcessWrapper nodeCPW = new ClientProcessWrapper();
+
 	// r
 	private transient ClientProcessWrapper rCPW = new ClientProcessWrapper();
 	private transient Process rProcess = null;
@@ -640,6 +643,87 @@ public class User implements Serializable {
 							User.getSingleLogginName(this), e);
 					throw new IllegalArgumentException("Unable to connect to user server");
 				}
+			}
+		}
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	public ClientProcessWrapper getNodeClientProcessWrapper() {
+		return this.nodeCPW;
+	}
+
+	/**
+	 * Get the socket client for this user's node.js agent worker, optionally
+	 * starting the worker if it is not running. Unlike the python process, the
+	 * node worker is only ever reached through agent harness tools - there is
+	 * no user-facing reactor or endpoint for it.
+	 *
+	 * @param create true to lazily start/revive the worker
+	 * @return the socket client, or null when create is false and none exists
+	 */
+	public SocketClient getNodeSocketClient(boolean create) {
+		if (!create) {
+			if (this.nodeCPW == null) {
+				return null;
+			}
+			return this.nodeCPW.getSocketClient();
+		}
+		if (this.nodeCPW == null || this.nodeCPW.getSocketClient() == null) {
+			startNodeSocketServerAndClient(-1);
+			this.nodeCPW.getSocketClient().setUser(this);
+		} else if (!this.nodeCPW.getSocketClient().isConnected()) {
+			this.nodeCPW.shutdown(false);
+			try {
+				this.nodeCPW.reconnect();
+			} catch (Exception e) {
+				classLogger.error("Failed to reconnect to user node process", e);
+				throw new IllegalArgumentException("Failed to connect to your isolated node execution engine");
+			}
+		}
+		return this.nodeCPW.getSocketClient();
+	}
+
+	/**
+	 * Start the per-user node.js agent worker and its socket client. The worker
+	 * self-exits after an idle period (NODE_IDLE_TIMEOUT minutes, default 30)
+	 * since no user session depends on it directly.
+	 *
+	 * @param port the port to connect on; negative to auto-allocate
+	 */
+	public void startNodeSocketServerAndClient(int port) {
+		if (this.nodeCPW == null) {
+			this.nodeCPW = new ClientProcessWrapper();
+		}
+		if (this.nodeCPW.getSocketClient() == null || !this.nodeCPW.getSocketClient().isConnected()) {
+			String loggerLevel = Utility.getDIHelperProperty(Settings.LOGGER_LEVEL);
+			if (loggerLevel == null || (loggerLevel = loggerLevel.trim()).isEmpty()) {
+				loggerLevel = "WARNING";
+			}
+
+			String idleTimeout = Utility.getDIHelperProperty(Settings.NODE_IDLE_TIMEOUT);
+			if (idleTimeout == null || (idleTimeout = idleTimeout.trim()).isEmpty()) {
+				idleTimeout = "30";
+			}
+
+			String serverDirectory = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
+			Path serverDirectoryPath = null;
+			try {
+				serverDirectoryPath = Files.createTempDirectory(Paths.get(serverDirectory), "n");
+			} catch (IOException e) {
+				classLogger.error("Failed to create temp directory for the node process under {}", serverDirectory, e);
+				throw new IllegalArgumentException("Could not create directory to launch the node process");
+			}
+
+			classLogger.info("Starting node agent worker for User = {}", User.getSingleLogginName(this));
+			try {
+				this.nodeCPW.createNodeProcessAndClient(port, serverDirectoryPath.toString(), false, idleTimeout,
+						loggerLevel, ThreadContext.getImmutableContext());
+			} catch (Exception e) {
+				classLogger.error("Failed to start node process for user {}", User.getSingleLogginName(this), e);
+				throw new IllegalArgumentException("Unable to connect to the node execution engine");
 			}
 		}
 	}
