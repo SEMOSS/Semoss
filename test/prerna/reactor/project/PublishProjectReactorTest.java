@@ -37,14 +37,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.revwalk.RevCommit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,23 +59,21 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
-/**
- * Covers the publish-metadata recording added to {@link PublishProjectReactor}:
- * a successful {@code release=true} publish records the resolved HEAD commit,
- * publisher, and timestamp; {@code release=false} and a failed publish record
- * nothing; the reactor's own output contract is unchanged.
- */
 class PublishProjectReactorTest {
 
 	private static final String PROJECT_ID = "testProjectId";
 	private static final String PROJECT_NAME = "testProjectName";
+	private static final String APPLICATION_URL = "http://localhost:8080/Monolith";
+	private static final String PUBLIC_HOME = "public_home";
+	private static final String PORTALS_RELATIVE_PATH = Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER;
 
 	@TempDir
 	Path tempDir;
 
-	private Git git;
+	private IProject project;
 	private User user;
 	private PublishProjectReactor reactor;
 
@@ -87,14 +83,14 @@ class PublishProjectReactorTest {
 	private MockedStatic<ClusterUtil> clusterUtilMock;
 
 	@BeforeEach
-	void setUp() throws Exception {
-		git = Git.init().setDirectory(tempDir.toFile()).call();
-
-		IProject project = mock(IProject.class);
+	void setUp() {
+		project = mock(IProject.class);
 		when(project.getProjectName()).thenReturn(PROJECT_NAME);
 
 		utilityMock = mockStatic(Utility.class);
 		utilityMock.when(() -> Utility.getProject(PROJECT_ID)).thenReturn(project);
+		utilityMock.when(() -> Utility.getApplicationUrl()).thenReturn(APPLICATION_URL);
+		utilityMock.when(() -> Utility.getPublicHomeFolder()).thenReturn(PUBLIC_HOME);
 
 		assetUtilityMock = mockStatic(AssetUtility.class);
 		assetUtilityMock.when(() -> AssetUtility.getProjectVersionFolder(PROJECT_NAME, PROJECT_ID))
@@ -127,67 +123,80 @@ class PublishProjectReactorTest {
 		reactor.keyValue.put(ReactorKeysEnum.RELEASE.getKey(), String.valueOf(release));
 	}
 
-	private void writeAndAdd(String path, String content) throws Exception {
-		Files.writeString(tempDir.resolve(path), content);
-		git.add().addFilepattern(path).call();
-	}
-
-	private RevCommit commit(String message) throws Exception {
-		return git.commit().setMessage(message).setAuthor("Test", "test@test.com").call();
-	}
-
 	@Test
-	void releaseTrue_recordsHeadCommit() throws Exception {
-		writeAndAdd("a.txt", "content");
-		RevCommit c = commit("init");
+	void releaseTrue_pushesPortalsAndRecordsClusterTimestamp() {
 		setKeys(true);
 
 		reactor.execute();
 
+		clusterUtilMock.verify(() -> ClusterUtil.pushProjectFolder(project, tempDir.toString(), PORTALS_RELATIVE_PATH));
 		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(user, PROJECT_ID));
 	}
 
 	@Test
-	void releaseTrue_unbornHead_recordsNullCommit() {
-		setKeys(true);
-
-		reactor.execute();
-	}
-
-	@Test
-	void releaseFalse_doesNotRecordPublishMetadata() {
-		setKeys(false);
-
-		reactor.execute();
-
-		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(any(), anyString()), never());
-		clusterUtilMock.verify(() -> ClusterUtil.pushProjectFolder(any(IProject.class), anyString(), anyString()), never());
-	}
-
-	@Test
-	void releasePushFails_doesNotRecordPublishMetadata() {
+	void releasePushFails_recordsNoClusterTimestamp() {
 		clusterUtilMock.when(() -> ClusterUtil.pushProjectFolder(any(IProject.class), anyString(), anyString()))
 				.thenThrow(new RuntimeException("push failed"));
 		setKeys(true);
 
 		assertThrows(RuntimeException.class, () -> reactor.execute());
+
+		// the push runs first, so a failed upload leaves the cluster timestamp alone
+		// rather than telling every container to pull content that never arrived
+		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(any(), anyString()), never());
 	}
 
 	@Test
-	void notOwner_throwsAndRecordsNothing() {
+	void releaseFalse_publishesOnThisContainerOnly() {
+		setKeys(false);
+
+		reactor.execute();
+
+		verify(project).setRepublish(true);
+		clusterUtilMock.verify(() -> ClusterUtil.pushProjectFolder(any(IProject.class), anyString(), anyString()),
+				never());
+		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(any(), anyString()), never());
+	}
+
+	@Test
+	void releaseTrue_marksProjectForRepublishOnThisContainer() {
+		setKeys(true);
+
+		reactor.execute();
+
+		verify(project).setRepublish(true);
+	}
+
+	@Test
+	void notOwner_throwsBeforeTouchingTheProject() {
 		securityMock.when(() -> SecurityProjectUtils.userIsOwner(any(), eq(PROJECT_ID))).thenReturn(false);
 		setKeys(true);
+
+		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
+
+		utilityMock.verify(() -> Utility.getProject(PROJECT_ID), never());
+		clusterUtilMock.verify(() -> ClusterUtil.pushProjectFolder(any(IProject.class), anyString(), anyString()),
+				never());
+		securityMock.verify(() -> SecurityProjectUtils.setPortalPublish(any(), anyString()), never());
+	}
+
+	@Test
+	void blankProjectId_throws() {
+		reactor.keyValue.put(ReactorKeysEnum.PROJECT.getKey(), "  ");
+		reactor.keyValue.put(ReactorKeysEnum.RELEASE.getKey(), "true");
 
 		assertThrows(IllegalArgumentException.class, () -> reactor.execute());
 	}
 
 	@Test
-	void outputShapeUnchanged() {
+	void returnsThePortalUrl() {
 		setKeys(true);
 
 		NounMetadata result = reactor.execute();
 
 		assertEquals(PixelDataType.CONST_STRING, result.getNounType());
+		assertEquals(APPLICATION_URL + "/" + PUBLIC_HOME + "/" + PROJECT_ID + "/" + Constants.PORTALS_FOLDER + "/",
+				result.getValue());
 		assertNotNull(result.getAdditionalReturn());
 		assertFalse(result.getAdditionalReturn().isEmpty());
 	}
