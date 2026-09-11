@@ -37,6 +37,7 @@ import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 
 /**
@@ -75,6 +76,7 @@ final class AgentRunQueueLoop {
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
+	private final Map<String, Room> automationResumeRoomsByRun = new ConcurrentHashMap<>();
 	/** Owns the room lock, the run threads, and the turn leases for this node. */
 	private final AgentRunRegistry activeRuns = new AgentRunRegistry();
 
@@ -87,6 +89,18 @@ final class AgentRunQueueLoop {
 			return;
 		}
 		insightsByRun.put(runId, InsightHandle.capture(runId, insight));
+	}
+
+	/**
+	 * Captures the approving editor context and the durable owner's room for an
+	 * Automation-authorized resume.
+	 */
+	void rememberAutomationResume(String runId, Insight insight, Room ownerRoom) {
+		if (runId == null || insight == null || ownerRoom == null) {
+			return;
+		}
+		automationResumeRoomsByRun.put(runId, ownerRoom);
+		rememberInsight(runId, insight);
 	}
 
 	/** Starts the loop if it is not running, and wakes it if it is idle. */
@@ -183,9 +197,10 @@ final class AgentRunQueueLoop {
 				return false;
 			}
 
+			Room automationResumeRoom = automationResumeRoomsByRun.remove(runId);
 			Thread thread = Thread.ofVirtual().name("agent-run-" + runId).unstarted(() -> {
 				try (var ignored = CloseableThreadContext.putAll(insightHandle.log4jContextMap())) {
-					AgentRunExecutor.execute(record, insightHandle, activeRun);
+					AgentRunExecutor.execute(record, insightHandle, activeRun, automationResumeRoom);
 				} finally {
 					cleanupInsight(runId, insightHandle);
 					activeRun.close();
@@ -216,6 +231,7 @@ final class AgentRunQueueLoop {
 	 * entry is already gone.
 	 */
 	private void cleanupInsight(String runId, InsightHandle insightHandle) {
+		automationResumeRoomsByRun.remove(runId);
 		InsightHandle removed = insightsByRun.remove(runId);
 		InsightHandle toCleanup = removed != null ? removed : insightHandle;
 		if (toCleanup != null) {

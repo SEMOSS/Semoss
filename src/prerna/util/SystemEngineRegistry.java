@@ -86,8 +86,8 @@ public final class SystemEngineRegistry {
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
 
-	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.scheduler",
-			"prerna.util", "prerna.web.conf");
+	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.automation",
+			"prerna.reactor.scheduler", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> THEMING_DB_ALLOWED = Set.of("prerna.auth", "prerna.theme", "prerna.util",
 			"prerna.web.conf");

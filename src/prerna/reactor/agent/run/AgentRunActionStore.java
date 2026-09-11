@@ -38,7 +38,11 @@ import java.util.Map;
 import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -205,6 +209,60 @@ public final class AgentRunActionStore {
 			throw new IllegalStateException("Failed to load AGENT_RUN_ACTION actionId=" + actionId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Loads an action without applying the owning-user predicate.
+	 *
+	 * <p>
+	 * This method is reserved for Automation APIs that have already verified project
+	 * edit access and the exact persisted Automation trace. Generic agent APIs must
+	 * use {@link #getActionById(String, String)}.
+	 *
+	 * @param actionId agent action identifier
+	 * @return matching action, or {@code null} when it does not exist
+	 */
+	public static Map<String, Object> getActionByIdForAutomation(String actionId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__ACTION_ID", "actionId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__RUN_ID", "runId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__ROOM_ID", "roomId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__PARENT_MESSAGE_ID", "parentMessageId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_CALL_ID", "toolCallId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_NAME", "toolName"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_ARGS", "toolArgs"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__EDITED_ARGS", "editedArgs"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_META", "toolMeta"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__HAS_UI", "hasUi"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__UI_URL", "uiUrl"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__STATUS", "status"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__RESULT", "result"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_STATUS", "toolStatus"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DATE_CREATED", "dateCreated"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DECIDED_AT", "decidedAt"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__USER_ID", "userId"));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("AGENT_RUN_ACTION__ACTION_ID", "==", actionId));
+
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
+			if (rows.isEmpty()) {
+				return null;
+			}
+			Map<String, Object> action = rows.get(0);
+			action.put("hasUi", booleanValue(action.get("hasUi")));
+			action.put("toolArgs", stringValue(action.get("toolArgs")));
+			action.put("editedArgs", stringValue(action.get("editedArgs")));
+			action.put("toolMeta", stringValue(action.get("toolMeta")));
+			action.put("uiUrl", stringValue(action.get("uiUrl")));
+			action.put("result", stringValue(action.get("result")));
+			action.put("dateCreated", stringValue(action.get("dateCreated")));
+			action.put("decidedAt", stringValue(action.get("decidedAt")));
+			return action;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN_ACTION actionId=" + actionId, e);
 		}
 	}
 
