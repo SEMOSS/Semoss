@@ -31,11 +31,11 @@ import java.io.File;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +48,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectPortalsHelper;
 import prerna.project.impl.notebook.INotebookHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
@@ -55,7 +56,6 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 import prerna.util.gson.GsonUtility;
@@ -116,13 +116,13 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		try {
 			GsonUtility.writeObjectToJsonFile(blocksJsonFile, GSON, json);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write the blocks json to {} for project '{}'", blocksJsonFile, projectId, e);
 			throw new IllegalArgumentException(
 					"Was unable to save the blocks json to the project folder. Errror = " + e.getMessage());
 		}
 
 		// add file to git
-		List<String> files = new Vector<>();
+		List<String> files = new ArrayList<>();
 		files.add(blocksJsonFile.getAbsolutePath());
 		String projectVersionFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId);
 		GitRepoUtils.addSpecificFiles(projectVersionFolder, files);
@@ -132,8 +132,8 @@ public class SaveAppBlocksJsonReactor extends AbstractReactor {
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Syncing project for cloud backup");
 			ClusterUtil.pushProjectFolder(project, projectVersionFolder);
-			SecurityProjectUtils.setPortalPublish(user, projectId);
 		}
+		ProjectPortalsHelper.notePortalChange(user, projectId);
 
 		// auto save the engine dependencies as well
 		Map<String, String> engineDependenciesMap = project.getEngineDependencies();

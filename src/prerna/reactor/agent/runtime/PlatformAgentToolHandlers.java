@@ -60,9 +60,12 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.ds.node.NodeTranslator;
+import prerna.ds.node.NodeUtils;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.util.CmdExecUtil;
@@ -89,6 +92,10 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_NODE_CODE_LENGTH = 200_000;
+	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
+	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
+	private static final int MAX_NODE_TIMEOUT_SECONDS = 600;
 	private static final String PARAM_PATH = "path";
 	private static final String PARAM_NEW_PATH = "new_path";
 
@@ -186,6 +193,21 @@ final class PlatformAgentToolHandlers {
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
 		}
+		if (NodeUtils.isNodeToolEnabled()) {
+			add(tools, handler("ExecuteNodeCode",
+					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
+							+ "calls within this conversation (assign to globalThis for durable state when using "
+							+ "top-level await). The value of the last expression is returned (use an explicit "
+							+ "'return' with top-level await); console output is captured and returned too. "
+							+ "require() resolves only against the curated platform packages: "
+							+ NodeUtils.describeCuratedPackages() + ". There is no npm install.",
+					objectSchema(props(
+							prop("code", stringProp("JavaScript source to execute.")),
+							prop("timeout_seconds", integerProp(
+									"Maximum execution seconds before the run is killed. Defaults to 60, max 600."))),
+							List.of("code")),
+					PlatformAgentToolHandlers::executeNodeCode));
+		}
 		add(tools, handler("TodoWrite", "Replaces the current todo list with a validated full-state JSON array.",
 				objectSchema(props(prop("items_json", stringProp(
 						"JSON array of todo items: [{\"id\":\"...\",\"content\":\"...\",\"status\":\"pending|in_progress|completed\",\"priority\":\"high|medium|low\"}]."))),
@@ -203,9 +225,14 @@ final class PlatformAgentToolHandlers {
 						"Loads a named skill's instructions so you can follow them. Call this before starting work "
 								+ "the skill covers, rather than working from memory -- a skill exists because that "
 								+ "task is unreliable to get right by guessing. Returns up to max_bytes and reports "
-								+ "what remains; call again with offset to read the rest.",
+								+ "what remains; call again with offset to read the rest. A skill's other files are "
+								+ "listed at the end of its body and load the same way, by folder-relative path.",
 						objectSchema(
-								props(prop("skill_name", stringProp("Skill folder name to load.")),
+								props(prop("skill_name",
+										stringProp("Skill folder name, such as \"app-bootstrap\", to load that skill's "
+												+ "instructions. To load one of its other files instead, append that "
+												+ "file's path as the skill's own docs write it, such as "
+												+ "\"app-bootstrap/references/react-app.md\".")),
 										prop("offset", integerProp("Byte offset to start at. Defaults to 0.")),
 										prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
 								List.of("skill_name")),
@@ -619,6 +646,79 @@ final class PlatformAgentToolHandlers {
 		return output == null ? "" : output;
 	}
 
+	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
+		if (!NodeUtils.isNodeToolEnabled()) {
+			return "Error: ExecuteNodeCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_NODE_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_NODE_CODE_LENGTH;
+		}
+		int timeoutSeconds = parseIntOr(params.get("timeout_seconds"), DEFAULT_NODE_TIMEOUT_SECONDS);
+		if (timeoutSeconds < 1) {
+			timeoutSeconds = DEFAULT_NODE_TIMEOUT_SECONDS;
+		}
+		if (timeoutSeconds > MAX_NODE_TIMEOUT_SECONDS) {
+			timeoutSeconds = MAX_NODE_TIMEOUT_SECONDS;
+		}
+		User user = tc.ctx.getInsight().getUser();
+		if (user == null) {
+			return "Error: no user is associated with this agent run";
+		}
+		try {
+			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
+			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
+			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L);
+			return formatNodeOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecuteNodeCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatNodeOutput(Object output) {
+		String stdout = null;
+		Object result = output;
+		if (output instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>) output;
+			Object stdoutValue = map.get("stdout");
+			stdout = stdoutValue != null ? stdoutValue.toString() : null;
+			result = map.get("result");
+		}
+		StringBuilder sb = new StringBuilder();
+		if (stdout != null && !stdout.isEmpty()) {
+			sb.append(stdout);
+		}
+		if (result != null) {
+			if (sb.length() > 0) {
+				sb.append("\n\n=> ");
+			} else {
+				sb.append("=> ");
+			}
+			if (result instanceof String) {
+				sb.append((String) result);
+			} else {
+				try {
+					sb.append(JSONObject.valueToString(result));
+				} catch (Exception e) {
+					sb.append(result.toString());
+				}
+			}
+		}
+		if (sb.length() == 0) {
+			return "(no output)";
+		}
+		if (sb.length() > MAX_NODE_OUTPUT_LENGTH) {
+			return sb.substring(0, MAX_NODE_OUTPUT_LENGTH) + "\n[output truncated at " + MAX_NODE_OUTPUT_LENGTH
+					+ " characters]";
+		}
+		return sb.toString();
+	}
+
 	private static String todoWrite(Map<String, Object> params, ToolContext tc) {
 		String itemsJson = stringParam(params, "items_json");
 		if (itemsJson == null || itemsJson.trim().isEmpty()) {
@@ -718,23 +818,38 @@ final class PlatformAgentToolHandlers {
 		if (raw == null || raw.trim().isEmpty()) {
 			return "Error: skill_name is required";
 		}
-		String name = raw.trim();
-		if (name.contains("/") || name.contains("\\") || name.contains("..")) {
-			return "Error: invalid skill_name (must be a single folder name with no slashes or '..'): " + name;
+		String requested = raw.trim().replace('\\', '/');
+		if (requested.startsWith("/") || requested.contains("..")) {
+			return "Error: invalid skill_name (no absolute paths and no '..'): " + requested;
 		}
+		// "<skill>" loads that skill's SKILL.md. "<skill>/<path>" loads one of the
+		// skill's other files, addressed by the same skill-folder-relative path its
+		// own docs use, so a cross-reference in a SKILL.md can be followed verbatim.
+		int slash = requested.indexOf('/');
+		String name = (slash < 0) ? requested : requested.substring(0, slash);
+		String subPath = (slash < 0) ? "" : requested.substring(slash + 1).replaceAll("^/+", "");
+		if (name.isEmpty()) {
+			return "Error: invalid skill_name (no skill folder name): " + requested;
+		}
+		boolean isSkillBody = subPath.isEmpty();
+		String relativeFile = isSkillBody ? Skill.SKILL_FILE : subPath;
+
 		long offset = parseLongAtLeast(params.get("offset"), 0L, 0L);
 		int maxBytes = parseIntAtLeast(params.get("max_bytes"), DEFAULT_SKILL_MAX_BYTES, 1);
 		if (maxBytes > HARD_SKILL_MAX_BYTES) {
 			maxBytes = HARD_SKILL_MAX_BYTES;
 		}
+		File skillDir = null;
 		File skillFile = null;
 		List<String> attempted = new ArrayList<>();
 		for (String baseDir : SkillScanner.SKILL_BASE_DIRS) {
 			for (String hostDir : SkillScanner.SKILL_HOST_DIRS) {
-				String candidatePath = joinSkillPath(baseDir, hostDir, name);
+				String candidateDir = joinSkillPath(baseDir, hostDir, name);
+				String candidatePath = candidateDir + "/" + relativeFile;
 				attempted.add(candidatePath);
 				File candidate = tc.resolve(candidatePath);
 				if (candidate.isFile()) {
+					skillDir = tc.resolve(candidateDir);
 					skillFile = candidate;
 					break;
 				}
@@ -744,9 +859,63 @@ final class PlatformAgentToolHandlers {
 			}
 		}
 		if (skillFile == null) {
-			return "Error: skill not found: " + name + " (checked: " + String.join(", ", attempted) + ")";
+			String what = isSkillBody ? "skill not found: " + name
+					: "no file '" + subPath + "' in skill '" + name + "'";
+			return "Error: " + what + " (checked: " + String.join(", ", attempted) + ")";
 		}
-		return readSkillChunk(skillFile, name, offset, maxBytes);
+		String chunk = readSkillChunk(skillFile, requested, offset, maxBytes);
+		if (isSkillBody && offset == 0) {
+			chunk += skillFileListing(skillDir, name, tc);
+		}
+		return chunk;
+	}
+
+	/**
+	 * Footer listing a skill's other files, appended to the first chunk of its
+	 * SKILL.md.
+	 *
+	 * A skill's docs cross-reference its files as they sit next to SKILL.md
+	 * ({@code references/react-app.md}), but every read tool is relative to the
+	 * working directory and the staging root varies across
+	 * {@link SkillScanner#SKILL_BASE_DIRS}, so that path is not resolvable by a
+	 * caller that only read the body. Listing both forms makes those references
+	 * actionable and makes the files discoverable at all.
+	 *
+	 * @return the footer, or an empty string for a skill that is a lone SKILL.md
+	 */
+	private static String skillFileListing(File skillDir, String name, ToolContext tc) {
+		List<String> rows = new ArrayList<>();
+		Path skillRoot = skillDir.toPath();
+		try (Stream<Path> walk = Files.walk(skillRoot)) {
+			walk.sorted().forEach(p -> {
+				String fileName = p.getFileName().toString();
+				// dotfiles here are staging bookkeeping, such as .skill-meta
+				if (Files.isDirectory(p) || fileName.startsWith(".")) {
+					return;
+				}
+				// the top-level SKILL.md is the body this footer is attached to
+				if (Skill.SKILL_FILE.equals(fileName) && skillRoot.equals(p.getParent())) {
+					return;
+				}
+				rows.add("- " + skillRoot.relativize(p).toString().replace('\\', '/') + "  ->  "
+						+ tc.toRelative(p.toFile().getAbsolutePath()));
+			});
+		} catch (Exception e) {
+			logger.warn("LoadSkill: could not list the files of skill '{}': {}", name, e.getMessage());
+			return "";
+		}
+		if (rows.isEmpty()) {
+			return "";
+		}
+		StringBuilder out = new StringBuilder();
+		out.append("\n\n[--- this skill ships ").append(rows.size()).append(" other file")
+				.append(rows.size() == 1 ? "" : "s").append(", listed as <skill-folder path>  ->  <working-dir path>. ")
+				.append("Read one with LoadSkill(skill_name=\"").append(name)
+				.append("/<skill-folder path>\") or ReadFile(path=\"<working-dir path>\"). ---]\n");
+		for (String row : rows) {
+			out.append(row).append('\n');
+		}
+		return out.toString();
 	}
 
 	private static void saveTextFile(File file, String content, ToolContext tc) {
@@ -1087,8 +1256,9 @@ final class PlatformAgentToolHandlers {
 		return value == null ? null : value.trim();
 	}
 
+	/** Working-dir-relative path of one skill's folder under one host directory. */
 	private static String joinSkillPath(String baseDir, String hostDir, String skillName) {
-		String suffix = hostDir + "/" + skillName + "/SKILL.md";
+		String suffix = hostDir + "/" + skillName;
 		if (baseDir == null || baseDir.isEmpty()) {
 			return suffix;
 		}
