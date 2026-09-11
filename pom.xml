@@ -33,12 +33,42 @@
 		<ci.version>0.0.1-SNAPSHOT</ci.version>
 		<project.build.sourceEncoding>cp1252</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>cp1252</project.reporting.outputEncoding>
-		<openhtml.version>1.0.1</openhtml.version>
+		<!-- Multi-artifact families that must move together. Each version below is
+		     shared by two or more declared dependencies; bump the property, not the
+		     individual <version> elements. -->
 		<!-- Keep in sync with BCPKIX_FIPS_VERSION in docker/Dockerfile.tomcat.
 		     Scope stays compile here: whether BouncyCastle ends up in the deployed
 		     WEB-INF/lib is decided by Monolith's libraries-fips.xml assembly, not
 		     by this pom. -->
 		<bc.fips.version>2.1.12</bc.fips.version>
+		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Separate
+		     from bc.fips.version above, which is the FIPS-certified artifact line. -->
+		<bc.jdk18on.version>1.80.2</bc.jdk18on.version>
+		<log4j2.version>2.25.5</log4j2.version>
+		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
+		     core/databind/datatype ship patch releases off it (2.22.2), so the two
+		     cannot share a single property. -->
+		<jackson2.version>2.22.2</jackson2.version>
+		<jackson2.annotations.version>2.22</jackson2.annotations.version>
+		<jackson3.version>3.1.1</jackson3.version>
+		<httpcore5.version>5.4.3</httpcore5.version>
+		<docx4j.version>11.5.14</docx4j.version>
+		<sesame.version>2.7.12</sesame.version>
+		<rdf4j.version>5.3.2</rdf4j.version>
+		<jena.version>6.2.0</jena.version>
+		<tinkerpop.version>3.7.6</tinkerpop.version>
+		<poi.version>5.5.1</poi.version>
+		<jna.version>5.18.1</jna.version>
+		<quartz.version>2.5.2</quartz.version>
+		<curator.version>5.9.0</curator.version>
+		<commonmark.version>0.28.0</commonmark.version>
+		<wdtk.version>0.9.0</wdtk.version>
+		<graphstream.version>2.0</graphstream.version>
+		<jai.imageio.version>1.4.0</jai.imageio.version>
+		<hadoop.version>3.3.6</hadoop.version>
+		<asm.version>9.9.1</asm.version>
+		<!-- JUnit 6: jupiter and platform share one version line -->
+		<junit.version>6.0.0</junit.version>
 	</properties>
 	<!-- removing distributionManagement as it is no longer required
 	<distributionManagement><snapshotRepository><id>ossrh</id><url>https://ossrh-staging-api.central.sonatype.com/content/repositories/snapshots</url></snapshotRepository><repository><id>ossrh</id><url>https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/</url></repository></distributionManagement>
@@ -222,7 +252,7 @@
 								<path>
 									<groupId>org.apache.logging.log4j</groupId>
 									<artifactId>log4j-core</artifactId>
-									<version>2.25.4</version>
+									<version>${log4j2.version}</version>
 								</path>
 							</annotationProcessorPaths>
 							<annotationProcessors>
@@ -385,7 +415,7 @@
 						<configuration>
 							<includes>
 								<include>**/*UnitTests.java</include>
-<!--								<include>prerna.testing.AllTests.java</include>-->
+								<!-- <include>prerna.testing.AllTests.java</include> -->
 							</includes>
 							<parallel>all</parallel>
 							<useUnlimitedThreads>true</useUnlimitedThreads>
@@ -592,6 +622,7 @@
 	</repositories>
 	<dependencyManagement>
 		<dependencies>
+			<!-- Source: https://mvnrepository.com/artifact/io.grpc/grpc-bom -->
 			<dependency>
 				<groupId>io.grpc</groupId>
 				<artifactId>grpc-bom</artifactId>
@@ -599,6 +630,7 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/com.google.cloud/libraries-bom -->
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>libraries-bom</artifactId>
@@ -606,6 +638,7 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/software.amazon.awssdk/bom -->
 			<dependency>
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
@@ -613,6 +646,7 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/io.netty/netty-bom -->
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
@@ -620,67 +654,55 @@
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-			<!-- GHSA-2m67-wjpj-xhg9 / CVE-2026-29062: force transitive tools.jackson.core (Jackson 3.x) from mcp-json-jackson3 up to fixed version -->
+			<!-- Source: https://mvnrepository.com/artifact/tools.jackson.core/jackson-core -->
 			<dependency>
 				<groupId>tools.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
-				<version>3.1.1</version>
+				<version>${jackson3.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/tools.jackson.core/jackson-databind -->
 			<dependency>
 				<groupId>tools.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>3.1.1</version>
+				<version>${jackson3.version}</version>
 			</dependency>
-			<!-- sshj 0.40.0 is internally inconsistent about BouncyCastle versions -->
+			<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk18on -->
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcprov-jdk18on</artifactId>
-				<version>1.80.2</version>
+				<version>${bc.jdk18on.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk18on -->
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcpkix-jdk18on</artifactId>
-				<version>1.80.2</version>
+				<version>${bc.jdk18on.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/org.bouncycastle/bcutil-jdk18on -->
 			<dependency>
 				<groupId>org.bouncycastle</groupId>
 				<artifactId>bcutil-jdk18on</artifactId>
-				<version>1.80.2</version>
+				<version>${bc.jdk18on.version}</version>
 			</dependency>
-			<!-- Snyk remediation: force transitive Jackson 2.x to fixed 2.22.2 patch line. -->
+			<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
-				<version>2.22.2</version>
+				<version>${jackson2.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>2.22.2</version>
+				<version>${jackson2.version}</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 			<dependency>
 				<groupId>com.fasterxml.jackson.core</groupId>
 				<artifactId>jackson-annotations</artifactId>
-				<version>2.22</version>
+				<version>${jackson2.annotations.version}</version>
 			</dependency>
-			<!-- CVE force: CVE-2026-24400 - override transitive assertj-core version (2.4.1) -->
-			<dependency>
-				<groupId>org.assertj</groupId>
-				<artifactId>assertj-core</artifactId>
-				<version>3.27.7</version>
-			</dependency>
-			<!-- CVE force: CVE-2025-12183/CVE-2025-66566 - override transitive org.lz4:lz4-java version (1.8.0) -->
-			<dependency>
-				<groupId>org.lz4</groupId>
-				<artifactId>lz4-java</artifactId>
-				<version>1.8.1</version>
-			</dependency>
-			<!-- CVE force: CVE-2025-67030 - override transitive plexus-utils versions (3.3.0/4.0.2) -->
-			<dependency>
-				<groupId>org.codehaus.plexus</groupId>
-				<artifactId>plexus-utils</artifactId>
-				<version>4.0.3</version>
-			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/org.codehaus.mojo/animal-sniffer-annotations -->
 			<!-- Converge annotations-only jar: grpc 1.79 pulls 1.26, google-cloud pulls 1.24 -->
 			<dependency>
 				<groupId>org.codehaus.mojo</groupId>
@@ -706,7 +728,7 @@
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-runtime</artifactId>
-			<version>2.7.12</version>
+			<version>${sesame.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -734,7 +756,7 @@
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-rio-rdfxml</artifactId>
-			<version>2.7.12</version>
+			<version>${sesame.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -750,7 +772,7 @@
 		<dependency>
 			<groupId>org.openrdf.sesame</groupId>
 			<artifactId>sesame-queryresultio-sparqljson</artifactId>
-			<version>2.7.12</version>
+			<version>${sesame.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -763,7 +785,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-core</artifactId>
-		    <version>11.5.14</version>
+		    <version>${docx4j.version}</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -820,7 +842,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-ImportXHTML-core</artifactId>
-		    <version>11.5.14</version>
+		    <version>${docx4j.version}</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -893,7 +915,7 @@
 		<dependency>
 		    <groupId>org.docx4j</groupId>
 		    <artifactId>docx4j-JAXB-ReferenceImpl</artifactId>
-		    <version>11.5.14</version>
+		    <version>${docx4j.version}</version>
 		    <scope>compile</scope>
 		    <exclusions>
 		        <exclusion>
@@ -1020,7 +1042,6 @@
 			<artifactId>commons-beanutils</artifactId>
 			<version>1.11.0</version>
 			<exclusions>
-				<!-- Convergence alignment: use direct commons-logging 1.3.6. -->
 				<exclusion>
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
@@ -1075,7 +1096,6 @@
 			<version>3.20.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/commons-logging/commons-logging -->
-		<!-- Convergence alignment: commons-configuration2 2.15.0 brings commons-logging 1.3.6. -->
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
@@ -1139,12 +1159,12 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>neo4j-gremlin</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>tinkergraph-gremlin</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1155,7 +1175,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-console</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1167,7 +1187,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-core</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1178,7 +1198,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-driver</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1189,7 +1209,7 @@
 		<dependency>
 			<groupId>org.apache.tinkerpop</groupId>
 			<artifactId>gremlin-shaded</artifactId>
-			<version>3.7.6</version>
+			<version>${tinkerpop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1221,7 +1241,6 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents.client5/httpclient5 -->
-		<!-- Snyk remediation: fix httpclient5 certificate validation and httpcore5-h2 findings. -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.client5</groupId>
 			<artifactId>httpclient5</artifactId>
@@ -1233,17 +1252,17 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Convergence override: ClickHouse and AntiSamy pull vulnerable httpcore5 5.3.4. -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents.core5/httpcore5 -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.core5</groupId>
 			<artifactId>httpcore5</artifactId>
-			<version>5.4.3</version>
+			<version>${httpcore5.version}</version>
 		</dependency>
-		<!-- Convergence override: keep HTTP/2 core aligned with httpclient5 5.6.4. -->
+		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents.core5/httpcore5-h2 -->
 		<dependency>
 			<groupId>org.apache.httpcomponents.core5</groupId>
-			<artifactId>httpcore5-h2</artifactId>
-			<version>5.4.3</version>
+			<artifactId>httpcore5-h2</artifactId> 
+			<version>${httpcore5.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient -->
 		<dependency>
@@ -1297,7 +1316,7 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-arq</artifactId>
-			<version>5.6.0</version>
+			<version>${jena.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1305,16 +1324,8 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/com.apicatalog/titanium-json-ld -->
-		<!-- required for apache jena -->
-		<dependency>
-			<groupId>com.apicatalog</groupId>
-			<artifactId>titanium-json-ld</artifactId>
-			<version>1.7.0</version>
-		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.thrift/libthrift -->
 		<!-- required for apache jena -->
-		<!-- Snyk remediation: fix libthrift certificate validation and resource issues. -->
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
@@ -1326,18 +1337,11 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/org.glassfish/jakarta.json -->
-		<!-- required for apache jena -->
-		<dependency>
-			<groupId>org.glassfish</groupId>
-			<artifactId>jakarta.json</artifactId>
-			<version>2.0.1</version>
-		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-base -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-base</artifactId>
-			<version>5.6.0</version>
+			<version>${jena.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1349,21 +1353,21 @@
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-core</artifactId>
-			<version>5.6.0</version>
+			<version>${jena.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-tdb2 -->
 		<dependency>
 			<groupId>org.apache.jena</groupId>
 			<artifactId>jena-tdb2</artifactId>
-			<version>5.6.0</version>
+			<version>${jena.version}</version>
 		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.jsoup/jsoup -->
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<!-- Snyk remediation: fix jsoup XSS and resource exhaustion findings. -->
 			<version>1.23.2</version>
 			<exclusions>
-				<exclusion>
+				<exclusion> 
 					<groupId>*</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1373,13 +1377,13 @@
 		<dependency>
 			<groupId>org.commonmark</groupId>
 			<artifactId>commonmark</artifactId>
-			<version>0.28.0</version>
+			<version>${commonmark.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.commonmark/commonmark-ext-gfm-tables -->
 		<dependency>
 			<groupId>org.commonmark</groupId>
 			<artifactId>commonmark-ext-gfm-tables</artifactId>
-			<version>0.28.0</version>
+			<version>${commonmark.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.github.jsqlparser/jsqlparser -->
 		<dependency>
@@ -1394,11 +1398,10 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
-		<!-- Snyk remediation: fix log4j-api output encoding issue. -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.25.5</version>
+			<version>${log4j2.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1410,8 +1413,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<!-- Convergence alignment: keep Log4j modules on the same patch line. -->
-			<version>2.25.5</version>
+			<version>${log4j2.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1430,8 +1432,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-jakarta-web</artifactId>
-			<!-- Convergence alignment: keep Log4j modules on the same patch line. -->
-			<version>2.25.5</version>
+			<version>${log4j2.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1442,8 +1443,7 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-slf4j2-impl</artifactId>
-			<!-- Convergence alignment: keep Log4j implementation with log4j-api 2.25.5. -->
-			<version>2.25.5</version>
+			<version>${log4j2.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.f4b6a3</groupId>
@@ -1464,7 +1464,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.5.1</version>
+			<version>${poi.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1482,7 +1482,7 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
-			<version>5.5.1</version>
+			<version>${poi.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1514,19 +1514,19 @@
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
-			<version>5.5.1</version>
+			<version>${poi.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
-			<version>5.5.1</version>
+			<version>${poi.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-scratchpad</artifactId>
-			<version>5.5.1</version>
+			<version>${poi.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1613,13 +1613,13 @@
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna</artifactId>
-			<version>5.18.1</version>
+			<version>${jna.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform -->
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>
 			<artifactId>jna-platform</artifactId>
-			<version>5.18.1</version>
+			<version>${jna.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.xmlbeans/xmlbeans -->
 		<dependency>
@@ -1667,7 +1667,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-repository-sail</artifactId>
-			<version>5.2.0</version>
+			<version>${rdf4j.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
@@ -1694,6 +1694,10 @@
 					<artifactId>commons-math3</artifactId>
 				</exclusion>
 				<exclusion>
+					<groupId>org.apache.httpcomponents.client5</groupId>
+					<artifactId>httpclient5</artifactId>
+				</exclusion>
+				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1703,19 +1707,30 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-nativerdf</artifactId>
-			<version>5.2.0</version>
+			<version>${rdf4j.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
 				</exclusion>
+				<!-- for when we update to v6 -->
 				<exclusion>
-					<groupId>at.yawk.lz4</groupId>
-	   				<artifactId>lz4-java</artifactId>
+					<groupId>com.google.code.gson</groupId>
+					<artifactId>gson</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.jetbrains.kotlin</groupId>
 					<artifactId>*</artifactId>
+				</exclusion>
+				<!-- can remove when updated to v6 -->
+				<exclusion>
+					<groupId>org.lz4</groupId>
+					<artifactId>lz4-java</artifactId>
+				</exclusion>
+				<!-- for when we update to v6 -->
+				<exclusion>
+					<groupId>at.yawk.lz4</groupId>
+	   				<artifactId>lz4-java</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1724,17 +1739,16 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.lz4/lz4-java -->
-		<!-- CVE-2025-66566: migrated from org.lz4 (relocated), bumped to 1.10.4 -->
 		<dependency>
 	   		<groupId>at.yawk.lz4</groupId>
 	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.10.4</version>
+	    	<version>1.11.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-memory</artifactId>
-			<version>5.2.0</version>
+			<version>${rdf4j.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1746,7 +1760,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-rio-rdfxml</artifactId>
-			<version>5.2.0</version>
+			<version>${rdf4j.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>commons-io</groupId>
@@ -1758,7 +1772,7 @@
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>
 			<artifactId>rdf4j-sail-inferencer</artifactId>
-			<version>5.2.0</version>
+			<version>${rdf4j.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
@@ -1780,7 +1794,7 @@
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz</artifactId>
-			<version>2.5.2</version>
+			<version>${quartz.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.zaxxer</groupId>
@@ -1804,7 +1818,7 @@
 		<dependency>
 			<groupId>org.quartz-scheduler</groupId>
 			<artifactId>quartz-jobs</artifactId>
-			<version>2.5.2</version>
+			<version>${quartz.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.quartz-scheduler</groupId>
@@ -1823,7 +1837,6 @@
 			<version>2.0.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.postgresql/postgresql -->
-		<!-- Snyk remediation: fix PostgreSQL JDBC authentication algorithm issue. -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -1853,7 +1866,6 @@
 			<artifactId>commons-validator</artifactId>
 			<version>1.10.1</version>
 			<exclusions>
-				<!-- Convergence alignment: use direct commons-logging 1.3.6. -->
 				<exclusion>
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
@@ -1918,32 +1930,30 @@
 			<version>20240205</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
-		<!-- Snyk remediation: fix Jackson 2.x databind authorization and SSRF findings. -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-core</artifactId>
-			<version>2.22.2</version>
+			<version>${jackson2.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
-			<version>2.22.2</version>
+			<version>${jackson2.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-annotations</artifactId>
-			<version>2.22</version>
+			<version>${jackson2.annotations.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.datatype/jackson-datatype-jsr310 -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
 			<artifactId>jackson-datatype-jsr310</artifactId>
-			<version>2.22.2</version>
+			<version>${jackson2.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.amazon.redshift/redshift-jdbc42 -->
-		<!-- Snyk remediation: fix Redshift JDBC unsafe reflection critical finding. -->
 		<dependency>
 			<groupId>com.amazon.redshift</groupId>
 			<artifactId>redshift-jdbc42</artifactId>
@@ -2239,7 +2249,7 @@
 		<dependency>
 			<groupId>org.wikidata.wdtk</groupId>
 			<artifactId>wdtk-wikibaseapi</artifactId>
-			<version>0.9.0</version>
+			<version>${wdtk.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2250,7 +2260,7 @@
 		<dependency>
 			<groupId>org.wikidata.wdtk</groupId>
 			<artifactId>wdtk-datamodel</artifactId>
-			<version>0.9.0</version>
+			<version>${wdtk.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2261,7 +2271,7 @@
 		<dependency>
 			<groupId>org.wikidata.wdtk</groupId>
 			<artifactId>wdtk-util</artifactId>
-			<version>0.9.0</version>
+			<version>${wdtk.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2301,7 +2311,6 @@
 		    		<groupId>org.apache.httpcomponents.client5</groupId>
 		    		<artifactId>httpclient5</artifactId>
 		    	</exclusion>
-		    	<!-- Convergence override: use direct httpcore5/httpcore5-h2 5.4.3. -->
 		    	<exclusion>
 		    		<groupId>org.apache.httpcomponents.core5</groupId>
 		    		<artifactId>httpcore5</artifactId>
@@ -2314,6 +2323,10 @@
 		    		<groupId>com.google.errorprone</groupId>
 		    		<artifactId>error_prone_annotations</artifactId>
 		    	</exclusion>
+		    	<exclusion>
+					<groupId>at.yawk.lz4</groupId>
+	   				<artifactId>lz4-java</artifactId>
+				</exclusion>
 		    	<exclusion>
 		    		<groupId>org.slf4j</groupId>
 		    		<artifactId>*</artifactId>
@@ -2399,7 +2412,6 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-configuration2 -->
-		<!-- Snyk remediation: fix commons-configuration2 uncontrolled recursion finding. -->
 		<dependency>
 		    <groupId>org.apache.commons</groupId>
 		    <artifactId>commons-configuration2</artifactId>
@@ -2620,7 +2632,7 @@
 					<artifactId>junit</artifactId>
 				</exclusion>
 			</exclusions>
-			<version>2.0</version>
+			<version>${graphstream.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.graphstream/gs-algo -->
 		<dependency>
@@ -2640,7 +2652,7 @@
 					<artifactId>commons-math3</artifactId>
 				</exclusion>
 			</exclusions>
-			<version>2.0</version>
+			<version>${graphstream.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.jfree/jfreechart -->
 		<!-- patch update and excluded from graphstream algo that used
@@ -2651,11 +2663,11 @@
 			<version>1.0.19</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.owasp.esapi/esapi -->
-		<!-- Snyk remediation: fix ESAPI output neutralization finding. -->
 		<dependency>
 			<groupId>org.owasp.esapi</groupId>
 			<artifactId>esapi</artifactId>
-			<version>2.7.0.0</version>
+			<version>2.6.2.0</version>
+			<classifier>jakarta</classifier>
 			<exclusions>
 				<exclusion>
 					<groupId>log4j</groupId>
@@ -2685,7 +2697,6 @@
 					<groupId>org.apache.httpcomponents.client5</groupId>
 					<artifactId>httpclient5</artifactId>
 				</exclusion>
-				<!-- Convergence override: AntiSamy pulls vulnerable httpcore5 5.3.4. -->
 				<exclusion>
 					<groupId>org.apache.httpcomponents.core5</groupId>
 					<artifactId>httpcore5</artifactId>
@@ -2713,7 +2724,6 @@
 			<version>1.5.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.zookeeper/zookeeper -->
-		<!-- CVE-2026-24308, CVE-2026-24281: bumped from 3.9.4 -->
 		<dependency>
 			<groupId>org.apache.zookeeper</groupId>
 			<artifactId>zookeeper</artifactId>
@@ -2745,7 +2755,7 @@
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-framework</artifactId>
-			<version>5.9.0</version>
+			<version>${curator.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.guava</groupId>
@@ -2765,7 +2775,7 @@
 		<dependency>
 			<groupId>org.apache.curator</groupId>
 			<artifactId>curator-recipes</artifactId>
-			<version>5.9.0</version>
+			<version>${curator.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2898,7 +2908,6 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-text -->
-		<!-- Convergence alignment: commons-configuration2 2.15.0 brings commons-text 1.15.0. -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>
@@ -2972,7 +2981,7 @@
 				<exclusion>
 					<groupId>com.google.j2objc</groupId>
 					<artifactId>j2objc-annotations</artifactId>
-				</exclusion>
+				</exclusion> 
 				<exclusion>
 					<groupId>com.nimbusds</groupId>
 					<artifactId>oauth2-oidc-sdk</artifactId>
@@ -3279,7 +3288,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- CVE-2025-66021: bumped from 20240325.1 -->
 		<dependency>
 			<groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
 			<artifactId>owasp-java-html-sanitizer</artifactId>
@@ -3288,12 +3296,12 @@
 		<dependency>
 			<groupId>com.github.jai-imageio</groupId>
 			<artifactId>jai-imageio-jpeg2000</artifactId>
-			<version>1.4.0</version>
+			<version>${jai.imageio.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jai-imageio</groupId>
 			<artifactId>jai-imageio-core</artifactId>
-			<version>1.4.0</version>
+			<version>${jai.imageio.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
@@ -3322,7 +3330,6 @@
 			<version>2.5.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.modelcontextprotocol.sdk/mcp -->
-		<!-- Snyk remediation: move MCP to latest 2.0.x patch before Jackson 3 override work. -->
 		<dependency>
 			<groupId>io.modelcontextprotocol.sdk</groupId>
 			<artifactId>mcp</artifactId>
@@ -3364,19 +3371,32 @@
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-commons</artifactId>
-			<version>9.9.1</version>
+			<version>${asm.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.ow2.asm/asm-util -->
 		<dependency>
 			<groupId>org.ow2.asm</groupId>
 			<artifactId>asm-util</artifactId>
-			<version>9.9.1</version>
+			<version>${asm.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.jetbrains.kotlin/kotlin-stdlib -->
 		<dependency>
 			<groupId>org.jetbrains.kotlin</groupId>
 			<artifactId>kotlin-stdlib</artifactId>
 			<version>1.9.25</version>
+			<exclusions>
+			<exclusion>
+				<groupId>org.jetbrains</groupId>
+		   		<artifactId>annotations</artifactId>
+			</exclusion>
+			</exclusions>
+		</dependency>
+		<!-- Source: https://mvnrepository.com/artifact/org.jetbrains/annotations -->
+		<!-- for when we update eclipse rdf4j to v6 -->
+		<dependency>
+		    <groupId>org.jetbrains</groupId>
+		    <artifactId>annotations</artifactId>
+		    <version>26.0.2</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.livekit/livekit-server -->
 		<dependency>
@@ -3446,7 +3466,7 @@
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-client-api</artifactId>
-			<version>3.3.6</version>
+			<version>${hadoop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.xerial.snappy</groupId>
@@ -3458,7 +3478,7 @@
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-client-runtime</artifactId>
-			<version>3.3.6</version>
+			<version>${hadoop.version}</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.xerial.snappy</groupId>
@@ -3484,14 +3504,14 @@
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter</artifactId>
-			<version>6.0.0</version>
+			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.junit.platform/junit-platform-suite -->
 		<dependency>
 			<groupId>org.junit.platform</groupId>
 			<artifactId>junit-platform-suite</artifactId>
-			<version>6.0.0</version>
+			<version>${junit.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.testcontainers/testcontainers -->

@@ -33,14 +33,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.Statement;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -48,8 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-
-import javax.sql.DataSource;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.CloseableThreadContext;
@@ -77,6 +69,9 @@ import prerna.logging.IgnoreEngineLogging;
 import prerna.logging.LoggingEngineSerializer;
 import prerna.logging.LoggingIReactorSerializer;
 import prerna.logging.LoggingInsightAdapter;
+import prerna.logging.LoggingJenaTypeAdapterFactory;
+import prerna.logging.LoggingOpenRdfTypeAdapterFactory;
+import prerna.logging.LoggingRdf4jTypeAdapterFactory;
 import prerna.logging.LoggingRoomAdapter;
 import prerna.logging.LoggingSQLConnectionSerializer;
 import prerna.logging.LoggingSQLDataSourceSerializer;
@@ -117,17 +112,20 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.registerTypeHierarchyAdapter(IEngine.class, new LoggingEngineSerializer())
 			.registerTypeHierarchyAdapter(IReactor.class, new LoggingIReactorSerializer())
-			.registerTypeHierarchyAdapter(Connection.class, new LoggingSQLConnectionSerializer())
-			.registerTypeHierarchyAdapter(DataSource.class, new LoggingSQLDataSourceSerializer())
-			.registerTypeHierarchyAdapter(Statement.class, new LoggingSQLStatementSerializer())
-			.registerTypeHierarchyAdapter(ResultSet.class, new LoggingSQLResultSetSerializer())
+			.registerTypeHierarchyAdapter(java.sql.Connection.class, new LoggingSQLConnectionSerializer())
+			.registerTypeHierarchyAdapter(javax.sql.DataSource.class, new LoggingSQLDataSourceSerializer())
+			.registerTypeHierarchyAdapter(java.sql.Statement.class, new LoggingSQLStatementSerializer())
+			.registerTypeHierarchyAdapter(java.sql.ResultSet.class, new LoggingSQLResultSetSerializer())
 			.registerTypeHierarchyAdapter(Throwable.class, new LoggingThrowableSerializer())
+			.registerTypeAdapterFactory(new LoggingJenaTypeAdapterFactory())
+			.registerTypeAdapterFactory(new LoggingRdf4jTypeAdapterFactory())
+			.registerTypeAdapterFactory(new LoggingOpenRdfTypeAdapterFactory())
 			.registerTypeAdapter(Room.class, new LoggingRoomAdapter())
 			.registerTypeHierarchyAdapter(ZoneId.class, new ZoneIdTypeAdapter())
-			.registerTypeAdapter(ZoneOffset.class, new ZoneOffsetTypeAdapter())
+			.registerTypeAdapter(java.time.ZoneOffset.class, new ZoneOffsetTypeAdapter())
 			.registerTypeAdapter(Insight.class, new LoggingInsightAdapter())
-			.registerTypeAdapter(LocalDateTime.class, new LocalDateTimeAdapter())
-			.registerTypeAdapter(ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
+			.registerTypeAdapter(java.time.LocalDateTime.class, new LocalDateTimeAdapter())
+			.registerTypeAdapter(java.time.ZonedDateTime.class, new ZonedDateTimeAdapter()).create();
 
 	private final String REQUEST_NOT_TRACKED = "REQUEST NOT TRACKED";
 	private final String RESPONSE_NOT_TRACKED = "RESPONSE NOT TRACKED";
