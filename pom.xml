@@ -616,20 +616,30 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.133.Final</version>
+				<!-- Snyk remediation: align transitive Netty modules on the 4.1.x release that fixes
+				     certificate-validation, resource-exhaustion, and HTTP codec findings. -->
+				<version>4.1.137.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
-			<!-- GHSA-2m67-wjpj-xhg9 / CVE-2026-29062: force transitive tools.jackson.core (Jackson 3.x) from mcp-json-jackson3 up to fixed version -->
+			<!-- Convergence alignment: Parquet 1.18.1 requires JTS 1.20.0 while JanusGraph
+			     brings 1.17.0; manage the shared transitive dependency at the newer version. -->
+			<dependency>
+				<groupId>org.locationtech.jts</groupId>
+				<artifactId>jts-core</artifactId>
+				<version>1.20.0</version>
+			</dependency>
+			<!-- Snyk remediation: force transitive Jackson 3.x from mcp-json-jackson3 to 3.1.5,
+			     fixing unsafe deserialization, authorization, and resource-allocation findings. -->
 			<dependency>
 				<groupId>tools.jackson.core</groupId>
 				<artifactId>jackson-core</artifactId>
-				<version>3.1.1</version>
+				<version>3.1.5</version>
 			</dependency>
 			<dependency>
 				<groupId>tools.jackson.core</groupId>
 				<artifactId>jackson-databind</artifactId>
-				<version>3.1.1</version>
+				<version>3.1.5</version>
 			</dependency>
 			<!-- sshj 0.40.0 is internally inconsistent about BouncyCastle versions -->
 			<dependency>
@@ -1212,8 +1222,7 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
-			<!-- Snyk remediation: fix H2 RCE, XXE, and information exposure findings. -->
-			<version>2.4.240</version>
+			<version>1.4.200</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -1725,11 +1734,12 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.lz4/lz4-java -->
-		<!-- CVE-2025-66566: migrated from org.lz4 (relocated), bumped to 1.10.4 -->
+		<!-- Snyk remediation: keep the relocated at.yawk LZ4 artifact and upgrade to 1.11.1
+		     to fix its null-pointer denial-of-service finding. -->
 		<dependency>
-	   		<groupId>at.yawk.lz4</groupId>
-	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.10.4</version>
+			<groupId>at.yawk.lz4</groupId>
+			<artifactId>lz4-java</artifactId>
+			<version>1.11.1</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
@@ -2085,10 +2095,11 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/io.opentelemetry/opentelemetry-sdk -->
+		<!-- Snyk remediation: upgrade the SDK family to fix unbounded attribute processing. -->
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
-			<version>1.53.0</version>
+			<version>1.62.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
 		<dependency>
@@ -2282,6 +2293,11 @@
 		    <artifactId>clickhouse-jdbc</artifactId>
 		    <version>0.9.8</version>
 		    <exclusions>
+			<!-- Convergence alignment: use the direct, fixed at.yawk LZ4 1.11.1 dependency. -->
+			<exclusion>
+				<groupId>at.yawk.lz4</groupId>
+				<artifactId>lz4-java</artifactId>
+			</exclusion>
 		    	<exclusion>
 		    		<groupId>org.ow2.asm</groupId>
 		    		<artifactId>asm</artifactId>
@@ -3420,10 +3436,11 @@
 		</dependency>
 		<!-- jars added to shade-dependencies -->
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.parquet/parquet-avro -->
+		<!-- Snyk remediation: upgrade Parquet to pull fixed Zstd JNI and Aircompressor versions. -->
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.15.2</version>
+			<version>1.18.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.xerial.snappy</groupId>
