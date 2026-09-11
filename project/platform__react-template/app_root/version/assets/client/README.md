@@ -1,13 +1,32 @@
-# React client
+# React + TypeScript + Vite
 
-`client/` is the editable React/Vite source. `../portals/` is generated output
-served by SEMOSS and should be regenerated rather than edited by hand.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-When this project is created from the platform template, SEMOSS writes the new
-project UUID to `client/.env` as `APP`. Preserve that value: the SDK uses it to
-run Pixels in the cloned app's context.
+Currently, two official plugins are available:
 
-App Builder agents must use `BuildAndPublishApp(project=<current-project-id>)`
-after changing client source. It invokes the supported builder, replaces
-`portals/`, publishes the app, and releases the updated project. Do not use
-shell Node, npm, or pnpm commands from an App Builder run.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the Oxlint configuration
+
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
+```
+
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
