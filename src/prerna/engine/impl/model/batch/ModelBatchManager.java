@@ -135,6 +135,8 @@ public class ModelBatchManager {
 		}
 		String userEmail = token.getEmail();
 		String engineId = engine.getEngineId();
+		Double batchInputCredit = engine.getBatchInputTokenCredit();
+		Double batchOutputCredit = engine.getBatchOutputTokenCredit();
 		for (BatchResultItem item : results.getItems()) {
 			final String txnId = providerBatchId + "." + item.getCustomId();
 			final String capturedResponse = item.getFirstTextContent();
@@ -143,6 +145,14 @@ public class ModelBatchManager {
 			final String capturedUserId = userId;
 			final String capturedUserName = userName;
 			final String capturedUserEmail = userEmail;
+			final Double capturedBudget;
+			if (batchInputCredit != null && batchOutputCredit != null) {
+				int inp = capturedInput  != null ? capturedInput  : 0;
+				int out = capturedOutput != null ? capturedOutput : 0;
+				capturedBudget = inp * batchInputCredit + out * batchOutputCredit;
+			} else {
+				capturedBudget = null;
+			}
 			Thread t = new Thread(() -> {
 				try {
 					// RESPONSE row carries assistant-side counts; MESSAGE_TOKENS = output
@@ -153,7 +163,7 @@ public class ModelBatchManager {
 							capturedOutput, null, capturedOutput, null, null, null,
 							null, now,
 							engineId, insightId, sessionId, roomId,
-							capturedUserId, capturedUserName, capturedUserEmail);
+							capturedUserId, capturedUserName, capturedUserEmail, capturedBudget);
 					// back-fill the submit-time INPUT row with prompt-side tokens
 					ModelInferenceLogsUtils.updateBatchInputTokens(txnId, capturedInput);
 				} catch (Exception e) {

@@ -154,6 +154,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected Double outputTokenCredit = null;
 	protected Double cacheReadMultiplier = null;
 	protected Double cacheWriteMultiplier = null;
+	protected Double batchInputTokenCredit = null;
+	protected Double batchOutputTokenCredit = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -238,12 +240,16 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		this.outputTokenCredit = (Double) metadata.get("outputTokenCredit");
 		this.cacheReadMultiplier = (Double) metadata.get("cacheReadMultiplier");
 		this.cacheWriteMultiplier = (Double) metadata.get("cacheWriteMultiplier");
+		this.batchInputTokenCredit = (Double) metadata.get("batchInputTokenCredit");
+		this.batchOutputTokenCredit = (Double) metadata.get("batchOutputTokenCredit");
 	}
 
 	public Double getInputTokenCredit() { return inputTokenCredit; }
 	public Double getOutputTokenCredit() { return outputTokenCredit; }
 	public Double getCacheReadMultiplier() { return cacheReadMultiplier; }
 	public Double getCacheWriteMultiplier() { return cacheWriteMultiplier; }
+	public Double getBatchInputTokenCredit()  { return batchInputTokenCredit  != null ? batchInputTokenCredit  : inputTokenCredit; }
+	public Double getBatchOutputTokenCredit() { return batchOutputTokenCredit != null ? batchOutputTokenCredit : outputTokenCredit; }
 
 	/**
 	 * The smss file wins over the MODELMETADATA row for input modalities, same as
