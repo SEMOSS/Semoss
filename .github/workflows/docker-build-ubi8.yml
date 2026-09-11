@@ -8,7 +8,7 @@ on:
       - '.github/workflows/docker-build-ubi8.yml'
   workflow_dispatch:
   schedule:
-    - cron: '30 7 * * *'  # Runs every day at 7:30 AM UTC, which is 3:30 AM EDT (2:30 AM EST)
+    - cron: '18 1 * * *'  # Runs every day at 1:18 AM UTC, which is 9:18 PM EDT (8:18 PM EST)
 
 
 jobs:
