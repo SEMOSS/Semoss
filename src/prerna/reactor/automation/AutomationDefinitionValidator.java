@@ -49,6 +49,7 @@ import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
 
+import prerna.ds.py.PyUtils;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
@@ -184,6 +185,10 @@ public final class AutomationDefinitionValidator {
 				String outputVar = requireNonblankString(
 						node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
 						"graph.nodes[" + index + "].outputVar");
+				if (!PyUtils.isValidPythonVariableName(outputVar)) {
+					throw new IllegalArgumentException("Node '" + nodeId + "' outputVar '" + outputVar
+							+ "' must be a valid Python identifier.");
+				}
 				if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(outputVar)) {
 					throw new IllegalArgumentException("Node '" + nodeId + "' outputVar '" + outputVar
 							+ "' is reserved for automation runtime metadata.");

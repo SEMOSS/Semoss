@@ -36,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import prerna.ds.py.PyUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
@@ -171,7 +172,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String requiredOutputVariable(String value) {
-		if (!value.matches("[A-Za-z_][A-Za-z0-9_]*")) {
+		if (!PyUtils.isValidPythonVariableName(value)) {
 			throw new IllegalArgumentException("outputVar must be a valid Python identifier.");
 		}
 		return value;
