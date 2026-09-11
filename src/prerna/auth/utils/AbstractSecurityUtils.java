@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -2451,23 +2452,30 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
-			// Insert default row for DEFAULTMODEL into USERMETAKEYS if not exists
-			try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
-					"select count(*) from " + Constants.USER_METAKEYS)) {
-				if (wrapper.hasNext()) {
-					int count = ((Number) wrapper.next().getValues()[0]).intValue();
-					if (count == 0) {
-						int order = 0;
-						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
-								new Object[] { Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
-						securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
-								new Object[] { Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "single", order++,
-										"select-box", null }));
+			// Seed required USERMETAKEYS rows — insert any that are missing
+			{
+				String[][] metakeySeed = {
+					{ Constants.DEFAULT_TEXT_GENERATION_MODEL_KEY, "0" },
+					{ Constants.DEFAULT_CODE_GENERATION_MODEL_KEY, "1" },
+					{ Constants.DEFAULT_AGENT_KEY,                 "2" },
+				};
+				try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb,
+						"select distinct METAKEY from " + Constants.USER_METAKEYS)) {
+					Set<String> existingKeys = new HashSet<>();
+					while (wrapper.hasNext()) {
+						existingKeys.add((String) wrapper.next().getValues()[0]);
 					}
+					for (String[] entry : metakeySeed) {
+						String metakey = entry[0];
+						int displayOrder = Integer.parseInt(entry[1]);
+						if (!existingKeys.contains(metakey)) {
+							securityDb.insertData(queryUtil.insertIntoTable(Constants.USER_METAKEYS, colNames, types,
+									new Object[] { metakey, "single", displayOrder, "select-box", null }));
+						}
+					}
+				} catch (Exception e) {
+					classLogger.error("Error seeding USERMETAKEYS rows.", e);
 				}
-			} catch (Exception e) {
-				classLogger.error("Error initializing default USER_METAKEYS rows.", e);
 			}
 
 			// JIRA_CONNECTIONS
