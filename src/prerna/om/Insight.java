@@ -1740,12 +1740,11 @@ public class Insight implements Serializable {
 	public String getAbsoluteInsightFolderPath(String filePath) {
 		// is this one that starts with INSIGHT_FOLDER
 		if (filePath.startsWith(Insight.INSIGHT_FOLDER_KEY)) {
-			// Expand only the leading literal token; folder paths need no regex escaping.
+			// expand only the leading literal token; folder paths need no regex escaping.
 			filePath = getInsightFolder() + filePath.substring(Insight.INSIGHT_FOLDER_KEY.length());
 		} else {
 			// make sure this is not relative
-			// if it is
-			// turn to absolute based on the insight folder location
+			// if it is turn to absolute based on the insight folder location
 			if (!(new File(filePath).exists())) {
 				String filePrefix = getInsightFolder();
 				if (filePath.startsWith("\\") || filePath.startsWith("/")) {

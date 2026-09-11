@@ -40,6 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 class InsightPathTest {
+
 	@TempDir
 	Path directory;
 
@@ -55,8 +56,8 @@ class InsightPathTest {
 	@Test
 	void preservesExistingPaths() throws Exception {
 		Path file = Files.createFile(directory.resolve("existing.csv"));
-		assertEquals(file.toString(), insightWithFolder(directory.toString())
-				.getAbsoluteInsightFolderPath(file.toString()));
+		assertEquals(file.toString(),
+				insightWithFolder(directory.toString()).getAbsoluteInsightFolderPath(file.toString()));
 	}
 
 	@Test
