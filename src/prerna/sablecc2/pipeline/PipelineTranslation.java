@@ -106,9 +106,10 @@ public class PipelineTranslation extends LazyTranslation {
 	private List<PipelineOperation> curRoutine;
 	private List<Map<String, Object>> pixelIdToOperation = new ArrayList<>();
 
-	public PipelineTranslation(Insight insight) {
+	public PipelineTranslation(Insight insight, Map<String, String> encodedTextToOriginal) {
 		super();
 		this.insight = insight;
+		this.encodedTextToOriginal = encodedTextToOriginal;
 		if (this.insight != null) {
 			// we will copy the var store
 			VarStore copy = new VarStore();

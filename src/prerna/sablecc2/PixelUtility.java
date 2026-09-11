@@ -1335,9 +1335,9 @@ public class PixelUtility {
 	 */
 	public static Map<String, Object> generatePipeline(Insight in) {
 		long start = System.currentTimeMillis();
-		PipelineTranslation translation = new PipelineTranslation(in);
 		List<String> encodingList = new ArrayList<>();
 		Map<String, String> encodedTextToOriginal = new HashMap<>();
+		PipelineTranslation translation = new PipelineTranslation(in, encodedTextToOriginal);
 
 		PixelList pixelList = in.getPixelList();
 		int size = pixelList.size();
