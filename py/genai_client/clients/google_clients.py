@@ -29,6 +29,11 @@ class GoogleClientConfig(BaseModel):
     project: Optional[str] = None
     api_key: Optional[str] = None
     base_url: Optional[str] = None
+    # Some engines set region="global" for regular inference, but Anthropic/
+    # partner batch jobs reject "global" and tuned Gemini models may need a
+    # specific region -- this lets the .smss configure a distinct region for
+    # batch calls only. Base Gemini batch jobs work fine on "global".
+    batch_region: Optional[str] = None
 
 
 class GoogleClient:

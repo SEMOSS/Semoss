@@ -52,6 +52,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         safety_settings: Optional[dict] = None,
+        batch_region: Optional[str] = None,
+        gcp_batch_region: Optional[str] = None,
         **kwargs,
     ):
         super().__init__(
@@ -67,6 +69,9 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             project=project,
             api_key=api_key,
             base_url=base_url,
+            # Accept either .smss property name -- BATCH_REGION and
+            # GCP_BATCH_REGION have both been used across engines.
+            batch_region=batch_region or gcp_batch_region,
         )
         self.google_client = GoogleClient(config=self.client_config).genai_client
         self.video_client = GoogleGenAiVideoClient(parent_client=self)
@@ -225,6 +230,251 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
             wrapped = self.retry_handler.retry(generate_func)
             return wrapped(*args, **kwargs)
         return generate_func
+
+    # ---- Batch (Gemini-on-Vertex) ----
+    #
+    # Gemini has no hosted batch API either; like Anthropic-on-Vertex, batch
+    # means a Cloud Storage-mediated Vertex AI batch prediction job (see
+    # ...clients.vertex_batch_client for the shared job-lifecycle helpers).
+    # This client never touches the bucket directly -- Java drives all GCS
+    # I/O through the SEMOSS storage engine that holds its credentials (see
+    # ModelBatchManager.submitVertexBatch), calling submit_batch twice:
+    #
+    # Phase 1 (no inputUri kwarg): build the input JSONL content only, no
+    # GCS/Vertex touched -- Java uploads what comes back in raw.jsonl_content.
+    # Phase 2 (inputUri/outputUriPrefix kwargs present, requests empty):
+    # Java has already uploaded the input file; just create the job.
+
+    def _ensure_batch_supported(self):
+        """Batch is only supported for Gemini models hosted on Vertex AI
+        (GCS-mediated Vertex batch prediction jobs). The plain Gemini
+        Developer API (api_key mode, no project/region) has its own,
+        unrelated batch mechanism (inline requests or Developer API file
+        uploads) that this client does not implement."""
+        if not (self.client_config.project and self.client_config.region):
+            raise NotImplementedError(
+                "Batch is only supported for Gemini models hosted on Vertex AI "
+                "(this engine has no PROJECT/REGION configured for Vertex)."
+            )
+
+    def _vertex_genai_client(self):
+        """A google.genai.Client configured for Vertex AI .batches.* calls.
+
+        Unlike Anthropic-on-Vertex, batch inference for base (untuned) Gemini
+        models IS supported on the global endpoint -- only tuned Gemini
+        models and Anthropic/OpenMaaS partner models require a real region
+        (per Google's own batch-prediction docs). So reuse
+        self.google_client as-is by default; only build a second client
+        pinned to a different region if BATCH_REGION was explicitly set on
+        the engine (e.g. to satisfy a GCS bucket region requirement, or a
+        model that needs a specific region)."""
+        batch_region = self.client_config.batch_region
+        if not batch_region:
+            return self.google_client
+        config = GoogleClientConfig(
+            type=GoogleClientType.GOOGLE,
+            service_account_credentials=self.client_config.service_account_credentials,
+            service_account_key_file=self.client_config.service_account_key_file,
+            region=batch_region,
+            project=self.client_config.project,
+        )
+        return GoogleClient(config=config).genai_client
+
+    def _build_batch_contents(self, req: Dict[str, Any], idx: int):
+        """Builds (contents, provider_config) for one batch request by
+        reusing the exact same message-building pipeline ask_call() uses for
+        regular, non-batch calls -- so shared params (temperature, max_tokens,
+        etc.) get the same SEMOSS-generic-to-Gemini-specific translation
+        either way, and room-seeded requests (message_json) build identically
+        to how they would for a synchronous ask."""
+        skip = {"command", "context", "custom_id", "message_json"}
+        kwargs = {k: v for k, v in req.items() if k not in skip}
+        if req.get("message_json"):
+            semoss_messages = self.build_semoss_messages(
+                self.model_settings, message_json=req["message_json"], **kwargs
+            )
+        elif "command" in req:
+            # No room/history: wrap the plain prompt in a minimal one-turn
+            # schemaVersion-2 message so it flows through the same
+            # SEMOSSMessageBuilder/GoogleGenAIMessageBuilder pipeline as
+            # every other path, instead of hand-rolling Gemini's wire format.
+            message: Dict[str, Any] = {
+                "type": "INPUT_TEXT",
+                "schemaVersion": 2,
+                "io": "INPUT",
+                "parts": [{"type": "TEXT", "text": req["command"]}],
+            }
+            if req.get("context"):
+                message["context"] = req["context"]
+            semoss_messages = self.build_semoss_messages(
+                self.model_settings, message_json=json.dumps([message]), **kwargs
+            )
+        else:
+            raise ValueError(f"Batch request {idx} is missing 'command' or 'message_json'")
+
+        response = GoogleGenAIMessageBuilder().build_messages(
+            semoss_messages, self.model_settings
+        )
+        return response["messages"], response["provider_config"]
+
+    def _gemini_request_body_for_batch(self, contents, provider_config) -> Dict[str, Any]:
+        """Builds the exact Vertex REST GenerateContentRequest body (contents,
+        systemInstruction, tools, generationConfig, safetySettings as
+        siblings) for one batch JSONL line, by reusing the SDK's own internal
+        Vertex request transform -- the same one non-batch generate_content()
+        calls use -- rather than re-deriving the split ourselves, since a
+        GenerateContentConfig bundles fields (tools, systemInstruction,
+        safety settings) that must land at different top-level keys, not all
+        nested under "generationConfig".
+
+        NOTE: depends on google.genai.models._GenerateContentParameters_to_vertex,
+        an unstable/private SDK internal -- if a google-genai upgrade removes
+        or reshapes it, batch request bodies for Gemini will need to be
+        rebuilt here.
+        """
+        from google.genai.models import _GenerateContentParameters_to_vertex
+
+        body = _GenerateContentParameters_to_vertex(
+            self.google_client._api_client,
+            {"model": self.model_name, "contents": contents, "config": provider_config},
+        )
+        body.pop("_url", None)
+        return body
+
+    def submit_batch(self, requests, **kwargs) -> Dict[str, Any]:
+        self._ensure_batch_supported()
+        input_uri = kwargs.pop("inputUri", None)
+        output_uri_prefix = kwargs.pop("outputUriPrefix", None)
+        if input_uri and output_uri_prefix:
+            from google.genai.types import CreateBatchJobConfig
+            from ...clients.vertex_batch_client import normalize_job_state
+
+            genai_client = self._vertex_genai_client()
+            job = genai_client.batches.create(
+                model=self.model_name,
+                src=input_uri,
+                config=CreateBatchJobConfig(dest=output_uri_prefix),
+            )
+            return {
+                "provider_batch_id": job.name,
+                "status": normalize_job_state(job.state),
+                "raw": {"name": job.name, "state": str(job.state)},
+            }
+
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        lines = []
+        for idx, req in enumerate(requests or []):
+            if not isinstance(req, dict):
+                raise ValueError(f"Batch request {idx} must be a map")
+            custom_id = req.get("custom_id") or f"req-{idx}"
+            contents, provider_config = self._build_batch_contents(req, idx)
+            body = self._gemini_request_body_for_batch(contents, provider_config)
+            lines.append({"id": str(custom_id), "request": body})
+        if not lines:
+            raise ValueError("submit_batch requires at least one request")
+
+        # _GenerateContentParameters_to_vertex doesn't recursively convert every
+        # nested SDK type (e.g. ThinkingConfig) to a plain dict -- fall back to
+        # each object's own model_dump for anything json.dumps can't handle.
+        def _json_default(obj):
+            if hasattr(obj, "model_dump"):
+                return obj.model_dump(mode="json", by_alias=True, exclude_none=True)
+            return str(obj)
+
+        jsonl_content = "\n".join(
+            json.dumps(line, ensure_ascii=False, default=_json_default) for line in lines
+        )
+        return {
+            "status": "BUILT",
+            "request_count": len(lines),
+            "raw": {"jsonl_content": jsonl_content},
+        }
+
+    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import job_output_uri, normalize_job_state
+
+        self._ensure_batch_supported()
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "counts": None,
+            "raw": {
+                "name": job.name,
+                "state": str(job.state),
+                "output_uri": job_output_uri(job),
+            },
+        }
+
+    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """rawBlobs here is the raw text content of every output shard Java
+        already downloaded through the storage engine -- this method only
+        normalizes lines into the SEMOSS shape; it never touches GCS itself."""
+        from ...clients.vertex_batch_client import (
+            normalize_gemini_result_line,
+            normalize_job_state,
+        )
+
+        self._ensure_batch_supported()
+        job_name = provider_batch_id.split(".", 1)[-1]
+        raw_blobs = kwargs.pop("rawBlobs", None) or []
+        if isinstance(raw_blobs, str):
+            raw_blobs = json.loads(raw_blobs)
+
+        items = []
+        for blob_text in raw_blobs:
+            for raw_line in blob_text.splitlines():
+                raw_line = raw_line.strip()
+                if raw_line:
+                    items.append(normalize_gemini_result_line(json.loads(raw_line)))
+
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "count": len(items),
+            "results": items,
+        }
+
+    def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
+        """Lists Vertex AI batch jobs for this project/region. Each returned
+        provider_batch_id is the bare Vertex job name (no storageEngineId
+        prefix), same caveat as AnthropicTextClient._list_batches_vertex."""
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        self._ensure_batch_supported()
+        genai_client = self._vertex_genai_client()
+        resp = genai_client.batches.list(config={"page_size": limit})
+        batches = []
+        for job in resp:
+            batches.append(
+                {
+                    "provider_batch_id": job.name,
+                    "status": normalize_job_state(job.state),
+                    "request_count": None,
+                    "created_at": str(getattr(job, "create_time", None)),
+                }
+            )
+        return {"batches": batches}
+
+    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        self._ensure_batch_supported()
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.cancel(name=job_name)
+        if job is None:
+            job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(getattr(job, "state", None)),
+            "raw": {"name": job_name},
+        }
 
     def _parse_tools_call_response(
         self,

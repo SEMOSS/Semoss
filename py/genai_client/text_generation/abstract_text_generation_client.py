@@ -205,6 +205,32 @@ class AbstractTextGenerationClient(ABC):
             "implemented": False,
         }
 
+    # Optional capability, same as multi_modal_embeddings above -- default to a
+    # clean, catchable error for any client that doesn't override these, rather
+    # than an AttributeError from a missing method reaching Java as an opaque
+    # transport failure. AbstractPythonModelEngine.supportsBatch() (Java) gates
+    # calls on ModelTypeEnum, which is coarser than "this specific client
+    # implements batch" -- these defaults are the fallback for that gap.
+    def _batch_not_supported(self):
+        raise NotImplementedError(
+            f"Batch is not supported for model '{self.model_name}' on this provider."
+        )
+
+    def submit_batch(self, requests, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def list_batches(self, limit: int = 20, **kwargs) -> Dict:
+        self._batch_not_supported()
+
+    def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict:
+        self._batch_not_supported()
+
 
 # TODO remove once no errors are happening
 class BaseClient(AbstractTextGenerationClient):

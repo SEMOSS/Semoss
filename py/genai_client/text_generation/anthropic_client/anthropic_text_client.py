@@ -106,6 +106,9 @@ class AnthropicTextClient(AbstractTextGenerationClient):
                 region=kwargs.pop("region", None),
                 project=kwargs.pop("project", None),
                 api_key=kwargs.pop("api_key", None),
+                # Accept either .smss property name -- BATCH_REGION and
+                # GCP_BATCH_REGION have both been used across engines.
+                batch_region=kwargs.pop("batch_region", None) or kwargs.pop("gcp_batch_region", None),
             )
             return GoogleClient(config=self.client_config).anthropic_client
         elif self.provider == "bedrock":
@@ -207,7 +210,7 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         """
         With the trace header enabled, Bedrock attaches the guardrail trace as
         extra JSON fields (amazon-bedrock-trace / amazon-bedrock-guardrailAction)
-        on the InvokeModel response body — the final message when non-streaming,
+        on the InvokeModel response body -- the final message when non-streaming,
         the message_stop event when streaming. The Anthropic SDK preserves
         unknown fields in model_extra.
 
@@ -1118,12 +1121,191 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         return mapping.get(s, s.upper() or "UNKNOWN")
 
     def _ensure_native_batch_supported(self):
-        """Batch is only working for Anthropic provider; raise if not."""
-        if self.provider not in ("anthropic"):
+        """Batch is supported for direct Anthropic (native Message Batches API)
+        and Anthropic-on-Vertex (GCS-mediated Vertex batch prediction jobs, see
+        the _*_vertex methods below); raise for any other provider (bedrock,
+        azure)."""
+        if self.provider not in ("anthropic", "google"):
             raise ValueError(
-                f"Native message batches are not supported for Anthropic provider "
-                f"'{self.provider}'."
+                f"Batch is not supported for Anthropic provider '{self.provider}'."
             )
+
+    # Vertex batch prediction jobs are a regional resource -- they cannot be
+    # created (or looked up) against the "global" endpoint this engine uses
+    # for regular, non-batch inference. Fall back to a real region only for
+    # batch calls; every batch call site must agree on the same fallback
+    # since a job's resource name is region-qualified.
+    def _vertex_genai_client(self):
+        """A google.genai.Client configured for Vertex AI, for .batches.*.
+        Reuses this engine's own Vertex project/credentials (already loaded
+        for non-batch Anthropic-on-Vertex inference) -- unrelated to whatever
+        GCS storage engine's credentials a batch call was given.
+
+        Unlike regular inference, a Vertex AI batch prediction job for
+        Anthropic models is a regional resource and rejects region="global"
+        outright -- raise rather than silently substituting a region the
+        caller never configured, since a wrong guess would create the job
+        somewhere the caller doesn't expect (and later status/results calls
+        must agree on the same region to find it again)."""
+        from ...clients.google_clients import (
+            GoogleClient,
+            GoogleClientConfig,
+            GoogleClientType,
+        )
+
+        region = self.client_config.batch_region or self.client_config.region
+        if not region or region.strip().lower() == "global":
+            raise ValueError(
+                "Vertex AI batch prediction requires a real (non-global) region for "
+                "Anthropic-on-Vertex models. This engine's REGION is "
+                f"{self.client_config.region!r}; set BATCH_REGION on the engine's "
+                ".smss to a supported Anthropic-on-Vertex region (e.g. 'us-east5')."
+            )
+
+        config = GoogleClientConfig(
+            type=GoogleClientType.GOOGLE,
+            service_account_credentials=self.client_config.service_account_credentials,
+            service_account_key_file=self.client_config.service_account_key_file,
+            region=region,
+            project=self.client_config.project,
+        )
+        return GoogleClient(config=config).genai_client
+
+    def _submit_batch_vertex(self, requests, **kwargs) -> Dict[str, Any]:
+        """Anthropic-on-Vertex has no hosted batch API; a Vertex AI batch
+        prediction job is used instead, staged through Cloud Storage. This
+        Python client never touches that bucket directly -- Java drives the
+        upload through the SEMOSS storage engine that holds its credentials
+        (see ModelBatchManager.submitVertexBatch), calling this method twice:
+
+        Phase 1 (no inputUri kwarg): build the input JSONL content only, no
+        GCS/Vertex touched -- Java uploads what comes back in raw.jsonl_content.
+        Phase 2 (inputUri/outputUriPrefix kwargs present, requests empty):
+        Java has already uploaded the input file; just create the job.
+        """
+        input_uri = kwargs.pop("inputUri", None)
+        output_uri_prefix = kwargs.pop("outputUriPrefix", None)
+        if input_uri and output_uri_prefix:
+            from google.genai.types import CreateBatchJobConfig
+
+            from ...clients.vertex_batch_client import normalize_job_state
+
+            genai_client = self._vertex_genai_client()
+            job = genai_client.batches.create(
+                model=f"publishers/anthropic/models/{self.model_settings.model_name}",
+                src=input_uri,
+                config=CreateBatchJobConfig(dest=output_uri_prefix),
+            )
+            return {
+                "provider_batch_id": job.name,
+                "status": normalize_job_state(job.state),
+                "raw": {"name": job.name, "state": str(job.state)},
+            }
+
+        if isinstance(requests, str):
+            requests = json.loads(requests)
+        requests = [
+            self._normalize_request_for_batch(r, i)
+            for i, r in enumerate(requests or [])
+        ]
+        default_max_tokens = getattr(self.model_settings, "max_tokens", None) or 1024
+        lines = []
+        for req in requests or []:
+            params = dict(req.get("body") or req.get("params") or {})
+            # model is set at the job level, not per line
+            params.pop("model", None)
+            params.setdefault("max_tokens", default_max_tokens)
+            params.setdefault("anthropic_version", "vertex-2023-10-16")
+            lines.append({"custom_id": str(req.get("custom_id")), "request": params})
+        if not lines:
+            raise ValueError("submit_batch requires at least one request")
+
+        jsonl_content = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines)
+        return {
+            "status": "BUILT",
+            "request_count": len(lines),
+            "raw": {"jsonl_content": jsonl_content},
+        }
+
+    def _get_batch_status_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import job_output_uri, normalize_job_state
+
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "counts": None,
+            "raw": {
+                "name": job.name,
+                "state": str(job.state),
+                "output_uri": job_output_uri(job),
+            },
+        }
+
+    def _get_batch_results_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        """rawBlobs here is the raw text content of every output shard Java
+        already downloaded through the storage engine -- this method only
+        normalizes lines into the SEMOSS shape; it never touches GCS itself."""
+        from ...clients.vertex_batch_client import normalize_job_state, normalize_result_line
+
+        job_name = provider_batch_id.split(".", 1)[-1]
+        raw_blobs = kwargs.pop("rawBlobs", None) or []
+        if isinstance(raw_blobs, str):
+            raw_blobs = json.loads(raw_blobs)
+
+        items = []
+        for blob_text in raw_blobs:
+            for raw_line in blob_text.splitlines():
+                raw_line = raw_line.strip()
+                if raw_line:
+                    items.append(normalize_result_line(json.loads(raw_line)))
+
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(job.state),
+            "count": len(items),
+            "results": items,
+        }
+
+    def _list_batches_vertex(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
+        """Lists Vertex AI batch jobs for this project/region. Each returned
+        provider_batch_id is the bare Vertex job name (no storageEngineId
+        prefix) since a project-wide listing has no single storage engine to
+        attach -- results for one of these ids would need "storage" supplied
+        again by the caller some other way; not a well-supported path today."""
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        genai_client = self._vertex_genai_client()
+        resp = genai_client.batches.list(config={"page_size": limit})
+        batches = []
+        for job in resp:
+            batches.append(
+                {
+                    "provider_batch_id": job.name,
+                    "status": normalize_job_state(job.state),
+                    "request_count": None,
+                    "created_at": str(getattr(job, "create_time", None)),
+                }
+            )
+        return {"batches": batches}
+
+    def _cancel_batch_vertex(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
+        from ...clients.vertex_batch_client import normalize_job_state
+
+        job_name = provider_batch_id.split(".", 1)[-1]
+        genai_client = self._vertex_genai_client()
+        job = genai_client.batches.cancel(name=job_name)
+        if job is None:
+            job = genai_client.batches.get(name=job_name)
+        return {
+            "provider_batch_id": provider_batch_id,
+            "status": normalize_job_state(getattr(job, "state", None)),
+            "raw": {"name": job_name},
+        }
 
     def _normalize_request_for_batch(self, req: Any, idx: int) -> Dict[str, Any]:
         """Convert simplified {command, context} format to Anthropic batch wire format."""
@@ -1182,6 +1364,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
         from anthropic.types.messages import MessageBatch
 
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._submit_batch_vertex(requests, **kwargs)
         if isinstance(requests, str):
             requests = json.loads(requests)
         requests = [
@@ -1220,6 +1404,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def get_batch_status(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Get the status of a previously submitted batch."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._get_batch_status_vertex(provider_batch_id, **kwargs)
         batch = self.client.messages.batches.retrieve(provider_batch_id)
         rc = batch.request_counts
         counts = {
@@ -1245,6 +1431,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def get_batch_results(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Get the results of a previously submitted batch"""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._get_batch_results_vertex(provider_batch_id, **kwargs)
         items = []
         raw_lines = []
         for entry in self.client.messages.batches.results(provider_batch_id):
@@ -1291,6 +1479,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def list_batches(self, limit: int = 20, **kwargs) -> Dict[str, Any]:
         """List previously submitted batches."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._list_batches_vertex(limit, **kwargs)
         list_kwargs: Dict[str, Any] = {"limit": limit}
         after = kwargs.get("after")
         if not after:
@@ -1325,6 +1515,8 @@ class AnthropicTextClient(AbstractTextGenerationClient):
     def cancel_batch(self, provider_batch_id: str, **kwargs) -> Dict[str, Any]:
         """Cancel a previously submitted batch."""
         self._ensure_native_batch_supported()
+        if self.provider == "google":
+            return self._cancel_batch_vertex(provider_batch_id, **kwargs)
         batch = self.client.messages.batches.cancel(provider_batch_id)
         return {
             "provider_batch_id": batch.id,
