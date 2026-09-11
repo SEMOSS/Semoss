@@ -28,9 +28,18 @@
 package prerna.sablecc2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import java.util.List;
+import java.util.Map;
+
 import org.junit.jupiter.api.Test;
+
+import prerna.om.Insight;
+import prerna.om.Pixel;
+import prerna.query.querystruct.HardSelectQueryStruct;
+import prerna.sablecc2.pipeline.PipelineOperation;
 
 public class PixelUtilityUnitTests {
 
@@ -56,5 +65,33 @@ public class PixelUtilityUnitTests {
 	void decodeEscapedString_handlesNullAndPlainText() {
 		assertNull(PixelUtility.decodeEscapedString(null));
 		assertEquals("plain-text", PixelUtility.decodeEscapedString("plain-text"));
+	}
+
+	@Test
+	void generatePipeline_decodesEncodedQueryText() {
+		String query = "SELECT first_name FROM people WHERE note = 'hello world' AND code LIKE '%20%'";
+		String pixelExpression = "Database(database=[\"test-database\"]) | Query(\"<encode>" + query
+				+ "</encode>\") | Import(frame=[CreateFrame(frameType=[GRID], override=[true]).as([\"Frame_1\"])]);";
+		Insight insight = new Insight();
+		insight.getPixelList().addPixel(new Pixel("pixel-1", pixelExpression));
+
+		Map<String, Object> pipeline = PixelUtility.generatePipeline(insight);
+		@SuppressWarnings("unchecked")
+		List<List<PipelineOperation>> routines = (List<List<PipelineOperation>>) pipeline.get("pixelParsing");
+		HardSelectQueryStruct queryStruct = null;
+		for (List<PipelineOperation> routine : routines) {
+			for (PipelineOperation operation : routine) {
+				List<Map> queryStructInputs = operation.getNounInputs().get("qs");
+				if (queryStructInputs != null && !queryStructInputs.isEmpty()) {
+					Object value = queryStructInputs.get(0).get("value");
+					if (value instanceof HardSelectQueryStruct) {
+						queryStruct = (HardSelectQueryStruct) value;
+					}
+				}
+			}
+		}
+
+		assertNotNull(queryStruct);
+		assertEquals(query, queryStruct.getQuery());
 	}
 }
