@@ -30,7 +30,6 @@ package prerna.project.impl;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +64,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
 import org.xml.sax.InputSource;
 
 import com.google.gson.Gson;
@@ -170,16 +168,11 @@ public class Project implements IProject {
 	private ProjectReactorHelper reactorHelper = null;
 	private SemossDate lastReactorCompilationDate = null;
 
-	// publish portals
-	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
-	private static final String PORTAL_SDK_IMPORTMAP_ID = "semoss-sdk-importmap";
-	/** Path of the built SDK inside the FE webapp. */
-	private static final String SDK_DIST_PATH = "/libs/sdk/dist";
-	/** Entry file the "@semoss/sdk" bare specifier maps to. */
-	private static final String SDK_ENTRY_FILE = "/index.mjs";
-	private SemossDate lastPortalPublishDate = null;
-	private boolean publishedPortal = false;
-	private boolean republishPortal = false;
+	/**
+	 * Owns publishing the portal into public_home and deciding when the published
+	 * copy has fallen behind the project's content.
+	 */
+	private ProjectPortalsHelper portalsHelper = null;
 
 	// python server
 	protected String prefix = null;
@@ -261,6 +254,7 @@ public class Project implements IProject {
 
 		// load any assets that are already compiled
 		this.reactorHelper = new ProjectReactorHelper(this);
+		this.portalsHelper = new ProjectPortalsHelper(this, this.projectPortalFolder, this.smssProp);
 		try {
 			loadCompiledProjectReactors();
 		} catch (Exception e) {
@@ -946,12 +940,8 @@ public class Project implements IProject {
 
 	@Override
 	public IReactor getReactor(String className) {
-		SemossDate lastCompiledDateInSecurity = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastCompiledDateInSecurity != null && this.lastReactorCompilationDate != null) {
-			outOfDate = lastCompiledDateInSecurity.getLocalDateTime()
-					.isAfter(this.lastReactorCompilationDate.getLocalDateTime());
-		}
+		LocalDateTime clusterTimestamp = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
+		boolean outOfDate = ProjectFreshness.isBehind(clusterTimestamp, this.lastReactorCompilationDate);
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if (outOfDate || this.lastReactorCompilationDate == null) {
@@ -1125,98 +1115,12 @@ public class Project implements IProject {
 
 	@Override
 	public boolean requirePublish(boolean pullFromCloud) {
-		// check in security DB when we last published
-		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-			outOfDate = lastPublishedDateInSecurity.getZonedDateTime()
-					.isAfter(this.lastPortalPublishDate.getZonedDateTime());
-		}
-		if (outOfDate || this.lastPortalPublishDate == null) {
-			// just pull to make sure we have the latest in case project was loaded
-			// but not published
-			if (pullFromCloud) {
-				classLogger.info(
-						"Pulling Portals folder for project {}. Current portal out of date = {}. Last portal publish date = {}",
-						this.projectId, outOfDate, this.lastPortalPublishDate);
-				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
-			}
-		}
-
-		// if this are true we want to republish
-		// we just add the additional logic above if we have to pull from cloud
-		return this.republishPortal || outOfDate || !this.publishedPortal;
+		return this.portalsHelper.requirePublish(pullFromCloud);
 	}
 
 	@Override
-	/**
-	 * Publish the portals folder to public_home
-	 */
-	// TODO: HAVE TO ADD SYNCHONIZED UNTIL DATES ARE RESOLVED
-	public synchronized boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
-		if (publicHomeFilePath == null) {
-			return false;
-		}
-
-		// find what is the final URL
-		// this is the base url plus manipulations
-		// find what the tomcat deploy directory is
-		// no easy way to find other than may be find the classpath ? - will instrument
-		// this through RDF Map
-		boolean requirePublish = requirePublish(pullFromCloud);
-		try {
-			if (requirePublish) {
-				Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
-				Path targetPublicHomeProjectPortalsPath = Paths.get(
-						publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
-
-				File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
-				// if the target directory exists
-				// we have to delete it before
-				if (targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
-					FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
-				}
-
-				rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
-
-				// do we physically copy of link?
-				// first smss file
-				// second rdf map
-				boolean copy = true;
-				if (smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
-				} else if (Utility.getDIHelperProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.COPY_PROJECT) + "");
-				}
-
-				// this is purely for testing purposes - this is because when eclipse publishes
-				// it wipes the directory and removes the actual db
-				if (copy) {
-					if (!targetPublicHomeProjectPortalsDir.exists()) {
-						targetPublicHomeProjectPortalsDir.mkdir();
-					}
-					FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
-				}
-				// this is where we create symbolic link
-				else if (!targetPublicHomeProjectPortalsDir.exists()
-						&& !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
-					Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
-				}
-				targetPublicHomeProjectPortalsDir.deleteOnExit();
-				this.publishedPortal = true;
-				this.republishPortal = false;
-				this.lastPortalPublishDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-				classLogger.info("Project '{}' has new last portal published date {}",
-						SmssUtilities.getUniqueName(this.projectName, this.projectId), this.lastPortalPublishDate);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to publish portals for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-			this.publishedPortal = false;
-			this.lastPortalPublishDate = null;
-		}
-
-		return this.publishedPortal;
+	public boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
+		return this.portalsHelper.publish(publicHomeFilePath, pullFromCloud);
 	}
 
 	@Override
@@ -1323,113 +1227,19 @@ public class Project implements IProject {
 		return blocksF;
 	}
 
-	/**
-	 * Writes the platform's two auto-generated tags into the head of the portal's
-	 * index.html:
-	 *
-	 * <pre>
-	 * &lt;script id="semoss-sdk-importmap" type="importmap"&gt;
-	 * {"imports":{"@semoss/sdk":"/{route - optional}/{fe webapp}/libs/sdk/dist/index.mjs"}}
-	 * &lt;/script&gt;
-	 * &lt;script id="semoss-env" type="application/json"&gt;
-	 * {"APP": "&lt;project_id&gt;", "MODULE": "/{route - optional}/{context - usually just Monolith}"}
-	 * &lt;/script&gt;
-	 * </pre>
-	 *
-	 * The import map lets a portal built without a bundler write
-	 * {@code import { Insight } from "@semoss/sdk"} in a module script, and the env
-	 * script carries the app id and backend module the SDK reads on initialize.
-	 * Both are keyed by element id so republishing updates them in place.
-	 */
-	private void rewritePortalIndexHtml(String indexHtmlPath) {
-		File indexHtmlF = new File(indexHtmlPath);
-		if (!indexHtmlF.exists() || !indexHtmlF.isFile()) {
-			return;
-		}
-
-		String module = Utility.getApplicationRouteAndContextPath();
-		org.jsoup.nodes.Document document;
-		try {
-			document = Jsoup.parse(indexHtmlF, "UTF-8");
-			// pretty-printing re-indents the whole document which causes issues with
-			// agent's editing an index.html because every change will affect future string
-			// replacement attempts
-			document.outputSettings().prettyPrint(false);
-			Element head = document.selectFirst("head");
-			if (head == null) {
-				classLogger.warn("Portal index html has no head element, skipping rewrite {}",
-						indexHtmlF.getAbsolutePath());
-				return;
-			}
-
-			String scriptContent = "{\"APP\": \"" + projectId + "\",\"MODULE\": \"" + module + "\"}";
-			Element autoGenScript = document.getElementById(PORTAL_INDEX_SCRIPT_ID);
-			if (autoGenScript == null) {
-				head.prepend("<script id=\"" + PORTAL_INDEX_SCRIPT_ID + "\" type=\"application/json\">" + scriptContent
-						+ "</script>");
-			} else {
-				autoGenScript.html(scriptContent);
-			}
-
-			writeSdkImportMap(document, head);
-
-			String newHtml = document.html();
-			try (FileWriter fw = new FileWriter(indexHtmlF, false)) {
-				fw.write(newHtml);
-				fw.flush();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to rewrite portal index html {}", indexHtmlF.getAbsolutePath(), e);
-		}
-	}
-
-	/**
-	 * Puts the SDK import map first in the head, where it precedes every module
-	 * script on the page as the import map spec requires.
-	 *
-	 * <p>
-	 * A document may only carry one import map, so a portal that ships its own
-	 * (anything built through a bundler) is left alone and resolves
-	 * {@code @semoss/sdk} through its own build instead.
-	 */
-	private static void writeSdkImportMap(org.jsoup.nodes.Document document, Element head) {
-		String importMap = "{\"imports\":{\"@semoss/sdk\":\"" + resolveSdkEntryUrl() + "\"}}";
-		Element existing = document.getElementById(PORTAL_SDK_IMPORTMAP_ID);
-		if (existing != null) {
-			existing.html(importMap);
-		} else if (document.selectFirst("script[type=importmap]") == null) {
-			head.prepend(
-					"<script id=\"" + PORTAL_SDK_IMPORTMAP_ID + "\" type=\"importmap\">" + importMap + "</script>");
-		}
-	}
-
-	/**
-	 * URL the {@code @semoss/sdk} bare specifier resolves to in a published portal.
-	 *
-	 * <p>
-	 * Points at the built SDK inside the FE webapp, which the war packages and
-	 * serves as static content on the same origin as the portal, so the module and
-	 * the page it is imported from always come from the same deployment.
-	 */
-	private static String resolveSdkEntryUrl() {
-		String route = Utility.getApplicationOptionalRoutePath();
-		String routePrefix = (route == null || route.isEmpty()) ? "" : "/" + route;
-		return routePrefix + "/" + Utility.getFEWebAppName() + SDK_DIST_PATH + SDK_ENTRY_FILE;
-	}
-
 	@Override
 	public void setRepublish(boolean republish) {
-		this.republishPortal = republish;
+		this.portalsHelper.setRepublish(republish);
 	}
 
 	@Override
 	public boolean isPublished() {
-		return this.publishedPortal;
+		return this.portalsHelper.isPublished();
 	}
 
 	@Override
 	public SemossDate getLastPublishDate() {
-		return this.lastPortalPublishDate;
+		return this.portalsHelper.getLastPublishDate();
 	}
 
 	@Override
