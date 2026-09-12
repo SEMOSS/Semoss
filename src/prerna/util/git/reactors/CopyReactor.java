@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util.git.reactors;
 
 import java.io.File;
@@ -49,10 +76,11 @@ import prerna.util.git.GitRepoUtils;
  *
  * Types are explicit (INSIGHT, ROOM, PROJECT, ENGINE, USER) so no id has to be
  * guessed. File paths are relative to the location's assets folder. Read access
- * is required on the source, edit access on the target. PROJECT, ENGINE and USER
- * targets are git backed: the copy is committed once and the whole copy + commit
- * + cloud push runs under that project's or engine's lock. INSIGHT and ROOM
- * targets are plain folders. Only files are copied; directories are rejected.
+ * is required on the source, edit access on the target. PROJECT, ENGINE and
+ * USER targets are git backed: the copy is committed once and the whole copy +
+ * commit + cloud push runs under that project's or engine's lock. INSIGHT and
+ * ROOM targets are plain folders. Only files are copied; directories are
+ * rejected.
  */
 public class CopyReactor extends AbstractReactor {
 
@@ -83,7 +111,9 @@ public class CopyReactor extends AbstractReactor {
 		}
 	}
 
-	/** A resolved type + id: where relative paths live and how writes are recorded. */
+	/**
+	 * A resolved type + id: where relative paths live and how writes are recorded.
+	 */
 	private static final class Location {
 		SpaceType type;
 		String id;
@@ -122,7 +152,8 @@ public class CopyReactor extends AbstractReactor {
 		boolean override = getBoolean(OVERRIDE, false);
 		String comment = this.keyValue.get(COMMENT);
 		if (comment == null || comment.trim().isEmpty()) {
-			comment = "copy: " + sourceRelative + " (" + sourceType + ") to " + targetRelative + " (" + targetType + ")";
+			comment = "copy: " + sourceRelative + " (" + sourceType + ") to " + targetRelative + " (" + targetType
+					+ ")";
 		}
 
 		// Serialize with everything else that commits to or syncs this folder.
@@ -216,8 +247,7 @@ public class CopyReactor extends AbstractReactor {
 			location.project = project;
 			location.assetFolder = AssetUtility.getProjectAssetsFolder(project.getProjectName(),
 					project.getProjectId());
-			location.gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(),
-					project.getProjectId());
+			location.gitFolder = AssetUtility.getProjectVersionFolder(project.getProjectName(), project.getProjectId());
 			return location;
 		}
 		case ENGINE: {
@@ -303,7 +333,10 @@ public class CopyReactor extends AbstractReactor {
 		}
 	}
 
-	/** Normalizes a caller path: forward slashes, no leading slash, no '.' or '..' segments. */
+	/**
+	 * Normalizes a caller path: forward slashes, no leading slash, no '.' or '..'
+	 * segments.
+	 */
 	private static String relativePath(String key, String value) {
 		if (value == null || value.trim().isEmpty()) {
 			throw new IllegalArgumentException("Must pass " + key);

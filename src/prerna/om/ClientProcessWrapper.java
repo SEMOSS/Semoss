@@ -95,8 +95,8 @@ public class ClientProcessWrapper {
 	private static final String[] DEFAULT_CP_ENTRIES = new String[] { "fst-3.0.4-jdk17.jar", "objenesis-3.3.jar",
 			"javassist-3.30.2-GA.jar", "log4j-api-2.25.4.jar", "log4j-core-2.25.4.jar", "gson-2.13.2.jar",
 			"jackson-core-2.22.0.jar", "commons-io-2.21.0.jar", "commons-lang3-3.20.0.jar",
-			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.133.Final.jar", "netty-common-4.1.133.Final.jar",
-			"netty-buffer-4.1.133.Final.jar", "netty-transport-4.1.133.Final.jar", "classes" };
+			"jakarta.ws.rs-api-4.0.0.jar", "netty-handler-4.1.137.Final.jar", "netty-common-4.1.137.Final.jar",
+			"netty-buffer-4.1.137.Final.jar", "netty-transport-4.1.137.Final.jar", "classes" };
 
 	private final ReentrantLock lockCreate = new ReentrantLock();
 	private final ReentrantLock lockDestroy = new ReentrantLock();

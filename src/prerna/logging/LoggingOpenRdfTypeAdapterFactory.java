@@ -25,23 +25,29 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.run;
+package prerna.logging;
+
+import org.openrdf.model.Statement;
+import org.openrdf.model.Value;
 
 /**
- * One {@code AGENT_RUN} row, read back into memory.
+ * Masks legacy Sesame types when audit logging. ISesameRDFEngine exposes a
+ * RepositoryConnection and a ValueFactory on the proxied engine surface.
  *
- * <p>
- * Holds the run's identity and status alongside the {@link AgentRunRequest}
- * rehydrated from the {@code REQUEST_JSON} column, which is what lets the
- * worker execute a run it did not receive itself.
- *
- * @param runId   durable id of the run
- * @param roomId  room the run belongs to
- * @param status  status as of the read
- * @param request the submission this run was created from
- * @param userId  owner of the run
- * @param jobId   id the streaming and logging layers key on
+ * Values and statements are exempt because their implementations hold only the
+ * data.
  */
-public record AgentRunRecord(String runId, String roomId, AgentRunStatus status, AgentRunRequest request, String userId,
-		String jobId) {
+public class LoggingOpenRdfTypeAdapterFactory extends AbstractLoggingRdfTypeAdapterFactory {
+
+	private static final String OPENRDF_PACKAGE_PREFIX = "org.openrdf.";
+
+	@Override
+	protected String getPackagePrefix() {
+		return OPENRDF_PACKAGE_PREFIX;
+	}
+
+	@Override
+	protected boolean isValueType(Class<?> rawType) {
+		return Value.class.isAssignableFrom(rawType) || Statement.class.isAssignableFrom(rawType);
+	}
 }
