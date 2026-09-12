@@ -44,7 +44,7 @@
 		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Separate
 		     from bc.fips.version above, which is the FIPS-certified artifact line. -->
 		<bc.jdk18on.version>1.80.2</bc.jdk18on.version>
-		<log4j2.version>2.25.5</log4j2.version>
+		<log4j2.version>2.26.1</log4j2.version>
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
@@ -650,8 +650,6 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<!-- Snyk remediation: align transitive Netty modules on the 4.1.x release that fixes
-				     certificate-validation, resource-exhaustion, and HTTP codec findings. -->
 				<version>4.1.137.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
@@ -710,14 +708,6 @@
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>animal-sniffer-annotations</artifactId>
 				<version>1.26</version>
-			</dependency>
-			<!-- Source: https://mvnrepository.com/artifact/org.locationtech.jts/jts-core -->
-			<!-- Convergence alignment: Parquet 1.18.1 requires JTS 1.20.0 while JanusGraph
-			     brings 1.17.0; manage the shared transitive dependency at the newer version. -->
-			<dependency>
-				<groupId>org.locationtech.jts</groupId>
-				<artifactId>jts-core</artifactId>
-				<version>1.20.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -1097,7 +1087,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.21.0</version>
+			<version>2.22.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
@@ -1231,7 +1221,7 @@
 		<dependency>
 			<groupId>org.checkerframework</groupId>
 			<artifactId>checker-qual</artifactId>
-			<version>3.49.3</version>
+			<version>3.54.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.github.spullara.mustache.java/compiler -->
 		<dependency>
@@ -1525,12 +1515,24 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
 			<version>${poi.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.xmlbeans</groupId>
+					<artifactId>xmlbeans</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
 			<version>${poi.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.xmlbeans</groupId>
+					<artifactId>xmlbeans</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
@@ -1561,7 +1563,7 @@
 		<dependency>
 			<groupId>com.github.pjfanning</groupId>
 			<artifactId>excel-streaming-reader</artifactId>
-			<version>5.2.0</version>
+			<version>5.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1607,7 +1609,7 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
-			<version>3.2.3</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.errorprone</groupId>
@@ -1635,7 +1637,7 @@
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
-			<version>5.3.0</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.logging.log4j</groupId>
@@ -1937,7 +1939,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20240205</version>
+			<version>20251224</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 		<dependency>
@@ -2065,10 +2067,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
-		<!--
-		<dependency><groupId>au.com.bytecode</groupId><artifactId>opencsv</artifactId><version>2.4</version></dependency>
-		-->
 		<!-- Source: https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
 		<dependency>
 			<groupId>org.semarglproject</groupId>
@@ -2107,7 +2105,6 @@
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
-			<!-- Snyk remediation: upgrade the SDK family to fix unbounded attribute processing. -->
 			<version>1.62.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
@@ -2164,7 +2161,7 @@
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
-			<version>11.26</version>
+			<version>11.33</version>
 			<exclusions>
 				<exclusion>
 					<groupId>net.minidev</groupId>
@@ -2354,7 +2351,7 @@
 		<dependency>
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-core</artifactId>
-			<version>1.2.0-20250812-182757.f621a1c</version>
+    		<version>1.2.0-20260818-222253.cbd6fc2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
@@ -2369,20 +2366,8 @@
 					<artifactId>javassist</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.google.errorprone</groupId>
-					<artifactId>error_prone_annotations</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>commons-codec</groupId>
 					<artifactId>commons-codec</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>commons-io</groupId>
-					<artifactId>commons-io</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
@@ -2403,6 +2388,10 @@
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
 		    		<artifactId>commons-configuration2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.locationtech.jts</groupId>
+					<artifactId>jts-core</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2605,13 +2594,13 @@
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-classworlds</artifactId>
-			<version>2.8.0</version>
+			<version>2.11.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-component-annotations -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-component-annotations</artifactId>
-			<version>2.1.0</version>
+			<version>2.2.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-container-default -->
 		<dependency>
@@ -3072,7 +3061,7 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>2.13.2</version>
+			<version>2.14.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.google.guava/guava -->
 		<dependency>
@@ -3098,7 +3087,7 @@
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java-util</artifactId>
-			<version>4.31.1</version>
+			<version>4.33.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>
@@ -3453,7 +3442,6 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<!-- Snyk remediation: upgrade Parquet to pull fixed Zstd JNI and Aircompressor versions. -->
 			<version>1.18.1</version>
 			<exclusions>
 				<exclusion>
