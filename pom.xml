@@ -44,13 +44,13 @@
 		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Separate
 		     from bc.fips.version above, which is the FIPS-certified artifact line. -->
 		<bc.jdk18on.version>1.80.2</bc.jdk18on.version>
-		<log4j2.version>2.25.5</log4j2.version>
+		<log4j2.version>2.26.1</log4j2.version>
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
 		<jackson2.version>2.22.2</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
-		<jackson3.version>3.1.1</jackson3.version>
+		<jackson3.version>3.1.5</jackson3.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
@@ -650,7 +650,7 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-bom</artifactId>
-				<version>4.1.133.Final</version>
+				<version>4.1.137.Final</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -1008,12 +1008,6 @@
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-collections4</artifactId>
 			<version>4.5.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-codec</groupId>
-					<artifactId>commons-codec</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>commons-codec</groupId>
@@ -1087,7 +1081,7 @@
 		<dependency>
 			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.21.0</version>
+			<version>2.22.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.commons/commons-lang3 -->
 		<dependency>
@@ -1221,7 +1215,7 @@
 		<dependency>
 			<groupId>org.checkerframework</groupId>
 			<artifactId>checker-qual</artifactId>
-			<version>3.49.3</version>
+			<version>3.54.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.github.spullara.mustache.java/compiler -->
 		<dependency>
@@ -1285,16 +1279,6 @@
 			<groupId>org.javatuples</groupId>
 			<artifactId>javatuples</artifactId>
 			<version>1.2</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-lang</groupId>
-					<artifactId>commons-lang</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>junit</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.mindrot/jbcrypt -->
 		<!-- TODO: remove once no BCrypt hashes remain. Kept only to verify pre-FIPS
@@ -1305,12 +1289,6 @@
 			<groupId>org.mindrot</groupId>
 			<artifactId>jbcrypt</artifactId>
 			<version>0.4</version>
-			<exclusions>
-				<exclusion>
-					<groupId>junit</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.jena/jena-arq -->
 		<dependency>
@@ -1515,12 +1493,24 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-lite</artifactId>
 			<version>${poi.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.xmlbeans</groupId>
+					<artifactId>xmlbeans</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-ooxml-full -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml-full</artifactId>
 			<version>${poi.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.apache.xmlbeans</groupId>
+					<artifactId>xmlbeans</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.poi/poi-scratchpad -->
 		<dependency>
@@ -1551,7 +1541,7 @@
 		<dependency>
 			<groupId>com.github.pjfanning</groupId>
 			<artifactId>excel-streaming-reader</artifactId>
-			<version>5.2.0</version>
+			<version>5.3.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -1571,10 +1561,6 @@
 		    <artifactId>waffle-jna-jakarta</artifactId>
 		    <version>3.6.0</version>
 		    <exclusions>
-				<exclusion>
-					<groupId>com.google.errorprone</groupId>
-					<artifactId>error_prone_annotations</artifactId>
-				</exclusion>
 				<exclusion>
 					<groupId>com.github.ben-manes.caffeine</groupId>
 					<artifactId>caffeine</artifactId>
@@ -1597,15 +1583,11 @@
 		<dependency>
 			<groupId>com.github.ben-manes.caffeine</groupId>
 			<artifactId>caffeine</artifactId>
-			<version>3.2.3</version>
+			<version>3.2.4</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.errorprone</groupId>
 					<artifactId>error_prone_annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.checkerframework</groupId>
-					<artifactId>checker-qual</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -1625,7 +1607,7 @@
 		<dependency>
 			<groupId>org.apache.xmlbeans</groupId>
 			<artifactId>xmlbeans</artifactId>
-			<version>5.3.0</version>
+			<version>5.4.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.logging.log4j</groupId>
@@ -1694,10 +1676,6 @@
 					<artifactId>commons-math3</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>org.apache.httpcomponents.client5</groupId>
-					<artifactId>httpclient5</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1715,10 +1693,6 @@
 				</exclusion>
 				<!-- for when we update to v6 -->
 				<exclusion>
-					<groupId>com.google.code.gson</groupId>
-					<artifactId>gson</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>org.jetbrains.kotlin</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
@@ -1728,10 +1702,6 @@
 					<artifactId>lz4-java</artifactId>
 				</exclusion>
 				<!-- for when we update to v6 -->
-				<exclusion>
-					<groupId>at.yawk.lz4</groupId>
-	   				<artifactId>lz4-java</artifactId>
-				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -1797,14 +1767,6 @@
 			<version>${quartz.version}</version>
 			<exclusions>
 				<exclusion>
-					<groupId>com.zaxxer</groupId>
-					<artifactId>HikariCP-java7</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.mchange</groupId>
-					<artifactId>c3p0</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>jakarta.xml.bind</groupId>
 					<artifactId>jakarta.xml.bind-api</artifactId>
 				</exclusion>
@@ -1841,12 +1803,6 @@
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
 			<version>42.7.12</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.checkerframework</groupId>
-					<artifactId>checker-qual</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.pgvector/pgvector -->
 		<dependency>
@@ -1927,7 +1883,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20240205</version>
+			<version>20251224</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 		<dependency>
@@ -2055,10 +2011,6 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-		<!-- Source: https://mvnrepository.com/artifact/au.com.bytecode/opencsv -->
-		<!--
-		<dependency><groupId>au.com.bytecode</groupId><artifactId>opencsv</artifactId><version>2.4</version></dependency>
-		-->
 		<!-- Source: https://mvnrepository.com/artifact/org.semarglproject/semargl-rdf -->
 		<dependency>
 			<groupId>org.semarglproject</groupId>
@@ -2097,7 +2049,7 @@
 		<dependency>
 			<groupId>io.opentelemetry</groupId>
 			<artifactId>opentelemetry-sdk</artifactId>
-			<version>1.53.0</version>
+			<version>1.62.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/jakarta.ws.rs/jakarta.ws.rs-api -->
 		<dependency>
@@ -2143,17 +2095,13 @@
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>com.fasterxml.jackson.datatype</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.nimbusds/oauth2-oidc-sdk -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>oauth2-oidc-sdk</artifactId>
-			<version>11.26</version>
+			<version>11.33</version>
 			<exclusions>
 				<exclusion>
 					<groupId>net.minidev</groupId>
@@ -2182,10 +2130,6 @@
 				<exclusion>
 					<groupId>net.java.dev.jna</groupId>
 					<artifactId>jna-platform</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>net.minidev</groupId>
-					<artifactId>json-smart</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>io.projectreactor</groupId>
@@ -2343,7 +2287,7 @@
 		<dependency>
 			<groupId>org.janusgraph</groupId>
 			<artifactId>janusgraph-core</artifactId>
-			<version>1.2.0-20250812-182757.f621a1c</version>
+    		<version>1.2.0-20260818-222253.cbd6fc2</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.apache.tinkerpop</groupId>
@@ -2358,28 +2302,12 @@
 					<artifactId>javassist</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.google.errorprone</groupId>
-					<artifactId>error_prone_annotations</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>commons-codec</groupId>
 					<artifactId>commons-codec</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>commons-io</groupId>
-					<artifactId>commons-io</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-text</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-lang3</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>com.github.ben-manes.caffeine</groupId>
@@ -2392,6 +2320,10 @@
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
 		    		<artifactId>commons-configuration2</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>org.locationtech.jts</groupId>
+					<artifactId>jts-core</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2428,18 +2360,6 @@
 					<groupId>xml-apis</groupId>
 					<artifactId>xml-apis</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>commons-io</groupId>
-					<artifactId>commons-io</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>commons-logging</groupId>
-					<artifactId>commons-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.slf4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/de.ruedigermoeller/fst -->
@@ -2475,10 +2395,6 @@
 				</exclusion>
 				<exclusion>
 					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-lang3</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.commons</groupId>
 					<artifactId>commons-compress</artifactId>
 				</exclusion>
 				<exclusion>
@@ -2496,10 +2412,6 @@
 				<exclusion>
 					<groupId>org.objenesis</groupId>
 					<artifactId>objenesis</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.codehaus.plexus</groupId>
-					<artifactId>plexus-classworlds</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.codehaus.plexus</groupId>
@@ -2521,10 +2433,6 @@
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>junit</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.apache.maven/maven-core -->
@@ -2536,10 +2444,6 @@
 				<exclusion>
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.commons</groupId>
-					<artifactId>commons-lang3</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.codehaus.plexus</groupId>
@@ -2564,12 +2468,6 @@
 			<groupId>org.apache.maven.shared</groupId>
 			<artifactId>maven-invoker</artifactId>
 			<version>3.3.0</version>
-			<exclusions>
-				<exclusion>
-					<groupId>commons-io</groupId>
-					<artifactId>commons-io</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.osgi/org.osgi.util.function -->
 		<dependency>
@@ -2594,13 +2492,13 @@
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-classworlds</artifactId>
-			<version>2.8.0</version>
+			<version>2.11.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-component-annotations -->
 		<dependency>
 			<groupId>org.codehaus.plexus</groupId>
 			<artifactId>plexus-component-annotations</artifactId>
-			<version>2.1.0</version>
+			<version>2.2.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.codehaus.plexus/plexus-container-default -->
 		<dependency>
@@ -2626,12 +2524,6 @@
 		<dependency>
 			<groupId>org.graphstream</groupId>
 			<artifactId>gs-core</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>junit</groupId>
-					<artifactId>junit</artifactId>
-				</exclusion>
-			</exclusions>
 			<version>${graphstream.version}</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.graphstream/gs-algo -->
@@ -2639,10 +2531,6 @@
 			<groupId>org.graphstream</groupId>
 			<artifactId>gs-algo</artifactId>
 			<exclusions>
-				<exclusion>
-					<groupId>junit</groupId>
-					<artifactId>junit</artifactId>
-				</exclusion>
 				<exclusion>
 					<groupId>org.jfree</groupId>
 					<artifactId>jfreechart</artifactId>
@@ -2669,10 +2557,6 @@
 			<version>2.6.2.0</version>
 			<classifier>jakarta</classifier>
 			<exclusions>
-				<exclusion>
-					<groupId>log4j</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
@@ -2730,20 +2614,8 @@
 			<version>3.9.5</version>
 			<exclusions>
 				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-classic</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>ch.qos.logback</groupId>
-					<artifactId>logback-core</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>commons-io</groupId>
 					<artifactId>commons-io</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>log4j</groupId>
-					<artifactId>*</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
@@ -2955,10 +2827,6 @@
 			<version>6.3.0</version>
 			<exclusions>
 				<exclusion>
-					<groupId>com.fasterxml.jackson.core</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>com.google.code.gson</groupId>
 					<artifactId>gson</artifactId>
 				</exclusion>
@@ -2979,16 +2847,8 @@
 					<artifactId>error_prone_annotations</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.google.j2objc</groupId>
-					<artifactId>j2objc-annotations</artifactId>
-				</exclusion> 
-				<exclusion>
 					<groupId>com.nimbusds</groupId>
 					<artifactId>oauth2-oidc-sdk</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>net.minidev</groupId>
-					<artifactId>json-smart</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.apache.httpcomponents.client5</groupId>
@@ -3061,7 +2921,7 @@
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>2.13.2</version>
+			<version>2.14.0</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.google.guava/guava -->
 		<dependency>
@@ -3087,27 +2947,15 @@
 		<dependency>
 			<groupId>com.google.protobuf</groupId>
 			<artifactId>protobuf-java-util</artifactId>
-			<version>4.31.1</version>
+			<version>4.33.5</version>
 			<exclusions>
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>
 					<artifactId>gson</artifactId>
 				</exclusion>
 				<exclusion>
-					<groupId>com.google.guava</groupId>
-					<artifactId>guava</artifactId>
-				</exclusion>
-				<exclusion>
 					<groupId>com.google.errorprone</groupId>
 					<artifactId>error_prone_annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.google.j2objc</groupId>
-					<artifactId>j2objc-annotations</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.google.guava</groupId>
-					<artifactId>failureaccess</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -3247,10 +3095,6 @@
 					<groupId>com.google.guava</groupId>
 					<artifactId>guava</artifactId>
 				</exclusion>
-				<exclusion>
-					<groupId>com.google.guava</groupId>
-					<artifactId>failureaccess</artifactId>
-				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -3316,10 +3160,6 @@
 				<exclusion>
 					<groupId>com.google.code.gson</groupId>
 					<artifactId>gson</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>com.google.errorprone</groupId>
-					<artifactId>error_prone_annotations</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
@@ -3442,7 +3282,7 @@
 		<dependency>
 			<groupId>org.apache.parquet</groupId>
 			<artifactId>parquet-avro</artifactId>
-			<version>1.15.2</version>
+			<version>1.18.1</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.xerial.snappy</groupId>
@@ -3487,10 +3327,6 @@
 				<exclusion>
 					<groupId>commons-logging</groupId>
 					<artifactId>commons-logging</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.apache.avro</groupId>
-					<artifactId>avro</artifactId>
 				</exclusion>
 				<exclusion>
 					<groupId>org.slf4j</groupId>
