@@ -62,7 +62,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class PipelineTranslation extends LazyTranslation {
@@ -142,7 +141,8 @@ public class PipelineTranslation extends LazyTranslation {
 				this.currentFrame = null;
 			} catch (SemossPixelException ex) {
 				trackError(e.toString(), this.pixelObj.isMeta(), ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Pixel error while building the pipeline for step {} of {}: {}", pixelstep + 1, size,
+						e.toString(), ex);
 				// if we want to continue the thread of execution
 				// nothing special
 				// just add the error to the return
@@ -159,13 +159,14 @@ public class PipelineTranslation extends LazyTranslation {
 				}
 			} catch (Exception ex) {
 				trackError(e.toString(), this.pixelObj.isMeta(), ex);
-				classLogger.error(Constants.STACKTRACE, ex);
+				classLogger.error("Unexpected error while building the pipeline for step {} of {}: {}", pixelstep + 1,
+						size, e.toString(), ex);
 				planner.addVariable("$RESULT",
 						new NounMetadata(ex.getMessage(), PixelDataType.ERROR, PixelOperationType.ERROR));
 				postProcess(e.toString().trim());
 			}
 			long end = System.currentTimeMillis();
-			classLogger.debug("Time to process = " + (end - start) + " for " + e.toString());
+			classLogger.debug("Time to process = {} ms for {}", (end - start), e.toString());
 		}
 	}
 
@@ -303,8 +304,9 @@ public class PipelineTranslation extends LazyTranslation {
 				curReactor.updatePlan();
 				addRoutine();
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
-				throw new IllegalArgumentException(e.getMessage());
+				classLogger.error("Unable to generate the pipeline operation for reactor {}",
+						curReactor.getClass().getSimpleName(), e);
+				throw new IllegalArgumentException(e.getMessage(), e);
 			}
 
 			// get the parent
@@ -447,7 +449,8 @@ public class PipelineTranslation extends LazyTranslation {
 		} catch (Exception e) {
 			// error finding reactor
 			// just return a generic reactor placeholder
-			classLogger.error("Error finding reactor " + reactorId, e);
+			classLogger.warn("Unable to find reactor {}, falling back to a placeholder pipeline operation", reactorId,
+					e);
 		}
 
 		UndeterminedPipelineReactor reactor = new UndeterminedPipelineReactor();

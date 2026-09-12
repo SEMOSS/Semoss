@@ -96,6 +96,45 @@ public class PixelUtility {
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	/**
+	 * Line/character location reported at the start of a parser or lexer message,
+	 * for example {@code [3,17] expecting: ...}
+	 */
+	private static final Pattern SYNTAX_LOCATION_PATTERN = Pattern.compile("\\[\\d+,\\d+\\]");
+
+	/**
+	 * Number of characters shown on either side of a reported syntax error.
+	 */
+	private static final int SYNTAX_ERROR_CONTEXT_CHARS = 10;
+
+	/**
+	 * Builds a readable message for a parse failure, appending the surrounding
+	 * pixel text when the failure reports a line/character location.
+	 *
+	 * @param e     parse failure
+	 * @param pixel pixel expression that failed to parse
+	 * @return failure message, enriched with the syntax location when available
+	 */
+	private static String buildSyntaxErrorMessage(Exception e, String pixel) {
+		String eMessage = e.getMessage();
+		if (eMessage == null) {
+			return e.getClass().getName();
+		}
+		if (!eMessage.startsWith("[")) {
+			return eMessage;
+		}
+		Matcher matcher = SYNTAX_LOCATION_PATTERN.matcher(eMessage);
+		if (!matcher.find()) {
+			return eMessage;
+		}
+		String location = matcher.group(0);
+		location = location.substring(1, location.length() - 1);
+		int findIndex = Integer.parseInt(location.split(",")[1]);
+		int end = Math.min(findIndex + SYNTAX_ERROR_CONTEXT_CHARS, pixel.length());
+		int start = Math.min(Math.max(findIndex - SYNTAX_ERROR_CONTEXT_CHARS, 0), end);
+		return eMessage + ". Error in syntax around " + pixel.substring(start, end).trim();
+	}
+
+	/**
 	 * Validates a pixel expression without executing it.
 	 *
 	 * @param pixelExpression pixel expression to validate
@@ -370,20 +409,8 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.notCacheable();
 		} catch (ParserException | LexerException | IOException e) {
-			classLogger.error("Unable to evaluate cacheability for the provided pixel expression", e);
-			String eMessage = e.getMessage();
-			if (eMessage.startsWith("[")) {
-				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-				Matcher matcher = pattern.matcher(eMessage);
-				if (matcher.find()) {
-					String location = matcher.group(0);
-					location = location.substring(1, location.length() - 1);
-					int findIndex = Integer.parseInt(location.split(",")[1]);
-					eMessage += ". Error in syntax around " + pixel
-							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
-				}
-			}
-			classLogger.info(eMessage);
+			classLogger.error("Unable to evaluate cacheability for the provided pixel expression. {}",
+					buildSyntaxErrorMessage(e, pixel), e);
 		}
 		return false;
 	}
@@ -410,20 +437,8 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.getPanelViewJson();
 		} catch (ParserException | LexerException | IOException e) {
-			classLogger.error("Unable to parse insight parameter JSON from recipe", e);
-			String eMessage = e.getMessage();
-			if (eMessage.startsWith("[")) {
-				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-				Matcher matcher = pattern.matcher(eMessage);
-				if (matcher.find()) {
-					String location = matcher.group(0);
-					location = location.substring(1, location.length() - 1);
-					int findIndex = Integer.parseInt(location.split(",")[1]);
-					eMessage += ". Error in syntax around " + pixel
-							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
-				}
-			}
-			classLogger.info(eMessage);
+			classLogger.error("Unable to parse insight parameter JSON from recipe. {}",
+					buildSyntaxErrorMessage(e, pixel), e);
 		}
 
 		return null;
@@ -474,20 +489,8 @@ public class PixelUtility {
 			tree.apply(translation);
 			return translation.isDashboard();
 		} catch (ParserException | LexerException | IOException e) {
-			classLogger.error("Unable to evaluate dashboard recipe from pixel expression", e);
-			String eMessage = e.getMessage();
-			if (eMessage.startsWith("[")) {
-				Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-				Matcher matcher = pattern.matcher(eMessage);
-				if (matcher.find()) {
-					String location = matcher.group(0);
-					location = location.substring(1, location.length() - 1);
-					int findIndex = Integer.parseInt(location.split(",")[1]);
-					eMessage += ". Error in syntax around " + pixel
-							.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixel.length())).trim();
-				}
-			}
-			classLogger.info(eMessage);
+			classLogger.error("Unable to evaluate dashboard recipe from pixel expression. {}",
+					buildSyntaxErrorMessage(e, pixel), e);
 		}
 		return false;
 	}
@@ -1363,19 +1366,8 @@ public class PixelUtility {
 			} catch (ParserException | LexerException | IOException e) {
 				// we only need to catch invalid syntax here
 				// other exceptions are caught in lazy translation
-				String eMessage = e.getMessage();
-				if (eMessage.startsWith("[")) {
-					Pattern pattern = Pattern.compile("\\[\\d+,\\d+\\]");
-					Matcher matcher = pattern.matcher(eMessage);
-					if (matcher.find()) {
-						String location = matcher.group(0);
-						location = location.substring(1, location.length() - 1);
-						int findIndex = Integer.parseInt(location.split(",")[1]);
-						eMessage += ". Error in syntax around " + pixelString
-								.substring(Math.max(findIndex - 10, 0), Math.min(findIndex + 10, pixelString.length()))
-								.trim();
-					}
-				}
+				String eMessage = buildSyntaxErrorMessage(e, pixelString);
+				classLogger.error("Unable to generate the pipeline for pixel id {}. {}", pixel.getId(), eMessage, e);
 				throw new IllegalArgumentException(eMessage, e);
 			}
 		}
