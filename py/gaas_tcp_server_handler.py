@@ -151,11 +151,30 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
     return mod
 
 
+def _is_engine_owned_process():
+    """
+    Whether this process runs an engine's own python rather than a user's
+    python code. Set from the --engine_owned flag the engines launch with.
+    """
+    handler = TCPServerHandler.da_server
+    server = getattr(handler, "server", None) if handler is not None else None
+    return bool(getattr(server, "engine_owned", False))
+
+
 def _internal_openai():
     """
     Point the openai SDK at the insight socket the first time it is imported,
     so `from openai import OpenAI` reaches the platform's models without a key.
+
+    Skipped in an engine owned process. The model engines build their own
+    clients out of this same openai package, and a client of theirs is one the
+    platform is serving rather than one it should serve. smss_openai already
+    refuses to route any client handed a credential, which covers them; this is
+    the second of two locks rather than the only one.
     """
+    if _is_engine_owned_process():
+        return
+
     try:
         import smss_openai
 
