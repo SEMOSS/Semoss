@@ -5,11 +5,11 @@ description: Use when writing code in an app that creates, lists, renames, pins,
 
 # Room
 
-A **room** is a persistent, named conversation on the platform — it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
+A **room** is a persistent, named conversation on the platform - it carries chat history, a selected model, a system prompt, MCP tool configuration, and optional workspace association. All room calls go through `runPixel` from `@semoss/sdk`. A room has its own `roomId` (the durable chat identifier) and runs inside an `insightId` (the per-session execution scope).
 
-> **Bind the insight to the room before asking.** Pass `SetRoomForInsight(roomId=...)` once per session — typically alongside your first `GetPlaygroundMessages` / `GetRoomOptions` call — so subsequent `LLM(...)` turns in this insight thread into the room's history.
+> **Bind the insight to the room before asking.** Pass `SetRoomForInsight(roomId=...)` once per session - typically alongside your first `GetPlaygroundMessages` / `GetRoomOptions` call - so subsequent `LLM(...)` turns in this insight thread into the room's history.
 
-## Usage — create a room, then ask a message
+## Usage - create a room, then ask a message
 
 ```typescript
 import { runPixel } from "@semoss/sdk";
@@ -30,7 +30,7 @@ await runPixel(
   insightId,
 );
 
-// 3. Ask the model — pass roomId so the turn is recorded against the room.
+// 3. Ask the model - pass roomId so the turn is recorded against the room.
 const MODEL_ID = "6dd0bbfd-cd3b-4f2c-b13a-fe4545872e3d";
 await runPixel(
   `LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["Hello"]);`,
@@ -42,16 +42,16 @@ The variations below show only the pixel string. The surrounding `runPixel(...)`
 
 ## Room lifecycle
 
-### Create — `CreatePlaygroundRoom`
+### Create - `CreatePlaygroundRoom`
 
 ```
 CreatePlaygroundRoom();
 CreatePlaygroundRoom(workspaceId="<workspace-uuid>");
 ```
 
-Always call against a **new** insight (`runPixel(pixel, "new")`). The pixel returns `{ roomId }`; capture the surrounding `insightId` too — both are needed for subsequent calls.
+Always call against a **new** insight (`runPixel(pixel, "new")`). The pixel returns `{ roomId }`; capture the surrounding `insightId` too - both are needed for subsequent calls.
 
-### List user rooms — `GetPlaygroundRooms`
+### List user rooms - `GetPlaygroundRooms`
 
 Prefix with `META |` to bypass insight execution. Supports search, pinned filter, paging, sort.
 
@@ -63,7 +63,7 @@ META | GetPlaygroundRooms(search="<encode>quarterly review</encode>", limit=25, 
 
 Each row contains `ROOM_ID`, `ROOM_NAME`, `DATE_CREATED`, optional `WORKSPACE_ID`, and `PINNED`.
 
-### List workspace rooms — `GetWorkspaceRooms`
+### List workspace rooms - `GetWorkspaceRooms`
 
 Scoped to a single workspace. Output is `{ total_count, rooms: [{ room_id, room_name, date_updated }] }`.
 
@@ -72,13 +72,13 @@ GetWorkspaceRooms(workspaceId=["<workspace-uuid>"], limit=[25], offset=[0]);
 GetWorkspaceRooms(workspaceId=["<workspace-uuid>"], filters=[Filter(room_name ?like "review")], limit=[25], offset=[0]);
 ```
 
-### Rename — `RenameRoom`
+### Rename - `RenameRoom`
 
 ```
 RenameRoom(roomId=["${roomId}"], name=["My renamed room"]);
 ```
 
-### Pin / unpin — `PinRoom`
+### Pin / unpin - `PinRoom`
 
 `pinned=true` to favorite, `pinned=false` to remove from favorites.
 
@@ -86,7 +86,7 @@ RenameRoom(roomId=["${roomId}"], name=["My renamed room"]);
 PinRoom(roomId=["${roomId}"], pinned=[true]);
 ```
 
-### Delete — `RemoveUserRoom`
+### Delete - `RemoveUserRoom`
 
 Removes the room from the current user. If you have its `insightId` cached, also call `DropInsight()` against that insight to release server-side resources.
 
@@ -98,15 +98,15 @@ RemoveUserRoom(roomId=["${roomId}"]);
 
 `GetRoomOptions` / `UpdateRoomOptions` read and write the per-room configuration: model, instructions (system prompt), MCPs, temperature, token length, workspace, predefined prompts.
 
-### Read — `GetRoomOptions`
+### Read - `GetRoomOptions`
 
 ```
 GetRoomOptions(roomId="${roomId}");
 ```
 
-The output is `{ OPTIONS?: { instructions, mcp, tokenLength, temperature, workspace?, predefinedPrompts } }`. `OPTIONS` is missing on rooms created before options existed — treat it as optional.
+The output is `{ OPTIONS?: { instructions, mcp, tokenLength, temperature, workspace?, predefinedPrompts } }`. `OPTIONS` is missing on rooms created before options existed - treat it as optional.
 
-### Bind insight to room — `SetRoomForInsight`
+### Bind insight to room - `SetRoomForInsight`
 
 Call once when opening a room so the insight's subsequent `LLM(...)` calls are threaded into the room's history. Typically chained with `GetPlaygroundMessages` and `GetRoomOptions` in a single `runPixel` to initialize:
 
@@ -114,7 +114,7 @@ Call once when opening a room so the insight's subsequent `LLM(...)` calls are t
 GetPlaygroundMessages(roomId=["${roomId}"]); GetRoomOptions(roomId="${roomId}"); SetRoomForInsight(roomId="${roomId}");
 ```
 
-### Update — `UpdateRoomOptions`
+### Update - `UpdateRoomOptions`
 
 Pass the **full** options object. Include `modelId` to set the room's default model.
 
@@ -129,11 +129,11 @@ UpdateRoomOptions(roomId="${roomId}", roomOptions=[${JSON.stringify({
 })}]);
 ```
 
-> **Don't persist workspace-inherited MCPs.** When a room has a workspace, the workspace's MCPs are merged into the in-memory `mcp` list tagged with `fromWorkspace: true`. Strip those out before `UpdateRoomOptions` — only the room-owned MCPs should be saved. Filter with `mcp.filter((m) => !m?.fromWorkspace)`.
+> **Don't persist workspace-inherited MCPs.** When a room has a workspace, the workspace's MCPs are merged into the in-memory `mcp` list tagged with `fromWorkspace: true`. Strip those out before `UpdateRoomOptions` - only the room-owned MCPs should be saved. Filter with `mcp.filter((m) => !m?.fromWorkspace)`.
 
 ## Room messages
 
-### Read history — `GetPlaygroundMessages`
+### Read history - `GetPlaygroundMessages`
 
 ```
 GetPlaygroundMessages(roomId=["${roomId}"]);
@@ -141,12 +141,12 @@ GetPlaygroundMessages(roomId=["${roomId}"]);
 
 Returns a flat array of `PixelMessage` objects, each with:
 
-- `io: "INPUT" | "OUTPUT"` — user message vs. model response.
-- `messageId`, `parentMessageId` — message tree. Walk `parentMessageId` to reconstruct branching history; messages with no parent attach to the room root.
-- `modelId`, `modelType` — which model produced/received the message.
-- `parts[]` — `{ type: "TEXT" | "THINKING" | "MEDIA" | "TOOL_CALL" | "TOOL_RESULT", ... }`. Render `TEXT` parts as chat bubbles; `MEDIA` carries `mediaInfo.fileLocation` for inline attachments; `TOOL_CALL` / `TOOL_RESULT` pair up via `toolCall.id` / `toolResult.toolCallId`.
+- `io: "INPUT" | "OUTPUT"` - user message vs. model response.
+- `messageId`, `parentMessageId` - message tree. Walk `parentMessageId` to reconstruct branching history; messages with no parent attach to the room root.
+- `modelId`, `modelType` - which model produced/received the message.
+- `parts[]` - `{ type: "TEXT" | "THINKING" | "MEDIA" | "TOOL_CALL" | "TOOL_RESULT", ... }`. Render `TEXT` parts as chat bubbles; `MEDIA` carries `mediaInfo.fileLocation` for inline attachments; `TOOL_CALL` / `TOOL_RESULT` pair up via `toolCall.id` / `toolResult.toolCallId`.
 - `tokens`, `dateCreated`, `ornaments.modelName`.
-- `feedback?` on OUTPUT messages — `{ rating, feedbackText, ... }` if the user rated the response.
+- `feedback?` on OUTPUT messages - `{ rating, feedbackText, ... }` if the user rated the response.
 
 ### Send a chat turn
 
@@ -158,19 +158,19 @@ LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["${prompt}"]);
 
 The turn is automatically persisted to the room's history and will appear in the next `GetPlaygroundMessages` call. See the `model` skill for the full `LLM()` reference (history, structured outputs, attaching media with `media=`). For an autonomous, multi-turn agent loop instead of a single request/response, see the `agent-run` skill.
 
-### Rich chat turns — `AskRoom`
+### Rich chat turns - `AskRoom`
 
-`LLM()` returns only the response text. `AskRoom` is the room-aware turn that returns **full message objects** — ids, parts, threading — so a chat UI does not have to re-fetch history after every turn:
+`LLM()` returns only the response text. `AskRoom` is the room-aware turn that returns **full message objects** - ids, parts, threading - so a chat UI does not have to re-fetch history after every turn:
 
 ```
 AskRoom(engine="${MODEL_ID}", roomId="${roomId}", command=["<encode>${prompt}</encode>"]);
 ```
 
-Output is `{ inputMessage, responseMessage, extraMessages? }` — each a `PixelMessage` in the same shape `GetPlaygroundMessages` returns (with `messageId`, `parentMessageId`, `parts[]` including `TOOL_CALL`s). Optional arguments: `parentMessageId` (thread the turn under a specific message — this is how branching/regenerate works), `media`/`url` (attachments, same as `LLM`), `hiddenMessage=[true]` (record without displaying), `responseParts`, `paramValues`.
+Output is `{ inputMessage, responseMessage, extraMessages? }` - each a `PixelMessage` in the same shape `GetPlaygroundMessages` returns (with `messageId`, `parentMessageId`, `parts[]` including `TOOL_CALL`s). Optional arguments: `parentMessageId` (thread the turn under a specific message - this is how branching/regenerate works), `media`/`url` (attachments, same as `LLM`), `hiddenMessage=[true]` (record without displaying), `responseParts`, `paramValues`.
 
 Append `inputMessage` and `responseMessage` straight into local chat state instead of re-running `GetPlaygroundMessages`.
 
-### Close a client-side tool loop — `AddToolExecution`
+### Close a client-side tool loop - `AddToolExecution`
 
 When a response's `parts[]` contains `TOOL_CALL`s the app executes itself (browser-side tools), feed each result back with `AddToolExecution`; when the last pending tool result arrives, the output IS the model's follow-up response:
 
@@ -178,8 +178,8 @@ When a response's `parts[]` contains `TOOL_CALL`s the app executes itself (brows
 AddToolExecution(engine="${MODEL_ID}", roomId="${roomId}", toolId="${toolCall.id}", toolName="${toolCall.name}", toolExecutionResponse=["<encode>${resultJson}</encode>"], toolParameterValues=[${JSON.stringify(executedParams)}], mcpToolStatus=["success"]);
 ```
 
-- Call once per pending `TOOL_CALL`. Until every tool from the previous response has a result, the pixel returns a "more tool responses needed" string instead of the model reply — keep submitting.
-- `mcpToolStatus` accepts `success` / `error` / `cancelled` — report failures honestly so the model can react.
+- Call once per pending `TOOL_CALL`. Until every tool from the previous response has a result, the pixel returns a "more tool responses needed" string instead of the model reply - keep submitting.
+- `mcpToolStatus` accepts `success` / `error` / `cancelled` - report failures honestly so the model can react.
 - For tools executed inside an embedded MCP app rather than by your own code, the app-bootstrap skill's `runMCPTool`/`sendMCPResponseToPlayground` flow applies instead.
 
 ## Chat UX helpers
@@ -188,19 +188,19 @@ AddToolExecution(engine="${MODEL_ID}", roomId="${roomId}", toolId="${toolCall.id
 GenerateFollowUpQuestions(engine="${MODEL_ID}", roomId="${roomId}", limit=[3]);
 ```
 
-Returns `{ suggestions: string[] }` — render as tappable chips after each response (empty when the room cannot take a new input, e.g. tools are pending).
+Returns `{ suggestions: string[] }` - render as tappable chips after each response (empty when the room cannot take a new input, e.g. tools are pending).
 
 ```
 CompactRoomMessages(roomId=["${roomId}"], parentMessageId=["${lastMessageId}"], compactionTypes=["TOOL_PRUNE"]);
 ```
 
-Shrinks a long room's history to stay under the model's context window. `TOOL_PRUNE` strips old tool arguments/results (lossless for conversation text); `SUMMARY` replaces older turns with a model-written summary (**lossy** — do not use when exact history matters). Omit `compactionTypes` to let the platform pick. Pair the decision with `GetContextWindow` from the model skill.
+Shrinks a long room's history to stay under the model's context window. `TOOL_PRUNE` strips old tool arguments/results (lossless for conversation text); `SUMMARY` replaces older turns with a model-written summary (**lossy** - do not use when exact history matters). Omit `compactionTypes` to let the platform pick. Pair the decision with `GetContextWindow` from the model skill.
 
 ```
 GenerateRoomName(roomId=["${roomId}"], prompt=["<encode>${firstUserMessage}</encode>"]);
 ```
 
-One-off model call that names the room **and persists the name** — call it after the first user turn in a "New chat" flow instead of leaving rooms untitled.
+One-off model call that names the room **and persists the name** - call it after the first user turn in a "New chat" flow instead of leaving rooms untitled.
 
 ## Response shape
 
@@ -269,13 +269,13 @@ const rooms = pixelReturn[0].output;
 
 ### Encoding rules
 
-- **Free-text user input** inside a pixel string (search queries, chat prompts, system instructions) — wrap in `<encode>...</encode>`. The Pixel parser decodes the wrapper before executing. Do **not** also `encodeURIComponent`; doing both produces literal escape sequences in the executed pixel.
-- **IDs and option blobs** (`roomId`, `workspaceId`, `roomOptions`) — pass plainly or via `JSON.stringify` for objects. No `<encode>` wrapper.
+- **Free-text user input** inside a pixel string (search queries, chat prompts, system instructions) - wrap in `<encode>...</encode>`. The Pixel parser decodes the wrapper before executing. Do **not** also `encodeURIComponent`; doing both produces literal escape sequences in the executed pixel.
+- **IDs and option blobs** (`roomId`, `workspaceId`, `roomOptions`) - pass plainly or via `JSON.stringify` for objects. No `<encode>` wrapper.
 
 ## Related
 
-- `model` — `LLM()` reference; pair with a `roomId` for threaded chat turns.
-- `agent-run` — autonomous, multi-turn agent loop against a room, instead of a single `LLM()` turn.
-- `file-uploads` — two-step upload pattern for attaching media to a room's first user message.
-- `vector` — embedding/retrieval pixels for grounding room responses on documents.
-- `database` — query a database from inside a room (e.g., via an MCP tool or direct `SqlQuery()` call).
+- `model` - `LLM()` reference; pair with a `roomId` for threaded chat turns.
+- `agent-run` - autonomous, multi-turn agent loop against a room, instead of a single `LLM()` turn.
+- `file-uploads` - two-step upload pattern for attaching media to a room's first user message.
+- `vector` - embedding/retrieval pixels for grounding room responses on documents.
+- `database` - query a database from inside a room (e.g., via an MCP tool or direct `SqlQuery()` call).

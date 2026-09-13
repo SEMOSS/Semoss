@@ -87,6 +87,13 @@
 			<outputDirectory>py</outputDirectory>
 		</fileSet>
 		<fileSet>
+			<directory>js</directory>
+			<outputDirectory>js</outputDirectory>
+			<excludes>
+				<exclude>node_env/node_modules/**</exclude>
+			</excludes>
+		</fileSet>
+		<fileSet>
 			<directory>images</directory>
 			<outputDirectory>images</outputDirectory>
 		</fileSet>
