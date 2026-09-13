@@ -338,9 +338,16 @@ def _route_in_platform(base_url, kwargs):
     """
     Decide whether this client should be served in-platform.
 
-    A caller who named a host, or who asked for a specific provider or workload
-    identity, means it: leave that client alone so it goes out to the network
-    the way it was configured.
+    A caller who named a host, handed over a credential, or asked for a specific
+    provider or workload identity means it: leave that client alone so it goes
+    out to the network the way it was configured.
+
+    The credential check is what keeps the model engines working. Their python
+    processes run this same handler, so importing openai in
+    genai_client/text_generation/openai_clients installs this patch there too.
+    Those clients are built as `OpenAI(api_key=<the engine's key>)`, usually
+    with no base_url, and routing one of those back into the platform would
+    have the engine call itself through the model it is serving.
 
     Args:
         base_url (`Any`): the base_url the caller passed, or `_UNSET`.
@@ -353,7 +360,14 @@ def _route_in_platform(base_url, kwargs):
         return False
     if os.environ.get("OPENAI_BASE_URL"):
         return False
-    opt_outs = ("provider", "workload_identity", "websocket_base_url", "data_residency")
+    opt_outs = (
+        "api_key",
+        "admin_api_key",
+        "provider",
+        "workload_identity",
+        "websocket_base_url",
+        "data_residency",
+    )
     for opt_out in opt_outs:
         if kwargs.get(opt_out) is not None:
             return False
@@ -370,8 +384,9 @@ def _client_defaults(kwargs, transport):
     retry would just ask the model the same question twice.
     """
     kwargs["base_url"] = INTERNAL_BASE_URL
-    if not kwargs.get("api_key"):
-        kwargs["api_key"] = os.environ.get("OPENAI_API_KEY") or INTERNAL_API_KEY
+    # a caller who passed one has already opted out, so this is always the
+    # placeholder: the SDK refuses to construct without something here
+    kwargs["api_key"] = INTERNAL_API_KEY
     if kwargs.get("http_client") is None:
         kwargs["http_client"] = transport
     kwargs.setdefault("max_retries", 0)

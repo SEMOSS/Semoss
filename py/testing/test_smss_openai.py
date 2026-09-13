@@ -143,6 +143,13 @@ class FakeServerProxy:
         return [{"pixelReturn": [{"operationType": ["OPERATION"], "output": output}]}]
 
 
+def smss_openai_module():
+    """The module under test, imported lazily so the fake bridge is in place."""
+    import smss_openai
+
+    return smss_openai
+
+
 def json_reactor_response(payload, status=200):
     return {
         "status": status,
@@ -242,6 +249,32 @@ class SmssOpenAITest(unittest.TestCase):
         client = self.openai.OpenAI()
         self.assertTrue(str(client.base_url).startswith("http://smss.internal"))
         self.assertEqual(0, client.max_retries)
+
+    def test_a_supplied_key_is_left_alone(self):
+        """
+        The model engines' python processes run this same handler, so importing
+        openai in genai_client installs the patch there too. Those clients are
+        built as OpenAI(api_key=<engine key>) with no base_url - routing one of
+        those in-platform would have the engine call itself through the model it
+        is serving. A supplied credential means the caller wants that service.
+        """
+        client = self.openai.OpenAI(api_key="sk-the-engines-key")
+
+        self.assertTrue(str(client.base_url).startswith("https://api.openai.com"))
+        self.assertNotIsInstance(
+            client._client._transport, smss_openai_module().SemossTransport
+        )
+
+    def test_a_supplied_provider_is_left_alone(self):
+        """The engines' bedrock path passes provider= and no api_key."""
+        try:
+            from openai.providers import bedrock
+        except ImportError:
+            self.skipTest("this openai build has no providers module")
+
+        client = self.openai.OpenAI(provider=bedrock(region="us-east-1"))
+
+        self.assertFalse(str(client.base_url).startswith("http://smss.internal"))
 
     def test_explicit_base_url_is_left_alone(self):
         client = self.openai.OpenAI(
