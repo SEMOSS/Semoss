@@ -85,6 +85,9 @@
 		<fileSet>
 			<directory>py</directory>
 			<outputDirectory>py</outputDirectory>
+			<excludes>
+				<exclude>testing/**</exclude>
+			</excludes>
 		</fileSet>
 		<fileSet>
 			<directory>js</directory>
