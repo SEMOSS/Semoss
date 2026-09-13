@@ -1,0 +1,48 @@
+name: All Docker Builds
+
+# Starts every OS image build in one click instead of dispatching each builder
+# by hand. This only fires them: each build reports its own status in the
+# Actions tab, and this workflow finishes as soon as they are all queued.
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag to build from (defaults to the branch this is run on)'
+        required: false
+        default: ''
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start every image build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF: ${{ inputs.ref || github.ref_name }}
+        run: |
+          set -u
+          WORKFLOWS="al2023.yml docker-build-ubi8.yml docker-build-ubi9.yml ubuntu2204.yml ubuntu2404.yml"
+          failed=0
+
+          echo "### All Docker Builds - ref \`$REF\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          for workflow in $WORKFLOWS; do
+            if gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref "$REF"; then
+              echo "dispatched $workflow"
+              echo "- started \`$workflow\`" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::error::could not dispatch $workflow on $REF"
+              echo "- FAILED to start \`$workflow\`" >> "$GITHUB_STEP_SUMMARY"
+              failed=1
+            fi
+          done
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Each build reports separately - watch them in the Actions tab." >> "$GITHUB_STEP_SUMMARY"
+          exit $failed
