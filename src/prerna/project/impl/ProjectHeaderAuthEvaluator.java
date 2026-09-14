@@ -36,16 +36,19 @@ import java.util.Map;
 
 import org.apache.http.HttpHeaders;
 
+@Deprecated
 public class ProjectHeaderAuthEvaluator {
 
 	private String projectId;
 	private transient String accessKey;
 	private transient String secretKey;
 
+	@Deprecated
 	public ProjectHeaderAuthEvaluator() {
 
 	}
 
+	@Deprecated
 	public Map<String, String> eval() throws UnsupportedEncodingException {
 		char[] accKy = this.accessKey.toCharArray();
 		char[] secKy = this.secretKey.toCharArray();
@@ -67,18 +70,22 @@ public class ProjectHeaderAuthEvaluator {
 		return headers;
 	}
 
+	@Deprecated
 	public String getProjectId() {
 		return projectId;
 	}
 
+	@Deprecated
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
 	}
 
+	@Deprecated
 	public void setAccessKey(String accessKey) {
 		this.accessKey = accessKey;
 	}
 
+	@Deprecated
 	public void setSecretKey(String secretKey) {
 		this.secretKey = secretKey;
 	}

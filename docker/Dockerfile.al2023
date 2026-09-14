@@ -153,6 +153,8 @@ RUN dnf install -y --setopt=install_weak_deps=False \
         util-linux \
         glibc-langpack-en \
 		procps \
+        tar \
+        gzip \
     && dnf clean all
 
 # install rclone
@@ -168,6 +170,42 @@ RUN curl -fsSL https://rclone.org/install.sh | bash \
 
 COPY --from=mavenpuller --chown=1001:0 /opt /opt
 COPY --from=quay.io/semoss/python-builder:3.12-cpu /usr/lib/python /usr/lib/python
+
+# ---------------------------------------------------------------------------
+# Node.js runtime for the agent-only ExecuteNodeCode execution environment.
+# NodeUtils resolves <NODE_HOME>/bin/node, so this must be a plain nodejs.org
+# dist layout rather than a distro package. The curated js/node_env packages
+# are installed at build time so the running container never needs npm or
+# registry access (guarded: js/ only ships in the semosshome artifact once its
+# assembly includes it). AGENT_DEFAULT_TOOLS_ENABLE_NODE is seeded false so
+# the runtime env passthrough scripts have a line to sed, matching the other
+# agent tool flags.
+ARG NODE_VERSION=24.21.0
+ENV NODE_HOME=/opt/node
+RUN set -eux; \
+	case "$(uname -m)" in \
+		x86_64) nodeArch=x64 ;; \
+		aarch64|arm64) nodeArch=arm64 ;; \
+		*) echo "unsupported architecture $(uname -m) for the node runtime"; exit 1 ;; \
+	esac; \
+	nodeTar="node-v${NODE_VERSION}-linux-${nodeArch}.tar.gz"; \
+	cd /tmp; \
+	curl -fsSLO "https://nodejs.org/dist/v${NODE_VERSION}/${nodeTar}"; \
+	curl -fsSL -o node-SHASUMS256.txt "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"; \
+	grep " ${nodeTar}" node-SHASUMS256.txt | sha256sum -c -; \
+	mkdir -p "/opt/node-v${NODE_VERSION}"; \
+	tar -xzf "${nodeTar}" -C "/opt/node-v${NODE_VERSION}" --strip-components=1; \
+	ln -sfn "/opt/node-v${NODE_VERSION}" /opt/node; \
+	rm -f "${nodeTar}" node-SHASUMS256.txt; \
+	/opt/node/bin/node --version; \
+	if [ -f /opt/semosshome/js/node_env/package-lock.json ]; then \
+		cd /opt/semosshome/js/node_env; \
+		PATH="/opt/node/bin:$PATH" /opt/node/bin/npm ci --omit=dev --no-audit --no-fund; \
+		chown -R 1001:0 /opt/semosshome/js; \
+	fi; \
+	if ! grep -q "^AGENT_DEFAULT_TOOLS_ENABLE_NODE" /opt/semosshome/RDF_Map.prop; then \
+		printf 'AGENT_DEFAULT_TOOLS_ENABLE_NODE\tfalse\n' >> /opt/semosshome/RDF_Map.prop; \
+	fi
 
 # AL2023 does not have the steps to install playwright in the dockerfile.
 
