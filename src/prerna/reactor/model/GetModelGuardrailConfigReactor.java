@@ -183,6 +183,11 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 	 * source names are returned; nameIsFromSource reports which one the running
 	 * build produced.
 	 *
+	 * carriesToolResults marks a message argument, the only kind that can hold the
+	 * agent loop's tool-result turns. It tells the settings UI which methods can
+	 * offer the tool-continuation skip settings and which argument name those
+	 * settings point at.
+	 *
 	 * @return one entry per interceptable method, ordered for display
 	 */
 	private static List<Map<String, Object>> buildInterceptableMethods() {
@@ -218,6 +223,7 @@ public class GetModelGuardrailConfigReactor extends AbstractReactor {
 					argument.put("nameIsFromSource", parameters[i].isNamePresent());
 					argument.put("type", readableTypeName(parameters[i].getParameterizedType()));
 					argument.put("guardable", isGuardableArgument(parameters[i]));
+					argument.put("carriesToolResults", AbstractMessage.class.isAssignableFrom(parameters[i].getType()));
 					arguments.add(argument);
 				}
 				entry.put("arguments", arguments);
