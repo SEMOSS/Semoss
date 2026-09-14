@@ -25,23 +25,48 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.agent.run;
+package prerna.engine.impl.model.openai;
+
+import java.io.IOException;
+import java.io.Writer;
 
 /**
- * One {@code AGENT_RUN} row, read back into memory.
+ * A single OpenAI SSE conversation being assembled from a running model job.
  *
  * <p>
- * Holds the run's identity and status alongside the {@link AgentRunRequest}
- * rehydrated from the {@code REQUEST_JSON} column, which is what lets the
- * worker execute a run it did not receive itself.
+ * The protocol state that spans chunks - sequence numbers, the open item and
+ * content part, accumulated text, captured usage - lives in the implementation,
+ * so the same instance can be driven two ways:
  *
- * @param runId   durable id of the run
- * @param roomId  room the run belongs to
- * @param status  status as of the read
- * @param request the submission this run was created from
- * @param userId  owner of the run
- * @param jobId   id the streaming and logging layers key on
+ * <ul>
+ * <li>by a caller holding an open http response, which loops on
+ * {@link #drain(Writer)} until it returns true and writes straight to the
+ * client, and</li>
+ * <li>by a caller polling across separate requests, which drains into a fresh
+ * buffer each time and hands the bytes back before calling again.</li>
+ * </ul>
+ *
+ * Both produce identical bytes because both run the same per-chunk logic.
  */
-public record AgentRunRecord(String runId, String roomId, AgentRunStatus status, AgentRunRequest request, String userId,
-		String jobId) {
+public interface IOpenAISseStream {
+
+	/**
+	 * Write whatever SSE is ready for the caller right now. Returns without
+	 * blocking when the model has produced nothing new.
+	 *
+	 * @param writer the sink for the SSE text
+	 * @return true when the conversation is finished and no further drain is needed
+	 * @throws IOException if writing to {@code writer} fails
+	 */
+	boolean drain(Writer writer) throws IOException;
+
+	/**
+	 * @return true once the terminal events have been written
+	 */
+	boolean isComplete();
+
+	/**
+	 * Release the underlying job. Safe to call more than once.
+	 */
+	void close();
 }
