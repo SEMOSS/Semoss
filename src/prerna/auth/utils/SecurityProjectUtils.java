@@ -30,6 +30,7 @@ package prerna.auth.utils;
 import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -1177,25 +1178,116 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @return
+	 * Reads back a PROJECT timestamp column that holds a timestamp.
+	 *
+	 * The columns these queries target are written with
+	 * {@link Utility#getCurrentSqlTimestampUTC()}, which stores the UTC wall clock
+	 * with no offset attached to it. Reading the value straight off the result set
+	 * returns those same fields, so what comes back compares directly against
+	 * another UTC wall clock with no zone applied on either side. Going through a
+	 * query wrapper instead would attach a zone on the way out and shift the value
+	 * by that zone's offset.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @param selectQ   single column select taking the project id as its only
+	 *                  parameter
+	 * @param label     name of the timestamp, used when logging a failure
+	 * @return the stored UTC wall clock, or null when the project has no row or the
+	 *         column is empty
 	 */
-	public static SemossDate getPortalPublishedTimestamp(String projectId) {
+	private static LocalDateTime getProjectUtcTimestamp(String projectId, String selectQ, String label) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return (SemossDate) wrapper.next().getValues()[0];
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(selectQ);
+			ps.setString(1, projectId);
+			try (ResultSet rs = ps.executeQuery()) {
+				if (rs.next()) {
+					Timestamp storedValue = rs.getTimestamp(1);
+					if (storedValue != null) {
+						return storedValue.toLocalDateTime();
+					}
+				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to retrieve project portal published timestamp", e);
+			classLogger.error("Failed to retrieve the {} timestamp for project '{}'", label, projectId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		return null;
 	}
 
+	/**
+	 * The cluster timestamp for this project's portal: when a container last
+	 * reported changing the portal content.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @return the UTC wall clock of the last reported change, or null when no
+	 *         container has reported one
+	 */
+	public static LocalDateTime getPortalPublishedTimestamp(String projectId) {
+		String selectQ = "SELECT PORTALPUBLISHED FROM PROJECT WHERE PROJECTID=?";
+		return getProjectUtcTimestamp(projectId, selectQ, "portal published");
+	}
+
+	/**
+	 * Gives a project a cluster timestamp for its portal when it does not have one.
+	 *
+	 * A container works out whether the portal copy it serves is current by
+	 * comparing the cluster timestamp against its own local timestamp, so the
+	 * comparison needs both to exist. A project that has never had a content change
+	 * reported has no cluster timestamp, and nothing about the folder itself
+	 * records when it last changed, which leaves every container free to keep
+	 * serving whatever it published first. Recording the current time supplies the
+	 * reference point that later comparisons work from, and reads as a change to
+	 * any container whose local timestamp is older, resyncing those containers
+	 * once.
+	 *
+	 * Only PORTALPUBLISHED is written. The user columns stay empty because no user
+	 * asked for this, and DATELASTEDITED is untouched because nothing was edited.
+	 * The IS NULL guard leaves the value to whichever container gets there first,
+	 * so containers racing to record it settle on one time rather than overwriting
+	 * each other.
+	 *
+	 * @param projectId project to give a cluster timestamp
+	 * @return true when the project carries a cluster timestamp afterwards,
+	 *         including when another container recorded it first, false when it
+	 *         could not be written
+	 */
+	public static boolean initPortalPublishedTimestamp(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=? WHERE PROJECTID=? AND PORTALPUBLISHED IS NULL";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQ);
+			ps.setTimestamp(1, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(2, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return true;
+		} catch (Exception e) {
+			classLogger.error("Failed to record an initial cluster timestamp for project '{}'", projectId, e);
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Moves the cluster timestamp for this project's portal to now, recording that
+	 * the portal content changed.
+	 *
+	 * Every other container compares this against its own local timestamp for when
+	 * it last published the portal into public_home, to decide whether the copy it
+	 * serves is still current. This is the db write on its own; routes reporting a
+	 * write go through ProjectPortalsHelper, which owns when a change counts as
+	 * one.
+	 *
+	 * @param user      user performing the write
+	 * @param projectId project that was written to
+	 */
 	public static void setPortalPublish(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
@@ -1221,25 +1313,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @return
+	 * The cluster timestamp for this project's custom reactors: when a container
+	 * last reported compiling them.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @return the UTC wall clock of the last reported compilation, or null when no
+	 *         container has reported one
 	 */
-	public static SemossDate getReactorCompilationTimestamp(String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return (SemossDate) wrapper.next().getValues()[0];
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve project reactor compilation timestamp", e);
-		}
-		return null;
+	public static LocalDateTime getReactorCompilationTimestamp(String projectId) {
+		String selectQ = "SELECT REACTORSCOMPILED FROM PROJECT WHERE PROJECTID=?";
+		return getProjectUtcTimestamp(projectId, selectQ, "reactor compilation");
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 */
 	public static void setReactorCompilation(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
@@ -1327,14 +1417,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	static int getMaxUserProjectPermission(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// String userFilters = getUserFilters(user);
-		// // query the database
-		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
-		// ENGINEPERMISSION "
-		// + "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters + " ORDER
-		// BY PERMISSION";
-		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
@@ -1844,8 +1926,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 	/**
 	 * System variant of {@link #setProjectTemplate(User, String, boolean)} with no
-	 * permission check. Used at boot to heal the template flag on platform
-	 * projects from their smss; must never be exposed to user input.
+	 * permission check. Used at boot to heal the template flag on platform projects
+	 * from their smss; must never be exposed to user input.
 	 *
 	 * @param projectId  project identifier
 	 * @param isTemplate whether the project is a template

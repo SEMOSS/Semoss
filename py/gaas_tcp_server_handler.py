@@ -133,20 +133,57 @@ def _asset_aware_import(name, _globals=None, _locals=None, fromlist=(), level=0)
                     spec.loader.exec_module(mod)
                     return mod
     mod = _orig_import(name, _globals, _locals, fromlist, level)
-    # Patch the display libraries as soon as they appear, so a plt.show() in
-    # the very same execution that imported matplotlib is already covered.
-    # matplotlib also catches seaborn, whose own "import matplotlib.pyplot"
-    # routes back through here.
+    # Patch the libraries we adapt as soon as they appear, so a plt.show() or an
+    # OpenAI() in the very same execution that imported the package is already
+    # covered. matplotlib also catches seaborn, whose own "import
+    # matplotlib.pyplot" routes back through here.
     #
-    # Both checks are a set lookup against a root package name and both stop
-    # firing once everything is installed, which keeps this off the hot path
-    # for the import heavy libraries (torch and friends) that dominate startup.
+    # Every check is a comparison against a root package name and each one stops
+    # firing once its patch is installed, which keeps this off the hot path for
+    # the import heavy libraries (torch and friends) that dominate startup.
     root = name.partition(".")[0]
     if root == "matplotlib" and not smss_inline_display.is_installed():
         smss_inline_display.maybe_install()
     elif root in smss_headless_guards.pending_roots():
         smss_headless_guards.maybe_install(root)
+    elif root == "openai":
+        _internal_openai()
     return mod
+
+
+def _is_engine_owned_process():
+    """
+    Whether this process runs an engine's own python rather than a user's
+    python code. Set from the --engine_owned flag the engines launch with.
+    """
+    handler = TCPServerHandler.da_server
+    server = getattr(handler, "server", None) if handler is not None else None
+    return bool(getattr(server, "engine_owned", False))
+
+
+def _internal_openai():
+    """
+    Point the openai SDK at the insight socket the first time it is imported,
+    so `from openai import OpenAI` reaches the platform's models without a key.
+
+    Skipped in an engine owned process. The model engines build their own
+    clients out of this same openai package, and a client of theirs is one the
+    platform is serving rather than one it should serve. smss_openai already
+    refuses to route any client handed a credential, which covers them; this is
+    the second of two locks rather than the only one.
+    """
+    if _is_engine_owned_process():
+        return
+
+    try:
+        import smss_openai
+
+        if not smss_openai.is_installed():
+            smss_openai.install(sys.modules.get("openai"))
+    except Exception:
+        # patching the SDK must never break the import that triggered it; the
+        # next openai import retries
+        pass
 
 
 _builtins_mod.__import__ = _asset_aware_import
