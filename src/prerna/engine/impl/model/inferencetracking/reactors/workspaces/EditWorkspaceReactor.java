@@ -195,12 +195,12 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
 				: null;
 
-		// Scripted opening message shown as the first bubble in a new room.
-		// Presence-detected so omitting the key leaves any existing
-		// CONFIG_JSON.greeting untouched; passing it blank clears it.
+		// Presence-detected: omitting the key leaves CONFIG_JSON.greeting
+		// untouched, passing it blank clears it.
 		boolean greetingProvided = getGenRowStruct(GREETING) != null;
 		String greeting = greetingProvided ? this.keyValue.get(GREETING) : null;
-		if (greetingProvided && greeting != null && greeting.length() > MAX_GREETING_LENGTH) {
+		// Trimmed, to match what actually gets stored.
+		if (greetingProvided && greeting != null && greeting.trim().length() > MAX_GREETING_LENGTH) {
 			return getError(GREETING + " must be " + MAX_GREETING_LENGTH + " characters or fewer");
 		}
 		boolean greetingEnabledProvided = getGenRowStruct(GREETING_ENABLED) != null;

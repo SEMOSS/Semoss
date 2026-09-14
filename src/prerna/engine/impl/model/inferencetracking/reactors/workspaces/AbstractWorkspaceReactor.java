@@ -388,8 +388,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 *                           message; when {@code false}, {@code CONFIG_JSON.greeting}
 	 *                           is left untouched.
 	 * @param greeting           text to store; blank removes the key rather than storing
-	 *                           an empty string. Ignored when {@code greetingProvided} is
-	 *                           {@code false}. Presentation only - never sent to the model.
+	 *                           an empty string. Presentation only - never sent to the model.
 	 * @param greetingEnabledProvided whether the caller passed the greeting on/off switch;
 	 *                           when {@code false}, {@code CONFIG_JSON.greeting_enabled} is
 	 *                           left untouched.
