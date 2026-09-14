@@ -45,29 +45,35 @@ import prerna.util.Utility;
 /**
  * Persistence layer for the {@code AGENT_RUN_ACTION} table.
  *
- * <p>Each row represents a single MCP tool call that was paused because its
- * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness creates rows when
- * it transitions a run to {@code INPUT_REQUIRED}; {@code RunMCPToolReactor}
- * updates them when the user decides; {@code GetAgentRunReactor} reads them
- * to surface pending actions to the UI.
+ * <p>
+ * Each row represents a single MCP tool call that was paused because its
+ * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness creates rows when it
+ * transitions a run to {@code INPUT_REQUIRED}; {@code RunMCPToolReactor}
+ * updates them when the user decides; {@code GetAgentRunReactor} reads them to
+ * surface pending actions to the UI.
  */
 public final class AgentRunActionStore {
 
 	private static final Gson GSON = new Gson();
 
+	private AgentRunActionStore() {
+
+	}
+
 	/**
 	 * Insert a batch of pending actions for a single run. Called by the harness
 	 * when it pauses on {@code ask} tools.
 	 *
-	 * @param runId    the agent run id
-	 * @param roomId   the room id
-	 * @param userId   the user id
-	 * @param actions  one map per pending tool call, each carrying at minimum:
-	 *                 {@code toolCallId}, {@code toolName}, {@code toolArgs},
-	 *                 {@code toolMeta}, {@code parentMessageId}, {@code hasUi},
-	 *                 {@code uiUrl}
+	 * @param runId   the agent run id
+	 * @param roomId  the room id
+	 * @param userId  the user id
+	 * @param actions one map per pending tool call, each carrying at minimum:
+	 *                {@code toolCallId}, {@code toolName}, {@code toolArgs},
+	 *                {@code toolMeta}, {@code parentMessageId}, {@code hasUi},
+	 *                {@code uiUrl}
 	 */
-	public void insertPendingActions(String runId, String roomId, String userId, List<Map<String, Object>> actions) {
+	public static void insertPendingActions(String runId, String roomId, String userId,
+			List<Map<String, Object>> actions) {
 		if (actions == null || actions.isEmpty()) {
 			return;
 		}
@@ -109,10 +115,10 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return all action rows for a run id, ordered by creation time.
-	 * Used by {@code GetAgentRunReactor} to surface pending actions.
+	 * Return all action rows for a run id, ordered by creation time. Used by
+	 * {@code GetAgentRunReactor} to surface pending actions.
 	 */
-	public List<Map<String, Object>> getActionsForRun(String runId) {
+	public static List<Map<String, Object>> getActionsForRun(String runId) {
 		return getActionsForRun(runId, null);
 	}
 
@@ -120,7 +126,7 @@ public final class AgentRunActionStore {
 	 * Return all action rows for a run id and, when supplied, the owning user.
 	 * Owner-scoped read surfaces should always use this overload.
 	 */
-	public List<Map<String, Object>> getActionsForRun(String runId, String userId) {
+	public static List<Map<String, Object>> getActionsForRun(String runId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -128,8 +134,8 @@ public final class AgentRunActionStore {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
 					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?"
-					+ (userId != null ? " AND USER_ID = ?" : "") + " ORDER BY DATE_CREATED ASC";
+					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?" + (userId != null ? " AND USER_ID = ?" : "")
+					+ " ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
 			if (userId != null) {
@@ -151,7 +157,7 @@ public final class AgentRunActionStore {
 	/**
 	 * Return only PENDING actions for a run.
 	 */
-	public List<Map<String, Object>> getPendingActions(String runId) {
+	public static List<Map<String, Object>> getPendingActions(String runId) {
 		List<Map<String, Object>> all = getActionsForRun(runId);
 		List<Map<String, Object>> pending = new ArrayList<>();
 		for (Map<String, Object> a : all) {
@@ -163,11 +169,11 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return one pending action row by action id and owner. ACTION_ID is a
-	 * globally unique v7 UUID (the table PK), so scoping by actionId + userId
-	 * is sufficient; runId is derivable from the row.
+	 * Return one pending action row by action id and owner. ACTION_ID is a globally
+	 * unique v7 UUID (the table PK), so scoping by actionId + userId is sufficient;
+	 * runId is derivable from the row.
 	 */
-	public Map<String, Object> getPendingActionById(String actionId, String userId) {
+	public static Map<String, Object> getPendingActionById(String actionId, String userId) {
 		Map<String, Object> action = getActionById(actionId, userId);
 		if (action != null && "PENDING".equals(action.get("status"))) {
 			return action;
@@ -178,7 +184,7 @@ public final class AgentRunActionStore {
 	/**
 	 * Return one action row by action id and owner, regardless of status.
 	 */
-	public Map<String, Object> getActionById(String actionId, String userId) {
+	public static Map<String, Object> getActionById(String actionId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -206,7 +212,7 @@ public final class AgentRunActionStore {
 	 * Claim a pending action before executing a side-effecting tool. Only one
 	 * request can move the action from PENDING to EXECUTING.
 	 */
-	public boolean claimForExecution(String actionId, String runId, String userId) {
+	public static boolean claimForExecution(String actionId, String runId, String userId) {
 		return updateStatus(actionId, runId, userId, "PENDING", "EXECUTING", false);
 	}
 
@@ -214,7 +220,7 @@ public final class AgentRunActionStore {
 	 * Return an EXECUTING action to PENDING when the tool was not executed to a
 	 * durable result.
 	 */
-	public boolean releaseExecutionClaim(String actionId, String runId, String userId) {
+	public static boolean releaseExecutionClaim(String actionId, String runId, String userId) {
 		return updateStatus(actionId, runId, userId, "EXECUTING", "PENDING", false);
 	}
 
@@ -223,14 +229,15 @@ public final class AgentRunActionStore {
 	 * from PENDING to one of APPROVED / EDITED / REJECTED / RESPONDED, which also
 	 * encodes what the user chose (there is no separate DECISION column).
 	 *
-	 * @param actionId    the action id
-	 * @param editedArgs  final args when they differ from what the model proposed, else null
-	 * @param result      the tool result (approve/edit), the user's response (respond),
-	 *                    or the rejection message (reject)
-	 * @param status      the decided status: APPROVED, EDITED, REJECTED, RESPONDED
-	 * @param toolStatus  execution status persisted for exact replay
+	 * @param actionId   the action id
+	 * @param editedArgs final args when they differ from what the model proposed,
+	 *                   else null
+	 * @param result     the tool result (approve/edit), the user's response
+	 *                   (respond), or the rejection message (reject)
+	 * @param status     the decided status: APPROVED, EDITED, REJECTED, RESPONDED
+	 * @param toolStatus execution status persisted for exact replay
 	 */
-	public boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
+	public static boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
 			String status, String toolStatus) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -274,11 +281,11 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return true if there is at least one action row for the given run.
-	 * Used by the worker as a short-term marker that the run has entered the
-	 * HITL resume flow without relying on persisted REQUEST_JSON.resumeMode.
+	 * Return true if there is at least one action row for the given run. Used by
+	 * the worker as a short-term marker that the run has entered the HITL resume
+	 * flow without relying on persisted REQUEST_JSON.resumeMode.
 	 */
-	public boolean hasAnyActions(String runId) {
+	public static boolean hasAnyActions(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -298,7 +305,7 @@ public final class AgentRunActionStore {
 	/**
 	 * Check if all actions for a run have been decided (no PENDING remaining).
 	 */
-	public boolean allActionsDecided(String runId) {
+	public static boolean allActionsDecided(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -320,8 +327,8 @@ public final class AgentRunActionStore {
 
 	// --- helpers ---
 
-	private boolean updateStatus(String actionId, String runId, String userId, String currentStatus, String nextStatus,
-			boolean setDecidedAt) {
+	private static boolean updateStatus(String actionId, String runId, String userId, String currentStatus,
+			String nextStatus, boolean setDecidedAt) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {

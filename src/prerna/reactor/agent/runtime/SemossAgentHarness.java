@@ -801,8 +801,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			actions.add(action);
 		}
 		try {
-			AgentRunActionStore actionStore = new AgentRunActionStore();
-			actionStore.insertPendingActions(runId, roomId, userId, actions);
+			AgentRunActionStore.insertPendingActions(runId, roomId, userId, actions);
 			logger.info("SemossAgentHarness: persisted {} pending action(s) for runId={}", actions.size(), runId);
 			return actions;
 		} catch (Exception e) {

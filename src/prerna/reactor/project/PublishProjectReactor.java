@@ -33,6 +33,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
+import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -64,10 +65,10 @@ public class PublishProjectReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		project.setRepublish(true);
 		if (release) {
-			SecurityProjectUtils.setPortalPublish(user, projectId);
 			ClusterUtil.pushProjectFolder(project,
 					AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId),
 					Constants.ASSETS_FOLDER + "/" + Constants.PORTALS_FOLDER);
+			ProjectPortalsHelper.notePortalChange(user, projectId);
 		}
 
 		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
