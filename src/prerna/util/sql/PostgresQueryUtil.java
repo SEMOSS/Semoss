@@ -172,7 +172,7 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				    SELECT 1
 				    FROM pg_proc p
 				    JOIN pg_namespace n ON p.pronamespace = n.oid
-				    WHERE p.proname = '<functionName>'
+				    WHERE p.proname ILIKE '<functionName>'
 				    AND n.nspname = '<schema>'
 				) AS function_exists
 				""".replace("<functionName>", functionName).replace("<schema>", schema);
