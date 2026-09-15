@@ -6,6 +6,128 @@ license: Proprietary. LICENSE.txt has complete terms
 
 # PPTX creation, editing, and analysis
 
+## SEMOSS - read this first
+
+Use the JSON deck builder for new decks. Write the content as data; the builder owns
+pptxgenjs calls, layout, colors, bullets, notes and chart options. For this workflow,
+read this SEMOSS section once. The upstream material below is reference for the raw
+pptxgenjs escape hatch or template work, not additional steps to run.
+
+### Tool environment
+
+- Run JavaScript only through `ExecuteNodeCode`. Its session persists. Every call
+  must be exactly one `(async () => { ... })()` with EVERY `require`, `const`, `let`,
+  class and function declaration inside it. Await all async work. Use `globalThis`
+  only when you intentionally need state across calls.
+- `ROOT` is the working directory used by the file tools. Relative Node paths resolve
+  there. Write the output with `path.join(ROOT, "<exact requested filename>")`.
+  `APP_ROOT` and `USER_ROOT` are project and user assets paths when available.
+- `require("pptxgenjs")` uses the curated Node environment. Pass that constructor to
+  the builder; the skill directory cannot resolve bare npm packages itself.
+  No `node`, `npm`, `npx`, or package installs through `BashCommand`.
+- Bash allowlist: `awk`, `cat`, `cp`, `curl`, `cut`, `diff`, `dir`, `find`, `grep`,
+  `head`, `jq`, `ls`, `mkdir`, `mv`, `pwd`, `python`, `python3`, `rg`, `sed`, `sort`,
+  `stat`, `tail`, `touch`, `tr`, `uniq`, `unzip`, `wc`, `wget`, `which`, `zip`.
+  Use one command per call, with working-directory-relative paths. No pipes,
+  chaining, redirects (including `2>&1`), `$()`, backticks, absolute paths, `~`,
+  or `..`. Output comes back in the tool result.
+- `markitdown`, LibreOffice/`soffice`, `pdftoppm` and rendered visual QA are
+  unavailable on this instance. Python lacks `defusedxml`, so the upstream Python
+  validator and thumbnail/template workflow cannot run. Follow the JS workflow
+  below. Do not attempt the unavailable commands or install dependencies.
+
+### Builder workflow: load, render and validate, finish
+
+Call `LoadSkill(skill_name="pptx")`, then send this complete pattern as the `code`
+for ONE `ExecuteNodeCode` call. Replace the sample content and filename with the
+request. Keep the requested number of slides, including any title slide.
+
+```javascript
+(async () => {
+  const path = require("path");
+  const PptxGenJS = require("pptxgenjs");
+  const deck = require(path.join(ROOT, ".claude/skills/pptx/scripts/deck.js"));
+  const spec = {
+    title: "Requested deck title",
+    theme: {
+      preset: "forest",
+      palette: { accent: "2E6B43" },
+      fonts: { heading: "Arial", body: "Arial" }
+    },
+    slides: [
+      { kind: "title", title: "Requested deck title", subtitle: "Audience and purpose" },
+      { kind: "bullets", title: "Overview", bullets: ["First point", "Second point"] },
+      { kind: "two-col", title: "Comparison",
+        left: { heading: "First option", bullets: ["First detail"] },
+        right: { heading: "Second option", bullets: ["Second detail"] } },
+      { kind: "stat-row", title: "Key numbers",
+        stats: [{ value: "3", label: "Priorities" }] },
+      { kind: "bullets", title: "Next steps", bullets: ["First action", "Second action"],
+        notes: "Optional speaker notes" }
+    ]
+  };
+  const outPath = path.join(ROOT, "exact-requested-filename.pptx");
+  await deck.render({ PptxGenJS, spec, outPath });
+  return deck.validate(outPath, { slides: spec.slides.length });
+})()
+```
+
+`validate` returns `{ ok, file, slides, expectedSlides, checks, errors, warnings }`.
+Each check has an `id`, `ok` and `errors`. It checks ZIP CRCs, XML, slide count,
+geometry, colors, presentation order and chart axes/labels using only Node core.
+It also checks the spec count saved in the deck when called in a later session.
+
+**Stop when `ok` is `true`.** Reply briefly with the exact filename and slide count.
+The structural check does not render slides or prove text fit; do not claim visual
+QA. Keep text concise and preserve all required content. If validation fails, use
+its errors to fix the spec and render again. Use a simpler supported layout for an
+optional effect, preserving required information. Never claim an invalid file passed.
+
+### Slide data
+
+Every slide accepts `kind`, `title` and optional `notes` (plain text, written with
+`addNotes`). Most content layouts also accept `kicker`. Use several layouts when the
+content benefits from them. The builder owns a wide 13.333 x 7.5 inch canvas; no raw
+geometry/options are accepted.
+
+| kind | Content fields |
+|---|---|
+| `title` | `title`, optional `subtitle`, `footer` |
+| `section` | `title`, optional `subtitle` |
+| `bullets` | `bullets: ["point", ...]`, optional `lead` |
+| `two-col` | `left` and `right`, each `{ heading, bullets }` or `{ heading, text }` |
+| `stat-row` | `stats: [{ value, label, caption? }]`, up to 6; optional `bullets` |
+| `quote` | `quote`, optional `attribution` |
+| `table` | `columns: ["Heading", ...]`, `rows: [["cell", ...], ...]`; equal row lengths, up to 10 rows including the header |
+| `chart` | `chartType`, `categories: ["Label", ...]`, `series: [{ name, values: [1, 2, ...] }]` |
+| `image` | `imagePath` (use `path.join(ROOT, "image.png")`) or `imageData` (base64 with an image MIME prefix); optional `caption`, `flipH`, `flipV` |
+
+Bullets also accept `{ text, level, bold }`; use plain text without bullet glyphs.
+Charts support `bar`, `column`, `line`, `area`, `pie`, `doughnut` and `radar`. Each
+series must have one finite number per category. Optional chart fields: `chartTitle`,
+`barDir: "bar" | "col"`, `barGrouping: "clustered" | "stacked" | "percentStacked"`,
+`dataLabelPosition`. Stacked bar labels are restricted to `ctr`, `inEnd`, `inBase`.
+
+Set `theme` to `navy`, `slate`, `forest`, `plum`, or `mono`, or use the object above.
+Palette fields: `bg`, `panel`, `ink`, `muted`, `accent`, `accentSoft`, `invertInk`,
+`bandBg`, `series` (color array). Use 6-digit hex without `#` or alpha. Fonts have
+`heading` and `body`. Top-level deck fields include `title`, `author`, `company`,
+and `footer`.
+
+### Raw pptxgenjs escape hatch
+
+Use raw pptxgenjs only when the request needs a feature the layouts cannot express
+or edits an existing deck. Keep the same single-IIFE pattern, constructor require,
+`path.join(ROOT, "<exact filename>")`, `await` and JS validation. Read only the
+relevant upstream API gotchas below. `ShapeType` and `ChartType` belong to the
+INSTANCE: `const pres = new PptxGenJS(); pres.ShapeType.rect; pres.ChartType.bar`.
+`PptxGenJS.ShapeType` is undefined. Set `pres.layout = "LAYOUT_WIDE"` before the
+first slide; create fresh options for each call, use `margin: 0` for aligned text,
+positive `w`/`h` with `flipH`/`flipV`, 6-digit colors, `bullet: true`, and `addNotes`.
+Use `deck.validate(outPath, { slides: requestedCount })` as the stop check.
+
+## Upstream reference (SEMOSS availability notes apply)
+
 A `.pptx` is a ZIP archive of XML files. Choose your approach by task:
 
 | Task | Approach |
@@ -15,6 +137,8 @@ A `.pptx` is a ZIP archive of XML files. Choose your approach by task:
 | **Read** content | `markitdown deck.pptx` (one block per slide under `<!-- Slide number: N -->` markers); visual grid: `python scripts/thumbnail.py deck.pptx` |
 
 ## Scripts
+
+> SEMOSS: the Python/LibreOffice scripts below are unavailable on this instance. Use `deck.render` and `deck.validate` above.
 
 Paths are relative to this skill's directory. Everything else is plain Python, `node`, or shell.
 
@@ -27,6 +151,8 @@ Paths are relative to this skill's directory. Everything else is plain Python, `
 | `scripts/office/soffice.py --headless --convert-to pdf deck.pptx` | LibreOffice wrapper — bare `soffice` hangs in this sandbox |
 
 ## Creating with pptxgenjs — gotchas
+
+> SEMOSS: use the builder first. The raw API gotchas still apply; all npm-install fallbacks below are unavailable. Replace Python validation with `deck.validate`.
 
 `pptxgenjs` is preinstalled — do not run `npm install` first; write the script and `require('pptxgenjs')` directly. Only if that require fails: `npm install pptxgenjs`. The model knows the API; these are the footguns:
 
@@ -51,6 +177,8 @@ Paths are relative to this skill's directory. Everything else is plain Python, `
 - **Icons:** render `react-icons` to SVG (`ReactDOMServer.renderToStaticMarkup`), rasterize with `sharp` at ≥256px, and insert via `addImage({ data: "image/png;base64," + buf.toString("base64") })` — the `image/png;base64,` prefix is required (`react-icons`, `react`, `react-dom`, and `sharp` are preinstalled — `npm install react-icons react react-dom sharp` only if a require fails).
 
 ## Editing existing decks and templates
+
+> SEMOSS: the thumbnail, markitdown and Python shell workflow below is unavailable. Use available Node/file tools for raw edits and the JS validator; retain this section as upstream reference.
 
 Pick layouts first: `python scripts/thumbnail.py template.pptx template-thumbs` writes a labeled grid of every slide and prints the file(s) it created — `template-thumbs.jpg`, split into `template-thumbs-N.jpg` past 12 slides. **Always pass that second argument, named after the deck.** It defaults to `thumbnails`, so two decks thumbnailed in one directory silently overwrite each other's grids — the first deck's are simply gone (template analysis only — visual QA needs the full-resolution renders from [Converting to Images](#converting-to-images); it only accepts `.pptx`, so copy a `.potx` to a `.pptx` name first). Use it with `markitdown` to map each content section onto a template slide, and vary the layouts — don't put every section on the same title-and-bullets slide.
 
@@ -166,9 +294,13 @@ Choose colors that match your topic — don't default to generic blue. Use these
 
 ## QA (Required)
 
+> SEMOSS: use the JS validation and stop condition above. The command-based QA and rendering steps below are unavailable here.
+
 Your first render usually has a few real issues — overlaps, overflow, misalignment. Find and fix those, re-render only the slides you changed, and stop.
 
 ### Content QA
+
+> SEMOSS: `markitdown` is unavailable. Review the spec content before rendering.
 
 ```bash
 markitdown output.pptx
@@ -185,6 +317,8 @@ markitdown output.pptx | grep -iE "\bx{3,}\b|lorem|ipsum|\bTODO|\[insert|this.*(
 If grep returns results, fix them before declaring success.
 
 ### File QA (required)
+
+> SEMOSS: Python validation is unavailable because `defusedxml` is missing. Call `deck.validate(outPath, { slides: requestedCount })`.
 
 ```bash
 python scripts/office/validate.py output.pptx                      # built from scratch
@@ -204,6 +338,8 @@ passes them. Every failure names its fix. Fix it in the generator and rebuild.
 
 ### Visual QA
 
+> SEMOSS: rendered visual QA is unavailable on this instance. Do not attempt these steps or claim rendered inspection.
+
 Convert the slides to images (see [Converting to Images](#converting-to-images)) and inspect every one. After staring at the generating code you tend to see what you expect rather than what rendered, so look at the images fresh (a subagent works well for this if you have one). User-visible defects to look for:
 
 - **Text overflow or text cut off at a box or slide boundary — check this first.** It is the most common defect and always user-visible. (For a font the previewer renders unreliably per Typography, the preview is approximate: trust the ~10% slack you left, not its apparent fit.)
@@ -221,6 +357,8 @@ Convert the slides to images (see [Converting to Images](#converting-to-images))
 
 ## Converting to Images
 
+> SEMOSS: LibreOffice and `pdftoppm` are unavailable. These upstream commands cannot run here.
+
 Convert presentations to individual slide images for visual inspection:
 
 ```bash
@@ -235,5 +373,7 @@ ls -1 "$PWD"/slide-*.jpg
 **After fixes, rerun all four commands above** — the PDF must be regenerated from the edited `.pptx` before `pdftoppm` can reflect your changes.
 
 ## Dependencies
+
+> SEMOSS: use the curated Node packages already installed. No npm/pip installation step is available; the Python and rendering dependencies below are upstream reference only.
 
 `pptxgenjs` (npm, preinstalled — install only if `require('pptxgenjs')` fails) · `markitdown[pptx]`, `Pillow`, `defusedxml`, `lxml` (pip — text dump, thumbnail, clean, validate) · LibreOffice (`soffice`, auto-configured for sandboxed environments via `scripts/office/soffice.py`) · `pdftoppm` (Poppler)

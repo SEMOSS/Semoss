@@ -106,6 +106,10 @@ final class PlatformAgentToolHandlers {
 	private PlatformAgentToolHandlers() {
 	}
 
+	static String describeAllowedCommands() {
+		return String.join(", ", ALLOWED_COMMANDS.stream().sorted().toList());
+	}
+
 	interface ToolHandler {
 		String getName();
 
@@ -186,7 +190,12 @@ final class PlatformAgentToolHandlers {
 						props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
 						Collections.emptyList()), PlatformAgentToolHandlers::listDirectory));
 		if (isBashEnabled()) {
-			add(tools, handler("BashCommand", "Executes one allowlisted shell command in the working directory.",
+			add(tools, handler("BashCommand",
+					"Executes one command in the working directory. Allowed commands: " + describeAllowedCommands()
+							+ ". One command per call: no pipes, chaining, redirects (including 2>&1), $(), or backticks. "
+							+ "Use working-directory-relative paths; no absolute paths, ~ paths, or .. . "
+							+ "node, npm, npx are not available here; use ExecuteNodeCode for JavaScript. "
+							+ "Capture output via the tool result, not shell redirects.",
 					objectSchema(props(prop("command", stringProp(
 							"Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
 							prop("description", stringProp("Short reason for running the command."))),
@@ -196,10 +205,13 @@ final class PlatformAgentToolHandlers {
 		if (NodeUtils.isNodeToolEnabled()) {
 			add(tools, handler("ExecuteNodeCode",
 					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
-							+ "calls within this conversation (assign to globalThis for durable state when using "
-							+ "top-level await). The value of the last expression is returned (use an explicit "
-							+ "'return' with top-level await); console output is captured and returned too. "
-							+ "require() resolves only against the curated platform packages: "
+							+ "calls within this conversation. Put every require/const/let/class/function declaration "
+							+ "inside a single (async () => { ... })(); top-level declarations collide with earlier calls. "
+							+ "Use globalThis for durable state. Await all asynchronous work and return the result "
+							+ "from inside the function; console output is captured too. ROOT is the working directory; "
+							+ "APP_ROOT is the project's assets directory and USER_ROOT is the user's assets directory "
+							+ "when available. Relative paths resolve to the working directory. Use path.join(ROOT, "
+							+ "\"<exact filename>\") for output files. Bare require() resolves against curated packages: "
 							+ NodeUtils.describeCuratedPackages() + ". There is no npm install.",
 					objectSchema(props(
 							prop("code", stringProp("JavaScript source to execute.")),
@@ -671,7 +683,7 @@ final class PlatformAgentToolHandlers {
 		try {
 			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
 			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
-			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L);
+			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L, tc.root);
 			return formatNodeOutput(output);
 		} catch (Exception e) {
 			logger.warn("ExecuteNodeCode failed", e);
@@ -1039,7 +1051,9 @@ final class PlatformAgentToolHandlers {
 
 	private static String validateCommand(String command) {
 		if (containsUnquoted(command, '>') || containsUnquoted(command, '<')) {
-			return "Redirects (>, <, >>) are not allowed. Use curl/wget -o to write files.";
+			return "Redirects (>, <, >>, 2>&1) are not allowed. Capture output via the tool result, "
+					+ "not > or 2>&1. Use WriteFile for text, curl -o or wget -O with working-directory-relative "
+					+ "paths for downloads.";
 		}
 		if (containsUnquoted(command, '|') || containsUnquoted(command, ';') || containsUnquotedSequence(command, "&&")
 				|| containsUnquotedSequence(command, "||")) {
@@ -1054,17 +1068,20 @@ final class PlatformAgentToolHandlers {
 		for (String token : tokenize(command)) {
 			String clean = stripQuotes(token);
 			if (clean.startsWith("/") || clean.startsWith("~")) {
-				return "Absolute paths and home-directory paths are not allowed: " + clean;
+				return "Absolute paths and home-directory paths are not allowed: " + clean
+						+ ". Use working-directory-relative paths (for example, deck.pptx or scripts/deck.js).";
 			}
 			if (clean.contains("..")) {
-				return "Parent directory traversal (..) is not allowed: " + clean;
+				return "Parent directory traversal (..) is not allowed: " + clean
+						+ ". Use paths within the working directory.";
 			}
 		}
 		String[] parts = command.trim().split("\\s+");
 		if (parts.length > 0) {
 			String cmd = stripQuotes(parts[0]);
 			if (!cmd.isEmpty() && !ALLOWED_COMMANDS.contains(cmd)) {
-				return "Command not allowed: " + cmd;
+				return "Command not allowed: " + cmd + ". Allowed commands: " + describeAllowedCommands() + "."
+						+ (Set.of("node", "npm", "npx").contains(cmd) ? " Use ExecuteNodeCode for JavaScript." : "");
 			}
 		}
 		return null;
