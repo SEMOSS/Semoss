@@ -2414,6 +2414,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						- `input` guardrails run before the protected engine method. They can block, mask an argument, return a guardrail-provided response, or close a model room after a block.
 						- `output` guardrails run after the protected engine method. They can block the result or close a model room after a block.
 						- Entries run in list order. A failed blocking guardrail stops the remaining work.
+
+						## Tool-result continuations
+
+						`askRoom` carries both a user's turn and the agent loop's tool results, so a guardrail meant for user-typed text also screens every tool result. These optional `params` on an input guardrail let a mount skip the tool turns:
+
+						- `skipOnToolContinuationForAllTools` (boolean) skips every tool-result continuation and ignores the allowlist below.
+						- `skipOnToolContinuationForTools` (list) skips only when every tool result on the message names a listed tool. Names are the ones the model was given, so a tool served by another engine carries that engine's prefix, such as `a<engineid>_search`.
+						- `toolContinuationArg` (string, default `arg0`) names the argument holding the message, for an intercepted method that does not take it first.
+
+						A turn carrying user-written text is always screened, whatever these are set to. Skipping is not free: tool output is untrusted content, and a mount that skips it stops protecting the boundary where a web search or a file read can carry an injection. Prefer the allowlist, and keep a screening mount attached for the rest.
 						""",
 				engineId);
 
