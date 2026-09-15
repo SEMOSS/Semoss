@@ -7,7 +7,7 @@
 		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout>
 				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %maskMsg%n</Pattern>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [project=%X{projectId}] %maskMsg%n</Pattern>
 			</PatternLayout>
 		</Console>
 
@@ -18,7 +18,7 @@
 			immediateFlush="false">
 			<PatternLayout>
 				<!-- <Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} [caller=%t] [loggerThread=%T] %c{1.}:%L [user=%X{userId}] [session=%X{sessionId}] [ip=%X{clientIP}] %m%n</Pattern> -->
-				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %maskMsg%n</Pattern>
+				<Pattern>[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] [project=%X{projectId}] %maskMsg%n</Pattern>
 			</PatternLayout>
 			<Policies>
 				<TimeBasedTriggeringPolicy interval="1"

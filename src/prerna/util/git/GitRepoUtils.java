@@ -1210,6 +1210,7 @@ public class GitRepoUtils {
 				"*.pyc",
 				"npm-debug.log*",
 				"yarn-debug.log*",
+				"logs/",
 				"*/Temp/*",
 				"**/node_modules/"
 		};
