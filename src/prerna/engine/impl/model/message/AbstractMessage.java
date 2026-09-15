@@ -197,6 +197,40 @@ public abstract class AbstractMessage {
 		return hasPartType(MessagePartType.TOOL_RESULT);
 	}
 
+	/**
+	 * Whether the message carries text that a tool did not produce. A tool-result
+	 * carrier is built with tool-result parts alone, and one hydrated from the flat
+	 * legacy fields mirrors the tool output into a text part, so text that is not
+	 * one of this message's own tool outputs was written by whoever sent the
+	 * message. Callers use this to tell a real turn apart from an agent loop's
+	 * tool-result continuation.
+	 *
+	 * @return whether any text on the message is something other than a tool output
+	 */
+	public boolean hasUserAuthoredText() {
+		if (!hasTextPart()) {
+			return false;
+		}
+		List<String> toolOutputs = new ArrayList<>();
+		for (MessagePart part : getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult != null && toolResult.getOutput() != null) {
+					toolOutputs.add(toolResult.getOutput());
+				}
+			}
+		}
+		for (MessagePart part : getParts()) {
+			if (part instanceof TextMessagePart) {
+				String text = ((TextMessagePart) part).getText();
+				if (text != null && !text.trim().isEmpty() && !toolOutputs.contains(text)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
 	public boolean getPruneToolsAbove() {
 		return this.pruneToolsAbove;
 	}
