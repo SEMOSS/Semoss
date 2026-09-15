@@ -1462,7 +1462,8 @@
 		<dependency>
 			<groupId>org.mariadb.jdbc</groupId>
 			<artifactId>mariadb-java-client</artifactId>
-			<version>1.1.9</version>
+			<!-- Addresses credential handling and output encoding vulnerabilities in older Connector/J releases. -->
+			<version>2.7.14</version>
 			<exclusions>
 				<exclusion>
 					<groupId>*</groupId>
@@ -2257,7 +2258,8 @@
 		<dependency>
 			<groupId>net.snowflake</groupId>
 			<artifactId>snowflake-jdbc</artifactId>
-			<version>3.22.0</version>
+			<!-- Addresses certificate validation, ReDoS, and sensitive logging vulnerabilities. -->
+			<version>4.3.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.clickhouse/clickhouse-jdbc -->
 		<dependency>
