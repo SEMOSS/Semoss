@@ -170,6 +170,30 @@ public final class AgentRunner {
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
 			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight, boolean resumeMode)
 			throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				mediaInputPaths, mediaUrls, runId, insight, resumeMode, null);
+	}
+
+	/**
+	 * Resumes an Automation-authorized run using the room loaded under the durable
+	 * run owner while retaining the approving editor's insight for authorization.
+	 *
+	 * @param ownerRoom room loaded for the durable agent-run owner
+	 * @return completed or paused harness result
+	 * @throws Exception when the harness cannot resume
+	 */
+	public static AgentHarnessResult resumeAutomationRun(String roomId, String input, String engineIdFallback,
+			String harnessType, int maxTurns, int maxReflections, Map<String, Object> paramMap,
+			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, String runId,
+			Insight insight, Room ownerRoom) throws Exception {
+		return run(roomId, input, engineIdFallback, harnessType, maxTurns, maxReflections, paramMap, agentParamMap,
+				mediaInputPaths, mediaUrls, runId, insight, true, ownerRoom);
+	}
+
+	private static AgentHarnessResult run(String roomId, String input, String engineIdFallback, String harnessType,
+			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
+			List<String> mediaInputPaths, List<String> mediaUrls, String runId, Insight insight, boolean resumeMode,
+			Room preloadedRoom) throws Exception {
 
 		if (roomId == null || roomId.trim().isEmpty()) {
 			throw new IllegalArgumentException("roomId is required");
@@ -193,8 +217,13 @@ public final class AgentRunner {
 			}
 		}
 
-		Room room = modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
-				: RoomUtils.getOrLoadRoom(roomId, insight);
+		if (preloadedRoom != null && !roomId.equals(preloadedRoom.getId())) {
+			throw new IllegalArgumentException("Preloaded Automation room does not match roomId=" + roomId);
+		}
+		Room room = preloadedRoom != null ? preloadedRoom
+				: (modelEngine != null ? RoomUtils.createRoomIfNotExists(roomId, insight, modelEngine, input)
+						: RoomUtils.getOrLoadRoom(roomId, insight));
+		room.setInsight(insight);
 
 		Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 		Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
