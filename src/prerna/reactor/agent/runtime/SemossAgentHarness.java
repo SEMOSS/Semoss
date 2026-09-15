@@ -892,6 +892,15 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("\n- Use this exact id for project-scoped Pixel or tool calls that act on the target project.");
 			sb.append("\n- Do not substitute the room id or another project id for the target project id.");
 		}
+		sb.append("\n\n## Tool environment");
+		sb.append("\n- BashCommand, when enabled, allows: ").append(PlatformAgentToolHandlers.describeAllowedCommands());
+		sb.append(". One command per call; no pipes, chaining, redirects, $(), backticks, absolute paths, ~ paths, or .. .");
+		sb.append(" Use working-directory-relative paths and read output from the tool result.");
+		sb.append("\n- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.");
+		sb.append("\n- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it.");
+		sb.append(" Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.");
+		sb.append("\n- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there.");
+		sb.append(" Write outputs with path.join(ROOT, \"<exact filename>\"). APP_ROOT and USER_ROOT identify project and user assets when available.");
 		return sb.toString();
 	}
 
