@@ -51,8 +51,8 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 	private static final long DEFAULT_LIMIT = 20L;
 
 	public GetAgentActivityLogReactor() {
-		this.keysToGet = new String[] { AGENT_ID_KEY, ReactorKeysEnum.LIMIT.getKey(),
-				ReactorKeysEnum.OFFSET.getKey(), SORT_BY_ROOM_KEY };
+		this.keysToGet = new String[] { AGENT_ID_KEY, ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(),
+				SORT_BY_ROOM_KEY };
 		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
@@ -72,17 +72,14 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 			throw new IllegalArgumentException("offset must be greater than or equal to 0");
 		}
 
-		AgentRunStore runStore = new AgentRunStore();
-		List<Map<String, Object>> runs = runStore.getActivityLog(this.insight, agentId, limit, offset);
+		List<Map<String, Object>> runs = AgentRunStore.getActivityLog(this.insight, agentId, limit, offset);
 		if (Boolean.parseBoolean(this.keyValue.get(SORT_BY_ROOM_KEY))) {
-			return new NounMetadata(loadAndGroupRunsByRoom(runStore, runs), PixelDataType.MAP,
-					PixelOperationType.OPERATION);
+			return new NounMetadata(loadAndGroupRunsByRoom(runs), PixelDataType.MAP, PixelOperationType.OPERATION);
 		}
 		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
-	private Map<String, List<Map<String, Object>>> loadAndGroupRunsByRoom(AgentRunStore runStore,
-			List<Map<String, Object>> seedRuns) {
+	private Map<String, List<Map<String, Object>>> loadAndGroupRunsByRoom(List<Map<String, Object>> seedRuns) {
 		Map<String, List<Map<String, Object>>> runsByRoom = new LinkedHashMap<>();
 		for (Map<String, Object> run : seedRuns) {
 			Object roomIdValue = run.get("roomId");
@@ -90,7 +87,7 @@ public class GetAgentActivityLogReactor extends AbstractReactor {
 			if (roomId == null) {
 				runsByRoom.computeIfAbsent(null, key -> new ArrayList<>()).add(run);
 			} else if (!runsByRoom.containsKey(roomId)) {
-				runsByRoom.put(roomId, runStore.getRunsForRoom(this.insight, roomId));
+				runsByRoom.put(roomId, AgentRunStore.getRunsForRoom(this.insight, roomId));
 			}
 		}
 		return runsByRoom;

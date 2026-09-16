@@ -599,10 +599,19 @@ public class Room implements Serializable {
 			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
 			validateToolCallId(context.toolResponse, toolCallId);
 
+			String effectiveToolName = toolName;
+			String recordedToolName = recordedToolName(context.toolResponse, toolCallId);
+			if (recordedToolName != null && !recordedToolName.equals(toolName)) {
+				classLogger.warn(
+						"Tool name '{}' submitted for toolCallId={} does not match the recorded name '{}'; recording the tool call's own name.",
+						toolName, toolCallId, recordedToolName);
+				effectiveToolName = recordedToolName;
+			}
+
 			if (hasToolCallBeenAnswered(toolCallId)) {
 				classLogger.warn(
 						"Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
-						toolCallId, toolName, context.toolResponse.getMessageId());
+						toolCallId, effectiveToolName, context.toolResponse.getMessageId());
 				RoomMessageStore.persist(this, userId);
 				return null;
 			}
@@ -643,13 +652,13 @@ public class Room implements Serializable {
 				isToolResultsInputMessage = true;
 				toolResultsMessage = InputMessage
 						.builder(this).withSystemPrompt(this.getSystemPromptForModel()).withToolResult(toolCallId,
-								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
+								effectiveToolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(context.toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
 				toolResultsMessage.setVisible(false);
 			} else {
-				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, effectiveToolName,
 						toolExecutionResponse, toolParameterValues, toolStatus, false)));
 				toolResultsMessage.normalizeForWrite();
 				appendedPartThisCall = true;
@@ -723,6 +732,23 @@ public class Room implements Serializable {
 			}
 		}
 		throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
+	}
+
+	/**
+	 * The tool name the assistant's own tool call carries, which is authoritative
+	 * over the name submitted alongside the result.
+	 *
+	 * @param toolResponse the assistant message holding the tool calls
+	 * @param toolCallId   the tool call the result answers
+	 * @return the recorded name, or null when the call does not carry one
+	 */
+	private static String recordedToolName(ResponseMessage toolResponse, String toolCallId) {
+		for (Map<String, Object> toolCall : toolResponse.getToolResponses()) {
+			if (toolCallId.equals(String.valueOf(toolCall.get("id")))) {
+				return MessageUtils.getToolCallName(toolCall);
+			}
+		}
+		return null;
 	}
 
 	private InputMessage findToolResultsMessage(ResponseMessage toolResponse, int toolResponseIdx) {
