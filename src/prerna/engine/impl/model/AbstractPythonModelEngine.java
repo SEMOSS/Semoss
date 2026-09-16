@@ -187,10 +187,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				}
 
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				// it has to be -- don't change this unless you can send engine calls from
-				// python
 				boolean nativePyServer = true;
 				try {
+					cpwToInit.setEngineOwned(true);
 					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory,
 							customClassPath, debug, timeout, loggerLevel);
 				} catch (Exception e) {

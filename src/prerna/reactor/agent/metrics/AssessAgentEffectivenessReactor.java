@@ -44,20 +44,20 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
 /**
- * LLM-as-judge assessment of one agent run. Combines the deterministic
- * metrics from {@link AgentEffectivenessCalculator} with a rendered transcript
- * of the run's message history and asks a judge model for a structured
- * qualitative evaluation (goal achievement, tool use quality, efficiency,
- * skill utilization, communication). The judge sees the precomputed metrics so
- * it can focus on judgment calls the deterministic pass cannot make, and is
- * asked to flag any disagreement with those numbers.
+ * LLM-as-judge assessment of one agent run. Combines the deterministic metrics
+ * from {@link AgentEffectivenessCalculator} with a rendered transcript of the
+ * run's message history and asks a judge model for a structured qualitative
+ * evaluation (goal achievement, tool use quality, efficiency, skill
+ * utilization, communication). The judge sees the precomputed metrics so it can
+ * focus on judgment calls the deterministic pass cannot make, and is asked to
+ * flag any disagreement with those numbers.
  *
  * The judge ask goes straight through IModelEngine.ask with no Room attached,
  * so it does not append to the room history or pollute the room's inference
@@ -104,7 +104,7 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 		}
 
 		// ownership is enforced by the run store - only the current user's runs resolve
-		Map<String, Object> run = AgentRuntimeManager.get().getRun(runId, this.insight, true);
+		Map<String, Object> run = AgentRunService.get().getRun(runId, this.insight, true);
 		Map<String, Object> metrics = AgentEffectivenessCalculator.computeRunMetrics(run);
 
 		String judgeModelId = StringUtils.trimToNull(this.keyValue.get(JUDGE_MODEL_KEY));
@@ -112,8 +112,7 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 			judgeModelId = StringUtils.trimToNull(stringValue(run.get("modelId")));
 		}
 		if (judgeModelId == null) {
-			throw new IllegalArgumentException(
-					"judgeModelId is required because this run has no modelId of its own");
+			throw new IllegalArgumentException("judgeModelId is required because this run has no modelId of its own");
 		}
 		IModelEngine judge = Utility.getModel(judgeModelId);
 		if (judge == null) {
@@ -163,8 +162,8 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	// ------------------------------------------------------------------
 
 	/**
-	 * Builds the full judge prompt: rubric and output contract, the
-	 * deterministic metrics, run context, and the budgeted transcript.
+	 * Builds the full judge prompt: rubric and output contract, the deterministic
+	 * metrics, run context, and the budgeted transcript.
 	 *
 	 * @param run                run map including its messages
 	 * @param metrics            precomputed metrics for the same run
@@ -172,8 +171,8 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	 * @param focus              optional extra evaluation emphasis from the caller
 	 * @return complete prompt text
 	 */
-	public static String buildJudgePrompt(Map<String, Object> run, Map<String, Object> metrics,
-			int maxTranscriptChars, String focus) {
+	public static String buildJudgePrompt(Map<String, Object> run, Map<String, Object> metrics, int maxTranscriptChars,
+			String focus) {
 		StringBuilder sb = new StringBuilder();
 		sb.append("You are an expert evaluator of AI agent runs. Assess how effectively the agent below\n");
 		sb.append("completed its task. You are given (1) deterministic metrics precomputed from the\n");
@@ -225,10 +224,10 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Renders the message history as readable plain text within a character
-	 * budget. Messages are never cut mid-block: when the full rendering exceeds
-	 * the budget, the head and tail of the run are kept (the head shows intent
-	 * and setup, the tail shows resolution) with an omission marker between.
+	 * Renders the message history as readable plain text within a character budget.
+	 * Messages are never cut mid-block: when the full rendering exceeds the budget,
+	 * the head and tail of the run are kept (the head shows intent and setup, the
+	 * tail shows resolution) with an omission marker between.
 	 *
 	 * @param messages           normalized message maps
 	 * @param maxTranscriptChars total character budget
@@ -267,8 +266,7 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 		for (int i = 0; i < headEnd; i++) {
 			sb.append(blocks.get(i));
 		}
-		sb.append("\n[... ").append(tailStart - headEnd)
-				.append(" of ").append(blocks.size())
+		sb.append("\n[... ").append(tailStart - headEnd).append(" of ").append(blocks.size())
 				.append(" messages omitted for length ...]\n\n");
 		for (int i = tailStart; i < blocks.size(); i++) {
 			sb.append(blocks.get(i));
@@ -307,18 +305,16 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 					sb.append("\n");
 				}
 			} else if ("TOOL_RESULT".equalsIgnoreCase(type)) {
-				Map<String, Object> toolResult = asMap(
-						firstNonNull(part.get("toolResult"), part.get("tool_result")));
+				Map<String, Object> toolResult = asMap(firstNonNull(part.get("toolResult"), part.get("tool_result")));
 				if (toolResult != null) {
 					sb.append("  tool_result ")
-							.append(stringValue(firstNonNull(toolResult.get("toolName"),
-									toolResult.get("tool_name"))));
-					sb.append(" id=").append(stringValue(
-							firstNonNull(toolResult.get("toolCallId"), toolResult.get("id"))));
-					sb.append(" status=").append(stringValue(
-							firstNonNull(toolResult.get("toolStatus"), toolResult.get("tool_status"))));
-					sb.append("\n    output: ")
-							.append(truncate(stringValue(toolResult.get("output")), OUTPUT_CAP)).append("\n");
+							.append(stringValue(firstNonNull(toolResult.get("toolName"), toolResult.get("tool_name"))));
+					sb.append(" id=")
+							.append(stringValue(firstNonNull(toolResult.get("toolCallId"), toolResult.get("id"))));
+					sb.append(" status=").append(
+							stringValue(firstNonNull(toolResult.get("toolStatus"), toolResult.get("tool_status"))));
+					sb.append("\n    output: ").append(truncate(stringValue(toolResult.get("output")), OUTPUT_CAP))
+							.append("\n");
 				}
 			}
 		}

@@ -35,6 +35,7 @@ class GoogleGenAIMessageBuilder:
 
         pending_tool_responses = []
         expected_tool_count = 0
+        self._blob_seq = 0
 
         for i, message in enumerate(semoss_messages):
             if message.parts:
@@ -350,11 +351,14 @@ class GoogleGenAIMessageBuilder:
                     except (ValueError, TypeError):
                         continue  # malformed base64 - skip this block
                     mime = block.mime_type or "image/png"
+                    ext = mime.split("/")[-1]
+                    display_name = f"attachment_{self._blob_seq}.{ext}"
+                    self._blob_seq += 1
                     media_parts.append(
                         types.FunctionResponsePart(
                             inline_data=types.FunctionResponseBlob(
                                 mime_type=mime,
-                                display_name=f"attachment.{mime.split('/')[-1]}",
+                                display_name=display_name,
                                 data=data_bytes,
                             )
                         )
