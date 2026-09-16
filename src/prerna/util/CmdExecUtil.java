@@ -32,7 +32,9 @@ import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
@@ -47,6 +49,8 @@ import prerna.auth.User;
 public class CmdExecUtil {
 
 	private static final Logger classLogger = LogManager.getLogger(CmdExecUtil.class);
+	private static final String DEFAULT_CHROOT_PATH = String.join(File.pathSeparator, "/usr/local/sbin",
+			"/usr/local/bin", "/usr/sbin", "/usr/bin", "/sbin", "/bin");
 
 	private String insightId = null;
 	private String chrootFolderPath = null;
@@ -257,8 +261,7 @@ public class CmdExecUtil {
 
 		// Check if we need to use chroot
 		if (this.chrootFolderPath != null && !this.chrootFolderPath.isEmpty()) {
-			environment = new HashMap<>();
-			environment.put("HOME", "/home/default");
+			environment = createChrootEnvironment();
 			// Validate chroot setup
 			File chrootDir = new File(this.chrootFolderPath);
 			if (!chrootDir.exists()) {
@@ -367,25 +370,50 @@ public class CmdExecUtil {
 		if (pythonHome == null || pythonHome.trim().isEmpty()) {
 			pythonHome = Utility.getDIHelperProperty(Settings.PY_HOME);
 		}
-		if (pythonHome == null || pythonHome.trim().isEmpty()) {
+		String sandboxPath = getConfiguredSandboxPath();
+		if ((pythonHome == null || pythonHome.trim().isEmpty()) && sandboxPath.isEmpty()) {
 			return null;
 		}
 
 		Map<String, String> environment = new HashMap<>(System.getenv());
-		String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
-		String existingPath = environment.get("PATH");
-		if (existingPath == null || existingPath.isEmpty()) {
-			environment.put("PATH", pythonBin);
-			return environment;
+		String path = prependPath(sandboxPath, environment.get("PATH"));
+		if (pythonHome != null && !pythonHome.trim().isEmpty()) {
+			String pythonBin = new File(pythonHome.trim(), "bin").getAbsolutePath();
+			path = prependPath(pythonBin, path);
 		}
+		environment.put("PATH", path);
+		return environment;
+	}
 
-		for (String entry : existingPath.split(File.pathSeparator)) {
-			if (pythonBin.equals(entry)) {
-				return environment;
+	private Map<String, String> createChrootEnvironment() {
+		Map<String, String> environment = new HashMap<>();
+		environment.put("HOME", "/home/default");
+		environment.put("PATH", prependPath(getConfiguredSandboxPath(), DEFAULT_CHROOT_PATH));
+		return environment;
+	}
+
+	private static String getConfiguredSandboxPath() {
+		String sandboxPath = Utility.getDIHelperProperty(Constants.SANDBOX_PATH);
+		return sandboxPath == null ? "" : sandboxPath.trim();
+	}
+
+	private static String prependPath(String prefix, String existingPath) {
+		Set<String> entries = new LinkedHashSet<>();
+		addPathEntries(entries, prefix);
+		addPathEntries(entries, existingPath);
+		return String.join(File.pathSeparator, entries);
+	}
+
+	private static void addPathEntries(Set<String> entries, String path) {
+		if (path == null || path.trim().isEmpty()) {
+			return;
+		}
+		for (String entry : path.split(File.pathSeparator)) {
+			String trimmed = entry.trim();
+			if (!trimmed.isEmpty()) {
+				entries.add(trimmed);
 			}
 		}
-		environment.put("PATH", pythonBin + File.pathSeparator + existingPath);
-		return environment;
 	}
 
 	/**
