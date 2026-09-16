@@ -276,8 +276,13 @@ if __name__ == "__main__":
             logging.info(
                 f"Chrooted to {args.userChrootFolder} and changed directory to /"
             )
+            sandbox_path = os.environ.get("PATH")
             os.environ.clear()
-            # clearing the environment drops MPLBACKEND, so put it back
+            # Keep only the explicitly configured executable path in the
+            # chrooted worker environment; the rest of the host environment is
+            # intentionally discarded.
+            if sandbox_path:
+                os.environ["PATH"] = sandbox_path
             smss_inline_display.pin_headless_backend()
         except PermissionError:
             logging.error("Permission denied: You need to run this script as root.")
