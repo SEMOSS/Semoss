@@ -622,7 +622,18 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 								break; // let existing cancelledEpocs/job handling throw cancel response
 							}
 
-							classLogger.warn("Interrupted while waiting for epoc {}", ps.epoc, e);
+							// An interrupt with no cancel record still means this thread was told
+							// to stop. An agent run cancel is the common case: it interrupts the
+							// run's thread without touching the epoc maps, because the model call
+							// runs on an engine-owned python process the canceller has no handle
+							// on. Going back to waiting would ignore the stop, so abandon the epoc
+							// and hand the interrupt back to the caller, whose cooperative cancel
+							// checks are what end the work.
+							Thread.currentThread().interrupt();
+							classLogger.warn("Interrupted while waiting for epoc {} {}; abandoning the wait", ps.epoc,
+									ps.methodName);
+							this.requestMap.remove(ps.epoc);
+							throw new SemossPixelException("The request was interrupted", e);
 						}
 					}
 					if (cancelledEpocs.contains(ps.epoc)) {

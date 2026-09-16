@@ -119,11 +119,19 @@ final class AgentRunExecutor {
 			publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.COMPLETED,
 					result != null ? result.getFinalText() : null, null);
 		} catch (Exception e) {
+			// A cancel reaches this thread as an interrupt and the flag is still set.
+			// Clear it before the bookkeeping below, because this thread is virtual and
+			// an interrupted virtual thread closes whatever socket it blocks on -- which
+			// here would be the shared connection these status writes need, taking the
+			// engine down for every other caller too. The flag is not restored: the run
+			// is over, and the teardown that follows this method also does I/O.
+			boolean interrupted = Thread.interrupted();
 			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
-			if (isCancelled(e)) {
+			if (isCancelled(e, interrupted)) {
 				AgentRunStore.markCancelled(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null, boundedError(e));
+				logger.info("AgentRunExecutor: runId={} cancelled: {}", runId, e.getMessage());
 			} else if (e instanceof AgentInputRequiredException) {
 				// The harness already persisted the AGENT_RUN_ACTION rows; only
 				// transition the durable run status here.
@@ -134,8 +142,8 @@ final class AgentRunExecutor {
 				AgentRunStore.markFailed(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
+				logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 			}
-			logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 		} finally {
 			ThreadStore.remove();
 		}
@@ -178,11 +186,14 @@ final class AgentRunExecutor {
 
 	/**
 	 * Whether {@code t} represents a cancel rather than a failure, so the run
-	 * settles as {@code CANCELLED}. The interrupt flag counts because a cancel
-	 * interrupts the run's thread, and whatever that unblocks may surface as an
-	 * unrelated exception type.
+	 * settles as {@code CANCELLED}.
+	 *
+	 * @param interrupted whether the run's thread was interrupted, read and cleared
+	 *                    by the caller. It counts as a cancel because a cancel
+	 *                    interrupts the run's thread, and whatever that unblocks
+	 *                    may surface as an unrelated exception type
 	 */
-	private static boolean isCancelled(Throwable t) {
+	private static boolean isCancelled(Throwable t, boolean interrupted) {
 		Throwable cur = t;
 		while (cur != null) {
 			if (cur instanceof AgentCancelledException) {
@@ -190,7 +201,7 @@ final class AgentRunExecutor {
 			}
 			cur = cur.getCause();
 		}
-		return Thread.currentThread().isInterrupted();
+		return interrupted;
 	}
 
 	/**
