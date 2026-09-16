@@ -1,48 +1,12 @@
 'use strict';
 /*
- * deck.js - JSON-spec deck builder for the SEMOSS agent Node environment.
+ * Native PowerPoint authoring with optional components and a legacy JSON renderer.
+ * create() returns a native PptxGenJS presentation: combine components with any
+ * slide.add* calls, then save() and validate(). See SKILL.md for a complete example.
  *
- * Why this exists: writing pptxgenjs by hand costs many turns and hits the same
- * footguns every time (negative extents, "#" colors, module-vs-instance
- * ShapeType/ChartType, bullets rendered twice, text off the canvas). Describe
- * the deck as data instead and this renders it, then validates the file.
- *
- * Usage from ExecuteNodeCode - ONE call, everything inside one async IIFE:
- *
- *   (async () => {
- *     const path = require('path');
- *     const PptxGenJS = require('pptxgenjs');
- *     const deck = require(path.join(ROOT, '.claude/skills/pptx/scripts/deck.js'));
- *     const out = path.join(ROOT, 'my-deck.pptx');
- *     const built = await deck.render({
- *       PptxGenJS: PptxGenJS,
- *       outPath: out,
- *       spec: {
- *         title: 'Quarterly Review',
- *         theme: 'navy',
- *         slides: [
- *           { kind: 'title',   title: 'Quarterly Review', subtitle: 'FY26 Q3' },
- *           { kind: 'bullets', title: 'Highlights', bullets: ['Revenue up 12%', 'Churn flat'] },
- *           { kind: 'stat-row', title: 'By the numbers',
- *             stats: [{ value: '12%', label: 'Revenue growth' }, { value: '1.4M', label: 'Active users' }] },
- *           { kind: 'two-col', title: 'Risks and mitigations',
- *             left:  { heading: 'Risks', bullets: ['Supply delays'] },
- *             right: { heading: 'Mitigations', bullets: ['Second supplier'] } },
- *           { kind: 'chart', title: 'Trend', chartType: 'bar',
- *             categories: ['Q1', 'Q2', 'Q3'], series: [{ name: 'Revenue', values: [8, 10, 12] }] }
- *         ]
- *       }
- *     });
- *     console.log(JSON.stringify(built));
- *     console.log(JSON.stringify(deck.validate(out), null, 1));
- *   })()
- *
- * PptxGenJS is injected because this file lives in the room's skill folder,
- * outside the curated node_env: a bare require('pptxgenjs') from here does not
- * resolve. Only node core modules are required internally.
- *
- * Fixed layouts own all geometry; spec data cannot inject raw pptxgenjs
- * options. Unknown kinds or data that cannot fit fail with an actionable error.
+ * Inject PptxGenJS from the curated environment. This skill can be staged outside
+ * node_env and only requires Node core modules itself. Execute agent scripts in
+ * one async IIFE, await all work, and write to an absolute path under ROOT.
  */
 
 const fs = require('fs');
@@ -97,6 +61,8 @@ const THEMES = {
 
 const DEFAULT_FONTS = { heading: 'Arial', body: 'Arial' };
 const renderedSlideCounts = new Map();
+const presentations = new WeakMap();
+const slideContexts = new WeakMap();
 
 /* ------------------------------ utilities ------------------------------- */
 
@@ -246,7 +212,7 @@ function addFooter(slide, t, label, index, total) {
 			fontFace: t.fonts.body, fontSize: 10, color: t.muted, margin: 0
 		});
 	}
-	slide.addText(String(index) + ' / ' + String(total), {
+	slide.addText(String(index) + (Number.isInteger(total) ? ' / ' + total : ''), {
 		x: SLIDE_W - MARGIN - 1.0, y: FOOTER_Y, w: 1.0, h: 0.32,
 		fontFace: t.fonts.body, fontSize: 10, color: t.muted, align: 'right', margin: 0
 	});
@@ -574,6 +540,450 @@ function renderImage(pres, t, spec, index, total, footer) {
 	return slide;
 }
 
+/* ---------------------- composable native authoring --------------------- */
+
+// Clone before calling PptxGenJS: it mutates nested options and rich-text runs.
+// Preserve native options we do not know about rather than maintaining a second
+// allowlist of PptxGenJS features. Known invalid colors still fail early.
+const SCHEME_COLORS = new Set(['tx1', 'tx2', 'bg1', 'bg2', 'dk1', 'dk2', 'lt1', 'lt2',
+	'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6', 'hlink', 'folHlink']);
+function copyOptions(value, key) {
+	if (typeof value === 'string' && (key === 'color' || /Color$/.test(key || '') || key === 'chartColors')) {
+		return SCHEME_COLORS.has(value) ? value : hex(value);
+	}
+	if (Array.isArray(value)) {
+		return value.map(function (item) { return copyOptions(item, key); });
+	}
+	if (value && Object.prototype.toString.call(value) === '[object Object]') {
+		return Object.fromEntries(Object.entries(value).map(function (entry) {
+			return [entry[0], copyOptions(entry[1], entry[0])];
+		}));
+	}
+	return value;
+}
+
+function geometry(options, width, height) {
+	const o = copyOptions(options || {});
+	['x', 'y', 'w', 'h'].forEach(function (key) {
+		if (o[key] === undefined) { return; }
+		if (typeof o[key] === 'string' && /^-?\d+(?:\.\d+)?%$/.test(o[key])) {
+			o[key] = parseFloat(o[key]) / 100 * (key === 'x' || key === 'w' ? width : height);
+		}
+		if (typeof o[key] !== 'number' || !Number.isFinite(o[key])) {
+			throw new Error(key + ' must be a finite number in inches or a percentage');
+		}
+	});
+	[['w', 'x', 'flipH'], ['h', 'y', 'flipV']].forEach(function (axis) {
+		if (o[axis[0]] < 0) {
+			o[axis[1]] = (o[axis[1]] || 0) + o[axis[0]];
+			o[axis[0]] = -o[axis[0]];
+			o[axis[2]] = !o[axis[2]];
+		}
+	});
+	if (o.shadow && o.shadow.offset < 0) {
+		o.shadow.offset = -o.shadow.offset;
+		o.shadow.angle = ((o.shadow.angle || 0) + 180) % 360;
+	}
+	return o;
+}
+
+function safeChartLabels(type, options) {
+	if ((type === 'bar' || type === 'bar3D') && ['stacked', 'percentStacked'].includes(options.barGrouping)
+		&& options.dataLabelPosition && !['ctr', 'inEnd', 'inBase'].includes(options.dataLabelPosition)) {
+		options.dataLabelPosition = 'inEnd';
+	}
+}
+
+function guardSlide(slide, context) {
+	slideContexts.set(slide, context);
+	let objectNumber = 0;
+	['addText', 'addShape', 'addImage', 'addChart', 'addTable'].forEach(function (method) {
+		const original = slide[method].bind(slide);
+		slide[method] = function () {
+			const args = Array.from(arguments).map(function (arg) { return copyOptions(arg); });
+			// Native combo charts accept (series, options), or (series, null, options).
+			const chartOptionsAt = Array.isArray(args[0]) && (args[1] || args.length < 3) ? 1 : 2;
+			const at = method === 'addImage' ? 0 : (method === 'addChart' ? chartOptionsAt : 1);
+			const o = geometry(args[at], context.width, context.height);
+			if (!o.objectName) { o.objectName = method.slice(3).toLowerCase() + '-' + (++objectNumber); }
+			if (method === 'addText') {
+				if (o.margin === undefined) { o.margin = 0; }
+				if (Array.isArray(args[0])) {
+					args[0].forEach(function (run) {
+						if (run && run.options && run.options.bullet) { run.text = cleanBullet(run.text); }
+					});
+				} else if (o.bullet) { args[0] = cleanBullet(args[0]); }
+			}
+			if (method === 'addShape' && !args[0]) {
+				throw new Error('Use the instance ShapeType, e.g. pres.ShapeType.rect');
+			}
+			if (method === 'addChart') {
+				if (Array.isArray(args[0])) {
+					args[0].forEach(function (series) {
+						series.options = Object.assign({}, o, series.options);
+						safeChartLabels(series.type, series.options);
+					});
+				} else { safeChartLabels(args[0], o); }
+			}
+			args[at] = o;
+			return original.apply(null, args);
+		};
+	});
+	// Native background assignment is an accessor, separate from the add* calls.
+	let prototype = Object.getPrototypeOf(slide);
+	while (prototype) {
+		const property = Object.getOwnPropertyDescriptor(prototype, 'background');
+		if (property && property.set) {
+			Object.defineProperty(slide, 'background', {
+				configurable: true,
+				get: function () { return property.get && property.get.call(slide); },
+				set: function (value) { property.set.call(slide, copyOptions(value)); }
+			});
+			break;
+		}
+		prototype = Object.getPrototypeOf(prototype);
+	}
+	return slide;
+}
+
+/** Return a native presentation. All slide.add* methods remain available. */
+function create(args) {
+	const o = args || {};
+	if (typeof o.PptxGenJS !== 'function') {
+		throw new Error('create() needs the injected constructor: deck.create({ PptxGenJS, theme: ... })');
+	}
+	const pres = new o.PptxGenJS();
+	let width = SLIDE_W, height = SLIDE_H;
+	if (o.width !== undefined || o.height !== undefined) {
+		width = Number(o.width); height = Number(o.height);
+		if (!(Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0)) {
+			throw new Error('A custom canvas needs positive width and height in inches');
+		}
+		pres.defineLayout({ name: 'SEMOSS_CUSTOM', width: width, height: height });
+		pres.layout = 'SEMOSS_CUSTOM';
+	} else { pres.layout = 'LAYOUT_WIDE'; }
+	const theme = resolveTheme(o);
+	pres.title = text(o.title);
+	pres.subject = text(o.subject);
+	pres.author = text(o.author) || 'SEMOSS';
+	pres.company = text(o.company);
+	pres.theme = { headFontFace: theme.fonts.heading, bodyFontFace: theme.fonts.body, lang: o.lang || 'en-US' };
+	const context = { pres: pres, theme: theme, width: width, height: height };
+	presentations.set(pres, context);
+	const addSlide = pres.addSlide.bind(pres);
+	pres.addSlide = function (options) {
+		const slide = guardSlide(addSlide(copyOptions(options)), context);
+		// Let a supplied master own its background.
+		if (!options || !options.masterName) { slide.background = { color: theme.bg }; }
+		return slide;
+	};
+	return pres;
+}
+
+function componentContext(slide, options) {
+	const context = slideContexts.get(slide);
+	if (!context) { throw new Error('Components need a slide from deck.create(...).addSlide()'); }
+	if (options && options.theme !== undefined) {
+		return Object.assign({}, context, { theme: resolveTheme({ theme: options.theme }) });
+	}
+	return context;
+}
+
+function frame(slide, options, defaults) {
+	const c = componentContext(slide, options);
+	return geometry(Object.assign({ x: MARGIN, y: BODY_Y, w: c.width - MARGIN * 2, h: c.height - BODY_Y - MARGIN },
+		defaults, options), c.width, c.height);
+}
+
+/** Equal cells in reading order. Use returned rectangles with any native API. */
+function grid(options) {
+	const o = Object.assign({ x: MARGIN, y: BODY_Y, w: CONTENT_W, h: BODY_H, columns: 2, rows: 1, gap: 0.4 }, options);
+	if (![o.columns, o.rows].every(function (n) { return Number.isInteger(n) && n > 0; })
+		|| ![o.x, o.y, o.w, o.h, o.gap].every(Number.isFinite) || o.gap < 0) {
+		throw new Error('grid needs positive integer columns/rows, finite inch geometry and gap >= 0');
+	}
+	const w = (o.w - o.gap * (o.columns - 1)) / o.columns;
+	const h = (o.h - o.gap * (o.rows - 1)) / o.rows;
+	if (w <= 0 || h <= 0) { throw new Error('grid cells have no space; reduce gap or increase w/h'); }
+	return Array.from({ length: o.rows * o.columns }, function (_, i) {
+		return { x: o.x + i % o.columns * (w + o.gap), y: o.y + Math.floor(i / o.columns) * (h + o.gap), w: w, h: h };
+	});
+}
+
+/** Theme-aware text. Explicit PptxGenJS options override the role defaults. */
+function addText(slide, value, options) {
+	const c = componentContext(slide, options), t = c.theme;
+	const o = Object.assign({}, options);
+	const role = o.role || 'body';
+	const sizes = { title: 38, heading: 25, body: 19, caption: 13, value: 64 };
+	delete o.role; delete o.theme;
+	slide.addText(value, Object.assign({ x: MARGIN, y: BODY_Y, w: c.width - MARGIN * 2, h: 0.65,
+		fontFace: ['title', 'heading', 'value'].includes(role) ? t.fonts.heading : t.fonts.body,
+		fontSize: sizes[role] || sizes.body, color: role === 'caption' ? t.muted : t.ink,
+		bold: ['title', 'heading', 'value'].includes(role), margin: 0, valign: 'top',
+		objectName: role }, o));
+	return slide;
+}
+
+function heading(slide, options) {
+	const o = frame(slide, options, { y: 0.55, h: 1.15 });
+	const t = componentContext(slide, o).theme;
+	const titleY = o.y + (o.kicker ? 0.38 : 0);
+	if (o.kicker) {
+		addText(slide, text(o.kicker).toUpperCase(), { x: o.x, y: o.y, w: o.w, h: 0.25,
+			fontSize: 12, bold: true, charSpacing: 1.5, color: o.accent || t.accent, objectName: 'heading kicker' });
+	}
+	addText(slide, text(o.title), { role: 'title', x: o.x, y: titleY, w: o.w, h: o.h,
+		fontSize: o.fontSize || 38, fontFace: o.fontFace || t.fonts.heading, color: o.color || t.ink,
+		objectName: 'slide title' });
+	return slide;
+}
+
+function bullets(slide, items, options) {
+	const o = frame(slide, options);
+	const t = componentContext(slide, o).theme;
+	const size = o.fontSize || 19;
+	delete o.theme;
+	slide.addText(bulletParagraphs(normalizeBullets(items), size, o.color || t.ink), Object.assign({
+		fontFace: t.fonts.body, fontSize: size, margin: 0, valign: 'top', objectName: 'bullets'
+	}, o));
+	return slide;
+}
+
+function imageAspect(options) {
+	if (typeof options.aspectRatio === 'number' && Number.isFinite(options.aspectRatio) && options.aspectRatio > 0) {
+		return options.aspectRatio;
+	}
+	const data = options.path ? fs.readFileSync(options.path)
+		: Buffer.from(text(options.data).replace(/^(?:data:)?image\/[^;,]+;base64,/i, ''), 'base64');
+	let width = 0, height = 0;
+	if (data.length >= 24 && data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+		width = data.readUInt32BE(16); height = data.readUInt32BE(20);
+	} else if (data.length >= 10 && /^GIF8[79]a/.test(data.toString('ascii', 0, 6))) {
+		width = data.readUInt16LE(6); height = data.readUInt16LE(8);
+	} else if (data.length >= 4 && data[0] === 0xff && data[1] === 0xd8) {
+		let offset = 2;
+		while (offset + 4 <= data.length) {
+			if (data[offset++] !== 0xff) { break; }
+			while (offset < data.length && data[offset] === 0xff) { offset++; }
+			const marker = data[offset++];
+			if (marker === 0xda || marker === 0xd9 || offset + 2 > data.length) { break; }
+			if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8)) { continue; }
+			const length = data.readUInt16BE(offset);
+			if (length < 2 || offset + length > data.length) { break; }
+			if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker) && length >= 7) {
+				height = data.readUInt16BE(offset + 3); width = data.readUInt16BE(offset + 5); break;
+			}
+			offset += length;
+		}
+	} else {
+		const svg = /<svg\b[^>]*>/i.exec(data.toString('utf8'));
+		const viewBox = svg && /\bviewBox\s*=\s*["']\s*([-+.\deE]+)[\s,]+([-+.\deE]+)[\s,]+([-+.\deE]+)[\s,]+([-+.\deE]+)\s*["']/i.exec(svg[0]);
+		if (viewBox) { width = Number(viewBox[3]); height = Number(viewBox[4]); }
+		else if (svg) {
+			const w = /\bwidth\s*=\s*["']([\d.]+)(?:px)?["']/i.exec(svg[0]);
+			const h = /\bheight\s*=\s*["']([\d.]+)(?:px)?["']/i.exec(svg[0]);
+			width = w && Number(w[1]); height = h && Number(h[1]);
+		}
+	}
+	if (!(width > 0 && height > 0 && Number.isFinite(width / height))) {
+		throw new Error('Cannot read image dimensions. Use PNG/JPEG/GIF/SVG, convert with curated sharp, or provide aspectRatio: width / height.');
+	}
+	return width / height;
+}
+
+/** Crop/contain an existing image in a rectangle without stretching it. */
+function image(slide, options) {
+	const o = frame(slide, options);
+	const source = o.path || o.data;
+	if (!source) { throw new Error('image needs path or data for an existing image'); }
+	const mode = o.fit || 'cover';
+	if (!['cover', 'contain', 'stretch'].includes(mode)) { throw new Error('image fit must be cover, contain or stretch'); }
+	// PptxGenJS 4 uses sizing on addImage; older imageSizing* functions are
+	// not present on the constructor or instance in the curated environment.
+	if (mode !== 'stretch') {
+		o.sizing = { type: mode, w: o.w, h: o.h };
+		// The native sizing implementation uses addImage w/h as the SOURCE
+		// aspect, and sizing.w/h as the TARGET box. Supplying the target for
+		// both silently stretches images, even with sizing.type = 'cover'.
+		o.h = o.w / imageAspect(o);
+	}
+	else { delete o.sizing; }
+	delete o.fit; delete o.theme; delete o.aspectRatio;
+	slide.addImage(Object.assign({ objectName: 'image' }, o));
+	return slide;
+}
+
+/** A cover composition with optional image; every region remains editable. */
+function cover(slide, options) {
+	const c = componentContext(slide, options), t = c.theme;
+	const o = Object.assign({}, options);
+	slide.background = { color: o.background || t.ink };
+	const x = o.x === undefined ? c.width * 0.065 : o.x;
+	const y = o.y === undefined ? c.height * 0.25 : o.y;
+	const w = o.w === undefined ? (o.image ? c.width * 0.49 : c.width - x * 2) : o.w;
+	if (o.image) {
+		image(slide, Object.assign({ x: c.width * 0.59, y: 0, w: c.width * 0.41, h: c.height }, o.image));
+	}
+	if (o.kicker) {
+		addText(slide, text(o.kicker).toUpperCase(), { x: x, y: y - 0.5, w: w, h: 0.3,
+			fontSize: 13, bold: true, charSpacing: 1.5, color: o.accent || t.accentSoft, objectName: 'cover kicker' });
+	}
+	addText(slide, text(o.title), { x: x, y: y, w: w, h: o.h || c.height * 0.35,
+		role: 'title', fontSize: o.fontSize || 52, fontFace: o.fontFace || t.fonts.heading,
+		color: o.color || t.invertInk, objectName: 'cover title' });
+	if (o.subtitle) {
+		addText(slide, text(o.subtitle), { x: x, y: y + (o.h || c.height * 0.35) + 0.25,
+			w: w, h: 1.05, fontSize: o.subtitleSize || 21, color: o.subtitleColor || t.accentSoft, objectName: 'cover subtitle' });
+	}
+	if (o.footer) {
+		addText(slide, text(o.footer), { x: x, y: c.height - 0.7, w: w, h: 0.3,
+			role: 'caption', color: o.subtitleColor || t.accentSoft, objectName: 'cover footer' });
+	}
+	return slide;
+}
+
+function callout(slide, options) {
+	const o = frame(slide, options, { w: 3.5, h: 2.4 });
+	const t = componentContext(slide, o).theme;
+	const valueH = o.h * 0.48;
+	addText(slide, text(o.value), { role: 'value', x: o.x, y: o.y, w: o.w, h: valueH,
+		fontSize: o.fontSize || Math.min(66, valueH * 58), color: o.color || t.accent,
+		align: o.align || 'left', objectName: 'callout value' });
+	addText(slide, text(o.label), { x: o.x, y: o.y + valueH + 0.08, w: o.w, h: o.h * 0.22,
+		fontSize: o.labelSize || 20, bold: true, color: o.labelColor || t.ink,
+		align: o.align || 'left', objectName: 'callout label' });
+	if (o.caption) {
+		addText(slide, text(o.caption), { x: o.x, y: o.y + o.h * 0.75, w: o.w, h: o.h * 0.25,
+			fontSize: o.captionSize || 16, color: o.captionColor || t.muted,
+			align: o.align || 'left', objectName: 'callout caption' });
+	}
+	return slide;
+}
+
+function comparison(slide, options) {
+	const o = frame(slide, options);
+	const t = componentContext(slide, o).theme;
+	const cells = grid({ x: o.x, y: o.y, w: o.w, h: o.h, columns: 2, gap: o.gap === undefined ? 0.8 : o.gap });
+	[o.left || {}, o.right || {}].forEach(function (column, i) {
+		const cell = cells[i];
+		addText(slide, text(column.heading), { role: 'heading', x: cell.x, y: cell.y, w: cell.w, h: 0.65,
+			fontSize: column.headingSize || o.headingSize || 26, color: column.color || t.accent,
+			objectName: 'comparison ' + (i ? 'right' : 'left') + ' heading' });
+		const body = { x: cell.x, y: cell.y + 0.9, w: cell.w, h: cell.h - 0.9,
+			fontSize: o.fontSize || 20, color: t.ink, objectName: 'comparison ' + (i ? 'right' : 'left') + ' body' };
+		if (column.bullets) { bullets(slide, column.bullets, body); }
+		else { addText(slide, text(column.text), body); }
+	});
+	return slide;
+}
+
+/** Editable horizontal timeline or vertical process, with optional dates. */
+function timeline(slide, options) {
+	const o = frame(slide, options, { h: 3.8 });
+	const c = componentContext(slide, o), t = c.theme;
+	if (!Array.isArray(o.steps) || !o.steps.length) { throw new Error('timeline needs a nonempty steps array'); }
+	const vertical = o.direction === 'vertical';
+	const cells = grid({ x: o.x, y: o.y, w: o.w, h: o.h,
+		columns: vertical ? 1 : o.steps.length, rows: vertical ? o.steps.length : 1,
+		gap: o.gap === undefined ? (vertical ? 0.2 : 0.35) : o.gap });
+	const color = o.color || t.accent;
+	if (cells.length > 1) {
+		const last = cells[cells.length - 1];
+		slide.addShape(c.pres.ShapeType.line, { x: o.x + 0.22, y: o.y + 0.22,
+			w: vertical ? 0 : last.x - o.x, h: vertical ? last.y - o.y : 0,
+			line: { color: t.accentSoft, width: 2 }, objectName: 'timeline connector' });
+	}
+	o.steps.forEach(function (step, i) {
+		const item = typeof step === 'string' ? { title: step } : step;
+		if (!item || !text(item.title).trim()) { throw new Error('Each timeline step needs a title'); }
+		const box = cells[i], tx = box.x + (vertical ? 0.68 : 0), ty = box.y + (vertical ? 0 : 0.85);
+		slide.addShape(c.pres.ShapeType.ellipse, { x: box.x, y: box.y, w: 0.44, h: 0.44,
+			fill: { color: color }, line: { color: color, transparency: 100 }, objectName: 'timeline marker ' + (i + 1) });
+		addText(slide, String(i + 1), { x: box.x, y: box.y + 0.035, w: 0.44, h: 0.35,
+			fontSize: 14, color: t.invertInk, bold: true, align: 'center', objectName: 'timeline number ' + (i + 1) });
+		const w = box.w - (vertical ? 0.68 : 0);
+		const labelH = item.label ? 0.32 : 0;
+		if (item.label) {
+			addText(slide, text(item.label), { x: tx, y: ty, w: w, h: labelH, fontSize: 13,
+				bold: true, color: color, objectName: 'timeline label ' + (i + 1) });
+		}
+		addText(slide, text(item.title), { x: tx, y: ty + labelH, w: w, h: vertical ? 0.4 : 0.8,
+			fontSize: o.fontSize || (vertical ? 20 : 23), bold: true, objectName: 'timeline title ' + (i + 1) });
+		if (item.text) {
+			const y = ty + labelH + (vertical ? 0.48 : 0.96);
+			addText(slide, text(item.text), { x: tx, y: y, w: w, h: Math.max(0.2, box.y + box.h - y),
+				fontSize: o.bodySize || 18, color: t.muted, objectName: 'timeline detail ' + (i + 1) });
+		}
+	});
+	return slide;
+}
+
+/** Styled native chart; options can override any PptxGenJS chart property. */
+function chart(slide, options) {
+	const o = frame(slide, options);
+	const c = componentContext(slide, o), t = c.theme;
+	const categories = Array.isArray(o.categories) ? o.categories.map(text) : [];
+	if (!categories.length || !Array.isArray(o.series) || !o.series.length) {
+		throw new Error('chart needs categories and at least one series');
+	}
+	const data = o.series.map(function (series) {
+		if (!series || !Array.isArray(series.values) || series.values.length !== categories.length
+			|| !series.values.every(function (v) { return typeof v === 'number' && Number.isFinite(v); })) {
+			throw new Error('Each chart series needs one finite number per category');
+		}
+		return { name: text(series.name), labels: categories.slice(), values: series.values.slice() };
+	});
+	const type = o.type === 'column' ? c.pres.ChartType.bar : (o.type || c.pres.ChartType.bar);
+	const pie = type === c.pres.ChartType.pie || type === c.pres.ChartType.doughnut;
+	const native = Object.assign({ x: o.x, y: o.y, w: o.w, h: o.h, chartColors: t.series.slice(),
+		showLegend: pie || data.length > 1, legendPos: 'b', legendColor: t.muted, legendFontSize: 13,
+		showTitle: false, showValue: !pie, showPercent: pie,
+		dataLabelColor: t.ink, dataLabelFontSize: 14,
+		dataLabelPosition: type === c.pres.ChartType.bar ? 'outEnd' : (pie ? 'bestFit' : 't'),
+		catAxisLabelColor: t.muted, valAxisLabelColor: t.muted, catAxisLabelFontSize: 13, valAxisLabelFontSize: 13,
+		catGridLine: { style: 'none' }, valGridLine: { color: t.accentSoft, size: 0.5 },
+		showBorder: false, showCatName: false, barDir: o.type === 'bar' ? 'bar' : 'col',
+		objectName: 'chart' }, o.options);
+	slide.addChart(type, data, native);
+	return slide;
+}
+
+/** Add one legacy layout to a native deck and return it for customization. */
+function addLayout(pres, spec) {
+	const context = presentations.get(pres);
+	if (!context) { throw new Error('addLayout needs a presentation from deck.create(...)'); }
+	if (context.width !== SLIDE_W || context.height !== SLIDE_H) {
+		throw new Error('Original JSON layouts use the wide canvas. Use components or native calls on a custom canvas.');
+	}
+	const renderers = { title: renderTitleSlide, section: renderSection, bullets: renderBullets,
+		'two-col': renderTwoCol, 'stat-row': renderStats, quote: renderQuote, table: renderTable,
+		chart: renderChart, image: renderImage };
+	const kind = spec && (spec.kind || spec.layout);
+	if (!renderers[kind]) { throw new Error('addLayout kind must be one of: ' + KINDS.join(', ')); }
+	return renderers[kind](pres, resolveTheme({ theme: spec.theme || context.theme }), spec,
+		pres.slides.length + 1, undefined, text(spec.footer));
+}
+
+/** Save a native presentation; count is checked before replacing the output. */
+async function save(pres, outPath, options) {
+	if (!presentations.has(pres)) { throw new Error('save needs a presentation from deck.create(...)'); }
+	if (typeof outPath !== 'string' || !path.isAbsolute(outPath)) {
+		throw new Error('outPath must be absolute: use path.join(ROOT, "<exact filename including extension>")');
+	}
+	const count = pres.slides.length;
+	if (!count || (options && options.slides !== undefined && options.slides !== count)) {
+		throw new Error('Presentation has ' + count + ' slides; match the requested count before saving');
+	}
+	if (!pres.subject || /^SEMOSS presentation: \d+ slides$/.test(pres.subject)) {
+		pres.subject = 'SEMOSS presentation: ' + count + ' slides';
+	}
+	fs.mkdirSync(path.dirname(outPath), { recursive: true });
+	await pres.writeFile({ fileName: outPath });
+	renderedSlideCounts.set(path.resolve(outPath), count);
+	return { file: outPath, slides: count, bytes: fs.statSync(outPath).size };
+}
+
 /* -------------------------------- render -------------------------------- */
 
 /**
@@ -686,6 +1096,19 @@ function validate(file, expect) {
 }
 
 module.exports = {
+	create: create,
+	save: save,
+	text: addText,
+	heading: heading,
+	bullets: bullets,
+	image: image,
+	cover: cover,
+	callout: callout,
+	comparison: comparison,
+	timeline: timeline,
+	chart: chart,
+	grid: grid,
+	addLayout: addLayout,
 	render: render,
 	validate: validate,
 	KINDS: KINDS,

@@ -1,7 +1,8 @@
 'use strict';
 
 // Package checks for deck.js. Node core only: skill copies live outside node_env.
-// This checks file structure and geometry, not rendered text fit or appearance.
+// Structural errors block export acceptance. Layout diagnostics are advisory;
+// text estimates do not measure the installed fonts or inspect rendered slides.
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
@@ -224,7 +225,7 @@ function transform(xfrm, group) {
 	return { matrix: matrix, w: w, h: h };
 }
 
-function checkCanvas(slide, width, height, issues, label) {
+function checkCanvas(slide, width, height, issues, label, onShape, onOverflow) {
 	function visit(node, parent) {
 		let matrix = parent;
 		if (is(node, P, 'grpSp') || is(node, P, 'spTree')) {
@@ -238,11 +239,20 @@ function checkCanvas(slide, width, height, issues, label) {
 				const corners = [[0, 0], [box.w, 0], [0, box.h], [box.w, box.h]].map(function (p) {
 					return [m[0] * p[0] + m[2] * p[1] + m[4], m[1] * p[0] + m[3] * p[1] + m[5]];
 				});
+				const name = all(node, P, 'cNvPr')[0];
+				const record = { node: node, name: name && name.attrs.name || node.local, box: box, matrix: m,
+					x: Math.min(...corners.map(function (p) { return p[0]; })) / EMU,
+					y: Math.min(...corners.map(function (p) { return p[1]; })) / EMU,
+					right: Math.max(...corners.map(function (p) { return p[0]; })) / EMU,
+					bottom: Math.max(...corners.map(function (p) { return p[1]; })) / EMU };
+				if (onShape) { onShape(record); }
 				const tolerance = 0.01 * EMU;
 				if (corners.some(function (p) { return p[0] < -tolerance || p[1] < -tolerance || p[0] > width + tolerance || p[1] > height + tolerance; })) {
-					const name = all(node, P, 'cNvPr')[0];
-					issues.push(label + ': off-canvas ' + node.local + (name ? ' "' + name.attrs.name + '"' : '')
-						+ '; keep geometry within ' + (width / EMU).toFixed(3) + ' x ' + (height / EMU).toFixed(3) + ' inches.');
+					const message = 'off-canvas ' + node.local + ' "' + record.name + '"'
+						+ '; canvas is ' + (width / EMU).toFixed(3) + ' x ' + (height / EMU).toFixed(3)
+						+ ' inches. Reposition unintended clipping; decorative bleed may be intentional.';
+					if (onOverflow) { onOverflow(record, message); }
+					else { issues.push(label + ': ' + message); }
 				}
 			}
 		}
@@ -251,9 +261,123 @@ function checkCanvas(slide, width, height, issues, label) {
 	visit(slide, IDENTITY);
 }
 
+function solidColor(properties) {
+	const fill = child(properties, A, 'solidFill');
+	const color = child(fill, A, 'srgbClr');
+	if (!color || !/^[\da-fA-F]{6}$/.test(color.attrs.val || '')) { return null; }
+	const alpha = child(color, A, 'alpha');
+	return alpha && Number(alpha.attrs.val) < 100000 ? null : color.attrs.val;
+}
+
+function contrast(a, b) {
+	function luminance(color) {
+		const rgb = [0, 2, 4].map(function (i) {
+			const n = parseInt(color.slice(i, i + 2), 16) / 255;
+			return n <= 0.04045 ? n / 12.92 : Math.pow((n + 0.055) / 1.055, 2.4);
+		});
+		return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+	}
+	const x = luminance(a), y = luminance(b);
+	return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+}
+
+// Deliberately conservative heuristics. Inheritance, substituted fonts, word
+// wrapping and complex text are renderer concerns; these are review prompts.
+function reviewLayout(slide, shapes, report) {
+	const background = solidColor(child(child(child(slide, P, 'cSld'), P, 'bg'), P, 'bgPr'));
+	const textShapes = [];
+	shapes.forEach(function (shape, at) {
+		const body = child(shape.node, P, 'txBody');
+		if (!body) { return; }
+		const paragraphs = all(body, A, 'p');
+		const content = all(body, A, 't').map(function (n) { return n.text; }).join(' ').trim();
+		if (!content) { return; }
+		textShapes.push(shape);
+		const bodyPr = child(body, A, 'bodyPr');
+		const inset = bodyPr ? bodyPr.attrs : {};
+		const w = shape.box.w / EMU - Number(inset.lIns === undefined ? 91440 : inset.lIns) / EMU
+			- Number(inset.rIns === undefined ? 91440 : inset.rIns) / EMU;
+		const h = shape.box.h / EMU - Number(inset.tIns === undefined ? 45720 : inset.tIns) / EMU
+			- Number(inset.bIns === undefined ? 45720 : inset.bIns) / EMU;
+		let estimated = 0, minimum = Infinity;
+		const colors = new Set();
+		paragraphs.forEach(function (paragraph) {
+			const pPr = child(paragraph, A, 'pPr');
+			const defaults = child(pPr, A, 'defRPr');
+			let size = defaults && Number(defaults.attrs.sz) / 100 || 18;
+			let advance = 0, breaks = 0;
+			paragraph.children.forEach(function (run) {
+				if (is(run, A, 'br')) { breaks++; return; }
+				const value = child(run, A, 't');
+				if (!value) { return; }
+				const props = child(run, A, 'rPr');
+				const runSize = props && Number(props.attrs.sz) / 100 || size;
+				size = Math.max(size, runSize);
+				minimum = Math.min(minimum, runSize);
+				const color = solidColor(props) || solidColor(defaults);
+				if (color) { colors.add(color); }
+				for (const character of value.text) {
+					advance += runSize * (/\s/.test(character) ? 0.25
+						: (/[^\u0000-\u02ff]/.test(character) ? 1 : (/[MW@]/.test(character) ? 0.85 : 0.5)));
+				}
+			});
+			const indent = pPr ? Math.max(0, Number(pPr.attrs.marL || 0)) / EMU : 0;
+			const lineCount = Math.max(1, Math.ceil(advance / Math.max(1, (w - indent) * 72))) + breaks;
+			const after = child(child(pPr, A, 'spcAft'), A, 'spcPts');
+			const before = child(child(pPr, A, 'spcBef'), A, 'spcPts');
+			estimated += lineCount * size * 1.12 / 72
+				+ Number(after && after.attrs.val || 0) / 7200 + Number(before && before.attrs.val || 0) / 7200;
+		});
+		if (minimum < 14 && content.length > 70) {
+			report('small-text', shape, 'Text includes ' + minimum + ' pt type. Consider shortening the copy or allocating more space.');
+		}
+		if (estimated > Math.max(0, h) * 1.2 + 0.08) {
+			report('estimated-text-overflow', shape, 'Estimated text height ' + estimated.toFixed(2)
+				+ ' in exceeds the ' + Math.max(0, h).toFixed(2)
+				+ ' in text area. Shorten copy or enlarge the box; this is a heuristic, not a rendered measurement.');
+		}
+		let bg = background;
+		shapes.slice(0, at + 1).forEach(function (under) {
+			if (under.x > shape.x || under.y > shape.y || under.right < shape.right || under.bottom < shape.bottom) { return; }
+			const fill = solidColor(child(under.node, P, 'spPr'));
+			if (fill) { bg = fill; }
+			else if (is(under.node, P, 'pic')) { bg = null; }
+		});
+		if (bg) {
+			colors.forEach(function (color) {
+				const ratio = contrast(color, bg);
+				if (ratio < (minimum >= 24 ? 3 : 4.5)) {
+					report('low-contrast', shape, 'Text/background contrast is about ' + ratio.toFixed(1)
+						+ ':1 (' + color + ' on ' + bg + '). Review readability; image and inherited fills may differ.');
+				}
+			});
+		}
+	});
+	for (let i = 0; i < textShapes.length; i++) {
+		const a = textShapes[i];
+		// Rotated text can have intersecting bounding rectangles without overlap.
+		if (Math.abs(a.matrix[1]) > 0.001 || Math.abs(a.matrix[2]) > 0.001) { continue; }
+		for (let j = i + 1; j < textShapes.length; j++) {
+			const b = textShapes[j];
+			if (Math.abs(b.matrix[1]) > 0.001 || Math.abs(b.matrix[2]) > 0.001) { continue; }
+			const w = Math.min(a.right, b.right) - Math.max(a.x, b.x);
+			const h = Math.min(a.bottom, b.bottom) - Math.max(a.y, b.y);
+			const area = Math.min((a.right - a.x) * (a.bottom - a.y), (b.right - b.x) * (b.bottom - b.y));
+			if (w > 0.04 && h > 0.04 && w * h > area * 0.15) {
+				report('possible-text-overlap', a, 'Text box intersects "' + b.name + '". Review the placement; empty box space may be intentional.');
+			}
+		}
+	}
+}
+
 function validate(file, options) {
 	const opts = options || {};
-	const result = { ok: false, file: String(file), slides: 0, expectedSlides: null, checks: [], errors: [], warnings: [] };
+	const result = { ok: false, file: String(file), slides: 0, expectedSlides: null,
+		checks: [], errors: [], warnings: [], diagnostics: [], review: { rendered: false, textFit: 'heuristic' } };
+	function diagnostic(id, slide, shape, message) {
+		result.diagnostics.push({ id: id, severity: 'warning', slide: slide, object: shape.name, message: message });
+		result.warnings.push('Slide ' + slide + ', "' + shape.name + '": ' + message);
+	}
 	function check(id, run) {
 		const issues = [];
 		try { run(issues); } catch (err) { issues.push(err.message); }
@@ -285,10 +409,11 @@ function validate(file, options) {
 	const slideNames = Array.from(entries.keys()).filter(function (name) { return /^ppt\/slides\/[^/]+\.xml$/.test(name); });
 	result.slides = slideNames.length;
 	const subject = all(docs.get('docProps/core.xml'), DC, 'subject')[0];
-	const marker = subject && /^SEMOSS JSON deck spec: (\d+) slides$/.exec(subject.text);
+	const marker = subject && /^SEMOSS (?:JSON deck spec|presentation): (\d+) slides$/.exec(subject.text);
 	const expected = opts.slides === undefined ? (marker ? Number(marker[1]) : undefined)
 		: (Array.isArray(opts.slides) ? opts.slides.length : Number(opts.slides));
 	result.expectedSlides = expected === undefined ? null : expected;
+	const orderedSlides = [];
 	check('slide-count', function (issues) {
 		if (!is(presentation, P, 'presentation')) { issues.push('missing presentation root'); return; }
 		if (!slideNames.length) { issues.push('no slides'); }
@@ -306,6 +431,7 @@ function validate(file, options) {
 				issues.push('slide id ' + id.attrs.id + ' has no internal slide relationship'); return;
 			}
 			const target = relationship.Target.startsWith('/') ? relationship.Target.slice(1) : path.posix.normalize(path.posix.join('ppt', relationship.Target));
+			orderedSlides.push(target);
 			if (!entries.has(target)) { issues.push('missing referenced slide ' + target); }
 			if (targets.has(target) || numbers.has(id.attrs.id)) { issues.push('duplicate slide id or target'); }
 			targets.add(target);
@@ -341,15 +467,29 @@ function validate(file, options) {
 			});
 		});
 	});
+	const slideShapes = new Map();
 	check('canvas', function (issues) {
 		if (!(width > 0 && height > 0)) { issues.push('invalid or missing slide dimensions'); return; }
 		slideNames.forEach(function (name) {
 			try {
 				if (!docs.has(name)) { issues.push(name + ': missing parsed slide'); return; }
-				checkCanvas(docs.get(name), width, height, issues, name);
+				const shapes = [];
+				slideShapes.set(name, shapes);
+				checkCanvas(docs.get(name), width, height, issues, name,
+					function (shape) { shapes.push(shape); },
+					opts.strictCanvas === false ? function (shape, message) {
+						diagnostic('off-canvas', orderedSlides.indexOf(name) + 1, shape, message);
+					} : null);
 			} catch (err) { issues.push(name + ': ' + err.message); }
 		});
 	});
+	if (opts.review !== false) {
+		slideShapes.forEach(function (shapes, name) {
+			reviewLayout(docs.get(name), shapes, function (id, shape, message) {
+				diagnostic(id, orderedSlides.indexOf(name) + 1, shape, message);
+			});
+		});
+	}
 	check('colors', function (issues) {
 		docs.forEach(function (doc, name) {
 			all(doc, A, 'srgbClr').forEach(function (n) {
