@@ -421,28 +421,12 @@ public final class AutomationMcpSync {
 	}
 
 	private static JSONObject nodeTypeProperty() {
-		JSONArray values = new JSONArray()
-				.put(AutomationConstants.NODE_DATABASE_QUERY)
-				.put(AutomationConstants.NODE_DATABASE_INSERT)
-				.put(AutomationConstants.NODE_DATABASE_UPDATE)
-				.put(AutomationConstants.NODE_MODEL_CHAT)
-				.put(AutomationConstants.NODE_MODEL_EMBEDDINGS)
-				.put(AutomationConstants.NODE_MODEL_VISION)
-				.put(AutomationConstants.NODE_MODEL_NER)
-				.put(AutomationConstants.NODE_STORAGE_LIST)
-				.put(AutomationConstants.NODE_STORAGE_READ)
-				.put(AutomationConstants.NODE_STORAGE_UPLOAD)
-				.put(AutomationConstants.NODE_STORAGE_DOWNLOAD)
-				.put(AutomationConstants.NODE_STORAGE_DELETE)
-				.put(AutomationConstants.NODE_VECTOR_SEARCH)
-				.put(AutomationConstants.NODE_VECTOR_ADD)
-				.put(AutomationConstants.NODE_VECTOR_DELETE)
-				.put(AutomationConstants.NODE_FUNCTION_EXECUTE)
-				.put(AutomationConstants.NODE_APP_PIXEL)
-				.put(AutomationConstants.NODE_AGENT_RUN)
-				.put(AutomationConstants.NODE_CONTROL_WAIT)
-				.put(AutomationConstants.NODE_CONTROL_IF)
-				.put(AutomationConstants.NODE_DEVELOPER_PYTHON);
+		JSONArray values = new JSONArray();
+		for (AutomationNodeDefinition definition : AutomationNodeCatalog.getDefinitions()) {
+			if (definition.nodeType() != AutomationNodeType.TRIGGER_START) {
+				values.put(definition.nodeType().getType());
+			}
+		}
 		return stringProperty("The typed action to add. control.if is a standalone branch node with an ordered "
 				+ "config.clauses array; add each case child and the final else child in later calls using "
 				+ "afterNodeId and branchPort.").put("enum", values);

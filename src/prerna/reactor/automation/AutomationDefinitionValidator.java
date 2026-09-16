@@ -61,30 +61,6 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
  */
 public final class AutomationDefinitionValidator {
 
-	private static final Set<String> SUPPORTED_NODE_TYPES = Set.of(
-			AutomationConstants.NODE_START,
-			AutomationConstants.NODE_DATABASE_QUERY,
-			AutomationConstants.NODE_DATABASE_INSERT,
-			AutomationConstants.NODE_DATABASE_UPDATE,
-			AutomationConstants.NODE_MODEL_CHAT,
-			AutomationConstants.NODE_MODEL_EMBEDDINGS,
-			AutomationConstants.NODE_MODEL_VISION,
-			AutomationConstants.NODE_MODEL_NER,
-			AutomationConstants.NODE_STORAGE_LIST,
-			AutomationConstants.NODE_STORAGE_READ,
-			AutomationConstants.NODE_STORAGE_UPLOAD,
-			AutomationConstants.NODE_STORAGE_DOWNLOAD,
-			AutomationConstants.NODE_STORAGE_DELETE,
-			AutomationConstants.NODE_VECTOR_SEARCH,
-			AutomationConstants.NODE_VECTOR_ADD,
-			AutomationConstants.NODE_VECTOR_DELETE,
-			AutomationConstants.NODE_FUNCTION_EXECUTE,
-			AutomationConstants.NODE_APP_PIXEL,
-			AutomationConstants.NODE_AGENT_RUN,
-			AutomationConstants.NODE_CONTROL_WAIT,
-			AutomationConstants.NODE_CONTROL_IF,
-			AutomationConstants.NODE_DEVELOPER_PYTHON);
-
 	private AutomationDefinitionValidator() {
 	}
 
@@ -173,13 +149,14 @@ public final class AutomationDefinitionValidator {
 					"graph.nodes[" + index + "].id");
 			String nodeType = requireNonblankString(node.get(AutomationConstants.NODE_FIELD_TYPE),
 					"graph.nodes[" + index + "].type");
-			if (!SUPPORTED_NODE_TYPES.contains(nodeType)) {
+			if (!AutomationNodeType.isSupported(nodeType)) {
 				throw new IllegalArgumentException("Unsupported Python automation node type: " + nodeType + ".");
 			}
+			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
 			if (nodeTypes.putIfAbsent(nodeId, nodeType) != null) {
 				throw new IllegalArgumentException("Python automation definition has duplicate node id: " + nodeId + ".");
 			}
-			if (AutomationConstants.NODE_START.equals(nodeType)) {
+			if (typedNode == AutomationNodeType.TRIGGER_START) {
 				startCount++;
 			} else if (node.containsKey(AutomationConstants.NODE_FIELD_OUTPUT_VAR)) {
 				String outputVar = requireNonblankString(
@@ -205,13 +182,13 @@ public final class AutomationDefinitionValidator {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map
 					? (Map<String, Object>) map : Map.of();
-			validateNodeConfig(nodeId, nodeType, nodeConfig);
+			validateNodeConfig(nodeId, typedNode, nodeConfig);
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
-			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+			if (typedNode == AutomationNodeType.CONTROL_IF
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException("If node '" + nodeId
 						+ "' must use generated mode; conditions are evaluated by Java.");
@@ -231,52 +208,46 @@ public final class AutomationDefinitionValidator {
 		return nodeTypes;
 	}
 
-	private static void validateNodeConfig(String nodeId, String nodeType, Map<String, Object> config) {
-		if (AutomationConstants.NODE_START.equals(nodeType)) {
+	private static void validateNodeConfig(String nodeId, AutomationNodeType nodeType, Map<String, Object> config) {
+		if (nodeType == AutomationNodeType.TRIGGER_START) {
 			validateTriggerConfig(nodeId, config);
 			return;
 		}
-		if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)) {
+		if (nodeType == AutomationNodeType.DEVELOPER_PYTHON) {
 			return;
 		}
-		if (requiresEngine(nodeType)) {
+		if (nodeType.getEngineType() != null && nodeType != AutomationNodeType.AGENT_RUN) {
 			requireConfigString(nodeId, config, AutomationConstants.CONFIG_ENGINE_ID);
 		}
 
 		switch (nodeType) {
-			case AutomationConstants.NODE_DATABASE_QUERY -> {
+			case DATABASE_QUERY -> {
 				requireConfigString(nodeId, config, "query");
 				validateDatabaseQueryLimit(nodeId, config);
 			}
-			case AutomationConstants.NODE_DATABASE_INSERT,
-					AutomationConstants.NODE_DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
-			case AutomationConstants.NODE_MODEL_CHAT -> {
+			case DATABASE_INSERT, DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
+			case MODEL_CHAT -> {
 				requireConfigString(nodeId, config, "prompt");
 				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
 			}
-			case AutomationConstants.NODE_MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
-			case AutomationConstants.NODE_MODEL_NER -> {
+			case MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
+			case MODEL_NER -> {
 				requireConfigString(nodeId, config, "text");
 				requireConfigStringListOrPlaceholder(nodeId, config, "entities");
 			}
-			case AutomationConstants.NODE_MODEL_VISION -> {
+			case MODEL_VISION -> {
 				requireConfigString(nodeId, config, "prompt");
 				requireConfigString(nodeId, config, "image");
 			}
-			case AutomationConstants.NODE_STORAGE_READ,
-					AutomationConstants.NODE_STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
-			case AutomationConstants.NODE_STORAGE_UPLOAD,
-					AutomationConstants.NODE_STORAGE_DOWNLOAD -> {
+			case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
+			case STORAGE_UPLOAD, STORAGE_DOWNLOAD -> {
 				requireConfigString(nodeId, config, "path");
 				requireConfigString(nodeId, config, "destination");
 			}
-			case AutomationConstants.NODE_VECTOR_SEARCH,
-					AutomationConstants.NODE_VECTOR_ADD,
-					AutomationConstants.NODE_VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
-			case AutomationConstants.NODE_FUNCTION_EXECUTE ->
-				requireConfigObject(nodeId, config, "arguments");
-			case AutomationConstants.NODE_APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
-			case AutomationConstants.NODE_AGENT_RUN -> {
+			case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
+			case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
+			case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+			case AGENT_RUN -> {
 				requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
 				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
 				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
@@ -288,10 +259,10 @@ public final class AutomationDefinitionValidator {
 							+ "' wait configuration must be a boolean when provided.");
 				}
 			}
-			case AutomationConstants.NODE_CONTROL_WAIT -> validateWaitConfig(nodeId, config);
-			case AutomationConstants.NODE_CONTROL_IF -> validateBranchConfig(nodeId, config);
-			default -> {
-				// All supported node types are covered above or require only an engine ID.
+			case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
+			case CONTROL_IF -> validateBranchConfig(nodeId, config);
+			case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
+				// These node types have no additional required configuration here.
 			}
 		}
 	}
@@ -372,14 +343,6 @@ public final class AutomationDefinitionValidator {
 		if (source != null && !(source instanceof String)) {
 			throw new IllegalArgumentException("Trigger node '" + nodeId + "' config." + key + " must be a string.");
 		}
-	}
-
-	private static boolean requiresEngine(String nodeType) {
-		return nodeType.startsWith("database.")
-				|| nodeType.startsWith("model.")
-				|| nodeType.startsWith("storage.")
-				|| nodeType.startsWith("vector.")
-				|| AutomationConstants.NODE_FUNCTION_EXECUTE.equals(nodeType);
 	}
 
 	private static void validateWaitConfig(String nodeId, Map<String, Object> config) {

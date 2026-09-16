@@ -180,4 +180,12 @@ public enum AutomationNodeType {
 		}
 		return nodeType;
 	}
+
+	/**
+	 * @param value persisted node type
+	 * @return {@code true} when the value is a supported Automation node type
+	 */
+	public static boolean isSupported(String value) {
+		return TYPES_BY_VALUE.containsKey(value);
+	}
 }

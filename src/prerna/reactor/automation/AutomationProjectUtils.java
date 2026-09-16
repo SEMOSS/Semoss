@@ -32,7 +32,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -62,14 +61,6 @@ import prerna.util.git.GitRepoUtils;
 public final class AutomationProjectUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationProjectUtils.class);
-	private static final Set<String> EDIT_ENGINE_NODE_TYPES = Set.of(
-			AutomationConstants.NODE_DATABASE_INSERT,
-			AutomationConstants.NODE_DATABASE_UPDATE,
-			AutomationConstants.NODE_STORAGE_READ,
-			AutomationConstants.NODE_STORAGE_UPLOAD,
-			AutomationConstants.NODE_STORAGE_DELETE,
-			AutomationConstants.NODE_VECTOR_ADD,
-			AutomationConstants.NODE_VECTOR_DELETE);
 
 	private AutomationProjectUtils() {
 	}
@@ -229,24 +220,25 @@ public final class AutomationProjectUtils {
 			AutomationDefinitionValidator.ValidatedDefinition definition, User user) {
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
+			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
 			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
 			if (!(rawConfig instanceof Map<?, ?>)) {
 				continue;
 			}
 			Map<String, Object> config = (Map<String, Object>) rawConfig;
-			if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
+			if (typedNode == AutomationNodeType.AGENT_RUN) {
 				validateAgentWorkspaceReference(node, config, user);
-			} else if (AutomationConstants.NODE_APP_PIXEL.equals(nodeType)) {
+			} else if (typedNode == AutomationNodeType.APP_PIXEL) {
 				validateAppProjectReference(node, config, user);
 			}
 
-			IEngine.CATALOG_TYPE expectedType = expectedEngineType(nodeType);
+			IEngine.CATALOG_TYPE expectedType = typedNode.getEngineType();
 			if (expectedType == null) {
 				continue;
 			}
 			Object rawEngineId = config.get(AutomationConstants.CONFIG_ENGINE_ID);
 			if (!(rawEngineId instanceof String engineId) || engineId.isBlank()) {
-				if (AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
+				if (typedNode == AutomationNodeType.AGENT_RUN) {
 					String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 					throw new IllegalArgumentException("Automation agent node '" + nodeId
 							+ "' requires an execution model. Select an accessible MODEL engine before saving or running.");
@@ -267,7 +259,7 @@ public final class AutomationProjectUtils {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a " + expectedType
 						+ " engine, but engineId '" + engineId + "' is a " + actualType + " engine.");
 			}
-			if (EDIT_ENGINE_NODE_TYPES.contains(nodeType)
+			if (typedNode.getPermission() == AutomationNodeType.Permission.EDIT
 					&& !SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' of type '" + nodeType
 						+ "' requires edit access to engineId '" + engineId + "'.");
@@ -329,28 +321,6 @@ public final class AutomationProjectUtils {
 		return new IllegalArgumentException("Automation node '" + nodeId + "' appId '" + appId
 				+ "' is not an accessible CODE or BLOCKS app. Call MyProjects with "
 				+ "projectType=['CODE','BLOCKS'] and use its project_id value.");
-	}
-
-	private static IEngine.CATALOG_TYPE expectedEngineType(String nodeType) {
-		if (nodeType == null) {
-			return null;
-		}
-		if (nodeType.startsWith("database.")) {
-			return IEngine.CATALOG_TYPE.DATABASE;
-		}
-		if (nodeType.startsWith("model.") || AutomationConstants.NODE_AGENT_RUN.equals(nodeType)) {
-			return IEngine.CATALOG_TYPE.MODEL;
-		}
-		if (nodeType.startsWith("storage.")) {
-			return IEngine.CATALOG_TYPE.STORAGE;
-		}
-		if (nodeType.startsWith("vector.")) {
-			return IEngine.CATALOG_TYPE.VECTOR;
-		}
-		if (AutomationConstants.NODE_FUNCTION_EXECUTE.equals(nodeType)) {
-			return IEngine.CATALOG_TYPE.FUNCTION;
-		}
-		return null;
 	}
 
 	private static IllegalArgumentException invalidEngineReference(String nodeId, String engineId,
