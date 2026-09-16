@@ -78,6 +78,8 @@ public class ClientProcessWrapper {
 	private static final Logger pyLogger = LogManager.getLogger(Constants.PY_LOGGER_NAME);
 
 	private static final String ENGINE_OWNED_FLAG = "--engine_owned";
+	private static final String[] NAMESPACE_DEFAULT_RO_PATHS = new String[] { "/usr", "/bin", "/sbin", "/lib",
+			"/lib64", "/lib32", "/libx32", "/etc" };
 
 	// After spawning a python server process, poll briefly to catch an immediate
 	// crash (import / syntax errors surface within a few ms) without blocking long
@@ -1016,8 +1018,13 @@ public class ClientProcessWrapper {
 			String outputFile = chrootDir + finalDir + "/console.txt";
 
 			List<String> commands = new ArrayList<>();
-			Collections.addAll(commands, "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env", "-i",
-					py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase, "--insight_folder",
+			Collections.addAll(commands, "fakechroot", "fakeroot", "chroot", "--userspec=1001:1001", "/", "env", "-i");
+			String sandboxPath = getConfiguredSandboxPath();
+			if (!sandboxPath.isEmpty()) {
+				commands.add("PATH=" + sandboxPath);
+			}
+			Collections.addAll(commands, py, gaasServer, "--port", port, "--max_count", "1", "--py_folder", pyBase,
+					"--insight_folder",
 					finalDir, "--prefix", prefix, "--timeout", timeout, "--logger_level", loggerLevel,
 					"--userChrootFolder", chrootDir);
 			if (engineOwned) {
@@ -1085,6 +1092,7 @@ public class ClientProcessWrapper {
 
 		try {
 			String py = getPythonExecutable();
+			String sandboxPath = getConfiguredSandboxPath();
 			String baseFolder = Utility.getBaseFolder().replace("\\", "/");
 			String pyBase = baseFolder + "/" + Constants.PY_BASE_FOLDER;
 			String launcher = pyBase + "/sandbox_launcher.py";
@@ -1131,6 +1139,7 @@ public class ClientProcessWrapper {
 			commands.add(injectRoot);
 			commands.add("--jail-root");
 			commands.add(jailDir);
+			addSandboxPathMounts(commands);
 			commands.add("--");
 			commands.add("--port");
 			commands.add(port);
@@ -1160,6 +1169,9 @@ public class ClientProcessWrapper {
 
 			classLogger.info("Starting namespace-sandboxed user process with ::: {}", commands);
 			ProcessBuilder pb = new ProcessBuilder(commands);
+			if (!sandboxPath.isEmpty()) {
+				pb.environment().put("PATH", sandboxPath);
+			}
 			boolean pyLogCapture = Boolean.parseBoolean(Utility.getDIHelperProperty(Constants.PY_LOG_CAPTURE_ENABLED));
 			File consoleFile = new File(outputFile);
 			List<String> capturedLines = null;
@@ -1599,6 +1611,35 @@ public class ClientProcessWrapper {
 		py = py.replace("\\", "/");
 		classLogger.info("The python executable being used is: \"{}\"", py);
 		return py;
+	}
+
+	private static String getConfiguredSandboxPath() {
+		String sandboxPath = Utility.getDIHelperProperty(Constants.SANDBOX_PATH);
+		return sandboxPath == null ? "" : sandboxPath.trim();
+	}
+
+	private static void addSandboxPathMounts(List<String> commands) {
+		String sandboxPath = getConfiguredSandboxPath();
+		if (sandboxPath.isEmpty()) {
+			return;
+		}
+		for (String entry : sandboxPath.split(File.pathSeparator)) {
+			String path = entry.trim().replace("\\", "/");
+			if (path.isEmpty() || !new File(path).isAbsolute() || isNamespaceDefaultRoPath(path)) {
+				continue;
+			}
+			commands.add("--extra-ro");
+			commands.add(path);
+		}
+	}
+
+	private static boolean isNamespaceDefaultRoPath(String path) {
+		for (String defaultPath : NAMESPACE_DEFAULT_RO_PATHS) {
+			if (path.equals(defaultPath) || path.startsWith(defaultPath + "/")) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

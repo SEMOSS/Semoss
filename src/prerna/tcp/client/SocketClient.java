@@ -313,7 +313,14 @@ public class SocketClient implements Runnable, Closeable {
 						}
 						pollNum++;
 					} catch (InterruptedException e) {
-						classLogger.error("Interrupted while waiting for response to epoc: {}", ps.epoc, e);
+						// Going back to waiting would ignore a stop this thread has already
+						// been told about, so abandon the epoc and hand the interrupt back to
+						// the caller, whose cooperative cancel checks are what end the work.
+						Thread.currentThread().interrupt();
+						classLogger.warn("Interrupted while waiting for epoc {} {}; abandoning the wait", ps.epoc,
+								ps.methodName);
+						this.requestMap.remove(ps.epoc);
+						throw new SemossPixelException("The request was interrupted", e);
 					}
 				}
 				if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {
