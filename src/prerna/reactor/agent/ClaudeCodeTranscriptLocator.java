@@ -31,9 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.stream.Stream;
 
+import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 /**
@@ -59,22 +60,27 @@ public class ClaudeCodeTranscriptLocator {
 			return null;
 		}
 
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		Path rootDir = Paths.get(roomFolderPath);
+		try {
+			roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
+			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
+			Path rootDir = roomRoot.resolve(roomId).normalize();
+			if (!rootDir.startsWith(roomRoot) || !roomRoot.equals(rootDir.getParent())) {
+				return null;
+			}
+			rootDir = rootDir.toFile().getCanonicalFile().toPath();
+			if (!roomRoot.equals(rootDir.getParent()) || !Files.isDirectory(rootDir)) {
+				return null;
+			}
 
-		if (!Files.isDirectory(rootDir)) {
-			return null;
-		}
-
-		String targetFileName = roomId + ".jsonl";
-
-		try (Stream<Path> walk = Files.walk(rootDir)) {
-			return walk
-					.filter(Files::isRegularFile)
-					.filter(p -> p.getFileName().toString().equals(targetFileName))
-					.findFirst()
-					.orElse(null);
-		} catch (IOException e) {
+			String targetFileName = roomId + ".jsonl";
+			try (Stream<Path> walk = Files.walk(rootDir)) {
+				return walk
+						.filter(Files::isRegularFile)
+						.filter(p -> p.getFileName().toString().equals(targetFileName))
+						.findFirst()
+						.orElse(null);
+			}
+		} catch (IllegalArgumentException | IOException e) {
 			return null;
 		}
 	}

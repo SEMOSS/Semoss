@@ -84,8 +84,8 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
-import prerna.util.Utility;
 import prerna.util.PathSecurityUtils;
+import prerna.util.Utility;
 
 public class Room implements Serializable {
 
@@ -2134,7 +2134,17 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
-		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
+		try {
+			File roomRoot = new File(Utility.getBaseFolder(), "room").getCanonicalFile();
+			File roomFolder = new File(roomRoot, roomId).getCanonicalFile();
+			if (!roomRoot.equals(roomFolder.getParentFile())) {
+				throw new IllegalArgumentException("Room folder must remain within the room directory");
+			}
+			return roomFolder.getAbsolutePath();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the room folder path", e);
+		}
 	}
 
 	// Core message accessors

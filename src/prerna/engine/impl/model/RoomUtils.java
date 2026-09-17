@@ -71,6 +71,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 
@@ -828,9 +829,14 @@ public final class RoomUtils {
 		}
 		classLogger.info("Need to copy file paths from the insight to the room");
 		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
+		String roomId = PathSecurityUtils.requireSinglePathSegment(room.getId(), "Room ID");
+		Path targetDir = null;
 		try {
+			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
+			targetDir = roomRoot.resolve(roomId).normalize();
+			if (!targetDir.startsWith(roomRoot) || !roomRoot.equals(targetDir.getParent())) {
+				throw new IllegalArgumentException("Room folder must remain within the room directory");
+			}
 			Files.createDirectories(targetDir);
 		} catch (IOException e) {
 			classLogger.warn("Failed to create room folder: " + targetDir, e);
