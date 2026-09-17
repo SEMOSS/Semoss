@@ -67,6 +67,7 @@ import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
+import prerna.util.PathSecurityUtils;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.signer.Aws4Signer;
 import software.amazon.awssdk.auth.signer.params.Aws4SignerParams;
@@ -483,6 +484,7 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			response = HttpHelperUtility.postRequestStringBody(url,
 					generateHeaders(requestBody.toString(), LIST_VECTORS_ENDPOINT), requestBody.toString(),
 					ContentType.APPLICATION_JSON, null, null, null);
+			File canonicalDocumentsDir = documentsDir.getCanonicalFile();
 
 			JsonObject jsonObject = JsonParser.parseString(response).getAsJsonObject();
 			JsonArray vectors = jsonObject.getAsJsonArray("vectors");
@@ -499,7 +501,13 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
-					File thisF = new File(documentsDir, source);
+					File thisF;
+					try {
+						thisF = PathSecurityUtils.requireDescendant(canonicalDocumentsDir,
+								new File(canonicalDocumentsDir, source));
+					} catch (IllegalArgumentException e) {
+						continue;
+					}
 					if (thisF.exists() && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);
@@ -727,4 +735,3 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 	}
 
 }
-

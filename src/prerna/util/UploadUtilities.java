@@ -1413,6 +1413,12 @@ public final class UploadUtilities {
 	public static File createTemporaryEngineSmss(IEngine.CATALOG_TYPE engineType, String engineId, String engineName,
 			String className, Map<String, Object> properties) throws IOException {
 		String engineTempSmssLoc = getEngineTempSmssLoc(engineType, engineId, engineName);
+		File engineBaseDirectory = new File(EngineUtility.getLocalEngineBaseDirectory(engineType)).getCanonicalFile();
+		File engineTempSmss = new File(engineTempSmssLoc).getCanonicalFile();
+		if (!engineTempSmss.toPath().startsWith(engineBaseDirectory.toPath())
+				|| !engineBaseDirectory.equals(engineTempSmss.getParentFile())) {
+			throw new IllegalArgumentException("Temporary engine SMSS path must remain within the engine directory");
+		}
 
 		ISecrets secretStore = SecretsFactory.getSecretConnector();
 
@@ -1424,7 +1430,6 @@ public final class UploadUtilities {
 		// we dont leave this around
 		// and they should be deleted after loading
 		// so ideally this would never happen...
-		File engineTempSmss = new File(engineTempSmssLoc);
 		if (engineTempSmss.exists()) {
 			engineTempSmss.delete();
 		}

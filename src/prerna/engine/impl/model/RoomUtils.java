@@ -73,6 +73,7 @@ import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+
 /**
  * Utility methods for creating, loading, migrating, and querying {@link Room}
  * instances.
@@ -388,9 +389,14 @@ public final class RoomUtils {
 			return;
 		}
 		try {
-			Path folderPath = Paths.get(roomFolderPath);
+			File roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile();
+			File roomFolder = new File(roomFolderPath).getCanonicalFile();
+			if (!roomFolder.toPath().startsWith(roomRoot.toPath()) || !roomRoot.equals(roomFolder.getParentFile())) {
+				throw new IllegalArgumentException("Room folder must remain within the room directory");
+			}
+			Path folderPath = roomFolder.toPath();
 			Files.createDirectories(folderPath);
-			insight.getUser().getUserSymlinkHelper().symlinkFolder(roomFolderPath);
+			insight.getUser().getUserSymlinkHelper().symlinkFolder(folderPath.toString());
 		} catch (IOException e) {
 			classLogger.warn("Failed to symlink room folder into chroot: " + roomFolderPath, e);
 		}

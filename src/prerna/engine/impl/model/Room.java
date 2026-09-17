@@ -28,6 +28,7 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
 import prerna.util.Utility;
+import prerna.util.PathSecurityUtils;
 
 public class Room implements Serializable {
 
@@ -1268,6 +1270,23 @@ public class Room implements Serializable {
 		}
 
 		// normal engine/project mcp
+		engineId = PathSecurityUtils.requireSinglePathSegment(engineId, "MCP engine ID");
+		// Keep canonical validation visible here for Snyk interprocedural analysis.
+		if (engineId == null || engineId.isBlank()) {
+			throw new IllegalArgumentException("MCP engine ID is required");
+		}
+		try {
+			File validationRoot = new File(Utility.getBaseFolder()).getCanonicalFile();
+			File engineIdPath = new File(validationRoot, engineId).getCanonicalFile();
+			if (!engineIdPath.toPath().startsWith(validationRoot.toPath())
+					|| !validationRoot.equals(engineIdPath.getParentFile()) || !engineId.equals(engineIdPath.getName())
+					|| engineId.indexOf('\\') >= 0 || engineId.chars().anyMatch(Character::isISOControl)) {
+				throw new IllegalArgumentException("MCP engine ID must be a single path segment");
+			}
+			engineId = engineIdPath.getName();
+		} catch (IOException e) {
+			throw new IllegalStateException("Unable to securely resolve the MCP engine ID", e);
+		}
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
