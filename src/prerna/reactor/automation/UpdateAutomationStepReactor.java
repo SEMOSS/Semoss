@@ -41,11 +41,12 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reconfigures one generated Automation node and regenerates its managed source.
+ * Reconfigures one generated Automation node and regenerates its managed
+ * source.
  *
  * <p>
- * Custom source is intentionally excluded from this path so renderer-owned and user-owned code do
- * not share mutation semantics.
+ * Custom source is intentionally excluded from this path so renderer-owned and
+ * user-owned code do not share mutation semantics.
  */
 public class UpdateAutomationStepReactor extends AbstractReactor {
 
@@ -54,8 +55,7 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 	private static final String LABEL_KEY = "label";
 
 	public UpdateAutomationStepReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, CONFIG_KEY, LABEL_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, CONFIG_KEY, LABEL_KEY };
 		this.keyRequired = new int[] { 1, 1, 1, 0 };
 	}
 
@@ -70,8 +70,8 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 				files -> updateStep(projectId, files, nodeId, config, label));
 	}
 
-	private NounMetadata updateStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeId, Map<String, Object> config, String label) {
+	private NounMetadata updateStep(String projectId, AutomationDefinitionService.DefinitionFiles files, String nodeId,
+			Map<String, Object> config, String label) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> document = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -84,8 +84,7 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 
 		Map<String, Object> updatedNode = null;
 		for (Object value : nodes) {
-			if (!(value instanceof Map<?, ?> node)
-					|| !nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
+			if (!(value instanceof Map<?, ?> node) || !nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
 				continue;
 			}
 			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
@@ -117,13 +116,13 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 		result.put("source", saved.nodeSources().get(nodeId));
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
-		return new NounMetadata(result,
-				PixelDataType.MAP, PixelOperationType.OPERATION);
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	private String editableProjectId() {
-		return AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
-				required(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
+		return AutomationProjectUtils
+				.getEditableAutomationProject(this.insight.getUser(), required(ReactorKeysEnum.PROJECT.getKey()))
+				.getProjectId();
 	}
 
 	private String required(String key) {

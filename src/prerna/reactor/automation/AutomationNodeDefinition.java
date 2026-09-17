@@ -39,18 +39,18 @@ import prerna.engine.api.IEngine;
 /**
  * Immutable authoring metadata for one supported Automation node type.
  *
- * @param nodeType       stable node identity and server-owned capabilities
- * @param label          default user-facing label
- * @param description    concise authoring description
+ * @param nodeType        stable node identity and server-owned capabilities
+ * @param label           default user-facing label
+ * @param description     concise authoring description
  * @param defaultCodeMode generated or custom source mode used for new nodes
- * @param defaultConfig  server-owned initial configuration
- * @param configFields   ordered configuration contract
- * @param inputs         ordered input ports
- * @param outputs        ordered output ports
+ * @param defaultConfig   server-owned initial configuration
+ * @param configFields    ordered configuration contract
+ * @param inputs          ordered input ports
+ * @param outputs         ordered output ports
  */
 public record AutomationNodeDefinition(AutomationNodeType nodeType, String label, String description,
-		String defaultCodeMode, Map<String, Object> defaultConfig, List<ConfigField> configFields,
-		List<Port> inputs, List<Port> outputs) {
+		String defaultCodeMode, Map<String, Object> defaultConfig, List<ConfigField> configFields, List<Port> inputs,
+		List<Port> outputs) {
 
 	public AutomationNodeDefinition {
 		defaultConfig = Collections.unmodifiableMap(new LinkedHashMap<>(defaultConfig));
@@ -61,8 +61,8 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 
 	/** Supported configuration value shapes exposed to authoring clients. */
 	public enum ConfigFieldType {
-		ENGINE("engine"), STRING("string"), STRING_LIST("string[]"), TEXT("textarea"), CODE("code"),
-		SQL("code"), INTEGER("number"), JSON("json"), GLOBALS("globals"), BRANCH_CLAUSES("branch-clauses");
+		ENGINE("engine"), STRING("string"), STRING_LIST("string[]"), TEXT("textarea"), CODE("code"), SQL("code"),
+		INTEGER("number"), JSON("json"), GLOBALS("globals"), BRANCH_CLAUSES("branch-clauses");
 
 		private final String value;
 
@@ -88,14 +88,14 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 	/**
 	 * One ordered node configuration field.
 	 *
-	 * @param key        persisted config key
-	 * @param type       field value shape
-	 * @param label      user-facing label
-	 * @param required   whether authoring validation requires a value
+	 * @param key          persisted config key
+	 * @param type         field value shape
+	 * @param label        user-facing label
+	 * @param required     whether authoring validation requires a value
 	 * @param defaultValue initial value, or {@code null}
-	 * @param minimum    optional inclusive numeric minimum
-	 * @param maximum    optional inclusive numeric maximum
-	 * @param engineType optional engine catalog restriction
+	 * @param minimum      optional inclusive numeric minimum
+	 * @param maximum      optional inclusive numeric maximum
+	 * @param engineType   optional engine catalog restriction
 	 */
 	public record ConfigField(String key, ConfigFieldType type, String label, boolean required, Object defaultValue,
 			Number minimum, Number maximum, IEngine.CATALOG_TYPE engineType) {

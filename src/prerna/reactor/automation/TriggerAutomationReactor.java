@@ -69,7 +69,7 @@ public class TriggerAutomationReactor extends AbstractReactor {
 		Map<String, Object> inputs = this.getMap(AutomationConstants.AUTOMATION_INPUTS_KEY);
 		validateInputs(inputs);
 		Map<String, Object> effectiveInputs = new LinkedHashMap<>(
-				AutomationRuntime.declaredGlobals(definition, files.nodeSources()));
+				AutomationRuntime.declaredGlobals(definition));
 		if (inputs != null) {
 			effectiveInputs.putAll(inputs);
 		}

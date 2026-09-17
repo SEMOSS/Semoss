@@ -40,9 +40,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Validates and saves an automation graph definition and its per-node Python sources.
+ * Validates and saves an automation graph definition and its per-node Python
+ * sources.
  *
- * <p>Pixel: {@code SaveAutomation(project=["appId"], json=["<base64-json>"],
+ * <p>
+ * Pixel: {@code SaveAutomation(project=["appId"], json=["<base64-json>"],
  * nodeSources=["<optional-base64-json-map>"])}
  */
 public class SaveAutomationReactor extends AbstractReactor {
@@ -50,11 +52,8 @@ public class SaveAutomationReactor extends AbstractReactor {
 	private static final String NODE_SOURCES_KEY = AutomationConstants.DOC_NODE_SOURCES;
 
 	public SaveAutomationReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(),
-				ReactorKeysEnum.JSON.getKey(),
-				NODE_SOURCES_KEY,
-				AutomationConstants.EXPECTED_REVISION_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.JSON.getKey(),
+				NODE_SOURCES_KEY, AutomationConstants.EXPECTED_REVISION_KEY };
 		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
@@ -72,17 +71,16 @@ public class SaveAutomationReactor extends AbstractReactor {
 		projectId = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(), projectId)
 				.getProjectId();
 
-		AutomationDefinitionService.DefinitionFiles files = AutomationProjectUtils.saveDefinition(projectId,
-				definition, nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY),
-				this.insight.getUser());
+		AutomationDefinitionService.DefinitionFiles files = AutomationProjectUtils.saveDefinition(projectId, definition,
+				nodeSources, this.keyValue.get(AutomationConstants.EXPECTED_REVISION_KEY), this.insight.getUser());
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("saved", true);
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
-		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition()), files.nodeSources()));
+		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime
+				.declaredGlobals(AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition())));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -93,7 +91,6 @@ public class SaveAutomationReactor extends AbstractReactor {
 		return decode(value);
 	}
 
-	@SuppressWarnings("unchecked")
 	private static Map<String, String> decodeNodeSources(String value) {
 		if (value == null || value.isBlank()) {
 			return Map.of();

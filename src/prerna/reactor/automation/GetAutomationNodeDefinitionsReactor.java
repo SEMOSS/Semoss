@@ -32,13 +32,14 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-/** Returns the server-owned catalog of supported Automation node definitions. */
+/**
+ * Returns the server-owned catalog of supported Automation node definitions.
+ */
 public class GetAutomationNodeDefinitionsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		return new NounMetadata(AutomationNodeCatalog.getResponse(), PixelDataType.MAP,
-				PixelOperationType.OPERATION);
+		return new NounMetadata(AutomationNodeCatalog.getResponse(), PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override

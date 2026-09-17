@@ -10,9 +10,8 @@ in the authenticated user's Python insight.
 | --- | --- | --- |
 | `CreateAutomation` | `projectName` | Creates a project with a starter graph. |
 | `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, plus `nodeSources: { nodeId: source }`. |
-| `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. Trigger source belongs in `trigger.start.config.pythonSource`; legacy `python` and trigger source entries are migrated. |
+| `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. `nodeSources` holds one entry per Python-backed node; trigger setup source belongs in `trigger.start.config.pythonSource`. |
 | `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
-| `GetActiveAutomationRun` | `project` | Returns the newest submitted or running run for editor compatibility, or an empty map. |
 | `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
@@ -40,7 +39,9 @@ Workflow artifacts live at the project asset root:
 | `automation-workflow.json` | Canonical typed graph (`formatVersion: 2`). |
 | `automation-nodes/<label_slug>_<uuid-prefix>.py` | One persisted `run(scope)` source file per Python-backed node. |
 
-`automation-workflow.py` is not used. `SaveAutomation` versions and synchronizes the graph and all current node-source files with the project. Legacy portal-based and Base64-named node files are read as a compatibility fallback and migrated on the next save.
+`SaveAutomation` versions and synchronizes the graph and all current node-source files with the
+project. Both are read from the project asset root only, and a save that is interrupted mid-publish
+is rolled back from the backup written under `.automation-save`.
 
 ## Runtime behavior
 
@@ -72,8 +73,8 @@ expression evaluator. The first match selects its `case:<clause-id>` edge; other
 `else` edge is selected. Arbitrary fan-out from one port, loops, and parallel execution are
 rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
-non-private Python-identifier name. `trigger.start.config.pythonSource` is the canonical optional
-setup source (`python` is a compatibility alias). Java puts defaults in the runtime scope unless
+non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional
+setup source. Java puts defaults in the runtime scope unless
 inputs override them; the globals are returned by Trigger and become Playground defaults. `developer.python`
 and custom-code nodes execute their own persisted `run(scope)` source. Node source may return any
 JSON-serializable value; Java persists it as the current node output. Generated sources import their documented

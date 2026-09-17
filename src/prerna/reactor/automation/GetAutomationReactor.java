@@ -38,9 +38,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns an automation graph together with its persisted per-node Python sources.
+ * Returns an automation graph together with its persisted per-node Python
+ * sources.
  *
- * <p>Pixel: {@code GetAutomation(project=["appId"])}
+ * <p>
+ * Pixel: {@code GetAutomation(project=["appId"])}
  */
 public class GetAutomationReactor extends AbstractReactor {
 
@@ -55,19 +57,18 @@ public class GetAutomationReactor extends AbstractReactor {
 		String projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(),
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 
-		AutomationDefinitionService.DefinitionFiles files =
-				AutomationDefinitionService.load(projectId);
+		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
 		Map<String, String> sourceHashes = new LinkedHashMap<>();
-		files.nodeSources().forEach((nodeId, source) -> sourceHashes.put(nodeId,
-				AutomationDefinitionService.calculateSourceHash(source)));
+		files.nodeSources().forEach(
+				(nodeId, source) -> sourceHashes.put(nodeId, AutomationDefinitionService.calculateSourceHash(source)));
 		definition.put("sourceHashes", sourceHashes);
 		definition.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
-		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition()), files.nodeSources()));
+		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime
+				.declaredGlobals(AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition())));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

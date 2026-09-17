@@ -35,25 +35,20 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
  * Renders deterministic Python implementations for generated Automation nodes.
  *
  * <p>
- * The renderer translates validated node configuration into a single {@code run(scope)} function.
- * It does not select graph paths, authorize referenced engines, or execute source; Java retains
- * those responsibilities at save and run boundaries.
+ * The renderer translates validated node configuration into a single
+ * {@code run(scope)} function. It does not select graph paths, authorize
+ * referenced engines, or execute source; Java retains those responsibilities at
+ * save and run boundaries.
  */
 public final class AutomationSourceRenderer {
-
-	private static final String LEGACY_DEFAULT_SOURCE = """
-			# Generated SEMOSS Automation node implementation.
-			# Java binds this script to one immutable run-snapshot node.
-			def run(scope):
-			    return automation.run_current_node(scope)
-			""";
 
 	private AutomationSourceRenderer() {
 	}
 
 	/**
-	 * Produces source that can execute only the node bound by Java in its invocation wrapper.
-	 * The source receives a scope and returns the bridge response for that one node.
+	 * Produces source that can execute only the node bound by Java in its
+	 * invocation wrapper. The source receives a scope and returns the bridge
+	 * response for that one node.
 	 *
 	 * @param node canonical non-start node
 	 * @return executable Python source with a {@code run(scope)} entry point
@@ -63,31 +58,32 @@ public final class AutomationSourceRenderer {
 		AutomationNodeType nodeType = AutomationNodeType.fromType(type);
 		@SuppressWarnings("unchecked")
 		Map<String, Object> config = node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> map
-				? (Map<String, Object>) map : Map.of();
+				? (Map<String, Object>) map
+				: Map.of();
 		String source = switch (nodeType) {
-			case TRIGGER_START -> triggerSource();
-			case CONTROL_IF -> throw new IllegalArgumentException(
-					"If nodes are evaluated by Java and do not have Python source.");
-			case DATABASE_QUERY -> databaseQuerySource(config);
-			case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
-			case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
-			case MODEL_CHAT -> modelChatSource(config);
-			case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
-			case MODEL_VISION -> modelVisionSource(config);
-			case MODEL_NER -> modelNerSource(config);
-			case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
-			case STORAGE_READ -> storageReadSource(config);
-			case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
-			case STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
-			case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
-			case VECTOR_SEARCH -> vectorSearchSource(config);
-			case VECTOR_ADD -> vectorAddSource(config);
-			case VECTOR_DELETE -> vectorDeleteSource(config);
-			case FUNCTION_EXECUTE -> functionSource(config);
-			case APP_PIXEL -> appPixelSource(config);
-			case AGENT_RUN -> agentRunSource(config);
-			case CONTROL_WAIT -> waitSource(config);
-			case DEVELOPER_PYTHON -> developerSource();
+		case TRIGGER_START -> triggerSource();
+		case CONTROL_IF ->
+			throw new IllegalArgumentException("If nodes are evaluated by Java and do not have Python source.");
+		case DATABASE_QUERY -> databaseQuerySource(config);
+		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
+		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
+		case MODEL_CHAT -> modelChatSource(config);
+		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
+		case MODEL_VISION -> modelVisionSource(config);
+		case MODEL_NER -> modelNerSource(config);
+		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
+		case STORAGE_READ -> storageReadSource(config);
+		case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
+		case STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
+		case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
+		case VECTOR_SEARCH -> vectorSearchSource(config);
+		case VECTOR_ADD -> vectorAddSource(config);
+		case VECTOR_DELETE -> vectorDeleteSource(config);
+		case FUNCTION_EXECUTE -> functionSource(config);
+		case APP_PIXEL -> appPixelSource(config);
+		case AGENT_RUN -> agentRunSource(config);
+		case CONTROL_WAIT -> waitSource(config);
+		case DEVELOPER_PYTHON -> developerSource();
 		};
 		return source;
 	}
@@ -149,7 +145,7 @@ public final class AutomationSourceRenderer {
 				        raise RuntimeError(result.get("output") or "SQL query failed")
 				    return _query_rows(result.get("output"))
 				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
-						value(config, AutomationConstants.CONFIG_LIMIT));
+				value(config, AutomationConstants.CONFIG_LIMIT));
 	}
 
 	private static String databaseWriteSource(Map<String, Object> config, String method) {
@@ -203,9 +199,8 @@ public final class AutomationSourceRenderer {
 				        room_id=scope.resolve(ROOM_ID),
 				    )
 				    return _automation_model_result(result)
-				""".formatted(value(config, "engineId"), value(config, "prompt"),
-				value(config, "systemPrompt"), value(config, "paramValues"),
-				pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
+				""".formatted(value(config, "engineId"), value(config, "prompt"), value(config, "systemPrompt"),
+				value(config, "paramValues"), pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
 				pythonValue(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
@@ -498,11 +493,9 @@ public final class AutomationSourceRenderer {
 				value(config, AutomationConstants.CONFIG_MAX_TURNS),
 				value(config, AutomationConstants.CONFIG_MAX_REFLECTIONS),
 				value(config, AutomationConstants.CONFIG_WAIT_TIMEOUT_MS),
-				agentMapValue(config.containsKey("paramMap")
-						? config.get("paramMap")
+				pythonValue(config.containsKey("paramMap") ? config.get("paramMap")
 						: config.get(AutomationConstants.CONFIG_PARAM_VALUES)),
-				agentMapValue(config.get("agentParams")),
-				pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
+				pythonValue(config.get("agentParams")), pythonValue(AutomationConstants.INTERNAL_RESULT_VALUE),
 				pythonValue(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
@@ -549,14 +542,4 @@ public final class AutomationSourceRenderer {
 		return AutomationRuntimeUtils.GSON.toJson(value);
 	}
 
-	private static String agentMapValue(Object value) {
-		return pythonValue(value);
-	}
-
-	static boolean isLegacyDefaultSource(String source) {
-		return LEGACY_DEFAULT_SOURCE.equals(source)
-				|| source.startsWith("# Generated SEMOSS Automation ")
-				&& source.contains("NODE_CONFIG =")
-				&& source.contains("automation.run_current_node(scope, NODE_CONFIG)");
-	}
 }

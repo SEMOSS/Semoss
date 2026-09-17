@@ -40,9 +40,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Lists automation run history for a project.
  *
- * <p>Pixel: {@code ListAutomationRuns(project=["appId"], limit=["25"])}
+ * <p>
+ * Pixel: {@code ListAutomationRuns(project=["appId"], limit=["25"])}
  *
- * <p>Reads from AUTOMATION_RUNS in the scheduler DB.
+ * <p>
+ * Reads from AUTOMATION_RUNS in the scheduler DB.
  */
 public class ListAutomationRunsReactor extends AbstractReactor {
 
@@ -85,8 +87,8 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (ReactorKeysEnum.LIMIT.getKey().equals(key)) {
-			return "Optional maximum number of runs to return. Must be positive and is capped at "
-					+ MAXIMUM_LIMIT + ".";
+			return "Optional maximum number of runs to return. Must be positive and is capped at " + MAXIMUM_LIMIT
+					+ ".";
 		}
 		return super.getDescriptionForKey(key);
 	}

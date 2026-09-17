@@ -30,32 +30,38 @@ package prerna.reactor.automation;
 import java.util.Set;
 
 /**
- * Shared names and bounds for the persisted Automation graph and run-history contracts.
+ * Shared names and bounds for the persisted Automation graph and run-history
+ * contracts.
  *
  * <p>
- * Values in this class cross Java, Python, scheduler-database, and UI boundaries. Renaming a
- * persisted field, node type, status, or table identifier therefore requires an explicit format or
- * schema migration rather than a local refactor.
+ * Values in this class cross Java, Python, scheduler-database, and UI
+ * boundaries. Renaming a persisted field, node type, status, or table
+ * identifier therefore requires an explicit format or schema migration rather
+ * than a local refactor.
  */
 public final class AutomationConstants {
 
-	private AutomationConstants() {}
+	private AutomationConstants() {
+	}
 
-	// -- File names ----------------------------------------------------------------
+	// -- File names
+	// ----------------------------------------------------------------
 
 	/** Canonical graph document for typed-node Python automations. */
 	public static final String AUTOMATION_PYTHON_DEFINITION_FILE_NAME = "automation-workflow.json";
 	/** Directory containing one Python implementation for each non-start node. */
 	public static final String AUTOMATION_NODE_SOURCES_FOLDER_NAME = "automation-nodes";
 
-	// -- DB Table names ------------------------------------------------------------
+	// -- DB Table names
+	// ------------------------------------------------------------
 
 	public static final String TABLE_AUTOMATION_RUNS = "AUTOMATION_RUNS";
 	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
 	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
 
-	// -- AUTOMATION_RUNS columns ---------------------------------------------------
+	// -- AUTOMATION_RUNS columns
+	// ---------------------------------------------------
 
 	public static final String RUN_ID = "RUN_ID";
 	public static final String PROJECT_ID = "PROJECT_ID";
@@ -77,7 +83,8 @@ public final class AutomationConstants {
 	public static final String CANCEL_REQUESTED = "CANCEL_REQUESTED";
 	public static final String RESULT_SUMMARY_COL = "RESULT_SUMMARY";
 
-	// -- AUTOMATION_RUN_NODE_SOURCES columns ---------------------------------------
+	// -- AUTOMATION_RUN_NODE_SOURCES columns
+	// ---------------------------------------
 
 	public static final String SOURCE_HASH = "SOURCE_HASH";
 	public static final String SOURCE_CODE = "SOURCE_CODE";
@@ -109,7 +116,8 @@ public final class AutomationConstants {
 	public static final String WAIT_STATUS_RESUMING = "RESUMING";
 	public static final String WAIT_STATUS_RESOLVED = "RESOLVED";
 
-	// -- Run statuses --------------------------------------------------------------
+	// -- Run statuses
+	// --------------------------------------------------------------
 
 	public static final String STATUS_SUBMITTED = "SUBMITTED";
 	public static final String STATUS_RUNNING = "RUNNING";
@@ -119,7 +127,8 @@ public final class AutomationConstants {
 	public static final String STATUS_CANCELLED = "CANCELLED";
 	public static final String STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
 
-	// -- Node statuses -------------------------------------------------------------
+	// -- Node statuses
+	// -------------------------------------------------------------
 
 	public static final String NODE_STATUS_PENDING = "PENDING";
 	public static final String NODE_STATUS_RUNNING = "RUNNING";
@@ -128,13 +137,15 @@ public final class AutomationConstants {
 	public static final String NODE_STATUS_SKIPPED = "SKIPPED";
 	public static final String NODE_STATUS_WAITING_FOR_INPUT = "WAITING_FOR_INPUT";
 
-	// -- Trigger types -------------------------------------------------------------
+	// -- Trigger types
+	// -------------------------------------------------------------
 
 	public static final String TRIGGER_MANUAL = "MANUAL";
 	public static final String TRIGGER_PLAYGROUND = "PLAYGROUND";
 	public static final String TRIGGER_SCHEDULED = "SCHEDULED";
 
-	// -- Node types -----------------------------------------------------------------
+	// -- Node types
+	// -----------------------------------------------------------------
 
 	public static final String NODE_START = "trigger.start";
 	public static final String NODE_DATABASE_QUERY = "database.query";
@@ -159,32 +170,22 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
-	// -- Node config keys (node.config map fields, shared across executors) --------
+	// -- Node config keys (node.config map fields, shared across executors)
+	// --------
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
-	public static final String CONFIG_OPERATION = "operation";
 	public static final String CONFIG_CLAUSES = "clauses";
 	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
 	public static final String CONFIG_LIMIT = "limit";
-	public static final String CONFIG_VALUES = "values";
 	public static final String CONFIG_COMMAND = "command";
-	public static final String CONFIG_CONTEXT = "context";
 	public static final String CONFIG_PARAM_VALUES = "paramValues";
-	public static final String CONFIG_PARAMS = "params";
-	public static final String CONFIG_STORAGE_PATH = "storagePath";
-	public static final String CONFIG_FILE_PATH = "filePath";
-	public static final String CONFIG_FILE_NAMES = "fileNames";
-	public static final String CONFIG_SECONDS = "seconds";
 	public static final String CONFIG_PIXEL = "pixel";
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
 	public static final String CONFIG_DESCRIPTION = "description";
-	/** Canonical trigger Python field. */
+	/** Optional trigger setup Python. */
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
-	/** Legacy trigger Python field accepted on read and migrated to {@link #CONFIG_PYTHON_SOURCE}. */
-	public static final String CONFIG_PYTHON = "python";
-	public static final String CONFIG_ROOM_ID = "roomId";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
 	public static final String CONFIG_WORKSPACE_ID = "workspaceId";
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
@@ -192,28 +193,9 @@ public final class AutomationConstants {
 	public static final String CONFIG_WAIT = "wait";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
-	public static final String DEFAULT_STORAGE_PATH = "/";
-	public static final String EMPTY_JSON_OBJECT = "{}";
-	public static final String EMPTY_JSON_ARRAY = "[]";
 
-	// -- Node operation values -------------------------------------------------------
-
-	public static final String OP_READ = "read";
-	public static final String OP_WRITE = "write";
-	public static final String OP_LLM = "llm";
-	public static final String OP_EMBEDDINGS = "embeddings";
-	public static final String OP_VISION = "vision";
-	public static final String OP_NER = "ner";
-	public static final String OP_SEARCH = "search";
-	public static final String OP_ADD_FILE = "add-file";
-	public static final String OP_ADD_CSV = "add-csv";
-	public static final String OP_LIST = "list";
-	public static final String OP_DELETE = "delete";
-	public static final String OP_DOWNLOAD = "download";
-	public static final String OP_UPLOAD = "upload";
-	public static final String OP_READ_BASE64 = "read-base64";
-
-	// -- Node execution defaults / bounds --------------------------------------------
+	// -- Node execution defaults / bounds
+	// --------------------------------------------
 
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
 	/** Smallest row limit accepted by a generated database query node. */
@@ -224,15 +206,14 @@ public final class AutomationConstants {
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
 	public static final int WAIT_MAX_SECONDS = 3600;
-	public static final int WAIT_DEFAULT_SECONDS = 1;
-	public static final int WAIT_CANCEL_CHECK_INTERVAL_SECONDS = 5;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
 	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
 
-	// -- Document field names -------------------------------------------------------
+	// -- Document field names
+	// -------------------------------------------------------
 
 	public static final String DOC_GRAPH = "graph";
 	public static final String DOC_NODES = "nodes";
@@ -242,12 +223,14 @@ public final class AutomationConstants {
 	public static final String DOC_TRIGGER_BINDINGS = "triggerBindings";
 	public static final String DOC_FORMAT_VERSION = "formatVersion";
 	public static final String DOC_NODE_SOURCES = "nodeSources";
-	/** Runtime defaults declared in the trigger Python source; returned but not persisted in the graph. */
+	/**
+	 * Trigger global defaults; returned in responses but not persisted in the
+	 * graph.
+	 */
 	public static final String DOC_GLOBALS = "globals";
-	/** Legacy graph field replaced by trigger-source globals. */
-	public static final String DOC_LEGACY_VARIABLES = "variables";
 
-	// -- Node/edge field names --------------------------------------------------------
+	// -- Node/edge field names
+	// --------------------------------------------------------
 
 	public static final String NODE_FIELD_ID = "id";
 	public static final String NODE_FIELD_TYPE = "type";
@@ -268,30 +251,36 @@ public final class AutomationConstants {
 	public static final String NODE_FIELD_CODE_MODE = "codeMode";
 	public static final String NODE_CODE_MODE_GENERATED = "generated";
 	public static final String NODE_CODE_MODE_CUSTOM = "custom";
-	public static final String UNNAMED_NODE_LABEL = "unnamed";
 
-	// -- Scope variable names ---------------------------------------------------------
+	// -- Scope variable names
+	// ---------------------------------------------------------
 
 	public static final String SCOPE_DATE = "date";
 	public static final String SCOPE_TRIGGERED_AT = "triggered_at";
 	public static final String SCOPE_RUN_ID = "run_id";
 	/** Internal per-node room supplied only to conversational generated sources. */
 	public static final String SCOPE_ROOM_ID = "_automation_room_id";
-	public static final Set<String> RESERVED_SCOPE_KEYS = Set.of(
-			SCOPE_DATE, SCOPE_TRIGGERED_AT, SCOPE_RUN_ID, SCOPE_ROOM_ID);
-	public static final String TEST_RUN_ID = "test";
+	public static final Set<String> RESERVED_SCOPE_KEYS = Set.of(SCOPE_DATE, SCOPE_TRIGGERED_AT, SCOPE_RUN_ID,
+			SCOPE_ROOM_ID);
 	public static final String SYSTEM_USER_ID = "system";
 
-	// -- Result map keys ---------------------------------------------------------------
+	// -- Result map keys
+	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	public static final String RESULT_TRACE = "trace";
-	/** Internal generated-node envelope value; removed before history/scope persistence. */
+	/**
+	 * Internal generated-node envelope value; removed before history/scope
+	 * persistence.
+	 */
 	public static final String INTERNAL_RESULT_VALUE = "__automation_value__";
-	/** Internal generated-node trace/control metadata; removed before history/scope persistence. */
+	/**
+	 * Internal generated-node trace/control metadata; removed before history/scope
+	 * persistence.
+	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_WORKSPACE_ID = "workspaceId";
@@ -301,21 +290,29 @@ public final class AutomationConstants {
 	public static final String TRACE_AUTOMATION_RUN_ID = "automationRunId";
 	/** Immutable Automation node that produced this trace. */
 	public static final String TRACE_NODE_ID = "nodeId";
-	/** Durable agent-run status (e.g. RUNNING, INPUT_REQUIRED) as of the last observed change. */
+	/**
+	 * Durable agent-run status (e.g. RUNNING, INPUT_REQUIRED) as of the last
+	 * observed change.
+	 */
 	public static final String TRACE_AGENT_STATUS = "agentStatus";
 	public static final String RESULT_GLOBALS = DOC_GLOBALS;
-	/** Aggregate optimistic-concurrency revision for the graph and all persisted node sources. */
+	/**
+	 * Aggregate optimistic-concurrency revision for the graph and all persisted
+	 * node sources.
+	 */
 	public static final String RESULT_REVISION = "revision";
 	/** Human-readable result summary for an automation workflow run. */
 	public static final String RESULT_SUMMARY = "summary";
 
-	// -- Pixel execution defaults ----------------------------------------------------
+	// -- Pixel execution defaults
+	// ----------------------------------------------------
 
 	public static final String AUTOMATION_INPUTS_KEY = "inputs";
 	public static final String AUTOMATION_TRIGGER_TYPE_KEY = "triggerType";
 	public static final String EXPECTED_REVISION_KEY = "expectedRevision";
 
-	// -- Data type constants (for table creation) ----------------------------------
+	// -- Data type constants (for table creation)
+	// ----------------------------------
 
 	public static final String VARCHAR_50 = "VARCHAR(50)";
 	public static final String VARCHAR_255 = "VARCHAR(255)";
@@ -325,7 +322,8 @@ public final class AutomationConstants {
 	public static final String BIGINT = "BIGINT";
 	public static final String NOT_NULL = "NOT NULL";
 
-	// -- DDL object names (indexes / primary keys) ----------------------------------
+	// -- DDL object names (indexes / primary keys)
+	// ----------------------------------
 
 	public static final String PK_AUTOMATION_RUNS = "PK_AUTOMATION_RUNS";
 	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
@@ -341,7 +339,8 @@ public final class AutomationConstants {
 	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
 	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
 
-	// -- Defaults ------------------------------------------------------------------
+	// -- Defaults
+	// ------------------------------------------------------------------
 
 	public static final String DEFAULT_AUTOMATION_ID = "default";
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;

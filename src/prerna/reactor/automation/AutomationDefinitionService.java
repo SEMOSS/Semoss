@@ -34,7 +34,6 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,23 +42,25 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.AssetUtility;
 
 /**
- * Persists and loads the canonical automation graph and its per-node Python implementations.
+ * Persists and loads the canonical automation graph and its per-node Python
+ * implementations.
  *
- * <p>The graph remains canonical metadata. Absent developer source is replaced with deterministic
- * generated {@code run(scope)} source. Trigger code is stored in
- * {@code trigger.start.config.pythonSource}; Java owns graph control flow and invokes one
- * persisted source file for each non-start node.
+ * <p>
+ * The graph remains canonical metadata. Absent developer source is replaced
+ * with deterministic generated {@code run(scope)} source. Trigger code is
+ * stored in {@code trigger.start.config.pythonSource}; Java owns graph control
+ * flow and invokes one persisted source file for each non-start node.
  */
 public final class AutomationDefinitionService {
 
@@ -75,56 +76,46 @@ public final class AutomationDefinitionService {
 	}
 
 	/**
-	 * Loads the complete definition. Missing files produce an empty graph rather than
-	 * interpreting a legacy definition.
+	 * Loads the complete definition. Missing files produce an empty graph.
 	 *
 	 * @param projectId project ID
 	 * @return graph and Python source
 	 */
 	public static DefinitionFiles load(String projectId) {
 		Path assetsFolder = getAssetsFolder(projectId);
-		Path portalsFolder = getPortalsFolder(projectId);
 		Path transaction = transactionFolder(assetsFolder);
 		Path readableAssetsFolder = Files.isRegularFile(transaction.resolve(TRANSACTION_MARKER_FILE))
 				&& Files.isRegularFile(definitionPath(transaction.resolve(TRANSACTION_BACKUP_FOLDER)))
-				? transaction.resolve(TRANSACTION_BACKUP_FOLDER)
-				: assetsFolder;
-		return loadFromFolders(readableAssetsFolder, portalsFolder);
+						? transaction.resolve(TRANSACTION_BACKUP_FOLDER)
+						: assetsFolder;
+		return loadFromFolder(readableAssetsFolder);
 	}
 
-	private static DefinitionFiles loadFromFolders(Path primaryFolder, Path fallbackFolder) {
-		Path definitionFile = definitionPath(primaryFolder);
-		Path fallbackDefinitionFile = definitionPath(fallbackFolder);
+	private static DefinitionFiles loadFromFolder(Path folder) {
+		Path definitionFile = definitionPath(folder);
 		try {
 			if (!Files.isRegularFile(definitionFile)) {
-				if (Files.isRegularFile(fallbackDefinitionFile)) {
-					definitionFile = fallbackDefinitionFile;
-				} else {
-					AutomationDefinitionValidator.ValidatedDefinition starter =
-							AutomationDefinitionValidator.parseAndValidate(emptyDefinition());
-					return new DefinitionFiles(emptyDefinition(), withoutTriggerSources(defaultNodeSources(starter),
-							starter));
-				}
+				AutomationDefinitionValidator.ValidatedDefinition starter = AutomationDefinitionValidator
+						.parseAndValidate(emptyDefinition());
+				return new DefinitionFiles(emptyDefinition(),
+						withoutTriggerSources(defaultNodeSources(starter), starter));
 			}
 			String definition = Files.readString(definitionFile, StandardCharsets.UTF_8);
-			AutomationDefinitionValidator.ValidatedDefinition validated =
-					AutomationDefinitionValidator.parseAndValidateForAuthoring(definition);
+			AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+					.parseAndValidateForAuthoring(definition);
 			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
-				if (AutomationConstants.NODE_CONTROL_IF.equals(
-						node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				if (AutomationConstants.NODE_CONTROL_IF.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 					continue;
 				}
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-				Path sourceFile = findNodeSourceFile(primaryFolder, fallbackFolder, node);
-				String source = Files.isRegularFile(sourceFile)
-						? Files.readString(sourceFile, StandardCharsets.UTF_8)
+				Path sourceFile = nodeSourcePath(folder, node);
+				String source = Files.isRegularFile(sourceFile) ? Files.readString(sourceFile, StandardCharsets.UTF_8)
 						: AutomationSourceRenderer.renderNode(node);
-				boolean generated = AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
-						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
-						&& !AutomationConstants.NODE_START.equals(
-								node.get(AutomationConstants.NODE_FIELD_TYPE));
+				boolean generated = AutomationConstants.NODE_CODE_MODE_GENERATED
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))
+						&& !AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE));
 				sources.put(nodeId, generated ? AutomationSourceRenderer.renderNode(node) : source);
 			}
 			String normalized = normalizeGeneratedCodeModes(validated, sources, definition);
@@ -136,19 +127,21 @@ public final class AutomationDefinitionService {
 	}
 
 	/**
-	 * Calculates a deterministic revision for the complete persisted automation aggregate.
+	 * Calculates a deterministic revision for the complete persisted automation
+	 * aggregate.
 	 *
-	 * <p>The graph is canonicalized by the definition validator and node sources are ordered by node
-	 * ID. Length-prefixing prevents different graph/source boundaries from producing the same input
-	 * before hashing.
+	 * <p>
+	 * The graph is canonicalized by the definition validator and node sources are
+	 * ordered by node ID. Length-prefixing prevents different graph/source
+	 * boundaries from producing the same input before hashing.
 	 *
 	 * @param definitionJson graph document JSON
-	 * @param nodeSources source by non-start node ID
+	 * @param nodeSources    source by non-start node ID
 	 * @return lowercase SHA-256 revision
 	 */
 	public static String calculateRevision(String definitionJson, Map<String, String> nodeSources) {
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson);
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definitionJson);
 		StringBuilder canonical = new StringBuilder();
 		appendRevisionValue(canonical, definition.snapshot());
 		for (Map.Entry<String, String> entry : new TreeMap<>(nodeSources).entrySet()) {
@@ -174,22 +167,20 @@ public final class AutomationDefinitionService {
 	/**
 	 * Validates and replaces the automation definition artifacts.
 	 *
-	 * @param projectId project ID
+	 * @param projectId      project ID
 	 * @param definitionJson canonical graph JSON
-	 * @param nodeSources source by non-start node ID; a trigger entry is accepted and migrated
-	 *        to {@code trigger.start.config.pythonSource} for compatibility
+	 * @param nodeSources    source by non-start node ID
 	 * @return persisted graph and node sources
 	 */
 	public static DefinitionFiles save(String projectId, String definitionJson, Map<String, String> nodeSources) {
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson);
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definitionJson);
 		validateUniqueNodeSourceFileNames(definition);
 		Path assetsFolder = getAssetsFolder(projectId);
 		Map<String, String> sourcesToPersist = validateAndCompleteNodeSources(definition, nodeSources);
 		String persistedDefinition = normalizeGeneratedCodeModes(definition, sourcesToPersist, definitionJson);
-		DefinitionFiles candidate = new DefinitionFiles(persistedDefinition,
-				withoutTriggerSources(sourcesToPersist,
-						AutomationDefinitionValidator.parseAndValidateForAuthoring(persistedDefinition)));
+		DefinitionFiles candidate = new DefinitionFiles(persistedDefinition, withoutTriggerSources(sourcesToPersist,
+				AutomationDefinitionValidator.parseAndValidateForAuthoring(persistedDefinition)));
 
 		try {
 			Files.createDirectories(assetsFolder);
@@ -214,16 +205,10 @@ public final class AutomationDefinitionService {
 				throw publicationFailure;
 			}
 			try {
-				Files.deleteIfExists(assetsFolder.resolve("automation-workflow.py"));
-			} catch (IOException cleanupFailure) {
-				classLogger.warn("Unable to remove the legacy automation workflow for project {}.",
-						projectId, cleanupFailure);
-			}
-			try {
 				deleteTree(transaction);
 			} catch (IOException cleanupFailure) {
-				classLogger.warn("Unable to clean completed automation save transaction for project {}.",
-						projectId, cleanupFailure);
+				classLogger.warn("Unable to clean completed automation save transaction for project {}.", projectId,
+						cleanupFailure);
 			}
 			return candidate;
 		} catch (IOException e) {
@@ -248,16 +233,14 @@ public final class AutomationDefinitionService {
 	 */
 	public static List<Path> getArtifactPaths(String projectId) {
 		Path assetsFolder = getAssetsFolder(projectId);
-		Path portalsFolder = getPortalsFolder(projectId);
-		Path folder = Files.isRegularFile(definitionPath(assetsFolder)) ? assetsFolder : portalsFolder;
 		DefinitionFiles definition = load(projectId);
-		AutomationDefinitionValidator.ValidatedDefinition validated =
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(definition.definition());
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition.definition());
 		List<Path> paths = new ArrayList<>();
-		paths.add(definitionPath(folder));
+		paths.add(definitionPath(assetsFolder));
 		for (Map<String, Object> node : validated.nodes()) {
 			if (requiresPythonSource(node)) {
-				paths.add(findNodeSourceFile(assetsFolder, portalsFolder, node));
+				paths.add(nodeSourcePath(assetsFolder, node));
 			}
 		}
 		return paths;
@@ -271,32 +254,8 @@ public final class AutomationDefinitionService {
 		return folder.resolve(AutomationConstants.AUTOMATION_NODE_SOURCES_FOLDER_NAME).normalize();
 	}
 
-	private static Path findNodeSourceFile(Path assetsFolder, Path portalsFolder, Map<String, Object> node) {
-		Path current = nodeSourcePath(assetsFolder, node);
-		if (Files.isRegularFile(current)) {
-			return current;
-		}
-		Path assetsPriorReadable = priorReadableNodeSourcePath(assetsFolder, node);
-		if (Files.isRegularFile(assetsPriorReadable)) {
-			return assetsPriorReadable;
-		}
-		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-		Path assetsLegacy = legacyNodeSourcePath(assetsFolder, nodeId);
-		if (Files.isRegularFile(assetsLegacy)) {
-			return assetsLegacy;
-		}
-		Path portalsCurrent = nodeSourcePath(portalsFolder, node);
-		if (Files.isRegularFile(portalsCurrent)) {
-			return portalsCurrent;
-		}
-		Path portalsPriorReadable = priorReadableNodeSourcePath(portalsFolder, node);
-		if (Files.isRegularFile(portalsPriorReadable)) {
-			return portalsPriorReadable;
-		}
-		return legacyNodeSourcePath(portalsFolder, nodeId);
-	}
-
-	private static Map<String, String> defaultNodeSources(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	private static Map<String, String> defaultNodeSources(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		return validateAndCompleteNodeSources(definition, Map.of());
 	}
 
@@ -305,7 +264,7 @@ public final class AutomationDefinitionService {
 		Map<String, String> result = new LinkedHashMap<>(sources);
 		for (Map<String, Object> node : definition.nodes()) {
 			if (!requiresPythonSource(node)) {
-				result.remove((String) node.get(AutomationConstants.NODE_FIELD_ID));
+				result.remove(node.get(AutomationConstants.NODE_FIELD_ID));
 			}
 		}
 		return result;
@@ -323,24 +282,20 @@ public final class AutomationDefinitionService {
 			if (!nodesById.containsKey(entry.getKey())) {
 				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
-			if (AutomationConstants.NODE_CONTROL_IF.equals(
-					nodesById.get(entry.getKey()).get(AutomationConstants.NODE_FIELD_TYPE))) {
-				throw new IllegalArgumentException("If node '" + entry.getKey()
-						+ "' is evaluated by Java and cannot have Python source.");
+			if (AutomationConstants.NODE_CONTROL_IF
+					.equals(nodesById.get(entry.getKey()).get(AutomationConstants.NODE_FIELD_TYPE))) {
+				throw new IllegalArgumentException(
+						"If node '" + entry.getKey() + "' is evaluated by Java and cannot have Python source.");
 			}
 			validateNodeSource(entry.getKey(), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
-			if (AutomationConstants.NODE_CONTROL_IF.equals(
-					entry.getValue().get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (AutomationConstants.NODE_CONTROL_IF.equals(entry.getValue().get(AutomationConstants.NODE_FIELD_TYPE))) {
 				continue;
 			}
 			String source = supplied.get(entry.getKey());
-			String completedSource = source == null
-					|| AutomationSourceRenderer.isLegacyDefaultSource(source)
-					? AutomationSourceRenderer.renderNode(entry.getValue())
-					: source;
+			String completedSource = source == null ? AutomationSourceRenderer.renderNode(entry.getValue()) : source;
 			validateNodeSource(entry.getKey(), completedSource);
 			result.put(entry.getKey(), completedSource);
 		}
@@ -364,40 +319,30 @@ public final class AutomationDefinitionService {
 	 * initial value while hydrating, so recover the generated mode whenever the
 	 * persisted source remains byte-for-byte identical to its renderer output.
 	 */
-	private static String normalizeGeneratedCodeModes(
-			AutomationDefinitionValidator.ValidatedDefinition definition, Map<String, String> nodeSources,
-			String unchangedDefinition) {
+	private static String normalizeGeneratedCodeModes(AutomationDefinitionValidator.ValidatedDefinition definition,
+			Map<String, String> nodeSources, String unchangedDefinition) {
 		boolean changed = false;
 		changed |= definition.definition().remove(AutomationConstants.DOC_NODE_SOURCES) != null;
-		changed |= definition.definition().remove(AutomationConstants.DOC_LEGACY_VARIABLES) != null;
 		changed |= definition.definition().remove(AutomationConstants.DOC_GLOBALS) != null;
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
-				if (!AutomationConstants.NODE_CODE_MODE_GENERATED.equals(
-						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-					node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
-							AutomationConstants.NODE_CODE_MODE_GENERATED);
+				if (!AutomationConstants.NODE_CODE_MODE_GENERATED
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
 					changed = true;
 				}
 				continue;
 			}
-			if (AutomationConstants.NODE_START.equals(nodeType)) {
-				changed |= normalizeTriggerConfig(node, nodeSources);
-			}
-			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)
-					|| !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
-							node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			if (AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType) || !AutomationConstants.NODE_CODE_MODE_CUSTOM
+					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
 				if (!AutomationConstants.NODE_START.equals(nodeType)) {
 					continue;
 				}
 			}
-			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			boolean generated = AutomationSourceRenderer.renderNode(node).equals(
-					AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)));
+			boolean generated = AutomationSourceRenderer.renderNode(node).equals(persistedSource(node, nodeSources));
 			if (AutomationConstants.NODE_START.equals(nodeType)) {
-				String codeMode = generated
-						? AutomationConstants.NODE_CODE_MODE_GENERATED
+				String codeMode = generated ? AutomationConstants.NODE_CODE_MODE_GENERATED
 						: AutomationConstants.NODE_CODE_MODE_CUSTOM;
 				if (!codeMode.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
 					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, codeMode);
@@ -408,56 +353,25 @@ public final class AutomationDefinitionService {
 				changed = true;
 			}
 		}
-		return changed
-				? AutomationRuntimeUtils.GSON.toJson(definition.definition())
-				: unchangedDefinition;
+		return changed ? AutomationRuntimeUtils.GSON.toJson(definition.definition()) : unchangedDefinition;
 	}
 
-	@SuppressWarnings("unchecked")
-	private static boolean normalizeTriggerConfig(Map<String, Object> node, Map<String, String> nodeSources) {
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		Map<String, Object> config;
-		if (rawConfig instanceof Map<?, ?> map) {
-			config = new LinkedHashMap<>((Map<String, Object>) map);
-		} else {
-			config = new LinkedHashMap<>();
+	/**
+	 * Returns the source currently persisted for a node. The trigger keeps its
+	 * optional setup source inside {@code config.pythonSource}; every other node
+	 * owns one file in the node-source map.
+	 */
+	private static String persistedSource(Map<String, Object> node, Map<String, String> nodeSources) {
+		if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			return AutomationRuntime.triggerSource(node);
 		}
-		boolean changed = false;
-		Object legacy = config.remove(AutomationConstants.CONFIG_PYTHON);
-		if (legacy != null) {
-			changed = true;
-			if (!config.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)) {
-				config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, legacy);
-			}
-		}
-		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-		String legacySource = nodeSources.get(nodeId);
-		if (!config.containsKey(AutomationConstants.CONFIG_PYTHON_SOURCE)
-				&& legacySource != null
-				&& !AutomationSourceRenderer.renderNode(node).equals(legacySource)) {
-			config.put(AutomationConstants.CONFIG_PYTHON_SOURCE, legacySource);
-			changed = true;
-		}
-		if (changed) {
-			node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
-			return true;
-		}
-		return false;
+		return nodeSources.get(node.get(AutomationConstants.NODE_FIELD_ID));
 	}
 
 	private static Path getAssetsFolder(String projectId) {
 		String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
 		Path path = Path.of(assetsFolder).toAbsolutePath().normalize();
 		if (!path.startsWith(Path.of(assetsFolder).toAbsolutePath().normalize())) {
-			throw new IllegalArgumentException("Invalid automation definition path.");
-		}
-		return path;
-	}
-
-	private static Path getPortalsFolder(String projectId) {
-		String portalsFolder = AssetUtility.getProjectPortalsFolder(projectId);
-		Path path = Path.of(portalsFolder).toAbsolutePath().normalize();
-		if (!path.startsWith(Path.of(portalsFolder).toAbsolutePath().normalize())) {
 			throw new IllegalArgumentException("Invalid automation definition path.");
 		}
 		return path;
@@ -479,8 +393,8 @@ public final class AutomationDefinitionService {
 	}
 
 	private static void writeAggregate(Path folder, DefinitionFiles files) throws IOException {
-		AutomationDefinitionValidator.ValidatedDefinition definition =
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition());
+		AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(files.definition());
 		validateUniqueNodeSourceFileNames(definition);
 		Files.createDirectories(nodesFolder(folder));
 		writeReplace(definitionPath(folder), prettyJson(files.definition()));
@@ -569,16 +483,6 @@ public final class AutomationDefinitionService {
 		return result;
 	}
 
-	private static Path legacyNodeSourcePath(Path folder, String nodeId) {
-		Path nodesFolder = nodesFolder(folder);
-		return nodesFolder.resolve(legacySafeNodeFileName(nodeId) + ".py").normalize();
-	}
-
-	private static Path priorReadableNodeSourcePath(Path folder, Map<String, Object> node) {
-		Path nodesFolder = nodesFolder(folder);
-		return nodesFolder.resolve(priorReadableNodeFileName(node) + ".py").normalize();
-	}
-
 	static String safeNodeFileName(Map<String, Object> node) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (nodeId == null || nodeId.isBlank()) {
@@ -597,23 +501,6 @@ public final class AutomationDefinitionService {
 			slug = slug.substring(0, 64);
 		}
 		return slug + "__" + stableNodeIdSuffix(nodeId);
-	}
-
-	private static String priorReadableNodeFileName(Map<String, Object> node) {
-		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-		String label = (String) node.get(AutomationConstants.NODE_FIELD_LABEL);
-		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-		String slug = slugify(label);
-		if (slug.isBlank()) {
-			slug = slugify(type);
-		}
-		if (slug.isBlank()) {
-			slug = "automation_node";
-		}
-		String uuidPrefix = nodeId != null && nodeId.matches(".*[0-9a-fA-F]{8}-[0-9a-fA-F-]{27}$")
-				? nodeId.substring(nodeId.length() - 36, nodeId.length() - 28).toLowerCase()
-				: "node";
-		return slug + "_" + uuidPrefix;
 	}
 
 	private static String stableNodeIdSuffix(String nodeId) {
@@ -644,14 +531,7 @@ public final class AutomationDefinitionService {
 		if (value == null) {
 			return "";
 		}
-		return value.toLowerCase(Locale.ROOT)
-				.replaceAll("[^a-z0-9]+", "_")
-				.replaceAll("^_+|_+$", "");
-	}
-
-	private static String legacySafeNodeFileName(String nodeId) {
-		return Base64.getUrlEncoder().withoutPadding()
-				.encodeToString(nodeId.getBytes(StandardCharsets.UTF_8));
+		return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "_").replaceAll("^_+|_+$", "");
 	}
 
 	private static void validateUniqueNodeSourceFileNames(
@@ -704,7 +584,7 @@ public final class AutomationDefinitionService {
 	/**
 	 * Complete persisted Automation aggregate.
 	 *
-	 * @param definition canonical graph JSON
+	 * @param definition  canonical graph JSON
 	 * @param nodeSources immutable source map keyed by non-start node ID
 	 */
 	public record DefinitionFiles(String definition, Map<String, String> nodeSources) {

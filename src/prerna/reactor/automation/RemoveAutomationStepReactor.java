@@ -46,8 +46,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Removes one non-trigger node from the canonical Automation aggregate.
  *
  * <p>
- * The mutation reconnects compatible control edges, rejects unresolved output references, and
- * persists the graph and remaining node sources under the project lock.
+ * The mutation reconnects compatible control edges, rejects unresolved output
+ * references, and persists the graph and remaining node sources under the
+ * project lock.
  */
 public class RemoveAutomationStepReactor extends AbstractReactor {
 
@@ -61,24 +62,24 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
-				required(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
+		String projectId = AutomationProjectUtils
+				.getEditableAutomationProject(this.insight.getUser(), required(ReactorKeysEnum.PROJECT.getKey()))
+				.getProjectId();
 		String nodeId = required(NODE_ID_KEY);
-		return AutomationProjectUtils.withLockedDefinition(projectId,
-				files -> removeStep(projectId, files, nodeId));
+		return AutomationProjectUtils.withLockedDefinition(projectId, files -> removeStep(projectId, files, nodeId));
 	}
 
 	private NounMetadata removeStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
 			String nodeId) {
-		AutomationDefinitionValidator.ValidatedDefinition validated =
-				AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition());
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(files.definition());
 		Map<String, Object> removedNode = findNode(validated.nodes(), nodeId);
 		if (AutomationConstants.NODE_START.equals(removedNode.get(AutomationConstants.NODE_FIELD_TYPE))) {
 			throw new IllegalArgumentException("The trigger node cannot be removed.");
 		}
 
-		String outputVar = removedNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR) instanceof String value
-				? value : null;
+		String outputVar = removedNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR) instanceof String value ? value
+				: null;
 		validateNoOutputReferences(validated.nodes(), files.nodeSources(), nodeId, outputVar);
 
 		List<Map<String, Object>> incoming = controlEdges(validated.edges(), nodeId, true);
@@ -112,8 +113,8 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		}
 
 		@SuppressWarnings("unchecked")
-		Map<String, Object> updatedGraph = new LinkedHashMap<>((Map<String, Object>) validated.definition()
-				.get(AutomationConstants.DOC_GRAPH));
+		Map<String, Object> updatedGraph = new LinkedHashMap<>(
+				(Map<String, Object>) validated.definition().get(AutomationConstants.DOC_GRAPH));
 		updatedGraph.put(AutomationConstants.DOC_NODES, updatedNodes);
 		updatedGraph.put(AutomationConstants.DOC_EDGES, updatedEdges);
 		Map<String, Object> updatedDefinition = new LinkedHashMap<>(validated.definition());
@@ -187,10 +188,8 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		if (value instanceof String string) {
 			String quoted = Pattern.quote(outputVar);
 			return string.contains("${" + outputVar + "}")
-					|| Pattern.compile("\\bscope\\s*\\[\\s*(['\"]?)" + quoted + "\\1\\s*\\]")
-							.matcher(string).find()
-					|| Pattern.compile("\\bscope\\s*\\.\\s*get\\s*\\(\\s*(['\"]?)" + quoted
-							+ "\\1\\s*(?:,|\\))")
+					|| Pattern.compile("\\bscope\\s*\\[\\s*(['\"]?)" + quoted + "\\1\\s*\\]").matcher(string).find()
+					|| Pattern.compile("\\bscope\\s*\\.\\s*get\\s*\\(\\s*(['\"]?)" + quoted + "\\1\\s*(?:,|\\))")
 							.matcher(string).find();
 		}
 		if (value instanceof Map<?, ?> map) {
@@ -207,12 +206,9 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
-		return Map.of(
-				"id", "control-" + UUID.randomUUID(),
-				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
-				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
-				AutomationConstants.EDGE_FIELD_TARGET, target,
+		return Map.of("id", "control-" + UUID.randomUUID(), AutomationConstants.EDGE_FIELD_KIND,
+				AutomationConstants.EDGE_KIND_CONTROL, AutomationConstants.EDGE_FIELD_SOURCE, source,
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort, AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}
 

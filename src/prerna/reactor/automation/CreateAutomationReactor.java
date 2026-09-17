@@ -51,9 +51,12 @@ import prerna.util.Utility;
 /**
  * Creates a new automation project and returns its ID.
  *
- * <p>The project name follows the same validation used by the standard project creation reactors.
+ * <p>
+ * The project name follows the same validation used by the standard project
+ * creation reactors.
  *
- * <p>Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
+ * <p>
+ * Pixel: {@code CreateAutomation(projectName=["My Claims Intake"])}
  */
 public class CreateAutomationReactor extends AbstractReactor {
 
@@ -71,10 +74,8 @@ public class CreateAutomationReactor extends AbstractReactor {
 		organizeKeys();
 		User user = this.insight.getUser();
 		if (user == null) {
-			NounMetadata noun = new NounMetadata(
-					"User must be signed into an account in order to create a project",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR,
-					PixelOperationType.LOGGIN_REQUIRED_ERROR);
+			NounMetadata noun = new NounMetadata("User must be signed into an account in order to create a project",
+					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR);
 			SemossPixelException error = new SemossPixelException(noun);
 			error.setContinueThreadOfExecution(false);
 			throw error;
@@ -89,8 +90,8 @@ public class CreateAutomationReactor extends AbstractReactor {
 
 		classLogger.info("Creating automation project '{}'", projectName);
 
-		IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION,
-				false, null, null, user, classLogger);
+		IProject project = ProjectHelper.generateNewProject(projectName, IProject.PROJECT_TYPE.AUTOMATION, false, null,
+				null, user, classLogger);
 		String projectId = project.getProjectId();
 		try {
 			AutomationProjectUtils.createStarterDefinition(project, user);
@@ -103,15 +104,13 @@ public class CreateAutomationReactor extends AbstractReactor {
 				classLogger.error("Failed to fully clean incomplete automation project '{}'.", projectId,
 						cleanupFailure);
 			}
-			throw new IllegalStateException(
-					"Unable to create automation project: " + e.getMessage(), e);
+			throw new IllegalStateException("Unable to create automation project: " + e.getMessage(), e);
 		}
 
 		classLogger.info("Created automation project '{}' with id {}", projectName, projectId);
 
 		Map<String, Object> result = UploadUtilities.getProjectReturnData(user, projectId);
-		return new NounMetadata(result, PixelDataType.UPLOAD_RETURN_MAP,
-				PixelOperationType.MARKET_PLACE_ADDITION);
+		return new NounMetadata(result, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 
 	private static void cleanupFailedProject(IProject project) {

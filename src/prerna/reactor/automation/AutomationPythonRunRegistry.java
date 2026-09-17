@@ -42,18 +42,20 @@ import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
 
 /**
- * Maintains same-pod cancellation and heartbeat state for active Python Automation runs.
+ * Maintains same-pod cancellation and heartbeat state for active Python
+ * Automation runs.
  *
  * <p>
- * Durable cancellation remains in the scheduler database. This registry adds only the local socket
- * interrupt fast path and periodic liveness updates for runs owned by the current JVM.
+ * Durable cancellation remains in the scheduler database. This registry adds
+ * only the local socket interrupt fast path and periodic liveness updates for
+ * runs owned by the current JVM.
  */
 final class AutomationPythonRunRegistry {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationPythonRunRegistry.class);
 	private static final ConcurrentHashMap<String, ActivePythonRun> RUNS = new ConcurrentHashMap<>();
-	private static final ScheduledExecutorService HEARTBEAT_SCHEDULER =
-			Executors.newSingleThreadScheduledExecutor(r -> {
+	private static final ScheduledExecutorService HEARTBEAT_SCHEDULER = Executors
+			.newSingleThreadScheduledExecutor(r -> {
 				Thread thread = new Thread(r, "automation-python-heartbeat");
 				thread.setDaemon(true);
 				return thread;
@@ -66,10 +68,8 @@ final class AutomationPythonRunRegistry {
 		register(runId, translator, insight, jobId, 0);
 	}
 
-	static void register(String runId, PyTranslator translator, Insight insight, String jobId,
-			int completedNodes) {
-		ActivePythonRun active = new ActivePythonRun(
-				translator, insight.getInsightId(), jobId, completedNodes);
+	static void register(String runId, PyTranslator translator, Insight insight, String jobId, int completedNodes) {
+		ActivePythonRun active = new ActivePythonRun(translator, insight.getInsightId(), jobId, completedNodes);
 		if (RUNS.putIfAbsent(runId, active) != null) {
 			throw new IllegalStateException("Python automation run is already registered: " + runId);
 		}
@@ -126,8 +126,7 @@ final class AutomationPythonRunRegistry {
 		private final AtomicInteger completedNodes;
 		private ScheduledFuture<?> heartbeat;
 
-		private ActivePythonRun(PyTranslator translator, String insightId, String jobId,
-				int completedNodes) {
+		private ActivePythonRun(PyTranslator translator, String insightId, String jobId, int completedNodes) {
 			this.translator = translator;
 			this.insightId = insightId;
 			this.jobId = jobId;

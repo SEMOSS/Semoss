@@ -64,20 +64,22 @@ import prerna.util.insight.InsightUtility;
  * Owns execution of one already initialized Automation run.
  *
  * <p>
- * The triggering reactor performs access checks and atomically creates submitted run history
- * before entering this boundary. This class claims that individual run, creates a run-local
- * {@link Insight}, traverses the validated control path, executes the immutable source snapshot one
- * node at a time, persists each transition, and always tears down the run-local Insight. Python
- * receives only the selected node source and a read-only scope; it does not own graph traversal or
- * persistence.
+ * The triggering reactor performs access checks and atomically creates
+ * submitted run history before entering this boundary. This class claims that
+ * individual run, creates a run-local {@link Insight}, traverses the validated
+ * control path, executes the immutable source snapshot one node at a time,
+ * persists each transition, and always tears down the run-local Insight. Python
+ * receives only the selected node source and a read-only scope; it does not own
+ * graph traversal or persistence.
  *
  * <p>
- * Keeping this lifecycle independent from the Pixel reactor allows the same executor to be called
- * by a Quartz job without duplicating execution behavior.
+ * Keeping this lifecycle independent from the Pixel reactor allows the same
+ * executor to be called by a Quartz job without duplicating execution behavior.
  */
 final class AutomationRunExecutionService {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationRunExecutionService.class);
+
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
 	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
@@ -98,20 +100,20 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Claims and executes a run whose graph, node rows, and source snapshot already exist in the
-	 * scheduler database. A caller that loses the claim receives the current durable state without
-	 * executing the run again.
+	 * Claims and executes a run whose graph, node rows, and source snapshot already
+	 * exist in the scheduler database. A caller that loses the claim receives the
+	 * current durable state without executing the run again.
 	 *
-	 * @param runId durable run identifier
-	 * @param projectId Automation project identifier
-	 * @param definition validated graph snapshot for this run
-	 * @param runNodes nodes in deterministic history order
+	 * @param runId        durable run identifier
+	 * @param projectId    Automation project identifier
+	 * @param definition   validated graph snapshot for this run
+	 * @param runNodes     nodes in deterministic history order
 	 * @param traceRoomIds preallocated room identifiers keyed by traceable node ID
 	 * @return persisted run detail and node results
 	 */
 	Map<String, Object> executeInitializedRun(String runId, String projectId,
-			AutomationDefinitionValidator.ValidatedDefinition definition,
-			List<Map<String, Object>> runNodes, Map<String, String> traceRoomIds) {
+			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
+			Map<String, String> traceRoomIds) {
 		if (!AutomationDatabaseUtility.claimRun(runId)) {
 			return buildCurrentRunResult(runId, projectId);
 		}
@@ -130,8 +132,8 @@ final class AutomationRunExecutionService {
 			Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
 			scope.putAll(AutomationDatabaseUtility.getRunInputs(runId));
 			Map<String, String> runNodeSources = AutomationDatabaseUtility.getRunNodeSources(runId);
-			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
-					runNodeSources, scope, traceRoomIds, AutomationRuntime.startNodeId(definition));
+			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes, runNodeSources,
+					scope, traceRoomIds, AutomationRuntime.startNodeId(definition));
 			if (!Boolean.TRUE.equals(result.get("waitingForInput"))) {
 				finishRun(runId, projectId);
 			}
@@ -149,13 +151,12 @@ final class AutomationRunExecutionService {
 	private static Map<String, Object> buildCurrentRunResult(String runId, String projectId) {
 		Map<String, Object> persisted = AutomationDatabaseUtility.getRunDetail(runId);
 		if (persisted == null) {
-			throw new IllegalStateException("Automation run '" + runId
-					+ "' no longer exists for project '" + projectId + "'.");
+			throw new IllegalStateException(
+					"Automation run '" + runId + "' no longer exists for project '" + projectId + "'.");
 		}
 		Map<String, Object> result = new LinkedHashMap<>(persisted);
 		result.put(AutomationConstants.RESULT_NODE_RESULTS,
-				AutomationDatabaseUtility.buildNodeResults(
-						AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
+				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
 		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
 		if (wait != null) {
 			result.put("wait", wait);
@@ -182,30 +183,29 @@ final class AutomationRunExecutionService {
 				break;
 			}
 			if (!visited.add(currentNodeId)) {
-				throw new IllegalStateException("Automation control traversal revisited node '"
-						+ currentNodeId + "'.");
+				throw new IllegalStateException("Automation control traversal revisited node '" + currentNodeId + "'.");
 			}
 			Map<String, Object> node = nodesById.get(currentNodeId);
 			if (node == null) {
-				throw new IllegalStateException("Automation control edge selected unknown node '"
-						+ currentNodeId + "'.");
+				throw new IllegalStateException(
+						"Automation control edge selected unknown node '" + currentNodeId + "'.");
 			}
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			Map<String, Object> nodeResult;
 			if (AutomationConstants.NODE_START.equals(type)) {
 				nodeResult = executeStartNode(executionInsight, projectId, runId, node,
-						AutomationRuntime.triggerSource(node, nodeSources.get(nodeId)), scope);
+						AutomationRuntime.triggerSource(node), scope);
 			} else if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
 				nodeResult = executeConditionNode(runId, node, scope);
 			} else {
-				nodeResult = executeNodeSource(executionInsight, projectId, runId, node,
-						nodeSources.get(nodeId), scope, traceRoomIds.get(nodeId),
+				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
+						traceRoomIds.get(nodeId),
 						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
 			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
-				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT.equals(
-						nodeResult.get(AutomationConstants.STATUS))) {
+				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT
+						.equals(nodeResult.get(AutomationConstants.STATUS))) {
 					result.put("waitingForInput", true);
 				}
 				pathCompleted = false;
@@ -222,8 +222,8 @@ final class AutomationRunExecutionService {
 			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
 			if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
 				@SuppressWarnings("unchecked")
-				Map<String, Object> decision = (Map<String, Object>) nodeResult.get(
-						AutomationConstants.RESULT_OUTPUT_VALUE);
+				Map<String, Object> decision = (Map<String, Object>) nodeResult
+						.get(AutomationConstants.RESULT_OUTPUT_VALUE);
 				selectedPort = (String) decision.get("branch");
 			}
 			currentNodeId = controlTargets.getOrDefault(nodeId, Map.of()).get(selectedPort);
@@ -245,8 +245,8 @@ final class AutomationRunExecutionService {
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
 		try {
 			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config.get(
-					AutomationConstants.CONFIG_CLAUSES);
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+					.get(AutomationConstants.CONFIG_CLAUSES);
 			String selectedPort = AutomationConstants.CONTROL_PORT_ELSE;
 			boolean matched = false;
 			for (Map<String, Object> clause : clauses) {
@@ -273,9 +273,7 @@ final class AutomationRunExecutionService {
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
-			throw e instanceof RuntimeException runtimeException
-					? runtimeException
-					: new RuntimeException(e);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
 	}
 
@@ -298,8 +296,8 @@ final class AutomationRunExecutionService {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildTriggerInvocationScript(source, scope),
-					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
+					AutomationRuntime.buildTriggerInvocationScript(source, scope), getProjectAssetsFolder(projectId),
+					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			Map<String, Object> sourceGlobals = normalizeScope(value);
 			for (Map.Entry<String, Object> entry : sourceGlobals.entrySet()) {
@@ -317,8 +315,8 @@ final class AutomationRunExecutionService {
 					"Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
-					null, output, preview, null, null);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
+					null);
 			AutomationPythonRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
@@ -329,9 +327,7 @@ final class AutomationRunExecutionService {
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
-			throw e instanceof RuntimeException runtimeException
-					? runtimeException
-					: new RuntimeException(e);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
 	}
 
@@ -339,8 +335,8 @@ final class AutomationRunExecutionService {
 			Map<String, Object> node, String source, Map<String, Object> scope, String traceRoomId,
 			String resumeNodeId) {
 		if (source == null || source.isBlank()) {
-			throw new IllegalStateException("Automation node has no persisted Python source: "
-					+ node.get(AutomationConstants.NODE_FIELD_ID));
+			throw new IllegalStateException(
+					"Automation node has no persisted Python source: " + node.get(AutomationConstants.NODE_FIELD_ID));
 		}
 		PyTranslator translator = executionInsight.getPyTranslator();
 		if (translator == null) {
@@ -360,33 +356,32 @@ final class AutomationRunExecutionService {
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildNodeInvocationScript(source, nodeScope),
-					getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope), getProjectAssetsFolder(projectId),
+					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			value = awaitGeneratedAgentRun(executionInsight, runId, node, value, traceRoomId, scope);
-			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs,
-					traceRoomId, resumeNodeId, scope);
+			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
+					scope);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
 					traceForNode(node, traceRoomId, null, null));
-			throw e instanceof RuntimeException runtimeException
-					? runtimeException
-					: new RuntimeException(e);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
 	}
 
 	/**
-	 * codeMode is null for nodes persisted before this field existed, and for any node the
-	 * validator otherwise treats as generated (only "custom" opts out). Matching that convention
-	 * here (rather than requiring the literal string "generated") keeps live agent-run tracking
-	 * from silently no-oping on those nodes.
+	 * The validator treats every codeMode except the literal "custom" as generated,
+	 * including an absent value. Matching that convention here (rather than
+	 * requiring the literal "generated") keeps live agent-run tracking from
+	 * silently no-oping on a node that omits the field.
 	 */
 	private static boolean isGeneratedAgentRunNode(Map<String, Object> node) {
 		return AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
-				&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+				&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -403,25 +398,20 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Monitors an asynchronous durable agent run while it is actively executing. A terminal result
-	 * is returned for normal node persistence; {@code INPUT_REQUIRED} returns immediately so the
-	 * caller can persist a durable Automation wait and release its worker and run-local Insight.
+	 * Monitors an asynchronous durable agent run while it is actively executing. A
+	 * terminal result is returned for normal node persistence;
+	 * {@code INPUT_REQUIRED} returns immediately so the caller can persist a
+	 * durable Automation wait and release its worker and run-local Insight.
 	 */
-	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId,
-			Map<String, Object> node, Object value, String traceRoomId) throws InterruptedException {
-		return awaitGeneratedAgentRun(executionInsight, automationRunId, node, value, traceRoomId, Map.of());
-	}
-
-	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId,
-			Map<String, Object> node, Object value, String traceRoomId, Map<String, Object> scope)
-			throws InterruptedException {
+	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
+			Object value, String traceRoomId, Map<String, Object> scope) throws InterruptedException {
 		return awaitGeneratedAgentRun(executionInsight, automationRunId, node, value, traceRoomId, scope,
 				System::nanoTime, Thread::sleep);
 	}
 
-	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId,
-			Map<String, Object> node, Object value, String traceRoomId, Map<String, Object> scope,
-			LongSupplier monotonicTime, AgentRunSleeper sleeper) throws InterruptedException {
+	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
+			Object value, String traceRoomId, Map<String, Object> scope, LongSupplier monotonicTime,
+			AgentRunSleeper sleeper) throws InterruptedException {
 		if (!isGeneratedAgentRunNode(node)) {
 			return value;
 		}
@@ -437,15 +427,14 @@ final class AutomationRunExecutionService {
 				(String) node.get(AutomationConstants.NODE_FIELD_ID), agentRunId);
 
 		String previousStatus = stringValue(submittedRun.get("status"));
-		ActiveAgentWaitTimeout waitTimeout = new ActiveAgentWaitTimeout(
-				configuredAgentWaitTimeoutMs(node, scope), previousStatus, waitStartedAt);
+		ActiveAgentWaitTimeout waitTimeout = new ActiveAgentWaitTimeout(configuredAgentWaitTimeoutMs(node, scope),
+				previousStatus, waitStartedAt);
 		boolean cancellationSignalled = false;
 		try {
 			streamNodeProgress(automationRunId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
 					traceForNode(node, traceRoomId, null, agentRunId, previousStatus));
 			while (true) {
-				if (AutomationPythonRunRegistry.isCancellationRequested(automationRunId)
-						&& !cancellationSignalled) {
+				if (AutomationPythonRunRegistry.isCancellationRequested(automationRunId) && !cancellationSignalled) {
 					cancellationSignalled = true;
 					AgentRunService.get().cancelRun(agentRunId, "Automation run cancelled");
 				}
@@ -459,8 +448,8 @@ final class AutomationRunExecutionService {
 				boolean statusChanged = previousStatus == null || !status.equalsIgnoreCase(previousStatus);
 				previousStatus = status;
 				if (statusChanged) {
-					streamNodeProgress(automationRunId, node, AutomationConstants.NODE_STATUS_RUNNING,
-							null, null, null, traceForNode(node, traceRoomId, null, agentRunId, status));
+					streamNodeProgress(automationRunId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null,
+							traceForNode(node, traceRoomId, null, agentRunId, status));
 				}
 
 				if (isInputRequiredStatus(status) || isAgentRunTerminalStatus(status)) {
@@ -471,8 +460,7 @@ final class AutomationRunExecutionService {
 				if (waitTimeout.isExpired()) {
 					if (!cancellationSignalled) {
 						cancellationSignalled = true;
-						AgentRunService.get().cancelRun(agentRunId,
-								"Automation agent wait timeout");
+						AgentRunService.get().cancelRun(agentRunId, "Automation agent wait timeout");
 					}
 					currentRun.put("status", "FAILED");
 					currentRun.put("waitTimedOut", true);
@@ -484,24 +472,22 @@ final class AutomationRunExecutionService {
 		} catch (InterruptedException e) {
 			if (!cancellationSignalled && !isAgentRunTerminalStatus(previousStatus)) {
 				cancellationSignalled = true;
-				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId,
-						"Automation agent monitoring interrupted", e);
+				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId, "Automation agent monitoring interrupted",
+						e);
 			}
 			Thread.currentThread().interrupt();
 			throw e;
 		} catch (RuntimeException e) {
 			if (!cancellationSignalled && !isAgentRunTerminalStatus(previousStatus)) {
 				cancellationSignalled = true;
-				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId,
-						"Automation agent monitoring failed", e);
+				cancelAgentRunAfterMonitoringFailure(agentRunId, traceRoomId, "Automation agent monitoring failed", e);
 			}
 			throw e;
 		}
 	}
 
 	static boolean isAgentRunTerminalStatus(String status) {
-		return "COMPLETED".equalsIgnoreCase(status)
-				|| "FAILED".equalsIgnoreCase(status)
+		return "COMPLETED".equalsIgnoreCase(status) || "FAILED".equalsIgnoreCase(status)
 				|| "CANCELLED".equalsIgnoreCase(status);
 	}
 
@@ -512,8 +498,8 @@ final class AutomationRunExecutionService {
 
 	private static Map<String, Object> generatedAgentRunResult(Map<String, Object> currentRun) {
 		Map<String, Object> metadata = new LinkedHashMap<>();
-		for (String key : List.of("runId", AutomationConstants.TRACE_ROOM_ID,
-				AutomationConstants.TRACE_WORKSPACE_ID, "status", "waitTimedOut", "errorMessage")) {
+		for (String key : List.of("runId", AutomationConstants.TRACE_ROOM_ID, AutomationConstants.TRACE_WORKSPACE_ID,
+				"status", "waitTimedOut", "errorMessage")) {
 			metadata.put(key, currentRun.get(key));
 		}
 		Map<String, Object> completed = new LinkedHashMap<>();
@@ -522,8 +508,8 @@ final class AutomationRunExecutionService {
 		return completed;
 	}
 
-	private static void cancelAgentRunAfterMonitoringFailure(String agentRunId, String traceRoomId,
-			String reason, Throwable monitoringFailure) {
+	private static void cancelAgentRunAfterMonitoringFailure(String agentRunId, String traceRoomId, String reason,
+			Throwable monitoringFailure) {
 		try {
 			AgentRunService.get().cancelRun(agentRunId, reason);
 		} catch (RuntimeException cancellationFailure) {
@@ -572,8 +558,7 @@ final class AutomationRunExecutionService {
 		private boolean paused;
 
 		private ActiveAgentWaitTimeout(long timeoutMs, String initialStatus, long initialObservedNanos) {
-			this.timeoutNanos = timeoutMs > Long.MAX_VALUE / 1000000L
-					? Long.MAX_VALUE
+			this.timeoutNanos = timeoutMs > Long.MAX_VALUE / 1000000L ? Long.MAX_VALUE
 					: TimeUnit.MILLISECONDS.toNanos(timeoutMs);
 			this.lastObservedNanos = initialObservedNanos;
 			this.paused = isInputRequiredStatus(initialStatus);
@@ -584,9 +569,7 @@ final class AutomationRunExecutionService {
 				long elapsed = observedNanos - this.lastObservedNanos;
 				if (elapsed > 0) {
 					long remainingNanos = this.timeoutNanos - this.activeNanos;
-					this.activeNanos = elapsed >= remainingNanos
-							? this.timeoutNanos
-							: this.activeNanos + elapsed;
+					this.activeNanos = elapsed >= remainingNanos ? this.timeoutNanos : this.activeNanos + elapsed;
 				}
 			}
 			this.lastObservedNanos = observedNanos;
@@ -651,8 +634,8 @@ final class AutomationRunExecutionService {
 		Map<String, String> roomIds = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			boolean generated = !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
-					node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+			boolean generated = !AutomationConstants.NODE_CODE_MODE_CUSTOM
+					.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 			if (generated && (AutomationConstants.NODE_MODEL_CHAT.equals(type)
 					|| AutomationConstants.NODE_MODEL_VISION.equals(type)
 					|| AutomationConstants.NODE_AGENT_RUN.equals(type))) {
@@ -662,9 +645,9 @@ final class AutomationRunExecutionService {
 		return roomIds;
 	}
 
-	private Map<String, Object> persistNativeNodeResult(String runId, String projectId,
-			Map<String, Object> node, Object value, Timestamp started, long startedMs,
-			String traceRoomId, String resumeNodeId, Map<String, Object> scope) {
+	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
+			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
+			Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			long duration = System.currentTimeMillis() - startedMs;
@@ -684,19 +667,16 @@ final class AutomationRunExecutionService {
 			agentRunId = stringValue(agentResult.get("runId"));
 			if (isInputRequiredStatus(stringValue(agentResult.get("status")))) {
 				String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
-						AutomationConstants.NODE_OUTPUT_MAX_BYTES,
-						"Automation node '" + nodeId + "' waiting output");
+						AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' waiting output");
 				long duration = System.currentTimeMillis() - startedMs;
 				String preview = AutomationRuntimeUtils.generatePreview(output);
 				AutomationDatabaseUtility.persistAgentWait(runId, projectId, nodeId,
-						(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
-						agentRunId, traceRoomId, resumeNodeId, currentUserId(),
+						(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, agentRunId,
+						traceRoomId, resumeNodeId, currentUserId(),
 						Instant.now().plus(DEFAULT_AGENT_APPROVAL_TIMEOUT_HOURS, ChronoUnit.HOURS), duration);
-				streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT,
-						duration, preview, null,
-						traceForNode(node, traceRoomId, null, agentRunId, "INPUT_REQUIRED"));
-				return nodeResult(nodeId, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT,
-						persistedValue, null);
+				streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT, duration, preview,
+						null, traceForNode(node, traceRoomId, null, agentRunId, "INPUT_REQUIRED"));
+				return nodeResult(nodeId, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT, persistedValue, null);
 			}
 			agentFailure = agentFailureMessage(agentResult, agentRunId);
 			if (agentFailure == null && stringValue(persistedValue) == null) {
@@ -708,25 +688,23 @@ final class AutomationRunExecutionService {
 		if (agentFailure == null) {
 			Map<String, Object> prospectiveScope = new LinkedHashMap<>(scope);
 			prospectiveScope.put((String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), persistedValue);
-			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope,
-					AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope");
+			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
+					"Automation run scope");
 		}
 		long duration = System.currentTimeMillis() - startedMs;
 		String preview = AutomationRuntimeUtils.generatePreview(output);
-		String modelMessageId = generatedAgentNode
-				? null
-				: extractModelMessageId(node, traceMetadata, traceRoomId);
+		String modelMessageId = generatedAgentNode ? null : extractModelMessageId(node, traceMetadata, traceRoomId);
 		if (agentFailure != null) {
 			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
-					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
-					agentRunId, agentFailure);
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, agentRunId,
+					agentFailure);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure,
 					traceForNode(node, traceRoomId, null, agentRunId));
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
 		}
 		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration,
-				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview,
-				modelMessageId, agentRunId);
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, modelMessageId,
+				agentRunId);
 		AutomationPythonRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
 				traceForNode(node, traceRoomId, modelMessageId, agentRunId));
@@ -734,11 +712,50 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Continues the same immutable Automation run after a durable agent input flow reaches a
-	 * terminal state. The original worker and run-local Insight are never retained across the human
-	 * wait; scope is reconstructed from the persisted input and successful node-output snapshots.
+	 * Terminally cancels a run parked on a durable agent wait.
 	 *
-	 * @param runId waiting Automation run
+	 * <p>
+	 * The caller authorizes the trace, records the durable cancellation request, and stops the
+	 * child agent before entering this boundary. This method owns only the parent run's terminal
+	 * transition, and unlike {@link #resumeWaitingRun} it never continues the remaining graph -
+	 * a child that settled as COMPLETED while the user was cancelling must not extend the run.
+	 *
+	 * @param runId     waiting Automation run
+	 * @param projectId owning Automation project
+	 * @return cancelled or current run detail
+	 */
+	Map<String, Object> cancelWaitingRun(String runId, String projectId) {
+		Map<String, Object> run = AutomationDatabaseUtility.getRunDetail(runId);
+		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
+			throw new IllegalArgumentException("Automation run not found: " + runId);
+		}
+		if (!AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(run.get(AutomationConstants.STATUS))) {
+			return buildCurrentRunResult(runId, projectId);
+		}
+		Map<String, Object> wait = AutomationDatabaseUtility.claimWaitingRun(runId, projectId);
+		if (wait == null) {
+			// A concurrent resume owns the run. It observes the durable cancellation
+			// request before its next node and completes the run as CANCELLED.
+			return buildCurrentRunResult(runId, projectId);
+		}
+		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
+		String message = "Run cancelled by user";
+		AutomationDatabaseUtility.updateNodeFailed(runId, waitingNodeId, utcNow(), 0, message);
+		AutomationDatabaseUtility.resolveWait(runId, stringValue(wait.get(AutomationConstants.WAIT_ID)),
+				currentUserId());
+		AutomationDatabaseUtility.skipPendingNodes(runId, message);
+		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_CANCELLED, waitingNodeId,
+				message);
+		return buildResult(runId, projectId, Map.of("error", message));
+	}
+
+	/**
+	 * Continues the same immutable Automation run after a durable agent input flow
+	 * reaches a terminal state. The original worker and run-local Insight are never
+	 * retained across the human wait; scope is reconstructed from the persisted
+	 * input and successful node-output snapshots.
+	 *
+	 * @param runId     waiting Automation run
 	 * @param projectId owning Automation project
 	 * @return current or resumed run detail
 	 */
@@ -757,15 +774,14 @@ final class AutomationRunExecutionService {
 		}
 		String waitingNodeId = stringValue(wait.get(AutomationConstants.NODE_ID));
 		String agentRunId = stringValue(wait.get(AutomationConstants.AGENT_RUN_ID));
-		Map<String, Object> agent = AgentRunService.get().getRunForAutomation(
-				agentRunId, requestInsight, false);
+		Map<String, Object> agent = AgentRunService.get().getRunForAutomation(agentRunId, requestInsight, false);
 		if (!String.valueOf(wait.get(AutomationConstants.ROOM_ID)).equals(stringValue(agent.get("roomId")))) {
 			throw new IllegalStateException("Agent run room does not match the Automation wait reference.");
 		}
 		String agentStatus = stringValue(agent.get("status"));
 		if (!isAgentRunTerminalStatus(agentStatus)) {
-			throw new IllegalStateException("Agent run '" + agentRunId
-					+ "' has not completed its input flow (" + agentStatus + ").");
+			throw new IllegalStateException(
+					"Agent run '" + agentRunId + "' has not completed its input flow (" + agentStatus + ").");
 		}
 
 		wait = AutomationDatabaseUtility.claimWaitingRun(runId, projectId);
@@ -774,26 +790,22 @@ final class AutomationRunExecutionService {
 		}
 		String waitId = stringValue(wait.get(AutomationConstants.WAIT_ID));
 		if (!"COMPLETED".equalsIgnoreCase(agentStatus)) {
-			return finishTerminalAgentWait(runId, projectId, waitingNodeId, agentRunId,
-					agentStatus, agent, waitId);
+			return finishTerminalAgentWait(runId, projectId, waitingNodeId, agentRunId, agentStatus, agent, waitId);
 		}
 
 		Insight executionInsight = null;
 		Map<String, Object> continuation = new LinkedHashMap<>();
 		try {
-			AutomationDefinitionValidator.ValidatedDefinition definition =
-					AutomationDefinitionValidator.parseAndValidate(
-							String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)));
+			AutomationDefinitionValidator.ValidatedDefinition definition = AutomationDefinitionValidator
+					.parseAndValidate(String.valueOf(run.get(AutomationConstants.DEFINITION_SNAPSHOT)));
 			List<Map<String, Object>> runNodes = AutomationRuntime.nodesForRun(definition);
 			Map<String, Object> waitingNode = runNodes.stream()
-					.filter(node -> waitingNodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))
-					.findFirst()
+					.filter(node -> waitingNodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst()
 					.orElseThrow(() -> new IllegalStateException(
 							"Saved waiting node is absent from the run snapshot: " + waitingNodeId));
 			Object finalText = agent.get("finalText");
 			if (stringValue(finalText) == null) {
-				throw new IllegalStateException("Agent run '" + agentRunId
-						+ "' completed without final output.");
+				throw new IllegalStateException("Agent run '" + agentRunId + "' completed without final output.");
 			}
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(finalText,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation agent result");
@@ -808,19 +820,15 @@ final class AutomationRunExecutionService {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
 			int completedNodes = (int) AutomationDatabaseUtility.getNodeOutputsForRun(runId).stream()
-					.filter(row -> AutomationConstants.NODE_STATUS_SUCCESS.equals(
-							row.get(AutomationConstants.STATUS))
-							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(
-									row.get(AutomationConstants.STATUS)))
+					.filter(row -> AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))
+							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
 					.count();
-			AutomationPythonRunRegistry.register(
-					runId, translator, executionInsight, streamJobId, completedNodes);
+			AutomationPythonRunRegistry.register(runId, translator, executionInsight, streamJobId, completedNodes);
 			Map<String, Object> scope = reconstructScope(runId, executionInsight.getUser());
 			String resumeNodeId = stringValue(wait.get(AutomationConstants.RESUME_NODE_ID));
 			if (resumeNodeId != null) {
-				continuation = executeInControlOrder(executionInsight, projectId, runId, definition,
-						runNodes, AutomationDatabaseUtility.getRunNodeSources(runId), scope,
-						traceRoomIds(runId), resumeNodeId);
+				continuation = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
+						AutomationDatabaseUtility.getRunNodeSources(runId), scope, traceRoomIds(runId), resumeNodeId);
 			} else {
 				continuation.put("scope", scope);
 			}
@@ -838,22 +846,20 @@ final class AutomationRunExecutionService {
 		return buildResult(runId, projectId, continuation);
 	}
 
-	private Map<String, Object> finishTerminalAgentWait(String runId, String projectId,
-			String waitingNodeId, String agentRunId, String agentStatus, Map<String, Object> agent,
-			String waitId) {
+	private Map<String, Object> finishTerminalAgentWait(String runId, String projectId, String waitingNodeId,
+			String agentRunId, String agentStatus, Map<String, Object> agent, String waitId) {
 		String message = stringValue(agent.get("errorMessage"));
 		if (message == null) {
 			message = "Agent run '" + agentRunId + "' " + agentStatus.toLowerCase() + ".";
 		}
 		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(agent.get("finalText"),
 				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation agent terminal result");
-		AutomationDatabaseUtility.updateNodeFailedWithResult(runId, waitingNodeId, utcNow(), 0,
-				null, output, AutomationRuntimeUtils.generatePreview(output), agentRunId, message);
+		AutomationDatabaseUtility.updateNodeFailedWithResult(runId, waitingNodeId, utcNow(), 0, null, output,
+				AutomationRuntimeUtils.generatePreview(output), agentRunId, message);
 		AutomationDatabaseUtility.resolveWait(runId, waitId, currentUserId());
 		AutomationDatabaseUtility.skipPendingNodes(runId, "Skipped because the agent run did not complete");
 		AutomationDatabaseUtility.completeRun(runId, projectId,
-				"CANCELLED".equalsIgnoreCase(agentStatus)
-						? AutomationConstants.STATUS_CANCELLED
+				"CANCELLED".equalsIgnoreCase(agentStatus) ? AutomationConstants.STATUS_CANCELLED
 						: AutomationConstants.STATUS_FAILED,
 				waitingNodeId, message);
 		return buildResult(runId, projectId, Map.of("error", message));
@@ -867,8 +873,7 @@ final class AutomationRunExecutionService {
 				continue;
 			}
 			Object raw = row.get(AutomationConstants.OUTPUT_VALUE);
-			Object value = raw == null ? null
-					: AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
+			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
 			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR));
 			if (outputVar != null) {
 				scope.put(outputVar, value);
@@ -897,8 +902,7 @@ final class AutomationRunExecutionService {
 	}
 
 	private String currentUserId() {
-		return requestInsight.getUser().getPrimaryLoginToken() == null
-				? AutomationConstants.SYSTEM_USER_ID
+		return requestInsight.getUser().getPrimaryLoginToken() == null ? AutomationConstants.SYSTEM_USER_ID
 				: requestInsight.getUser().getPrimaryLoginToken().getId();
 	}
 
@@ -911,8 +915,8 @@ final class AutomationRunExecutionService {
 		boolean internalResultType = AutomationConstants.NODE_MODEL_CHAT.equals(type)
 				|| AutomationConstants.NODE_MODEL_VISION.equals(type)
 				|| AutomationConstants.NODE_AGENT_RUN.equals(type);
-		boolean generated = !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
-				node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
+		boolean generated = !AutomationConstants.NODE_CODE_MODE_CUSTOM
+				.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 		if (!internalResultType || !generated || !(value instanceof Map<?, ?> map)) {
 			return new GeneratedNodeResult(value, value);
 		}
@@ -957,8 +961,7 @@ final class AutomationRunExecutionService {
 		String expectedWorkspaceId = configuredAgentWorkspaceId(node);
 		String returnedWorkspaceId = stringValue(normalized.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		if (returnedWorkspaceId != null && !returnedWorkspaceId.equals(expectedWorkspaceId)) {
-			throw new IllegalStateException("Automation agent node '"
-					+ node.get(AutomationConstants.NODE_FIELD_ID)
+			throw new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 					+ "' returned a different workspaceId than the configured agent.");
 		}
 		normalized.put(AutomationConstants.CONFIG_WORKSPACE_ID, expectedWorkspaceId);
@@ -974,21 +977,19 @@ final class AutomationRunExecutionService {
 			return "Agent run '" + runId + "' returned no durable status.";
 		}
 		return switch (status.toUpperCase()) {
-			case "COMPLETED" -> null;
-			case "INPUT_REQUIRED" -> "Agent run '" + runId
-					+ "' requires user input before the automation can continue.";
-			case "FAILED" -> {
-				String error = stringValue(result.get("errorMessage"));
-				yield error != null ? error : "Agent run '" + runId + "' failed.";
-			}
-			case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
-			default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
+		case "COMPLETED" -> null;
+		case "INPUT_REQUIRED" -> "Agent run '" + runId + "' requires user input before the automation can continue.";
+		case "FAILED" -> {
+			String error = stringValue(result.get("errorMessage"));
+			yield error != null ? error : "Agent run '" + runId + "' failed.";
+		}
+		case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
+		default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
 		};
 	}
 
 	private static IllegalStateException missingAgentTrace(Map<String, Object> node) {
-		return new IllegalStateException("Automation agent node '"
-				+ node.get(AutomationConstants.NODE_FIELD_ID)
+		return new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 				+ "' did not return matching runId and roomId trace metadata.");
 	}
 
@@ -1008,8 +1009,7 @@ final class AutomationRunExecutionService {
 		String returnedRoomId = stringValue(responseMap.get(AutomationConstants.TRACE_ROOM_ID));
 		String messageId = stringValue(responseMap.get("messageId"));
 		if (!expectedRoomId.equals(returnedRoomId)) {
-			throw new IllegalStateException("Automation model node '"
-					+ node.get(AutomationConstants.NODE_FIELD_ID)
+			throw new IllegalStateException("Automation model node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 					+ "' returned a different roomId than the room assigned to this run.");
 		}
 		if (messageId == null) {
@@ -1019,8 +1019,7 @@ final class AutomationRunExecutionService {
 	}
 
 	private static IllegalStateException missingModelTrace(Map<String, Object> node) {
-		return new IllegalStateException("Automation model node '"
-				+ node.get(AutomationConstants.NODE_FIELD_ID)
+		return new IllegalStateException("Automation model node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 				+ "' did not return the required roomId and messageId trace metadata.");
 	}
 
@@ -1031,13 +1030,12 @@ final class AutomationRunExecutionService {
 		return value.toString();
 	}
 
-	private void streamNodeProgress(String runId, Map<String, Object> node, String status,
-			Long durationMs, String outputPreview, String errorMessage) {
+	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
+			String outputPreview, String errorMessage) {
 		streamNodeProgress(runId, node, status, durationMs, outputPreview, errorMessage, null);
 	}
 
-	private void streamRunStarted(String runId,
-			AutomationDefinitionValidator.ValidatedDefinition definition) {
+	private void streamRunStarted(String runId, AutomationDefinitionValidator.ValidatedDefinition definition) {
 		String jobId = streamJobId;
 		if (jobId == null || jobId.isBlank()) {
 			return;
@@ -1049,8 +1047,7 @@ final class AutomationRunExecutionService {
 		Map<String, Object> data = new LinkedHashMap<>();
 		data.put("kind", AUTOMATION_RUN_STARTED_KIND);
 		data.put(AutomationConstants.RUN_ID, runId);
-		data.put(AutomationConstants.DEFINITION_VERSION,
-				AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
+		data.put(AutomationConstants.DEFINITION_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
 		data.put(AutomationConstants.DEFINITION_HASH, definition.hash());
 		data.put(AutomationConstants.DEFINITION_SNAPSHOT, definition.snapshot());
 
@@ -1060,8 +1057,8 @@ final class AutomationRunExecutionService {
 		jobManager.addStreamOut(jobId, envelope);
 	}
 
-	private void streamNodeProgress(String runId, Map<String, Object> node, String status,
-			Long durationMs, String outputPreview, String errorMessage, Map<String, Object> trace) {
+	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
+			String outputPreview, String errorMessage, Map<String, Object> trace) {
 		String jobId = streamJobId;
 		if (jobId == null || jobId.isBlank()) {
 			return;
@@ -1095,19 +1092,20 @@ final class AutomationRunExecutionService {
 		jobManager.addStreamOut(jobId, envelope);
 	}
 
-	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId,
-			String modelMessageId, String agentRunId) {
+	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
+			String agentRunId) {
 		return traceForNode(node, roomId, modelMessageId, agentRunId, null);
 	}
 
 	/**
-	 * Same as {@link #traceForNode(Map, String, String, String)}, additionally stamping the
-	 * durable agent run's current status (e.g. INPUT_REQUIRED) so the frontend can distinguish
-	 * "actively working" from "waiting on a human" without any separate plumbing — it flows
-	 * through the same trace object the node's agentRunId already relies on.
+	 * Same as {@link #traceForNode(Map, String, String, String)}, additionally
+	 * stamping the durable agent run's current status (e.g. INPUT_REQUIRED) so the
+	 * frontend can distinguish "actively working" from "waiting on a human" without
+	 * any separate plumbing — it flows through the same trace object the node's
+	 * agentRunId already relies on.
 	 */
-	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId,
-			String modelMessageId, String agentRunId, String agentStatus) {
+	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
+			String agentRunId, String agentStatus) {
 		Map<String, Object> trace = trace(roomId, modelMessageId, agentRunId, configuredAgentWorkspaceId(node));
 		Object nodeId = node.get(AutomationConstants.NODE_FIELD_ID);
 		if (nodeId != null) {
@@ -1146,8 +1144,7 @@ final class AutomationRunExecutionService {
 		if (!(rawConfig instanceof Map<?, ?> config)) {
 			return null;
 		}
-		String workspaceId = stringValue(((Map<String, Object>) config)
-				.get(AutomationConstants.CONFIG_WORKSPACE_ID));
+		String workspaceId = stringValue(((Map<String, Object>) config).get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		return workspaceId != null ? workspaceId.trim() : null;
 	}
 
@@ -1213,8 +1210,7 @@ final class AutomationRunExecutionService {
 		}
 		String failedNodeId = AutomationDatabaseUtility.getNodeOutputsForRun(runId).stream()
 				.filter(output -> AutomationConstants.NODE_STATUS_FAILED.equals(output.get(AutomationConstants.STATUS)))
-				.map(output -> (String) output.get(AutomationConstants.NODE_ID))
-				.findFirst().orElse(null);
+				.map(output -> (String) output.get(AutomationConstants.NODE_ID)).findFirst().orElse(null);
 		AutomationDatabaseUtility.skipPendingNodes(runId, "Python runtime failed before this node executed");
 		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_FAILED, failedNodeId,
 				safeMessage(error));
@@ -1227,18 +1223,20 @@ final class AutomationRunExecutionService {
 			detail.put(AutomationConstants.RUN_ID, runId);
 			detail.put(AutomationConstants.PROJECT_ID, projectId);
 		}
-		List<Map<String, Object>> nodeResults =
-				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId));
+		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility
+				.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId));
 		detail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
 		detail.put("scope", normalizeScope(pythonResult.get("scope")));
-		detail.put(AutomationConstants.RESULT_GLOBALS, normalizeScope(
-				pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
+		detail.put(AutomationConstants.RESULT_GLOBALS,
+				normalizeScope(pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
 		detail.put("pythonResult", pythonResult);
 		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
 				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
 				: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))
 						? "Automation paused for agent approval or input."
-						: buildFailureSummary(detail);
+						: AutomationConstants.STATUS_CANCELLED.equals(detail.get(AutomationConstants.STATUS))
+								? "Automation cancelled."
+								: buildFailureSummary(detail);
 		detail.put(AutomationConstants.RESULT_SUMMARY, summary);
 		AutomationDatabaseUtility.updateRunSummary(runId, summary);
 		return detail;
@@ -1277,8 +1275,8 @@ final class AutomationRunExecutionService {
 	private static String buildFailureSummary(Map<String, Object> runDetail) {
 		Object failedNodeId = runDetail.get(AutomationConstants.FAILED_NODE_ID);
 		Object errorMessage = runDetail.get(AutomationConstants.ERROR_MESSAGE);
-		return "Automation failed at node " + (failedNodeId != null ? failedNodeId : "unknown")
-				+ ": " + (errorMessage != null ? errorMessage : "no error details available");
+		return "Automation failed at node " + (failedNodeId != null ? failedNodeId : "unknown") + ": "
+				+ (errorMessage != null ? errorMessage : "no error details available");
 	}
 
 }

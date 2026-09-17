@@ -42,8 +42,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Replaces source for one explicitly custom Automation node.
  *
  * <p>
- * The caller must provide the source hash returned by the latest definition read. Generated nodes
- * remain renderer-owned and cannot be changed through this reactor.
+ * The caller must provide the source hash returned by the latest definition
+ * read. Generated nodes remain renderer-owned and cannot be changed through
+ * this reactor.
  */
 public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 
@@ -52,8 +53,8 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 	private static final String EXPECTED_SOURCE_HASH_KEY = "expectedSourceHash";
 
 	public UpdateAutomationCustomStepReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, SOURCE_KEY, EXPECTED_SOURCE_HASH_KEY };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, SOURCE_KEY,
+				EXPECTED_SOURCE_HASH_KEY };
 		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
@@ -85,13 +86,13 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 		result.put("sourceHash", AutomationDefinitionService.calculateSourceHash(saved.nodeSources().get(nodeId)));
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
-		return new NounMetadata(result,
-				PixelDataType.MAP, PixelOperationType.OPERATION);
+		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	private String editableProjectId() {
-		return AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
-				required(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
+		return AutomationProjectUtils
+				.getEditableAutomationProject(this.insight.getUser(), required(ReactorKeysEnum.PROJECT.getKey()))
+				.getProjectId();
 	}
 
 	private String required(String key) {
@@ -112,10 +113,9 @@ public class UpdateAutomationCustomStepReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Automation graph is invalid.");
 		}
 		for (Object value : nodes) {
-			if (value instanceof Map<?, ?> node
-					&& nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
-				if (!AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(
-						node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			if (value instanceof Map<?, ?> node && nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
+				if (!AutomationConstants.NODE_CODE_MODE_CUSTOM
+						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
 					throw new IllegalArgumentException("Only custom automation nodes may receive source updates.");
 				}
 				return;

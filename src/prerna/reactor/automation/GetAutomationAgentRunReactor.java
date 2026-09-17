@@ -37,9 +37,11 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Returns a trace-linked child agent run for an Automation project collaborator.
+ * Returns a trace-linked child agent run for an Automation project
+ * collaborator.
  *
- * <p>Pixel: {@code GetAutomationAgentRun(project=["id"], automationRunId=["id"],
+ * <p>
+ * Pixel: {@code GetAutomationAgentRun(project=["id"], automationRunId=["id"],
  * nodeId=["id"], agentRunId=["id"], includeMessages=[true])}
  */
 public class GetAutomationAgentRunReactor extends AbstractReactor {
@@ -62,8 +64,8 @@ public class GetAutomationAgentRunReactor extends AbstractReactor {
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY),
 				this.keyValue.get(NODE_ID_KEY), this.keyValue.get(AGENT_RUN_ID_KEY));
 		boolean includeMessages = Boolean.parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY));
-		Map<String, Object> run = AgentRunService.get().getRunForAutomation(
-				this.keyValue.get(AGENT_RUN_ID_KEY), this.insight, includeMessages);
+		Map<String, Object> run = AgentRunService.get().getRunForAutomation(this.keyValue.get(AGENT_RUN_ID_KEY),
+				this.insight, includeMessages);
 		run.put("canControl", access.canControl());
 		run.put("projectId", access.projectId());
 		return new NounMetadata(run, PixelDataType.MAP, PixelOperationType.OPERATION);

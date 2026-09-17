@@ -8,22 +8,22 @@
  *
  * 	  http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
  * ----------------------------------------------------------------------------
  * If your use of this software includes any GPLv2 components:
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
  *******************************************************************************/
 package prerna.reactor.automation;
 
@@ -40,9 +40,11 @@ import com.google.gson.JsonParser;
  * Parses and evaluates the restricted expression language used by Automation
  * condition nodes.
  *
- * <p>This deliberately is not a general scripting engine. Expressions may use
+ * <p>
+ * This deliberately is not a general scripting engine. Expressions may use
  * scope references, scalar JSON literals, comparisons, boolean operators, and
- * parentheses. Evaluation never invokes Python, Pixel, reflection, or user code.
+ * parentheses. Evaluation never invokes Python, Pixel, reflection, or user
+ * code.
  */
 final class AutomationConditionEvaluator {
 
@@ -146,24 +148,22 @@ final class AutomationConditionEvaluator {
 		@Override
 		public Object evaluate(Map<String, Object> scope) {
 			if (operator == TokenType.AND) {
-				return booleanValue(left.evaluate(scope), "&&")
-						&& booleanValue(right.evaluate(scope), "&&");
+				return booleanValue(left.evaluate(scope), "&&") && booleanValue(right.evaluate(scope), "&&");
 			}
 			if (operator == TokenType.OR) {
-				return booleanValue(left.evaluate(scope), "||")
-						|| booleanValue(right.evaluate(scope), "||");
+				return booleanValue(left.evaluate(scope), "||") || booleanValue(right.evaluate(scope), "||");
 			}
 
 			Object leftValue = left.evaluate(scope);
 			Object rightValue = right.evaluate(scope);
 			return switch (operator) {
-				case EQUAL -> valuesEqual(leftValue, rightValue);
-				case NOT_EQUAL -> !valuesEqual(leftValue, rightValue);
-				case GREATER -> compareNumbers(leftValue, rightValue, ">") > 0;
-				case GREATER_EQUAL -> compareNumbers(leftValue, rightValue, ">=") >= 0;
-				case LESS -> compareNumbers(leftValue, rightValue, "<") < 0;
-				case LESS_EQUAL -> compareNumbers(leftValue, rightValue, "<=") <= 0;
-				default -> throw conditionError("unsupported operator '" + operator + "'");
+			case EQUAL -> valuesEqual(leftValue, rightValue);
+			case NOT_EQUAL -> !valuesEqual(leftValue, rightValue);
+			case GREATER -> compareNumbers(leftValue, rightValue, ">") > 0;
+			case GREATER_EQUAL -> compareNumbers(leftValue, rightValue, ">=") >= 0;
+			case LESS -> compareNumbers(leftValue, rightValue, "<") < 0;
+			case LESS_EQUAL -> compareNumbers(leftValue, rightValue, "<=") <= 0;
+			default -> throw conditionError("unsupported operator '" + operator + "'");
 			};
 		}
 
@@ -198,24 +198,8 @@ final class AutomationConditionEvaluator {
 	}
 
 	private enum TokenType {
-		REFERENCE,
-		STRING,
-		NUMBER,
-		TRUE,
-		FALSE,
-		NULL,
-		AND,
-		OR,
-		NOT,
-		EQUAL,
-		NOT_EQUAL,
-		GREATER,
-		GREATER_EQUAL,
-		LESS,
-		LESS_EQUAL,
-		LEFT_PAREN,
-		RIGHT_PAREN,
-		END
+		REFERENCE, STRING, NUMBER, TRUE, FALSE, NULL, AND, OR, NOT, EQUAL, NOT_EQUAL, GREATER, GREATER_EQUAL, LESS,
+		LESS_EQUAL, LEFT_PAREN, RIGHT_PAREN, END
 	}
 
 	private record Token(TokenType type, String text, int position) {
@@ -326,28 +310,41 @@ final class AutomationConditionEvaluator {
 			}
 			String keyword = source.substring(start, index);
 			TokenType type = switch (keyword) {
-				case "true" -> TokenType.TRUE;
-				case "false" -> TokenType.FALSE;
-				case "null" -> TokenType.NULL;
-				default -> throw errorAt(start, "unsupported token '" + keyword + "'");
+			case "true" -> TokenType.TRUE;
+			case "false" -> TokenType.FALSE;
+			case "null" -> TokenType.NULL;
+			default -> throw errorAt(start, "unsupported token '" + keyword + "'");
 			};
 			add(type, keyword, start);
 		}
 
 		private void operator() {
 			int start = index;
-			if (match("&&")) add(TokenType.AND, "&&", start);
-			else if (match("||")) add(TokenType.OR, "||", start);
-			else if (match("==")) add(TokenType.EQUAL, "==", start);
-			else if (match("!=")) add(TokenType.NOT_EQUAL, "!=", start);
-			else if (match(">=")) add(TokenType.GREATER_EQUAL, ">=", start);
-			else if (match("<=")) add(TokenType.LESS_EQUAL, "<=", start);
-			else if (match("!")) add(TokenType.NOT, "!", start);
-			else if (match(">")) add(TokenType.GREATER, ">", start);
-			else if (match("<")) add(TokenType.LESS, "<", start);
-			else if (match("(")) add(TokenType.LEFT_PAREN, "(", start);
-			else if (match(")")) add(TokenType.RIGHT_PAREN, ")", start);
-			else throw errorAt(start, "unsupported character '" + source.charAt(index) + "'");
+			if (match("&&")) {
+				add(TokenType.AND, "&&", start);
+			} else if (match("||")) {
+				add(TokenType.OR, "||", start);
+			} else if (match("==")) {
+				add(TokenType.EQUAL, "==", start);
+			} else if (match("!=")) {
+				add(TokenType.NOT_EQUAL, "!=", start);
+			} else if (match(">=")) {
+				add(TokenType.GREATER_EQUAL, ">=", start);
+			} else if (match("<=")) {
+				add(TokenType.LESS_EQUAL, "<=", start);
+			} else if (match("!")) {
+				add(TokenType.NOT, "!", start);
+			} else if (match(">")) {
+				add(TokenType.GREATER, ">", start);
+			} else if (match("<")) {
+				add(TokenType.LESS, "<", start);
+			} else if (match("(")) {
+				add(TokenType.LEFT_PAREN, "(", start);
+			} else if (match(")")) {
+				add(TokenType.RIGHT_PAREN, ")", start);
+			} else {
+				throw errorAt(start, "unsupported character '" + source.charAt(index) + "'");
+			}
 		}
 
 		private boolean peek(char expected, int offset) {
@@ -436,12 +433,24 @@ final class AutomationConditionEvaluator {
 		}
 
 		private Expression primary() {
-			if (match(TokenType.TRUE)) return new Literal(Boolean.TRUE);
-			if (match(TokenType.FALSE)) return new Literal(Boolean.FALSE);
-			if (match(TokenType.NULL)) return new Literal(null);
-			if (match(TokenType.NUMBER)) return numberLiteral(previous());
-			if (match(TokenType.STRING)) return stringLiteral(previous());
-			if (match(TokenType.REFERENCE)) return reference(previous());
+			if (match(TokenType.TRUE)) {
+				return new Literal(Boolean.TRUE);
+			}
+			if (match(TokenType.FALSE)) {
+				return new Literal(Boolean.FALSE);
+			}
+			if (match(TokenType.NULL)) {
+				return new Literal(null);
+			}
+			if (match(TokenType.NUMBER)) {
+				return numberLiteral(previous());
+			}
+			if (match(TokenType.STRING)) {
+				return stringLiteral(previous());
+			}
+			if (match(TokenType.REFERENCE)) {
+				return reference(previous());
+			}
 			if (match(TokenType.LEFT_PAREN)) {
 				enterDepth();
 				try {

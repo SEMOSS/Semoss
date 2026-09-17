@@ -37,12 +37,15 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Continues a durable Automation run after its trace-linked child agent reaches a terminal state.
+ * Continues a durable Automation run after its trace-linked child agent reaches
+ * a terminal state.
  *
- * <p>Pixel: {@code ResumeAutomationRun(project=["id"], runId=["id"])}
+ * <p>
+ * Pixel: {@code ResumeAutomationRun(project=["id"], runId=["id"])}
  *
- * <p>The execution service uses a compare-and-set claim, so repeated calls are safe and concurrent
- * callers cannot execute the remainder of the graph twice.
+ * <p>
+ * The execution service uses a compare-and-set claim, so repeated calls are
+ * safe and concurrent callers cannot execute the remainder of the graph twice.
  */
 public class ResumeAutomationRunReactor extends AbstractReactor {
 
@@ -62,8 +65,8 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide a run id");
 		}
 
-		IProject project = AutomationProjectUtils.getEditableAutomationProject(
-				this.insight.getUser(), requestedProjectId);
+		IProject project = AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
+				requestedProjectId);
 		String projectId = project.getProjectId();
 		Map<String, Object> run = AutomationDatabaseUtility.getRunDetail(runId);
 		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
@@ -77,8 +80,8 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 					String.valueOf(wait.get(AutomationConstants.AGENT_RUN_ID)));
 		}
 
-		Map<String, Object> result = new AutomationRunExecutionService(this.insight, null)
-				.resumeWaitingRun(runId, projectId);
+		Map<String, Object> result = new AutomationRunExecutionService(this.insight, null).resumeWaitingRun(runId,
+				projectId);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

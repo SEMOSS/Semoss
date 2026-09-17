@@ -51,12 +51,14 @@ import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
 
 /**
- * Coordinates project-level access, persistence, and derived assets for Automation projects.
+ * Coordinates project-level access, persistence, and derived assets for
+ * Automation projects.
  *
  * <p>
- * All reads and mutations enter through standard SEMOSS project permission checks. Mutations hold
- * the project lock while replacing the graph aggregate, regenerating MCP metadata, synchronizing
- * cluster assets, and updating the project edit timestamp.
+ * All reads and mutations enter through standard SEMOSS project permission
+ * checks. Mutations hold the project lock while replacing the graph aggregate,
+ * regenerating MCP metadata, synchronizing cluster assets, and updating the
+ * project edit timestamp.
  */
 public final class AutomationProjectUtils {
 
@@ -66,9 +68,10 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires view access to an automation project.
+	 * Resolves a project ID or alias and requires view access to an automation
+	 * project.
 	 *
-	 * @param user user requesting access
+	 * @param user             user requesting access
 	 * @param projectIdOrAlias project ID or alias
 	 * @return resolved automation project
 	 */
@@ -77,9 +80,10 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
-	 * Resolves a project ID or alias and requires edit access to an automation project.
+	 * Resolves a project ID or alias and requires edit access to an automation
+	 * project.
 	 *
-	 * @param user user requesting access
+	 * @param user             user requesting access
 	 * @param projectIdOrAlias project ID or alias
 	 * @return resolved automation project
 	 */
@@ -93,12 +97,10 @@ public final class AutomationProjectUtils {
 		}
 
 		String projectId = SecurityProjectUtils.testUserProjectIdForAlias(user, projectIdOrAlias);
-		boolean hasAccess = requireEdit
-				? SecurityProjectUtils.userCanEditProject(user, projectId)
+		boolean hasAccess = requireEdit ? SecurityProjectUtils.userCanEditProject(user, projectId)
 				: SecurityProjectUtils.userCanViewProject(user, projectId);
 		if (!hasAccess) {
-			throw new IllegalArgumentException(requireEdit
-					? "Project does not exist or user does not have edit access."
+			throw new IllegalArgumentException(requireEdit ? "Project does not exist or user does not have edit access."
 					: "Project does not exist or user does not have access.");
 		}
 
@@ -112,10 +114,10 @@ public final class AutomationProjectUtils {
 	/**
 	 * Saves an automation definition and synchronizes its derived project assets.
 	 *
-	 * @param projectId project ID
+	 * @param projectId      project ID
 	 * @param definitionJson canonical graph JSON
-	 * @param nodeSources source by non-start node ID
-	 * @param user user performing the save
+	 * @param nodeSources    source by non-start node ID
+	 * @param user           user performing the save
 	 * @return persisted graph and node sources
 	 */
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
@@ -124,13 +126,13 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
-	 * Loads and mutates one definition while holding the same project lock used by persistence.
-	 * Granular authoring tools use this boundary so concurrent operations cannot overwrite each
-	 * other's graph changes.
+	 * Loads and mutates one definition while holding the same project lock used by
+	 * persistence. Granular authoring tools use this boundary so concurrent
+	 * operations cannot overwrite each other's graph changes.
 	 *
 	 * @param projectId project ID
-	 * @param mutation operation based on the latest persisted aggregate
-	 * @param <T> mutation result type
+	 * @param mutation  operation based on the latest persisted aggregate
+	 * @param <T>       mutation result type
 	 * @return mutation result
 	 */
 	public static <T> T withLockedDefinition(String projectId,
@@ -145,15 +147,16 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
-	 * Saves an automation definition when the currently persisted aggregate matches the caller's
-	 * expected revision. A null or blank revision preserves compatibility for callers that have not
-	 * adopted optimistic concurrency yet.
+	 * Saves an automation definition when the currently persisted aggregate matches
+	 * the caller's expected revision. A null or blank revision preserves
+	 * compatibility for callers that have not adopted optimistic concurrency yet.
 	 *
-	 * @param projectId project ID
-	 * @param definitionJson canonical graph JSON
-	 * @param nodeSources source by non-start node ID
-	 * @param expectedRevision revision returned by the prior read, or null during migration
-	 * @param user user performing the save
+	 * @param projectId        project ID
+	 * @param definitionJson   canonical graph JSON
+	 * @param nodeSources      source by non-start node ID
+	 * @param expectedRevision revision returned by the prior read, or null during
+	 *                         migration
+	 * @param user             user performing the save
 	 * @return persisted graph and node sources
 	 */
 	public static AutomationDefinitionService.DefinitionFiles saveDefinition(String projectId, String definitionJson,
@@ -163,17 +166,17 @@ public final class AutomationProjectUtils {
 		try {
 			AutomationDefinitionService.DefinitionFiles current = AutomationDefinitionService.load(projectId);
 			if (expectedRevision != null && !expectedRevision.isBlank()) {
-				String currentRevision = AutomationDefinitionService.calculateRevision(
-						current.definition(), current.nodeSources());
+				String currentRevision = AutomationDefinitionService.calculateRevision(current.definition(),
+						current.nodeSources());
 				if (!currentRevision.equals(expectedRevision)) {
 					throw new IllegalArgumentException(
 							"Automation changed since it was loaded. Refresh and reapply your changes.");
 				}
 			}
-			validateDefinitionReferences(
-					AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson), user);
-			AutomationDefinitionService.DefinitionFiles files =
-					AutomationDefinitionService.save(projectId, definitionJson, nodeSources);
+			validateDefinitionReferences(AutomationDefinitionValidator.parseAndValidateForAuthoring(definitionJson),
+					user);
+			AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.save(projectId,
+					definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
 			syncDefinitionAssets(projectId, user, "Update automation definition");
 			return files;
@@ -186,7 +189,7 @@ public final class AutomationProjectUtils {
 	 * Creates and synchronizes the starter definition for a new automation project.
 	 *
 	 * @param project automation project
-	 * @param user user creating the automation
+	 * @param user    user creating the automation
 	 * @return persisted starter graph and node sources
 	 */
 	public static AutomationDefinitionService.DefinitionFiles createStarterDefinition(IProject project, User user) {
@@ -208,16 +211,16 @@ public final class AutomationProjectUtils {
 	}
 
 	/**
-	 * Validates every catalog reference in an already parsed definition against the current user.
-	 * Called on save and again immediately before execution because access and active state can
-	 * change after an automation is authored.
+	 * Validates every catalog reference in an already parsed definition against the
+	 * current user. Called on save and again immediately before execution because
+	 * access and active state can change after an automation is authored.
 	 *
 	 * @param definition validated automation definition
-	 * @param user current user
+	 * @param user       current user
 	 */
 	@SuppressWarnings("unchecked")
-	public static void validateDefinitionReferences(
-			AutomationDefinitionValidator.ValidatedDefinition definition, User user) {
+	public static void validateDefinitionReferences(AutomationDefinitionValidator.ValidatedDefinition definition,
+			User user) {
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
@@ -267,17 +270,16 @@ public final class AutomationProjectUtils {
 		}
 	}
 
-	private static void validateAgentWorkspaceReference(Map<String, Object> node,
-			Map<String, Object> config, User user) {
+	private static void validateAgentWorkspaceReference(Map<String, Object> node, Map<String, Object> config,
+			User user) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		Object rawWorkspaceId = config.get(AutomationConstants.CONFIG_WORKSPACE_ID);
 		if (!(rawWorkspaceId instanceof String workspaceId) || workspaceId.isBlank()) {
 			throw invalidAgentReference(nodeId, String.valueOf(rawWorkspaceId));
 		}
 		workspaceId = workspaceId.trim();
-		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId)
-				|| !IProject.PROJECT_TYPE.WORKSPACE.name().equals(
-						SecurityProjectUtils.getProjectTypeForId(workspaceId))) {
+		if (!SecurityProjectUtils.userCanViewProject(user, workspaceId) || !IProject.PROJECT_TYPE.WORKSPACE.name()
+				.equals(SecurityProjectUtils.getProjectTypeForId(workspaceId))) {
 			throw invalidAgentReference(nodeId, workspaceId);
 		}
 		Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
@@ -285,8 +287,8 @@ public final class AutomationProjectUtils {
 			throw invalidAgentReference(nodeId, workspaceId);
 		}
 		if (!Boolean.TRUE.equals(workspace.get("is_active"))) {
-			throw new IllegalArgumentException("Automation node '" + nodeId
-					+ "' references disabled agent workspaceId '" + workspaceId + "'.");
+			throw new IllegalArgumentException(
+					"Automation node '" + nodeId + "' references disabled agent workspaceId '" + workspaceId + "'.");
 		}
 	}
 
@@ -296,8 +298,7 @@ public final class AutomationProjectUtils {
 				+ "projectType=['WORKSPACE'] and use its project_id value.");
 	}
 
-	private static void validateAppProjectReference(Map<String, Object> node,
-			Map<String, Object> config, User user) {
+	private static void validateAppProjectReference(Map<String, Object> node, Map<String, Object> config, User user) {
 		Object rawAppId = config.get(AutomationConstants.CONFIG_APP_ID);
 		if (rawAppId == null || rawAppId instanceof String appId && appId.isBlank()) {
 			return;
@@ -312,7 +313,7 @@ public final class AutomationProjectUtils {
 		}
 		String projectType = SecurityProjectUtils.getProjectTypeForId(appId);
 		if (!(IProject.PROJECT_TYPE.CODE.name().equals(projectType)
-						|| IProject.PROJECT_TYPE.BLOCKS.name().equals(projectType))) {
+				|| IProject.PROJECT_TYPE.BLOCKS.name().equals(projectType))) {
 			throw invalidAppReference(nodeId, appId);
 		}
 	}
@@ -326,8 +327,8 @@ public final class AutomationProjectUtils {
 	private static IllegalArgumentException invalidEngineReference(String nodeId, String engineId,
 			IEngine.CATALOG_TYPE expectedType) {
 		return new IllegalArgumentException("Automation node '" + nodeId + "' engineId '" + engineId
-				+ "' is not an accessible " + expectedType
-				+ " engine. Call MyEngines with engineTypes=['" + expectedType + "'] and use its engine_id value.");
+				+ "' is not an accessible " + expectedType + " engine. Call MyEngines with engineTypes=['"
+				+ expectedType + "'] and use its engine_id value.");
 	}
 
 	private static void syncDefinitionAssets(String projectId, User user, String commitMessage) {

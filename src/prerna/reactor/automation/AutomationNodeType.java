@@ -37,9 +37,9 @@ import prerna.engine.api.IEngine;
  * Stable node identifiers and server-owned capabilities for Automation graphs.
  *
  * <p>
- * The {@link #getType()} value is the persisted wire contract. Enum names may be
- * refactored, but wire values must remain stable so saved Automation definitions
- * continue to load.
+ * The {@link #getType()} value is the persisted wire contract. Enum names may
+ * be refactored, but wire values must remain stable so saved Automation
+ * definitions continue to load.
  */
 public enum AutomationNodeType {
 
@@ -50,30 +50,30 @@ public enum AutomationNodeType {
 			Permission.EDIT, true, true),
 	DATABASE_UPDATE(AutomationConstants.NODE_DATABASE_UPDATE, Category.DATABASE, IEngine.CATALOG_TYPE.DATABASE,
 			Permission.EDIT, true, true),
-	MODEL_CHAT(AutomationConstants.NODE_MODEL_CHAT, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
-			true, true),
+	MODEL_CHAT(AutomationConstants.NODE_MODEL_CHAT, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW, true,
+			true),
 	MODEL_EMBEDDINGS(AutomationConstants.NODE_MODEL_EMBEDDINGS, Category.MODEL, IEngine.CATALOG_TYPE.MODEL,
 			Permission.VIEW, true, true),
 	MODEL_VISION(AutomationConstants.NODE_MODEL_VISION, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
 			true, true),
-	MODEL_NER(AutomationConstants.NODE_MODEL_NER, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
+	MODEL_NER(AutomationConstants.NODE_MODEL_NER, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW, true,
+			true),
+	STORAGE_LIST(AutomationConstants.NODE_STORAGE_LIST, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE, Permission.VIEW,
 			true, true),
-	STORAGE_LIST(AutomationConstants.NODE_STORAGE_LIST, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
-			Permission.VIEW, true, true),
-	STORAGE_READ(AutomationConstants.NODE_STORAGE_READ, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
-			Permission.EDIT, true, true),
+	STORAGE_READ(AutomationConstants.NODE_STORAGE_READ, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE, Permission.EDIT,
+			true, true),
 	STORAGE_UPLOAD(AutomationConstants.NODE_STORAGE_UPLOAD, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.EDIT, true, true),
 	STORAGE_DOWNLOAD(AutomationConstants.NODE_STORAGE_DOWNLOAD, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.VIEW, true, true),
 	STORAGE_DELETE(AutomationConstants.NODE_STORAGE_DELETE, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.EDIT, true, true),
-	VECTOR_SEARCH(AutomationConstants.NODE_VECTOR_SEARCH, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR,
-			Permission.VIEW, true, true),
-	VECTOR_ADD(AutomationConstants.NODE_VECTOR_ADD, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.EDIT,
+	VECTOR_SEARCH(AutomationConstants.NODE_VECTOR_SEARCH, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.VIEW,
 			true, true),
-	VECTOR_DELETE(AutomationConstants.NODE_VECTOR_DELETE, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR,
-			Permission.EDIT, true, true),
+	VECTOR_ADD(AutomationConstants.NODE_VECTOR_ADD, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.EDIT, true,
+			true),
+	VECTOR_DELETE(AutomationConstants.NODE_VECTOR_DELETE, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.EDIT,
+			true, true),
 	FUNCTION_EXECUTE(AutomationConstants.NODE_FUNCTION_EXECUTE, Category.FUNCTION, IEngine.CATALOG_TYPE.FUNCTION,
 			Permission.VIEW, true, true),
 	APP_PIXEL(AutomationConstants.NODE_APP_PIXEL, Category.APP, null, Permission.VIEW, true, true),
@@ -81,10 +81,11 @@ public enum AutomationNodeType {
 			true),
 	CONTROL_WAIT(AutomationConstants.NODE_CONTROL_WAIT, Category.CONTROL, null, Permission.NONE, true, true),
 	CONTROL_IF(AutomationConstants.NODE_CONTROL_IF, Category.CONTROL, null, Permission.NONE, false, false),
-	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true,
-			true);
+	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true, true);
 
-	/** Logical grouping used by clients without parsing the persisted type string. */
+	/**
+	 * Logical grouping used by clients without parsing the persisted type string.
+	 */
 	public enum Category {
 		TRIGGER, DATABASE, MODEL, STORAGE, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
 	}

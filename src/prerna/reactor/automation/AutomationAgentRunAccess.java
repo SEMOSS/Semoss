@@ -34,7 +34,8 @@ import prerna.project.api.IProject;
 /**
  * Permission boundary for Automation's trace-linked agent-run APIs.
  *
- * <p>This class is the only Automation path that may access an agent run without
+ * <p>
+ * This class is the only Automation path that may access an agent run without
  * the generic agent-run owner's identity. It first uses the normal project ACL,
  * then requires an exact persisted Automation run/node/agent-run relationship.
  */

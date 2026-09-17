@@ -41,14 +41,16 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Returns detail for a single automation run including per-node results.
  *
- * <p>Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
+ * <p>
+ * Pixel: {@code GetAutomationRun(project=["appId"], runId=["uuid"])}
  *
- * <p>Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
+ * <p>
+ * Reads from AUTOMATION_RUNS and AUTOMATION_NODE_OUTPUTS in the scheduler DB.
  */
 public class GetAutomationRunReactor extends AbstractReactor {
 
-	// Not standardized in ReactorKeysEnum — matches the local-key convention used by
-	// prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
+	// Not standardized in ReactorKeysEnum — matches the local-key convention used
+	// by prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
 	private static final String RUN_ID_KEY = "runId";
 
 	public GetAutomationRunReactor() {
@@ -73,7 +75,8 @@ public class GetAutomationRunReactor extends AbstractReactor {
 				.getProjectId();
 
 		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
-		// Scope by PROJECT_ID so a user with view access to one project cannot read another
+		// Scope by PROJECT_ID so a user with view access to one project cannot read
+		// another
 		// project's run detail/node outputs by guessing or reusing a runId.
 		if (runDetail == null || !projectId.equals(runDetail.get(AutomationConstants.PROJECT_ID))) {
 			Map<String, Object> notFound = new HashMap<>();

@@ -40,7 +40,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Lets an Automation project editor resolve a pending trace-linked agent action.
+ * Lets an Automation project editor resolve a pending trace-linked agent
+ * action.
  */
 public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 
@@ -64,8 +65,8 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 				this.keyValue.get(AUTOMATION_RUN_ID_KEY), this.keyValue.get(NODE_ID_KEY),
 				this.keyValue.get(AGENT_RUN_ID_KEY));
 		String result = new AgentToolDecisionHandler(this.insight).handleAutomationDecision(
-				this.keyValue.get(ACTION_ID_KEY), this.keyValue.get(AGENT_RUN_ID_KEY),
-				this.keyValue.get(DECISION_KEY), this.keyValue.get(ReactorKeysEnum.MCP_TOOL_RESULT.getKey()),
+				this.keyValue.get(ACTION_ID_KEY), this.keyValue.get(AGENT_RUN_ID_KEY), this.keyValue.get(DECISION_KEY),
+				this.keyValue.get(ReactorKeysEnum.MCP_TOOL_RESULT.getKey()),
 				this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey()), getMap());
 		Map<String, Object> output = new HashMap<>();
 		output.put("result", result);

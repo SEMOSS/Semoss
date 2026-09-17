@@ -37,8 +37,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.Constants;
@@ -48,14 +46,12 @@ import prerna.util.Utility;
  * Provides Java-owned graph ordering and one-node Python invocation support.
  *
  * <p>
- * Runtime traversal operates on the validated graph, while Python is invoked with only the source
- * selected for the current node and a bounded JSON scope. This class never discovers or executes
- * arbitrary project files.
+ * Runtime traversal operates on the validated graph, while Python is invoked
+ * with only the source selected for the current node and a bounded JSON scope.
+ * This class never discovers or executes arbitrary project files.
  */
 final class AutomationRuntime {
 
-	private static final Pattern GLOBAL_ASSIGNMENT = Pattern.compile(
-			"^([A-Za-z][A-Za-z0-9_]*)\\s*=\\s*(.+?)(?:\\s+#.*)?$");
 	private AutomationRuntime() {
 	}
 
@@ -63,14 +59,12 @@ final class AutomationRuntime {
 		List<Map<String, Object>> nodes = new ArrayList<>();
 		for (Map<String, Object> original : controlOrderedNodes(definition)) {
 			Map<String, Object> node = new LinkedHashMap<>(original);
-			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL,
-					node.get(AutomationConstants.NODE_FIELD_ID));
+			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL, node.get(AutomationConstants.NODE_FIELD_ID));
 			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
 			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
 				node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 			} else if (!AutomationConstants.NODE_START.equals(nodeType)) {
-				node.putIfAbsent(AutomationConstants.NODE_FIELD_OUTPUT_VAR,
-						defaultOutputVariable(node));
+				node.putIfAbsent(AutomationConstants.NODE_FIELD_OUTPUT_VAR, defaultOutputVariable(node));
 			}
 			nodes.add(node);
 		}
@@ -87,8 +81,9 @@ final class AutomationRuntime {
 	}
 
 	/**
-	 * Returns every node in deterministic topological order for run-history initialization. Runtime
-	 * traversal still selects only one condition path and remains Java-owned.
+	 * Returns every node in deterministic topological order for run-history
+	 * initialization. Runtime traversal still selects only one condition path and
+	 * remains Java-owned.
 	 */
 	static List<Map<String, Object>> controlOrderedNodes(AutomationDefinitionValidator.ValidatedDefinition definition) {
 		Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
@@ -156,23 +151,25 @@ final class AutomationRuntime {
 		return targets;
 	}
 
-	/** Runs one node module with the workflow scope supplied by the Java scheduler. */
+	/**
+	 * Runs one node module with the workflow scope supplied by the Java scheduler.
+	 */
 	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
 		return buildPythonInvocation("execute_node", source, scope);
 	}
 
 	/**
 	 * Executes trigger Python in an isolated module and returns its non-private,
-	 * JSON-compatible globals. A trigger may also return a map from {@code run(scope)}
-	 * to define computed globals.
+	 * JSON-compatible globals. A trigger may also return a map from
+	 * {@code run(scope)} to define computed globals.
 	 */
 	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
 		return buildPythonInvocation("execute_trigger", source, scope);
 	}
 
 	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope) {
-		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER,
-				"semoss_automation_runtime.py").toAbsolutePath().normalize();
+		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
+				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
@@ -183,132 +180,77 @@ final class AutomationRuntime {
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
 				_automation_runtime.%s("%s", "%s", %d)
-				""".formatted(
-						AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()),
-						function,
-						encode(AutomationRuntimeUtils.toBoundedRuntimeJson(
-								scope != null ? scope : Map.of(), AutomationConstants.RUN_SCOPE_MAX_BYTES,
-								"Automation run scope")),
-						encode(source != null ? source : ""),
-						AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
+				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
+						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
+				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES);
 	}
 
 	/**
-	 * Reads literal top-level globals for Get/Save and playground defaults without
-	 * executing user Python. Non-literal values are available at trigger time only.
+	 * Returns each trigger global's declared default for Get/Save responses and
+	 * playground defaults.
 	 */
-	static Map<String, Object> declaredGlobals(String source) {
+	static Map<String, Object> declaredGlobals(AutomationDefinitionValidator.ValidatedDefinition definition) {
 		Map<String, Object> globals = new LinkedHashMap<>();
-		if (source == null || source.isBlank()) {
-			return globals;
-		}
-		for (String line : source.split("\\R")) {
-			if (!line.isEmpty() && Character.isWhitespace(line.charAt(0))) {
-				continue;
-			}
-			Matcher assignment = GLOBAL_ASSIGNMENT.matcher(line);
-			if (!assignment.matches()) {
-				continue;
-			}
-			Object value = parseLiteral(assignment.group(2).trim());
-			if (value != UnparsedLiteral.INSTANCE) {
-				globals.put(assignment.group(1), value);
-			}
-		}
-		return globals;
-	}
-
-	static Map<String, Object> declaredGlobals(AutomationDefinitionValidator.ValidatedDefinition definition,
-			Map<String, String> nodeSources) {
-		Map<String, Object> globals = new LinkedHashMap<>();
-		for (Map<String, Object> global : triggerGlobalDefinitions(definition, nodeSources)) {
+		for (Map<String, Object> global : triggerGlobalDefinitions(definition)) {
 			globals.put((String) global.get("name"), global.get(AutomationConstants.CONFIG_DEFAULT_VALUE));
 		}
 		return globals;
 	}
 
 	/**
-	 * Returns the canonical trigger declarations from {@code config.globals}. Legacy trigger
-	 * Python assignments remain a read-only fallback for pre-migration workflow definitions.
+	 * Returns the trigger declarations held in
+	 * {@code trigger.start.config.globals}.
 	 */
-	@SuppressWarnings("unchecked")
 	static List<Map<String, Object>> triggerGlobalDefinitions(
-			AutomationDefinitionValidator.ValidatedDefinition definition, Map<String, String> nodeSources) {
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
 		for (Map<String, Object> node : definition.nodes()) {
-			if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				continue;
-			}
-			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-			if (rawConfig instanceof Map<?, ?> config
-					&& config.containsKey(AutomationConstants.CONFIG_GLOBALS)) {
-				Object rawGlobals = config.get(AutomationConstants.CONFIG_GLOBALS);
-				if (rawGlobals instanceof List<?> values) {
-					List<Map<String, Object>> globals = new ArrayList<>();
-					for (Object value : values) {
-						if (value instanceof Map<?, ?> map) {
-							globals.add(new LinkedHashMap<>((Map<String, Object>) map));
-						}
-					}
-					return globals;
-				}
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				return triggerGlobalDefinitions(node);
 			}
 		}
+		return List.of();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> triggerGlobalDefinitions(Map<String, Object> node) {
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		if (!(rawConfig instanceof Map<?, ?> config)
+				|| !(config.get(AutomationConstants.CONFIG_GLOBALS) instanceof List<?> values)) {
+			return List.of();
+		}
 		List<Map<String, Object>> globals = new ArrayList<>();
-		for (Map.Entry<String, Object> entry : declaredGlobals(triggerSource(definition, nodeSources)).entrySet()) {
-			Map<String, Object> global = new LinkedHashMap<>();
-			global.put("name", entry.getKey());
-			global.put(AutomationConstants.CONFIG_DEFAULT_VALUE, entry.getValue());
-			globals.add(global);
+		for (Object value : values) {
+			if (value instanceof Map<?, ?> map) {
+				globals.add(new LinkedHashMap<>((Map<String, Object>) map));
+			}
 		}
 		return globals;
 	}
 
-	static String triggerSource(AutomationDefinitionValidator.ValidatedDefinition definition,
-			Map<String, String> nodeSources) {
-		for (Map<String, Object> node : definition.nodes()) {
-			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-				return triggerSource(node, nodeSources.get((String) node.get(AutomationConstants.NODE_FIELD_ID)));
-			}
+	/**
+	 * Returns the optional setup source held in
+	 * {@code trigger.start.config.pythonSource}.
+	 */
+	@SuppressWarnings("unchecked")
+	static String triggerSource(Map<String, Object> node) {
+		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
+		if (rawConfig instanceof Map<?, ?> raw) {
+			return sourceValue(((Map<String, Object>) raw).get(AutomationConstants.CONFIG_PYTHON_SOURCE));
 		}
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
-	static String triggerSource(Map<String, Object> node, String legacySource) {
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (rawConfig instanceof Map<?, ?> raw) {
-			Map<String, Object> config = (Map<String, Object>) raw;
-			String source = sourceValue(config.get(AutomationConstants.CONFIG_PYTHON_SOURCE));
-			if (source != null) {
-				return source;
-			}
-			source = sourceValue(config.get(AutomationConstants.CONFIG_PYTHON));
-			if (source != null) {
-				return source;
-			}
-		}
-		return legacySource;
-	}
-
-	@SuppressWarnings("unchecked")
+	/**
+	 * Returns the declared default for each trigger global the run should seed into
+	 * scope.
+	 */
 	static Map<String, Object> triggerGlobalDefaults(Map<String, Object> node) {
 		Map<String, Object> globals = new LinkedHashMap<>();
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (!(rawConfig instanceof Map<?, ?> raw)) {
-			return globals;
-		}
-		Object rawGlobals = ((Map<String, Object>) raw).get(AutomationConstants.CONFIG_GLOBALS);
-		if (!(rawGlobals instanceof List<?> values)) {
-			return globals;
-		}
-		for (Object value : values) {
-			if (value instanceof Map<?, ?> rawGlobal) {
-				Map<String, Object> global = (Map<String, Object>) rawGlobal;
-				Object name = global.get("name");
-				if (name instanceof String stringName
-						&& global.containsKey(AutomationConstants.CONFIG_DEFAULT_VALUE)) {
-					globals.put(stringName, global.get(AutomationConstants.CONFIG_DEFAULT_VALUE));
-				}
+		for (Map<String, Object> global : triggerGlobalDefinitions(node)) {
+			if (global.get("name") instanceof String name
+					&& global.containsKey(AutomationConstants.CONFIG_DEFAULT_VALUE)) {
+				globals.put(name, global.get(AutomationConstants.CONFIG_DEFAULT_VALUE));
 			}
 		}
 		return globals;
@@ -318,40 +260,6 @@ final class AutomationRuntime {
 		return value instanceof String source && !source.isBlank() ? source : null;
 	}
 
-	private static Object parseLiteral(String value) {
-		if ("True".equals(value)) {
-			return true;
-		}
-		if ("False".equals(value)) {
-			return false;
-		}
-		if ("None".equals(value)) {
-			return null;
-		}
-		if (value.isEmpty() || !isJsonLiteral(value)) {
-			if (value.length() >= 2 && value.startsWith("'") && value.endsWith("'")) {
-				return value.substring(1, value.length() - 1).replace("\\'", "'").replace("\\\\", "\\");
-			}
-			return UnparsedLiteral.INSTANCE;
-		}
-		try {
-			return AutomationRuntimeUtils.GSON.fromJson(value, Object.class);
-		} catch (Exception ignored) {
-			return UnparsedLiteral.INSTANCE;
-		}
-	}
-
-	private static boolean isJsonLiteral(String value) {
-		char first = value.charAt(0);
-		return first == '"' || first == '{' || first == '[' || first == '-' || Character.isDigit(first)
-				|| "true".equals(value) || "false".equals(value) || "null".equals(value);
-	}
-
-	private enum UnparsedLiteral {
-		INSTANCE
-	}
-
-	@SuppressWarnings("unchecked")
 	static Object normalizeNodeResult(Object output) {
 		Object value = output;
 		if (value instanceof String string) {

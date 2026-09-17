@@ -48,16 +48,18 @@ import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
-
 import prerna.ds.py.PyUtils;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
- * Validates the typed-graph automation document before Python source is generated.
+ * Validates the typed-graph automation document before Python source is
+ * generated.
  *
- * <p>The graph structure remains separate from implementation source. The graph is
- * the business-editable contract; generated Python and developer-owned blocks implement that
- * contract without changing its node, port, or capability declarations.
+ * <p>
+ * The graph structure remains separate from implementation source. The graph is
+ * the business-editable contract; generated Python and developer-owned blocks
+ * implement that contract without changing its node, port, or capability
+ * declarations.
  */
 public final class AutomationDefinitionValidator {
 
@@ -77,8 +79,9 @@ public final class AutomationDefinitionValidator {
 	/**
 	 * Parses and validates a definition while allowing incomplete control.if paths.
 	 *
-	 * <p>Authoring tools persist drafts incrementally; execution must continue to
-	 * use {@link #parseAndValidate(String)} so an incomplete branch cannot run.
+	 * <p>
+	 * Authoring tools persist drafts incrementally; execution must continue to use
+	 * {@link #parseAndValidate(String)} so an incomplete branch cannot run.
 	 *
 	 * @param json graph document JSON
 	 * @return validated graph metadata
@@ -87,8 +90,7 @@ public final class AutomationDefinitionValidator {
 		return parseAndValidate(json, false);
 	}
 
-	private static ValidatedDefinition parseAndValidate(String json,
-			boolean requireCompleteIfBranches) {
+	private static ValidatedDefinition parseAndValidate(String json, boolean requireCompleteIfBranches) {
 		if (json == null || json.isBlank()) {
 			throw new IllegalArgumentException("Python automation definition must be a nonblank JSON object.");
 		}
@@ -102,7 +104,8 @@ public final class AutomationDefinitionValidator {
 	}
 
 	/**
-	 * Validates the graph shape, typed-node identity, edge endpoints, and code ownership state.
+	 * Validates the graph shape, typed-node identity, edge endpoints, and code
+	 * ownership state.
 	 *
 	 * @param definition parsed graph document
 	 * @return validated definition and deterministic provenance fields
@@ -111,8 +114,7 @@ public final class AutomationDefinitionValidator {
 		return validate(definition, true);
 	}
 
-	private static ValidatedDefinition validate(Map<String, Object> definition,
-			boolean requireCompleteIfBranches) {
+	private static ValidatedDefinition validate(Map<String, Object> definition, boolean requireCompleteIfBranches) {
 		if (definition == null) {
 			throw new IllegalArgumentException("Python automation definition must be a JSON object.");
 		}
@@ -154,17 +156,17 @@ public final class AutomationDefinitionValidator {
 			}
 			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
 			if (nodeTypes.putIfAbsent(nodeId, nodeType) != null) {
-				throw new IllegalArgumentException("Python automation definition has duplicate node id: " + nodeId + ".");
+				throw new IllegalArgumentException(
+						"Python automation definition has duplicate node id: " + nodeId + ".");
 			}
 			if (typedNode == AutomationNodeType.TRIGGER_START) {
 				startCount++;
 			} else if (node.containsKey(AutomationConstants.NODE_FIELD_OUTPUT_VAR)) {
-				String outputVar = requireNonblankString(
-						node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
+				String outputVar = requireNonblankString(node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
 						"graph.nodes[" + index + "].outputVar");
 				if (!PyUtils.isValidPythonVariableName(outputVar)) {
-					throw new IllegalArgumentException("Node '" + nodeId + "' outputVar '" + outputVar
-							+ "' must be a valid Python identifier.");
+					throw new IllegalArgumentException(
+							"Node '" + nodeId + "' outputVar '" + outputVar + "' must be a valid Python identifier.");
 				}
 				if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(outputVar)) {
 					throw new IllegalArgumentException("Node '" + nodeId + "' outputVar '" + outputVar
@@ -180,8 +182,7 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Node '" + nodeId + "' config must be an object.");
 			}
 			@SuppressWarnings("unchecked")
-			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map
-					? (Map<String, Object>) map : Map.of();
+			Map<String, Object> nodeConfig = config instanceof Map<?, ?> map ? (Map<String, Object>) map : Map.of();
 			validateNodeConfig(nodeId, typedNode, nodeConfig);
 			Object codeMode = node.get(AutomationConstants.NODE_FIELD_CODE_MODE);
 			if (codeMode != null && !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)
@@ -190,11 +191,10 @@ public final class AutomationDefinitionValidator {
 			}
 			if (typedNode == AutomationNodeType.CONTROL_IF
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
-				throw new IllegalArgumentException("If node '" + nodeId
-						+ "' must use generated mode; conditions are evaluated by Java.");
+				throw new IllegalArgumentException(
+						"If node '" + nodeId + "' must use generated mode; conditions are evaluated by Java.");
 			}
-			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)
-					&& !(config instanceof Map<?, ?>)) {
+			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
 			}
 			if (!AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
@@ -221,49 +221,49 @@ public final class AutomationDefinitionValidator {
 		}
 
 		switch (nodeType) {
-			case DATABASE_QUERY -> {
-				requireConfigString(nodeId, config, "query");
-				validateDatabaseQueryLimit(nodeId, config);
+		case DATABASE_QUERY -> {
+			requireConfigString(nodeId, config, "query");
+			validateDatabaseQueryLimit(nodeId, config);
+		}
+		case DATABASE_INSERT, DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
+		case MODEL_CHAT -> {
+			requireConfigString(nodeId, config, "prompt");
+			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+		}
+		case MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
+		case MODEL_NER -> {
+			requireConfigString(nodeId, config, "text");
+			requireConfigStringListOrPlaceholder(nodeId, config, "entities");
+		}
+		case MODEL_VISION -> {
+			requireConfigString(nodeId, config, "prompt");
+			requireConfigString(nodeId, config, "image");
+		}
+		case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
+		case STORAGE_UPLOAD, STORAGE_DOWNLOAD -> {
+			requireConfigString(nodeId, config, "path");
+			requireConfigString(nodeId, config, "destination");
+		}
+		case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
+		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
+		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+		case AGENT_RUN -> {
+			requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
+			requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
+			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+			validateOptionalConfigObject(nodeId, config, "paramMap");
+			validateOptionalConfigObject(nodeId, config, "agentParams");
+			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
+			if (wait != null && !(wait instanceof Boolean)) {
+				throw new IllegalArgumentException(
+						"Automation agent node '" + nodeId + "' wait configuration must be a boolean when provided.");
 			}
-			case DATABASE_INSERT, DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
-			case MODEL_CHAT -> {
-				requireConfigString(nodeId, config, "prompt");
-				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
-			}
-			case MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
-			case MODEL_NER -> {
-				requireConfigString(nodeId, config, "text");
-				requireConfigStringListOrPlaceholder(nodeId, config, "entities");
-			}
-			case MODEL_VISION -> {
-				requireConfigString(nodeId, config, "prompt");
-				requireConfigString(nodeId, config, "image");
-			}
-			case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
-			case STORAGE_UPLOAD, STORAGE_DOWNLOAD -> {
-				requireConfigString(nodeId, config, "path");
-				requireConfigString(nodeId, config, "destination");
-			}
-			case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
-			case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
-			case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
-			case AGENT_RUN -> {
-				requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
-				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
-				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
-				validateOptionalConfigObject(nodeId, config, "paramMap");
-				validateOptionalConfigObject(nodeId, config, "agentParams");
-				Object wait = config.get(AutomationConstants.CONFIG_WAIT);
-				if (wait != null && !(wait instanceof Boolean)) {
-					throw new IllegalArgumentException("Automation agent node '" + nodeId
-							+ "' wait configuration must be a boolean when provided.");
-				}
-			}
-			case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
-			case CONTROL_IF -> validateBranchConfig(nodeId, config);
-			case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
-				// These node types have no additional required configuration here.
-			}
+		}
+		case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
+		case CONTROL_IF -> validateBranchConfig(nodeId, config);
+		case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
+			// These node types have no additional required configuration here.
+		}
 		}
 	}
 
@@ -277,14 +277,13 @@ public final class AutomationDefinitionValidator {
 	private static void validateDatabaseQueryLimit(String nodeId, Map<String, Object> config) {
 		Object value = config.get(AutomationConstants.CONFIG_LIMIT);
 		if (!(value instanceof Number number)) {
-			throw new IllegalArgumentException("Database query node '" + nodeId + "' config.limit must be a number from "
-					+ AutomationConstants.DB_QUERY_MIN_LIMIT + " through "
+			throw new IllegalArgumentException("Database query node '" + nodeId
+					+ "' config.limit must be a number from " + AutomationConstants.DB_QUERY_MIN_LIMIT + " through "
 					+ AutomationConstants.DB_QUERY_MAX_LIMIT + ".");
 		}
 
 		double limit = number.doubleValue();
-		if (!Double.isFinite(limit) || limit != Math.rint(limit)
-				|| limit < AutomationConstants.DB_QUERY_MIN_LIMIT
+		if (!Double.isFinite(limit) || limit != Math.rint(limit) || limit < AutomationConstants.DB_QUERY_MIN_LIMIT
 				|| limit > AutomationConstants.DB_QUERY_MAX_LIMIT) {
 			throw new IllegalArgumentException("Database query node '" + nodeId
 					+ "' config.limit must be a whole number from " + AutomationConstants.DB_QUERY_MIN_LIMIT
@@ -294,15 +293,6 @@ public final class AutomationDefinitionValidator {
 
 	private static void validateTriggerConfig(String nodeId, Map<String, Object> config) {
 		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON_SOURCE);
-		validateOptionalSource(nodeId, config, AutomationConstants.CONFIG_PYTHON);
-		Object canonical = config.get(AutomationConstants.CONFIG_PYTHON_SOURCE);
-		Object legacy = config.get(AutomationConstants.CONFIG_PYTHON);
-		if (canonical instanceof String canonicalSource && !canonicalSource.isBlank()
-				&& legacy instanceof String legacySource && !legacySource.isBlank()
-				&& !canonicalSource.equals(legacySource)) {
-			throw new IllegalArgumentException("Trigger node '" + nodeId
-					+ "' cannot provide different pythonSource and python values.");
-		}
 		if (!config.containsKey(AutomationConstants.CONFIG_GLOBALS)) {
 			return;
 		}
@@ -317,16 +307,16 @@ public final class AutomationDefinitionValidator {
 			String name = requireNonblankString(global.get("name"),
 					"Trigger node '" + nodeId + "' config.globals[" + index + "].name");
 			if (!name.matches("[A-Za-z][A-Za-z0-9_]*")) {
-				throw new IllegalArgumentException("Trigger global '" + name
-						+ "' must be a non-private Python identifier.");
+				throw new IllegalArgumentException(
+						"Trigger global '" + name + "' must be a non-private Python identifier.");
 			}
 			if (AutomationConstants.RESERVED_SCOPE_KEYS.contains(name)) {
-				throw new IllegalArgumentException("Trigger global '" + name
-						+ "' is reserved for automation runtime metadata.");
+				throw new IllegalArgumentException(
+						"Trigger global '" + name + "' is reserved for automation runtime metadata.");
 			}
 			if (!names.add(name)) {
-				throw new IllegalArgumentException("Trigger node '" + nodeId
-						+ "' has duplicate global name: " + name + ".");
+				throw new IllegalArgumentException(
+						"Trigger node '" + nodeId + "' has duplicate global name: " + name + ".");
 			}
 			if (!global.containsKey(AutomationConstants.CONFIG_DEFAULT_VALUE)) {
 				throw new IllegalArgumentException("Trigger global '" + name + "' must provide defaultValue.");
@@ -347,8 +337,7 @@ public final class AutomationDefinitionValidator {
 
 	private static void validateWaitConfig(String nodeId, Map<String, Object> config) {
 		Object value = config.get("durationSeconds");
-		if (value instanceof Number number
-				&& number.doubleValue() >= AutomationConstants.WAIT_MIN_SECONDS
+		if (value instanceof Number number && number.doubleValue() >= AutomationConstants.WAIT_MIN_SECONDS
 				&& number.doubleValue() <= AutomationConstants.WAIT_MAX_SECONDS) {
 			return;
 		}
@@ -370,22 +359,19 @@ public final class AutomationDefinitionValidator {
 	private static void validateBranchConfig(String nodeId, Map<String, Object> config) {
 		Object value = config.get(AutomationConstants.CONFIG_CLAUSES);
 		if (!(value instanceof List<?> clauses) || clauses.isEmpty()) {
-			throw new IllegalArgumentException("If node '" + nodeId
-					+ "' config.clauses must be a non-empty array.");
+			throw new IllegalArgumentException("If node '" + nodeId + "' config.clauses must be a non-empty array.");
 		}
 		Set<String> clauseIds = new HashSet<>();
 		for (int index = 0; index < clauses.size(); index++) {
 			Map<String, Object> clause = requireMap(clauses.get(index),
 					"If node '" + nodeId + "' config.clauses[" + index + "]");
-			String clauseId = requireNonblankString(
-					clause.get(AutomationConstants.CONFIG_CLAUSE_ID),
+			String clauseId = requireNonblankString(clause.get(AutomationConstants.CONFIG_CLAUSE_ID),
 					"If node '" + nodeId + "' config.clauses[" + index + "].id");
 			if (!clauseIds.add(clauseId)) {
-				throw new IllegalArgumentException("If node '" + nodeId
-						+ "' has duplicate clause id: " + clauseId + ".");
+				throw new IllegalArgumentException(
+						"If node '" + nodeId + "' has duplicate clause id: " + clauseId + ".");
 			}
-			String condition = requireNonblankString(
-					clause.get(AutomationConstants.CONFIG_CONDITION),
+			String condition = requireNonblankString(clause.get(AutomationConstants.CONFIG_CONDITION),
 					"If node '" + nodeId + "' config.clauses[" + index + "].condition");
 			AutomationConditionEvaluator.validate(condition);
 		}
@@ -394,8 +380,7 @@ public final class AutomationDefinitionValidator {
 	private static void requireConfigString(String nodeId, Map<String, Object> config, String key) {
 		Object value = config.get(key);
 		if (!(value instanceof String string) || string.isBlank()) {
-			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
-					+ " must be a nonblank string.");
+			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key + " must be a nonblank string.");
 		}
 	}
 
@@ -425,11 +410,9 @@ public final class AutomationDefinitionValidator {
 				+ " must be a JSON object or a nonblank string containing a JSON object.");
 	}
 
-	private static void requireConfigStringListOrPlaceholder(String nodeId,
-			Map<String, Object> config, String key) {
+	private static void requireConfigStringListOrPlaceholder(String nodeId, Map<String, Object> config, String key) {
 		Object value = config.get(key);
-		if (value instanceof String placeholder
-				&& placeholder.matches("\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}")) {
+		if (value instanceof String placeholder && placeholder.matches("\\$\\{[A-Za-z_][A-Za-z0-9_]*\\}")) {
 			return;
 		}
 		if (value instanceof List<?> values && !values.isEmpty()
@@ -453,45 +436,43 @@ public final class AutomationDefinitionValidator {
 		}
 		if (AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType)
 				&& query.toLowerCase(Locale.ROOT).contains("</encode>")) {
-			throw new IllegalArgumentException("Generated database node '" + nodeId
-					+ "' query cannot contain the reserved </encode> token.");
+			throw new IllegalArgumentException(
+					"Generated database node '" + nodeId + "' query cannot contain the reserved </encode> token.");
 		}
 
 		List<Statement> statements;
 		try {
 			statements = CCJSqlParserUtil.parseStatements(query).getStatements();
 		} catch (JSQLParserException e) {
-			throw new IllegalArgumentException("Generated database node '" + nodeId
-					+ "' contains invalid SQL: " + e.getMessage(), e);
+			throw new IllegalArgumentException(
+					"Generated database node '" + nodeId + "' contains invalid SQL: " + e.getMessage(), e);
 		}
 		if (statements == null || statements.size() != 1) {
-			throw new IllegalArgumentException("Generated database node '" + nodeId
-					+ "' must contain exactly one SQL statement.");
+			throw new IllegalArgumentException(
+					"Generated database node '" + nodeId + "' must contain exactly one SQL statement.");
 		}
 
 		Statement statement = statements.get(0);
 		if (AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType) && !(statement instanceof Select)) {
-			throw new IllegalArgumentException("Database query node '" + nodeId
-					+ "' must contain a SELECT or WITH statement.");
+			throw new IllegalArgumentException(
+					"Database query node '" + nodeId + "' must contain a SELECT or WITH statement.");
 		}
 		if (AutomationConstants.NODE_DATABASE_INSERT.equals(nodeType) && !(statement instanceof Insert)) {
-			throw new IllegalArgumentException("Database insert node '" + nodeId
-					+ "' must contain an INSERT statement.");
+			throw new IllegalArgumentException(
+					"Database insert node '" + nodeId + "' must contain an INSERT statement.");
 		}
 		if (AutomationConstants.NODE_DATABASE_UPDATE.equals(nodeType)) {
 			if (!(statement instanceof Update update)) {
-				throw new IllegalArgumentException("Database update node '" + nodeId
-						+ "' must contain an UPDATE statement.");
+				throw new IllegalArgumentException(
+						"Database update node '" + nodeId + "' must contain an UPDATE statement.");
 			}
 			if (update.getWhere() == null) {
-				throw new IllegalArgumentException("Database update node '" + nodeId
-						+ "' requires a WHERE clause.");
+				throw new IllegalArgumentException("Database update node '" + nodeId + "' requires a WHERE clause.");
 			}
 		}
 	}
 
-	private static void validateGeneratedAppPixel(String nodeId, String nodeType,
-			Map<String, Object> config) {
+	private static void validateGeneratedAppPixel(String nodeId, String nodeType, Map<String, Object> config) {
 		if (!AutomationConstants.NODE_APP_PIXEL.equals(nodeType)) {
 			return;
 		}
@@ -506,8 +487,7 @@ public final class AutomationDefinitionValidator {
 	private static Map<String, Set<String>> branchPorts(List<Map<String, Object>> nodes) {
 		Map<String, Set<String>> portsByNode = new HashMap<>();
 		for (Map<String, Object> node : nodes) {
-			if (!AutomationConstants.NODE_CONTROL_IF.equals(
-					node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (!AutomationConstants.NODE_CONTROL_IF.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
 				continue;
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -516,8 +496,8 @@ public final class AutomationDefinitionValidator {
 			Set<String> ports = new HashSet<>();
 			ports.add(AutomationConstants.CONTROL_PORT_ELSE);
 			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config.get(
-					AutomationConstants.CONFIG_CLAUSES);
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+					.get(AutomationConstants.CONFIG_CLAUSES);
 			for (Map<String, Object> clause : clauses) {
 				ports.add(AutomationConstants.CONTROL_PORT_CASE_PREFIX
 						+ clause.get(AutomationConstants.CONFIG_CLAUSE_ID));
@@ -535,12 +515,15 @@ public final class AutomationDefinitionValidator {
 			String edgeId = requireNonblankString(edge.get(AutomationConstants.NODE_FIELD_ID),
 					"graph.edges[" + index + "].id");
 			if (!edgeIds.add(edgeId)) {
-				throw new IllegalArgumentException("Python automation definition has duplicate edge id: " + edgeId + ".");
+				throw new IllegalArgumentException(
+						"Python automation definition has duplicate edge id: " + edgeId + ".");
 			}
 			String kind = requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_KIND),
 					"graph.edges[" + index + "].kind");
-			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(kind) && !AutomationConstants.EDGE_KIND_DATA.equals(kind)) {
-				throw new IllegalArgumentException("Automation edge '" + edgeId + "' must have kind 'control' or 'data'.");
+			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(kind)
+					&& !AutomationConstants.EDGE_KIND_DATA.equals(kind)) {
+				throw new IllegalArgumentException(
+						"Automation edge '" + edgeId + "' must have kind 'control' or 'data'.");
 			}
 			String source = requireNonblankString(edge.get(AutomationConstants.EDGE_FIELD_SOURCE),
 					"graph.edges[" + index + "].source");
@@ -559,18 +542,16 @@ public final class AutomationDefinitionValidator {
 					"graph.edges[" + index + "].targetPort");
 			if (AutomationConstants.EDGE_KIND_CONTROL.equals(kind)) {
 				if (!AutomationConstants.CONTROL_PORT_IN.equals(targetPort)) {
-					throw new IllegalArgumentException("Control edge '" + edgeId
-							+ "' targetPort must be 'in'.");
+					throw new IllegalArgumentException("Control edge '" + edgeId + "' targetPort must be 'in'.");
 				}
 				boolean condition = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source));
 				if (condition && !branchPorts.getOrDefault(source, Set.of()).contains(sourcePort)) {
-					throw new IllegalArgumentException("Control edge '" + edgeId
-							+ "' from if node '" + source
+					throw new IllegalArgumentException("Control edge '" + edgeId + "' from if node '" + source
 							+ "' must use a configured 'case:<clause-id>' port or 'else'.");
 				}
 				if (!condition && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
-					throw new IllegalArgumentException("Control edge '" + edgeId + "' from node '" + source
-							+ "' must use sourcePort 'out'.");
+					throw new IllegalArgumentException(
+							"Control edge '" + edgeId + "' from node '" + source + "' must use sourcePort 'out'.");
 				}
 			}
 		}
@@ -603,8 +584,8 @@ public final class AutomationDefinitionValidator {
 				String guidance = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
 						? "If nodes allow one edge for each configured case and one else edge."
 						: "Use a control.if node for branching.";
-				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '"
-						+ sourcePort + "' control edge. " + guidance);
+				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '" + sourcePort
+						+ "' control edge. " + guidance);
 			}
 			incomingCounts.compute(target, (ignored, count) -> count == null ? 1 : count + 1);
 		}
@@ -668,7 +649,8 @@ public final class AutomationDefinitionValidator {
 			String id = requireNonblankString(bindings.get(index).get(AutomationConstants.NODE_FIELD_ID),
 					"triggerBindings[" + index + "].id");
 			if (!ids.add(id)) {
-				throw new IllegalArgumentException("Python automation definition has duplicate trigger binding id: " + id + ".");
+				throw new IllegalArgumentException(
+						"Python automation definition has duplicate trigger binding id: " + id + ".");
 			}
 			requireNonblankString(bindings.get(index).get(AutomationConstants.NODE_FIELD_TYPE),
 					"triggerBindings[" + index + "].type");
@@ -682,7 +664,8 @@ public final class AutomationDefinitionValidator {
 		Map<String, Object> result = new LinkedHashMap<>();
 		for (Map.Entry<?, ?> entry : map.entrySet()) {
 			if (!(entry.getKey() instanceof String key)) {
-				throw new IllegalArgumentException("Python automation definition field '" + field + "' has a non-string key.");
+				throw new IllegalArgumentException(
+						"Python automation definition field '" + field + "' has a non-string key.");
 			}
 			result.put(key, entry.getValue());
 		}
@@ -702,7 +685,8 @@ public final class AutomationDefinitionValidator {
 
 	private static String requireNonblankString(Object value, String field) {
 		if (!(value instanceof String string) || string.isBlank()) {
-			throw new IllegalArgumentException("Python automation definition field '" + field + "' must be a nonblank string.");
+			throw new IllegalArgumentException(
+					"Python automation definition field '" + field + "' must be a nonblank string.");
 		}
 		return string;
 	}
@@ -727,7 +711,8 @@ public final class AutomationDefinitionValidator {
 
 	private static String sha256(String value) {
 		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256").digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+			byte[] digest = MessageDigest.getInstance("SHA-256")
+					.digest(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			StringBuilder hash = new StringBuilder(digest.length * 2);
 			for (byte entry : digest) {
 				hash.append(String.format("%02x", entry));
@@ -742,10 +727,10 @@ public final class AutomationDefinitionValidator {
 	 * Validated graph and deterministic provenance snapshot.
 	 *
 	 * @param definition parsed graph document
-	 * @param nodes validated node maps
-	 * @param edges validated edge maps
-	 * @param snapshot canonical JSON snapshot
-	 * @param hash lowercase SHA-256 hash of {@code snapshot}
+	 * @param nodes      validated node maps
+	 * @param edges      validated edge maps
+	 * @param snapshot   canonical JSON snapshot
+	 * @param hash       lowercase SHA-256 hash of {@code snapshot}
 	 */
 	public record ValidatedDefinition(Map<String, Object> definition, List<Map<String, Object>> nodes,
 			List<Map<String, Object>> edges, String snapshot, String hash) {

@@ -45,11 +45,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Adds a generated, typed node to an automation graph for an MCP authoring turn.
+ * Adds a generated, typed node to an automation graph for an MCP authoring
+ * turn.
  *
- * <p>The tool deliberately owns node identity, control-edge insertion, and generated source.
- * Models may describe a node configuration, but cannot replace the graph or select source for a
- * generated node.
+ * <p>
+ * The tool deliberately owns node identity, control-edge insertion, and
+ * generated source. Models may describe a node configuration, but cannot
+ * replace the graph or select source for a generated node.
  */
 public class AddAutomationStepReactor extends AbstractReactor {
 
@@ -61,8 +63,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	private static final String BRANCH_PORT_KEY = "branchPort";
 
 	public AddAutomationStepReactor() {
-		this.keysToGet = new String[] {
-				ReactorKeysEnum.PROJECT.getKey(), NODE_TYPE_KEY, CONFIG_KEY, LABEL_KEY,
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_TYPE_KEY, CONFIG_KEY, LABEL_KEY,
 				OUTPUT_VAR_KEY, AFTER_NODE_ID_KEY, BRANCH_PORT_KEY };
 		this.keyRequired = new int[] { 1, 1, 1, 1, 0, 0, 0 };
 	}
@@ -78,14 +79,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String branchPort = this.keyValue.get(BRANCH_PORT_KEY);
 		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
 		String customSource = customSource(nodeType, config);
-		return AutomationProjectUtils.withLockedDefinition(projectId,
-				files -> addStep(projectId, files, nodeType, label, outputVar, afterNodeId, branchPort, config,
-						customSource));
+		return AutomationProjectUtils.withLockedDefinition(projectId, files -> addStep(projectId, files, nodeType,
+				label, outputVar, afterNodeId, branchPort, config, customSource));
 	}
 
-	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeType, String label, String outputVar, String afterNodeId, String branchPort,
-			Map<String, Object> config, String customSource) {
+	private NounMetadata addStep(String projectId, AutomationDefinitionService.DefinitionFiles files, String nodeType,
+			String label, String outputVar, String afterNodeId, String branchPort, Map<String, Object> config,
+			String customSource) {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
@@ -115,9 +115,9 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		if (outputVar != null) {
 			node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);
 		}
-		node.put(AutomationConstants.NODE_FIELD_CODE_MODE, customSource == null
-				? AutomationConstants.NODE_CODE_MODE_GENERATED
-				: AutomationConstants.NODE_CODE_MODE_CUSTOM);
+		node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
+				customSource == null ? AutomationConstants.NODE_CODE_MODE_GENERATED
+						: AutomationConstants.NODE_CODE_MODE_CUSTOM);
 		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
 		node.put("position", Map.of("x", 240, "y", 80 + nodes.size() * 180));
 
@@ -146,8 +146,9 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private String editableProjectId() {
-		return AutomationProjectUtils.getEditableAutomationProject(this.insight.getUser(),
-				required(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
+		return AutomationProjectUtils
+				.getEditableAutomationProject(this.insight.getUser(), required(ReactorKeysEnum.PROJECT.getKey()))
+				.getProjectId();
 	}
 
 	private String required(String key) {
@@ -180,13 +181,12 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 	private static String sourcePort(List<Map<String, Object>> nodes, String parentId, String branchPort) {
 		Map<String, Object> parent = nodes.stream()
-				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID)))
-				.findFirst()
-				.orElseThrow();
+				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow();
 		String parentType = (String) parent.get(AutomationConstants.NODE_FIELD_TYPE);
 		if (!AutomationConstants.NODE_CONTROL_IF.equals(parentType)) {
 			if (branchPort != null && !branchPort.isBlank()) {
-				throw new IllegalArgumentException("branchPort can only be used when afterNodeId is a control.if node.");
+				throw new IllegalArgumentException(
+						"branchPort can only be used when afterNodeId is a control.if node.");
 			}
 			return AutomationConstants.CONTROL_PORT_OUT;
 		}
@@ -210,10 +210,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 			return false;
 		}
 		for (Object clauseValue : clauses) {
-			if (clauseValue instanceof Map<?, ?> clause
-					&& branchPort != null
-					&& branchPort.equals(AutomationConstants.CONTROL_PORT_CASE_PREFIX
-							+ clause.get(AutomationConstants.CONFIG_CLAUSE_ID))) {
+			if (clauseValue instanceof Map<?, ?> clause && branchPort != null && branchPort.equals(
+					AutomationConstants.CONTROL_PORT_CASE_PREFIX + clause.get(AutomationConstants.CONFIG_CLAUSE_ID))) {
 				return true;
 			}
 		}
@@ -258,8 +256,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String uniqueNodeId(List<Map<String, Object>> nodes, String label) {
-		String prefix = label.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-")
-				.replaceAll("^-+|-+$", "");
+		String prefix = label.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
 		if (prefix.isBlank()) {
 			prefix = "step";
 		}
@@ -294,8 +291,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		}
 		updated.add(controlEdge(parentId, nodeId, sourcePort));
 		if (replaced != null) {
-			String nodePort = AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
-					? firstCasePort(config)
+			String nodePort = AutomationConstants.NODE_CONTROL_IF.equals(nodeType) ? firstCasePort(config)
 					: AutomationConstants.CONTROL_PORT_OUT;
 			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));
 		}
@@ -316,12 +312,9 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
-		return Map.of(
-				"id", "control-" + UUID.randomUUID(),
-				AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
-				AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort,
-				AutomationConstants.EDGE_FIELD_TARGET, target,
+		return Map.of("id", "control-" + UUID.randomUUID(), AutomationConstants.EDGE_FIELD_KIND,
+				AutomationConstants.EDGE_KIND_CONTROL, AutomationConstants.EDGE_FIELD_SOURCE, source,
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort, AutomationConstants.EDGE_FIELD_TARGET, target,
 				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}
 
