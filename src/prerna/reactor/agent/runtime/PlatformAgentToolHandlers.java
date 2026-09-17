@@ -62,6 +62,7 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
+import prerna.ds.py.PyUtils;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -92,6 +93,8 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_PYTHON_CODE_LENGTH = 200_000;
+	private static final int MAX_PYTHON_OUTPUT_LENGTH = 40_000;
 	private static final int MAX_NODE_CODE_LENGTH = 200_000;
 	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
 	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
@@ -192,6 +195,17 @@ final class PlatformAgentToolHandlers {
 							prop("description", stringProp("Short reason for running the command."))),
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
+		}
+		if (isPythonToolEnabled()) {
+			add(tools, handler("ExecutePythonCode",
+					"Executes inline Python in the platform's managed Python runtime. The bare ROOT and "
+							+ "USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the "
+							+ "agent working directory and USER_ROOT is the authenticated user's asset-app root. "
+							+ "APP_ROOT is additionally available when the insight has a current app context. "
+							+ "smss_get_runtime_var is also available for thread-local access. The value of the "
+							+ "last expression is returned.",
+					objectSchema(props(prop("code", stringProp("Inline Python source to execute."))), List.of("code")),
+					PlatformAgentToolHandlers::executePythonCode));
 		}
 		if (NodeUtils.isNodeToolEnabled()) {
 			add(tools, handler("ExecuteNodeCode",
@@ -646,6 +660,55 @@ final class PlatformAgentToolHandlers {
 		return output == null ? "" : output;
 	}
 
+	private static String executePythonCode(Map<String, Object> params, ToolContext tc) {
+		if (!isPythonToolEnabled()) {
+			return "Error: ExecutePythonCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_PYTHON_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_PYTHON_CODE_LENGTH;
+		}
+		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
+			return "Error: no user is associated with this agent run";
+		}
+
+		try {
+			// PyTranslator derives ROOT from the Insight. Reassert the harness working
+			// directory immediately before execution so PyReactor-compatible variables
+			// describe this run's selected space/subdir.
+			tc.ctx.getInsight().setInsightFolder(tc.root);
+			Object output = tc.ctx.getInsight().getPyTranslator().runScript(code);
+			return formatPythonOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecutePythonCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatPythonOutput(Object output) {
+		String formatted;
+		if (output == null || "\"\"".equals(output)) {
+			formatted = "(no output)";
+		} else if (output instanceof String) {
+			formatted = (String) output;
+		} else {
+			try {
+				formatted = JSONObject.valueToString(output);
+			} catch (Exception e) {
+				formatted = output.toString();
+			}
+		}
+		if (formatted.length() > MAX_PYTHON_OUTPUT_LENGTH) {
+			String marker = "\n[output truncated at " + MAX_PYTHON_OUTPUT_LENGTH + " characters]";
+			return formatted.substring(0, MAX_PYTHON_OUTPUT_LENGTH - marker.length()) + marker;
+		}
+		return formatted;
+	}
+
 	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
 		if (!NodeUtils.isNodeToolEnabled()) {
 			return "Error: ExecuteNodeCode is disabled on this instance.";
@@ -1079,6 +1142,11 @@ final class PlatformAgentToolHandlers {
 			return Boolean.parseBoolean(explicit);
 		}
 		return isTrue(Constants.CHROOT_ENABLE);
+	}
+
+	private static boolean isPythonToolEnabled() {
+		return !isTrue(Constants.DISABLE_TERMINAL) && !isTrue(Constants.DISABLE_PY_TERMINAL)
+				&& PyUtils.pyEnabled();
 	}
 
 	private static boolean isTrue(String property) {
