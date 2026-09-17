@@ -107,7 +107,8 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("SESSIONID", VARCHAR_255),
 				Pair.with("USER_ID", VARCHAR_255),
 				Pair.with("USER_NAME", VARCHAR_255),
-				Pair.with("USER_EMAIL_ID", VARCHAR_50)));
+				Pair.with("USER_EMAIL_ID", VARCHAR_50),
+				Pair.with("BUDGET_USED", DOUBLE_DATATYPE_NAME)));
 
 		addTable("FEEDBACK", Arrays.asList(
 				Pair.with("MESSAGE_ID", VARCHAR_50),

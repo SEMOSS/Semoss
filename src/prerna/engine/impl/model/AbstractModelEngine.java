@@ -149,8 +149,7 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * enforcement). Null means request content is not restricted.
 	 */
 	protected Set<ModelModalityEnum> inputModalities = null;
-
-	/**
+  /**
 	 * Whether the model accepts document attachments per the MODELMETADATA row
 	 * (the static catalog's attachment flag). The catalog has no "file" input
 	 * modality - its vocabulary stops at text/image/audio/video/pdf - so this flag
@@ -158,7 +157,13 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 * modality gate. Null when the table does not say.
 	 */
 	protected Boolean attachmentSupported = null;
-
+	protected Double inputTokenCredit = null;
+	protected Double outputTokenCredit = null;
+	protected Double cacheReadMultiplier = null;
+	protected Double cacheWriteMultiplier = null;
+	protected Double batchInputTokenCredit = null;
+	protected Double batchOutputTokenCredit = null;
+	
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -241,7 +246,20 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
 			this.reasoningConfig = config.isEmpty() ? null : config;
 		}
+		this.inputTokenCredit = (Double) metadata.get("inputTokenCredit");
+		this.outputTokenCredit = (Double) metadata.get("outputTokenCredit");
+		this.cacheReadMultiplier = (Double) metadata.get("cacheReadMultiplier");
+		this.cacheWriteMultiplier = (Double) metadata.get("cacheWriteMultiplier");
+		this.batchInputTokenCredit = (Double) metadata.get("batchInputTokenCredit");
+		this.batchOutputTokenCredit = (Double) metadata.get("batchOutputTokenCredit");
 	}
+
+	public Double getInputTokenCredit() { return inputTokenCredit; }
+	public Double getOutputTokenCredit() { return outputTokenCredit; }
+	public Double getCacheReadMultiplier() { return cacheReadMultiplier; }
+	public Double getCacheWriteMultiplier() { return cacheWriteMultiplier; }
+	public Double getBatchInputTokenCredit()  { return batchInputTokenCredit  != null ? batchInputTokenCredit  : inputTokenCredit; }
+	public Double getBatchOutputTokenCredit() { return batchOutputTokenCredit != null ? batchOutputTokenCredit : outputTokenCredit; }
 
 	/**
 	 * The smss file wins over the MODELMETADATA row for input modalities, same as
@@ -657,7 +675,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 			// update current usage based on this new request
 			ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, askModelResponse,
-					inputTime, outputTime);
+					inputTime, outputTime, this.inputTokenCredit, this.outputTokenCredit,
+					this.cacheReadMultiplier, this.cacheWriteMultiplier);
 
 			String currentRoomName = room.getRoomName();
 
@@ -913,7 +932,8 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 
 		// update current usage based on this new request
 		ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsage(userRestrictionMap, embeddingsResponse, inputTime,
-				outputTime);
+				outputTime, this.inputTokenCredit, this.outputTokenCredit,
+				this.cacheReadMultiplier, this.cacheWriteMultiplier);
 
 		return embeddingsResponse;
 	}
