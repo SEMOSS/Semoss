@@ -4,6 +4,10 @@
 
 ## Configuration
 
+**PPTX Agent** is a built-in system agent with workspace ID `pptx-agent`. It is packaged in `project/platform__pptx-agent.smss` and `project/platform__pptx-agent/` and seeded globally at startup, like App Building Agent and PPTX Reviewer. The `pptx` ID remains the platform skill. The author is immutable and has no owner; its prompt and configuration are restored from code on each startup. It includes the `pptx` skill, the managed `BuildPptx` workflow, and the system `pptx-reviewer` subagent. Select a tool-capable model when running it; no model ID or installation-specific MCP attachment is bundled. To use additional tools such as a local ImageGenMCP, supply them in the room's MCP selections or create an editable copy of the agent.
+
+Deploy the compiled backend and both agents' platform project files, then fully restart the backend to run startup seeding. The live file watcher alone does not seed system workspaces. Existing UUID agents and their room history remain intact; select `pptx-agent` for new runs and update any callers that should use the system author. There is no need to delete the UUID agents before restarting.
+
 Keep the existing `UNOSERVER` property. The deployed service needs `GET /health` and multipart `POST /convert?to=pdf`; no server-side slide-selection extension is needed. `UNOSERVER_TIMEOUT_SECONDS` bounds health/conversion response waits (default 180 seconds, allowed 1–1800); connection waits are bounded separately.
 
 Run the reviewer with an accessible model whose endpoint supports tool calling. The system reviewer has no pinned `model_id`: select the model when running it directly, or inherit the parent agent's model when delegating. The model used *inside* `InspectPptx` requires image input, text output, and strict JSON Schema generation through the SEMOSS `schema` parameter, but does not need tool calling. The OpenAI-compatible client maps this to `response_format.type=json_schema` with `strict=true`; schema support must be tested on the deployed endpoint. These can be different engines: for example, use a tool-capable model for the reviewer and configure a separate default inspection engine. Selecting an image-capable model as the agent model alone does not establish tool-calling support.
@@ -62,7 +66,7 @@ This inspects a static LibreOffice rendering. Install the intended fonts on the 
 
 ## Authoring workflow and verification
 
-The opt-in managed authoring workflow below makes structural validation, review and bounded repair code-owned transitions. Agents without that configuration can still use InspectPptx or delegate manually. A review of selected slides cannot establish a whole-deck pass for an edited file. Provider failures and incomplete reviews must be disclosed separately from slide defects.
+The managed authoring workflow below is enabled on the system PPTX Agent and makes structural validation, review and bounded repair code-owned transitions. Other agents can opt in, use InspectPptx, or delegate manually. A review of selected slides cannot establish a whole-deck pass for an edited file. Provider failures and incomplete reviews must be disclosed separately from slide defects.
 
 `PptxInspectionUnitTests` covers original slide numbering and hidden slides, source preservation, cached PDF reuse and invalidation, corrupted cache recovery, PDF page mismatches, invalid selections, path escapes, actual image delivery to the vision boundary, instruction propagation, malformed coverage, provider failure, uncertain results, cross-slide comparison, single-image endpoints including decks larger than 16 slides, concurrent edits, token limits, cancellation and model capability validation. Nine captured invalid responses from run `01a0abd7-fdde-792c-9396-61dff61f3e3b` are replayed as regression fixtures. Tests also cover bounded retries and direct final report delivery. The offline `test/prerna/util/pptx/fixtures/check_provider_wire.py` test verifies the SEMOSS Python client forwards strict JSON Schema and exact image bytes. A live integration check must verify strict schema and image bytes on the provider wire, then distinguish a clean deck from a deliberately clipped slide; valid JSON alone is not evidence of accurate visual review.
 
@@ -73,7 +77,7 @@ An error saying `"auto" tool choice requires --enable-auto-tool-choice and --too
 
 ## Managed authoring workflow
 
-Merge these fields into the PPTX author's existing configuration, preserving its model and other settings:
+The system PPTX Agent already includes this configuration. To enable the same workflow on an editable author, merge these fields into its existing configuration, preserving its model and other settings:
 
 ```json
 {
@@ -91,7 +95,7 @@ Merge these fields into the PPTX author's existing configuration, preserving its
 }
 ```
 
-Attach the system reviewer as `{"workspaceId":"pptx-reviewer"}` in `subagents`. Use [pptx-author-workflow-prompt.txt](pptx-author-workflow-prompt.txt) as the managed author prompt. This configuration applies only to the Semoss harness and is disabled by default. The reviewer remains independently usable with any accessible compatible vision engine.
+Attach the system reviewer as `{"workspaceId":"pptx-reviewer"}` in `subagents` and the platform `pptx` skill as `{"skill_id":"pptx"}` in `skills`; the system author seeds both automatically. Use [pptx-author-workflow-prompt.txt](pptx-author-workflow-prompt.txt) as the managed author prompt. This configuration applies only to the Semoss harness and is disabled for agents that have not opted in. The reviewer remains independently usable with any accessible compatible vision engine.
 
 The managed harness exposes a run-owned tool:
 

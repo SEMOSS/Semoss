@@ -21,6 +21,93 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 class SystemAgentSeederUnitTests {
 
 	@Test
+	void newPptxAuthorSeedsItsSkillAndResolvesTheSystemReviewer() throws Exception {
+		String id = Constants.AGENT_PPTX;
+		assertTrue(SystemDefaultEngines.getSystemAgents().contains(id));
+		try (var registry = mockStatic(SystemEngineRegistry.class);
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var projects = mockStatic(SecurityProjectUtils.class)) {
+			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+			SystemAgentSeeder.seed(id);
+
+			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+			JSONObject config = configCaptor.getValue();
+			String prompt = config.getString("system_prompt");
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
+					eq("PPTX Agent"), anyString(), eq(prompt), argThat(resources -> resources.size() == 1
+							&& Constants.SKILL_PPTX.equals(resources.getFirst().get("resource_id"))
+							&& "SKILL".equals(resources.getFirst().get("resource_type")))));
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
+					anyString(), eq(prompt)));
+			projects.verifyNoInteractions();
+			assertFalse(config.has("model_id"));
+
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+					.thenReturn(Map.of("name", "PPTX Agent", "system_prompt", prompt));
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(Constants.AGENT_PPTX_REVIEWER))
+					.thenReturn(Map.of("name", "PPTX Reviewer", "is_active", true));
+			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-tool-model", Map.of(), Map.of(),
+					40, 5, id);
+			assertEquals(prompt, loaded.getAuthoredPrompt());
+			assertEquals("selected-tool-model", loaded.getModelId());
+			assertTrue(loaded.useDefaultAgentTools());
+			assertTrue(loaded.getMcps().isEmpty());
+			assertEquals(List.of(Constants.SKILL_PPTX), loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
+			assertTrue(loaded.hasPptxWorkflow());
+			assertEquals(1, loaded.getSubagents().size());
+			var reviewer = loaded.getSubagents().getFirst();
+			assertEquals(Constants.AGENT_PPTX_REVIEWER, reviewer.getWorkspaceId());
+			assertEquals(loaded.getPptxWorkflow().get("reviewer_alias"), reviewer.getAlias());
+			assertEquals(6, loaded.getPptxWorkflow().get("repair_turns"));
+			assertEquals(600, loaded.getPptxWorkflow().get("review_timeout_seconds"));
+			assertEquals(Set.of("InspectPptx", "ExecuteNodeCode"), loaded.getDisabledDefaultTools());
+			assertEquals(Set.of(".claude/skills/pptx", ".semoss/pptx-workflow"), loaded.getReadOnlyPaths());
+			assertNull(loaded.getResultTool());
+			assertEquals(6, loaded.getFinishingTurns());
+			assertTrue(loaded.getSpawnPolicy().getMaxSubagentDepth() > 0);
+			assertEquals(2, loaded.getSpawnPolicy().getMaxSubagentsPerRun());
+			assertEquals(1, loaded.getSpawnPolicy().getMaxSpawnsPerTurn());
+		}
+	}
+
+	@Test
+	void existingPptxAuthorRestoresItsSkillAndRemovesUnbundledResources() throws Exception {
+		String id = Constants.AGENT_PPTX;
+		try (var registry = mockStatic(SystemEngineRegistry.class);
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
+			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+					.thenReturn(Map.of("name", "Drifted author", "system_prompt", "Old prompt"));
+			workspaces.when(() -> ModelInferenceLogsUtils.findWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"))
+					.thenReturn(null);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("PROJECT")))
+					.thenReturn(List.of(Map.of("resource_id", "local-image-mcp")));
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("SKILL")))
+					.thenReturn(List.of(Map.of("resource_id", Constants.SKILL_PPTX), Map.of("resource_id", "app-bootstrap")));
+
+			SystemAgentSeeder.seed(id);
+
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(anyString(), nullable(String.class),
+					anyString(), anyString(), anyString(), anyList()), never());
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceResource(anyString(), eq(id),
+					eq(Constants.SKILL_PPTX), eq("SKILL"), isNull()));
+			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "local-image-mcp", "PROJECT"));
+			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "app-bootstrap", "SKILL"));
+			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"), never());
+			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+			JSONObject config = configCaptor.getValue();
+			assertEquals(Constants.AGENT_PPTX_REVIEWER, config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
+			assertEquals(0, config.getJSONArray("mcps").length());
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
+					anyString(), eq(config.getString("system_prompt"))));
+		}
+	}
+
+	@Test
 	void newReviewerSeedsAnOwnerlessWorkspaceAndLoadsItsRuntimePolicy() throws Exception {
 		String id = Constants.AGENT_PPTX_REVIEWER;
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(id));
