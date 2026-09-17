@@ -43,12 +43,14 @@ import net.sf.jsqlparser.statement.ShowColumnsStatement;
 import net.sf.jsqlparser.statement.ShowStatement;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.Statements;
+import net.sf.jsqlparser.statement.select.ParenthesedSelect;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
-import net.sf.jsqlparser.statement.select.SelectBody;
 import net.sf.jsqlparser.statement.select.SetOperationList;
+import net.sf.jsqlparser.statement.select.Values;
 import net.sf.jsqlparser.statement.select.WithItem;
-import net.sf.jsqlparser.statement.values.ValuesStatement;
+import net.sf.jsqlparser.statement.show.ShowIndexStatement;
+import net.sf.jsqlparser.statement.show.ShowTablesStatement;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -171,11 +173,11 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			parser.withSquareBracketQuotation(squareBracketQuotation);
 			parser.setErrorRecovery(false);
 			Statements statements = parser.Statements();
-			if (statements.getStatements().isEmpty()) {
+			if (statements.isEmpty()) {
 				throw new IllegalArgumentException("SQL query does not contain an executable statement");
 			}
-			List<ParsedSqlStatement> parsed = new ArrayList<>(statements.getStatements().size());
-			for (Statement statement : statements.getStatements()) {
+			List<ParsedSqlStatement> parsed = new ArrayList<>(statements.size());
+			for (Statement statement : statements) {
 				parsed.add(new ParsedSqlStatement(statement.toString(), routeStatement(statement)));
 			}
 			return parsed;
@@ -202,45 +204,45 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			return routeSelect((Select) statement);
 		}
 		if (statement instanceof ShowStatement || statement instanceof ShowColumnsStatement
-				|| statement instanceof DescribeStatement || statement instanceof ExplainStatement
-				|| statement instanceof ValuesStatement) {
+				|| statement instanceof ShowTablesStatement || statement instanceof ShowIndexStatement
+				|| statement instanceof DescribeStatement || statement instanceof ExplainStatement) {
 			return QueryRoute.READ;
 		}
 		return QueryRoute.WRITE;
 	}
 
 	private static QueryRoute routeSelect(Select select) {
-		QueryRoute route = routeSelectBody(select.getSelectBody());
+		QueryRoute route = routeSelectBody(select);
 		if (select.getWithItemsList() != null) {
-			for (WithItem withItem : select.getWithItemsList()) {
-				route = stricterRoute(route, routeSelectBody(withItem));
+			for (WithItem<?> withItem : select.getWithItemsList()) {
+				route = stricterRoute(route, routeSelectBody(withItem.getSelect()));
 			}
 		}
 		return route;
 	}
 
-	private static QueryRoute routeSelectBody(SelectBody selectBody) {
+	private static QueryRoute routeSelectBody(Select selectBody) {
 		if (selectBody == null) {
 			throw new IllegalArgumentException("SQL SELECT has no query body");
+		}
+		if (selectBody instanceof ParenthesedSelect) {
+			return routeSelect(((ParenthesedSelect) selectBody).getSelect());
 		}
 		if (selectBody instanceof PlainSelect) {
 			PlainSelect select = (PlainSelect) selectBody;
 			if (select.getIntoTables() != null && !select.getIntoTables().isEmpty()) {
 				return QueryRoute.WRITE;
 			}
-			return select.isForUpdate() ? QueryRoute.LOCKING_READ : QueryRoute.READ;
+			return select.getForMode() != null ? QueryRoute.LOCKING_READ : QueryRoute.READ;
 		}
 		if (selectBody instanceof SetOperationList) {
 			QueryRoute route = QueryRoute.READ;
-			for (SelectBody child : ((SetOperationList) selectBody).getSelects()) {
+			for (Select child : ((SetOperationList) selectBody).getSelects()) {
 				route = stricterRoute(route, routeSelectBody(child));
 			}
 			return route;
 		}
-		if (selectBody instanceof WithItem) {
-			return routeSelectBody(((WithItem) selectBody).getSelectBody());
-		}
-		if (selectBody instanceof ValuesStatement) {
+		if (selectBody instanceof Values) {
 			return QueryRoute.READ;
 		}
 		throw new IllegalArgumentException("Unsupported SQL SELECT body: " + selectBody.getClass().getSimpleName());

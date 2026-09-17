@@ -97,4 +97,44 @@ class AbstractSqlQueryReactorUnitTests {
 	void emptyMalformedAndUnsupportedSqlAreRejectedInsteadOfGuessed(String query) {
 		assertThrows(IllegalArgumentException.class, () -> AbstractSqlQueryReactor.detectQueryRoute(query, false));
 	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "CREATE INDEX IF NOT EXISTS idx_orders_id ON orders (id)",
+			"CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_pair ON orders (id, status)",
+			"CREATE INDEX idx_orders_status ON orders (status)" })
+	void createIndexUsesTheWriteRoute(String query) {
+		assertEquals(AbstractSqlQueryReactor.QueryRoute.WRITE, AbstractSqlQueryReactor.detectQueryRoute(query, false),
+				() -> "for " + query);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "SHOW INDEX FROM orders", "SHOW DATABASES", "SHOW COLUMNS FROM orders", "DESC orders" })
+	void otherMetadataStatementsAlsoUseTheReadRoute(String query) {
+		// SHOW TABLES and SHOW INDEX are their own statement types rather than
+		// subclasses of ShowStatement, so each has to be recognised on its own
+		assertEquals(AbstractSqlQueryReactor.QueryRoute.READ, AbstractSqlQueryReactor.detectQueryRoute(query, false),
+				() -> "for " + query);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "SELECT id FROM orders UNION SELECT id FROM archived_orders", "(SELECT id FROM orders)" })
+	void setOperationsAndParenthesizedSelectsUseTheReadRoute(String query) {
+		assertEquals(AbstractSqlQueryReactor.QueryRoute.READ, AbstractSqlQueryReactor.detectQueryRoute(query, false),
+				() -> "for " + query);
+	}
+
+	@Test
+	void aLockingReadAnywhereInASetOperationMakesTheWholeThingALockingRead() {
+		assertEquals(AbstractSqlQueryReactor.QueryRoute.LOCKING_READ, AbstractSqlQueryReactor
+				.detectQueryRoute("SELECT id FROM orders UNION SELECT id FROM archived_orders FOR UPDATE", false));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "DROP TABLE orders", "ALTER TABLE orders ADD COLUMN note VARCHAR(10)",
+			"GRANT SELECT ON orders TO bob" })
+	void unrecognisedAndDdlStatementsFailClosedOntoTheWriteRoute(String query) {
+		// demanding edit rights for something we cannot classify is the safe default
+		assertEquals(AbstractSqlQueryReactor.QueryRoute.WRITE, AbstractSqlQueryReactor.detectQueryRoute(query, false),
+				() -> "for " + query);
+	}
 }

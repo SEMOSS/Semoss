@@ -802,6 +802,14 @@ public abstract class AbstractSqlQueryUtil {
 
 	public abstract QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias);
 
+	// Blob-to-string conversion for search/filter comparisons only, where the
+	// result is never returned to the caller. Dialects may override this with a
+	// conversion that can't throw on invalid/legacy byte content, since it only
+	// needs to support substring matching, not faithful text round-tripping.
+	public QueryFunctionSelector getSearchableBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		return getBlobToStringFunctionSelector(innerSelector, alias);
+	}
+
 	/////////////////////////////////////////////////////////////////////////////////////
 
 	/*

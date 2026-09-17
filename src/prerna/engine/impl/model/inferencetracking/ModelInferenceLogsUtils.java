@@ -1569,8 +1569,17 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
 			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
 
+		// Room-only subquery selecting just the room IDs in scope for this user/
+		// project. Used below as an indexed MESSAGE.ROOM_ID IN (...) filter so the
+		// (unindexable) blob-to-text LIKE match only has to run against messages in
+		// those rooms, instead of Postgres scanning every message row in the system
+		// before the ROOM-side filters ever get applied.
+		SelectQueryStruct roomScopeQs = new SelectQueryStruct();
+		roomScopeQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+		addRoomScopeFilters(roomScopeQs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
@@ -1578,23 +1587,12 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		// Use the search-specific conversion so malformed searchable content cannot
 		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
-				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
+				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
 
 		// JOIN, filters, deduplication, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		if (projectId != null && !projectId.trim().isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-		if (!includeUnnamedRooms) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
-		}
-		if (!includeChildRooms) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
-		}
+		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("MESSAGE__ROOM_ID", "==", roomScopeQs));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
 				"?like", keyword, PixelDataType.CONST_STRING));
 
@@ -1608,6 +1606,23 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 			qs.setOffSet(offset);
 		}
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		if (!includeUnnamedRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
+		}
 	}
 
 	/**
