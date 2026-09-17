@@ -92,6 +92,7 @@ public final class AutomationMcpSync {
 					.put(projectReactorsTool())
 					.put(projectReactorSignatureTool())
 					.put(getAutomationTool(projectId))
+					.put(nodeDefinitionsTool())
 					.put(triggerTool(projectId, definitionJson))
 					.put(addStepTool(projectId))
 					.put(updateStepTool(projectId))
@@ -229,6 +230,21 @@ public final class AutomationMcpSync {
 		return tool;
 	}
 
+	/**
+	 * Returns the backend-owned node catalog used by both authoring clients and
+	 * graph validation.
+	 */
+	private static JSONObject nodeDefinitionsTool() {
+		JSONObject tool = tool(new GetAutomationNodeDefinitionsReactor().asMcpTool().getString("name"),
+				"Get Automation Node Definitions",
+				"Return the versioned backend-owned definitions for every supported Automation node type, including "
+						+ "configuration fields, defaults, engine category, ports, and capabilities. Call this before "
+						+ "adding a node and treat it as the schema source of truth.",
+				new JSONObject(), new JSONArray());
+		tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
+		return tool;
+	}
+
 	private static JSONObject triggerTool(String projectId, String definitionJson) {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
@@ -268,57 +284,9 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeType", nodeTypeProperty());
-		properties.put("config", stringProperty("JSON configuration. Before configuring any engine-backed node, call "
-				+ "MyEngines filtered to the required engine type and use the returned engine_id exactly. Never invent, "
-				+ "shorten, or normalize an engine name. database.query requires engineId, query, and a numeric "
-				+ "limit from " + AutomationConstants.DB_QUERY_MIN_LIMIT + " through "
-				+ AutomationConstants.DB_QUERY_MAX_LIMIT + "; database.insert requires engineId and one INSERT "
-				+ "statement; database.update requires engineId and one UPDATE statement with a WHERE clause. "
-				+ "Use developer.python for an intentionally unbounded update. model.chat requires engineId and prompt; "
-				+ "optionally systemPrompt and paramValues as a JSON object or valid JSON-object string. "
-				+ "model.embeddings requires engineId and text. "
-				+ "model.ner requires engineId, text, and entities as a non-empty JSON array of strings. "
-				+ "storage nodes require engineId and path; upload/download also require destination. "
-				+ "vector nodes require engineId and value; vector.search may include limit. "
-				+ "Before configuring function.execute, call GetFunctionEngineDefinition for the selected FUNCTION "
-				+ "engine. function.execute requires engineId and arguments as a JSON object whose keys exactly match "
-				+ "the returned parameter names and which includes every returned required parameter. "
-				+ "For app.pixel, call MyProjects with "
-				+ "projectType=['CODE','BLOCKS'], use its project_id exactly as appId, then call "
-				+ "GetProjectAvailableReactors and GetProjectReactorSignature; pixel must use the exact reactor "
-				+ "name and every required argument from the returned template, with concrete values only. "
-				+ "Generated app.pixel rejects ${...} placeholders. Do not put APP or LoadApp inside pixel because "
-				+ "appId owns the scoped app context. Use developer.python with Insight().run_pixel(...) only when "
-				+ "runtime values require a dynamic Pixel expression. "
-				+ "Before configuring agent.run, call MyProjects with projectType=['WORKSPACE'] and use a returned "
-				+ "project_id exactly as workspaceId; also call MyEngines filtered to MODEL and use its engine_id. "
-				+ "agent.run requires workspaceId, engineId, and command; the runtime creates its room. It supports "
-				+ "harnessType, "
-				+ "maxTurns, maxReflections, waitTimeoutMs, paramValues, and agentParams; it starts a non-blocking "
-				+ "durable child run while Automation waits for its terminal state, including pauses for user input. "
-				+ "Generated model.chat and model.vision outputs are response content strings; model.embeddings "
-				+ "outputs the response vectors; model.ner outputs the response result map; agent.run outputs "
-				+ "finalText. Room, message, and agent-run identifiers are retained separately in run trace. "
-				+ "Within accepted configuration objects, ${...} placeholders resolve recursively in object values "
-				+ "and array items; object keys remain literal. A JSON-string configuration must contain a valid JSON "
-				+ "object with placeholders kept as quoted string values. Prefer native JSON shapes when preserving "
-				+ "typed values. "
-				+ "control.wait requires durationSeconds. "
-				+ "control.if requires an ordered clauses array shaped as "
-				+ "[{\"id\":\"stable-id\",\"condition\":\"${prior_output} == true\"}]. "
-				+ "The first matching clause is selected; else is the fallback. "
-				+ "developer.python is only for an external integration "
-				+ "that no supported engine node can perform or for dynamic Pixel that generated app.pixel rejects; "
-				+ "it requires config.source defining run(scope). scope is a read-only, run-local mapping of "
-				+ "trigger inputs, globals, "
-				+ "metadata, and prior outputs keyed by outputVar. Custom Python reads it directly, for example "
-				+ "scope['prior_output']; ${...} is not resolved in custom source. Never use "
-				+ "developer.python to invoke a SEMOSS agent or emulate agent.run. "
-				+ "Use ${prior_output} to reference an upstream output only in supported configuration fields; "
-				+ "generated database queries and app.pixel expressions reject placeholders. Field values are "
-				+ "executable configuration, "
-				+ "not AI suggestions: use the user-requested intent to write the concrete query, prompt, path, "
-				+ "or arguments."));
+		properties.put("config", stringProperty("Complete JSON configuration matching the selected node type's "
+				+ "fields from GetAutomationNodeDefinitions. Discover and use exact engine, project, reactor, and "
+				+ "function identifiers before supplying resource-backed fields."));
 		properties.put("label", stringProperty("Short user-facing action label."));
 		properties.put("outputVar", stringProperty("Required unique Python-style variable name for this node's "
 				+ "business output. Omit it for control.if, which does not produce an output."));
@@ -327,16 +295,8 @@ public final class AutomationMcpSync {
 				+ "Use 'case:<clause-id>' for one of that node's configured clauses or 'else' for its fallback. "
 				+ "Omit it for every other parent node."));
 		return tool("AddAutomationStep", "Add Automation Step",
-				"Call GetAutomation first, then add one validated action from the user's chat request. "
-						+ "Prefer an engine-backed node whenever it "
-						+ "supports the task. App reactor work with concrete arguments must use app.pixel with a MyProjects "
-						+ "result and inspected reactor signature. Dynamic Pixel values require explicit developer.python "
-						+ "source using Insight().run_pixel(...). Agent work must use agent.run with a MyProjects result; "
-						+ "never create a "
-						+ "Python agent client or workspace wrapper. Use developer.python only for an unavailable "
-						+ "external integration or an explicitly dynamic Pixel expression. Custom Python must read "
-						+ "upstream values directly from its scope argument; ${...} is not an upstream reference there. "
-						+ "Use direct, executable configuration rather than leaving a natural-language placeholder.",
+				"Call GetAutomation and GetAutomationNodeDefinitions first, then add one server-validated action. "
+						+ "Use direct executable configuration and preserve the existing graph's control-flow intent.",
 				properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeType").put("config")
 						.put("label"));
@@ -362,24 +322,13 @@ public final class AutomationMcpSync {
 		JSONObject properties = new JSONObject();
 		properties.put(ReactorKeysEnum.PROJECT.getKey(), fixedProject(projectId));
 		properties.put("nodeId", stringProperty("Existing generated node ID."));
-		properties.put("config", stringProperty("Complete replacement JSON configuration for the node. For an "
-				+ "engine-backed node, call MyEngines and use the returned engine_id exactly. For agent.run, also "
-				+ "call MyProjects with projectType=['WORKSPACE'] and use a returned project_id as workspaceId. "
-				+ "database.query requires a numeric limit from " + AutomationConstants.DB_QUERY_MIN_LIMIT
-				+ " through " + AutomationConstants.DB_QUERY_MAX_LIMIT
-				+ "; database.update requires a WHERE clause. "
-				+ "For function.execute, call GetFunctionEngineDefinition and use its exact parameter names as "
-				+ "config.arguments keys, including every required parameter. "
-				+ "Generated model nodes expose their response business value and agent.run exposes finalText; "
-				+ "do not configure downstream nodes to parse their transport envelopes. "
-				+ "For app.pixel, use an appId from MyProjects projectType=['CODE','BLOCKS'] and a pixel template "
-				+ "from GetProjectReactorSignature with concrete values; ${...} placeholders are rejected. "
-				+ "Within accepted configuration objects, placeholders resolve recursively in object values and "
-				+ "array items; object keys remain literal. JSON-string configurations must contain a valid JSON "
-				+ "object with placeholders as quoted string values."));
+		properties.put("config", stringProperty("Complete replacement JSON configuration matching this node type's "
+				+ "fields from GetAutomationNodeDefinitions. Preserve unaffected fields and use exact discovered "
+				+ "resource identifiers."));
 		properties.put("label", stringProperty("Optional replacement user-facing label."));
 		return tool("UpdateAutomationStep", "Update Automation Step",
-				"Call GetAutomation first. Apply the user's requested change to one generated node's direct "
+				"Call GetAutomation and GetAutomationNodeDefinitions first. Apply the requested change to one "
+						+ "generated node's direct "
 						+ "configuration and regenerate its "
 						+ "managed Python source. Preserve unaffected configuration fields.", properties,
 				new JSONArray().put(ReactorKeysEnum.PROJECT.getKey()).put("nodeId").put("config"));

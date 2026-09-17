@@ -25,6 +25,12 @@ generated node, reconfigure a generated node, or update an explicitly custom nod
 optimistic source-hash check. MCP tools never receive the whole graph or bypass Java-owned
 control-flow validation.
 
+The workbench runs the immutable `automation-builder` system agent and supplies the active
+automation project's MCP through room options. That agent owns the authoring prompt and the
+`automation` system skill; the skill owns reusable graph and node-selection guidance. The
+project MCP remains project-scoped so its fixed project ID, authenticated Insight, approval
+policy, and refresh events stay bound to the automation being edited.
+
 ## Persisted files
 
 Workflow artifacts live at the project asset root:

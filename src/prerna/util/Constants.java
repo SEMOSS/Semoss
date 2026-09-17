@@ -1090,6 +1090,7 @@ public class Constants {
 
 	// system (platform) skill names
 	public static final String SKILL_AGENT_RUN = "agent-run";
+	public static final String SKILL_AUTOMATION = "automation";
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
 	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
@@ -1117,4 +1118,5 @@ public class Constants {
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_AUTOMATION_BUILDER = "automation-builder";
 }

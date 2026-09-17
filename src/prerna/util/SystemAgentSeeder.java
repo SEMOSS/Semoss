@@ -74,8 +74,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
  * they stay in sync with the platform lists automatically:
  * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}</li>
- * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
+ * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs(String)}</li>
+ * <li>skills = {@link SystemDefaultEngines#getSystemAgentSkills(String)}</li>
  * </ul>
  */
 public class SystemAgentSeeder {
@@ -217,17 +217,20 @@ public class SystemAgentSeeder {
 	 * does not silently change this agent's toolset.
 	 */
 	private static List<String> toolIds(String agentId) {
-		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
+		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs(agentId));
 	}
 
-	/** Skills = all platform skills. */
+	/** Skills = the platform skills assigned to this system agent. */
 	private static List<String> skillIds(String agentId) {
-		return new ArrayList<>(SystemDefaultEngines.getSystemSkills());
+		return new ArrayList<>(SystemDefaultEngines.getSystemAgentSkills(agentId));
 	}
 
 	private static String displayName(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
+		}
+		if (Constants.AGENT_AUTOMATION_BUILDER.equals(agentId)) {
+			return "Automation Building Agent";
 		}
 		return agentId;
 	}
@@ -236,12 +239,18 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
 		}
+		if (Constants.AGENT_AUTOMATION_BUILDER.equals(agentId)) {
+			return "System agent for authoring and troubleshooting Automation workflows.";
+		}
 		return "";
 	}
 
 	private static String systemPrompt(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_AUTOMATION_BUILDER.equals(agentId)) {
+			return AUTOMATION_BUILDER_SYSTEM_PROMPT;
 		}
 		return "";
 	}
@@ -345,4 +354,16 @@ public class SystemAgentSeeder {
 
 			Output:
 			Finish with a one- to two-line summary of what changed and stop. Skip the recap.""";
+
+	/** System prompt for the Automation Building agent. */
+	private static final String AUTOMATION_BUILDER_SYSTEM_PROMPT = """
+			You are the Automation Building agent for this platform.
+
+			Before authoring, changing, or troubleshooting a workflow, call LoadSkill(skill_name="automation") and follow it. The skill defines the canonical authoring sequence, graph semantics, runtime variable rules, and safe node-selection guidance.
+
+			The active automation project is supplied at run time. Its project MCP is the only authority for reading, changing, or running that automation. Never edit automation-workflow.json or automation-nodes directly with file tools, and never claim an operation succeeded unless the corresponding automation tool confirms it.
+
+			Ask only for required values that cannot be discovered from the available catalog tools. Do not invent engine, app, reactor, function, workspace, node, or output-variable identifiers. Prefer supported generated nodes; use developer.python only for custom computation or an integration that no supported node provides.
+
+			Finish with a concise summary of the confirmed result and whether the automation was run.""";
 }

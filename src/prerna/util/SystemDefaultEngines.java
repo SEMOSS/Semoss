@@ -53,11 +53,19 @@ public class SystemDefaultEngines {
 
 	private static final List<String> SYSTEM_APPS = List.of(Constants.APP_REACT_TEMPLATE);
 
-	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
+	private static final List<String> APP_BUILDER_SKILLS = List.of(Constants.SKILL_AGENT_RUN,
+			Constants.SKILL_APP_BOOTSTRAP,
 			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE,
 			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FUNCTIONS, Constants.SKILL_MODEL,
 			Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON,
 			Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR);
+
+	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_AUTOMATION,
+			Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH,
+			Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FUNCTIONS,
+			Constants.SKILL_MODEL, Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX,
+			Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER,
+			Constants.SKILL_VECTOR);
 
 	/**
 	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
@@ -74,10 +82,11 @@ public class SystemDefaultEngines {
 	 * they are cataloged and invokable without being attached to every system
 	 * agent.
 	 */
-	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
+	private static final List<String> APP_BUILDER_MCPS = List.of(Constants.MCP_NODE_BUILDER,
 			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
 
-	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
+	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
+			Constants.AGENT_AUTOMATION_BUILDER);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
@@ -107,8 +116,33 @@ public class SystemDefaultEngines {
 		return SYSTEM_MCPS;
 	}
 
-	public static List<String> getSystemAgentMCPs() {
-		return SYSTEM_AGENT_MCPS;
+	/**
+	 * Returns the platform MCP projects seeded onto one system agent.
+	 *
+	 * @param agentId system agent identifier
+	 * @return immutable MCP project identifiers for the agent
+	 */
+	public static List<String> getSystemAgentMCPs(String agentId) {
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			return APP_BUILDER_MCPS;
+		}
+		return List.of();
+	}
+
+	/**
+	 * Returns the platform skills seeded onto one system agent.
+	 *
+	 * @param agentId system agent identifier
+	 * @return immutable skill project identifiers for the agent
+	 */
+	public static List<String> getSystemAgentSkills(String agentId) {
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			return APP_BUILDER_SKILLS;
+		}
+		if (Constants.AGENT_AUTOMATION_BUILDER.equals(agentId)) {
+			return List.of(Constants.SKILL_AUTOMATION);
+		}
+		return List.of();
 	}
 
 	public static List<String> getSystemAgents() {
