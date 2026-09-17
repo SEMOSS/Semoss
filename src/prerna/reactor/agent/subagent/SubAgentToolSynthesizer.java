@@ -133,8 +133,8 @@ public final class SubAgentToolSynthesizer {
                 "Task, instructions, and all task-specific context or data for the "
                         + spec.getAlias() + " subagent. The named subagent always uses its configured system prompt."));
         properties.put("inherit_parent_workdir", schemaBool(
-                "When true, the subagent operates on YOUR room folder (shared filesystem -- any "
-                        + "WriteFile/EditFile calls land in YOUR room). Stream + history stay isolated. "
+                "When true, the subagent operates on YOUR resolved working directory (shared filesystem -- any "
+                        + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
 
@@ -171,8 +171,8 @@ public final class SubAgentToolSynthesizer {
         properties.put("context", schemaString(
                 "Optional override system prompt for the spawned subagent."));
         properties.put("inherit_parent_workdir", schemaBool(
-                "When true, the subagent operates on YOUR room folder (shared filesystem -- any "
-                        + "WriteFile/EditFile calls land in YOUR room). Stream + history stay isolated. "
+                "When true, the subagent operates on YOUR resolved working directory (shared filesystem -- any "
+                        + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
 

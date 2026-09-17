@@ -769,6 +769,8 @@ public class Constants {
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
+	// Colon/semicolon-separated executable directories exposed inside sandboxes
+	public static final String SANDBOX_PATH = "SANDBOX_PATH";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
