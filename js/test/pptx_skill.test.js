@@ -38,7 +38,7 @@ after(() => { if (!requestedOutput) fs.rmSync(room, { recursive: true, force: tr
 test('entry and routine references fit a complete default LoadSkill read', () => {
   const files = ['SKILL.md', ...examples.map(name => 'examples/' + name + '.js'),
     'references/components.md', 'references/native-api.md', 'references/editing.md',
-    'references/json-layouts.md', 'assets/CREDITS.md'];
+    'references/json-layouts.md', 'references/generation.md', 'references/visual-review.md', 'assets/CREDITS.md'];
   for (const file of files) {
     assert.ok(fs.statSync(path.join(skill, file)).size <= defaultReadBytes, file + ' would be truncated');
   }
@@ -99,4 +99,28 @@ test('editorial example uses native typography and an editable process diagram',
   for (const label of ['Observe', 'Pilot', 'Refine']) assert.ok(last.includes(label));
   assert.equal((last.match(/prst="ellipse"/g) || []).length, 3);
   assert.match(last, /prst="line"/);
+});
+
+
+test('saved generator edits are read afresh in a persistent executor context', async () => {
+  const filename = path.join(room, 'build-deck.js');
+  const context = vm.createContext({ ROOT: room, require: envRequire });
+  const runner = `(async () => {
+    const fs = require('fs');
+    const path = require('path');
+    return await eval(fs.readFileSync(path.join(ROOT, 'build-deck.js'), 'utf8'));
+  })()`;
+  const original = fs.readFileSync(path.join(staged, 'examples/editorial.js'), 'utf8');
+  fs.writeFileSync(filename, original);
+  const first = await vm.runInContext(runner, context);
+  assert.equal(first.ok, true);
+  const edited = original.replace('Observe', 'Investigate');
+  assert.notEqual(edited, original);
+  fs.writeFileSync(filename, edited);
+  const second = await vm.runInContext(runner, context);
+  assert.equal(second.ok, true);
+  const zip = await JSZip.loadAsync(fs.readFileSync(path.join(room, 'editorial-example.pptx')));
+  const slide = await zip.file('ppt/slides/slide3.xml').async('string');
+  assert.match(slide, /Investigate/);
+  assert.doesNotMatch(slide, /Observe/);
 });

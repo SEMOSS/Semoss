@@ -43,6 +43,47 @@ async function mutate(name, part, edit, source = file('native-five-slides')) {
 }
 function create(options) { return deck.create({ PptxGenJS, ...options }); }
 
+test('cover accepts color strings and native background objects without changing caller options', async () => {
+  const pres = create();
+  for (const background of ['1A7F5A', frozen({ color: '1A7F5A' })]) {
+    deck.cover(pres.addSlide(), frozen({ title: 'Garbage', background }));
+  }
+  await deck.save(pres, file('cover-background-options'));
+  valid(file('cover-background-options'), 2);
+  for (const index of [1, 2]) {
+    const slide = await xml(file('cover-background-options'), `ppt/slides/slide${index}.xml`);
+    assert.match(slide, /<p:bg>.*?<a:srgbClr val="1A7F5A"/);
+  }
+});
+
+test('cover rejects malformed background values at the component boundary', () => {
+  const slide = create().addSlide();
+  for (const background of [{ color: { color: '1A7F5A' } }, [], 12, null, {}]) {
+    assert.throws(() => deck.cover(slide, { title: 'Garbage', background }), /deck.cover background must be a color string/);
+  }
+});
+
+test('nested component geometry changes the saved callout caption box', async () => {
+  const pres = create();
+  const options = frozen({ value: '2.0', label: 'Million years', caption: 'A caption needing room',
+    geometry: { x: 0.95, y: 2, w: 11.4, h: 5 }, x: 1, captionSize: 16 });
+  deck.callout(pres.addSlide(), options);
+  await deck.save(pres, file('nested-callout'));
+  const shapes = (await xml(file('nested-callout'))).match(/<p:sp>.*?<\/p:sp>/g);
+  const caption = shapes.find(shape => shape.includes('A caption needing room'));
+  assert.match(caption, /<a:off x="914400" y="5257800"/);
+  assert.match(caption, /<a:ext cx="10424160" cy="1143000"/);
+  assert.equal(options.geometry.x, 0.95);
+  assert.equal(options.geometry.h, 5);
+});
+
+test('malformed nested geometry fails with a useful correction', () => {
+  const slide = create().addSlide();
+  for (const geometry of [{ width: 11.4 }, [], 'large', null]) {
+    assert.throws(() => deck.callout(slide, { value: '2', geometry }), /geometry.*x, y, w and h/);
+  }
+});
+
 before(async () => {
   const pres = create({ title: 'Regional orientation', theme: { preset: 'forest', fonts: { heading: 'Cambria', body: 'Arial' } } });
   deck.cover(pres.addSlide(), { kicker: 'Regional orientation', title: 'A region,\nthree jurisdictions',
@@ -309,4 +350,25 @@ test('optional JSON render remains available with the original spec schema', asy
       left: { heading: 'Left', bullets: ['First'] }, right: { heading: 'Right', text: 'Second' } }
   ] }) });
   valid(file('legacy-json'), 2);
+});
+
+
+test('timeline marker contrast and separate text colors survive native PPTX export', async () => {
+  const pres = create({ theme: { preset: 'dark', bg: '101820', ink: 'FFFFFF', muted: 'CBD5E1' } });
+  deck.timeline(pres.addSlide(), { color: '38BDF8', steps: [{ label: 'Now', title: 'Discover', text: 'Details' }] });
+  deck.timeline(pres.addSlide(), { color: '111111', markerTextColor: 'FFFF00', labelColor: '00FFFF',
+    titleColor: 'FF00FF', bodyColor: 'EEEEEE', steps: [{ label: 'Later', title: 'Explore', text: 'More' }] });
+  await deck.save(pres, file('timeline-colors'));
+  const colorFor = (source, name) => {
+    const shape = source.match(/<p:sp>.*?<\/p:sp>/g).find(block => block.includes('name="' + name + '"'));
+    assert.ok(shape, name);
+    return shape.match(/<a:rPr[^>]*>.*?<a:srgbClr val="([A-Fa-f0-9]+)"/)[1];
+  };
+  const first = await xml(file('timeline-colors'));
+  assert.equal(colorFor(first, 'timeline number 1'), '000000');
+  assert.equal(colorFor(first, 'timeline label 1'), 'FFFFFF');
+  const second = await xml(file('timeline-colors'), 'ppt/slides/slide2.xml');
+  for (const [part, color] of [['number', 'FFFF00'], ['label', '00FFFF'], ['title', 'FF00FF'], ['detail', 'EEEEEE']]) {
+    assert.equal(colorFor(second, 'timeline ' + part + ' 1'), color);
+  }
 });

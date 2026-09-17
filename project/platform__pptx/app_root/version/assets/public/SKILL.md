@@ -24,28 +24,40 @@ Read API references only when needed; do not load every file in the tool's listi
 | [examples/editorial.js](examples/editorial.js) | A proposal, strategy or idea with little relevant imagery | Strong typography, asymmetry, open space and a coherent argument |
 
 For example, call `LoadSkill(skill_name="pptx/examples/analytical.js")`. Each example
-fits in one default read and is a complete `ExecuteNodeCode` call. Adapt its content,
+fits in one default read and contains a complete generator IIFE. Adapt its content,
 palette, fonts, geometry and compositions to the brief. The three example slides are
 demonstrations, not a required count or sequence. Replace their demo data and output
 filename. The bundled Earthrise photograph is only for relevant imagery; its source
 is recorded in [assets/CREDITS.md](assets/CREDITS.md).
 
 Read another example only when its techniques are useful. You can combine examples,
-customize the helpers, or write native code throughout. The fixed JSON layouts are
+configure the components, or write native code throughout. Packaged skill files are read-only; edit your deck-specific generator and assets. The fixed JSON layouts are
 optional for simple decks, not the default design boundary.
 
 Supporting references load the same way, e.g.
 `LoadSkill(skill_name="pptx/references/components.md")`:
 
+- [references/generation.md](references/generation.md): save and rerun a deck-specific generator.
 - [references/components.md](references/components.md): helper parameters, theme controls, grid geometry and saving.
 - [references/native-api.md](references/native-api.md): native API details and known library mistakes.
 - [references/editing.md](references/editing.md): read this for edits to an existing deck; preserve its design and unrelated content.
+- [references/visual-review.md](references/visual-review.md): rendered inspection with the PPTX Reviewer or InspectPptx, report fields and repair limits.
 - [references/json-layouts.md](references/json-layouts.md): the optional JSON schema and render call.
 - [references/upstream.md](references/upstream.md): preserved upstream guidance for advanced details. Its Python/rendering workflows are unavailable here. This long reference needs `max_bytes: 65536` or continuation reads.
 
 If ANY requested file returns a continuation marker, use the exact next `offset`
 reported by the tool until that file is complete. Loading the entry once does not
 prohibit reading references or continuing a truncated response.
+
+## Save and reuse the generator
+
+For a new deck, save the complete authoring IIFE as `build-deck.js` with `WriteFile`.
+Read [references/generation.md](references/generation.md). When `BuildPptx` is available,
+call it alone to execute the generator, validate the saved deck and start review automatically.
+Use its `filePath` and `expectedSlides` arguments to preserve the request.
+Apply subsequent changes to that generator and rerun it. Do not repeatedly emit the
+complete deck in `ExecuteNodeCode` or patch files under `.claude/skills/pptx`.
+Use component options or native slide calls for styling and geometry.
 
 ## Design before authoring
 
@@ -61,7 +73,8 @@ labels editable. Never invent source values to fill an example chart.
 
 ## Execution contract
 
-- Run JavaScript through `ExecuteNodeCode`. Every call must be ONE
+- Managed runs execute the saved generator through `BuildPptx`. Otherwise use
+  `ExecuteNodeCode`. The generator must be ONE
   `(async () => { ... })()` with EVERY `require`, `const`, `let`, class and function
   declaration inside it. Await all asynchronous work. Use `globalThis` only for
   intentional durable state between calls.
@@ -81,24 +94,22 @@ labels editable. Never invent source values to fill an example chart.
   then `return deck.validate(outPath, { slides: requestedCount, strictCanvas: false });`.
   Both variables must reflect the user's request. Direct `new PptxGenJS()` authoring
   may use `writeFile` followed by the same validator; set its layout before slides.
-- Bash allows `awk`, `cat`, `cp`, `curl`, `cut`, `diff`, `dir`, `find`, `grep`, `head`,
-  `jq`, `ls`, `mkdir`, `mv`, `pwd`, `python`, `python3`, `rg`, `sed`, `sort`, `stat`,
-  `tail`, `touch`, `tr`, `uniq`, `unzip`, `wc`, `wget`, `which`, `zip`. One command;
-  working-directory-relative paths; no pipes, chaining, redirects, `$()`, backticks,
-  absolute paths, `~` or `..`. Read output from the tool result.
-- Use `ExecuteNodeCode` for JavaScript. No Bash `node`/`npm`/`npx`, package installs,
+- Use the exposed file tools to read and edit files. `BashCommand`, when enabled,
+  accepts one command with relative paths; pipes, shell chains and redirects are blocked.
+- Use `BuildPptx` for managed builds, or `ExecuteNodeCode` where BuildPptx is absent. No Bash `node`/`npm`/`npx`, package installs,
   `markitdown`, `soffice`, `pdftoppm`, or upstream Python validation workflow here.
 
 ## Review and completion
 
-Fix structural validation errors and verify the requested content, order and count.
-Review the slide/object diagnostics for likely text overflow, overlap, small text
-and low contrast. These are advisory estimates. With `strictCanvas: false`, intended
-decorative bleed may remain; unintended clipping needs correction.
+When `BuildPptx` is available, SEMOSS owns validation, review and delivery. It
+sends advisory warnings to the reviewer immediately after structural success.
+Only a repair request returns control to you: make the requested fixes and rebuild
+within the stated tool-round budget. SEMOSS allows one visual repair pass and one
+recheck, expanding coverage when other slides or shared assets change. It reports
+incomplete checks and unresolved findings automatically. Do not manually delegate
+or continue optional edits after a successful build/review.
 
-Review each slide's hierarchy, spacing, contrast and accuracy. Make a correction
-pass when useful. `ok: true` alone does not complete the design review. No rendered
-slide preview tool is currently exposed; do not claim rendered inspection or measured
-text fit. Finish when content, structural checks and design review are satisfactory.
-Available turns are a ceiling, not a target. Reply with the filename and slide count,
-plus any unresolved issue that affects use of the deck.
+Without `BuildPptx`, follow [references/visual-review.md](references/visual-review.md):
+send a structurally valid saved deck to the reviewer with advisory warnings; allow
+one repair pass for significant findings and one recheck. Report unresolved issues
+and actual coverage. This inspects a LibreOffice rendering, not native PowerPoint.

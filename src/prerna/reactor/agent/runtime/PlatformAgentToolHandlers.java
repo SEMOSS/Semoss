@@ -72,6 +72,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.pptx.SemossPptxInspector;
 
 final class PlatformAgentToolHandlers {
 
@@ -120,6 +121,13 @@ final class PlatformAgentToolHandlers {
 
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
+		add(tools, handler("InspectPptx",
+				"Render a PowerPoint through UnoServer and inspect its slides with a vision model using your review instructions. "
+						+ "Returns structured issues, exact slide coverage, source hash and image/report paths. "
+						+ "A pass requires status=complete and verdict=pass. Does not edit the source deck.",
+				SemossPptxInspector.inputSchema(), (params, tc) -> SemossPptxInspector.inspect(
+						Path.of(tc.root), params, tc.ctx.getInsight(), tc.ctx.getRoom().getId(),
+						tc.ctx.getAgentConfig().getModelId()).toString()));
 		add(tools,
 				handler("ReadFile",
 						"Reads a file from the working directory. Returns content with line numbers "
@@ -343,6 +351,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: path is required";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		saveTextFile(file, content, tc);
 		return "Wrote file: " + tc.toRelative(file.getAbsolutePath());
 	}
@@ -362,6 +371,7 @@ final class PlatformAgentToolHandlers {
 			newString = "";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -402,6 +412,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: too many edits (" + edits.length() + " > " + MAX_MULTI_EDITS + ")";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -455,6 +466,8 @@ final class PlatformAgentToolHandlers {
 		}
 		File source = tc.resolve(filePath);
 		File target = tc.resolve(newValue);
+		tc.requireWritable(source);
+		tc.requireWritable(target);
 		if (!source.exists()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -473,6 +486,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: path is required";
 		}
 		File target = tc.resolve(filePath);
+		tc.requireWritable(target);
 		if (!target.exists()) {
 			return "Error: path not found: " + filePath;
 		}
@@ -649,7 +663,9 @@ final class PlatformAgentToolHandlers {
 		if (!isWithinRoot(normalizePath(cmdUtil.getWorkingDir()), tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
 		}
-		String output = cmdUtil.executeCommand(command);
+		String[] commandResult = cmdUtil.executeCommandWithStatus(command);
+        String output = commandResult[1];
+        if (!Boolean.parseBoolean(commandResult[0])) output = "Error: " + (output == null || output.isBlank() ? "Command failed" : output);
 		String updatedDir = normalizePath(cmdUtil.getWorkingDir());
 		if (!isWithinRoot(updatedDir, tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
@@ -931,6 +947,7 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static void saveTextFile(File file, String content, ToolContext tc) {
+		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
 		}
@@ -1366,6 +1383,10 @@ final class PlatformAgentToolHandlers {
 				throw new IllegalArgumentException("Path escapes the working directory: " + clean);
 			}
 			return resolved;
+		}
+
+		private void requireWritable(File file) {
+			ReadOnlyPathPolicy.requireWritable(Path.of(root), file.toPath(), ctx.getAgentConfig().getReadOnlyPaths());
 		}
 
 		private String toRelative(String absolutePath) {

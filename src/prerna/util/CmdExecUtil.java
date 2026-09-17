@@ -226,6 +226,11 @@ public class CmdExecUtil {
 	/**
 	 * Fixed runCommand method that handles chroot commands properly
 	 */
+	/** Execute a shell command while preserving success independently of its output. */
+	public String[] executeCommandWithStatus(String command) {
+		return runCommand(command);
+	}
+
 	private String[] runCommand(String command) {
 		Map<String, String> environment = null;
 		String[] foutput = new String[2];

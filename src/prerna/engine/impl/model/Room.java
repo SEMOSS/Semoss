@@ -67,6 +67,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.workspaces.AbstractWorkspaceReactor;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessagePartType;
@@ -554,6 +555,52 @@ public class Room implements Serializable {
 	 */
 	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+        return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, null);
+    }
+
+    /** Continue with an explicit system prompt, preserving all tool-result parts. */
+    public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+            String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt) {
+        return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt, null);
+    }
+
+    /** Append current harness status after the completed tool results, keeping the system prompt stable. */
+    public AskModelEngineResponse continueAfterToolExecutionResultsWithRuntimeContext(Map<String, Object> paramValuesMap,
+            String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt, String runtimeContext) {
+        return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt, null, runtimeContext);
+    }
+
+    /** Append an evidence-based harness result, retaining the model's preceding message for audit. */
+    public ResponseMessage appendHarnessResponse(String text, String parentMessageId, IModelEngine modelEngine, Insight insight) {
+        ReentrantLock lock = getMessageLock();
+        lock.lock();
+        try {
+            String userId = insight.getUser().getPrimaryLoginToken().getId();
+            try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+                this.insight = insight;
+                RoomMessageStore.refreshFromLatestProjection(this, userId);
+                ResponseMessage response = ResponseMessage.text(text);
+                response.setRoom(this);
+                response.setModel(modelEngine);
+                response.setParentMessageId(parentMessageId);
+                response.setPlatformGenerated(true);
+                response.setTransactionId(GUID.v7().toUUID().toString());
+                messages.add(response);
+                RoomMessageStore.persist(this, userId);
+                return response;
+            }
+        } finally { lock.unlock(); }
+    }
+
+    /** Persist a harness-owned completion after all tools finish, without another model request. */
+    public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+            String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt, ResponseMessage prebuiltResponse) {
+        return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt, prebuiltResponse, null);
+    }
+
+    private AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+            String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt,
+            ResponseMessage prebuiltResponse, String runtimeContext) {
 		ReentrantLock lock = getMessageLock();
 		lock.lock();
 		try {
@@ -575,8 +622,23 @@ public class Room implements Serializable {
 					RoomMessageStore.persist(this, userId);
 					return null;
 				}
+                if (systemPrompt != null) {
+                    var parts = new ArrayList<>(toolResultsMessage.getParts());
+                    parts.removeIf(part -> part instanceof prerna.engine.impl.model.message.SystemMessagePart);
+                    parts.addFirst(new prerna.engine.impl.model.message.SystemMessagePart(systemPrompt));
+                    toolResultsMessage.setParts(parts);
+                    toolResultsMessage.normalizeForWrite();
+                }
+                if (runtimeContext != null && !runtimeContext.isBlank()
+                        && toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
+                                && runtimeContext.equals(text.getText()))) {
+                    // TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing user content.
+                    // Preserve earlier inputs and any status already sent; retries must not rewrite history.
+                    toolResultsMessage.addPart(new TextMessagePart(runtimeContext));
+                    toolResultsMessage.normalizeForWrite();
+                }
 				return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-						modelEngine, userId, false);
+						modelEngine, userId, false, prebuiltResponse, null, true, false);
 			}
 		} finally {
 			lock.unlock();

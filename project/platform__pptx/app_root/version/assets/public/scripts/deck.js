@@ -691,8 +691,15 @@ function componentContext(slide, options) {
 
 function frame(slide, options, defaults) {
 	const c = componentContext(slide, options);
+	// Accept both documented flat coordinates and a nested geometry object. Flat
+	// coordinates take precedence; unknown nested keys fail instead of disappearing.
+	const nested = options && options.geometry;
+	if (nested !== undefined && (!nested || typeof nested !== 'object' || Array.isArray(nested)
+		|| Object.keys(nested).some(key => !['x', 'y', 'w', 'h'].includes(key)))) {
+		throw new Error('geometry must be an object containing only x, y, w and h');
+	}
 	return geometry(Object.assign({ x: MARGIN, y: BODY_Y, w: c.width - MARGIN * 2, h: c.height - BODY_Y - MARGIN },
-		defaults, options), c.width, c.height);
+		defaults, nested, options), c.width, c.height);
 }
 
 /** Equal cells in reading order. Use returned rectangles with any native API. */
@@ -818,7 +825,12 @@ function image(slide, options) {
 function cover(slide, options) {
 	const c = componentContext(slide, options), t = c.theme;
 	const o = Object.assign({}, options);
-	slide.background = { color: o.background || t.ink };
+	const background = o.background === undefined ? { color: t.ink }
+		: typeof o.background === 'string' ? { color: o.background } : o.background;
+	if (!background || Array.isArray(background) || typeof background.color !== 'string' || !background.color.trim()) {
+		throw new TypeError('deck.cover background must be a color string, e.g. "1A7F5A", or an object with color: "1A7F5A".');
+	}
+	slide.background = Object.assign({}, background);
 	const x = o.x === undefined ? c.width * 0.065 : o.x;
 	const y = o.y === undefined ? c.height * 0.25 : o.y;
 	const w = o.w === undefined ? (o.image ? c.width * 0.49 : c.width - x * 2) : o.w;
@@ -878,6 +890,17 @@ function comparison(slide, options) {
 	return slide;
 }
 
+/** Choose readable marker ink from the marker fill, independently of slide background. */
+function contrastingInk(color) {
+	const rgb = hex(color, 'FFFFFF');
+	const channels = [0, 2, 4].map(function (offset) {
+		const c = parseInt(rgb.slice(offset, offset + 2), 16) / 255;
+		return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+	});
+	const luminance = 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+	return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? '000000' : 'FFFFFF';
+}
+
 /** Editable horizontal timeline or vertical process, with optional dates. */
 function timeline(slide, options) {
 	const o = frame(slide, options, { h: 3.8 });
@@ -901,19 +924,19 @@ function timeline(slide, options) {
 		slide.addShape(c.pres.ShapeType.ellipse, { x: box.x, y: box.y, w: 0.44, h: 0.44,
 			fill: { color: color }, line: { color: color, transparency: 100 }, objectName: 'timeline marker ' + (i + 1) });
 		addText(slide, String(i + 1), { x: box.x, y: box.y + 0.035, w: 0.44, h: 0.35,
-			fontSize: 14, color: t.invertInk, bold: true, align: 'center', objectName: 'timeline number ' + (i + 1) });
+			fontSize: 14, color: o.markerTextColor || contrastingInk(color), bold: true, align: 'center', objectName: 'timeline number ' + (i + 1) });
 		const w = box.w - (vertical ? 0.68 : 0);
 		const labelH = item.label ? 0.32 : 0;
 		if (item.label) {
 			addText(slide, text(item.label), { x: tx, y: ty, w: w, h: labelH, fontSize: 13,
-				bold: true, color: color, objectName: 'timeline label ' + (i + 1) });
+				bold: true, color: o.labelColor || t.ink, objectName: 'timeline label ' + (i + 1) });
 		}
 		addText(slide, text(item.title), { x: tx, y: ty + labelH, w: w, h: vertical ? 0.4 : 0.8,
-			fontSize: o.fontSize || (vertical ? 20 : 23), bold: true, objectName: 'timeline title ' + (i + 1) });
+			fontSize: o.fontSize || (vertical ? 20 : 23), bold: true, color: o.titleColor || t.ink, objectName: 'timeline title ' + (i + 1) });
 		if (item.text) {
 			const y = ty + labelH + (vertical ? 0.48 : 0.96);
 			addText(slide, text(item.text), { x: tx, y: y, w: w, h: Math.max(0.2, box.y + box.h - y),
-				fontSize: o.bodySize || 18, color: t.muted, objectName: 'timeline detail ' + (i + 1) });
+				fontSize: o.bodySize || 18, color: o.bodyColor || t.muted, objectName: 'timeline detail ' + (i + 1) });
 		}
 	});
 	return slide;
