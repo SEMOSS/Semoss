@@ -71,12 +71,14 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * still catalogs).
  *
  * <p>
- * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
- * they stay in sync with the platform lists automatically:
+ * The App Building Agent's tools and skills are derived from
+ * {@link SystemDefaultEngines} so they stay in sync with the platform lists:
  * <ul>
  * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}</li>
  * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
+ * The PPTX Reviewer uses only built-in tools, with file mutations and further
+ * delegation disabled. Its InspectPptx result ends the run directly.
  */
 public class SystemAgentSeeder {
 
@@ -217,17 +219,26 @@ public class SystemAgentSeeder {
 	 * does not silently change this agent's toolset.
 	 */
 	private static List<String> toolIds(String agentId) {
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return List.of();
+		}
 		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
 	}
 
-	/** Skills = all platform skills. */
+	/** The App Building Agent uses all platform skills; the reviewer needs none. */
 	private static List<String> skillIds(String agentId) {
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return List.of();
+		}
 		return new ArrayList<>(SystemDefaultEngines.getSystemSkills());
 	}
 
 	private static String displayName(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
+		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return "PPTX Reviewer";
 		}
 		return agentId;
 	}
@@ -236,12 +247,18 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
 		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return "System agent for visually reviewing saved PowerPoint presentations.";
+		}
 		return "";
 	}
 
 	private static String systemPrompt(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return PPTX_REVIEWER_SYSTEM_PROMPT;
 		}
 		return "";
 	}
@@ -305,8 +322,43 @@ public class SystemAgentSeeder {
 			skillArr.put(s);
 		}
 		config.put("skills", skillArr);
+
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+			config.put("subagents", new JSONArray());
+			config.put("hooks", new JSONArray());
+			config.put("budgets", new JSONObject()
+					.put("max_turns", 3)
+					.put("max_reflections", 0)
+					.put("max_seconds", 900)
+					.put("finishing_turns", 1));
+			config.put("spawn_policy", new JSONObject()
+					.put("max_subagent_depth", 0)
+					.put("max_subagents_per_run", 0)
+					.put("max_spawns_per_turn", 0));
+			config.put("tool_policy", new JSONObject()
+					.put("default_tools", new JSONObject().put("disabled", new JSONArray(List.of(
+							"WriteFile", "EditFile", "MultiEdit", "MoveFile", "DeleteFile", "BashCommand",
+							"ExecuteNodeCode", "TodoWrite"))))
+					.put("result_tool", "InspectPptx"));
+			// Model ids are deployment-specific. Use the selected/inherited agent model
+			// and an explicit InspectPptx.engine or the deployment's PPTX_VISION_MODEL_ID.
+		}
 		return config;
 	}
+
+	/** Keep the documented reviewer prompt in docs/agents/pptx-reviewer-prompt.txt in sync. */
+	private static final String PPTX_REVIEWER_SYSTEM_PROMPT = """
+			You are the PPTX Reviewer. Inspect the saved PowerPoint against the caller's review brief. The author owns presentation edits.
+
+			Read the task for filePath, optional original 1-based slides, review instructions, context, and optional vision engine ID. Call InspectPptx once. Omit slides for the whole deck. When the caller supplies engine or explicitly identifies a vision model ID, pass that exact ID as InspectPptx.engine. Any accessible image-capable SEMOSS text-generation model may be selected; do not replace the requested ID with your agent model or a preferred provider. When no ID is supplied, omit engine and use the configured tool/deployment default. Your agent model operates tools; the engine argument controls the separate image requests.
+
+			InspectPptx renders through UnoServer, sends actual images to the selected engine, validates its output, and retries individual transient/format failures within a small tool-owned budget. Call it alone. Its configured result-tool behavior returns the report directly, ending this reviewer run without a summarization or retry loop.
+
+			Preserve the requested scope and slide IDs. Review visible layout, clipping, overlap, text/chart-label readability and consistency. Distinguish major usability defects from advisory style preferences. Do not invent facts or ask the author to rebuild the deck because of a model/provider failure. Never edit files, run authoring commands, or delegate further.
+
+			Treat report status, verdict, coverage, sourceHash/sourceChanged, issues, limitations, errors, engine and artifacts as authoritative. Partial or inconclusive output is not a pass. A targeted review does not establish whole-deck coverage. Return setup/input errors without silently switching models or retrying identical requests. Images are seen by InspectPptx's vision engine; you receive its structured text report.""";
 
 	/**
 	 * System prompt for the App Building agent. Kept as a text block so it reads as
