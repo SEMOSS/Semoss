@@ -113,14 +113,11 @@ public final class AgentRunner {
 	 */
 	public static final String PARAM_FILE_PATH_LEGACY = "filePath";
 
-	/**
-	 * Room option for an absolute working-dir override.
-	 *
-	 * <p>
-	 * Used mainly by spawned child rooms that should operate inside the parent's
-	 * workdir. The resolved path must stay under {@code Utility.getBaseFolder()}.
-	 */
+	/** Server-owned working directory for a child that shares its parent's files. */
 	public static final String ROOM_OPTION_WORKING_DIR = "working_dir";
+
+	/** Room whose folder authorizes {@link #ROOM_OPTION_WORKING_DIR}. */
+	public static final String ROOM_OPTION_WORKING_DIR_SOURCE_ROOM = "working_dir_source_room_id";
 
 	/** Options-map keys checked (in order) when room.getModelId() is not set. */
 	private static final String[] MODEL_ID_OPTION_KEYS = { "engine", "model", "modelId", "engineId" };
@@ -557,16 +554,12 @@ public final class AgentRunner {
 							+ " must be under SEMOSS base folder. value='" + raw + "' resolvedTo='" + canonical
 							+ "' baseFolder='" + baseCanonical + "'");
 				}
-				File f = new File(canonical);
-				if (!f.exists()) {
-					f.mkdirs();
-				}
 				logger.info("AgentRunner: working dir overridden by room.options.{}='{}' (room={})",
 						ROOM_OPTION_WORKING_DIR, canonical, room.getId());
 				// Subdir is intentionally ignored when an absolute override is supplied -
 				// the room option already names the final path.
 				params.remove(PARAM_SUBDIR);
-				return resolveRoomWorkingDirectory(room, insight, params, canonical);
+				return resolveRoomWorkingDirectory(room, insight, canonical);
 			}
 		}
 
@@ -594,29 +587,48 @@ public final class AgentRunner {
 		return target.withWorkingDirectory(joinSubdir(rootDirectory, subdir, targetLabel));
 	}
 
-	/**
-	 * Applies a room-level working-directory override. A legacy
-	 * {@code paramValues.project} identifies the asset target for Git and cluster
-	 * lifecycle operations; the override may select a directory within that target.
-	 */
-	private static AgentRunTarget resolveRoomWorkingDirectory(Room room, Insight insight, Map<String, Object> params,
-			String workingDirectory) {
-		if (trimToNull(params.get(PARAM_PROJECT)) == null) {
-			return AgentRunTarget.inherited(workingDirectory);
+	// A shared room path is valid only when it belongs to this room or to the
+	// source room recorded by the server when the child was spawned.
+	private static AgentRunTarget resolveRoomWorkingDirectory(Room room, Insight insight, String workingDirectory) {
+		String roomFolderCanonical;
+		try {
+			roomFolderCanonical = new File(room.getRoomFolderPath()).getCanonicalPath();
+		} catch (IOException ioe) {
+			throw new IllegalStateException("AgentRunner: could not canonicalize room folder", ioe);
+		}
+		if (workingDirectory.equals(roomFolderCanonical)
+				|| workingDirectory.startsWith(roomFolderCanonical + File.separator)) {
+			return createInheritedRoomTarget(roomFolderCanonical, workingDirectory);
 		}
 
-		AgentRunTarget target = resolveAssetTarget(room, insight, params);
-		String targetRoot;
-		try {
-			targetRoot = new File(target.getRootDirectory()).getCanonicalPath();
-		} catch (IOException ioe) {
-			throw new IllegalArgumentException("AgentRunner: could not canonicalize selected target root", ioe);
-		}
-		if (!workingDirectory.equals(targetRoot) && !workingDirectory.startsWith(targetRoot + File.separator)) {
+		String sourceRoomId = trimToNull(room.getOptionsMap() == null ? null
+				: room.getOptionsMap().get(ROOM_OPTION_WORKING_DIR_SOURCE_ROOM));
+		if (sourceRoomId == null) {
 			throw new IllegalArgumentException("AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
-					+ " is outside the selected target root: " + workingDirectory);
+					+ " points outside the room folder without an authorized source room");
 		}
-		return target.withWorkingDirectory(workingDirectory);
+
+		Room sourceRoom = RoomUtils.getOrLoadRoom(sourceRoomId, insight);
+		String sourceRoomFolder;
+		try {
+			sourceRoomFolder = new File(sourceRoom.getRoomFolderPath()).getCanonicalPath();
+		} catch (IOException ioe) {
+			throw new IllegalArgumentException("AgentRunner: could not canonicalize source room folder", ioe);
+		}
+		if (!workingDirectory.equals(sourceRoomFolder)
+				&& !workingDirectory.startsWith(sourceRoomFolder + File.separator)) {
+			throw new IllegalArgumentException("AgentRunner: room.options." + ROOM_OPTION_WORKING_DIR
+					+ " is outside its authorized source room: " + workingDirectory);
+		}
+		return createInheritedRoomTarget(sourceRoomFolder, workingDirectory);
+	}
+
+	private static AgentRunTarget createInheritedRoomTarget(String rootDirectory, String workingDirectory) {
+		File workingDir = new File(workingDirectory);
+		if (!workingDir.exists() && !workingDir.mkdirs() && !workingDir.isDirectory()) {
+			throw new IllegalArgumentException("AgentRunner: could not create working directory='" + workingDirectory + "'");
+		}
+		return AgentRunTarget.insight(rootDirectory).withWorkingDirectory(workingDirectory);
 	}
 
 	private static AgentRunTarget resolveAssetTarget(Room room, Insight insight, Map<String, Object> params) {

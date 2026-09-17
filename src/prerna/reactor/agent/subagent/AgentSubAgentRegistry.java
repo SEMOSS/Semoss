@@ -238,18 +238,24 @@ public final class AgentSubAgentRegistry {
 				}
 			}
 
-			// Shared-filesystem mode. When the caller asked for inherit_parent_workdir,
-			// we record the override on the CHILD ROOM's own options. AgentRunner reads
-			// it from there on every run - RunAgent itself stays oblivious. The child
-			// keeps its own roomId / jobId / stream / history; only the on-disk
-			// working dir is shared with the parent.
-			if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()) {
+			// Project and USER targets are inherited through the child's space/subdir
+			// parameters. Room targets need the source room id so AgentRunner can
+			// authorize the shared directory without trusting a bare absolute path.
+			if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()
+					&& (req.inheritedTarget == null || req.inheritedTarget.isInsight())) {
 				clonedOptions.put(AgentRunner.ROOM_OPTION_WORKING_DIR, req.workingDirOverride.trim());
+				Object inheritedSource = parentRoom.getOptionsMap() == null ? null
+						: parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+				String sourceRoomId = inheritedSource == null || String.valueOf(inheritedSource).trim().isEmpty()
+						? req.parentRoomId
+						: String.valueOf(inheritedSource).trim();
+				clonedOptions.put(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM, sourceRoomId);
 			} else {
 				// Isolated mode (default). Strip any inherited override from the parent's
 				// options so a clone of a parent that itself has a working_dir set doesn't
 				// accidentally propagate that to children that asked for fresh isolation.
 				clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR);
+				clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
 			}
 
 			// 2. Resolve only the authored system-prompt layer. The child's harness adds
