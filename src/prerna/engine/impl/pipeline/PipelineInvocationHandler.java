@@ -686,8 +686,15 @@ public class PipelineInvocationHandler implements InvocationHandler {
 	private <T extends IReactor> T createReactor(JSONObject config, Class<T> reactorType) {
 		String className = config.getString("reactorClass");
 		try {
-			Class<?> clazz = Class.forName(className);
-			T reactor = reactorType.cast(clazz.getDeclaredConstructor().newInstance());
+			IReactor configuredReactor;
+			if (GenericGuardrailInputReactor.class.getName().equals(className)) {
+				configuredReactor = new GenericGuardrailInputReactor();
+			} else if (GenericGuardrailOutputReactor.class.getName().equals(className)) {
+				configuredReactor = new GenericGuardrailOutputReactor();
+			} else {
+				throw new IllegalArgumentException("Unsupported pipeline reactor: " + className);
+			}
+			T reactor = reactorType.cast(configuredReactor);
 			GenRowStruct grs = new GenRowStruct();
 			if (config.has("params")) {
 				NounStore nounStore = new NounStore("Reactor-params");
