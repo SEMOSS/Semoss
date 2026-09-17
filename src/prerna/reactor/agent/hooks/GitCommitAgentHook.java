@@ -38,6 +38,7 @@ import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.api.IEngine;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.IAgentRunHook;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -45,14 +46,14 @@ import prerna.util.git.GitRepoUtils;
 
 
 /**
- * Hook that runs {@code git add . && git commit} on the project's git folder
- * after every agent run.
+ * Hook that runs {@code git add . && git commit} on the resolved project or
+ * authenticated user-asset git folder after every agent run.
  *
  * <p>Opt in by adding {@code {"kind": "git_commit"}} to a workspace's
  * {@code WORKSPACE.CONFIG_JSON.hooks[]} (e.g. via {@code SetAgentHooks}).
- * The hook reads {@code ctx.getParamMap().get("project")} for the project to
- * commit against - if the project id is missing, the hook logs an error and
- * returns without committing.
+ * The hook commits the target resolved by {@code AgentRunner}. For legacy
+ * contexts without target metadata it falls back to the configured model
+ * parameter named {@code project}.
  *
  * <p>Authored as a clean component (no inheritance, no statics) - see
  * {@link prerna.reactor.agent.hooks.AgentHookRegistry#GIT_COMMIT} for the
@@ -64,24 +65,41 @@ public final class GitCommitAgentHook implements IAgentRunHook {
 	
     @Override
     public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
-    	Map<String, Object> paramMap = ctx.getAgentConfig().getModelParams();
-    	String projectId = Objects.toString(paramMap.get("project"), null);
-    	if (projectId == null || projectId.trim().isEmpty()) {
-    		classLogger.error("GitCommitAgentHook: missing project id skipping git commit");
-    		return;
-    	}
-    	try {
-	    	IEngine projectEngine = Utility.getProject(projectId.trim());
-	    	if (projectEngine == null) {
-	    		classLogger.error("GitCommitAgentHook: project not found for id={} skipping git commit", projectId);
-	    		return;
-	    	}
-	    	String projectName = projectEngine.getEngineName();
-	    	String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId.trim(), projectName);
-	    	User user = ctx.getInsight().getUser();
-	    	GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
-    	} catch (Exception e) {
-    		classLogger.error("GitCommitAgentHook: git commit failed for projectId={}", projectId, e);
-    	}
+        AgentRunTarget target = ctx.getAgentTarget();
+        String commitTarget = target != null ? target.toString() : null;
+        try {
+            if (target != null) {
+                if (target.isInsight()) {
+                    classLogger.info("GitCommitAgentHook: insight/room target has no project repository; skipping git commit");
+                    return;
+                }
+                String gitFolder = target.getGitFolder();
+                String projectId = target.getProjectId();
+                User user = ctx.getInsight().getUser();
+                GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
+                classLogger.info("GitCommitAgentHook: committed target projectId={}", projectId);
+                return;
+            }
+
+            Map<String, Object> paramMap = ctx.getAgentConfig().getModelParams();
+            String projectId = Objects.toString(paramMap.get("project"), null);
+            commitTarget = "projectId=" + projectId;
+            if (projectId == null || projectId.trim().isEmpty()) {
+                classLogger.error("GitCommitAgentHook: missing project id skipping git commit");
+                return;
+            }
+            IEngine projectEngine = Utility.getProject(projectId.trim());
+            if (projectEngine == null) {
+                classLogger.error("GitCommitAgentHook: project not found for id={} skipping git commit", projectId);
+                return;
+            }
+            String projectName = projectEngine.getEngineName();
+            String gitFolder = EngineUtility.getSpecificEngineVersionFolder(CATALOG_TYPE.PROJECT, projectId.trim(),
+                    projectName);
+            User user = ctx.getInsight().getUser();
+            GitRepoUtils.addAllChangesAndCommit(gitFolder, true, "Coding Agent Edit", user);
+        } catch (Exception e) {
+            classLogger.error("GitCommitAgentHook: git commit failed for target={}", commitTarget, e);
+        }
     }
 }
