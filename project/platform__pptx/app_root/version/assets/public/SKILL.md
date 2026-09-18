@@ -8,7 +8,11 @@ license: Proprietary. LICENSE.txt has complete terms
 
 Create a deck suited to the user's audience, content and visual direction. Preserve
 the requested filename, total slide count, source data and branding. Components and
-native PptxGenJS calls may share a slide; every slide may also be entirely custom.
+native PptxGenJS calls may share a new slide; every new slide may be entirely custom.
+For existing decks, call PreparePptxEdit first and read
+[references/editing.md](references/editing.md). Patch its protected snapshot with
+JSZip and scripts/edit.js. Never regenerate it from a creation program: that loses
+manual edits and unrelated content. Prepare only the requested slides.
 
 ## Load only what the task needs
 
@@ -81,7 +85,7 @@ labels editable. Never invent source values to fill an example chart.
 - `ROOT` is the room's working directory. Put the exact output filename, including
   its extension, in `path.join(ROOT, "requested-filename.pptx")`. `APP_ROOT` and
   `USER_ROOT` identify project and user assets when available.
-- Inside the IIFE: `const path = require("path");`,
+- For new presentations, inside the IIFE: `const path = require("path");`,
   `const PptxGenJS = require("pptxgenjs");`, and
   `const deck = require(path.join(ROOT, ".claude/skills/pptx/scripts/deck.js"));`.
   Inject `PptxGenJS` into `deck.create({ PptxGenJS, ... })`. The skill folder cannot
@@ -90,7 +94,7 @@ labels editable. Never invent source values to fill an example chart.
   `pres.addSlide()` returns a native slide. Use instance `pres.ShapeType` and
   `pres.ChartType`. Guarded native calls clone options, normalize colors and signed
   geometry, and correct illegal stacked-bar labels; other native options pass through.
-- After authoring, `await deck.save(pres, outPath, { slides: requestedCount });`
+- After creating a new deck, `await deck.save(pres, outPath, { slides: requestedCount });`
   then `return deck.validate(outPath, { slides: requestedCount, strictCanvas: false });`.
   Both variables must reflect the user's request. Direct `new PptxGenJS()` authoring
   may use `writeFile` followed by the same validator; set its layout before slides.
