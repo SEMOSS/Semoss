@@ -77,7 +77,8 @@ public class SystemDefaultEngines {
 	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
 			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
 
-	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
+	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER, Constants.AGENT_PPTX_REVIEWER,
+			Constants.AGENT_PPTX);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;

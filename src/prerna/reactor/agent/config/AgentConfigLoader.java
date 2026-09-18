@@ -164,6 +164,17 @@ public final class AgentConfigLoader {
         b.agentParams(agentParams);
         b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
         b.disabledDefaultTools(resolveDisabledDefaultTools(cfgJson));
+        JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
+        b.resultTool(toolPolicy == null ? null : StringUtils.trimToNull(toolPolicy.optString("result_tool", null)));
+        b.readOnlyPaths(resolveReadOnlyPaths(toolPolicy));
+        Map<String, Map<String, Object>> toolDefaults = new HashMap<>();
+        JSONObject defaults = toolPolicy == null ? null : toolPolicy.optJSONObject("parameter_defaults");
+        if (defaults != null) for (String tool : defaults.keySet()) toolDefaults.put(tool, defaults.getJSONObject(tool).toMap());
+        b.toolParameterDefaults(toolDefaults);
+        JSONObject runBudgets = cfgJson == null ? null : cfgJson.optJSONObject("budgets");
+        b.finishingTurns(runBudgets == null ? 0 : Math.max(0, runBudgets.optInt("finishing_turns", 0)));
+        JSONObject pptxWorkflow = cfgJson == null ? null : cfgJson.optJSONObject("pptx_workflow");
+        b.pptxWorkflow(pptxWorkflow == null ? Map.of() : pptxWorkflow.toMap());
 
         // 6. Working directory
         b.workingDir(StringUtils.trimToNull(workingDir));
@@ -214,6 +225,21 @@ public final class AgentConfigLoader {
                     workspaceId, e.getMessage());
             return null;
         }
+    }
+
+    static java.util.Set<String> resolveReadOnlyPaths(JSONObject policy) {
+        java.util.Set<String> paths = new java.util.LinkedHashSet<>();
+        JSONArray values = policy == null ? null : policy.optJSONArray("read_only_paths");
+        if (values == null) return paths;
+        for (Object value : values) {
+            if (!(value instanceof String text) || text.isBlank())
+                throw new IllegalArgumentException("read_only_paths must contain relative paths");
+            java.nio.file.Path path = java.nio.file.Path.of(text.replace('\\', '/')).normalize();
+            if (path.isAbsolute() || path.startsWith("..") || path.toString().isBlank())
+                throw new IllegalArgumentException("read_only_paths must stay within the working directory");
+            paths.add(path.toString());
+        }
+        return paths;
     }
 
     /** Reads {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */

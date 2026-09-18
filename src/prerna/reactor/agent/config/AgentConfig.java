@@ -70,6 +70,11 @@ public final class AgentConfig {
     // Tool policy
     private final boolean useDefaultAgentTools;
     private final Set<String> disabledDefaultTools;
+    private final String resultTool;
+    private final Set<String> readOnlyPaths;
+    private final Map<String, Map<String, Object>> toolParameterDefaults;
+    private final int finishingTurns;
+    private final Map<String, Object> pptxWorkflow;
 
     // Filesystem
     private final String workingDir;
@@ -98,6 +103,13 @@ public final class AgentConfig {
 
     AgentConfig(Builder b) {
         this.workspaceId     = b.workspaceId;
+        this.resultTool      = b.resultTool;
+        this.readOnlyPaths   = b.readOnlyPaths == null ? Set.of() : Set.copyOf(b.readOnlyPaths);
+        Map<String, Map<String, Object>> defaults = new HashMap<>();
+        if (b.toolParameterDefaults != null) b.toolParameterDefaults.forEach((name, params) -> defaults.put(name, Map.copyOf(params)));
+        this.toolParameterDefaults = Map.copyOf(defaults);
+        this.finishingTurns  = Math.max(0, b.finishingTurns);
+        this.pptxWorkflow = b.pptxWorkflow == null ? Map.of() : Map.copyOf(b.pptxWorkflow);
         this.name            = b.name;
         this.description     = b.description;
         this.authoredPrompt  = b.authoredPrompt;
@@ -245,6 +257,20 @@ public final class AgentConfig {
         return disabledDefaultTools;
     }
 
+    /** Optional tool whose result ends the run verbatim, without another model call. */
+    public String getResultTool() { return resultTool; }
+
+    /** Working-directory-relative paths protected from the built-in file mutation tools. */
+    public Set<String> getReadOnlyPaths() { return readOnlyPaths; }
+
+    /** Per-tool defaults; explicit call arguments always take precedence. */
+    public Map<String, Object> getToolParameterDefaults(String tool) { return toolParameterDefaults.getOrDefault(tool, Map.of()); }
+
+    /** Remaining tool rounds at which the model is instructed to finish verification and delivery. */
+    public int getFinishingTurns() { return finishingTurns; }
+    public Map<String, Object> getPptxWorkflow() { return pptxWorkflow; }
+    public boolean hasPptxWorkflow() { return Boolean.TRUE.equals(pptxWorkflow.get("enabled")); }
+
     // Filesystem
     /**
      * Working directory the agent operates in (the project being worked on).
@@ -331,6 +357,11 @@ public final class AgentConfig {
         private Map<String, Object> agentParams;
         private boolean useDefaultAgentTools = true;
         private Set<String> disabledDefaultTools;
+        private String resultTool;
+        private Set<String> readOnlyPaths;
+        private Map<String, Map<String, Object>> toolParameterDefaults;
+        private int finishingTurns;
+        private Map<String, Object> pptxWorkflow;
         private String workingDir;
         private List<Map<String, String>> mcps;
         private List<Map<String, String>> skills;
@@ -352,6 +383,11 @@ public final class AgentConfig {
         public Builder agentParams(Map<String, Object> v) { this.agentParams = v;    return this; }
         public Builder useDefaultAgentTools(boolean v)    { this.useDefaultAgentTools = v; return this; }
         public Builder disabledDefaultTools(Set<String> v) { this.disabledDefaultTools = v; return this; }
+        public Builder resultTool(String v) { this.resultTool = v; return this; }
+        public Builder readOnlyPaths(Set<String> v) { this.readOnlyPaths = v; return this; }
+        public Builder toolParameterDefaults(Map<String, Map<String, Object>> v) { this.toolParameterDefaults = v; return this; }
+        public Builder finishingTurns(int v) { this.finishingTurns = v; return this; }
+        public Builder pptxWorkflow(Map<String, Object> v) { this.pptxWorkflow = v; return this; }
         public Builder workingDir(String v)          { this.workingDir = v;          return this; }
         public Builder mcps(List<Map<String, String>> v) { this.mcps = v;            return this; }
         public Builder skills(List<Map<String, String>> v) { this.skills = v;        return this; }
