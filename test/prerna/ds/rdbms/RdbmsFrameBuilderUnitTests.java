@@ -218,7 +218,7 @@ public class RdbmsFrameBuilderUnitTests {
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
         when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
@@ -246,7 +246,7 @@ public class RdbmsFrameBuilderUnitTests {
         ResultSet rs = mock(ResultSet.class);
 
         when(absSqlQueryUtil.tableExists(conn, TABLE_NAME, DATABASE_NAME, SCHEMA)).thenReturn(true);
-        when(conn.prepareStatement("SELECT COUNT(*) * 0 FROM " + TABLE_NAME)).thenReturn(stmt);
+		when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + TABLE_NAME)).thenReturn(stmt);
         when(stmt.executeQuery()).thenReturn(rs);
         when(rs.next()).thenReturn(true);
         when(rs.getInt(1)).thenReturn(1);
