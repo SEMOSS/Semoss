@@ -1,11 +1,34 @@
 ---
 name: python
-description: Use when writing Python in a platform app - `py/mcp_driver.py`, helper modules, or any code that runs inside the platform Python runtime. Covers reading per-execution paths with `smss_get_runtime_var` (`ROOT`, `APP_ROOT`, `USER_ROOT`) rather than a bare injected name, what to import from `ai_server` / `semoss` / `smssutil`, the `@mcp_metadata` decorator for exposing MCP tools, and how Python reaches Pixel via `Insight().run_pixel(...)`. For what Pixel commands to actually run, see the `database`, `model`, and `vector` skills. Do not use for Java reactor authoring or frontend `@semoss/sdk` calls.
+description: Use when executing inline Python with `ExecutePythonCode` or writing Python in a platform app, including `py/mcp_driver.py` and helper modules. Covers the managed-runtime `ROOT`, `APP_ROOT`, and `USER_ROOT` paths, when bare names are available versus when to use `smss_get_runtime_var`, platform imports, MCP metadata, and calling Pixel from Python. For Pixel command syntax, see the `database`, `model`, and `vector` skills. Do not use for Java reactor authoring or frontend `@semoss/sdk` calls.
 ---
 
 # Python on the platform
 
 Python code in a platform app runs in a managed runtime backed by a TCP server proxy. This skill covers the Python-side glue: what's injected, what to import, and how to bridge to Pixel. For the actual Pixel command syntax (LLM, SqlQuery, VectorDatabaseQuery, etc.), see the matching skill - Python doesn't change those, you just pass them as strings to `Insight().run_pixel(...)`.
+
+## Choose the execution route
+
+- Use `ExecutePythonCode` for inline Python during a RunAgent task. It executes through the same managed runtime as `PyReactor`; the last expression is returned and user-defined state is retained for later calls in the same room during the current login session while the worker remains alive.
+- Use a Python MCP function for a reusable, typed capability that agents should call repeatedly.
+- Use `BashCommand` to run a packaged `.py` file only when that script does not need managed-runtime variables. A separate shell Python process does not receive `ROOT`, `APP_ROOT`, or `USER_ROOT`.
+
+`ExecutePythonCode` and direct `PyReactor` calls inject bare runtime names, so concise agent snippets work:
+
+```python
+import os
+sorted(os.listdir(USER_ROOT))
+```
+
+For RunAgent, `ROOT` is the active working directory selected by `space` and `subdir`. `USER_ROOT` is the authenticated user's asset-app root even when `ROOT` targets an insight or editable project. `APP_ROOT` follows the current platform app context and is absent when the insight does not have one.
+
+## Runtime state and isolation
+
+`ExecutePythonCode` behaves like a room-local notebook kernel within the current login session. Variables, functions, and imports created by one call are available to later calls from the same room. A different room, including a subagent's child room, receives a different namespace. The namespace is in memory only: restarting the managed Python worker, logging out, or restarting the platform clears it. A new login receives a new namespace. Persist anything that must survive those events to a file under `ROOT`.
+
+The room namespace belongs only to `ExecutePythonCode`. Python MCP tools, app helpers, direct `PyReactor` calls, and engine-owned Python continue to use their existing Insight- or engine-scoped namespaces. Do not depend on an MCP function seeing variables created by `ExecutePythonCode`, or the reverse.
+
+If a later call changes the RunAgent `space` or `subdir`, the room namespace remains, but `ROOT`, `APP_ROOT`, and `USER_ROOT` are refreshed for that execution. Avoid retaining open file handles or derived paths when switching targets; read the current runtime variables again.
 
 ## What the platform injects vs what you import
 
@@ -41,15 +64,15 @@ Available keys:
 
 | Key | Points to |
 | --- | --- |
-| `ROOT` | the active insight/room folder |
-| `APP_ROOT` | the app's `assets/` folder |
+| `ROOT` | the active execution folder; for RunAgent, the target selected by `space` and `subdir` |
+| `APP_ROOT` | the current app's `assets/` folder; absent when the insight has no app context |
 | `USER_ROOT` | the current user's space; absent (returns the default) when there is no user context |
 
-**Do not reference a bare `ROOT` name.** It is not injected into the execution globals, so it raises `NameError` - a bare `ROOT` in existing code is why you sometimes see a `# noqa: F821` suppression next to it. Use the accessor instead.
+Inside MCP functions and imported helper modules, use the accessor rather than depending on a bare runtime name. Those paths use thread-local runtime values and do not guarantee that a bare `ROOT` name is present. Bare names are supported for `ExecutePythonCode` and direct `PyReactor` snippets for compatibility and convenience.
 
 The accessor reads thread-local state rather than shared globals, which is the point: several executions can run concurrently against the same insight, and a value written into the shared globals could be overwritten by another thread mid-run.
 
-`ROOT` is the insight folder, not the project folder. `APP_ROOT` is the app's `assets/` folder, so prefer it over calling `GetProjectAssetsFolder(project='...')` through `run_pixel` when you just need the current app's path.
+Outside RunAgent, `ROOT` is normally the insight folder. In RunAgent, it is the selected target working directory. `APP_ROOT` is the current app's `assets/` folder when an app context exists, so prefer it over calling `GetProjectAssetsFolder(project='...')` through `run_pixel` when you just need that app's path.
 
 Because it is a plain import from `smssutil`, it also works inside helper modules, not only in the entry script.
 
