@@ -30,6 +30,9 @@ package prerna.reactor.memory;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
@@ -48,6 +51,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * paginated: {@code {memories, total_count, has_more}}.
  */
 public class ListMemoriesReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ListMemoriesReactor.class);
 
 	public ListMemoriesReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
@@ -119,6 +124,9 @@ public class ListMemoriesReactor extends AbstractReactor {
 				Room room = RoomUtils.getOrLoadRoom(this.insight.getRoomId(), this.insight);
 				agentId = ModelInferenceLogsUtils.resolveEffectiveWorkspaceId(room, userId);
 			} catch (Exception e) {
+				classLogger.warn(
+						"Failed to resolve live agent id for room '{}'; falling back to the persisted workspace column.",
+						this.insight.getRoomId(), e);
 				agentId = ModelInferenceLogsUtils.getRoomWorkspaceId(this.insight.getRoomId(), userId);
 			}
 		}
