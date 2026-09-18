@@ -99,6 +99,9 @@ public class SystemAgentSeeder {
 
 	private static final int CONFIG_SCHEMA_VERSION = 1;
 
+	/** Mirrors AgentHookRegistry.GIT_COMMIT without adding a util-to-reactor dependency. */
+	private static final String GIT_COMMIT_HOOK_KIND = "git_commit";
+
 	private SystemAgentSeeder() {
 	}
 
@@ -305,6 +308,14 @@ public class SystemAgentSeeder {
 			skillArr.put(s);
 		}
 		config.put("skills", skillArr);
+
+		// Preserve every file-changing App Building Agent run as a local project
+		// commit. The hook skips the commit when the run leaves the tree unchanged.
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			JSONArray hooks = new JSONArray();
+			hooks.put(new JSONObject().put("kind", GIT_COMMIT_HOOK_KIND));
+			config.put("hooks", hooks);
+		}
 		return config;
 	}
 
