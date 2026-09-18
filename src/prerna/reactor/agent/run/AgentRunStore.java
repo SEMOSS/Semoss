@@ -67,7 +67,7 @@ public final class AgentRunStore {
 	private static final Gson GSON = new Gson();
 	private static final String ACTIVITY_LOG_COLUMNS = "ar.RUN_ID, ar.PARENT_RUN_ID, ar.ROOM_ID, ar.WORKSPACE_ID, ar.MODEL_ID, "
 			+ "ar.HARNESS_TYPE, ar.JOB_ID, ar.STATUS, ar.INPUT, ar.INPUT_MESSAGE_ID, ar.FINAL_OUTPUT, ar.FINAL_OUTPUT_MESSAGE_ID, "
-			+ "ar.ERROR_MESSAGE, ar.DATE_CREATED, ar.STARTED_AT, ar.COMPLETED_AT, ar.USER_ID, r.ROOM_NAME";
+			+ "ar.ERROR_MESSAGE, ar.PROGRESS_JSON, ar.DATE_CREATED, ar.STARTED_AT, ar.COMPLETED_AT, ar.USER_ID, r.ROOM_NAME";
 	// Rooms are keyed per user, so the name join must match on both columns.
 	private static final String ACTIVITY_LOG_FROM = "FROM AGENT_RUN ar "
 			+ "LEFT JOIN ROOM r ON ar.ROOM_ID = r.ROOM_ID AND ar.USER_ID = r.USER_ID";
@@ -382,7 +382,11 @@ public final class AgentRunStore {
 		updateStatus(runId, AgentRunStatus.COMPLETED, jobId, finalOutput, null, false, true);
 	}
 
-	public static void markFailed(String runId, String jobId, String errorMessage) {
+	public static void markIncomplete(String runId, String jobId, String finalOutput, String errorMessage) {
+        updateStatus(runId, AgentRunStatus.FAILED, jobId, finalOutput, errorMessage, false, true);
+    }
+
+    public static void markFailed(String runId, String jobId, String errorMessage) {
 		updateStatus(runId, AgentRunStatus.FAILED, jobId, null, errorMessage, false, true);
 	}
 
@@ -529,6 +533,23 @@ public final class AgentRunStore {
 		}
 	}
 
+    /** Store progress independently of the request and final outcome, including failed runs. */
+    public static void updateProgress(String runId, Map<String, Object> progress) {
+        IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+        PreparedStatement ps = null;
+        try {
+            ps = db.getPreparedStatement("UPDATE AGENT_RUN SET PROGRESS_JSON = ? WHERE RUN_ID = ?");
+            setClob(db, ps, 1, GSON.toJson(progress));
+            ps.setString(2, runId);
+            ps.executeUpdate();
+            commitIfNeeded(ps);
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to persist progress for runId=" + runId, e);
+        } finally {
+            ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+        }
+    }
+
 	private static void updateMessageId(String runId, String columnName, String messageId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -635,11 +656,26 @@ public final class AgentRunStore {
 		map.put("finalText", rs.getString("FINAL_OUTPUT"));
 		map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));
 		map.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+        String progressJson = rs.getString("PROGRESS_JSON");
+        if (progressJson != null && !progressJson.isBlank()) map.put("progress", GSON.fromJson(progressJson, Map.class));
+        Map<String, Object> liveProgress = prerna.reactor.agent.runtime.AgentRunProgress.activeSnapshot(rs.getString("RUN_ID"));
+        if (liveProgress != null) map.put("progress", liveProgress);
 		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
 		map.put("startedAt", stringValue(rs.getTimestamp("STARTED_AT")));
 		map.put("completedAt", stringValue(rs.getTimestamp("COMPLETED_AT")));
 		map.put("userId", rs.getString("USER_ID"));
 		map.put("artifacts", new ArrayList<>());
+		addDeliveryMetadata(map);
 		return map;
 	}
+
+    /** Project code-owned delivery evidence independently of the run's execution status. */
+    static void addDeliveryMetadata(Map<String, Object> run) {
+        if (!(run.get("progress") instanceof Map<?, ?> progress)
+                || !(progress.get("workflow") instanceof Map<?, ?> workflow)) return;
+        if (workflow.get("reviewOutcome") instanceof Map<?, ?> review) run.put("reviewOutcome", new HashMap<>(review));
+        if (workflow.get("warning") instanceof String warning && !warning.isBlank()) run.put("warnings", List.of(warning));
+        if (workflow.get("artifact") instanceof Map<?, ?> artifact && "available".equals(artifact.get("status")))
+            run.put("artifacts", List.of(new HashMap<>(artifact)));
+    }
 }
