@@ -76,6 +76,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.security.HttpHelperUtility;
 import prerna.util.AssetUtility;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
@@ -205,8 +206,10 @@ public class CouchUtil {
 			classLogger.error("Error building byte digest", e);
 		}
 
+		String safeAttachmentId = HttpHelperUtility.requireSafeHeaderValue(attachmentId)
+				.replace("\\", "\\\\").replace("\"", "\\\"");
 		ResponseBuilder builder = Response.ok(attachmentBytes).header("Content-Disposition",
-				"attachment; filename=\"" + attachmentId + "\"");
+				"attachment; filename=\"" + safeAttachmentId + "\"");
 		if (eTag != null) {
 			builder = builder.tag(eTag);
 		}
@@ -794,7 +797,7 @@ public class CouchUtil {
 	 */
 	private static CouchResponse executeRequest(HttpUriRequest request) throws CouchException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
-			request.setHeader(HttpHeaders.AUTHORIZATION, COUCH_AUTH);
+			request.setHeader(HttpHeaders.AUTHORIZATION, HttpHelperUtility.requireSafeHeaderValue(COUCH_AUTH));
 
 			HttpResponse response = client.execute(request);
 

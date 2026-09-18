@@ -43,6 +43,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import prerna.om.ThreadStore;
+import prerna.security.HttpHelperUtility;
 import prerna.util.insight.InsightUtility;
 
 public class ChromeDriverUtility {
@@ -208,6 +209,8 @@ public class ChromeDriverUtility {
 	}
 
 	protected static void updateCookie(ChromeDriver driver, String cookieName, String cookieValue) {
+		cookieName = HttpHelperUtility.requireSafeHeaderValue(cookieName);
+		cookieValue = HttpHelperUtility.requireSafeHeaderValue(cookieValue);
 		classLogger.info("##CHROME DRIVER: driver is looking at " + driver.getCurrentUrl());
 		classLogger.info("##CHROME DRIVER: driver is looking page source at " + driver.getPageSource());
 
@@ -242,10 +245,20 @@ public class ChromeDriverUtility {
 			classLogger.info("##CHROME DRIVER: found cookie - Name " + cook.getName() + " domain: " + cook.getDomain()
 					+ " path: " + cook.getPath() + " isHttpOnly: " + cook.isHttpOnly() + " isSecure: " + cook.isSecure()
 					+ " value: " + cook.getValue());
+			String safeName = cook.getName().replace("\r", "").replace("\n", "").replace("\0", "");
+			String safeDomain = cook.getDomain() == null ? null
+					: cook.getDomain().replace("\r", "").replace("\n", "").replace("\0", "");
+			String safePath = cook.getPath() == null ? null
+					: cook.getPath().replace("\r", "").replace("\n", "").replace("\0", "");
+			if (!safeName.equals(cook.getName()) || !java.util.Objects.equals(safeDomain, cook.getDomain())
+					|| !java.util.Objects.equals(safePath, cook.getPath())) {
+				throw new IllegalArgumentException("Cookie fields must not contain CR, LF or NUL");
+			}
+			Cookie name = new Cookie(safeName, cookieValue, safeDomain, safePath, cook.getExpiry(), cook.isSecure(),
+					cook.isHttpOnly());
 			driver.manage().deleteCookie(cook);
 			classLogger.info("##CHROME DRIVER: deleted cookie with Name = " + cookieName);
-			Cookie name = new Cookie(cook.getName(), cookieValue, cook.getDomain(), cook.getPath(), cook.getExpiry(),
-					cook.isSecure(), cook.isHttpOnly());
+
 			classLogger.info("##CHROME DRIVER: Adding cookie  - name: " + name.getName() + " domain: "
 					+ name.getDomain() + " path: " + name.getPath() + " isHttpOnly: " + name.isHttpOnly()
 					+ " isSecure: " + name.isSecure() + " value: " + name.getValue());
