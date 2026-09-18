@@ -65,7 +65,7 @@ public class SystemDefaultEngines {
 	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER, Constants.MCP_DATABASE_MAKER,
 			Constants.MCP_REACTOR_HELP, Constants.MCP_BROWSER_AUTOMATION, Constants.MCP_APP_FILESYSTEM,
-			Constants.MCP_ROOM_FILESYSTEM);
+			Constants.MCP_ROOM_FILESYSTEM, Constants.MCP_MEMORY);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
@@ -75,7 +75,7 @@ public class SystemDefaultEngines {
 	 * agent.
 	 */
 	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
-			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
+			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP, Constants.MCP_APP_FILESYSTEM);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER, Constants.AGENT_PPTX_REVIEWER,
 			Constants.AGENT_PPTX);

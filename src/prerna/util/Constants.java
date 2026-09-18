@@ -1114,6 +1114,7 @@ public class Constants {
 	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
+	public static final String MCP_MEMORY = "memory";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

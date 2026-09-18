@@ -255,6 +255,62 @@ public class ModelInferenceLogsUtils {
 
 			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
 			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_USER_ID_INDEX", "MEMORY", "USER_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_ROOM_ID_INDEX", "MEMORY", "ROOM_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_WORKSPACE_ID_INDEX", "MEMORY", "WORKSPACE_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_EVENT_TYPE_INDEX", "MEMORY", "EVENT_TYPE");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", "PARENT_MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_DELETED_INDEX", "MEMORY", "DELETED");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM",
+					"MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM",
+					"USER_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP",
+					"SOURCE_MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP",
+					"TARGET_MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_AGENT_ID_INDEX", "MEMORY", "AGENT_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", "MEMORY_ID");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_META_METAKEY_INDEX", "MEMORY_META", "METAKEY");
+			executeSql(conn, sql);
+
+			sql = queryUtil.createIndexIfNotExists("MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS",
+					"USER_ID");
+			executeSql(conn, sql);
 		} else {
 			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
 				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
@@ -330,6 +386,102 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", database, schema)) {
 				String sql = queryUtil.createIndex("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_USER_ID_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_USER_ID_INDEX", "MEMORY", "USER_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_ROOM_ID_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_ROOM_ID_INDEX", "MEMORY", "ROOM_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_WORKSPACE_ID_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_WORKSPACE_ID_INDEX", "MEMORY", "WORKSPACE_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_EVENT_TYPE_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_EVENT_TYPE_INDEX", "MEMORY", "EVENT_TYPE");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", "PARENT_MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_DELETED_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_DELETED_INDEX", "MEMORY", "DELETED");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_DATE_CREATED_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM",
+						"MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM",
+						"USER_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP",
+						"SOURCE_MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP",
+						"TARGET_MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_AGENT_ID_INDEX", "MEMORY", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_AGENT_ID_INDEX", "MEMORY", "AGENT_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", "MEMORY_ID");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_META_METAKEY_INDEX", "MEMORY_META", database, schema)) {
+				String sql = queryUtil.createIndex("MEMORY_META_METAKEY_INDEX", "MEMORY_META", "METAKEY");
+				executeSql(conn, sql);
+			}
+
+			if (!queryUtil.indexExists(engine, "MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS",
+						"USER_ID");
 				executeSql(conn, sql);
 			}
 		}
@@ -2046,6 +2198,112 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
+	}
+
+	/**
+	 * Fetches a room's attached agent/workspace id (the persona currently
+	 * driving the conversation - see {@link #setRoomWorkspaceId}), independent
+	 * of the room's own {@code PROJECT_ID} (the app/project container the room
+	 * lives under). A room opened inside an app can have a different agent
+	 * attached to it than the app itself, so these two ids are tracked
+	 * separately and must not be conflated.
+	 *
+	 * @param roomId room identifier
+	 * @param userId user identifier (rooms are scoped per-owner)
+	 * @return the attached workspace/agent id, or {@code null} if none is
+	 *         attached or the room does not exist
+	 */
+	public static String getRoomWorkspaceId(String roomId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("ROOM__WORKSPACE_ID", "workspace_id"));
+		AndQueryFilter filter = new AndQueryFilter();
+		filter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_ID", "==", roomId));
+		filter.addFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		qs.addExplicitFilter(filter);
+		qs.setLimit(1L);
+
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+		if (rows.isEmpty()) {
+			return null;
+		}
+		Object workspaceId = rows.get(0).get("workspace_id");
+		return workspaceId == null ? null : workspaceId.toString();
+	}
+
+	/**
+	 * Resolves the agent/workspace actually in effect for a room right now -
+	 * i.e. what an in-flight {@code RunAgent} call would resolve tools and the
+	 * system prompt against - not just what was persisted on the room at
+	 * creation time.
+	 *
+	 * <p>
+	 * There are two, independently-maintained places a room's attached agent
+	 * can live: the persisted {@code ROOM.WORKSPACE_ID} column (set by
+	 * {@code CreateRoom(workspaceId=...)}/{@link #setRoomWorkspaceId}, read by
+	 * {@link #getRoomWorkspaceId}), and the in-memory {@code options.workspace}
+	 * field on the live {@code Room} object, which {@code AgentRunner} may
+	 * temporarily overlay for the duration of a single {@code RunAgent(workspaceId=...)}
+	 * call (restored afterward, never written back to the DB) and which a
+	 * spawned sub-agent inherits by cloning its parent's live options map. The
+	 * persisted column is <b>not</b> consulted anywhere in the actual
+	 * tool/system-prompt resolution path ({@code AgentRunner}/
+	 * {@code Room#getAllToolsJsonForRoom} both only look at
+	 * {@code options.workspace}) - so reading only the column would miss every
+	 * per-run override and every anonymous sub-agent's inherited persona,
+	 * silently orphaning the memories they capture as agent-less/personal.
+	 *
+	 * <p>
+	 * This mirrors {@code AgentRunner}'s own resolution order: prefer the live
+	 * {@code options.workspace} field (a string id, or a map with a
+	 * {@code workspace_id} entry), falling back to the persisted column only
+	 * when neither the room nor any active overlay has ever set one.
+	 *
+	 * @param room   the already-loaded room (see {@code RoomUtils#getOrLoadRoom}
+	 *               - must be the live/cached instance so an in-flight
+	 *               {@code RunAgent} overlay on it is visible, not a fresh
+	 *               reload from the database, which would only ever see the
+	 *               persisted column)
+	 * @param userId user identifier, used only for the persisted-column fallback
+	 * @return the effective agent/workspace id, or {@code null} if none is set
+	 *         anywhere
+	 */
+	public static String resolveEffectiveWorkspaceId(Room room, String userId) {
+		if (room == null) {
+			return null;
+		}
+		Map<String, Object> options = room.getOptionsMap();
+		String fromOptions = extractWorkspaceIdFromOptionField(options != null ? options.get("workspace") : null);
+		if (fromOptions != null) {
+			return fromOptions;
+		}
+		return getRoomWorkspaceId(room.getId(), userId);
+	}
+
+	/**
+	 * Mirrors {@code AgentRunner}'s private helper of the same purpose: a
+	 * room's {@code options.workspace} field may be absent, a bare id string,
+	 * or a map with a {@code workspace_id} entry (the shape
+	 * {@code AgentRunner}'s workspace overlay writes).
+	 */
+	@SuppressWarnings("unchecked")
+	private static String extractWorkspaceIdFromOptionField(Object workspaceField) {
+		if (workspaceField == null) {
+			return null;
+		}
+		if (workspaceField instanceof String) {
+			String s = ((String) workspaceField).trim();
+			return s.isEmpty() ? null : s;
+		}
+		if (workspaceField instanceof Map) {
+			Object id = ((Map<String, Object>) workspaceField).get("workspace_id");
+			if (id == null) {
+				return null;
+			}
+			String s = String.valueOf(id).trim();
+			return s.isEmpty() ? null : s;
+		}
+		return null;
 	}
 
 	/**
