@@ -149,6 +149,29 @@ public class NodeTranslator {
 	}
 
 	/**
+	 * Drops the Node executor retained for this translator's Insight.
+	 */
+	public void removeInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "REMOVE_INSIGHT_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (!sc.isConnected()) {
+			throw new SemossPixelException("The node execution engine is no longer available.");
+		}
+		ps = (PayloadStruct) sc.executeCommand(ps);
+		if (ps == null) {
+			throw new SemossPixelException("Received a null response from the node worker");
+		}
+		if (ps.ex != null) {
+			throw new SemossPixelException(ps.ex);
+		}
+	}
+
+	/**
 	 * Replace the host folder paths with the same placeholder tokens the python
 	 * translator uses, so absolute server paths never reach the model or the
 	 * browser.

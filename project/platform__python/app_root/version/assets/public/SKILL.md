@@ -9,7 +9,7 @@ Python code in a platform app runs in a managed runtime backed by a TCP server p
 
 ## Choose the execution route
 
-- Use `ExecutePythonCode` for inline Python during a RunAgent task. It executes through the same managed runtime as `PyReactor`; the last expression is returned.
+- Use `ExecutePythonCode` for inline Python during a RunAgent task. It executes through the same managed runtime as `PyReactor`; the last expression is returned and user-defined state is retained for later calls in the same room during the current login session while the worker remains alive.
 - Use a Python MCP function for a reusable, typed capability that agents should call repeatedly.
 - Use `BashCommand` to run a packaged `.py` file only when that script does not need managed-runtime variables. A separate shell Python process does not receive `ROOT`, `APP_ROOT`, or `USER_ROOT`.
 
@@ -21,6 +21,14 @@ sorted(os.listdir(USER_ROOT))
 ```
 
 For RunAgent, `ROOT` is the active working directory selected by `space` and `subdir`. `USER_ROOT` is the authenticated user's asset-app root even when `ROOT` targets an insight or editable project. `APP_ROOT` follows the current platform app context and is absent when the insight does not have one.
+
+## Runtime state and isolation
+
+`ExecutePythonCode` behaves like a room-local notebook kernel within the current login session. Variables, functions, and imports created by one call are available to later calls from the same room. A different room, including a subagent's child room, receives a different namespace. The namespace is in memory only: restarting the managed Python worker, logging out, or restarting the platform clears it. A new login receives a new namespace. Persist anything that must survive those events to a file under `ROOT`.
+
+The room namespace belongs only to `ExecutePythonCode`. Python MCP tools, app helpers, direct `PyReactor` calls, and engine-owned Python continue to use their existing Insight- or engine-scoped namespaces. Do not depend on an MCP function seeing variables created by `ExecutePythonCode`, or the reverse.
+
+If a later call changes the RunAgent `space` or `subdir`, the room namespace remains, but `ROOT`, `APP_ROOT`, and `USER_ROOT` are refreshed for that execution. Avoid retaining open file handles or derived paths when switching targets; read the current runtime variables again.
 
 ## What the platform injects vs what you import
 

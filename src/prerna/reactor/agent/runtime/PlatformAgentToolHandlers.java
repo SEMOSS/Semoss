@@ -62,13 +62,16 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
+import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
@@ -198,7 +201,10 @@ final class PlatformAgentToolHandlers {
 		}
 		if (isPythonToolEnabled()) {
 			add(tools, handler("ExecutePythonCode",
-					"Executes inline Python in the platform's managed Python runtime. The bare ROOT and "
+					"Executes inline Python in the platform's managed Python runtime. Python state persists "
+							+ "across calls in this room during the current login session while the managed worker "
+							+ "remains alive; use files under ROOT "
+							+ "for durable state. The bare ROOT and "
 							+ "USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the "
 							+ "agent working directory and USER_ROOT is the authenticated user's asset-app root. "
 							+ "APP_ROOT is additionally available when the insight has a current app context. "
@@ -210,7 +216,9 @@ final class PlatformAgentToolHandlers {
 		if (NodeUtils.isNodeToolEnabled()) {
 			add(tools, handler("ExecuteNodeCode",
 					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
-							+ "calls within this conversation (assign to globalThis for durable state when using "
+							+ "calls in this room during the current login session while the managed worker remains "
+							+ "alive; use files under ROOT for "
+							+ "durable state and assign to globalThis for retained state when using "
 							+ "top-level await). The value of the last expression is returned (use an explicit "
 							+ "'return' with top-level await); console output is captured and returned too. "
 							+ "require() resolves only against the curated platform packages: "
@@ -676,11 +684,19 @@ final class PlatformAgentToolHandlers {
 		}
 
 		try {
-			// PyTranslator derives ROOT from the Insight. Reassert the harness working
-			// directory immediately before execution so PyReactor-compatible variables
-			// describe this run's selected space/subdir.
-			tc.ctx.getInsight().setInsightFolder(tc.root);
-			Object output = tc.ctx.getInsight().getPyTranslator().runScript(code);
+			Insight executionInsight = tc.ctx.getInsight();
+			User user = executionInsight.getUser();
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getPythonSocketClient(true);
+						PyTranslator translator = new PyTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(code);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
 			return formatPythonOutput(output);
 		} catch (Exception e) {
 			logger.warn("ExecutePythonCode failed", e);
@@ -732,14 +748,37 @@ final class PlatformAgentToolHandlers {
 			return "Error: no user is associated with this agent run";
 		}
 		try {
-			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
-			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
-			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L);
+			Insight executionInsight = tc.ctx.getInsight();
+			long timeoutMs = timeoutSeconds * 1000L;
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getNodeSocketClient(true);
+						NodeTranslator translator = new NodeTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(executionInsight, code, timeoutMs);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
 			return formatNodeOutput(output);
 		} catch (Exception e) {
 			logger.warn("ExecuteNodeCode failed", e);
 			String message = e.getMessage() != null ? e.getMessage() : e.toString();
 			return "Error: " + message;
+		}
+	}
+
+	private static void interruptRoomExecutionIfCancelled(SocketClient socketClient, Insight roomInsight,
+			AgentRunContext ctx) {
+		if (!Thread.currentThread().isInterrupted()) {
+			return;
+		}
+		try {
+			socketClient.interruptInsightJob(roomInsight.getInsightId(), ctx.getRunId());
+		} catch (RuntimeException e) {
+			logger.warn("Failed to interrupt managed code execution for room '{}' and run '{}'",
+					ctx.getRoom().getId(), ctx.getRunId(), e);
 		}
 	}
 
