@@ -71,12 +71,16 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * still catalogs).
  *
  * <p>
- * The agent's tools and skills are derived from {@link SystemDefaultEngines} so
- * they stay in sync with the platform lists automatically:
+ * The App Building Agent's tools and skills are derived from
+ * {@link SystemDefaultEngines} so they stay in sync with the platform lists:
  * <ul>
  * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs()}</li>
  * <li>skills = {@link SystemDefaultEngines#getSystemSkills()}</li>
  * </ul>
+ * The PPTX Reviewer uses only built-in tools, with file mutations and further
+ * delegation disabled. Its InspectPptx result ends the run directly.
+ * The PPTX Agent uses the platform pptx skill and the managed BuildPptx workflow,
+ * with the system PPTX Reviewer attached for visual inspection.
  */
 public class SystemAgentSeeder {
 
@@ -215,22 +219,36 @@ public class SystemAgentSeeder {
 	}
 
 	/**
-	 * Tools = the headless system MCP apps. Deliberately the agent subset rather
-	 * than every cataloged platform MCP, so adding a UI-driven MCP to the catalog
-	 * does not silently change this agent's toolset.
+	 * The App Building Agent uses the headless system MCP apps. The PPTX agents
+	 * need only built-in tools; installation-specific MCPs are not seeded.
 	 */
 	private static List<String> toolIds(String agentId) {
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId) || Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of();
+		}
 		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs());
 	}
 
-	/** Skills = all platform skills. */
+	/** The PPTX author needs only pptx; its reviewer needs no skills. */
 	private static List<String> skillIds(String agentId) {
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return List.of();
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of(Constants.SKILL_PPTX);
+		}
 		return new ArrayList<>(SystemDefaultEngines.getSystemSkills());
 	}
 
 	private static String displayName(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "App Building Agent";
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return "PPTX Agent";
+		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return "PPTX Reviewer";
 		}
 		return agentId;
 	}
@@ -239,12 +257,24 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return "System agent for building platform apps.";
 		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return "System agent for creating and editing PowerPoint presentations with validation and visual review.";
+		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return "System agent for visually reviewing saved PowerPoint presentations.";
+		}
 		return "";
 	}
 
 	private static String systemPrompt(String agentId) {
 		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
 			return APP_BUILDER_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return PPTX_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			return PPTX_REVIEWER_SYSTEM_PROMPT;
 		}
 		return "";
 	}
@@ -316,8 +346,80 @@ public class SystemAgentSeeder {
 			hooks.put(new JSONObject().put("kind", GIT_COMMIT_HOOK_KIND));
 			config.put("hooks", hooks);
 		}
+
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+			config.put("hooks", new JSONArray());
+			config.put("subagents", new JSONArray().put(new JSONObject()
+					.put("workspaceId", Constants.AGENT_PPTX_REVIEWER)));
+			config.put("budgets", new JSONObject().put("finishing_turns", 6));
+			config.put("spawn_policy", new JSONObject()
+					.put("max_subagents_per_run", 2)
+					.put("max_spawns_per_turn", 1));
+			config.put("tool_policy", new JSONObject()
+					.put("default_tools", new JSONObject().put("disabled", new JSONArray(List.of(
+							"InspectPptx", "ExecuteNodeCode"))))
+					.put("read_only_paths", new JSONArray(List.of(".claude/skills/pptx", ".semoss/pptx-workflow"))));
+			config.put("pptx_workflow", new JSONObject()
+					.put("enabled", true)
+					.put("reviewer_alias", "agent_pptx_reviewer")
+					.put("repair_turns", 6)
+					.put("review_timeout_seconds", 600));
+		}
+
+		if (Constants.AGENT_PPTX_REVIEWER.equals(agentId)) {
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+			config.put("subagents", new JSONArray());
+			config.put("hooks", new JSONArray());
+			config.put("budgets", new JSONObject()
+					.put("max_turns", 3)
+					.put("max_reflections", 0)
+					.put("max_seconds", 900)
+					.put("finishing_turns", 1));
+			config.put("spawn_policy", new JSONObject()
+					.put("max_subagent_depth", 0)
+					.put("max_subagents_per_run", 0)
+					.put("max_spawns_per_turn", 0));
+			config.put("tool_policy", new JSONObject()
+					.put("default_tools", new JSONObject().put("disabled", new JSONArray(List.of(
+							"WriteFile", "EditFile", "MultiEdit", "MoveFile", "DeleteFile", "BashCommand",
+							"ExecuteNodeCode", "TodoWrite"))))
+					.put("result_tool", "InspectPptx"));
+			// Model ids are deployment-specific. Use the selected/inherited agent model
+			// and an explicit InspectPptx.engine or the deployment's PPTX_VISION_MODEL_ID.
+		}
 		return config;
 	}
+
+	/** Keep docs/agents/pptx-author-workflow-prompt.txt in sync with this prompt. */
+	private static final String PPTX_SYSTEM_PROMPT = """
+			You are the PPTX authoring agent. Create or edit the requested PowerPoint in the SEMOSS working directory. Preserve the user's content, filename, requested slide count, template, branding and visual direction. Make purposeful, editable slides with audience-appropriate language.
+
+			Load the pptx skill with LoadSkill. For a new deck, read one relevant example and pptx/references/generation.md. Use pptx/references/components.md for component options. For an existing deck, read pptx/references/editing.md and preserve its design and unrelated content. Read only references needed for the task; continue at the supplied offset if a read is truncated.
+
+			Save the complete authoring or editing program as build-deck.js using WriteFile. It must be one (async () => { ... })() with all declarations inside it and all asynchronous work awaited. ROOT is the working directory; save the exact requested filename with path.join(ROOT, filename). Use the curated pptxgenjs package and packaged deck helper, as shown in the examples. Native objects and components may be freely combined; the examples do not impose a fixed layout or slide count. Replace example content and imagery to suit the request; never invent data for a chart.
+
+			Call BuildPptx alone with generator="build-deck.js", the exact filePath, the requested expectedSlides, and instructions describing the review criteria and design constraints. Include engine only when the caller supplied a vision model ID, preserving that exact ID. SEMOSS executes the saved generator, independently validates the output, and invokes the system PPTX Reviewer automatically. No human approval is needed between these stages.
+
+			If BuildPptx returns repair_required, address its structural error or significant visual findings in one batch of generator edits. Then call BuildPptx with the same generator, filename and slide count before the stated repair budget expires. Prefer MultiEdit for several known changes. Read the affected lines after an exact-text edit fails. Prioritize saving and checking the repair over optional refinement. Advisory structural warnings are passed to the reviewer automatically. Provider failures and incomplete reviews end with an accurate disclosure; they do not authorize redesign or repeated reviewer calls.
+
+			Packaged files under .claude/skills/pptx are read-only. Use documented component options or native editable objects for layout fixes. Top-level x,y,w,h and nested geometry:{x,y,w,h} are supported for components. Do not run local rendering commands, install packages, or modify the helper implementation.
+
+			BuildPptx owns the review cycle and final delivery. ExecuteNodeCode and manual reviewer delegation are unavailable in this managed workflow. A source-code edit is not part of the delivered presentation until BuildPptx saves and checks it. SEMOSS reports the actual saved file, check coverage, and any unresolved findings.""";
+
+	/** Keep the documented reviewer prompt in docs/agents/pptx-reviewer-prompt.txt in sync. */
+	private static final String PPTX_REVIEWER_SYSTEM_PROMPT = """
+			You are the PPTX Reviewer. Inspect the saved PowerPoint against the caller's review brief. The author owns presentation edits.
+
+			Read the task for filePath, optional original 1-based slides, review instructions, context, and optional vision engine ID. Call InspectPptx once. Omit slides for the whole deck. When the caller supplies engine or explicitly identifies a vision model ID, pass that exact ID as InspectPptx.engine. Any accessible image-capable SEMOSS text-generation model may be selected; do not replace the requested ID with your agent model or a preferred provider. When no ID is supplied, omit engine and use the configured tool/deployment default. Your agent model operates tools; the engine argument controls the separate image requests.
+
+			InspectPptx renders through UnoServer, sends actual images to the selected engine, validates its output, and retries individual transient/format failures within a small tool-owned budget. Call it alone. Its configured result-tool behavior returns the report directly, ending this reviewer run without a summarization or retry loop.
+
+			Preserve the requested scope and slide IDs. Review visible layout, clipping, overlap, text/chart-label readability and consistency. Distinguish major usability defects from advisory style preferences. Do not invent facts or ask the author to rebuild the deck because of a model/provider failure. Never edit files, run authoring commands, or delegate further.
+
+			Treat report status, verdict, coverage, sourceHash/sourceChanged, issues, limitations, errors, engine and artifacts as authoritative. Partial or inconclusive output is not a pass. A targeted review does not establish whole-deck coverage. Return setup/input errors without silently switching models or retrying identical requests. Images are seen by InspectPptx's vision engine; you receive its structured text report.""";
 
 	/**
 	 * System prompt for the App Building agent. Kept as a text block so it reads as
