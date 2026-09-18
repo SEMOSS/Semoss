@@ -57,9 +57,9 @@ import prerna.util.Utility;
 /**
  * JDBC-backed CRUD for the MEMORY / MEMORY_AUDIT tables in the
  * ModelInferenceLogsDatabase. This is the platform-native replacement for the
- * memory_mcp app's H2-over-Pixel storage layer: scoping mirrors ROOM (a
- * memory always has a USER_ID owner, and may optionally reference a ROOM_ID
- * and/or WORKSPACE_ID for shared visibility - see MemoryUtils#listMemories).
+ * memory_mcp app's H2-over-Pixel storage layer: scoping mirrors ROOM (a memory
+ * always has a USER_ID owner, and may optionally reference a ROOM_ID and/or
+ * WORKSPACE_ID for shared visibility - see MemoryUtils#listMemories).
  *
  * Classification (auto event_type), embedding-based dedup, action items, and
  * compaction are intentionally out of scope for this first CRUD pass and are
@@ -78,20 +78,22 @@ public class MemoryUtils {
 	private static final java.util.Set<String> VALID_ACTION_ITEM_STATUSES = java.util.Set.of("open", "in_progress",
 			"blocked", "completed", "cancelled");
 
-	/** Default vector engine used for memory duplicate detection when the
-	 * caller does not specify one and the user has no personal preference set
-	 * (see {@link #getUserVectorEngineId}/{@link #resolveVectorEngineId}). A
-	 * FAISS engine (local, no external DB dependency) created via
+	/**
+	 * Default vector engine used for memory duplicate detection when the caller
+	 * does not specify one and the user has no personal preference set (see
+	 * {@link #getUserVectorEngineId}/{@link #resolveVectorEngineId}). A FAISS
+	 * engine (local, no external DB dependency) created via
 	 * CreateVectorDatabaseEngine, embedding through
 	 * e4449559-bcff-4941-ae72-0e3f18e06660. Replaces the earlier JSON-blob +
 	 * brute-force-cosine approach with real ANN search.
 	 *
 	 * <p>
 	 * This is a recommended starting default, not a hard platform requirement:
-	 * every caller of it goes through {@link #resolveVectorEngineId}, which
-	 * treats a missing/deleted/misconfigured engine exactly like "no vector
-	 * engine configured" (dedup/indexing silently skipped, never an error) -
-	 * see {@link #findDuplicateMemoryViaVector}/{@link #indexMemoryEmbedding}. */
+	 * every caller of it goes through {@link #resolveVectorEngineId}, which treats
+	 * a missing/deleted/misconfigured engine exactly like "no vector engine
+	 * configured" (dedup/indexing silently skipped, never an error) - see
+	 * {@link #findDuplicateMemoryViaVector}/{@link #indexMemoryEmbedding}.
+	 */
 	public static final String DEFAULT_VECTOR_ENGINE_ID = "c44a44a2-30a0-4d5d-898a-4e0b9dcdf0b3";
 
 	private static final String MEMORY_USER_SETTINGS_TABLE = "MEMORY_USER_SETTINGS";
@@ -105,12 +107,12 @@ public class MemoryUtils {
 	 * per-call override, else the user's own configured preference (see
 	 * {@link #getUserVectorEngineId}/{@link #setUserVectorEngineId}), else the
 	 * platform default. Never validates that the resolved id actually exists -
-	 * every caller of the resolved id already treats a bad/missing engine as
-	 * "skip silently" (see {@link #findDuplicateMemoryViaVector}), so a stale
-	 * or deleted preference can never turn into a hard error for the user.
+	 * every caller of the resolved id already treats a bad/missing engine as "skip
+	 * silently" (see {@link #findDuplicateMemoryViaVector}), so a stale or deleted
+	 * preference can never turn into a hard error for the user.
 	 *
-	 * @param explicitEngineId engine id passed directly to this call, or blank
-	 *                         to fall through to the next source
+	 * @param explicitEngineId engine id passed directly to this call, or blank to
+	 *                         fall through to the next source
 	 * @param userId           user whose preference to check, or blank to skip
 	 *                         straight to the platform default
 	 * @return the resolved engine id, or {@code null} if nothing is configured
@@ -133,8 +135,8 @@ public class MemoryUtils {
 	 * Fetches a user's configured default vector engine for memory operations.
 	 *
 	 * @param userId user identifier
-	 * @return the configured vector engine id, or {@code null} if the user has
-	 *         not set one
+	 * @return the configured vector engine id, or {@code null} if the user has not
+	 *         set one
 	 */
 	public static String getUserVectorEngineId(String userId) {
 		if (userId == null || userId.isBlank()) {
@@ -157,15 +159,14 @@ public class MemoryUtils {
 
 	/**
 	 * Sets (or clears) a user's configured default vector engine for memory
-	 * operations. Does not validate that the engine exists or is a vector
-	 * engine - an invalid value simply behaves like "no engine configured" the
-	 * next time it's resolved (see {@link #resolveVectorEngineId}), never a
-	 * hard error.
+	 * operations. Does not validate that the engine exists or is a vector engine -
+	 * an invalid value simply behaves like "no engine configured" the next time
+	 * it's resolved (see {@link #resolveVectorEngineId}), never a hard error.
 	 *
-	 * @param userId        user identifier (required)
+	 * @param userId         user identifier (required)
 	 * @param vectorEngineId engine id to use going forward, or {@code null}/blank
-	 *                       to clear the preference and fall back to the
-	 *                       platform default
+	 *                       to clear the preference and fall back to the platform
+	 *                       default
 	 */
 	public static void setUserVectorEngineId(String userId, String vectorEngineId) {
 		if (userId == null || userId.isBlank()) {
@@ -177,8 +178,10 @@ public class MemoryUtils {
 		boolean hasExistingRow = getUserSettingsRowExists(modelInferenceLogsDb, userId);
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 		String query = hasExistingRow
-				? "UPDATE " + MEMORY_USER_SETTINGS_TABLE + " SET VECTOR_ENGINE_ID = ?, DATE_UPDATED = ? WHERE USER_ID = ?"
-				: "INSERT INTO " + MEMORY_USER_SETTINGS_TABLE + " (VECTOR_ENGINE_ID, DATE_UPDATED, USER_ID) VALUES (?, ?, ?)";
+				? "UPDATE " + MEMORY_USER_SETTINGS_TABLE
+						+ " SET VECTOR_ENGINE_ID = ?, DATE_UPDATED = ? WHERE USER_ID = ?"
+				: "INSERT INTO " + MEMORY_USER_SETTINGS_TABLE
+						+ " (VECTOR_ENGINE_ID, DATE_UPDATED, USER_ID) VALUES (?, ?, ?)";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -191,8 +194,7 @@ public class MemoryUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to set memory vector engine preference for userId '{}'.", userId, e);
-			throw new IllegalArgumentException("Error setting memory vector engine preference: " + e.getMessage(),
-					e);
+			throw new IllegalArgumentException("Error setting memory vector engine preference: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
@@ -223,14 +225,14 @@ public class MemoryUtils {
 	 * @param metadata       optional JSON-serializable metadata map
 	 * @param parentMemoryId optional parent memory this is derived from
 	 * @param metaFilters    optional flat key -&gt; values metadata to register as
-	 *                       filterable dimensions in MEMORY_META (distinct from
-	 *                       the free-form {@code metadata} JSON blob - see
+	 *                       filterable dimensions in MEMORY_META (distinct from the
+	 *                       free-form {@code metadata} JSON blob - see
 	 *                       {@link #ensureMemoryMetaKeyExists})
 	 * @return the generated memory id
 	 */
-	public static String addMemory(String userId, String content, String eventType, String roomId,
-			String workspaceId, String projectId, String agentId, Map<String, Object> metadata,
-			String parentMemoryId, Map<String, Object> metaFilters) {
+	public static String addMemory(String userId, String content, String eventType, String roomId, String workspaceId,
+			String projectId, String agentId, Map<String, Object> metadata, String parentMemoryId,
+			Map<String, Object> metaFilters) {
 		if (userId == null || userId.isBlank()) {
 			throw new IllegalArgumentException("userId is required to add a memory.");
 		}
@@ -284,10 +286,10 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Per-event-type similarity thresholds above which a new memory is
-	 * considered a duplicate of an existing one, mirroring the memory_mcp app's
-	 * dedup behavior. "decision" memories use a tighter threshold since two
-	 * similar-but-distinct decisions are more consequential to conflate.
+	 * Per-event-type similarity thresholds above which a new memory is considered a
+	 * duplicate of an existing one, mirroring the memory_mcp app's dedup behavior.
+	 * "decision" memories use a tighter threshold since two similar-but-distinct
+	 * decisions are more consequential to conflate.
 	 */
 	private static final Map<String, Double> DUPLICATE_THRESHOLDS = Map.of("decision", 0.95);
 	private static final double DEFAULT_DUPLICATE_THRESHOLD = 0.85;
@@ -295,19 +297,19 @@ public class MemoryUtils {
 	/**
 	 * Over-fetch size for the nearest-neighbor search: vector engines have no
 	 * native "filter by user/workspace before searching" concept, so this pulls
-	 * more candidates than needed and filters by scope in Java (see class
-	 * javadoc on the memory-vector-search design: a single shared FAISS index
-	 * for all memories keeps provisioning simple, at the cost of some wasted ANN
-	 * budget on out-of-scope candidates - cheap at this scale).
+	 * more candidates than needed and filters by scope in Java (see class javadoc
+	 * on the memory-vector-search design: a single shared FAISS index for all
+	 * memories keeps provisioning simple, at the cost of some wasted ANN budget on
+	 * out-of-scope candidates - cheap at this scale).
 	 */
 	private static final int DEDUP_CANDIDATE_LIMIT = 20;
 
 	/**
-	 * Default page size for {@link #listMemories} when the caller doesn't pass
-	 * one. Listing is never truly unbounded - even a plain recency-ordered
-	 * listing with no search term is capped here, so a caller (agent or UI)
-	 * that forgets to pass a limit can't accidentally pull back a user's
-	 * entire memory history in one call.
+	 * Default page size for {@link #listMemories} when the caller doesn't pass one.
+	 * Listing is never truly unbounded - even a plain recency-ordered listing with
+	 * no search term is capped here, so a caller (agent or UI) that forgets to pass
+	 * a limit can't accidentally pull back a user's entire memory history in one
+	 * call.
 	 */
 	private static final int DEFAULT_LIST_LIMIT = 20;
 
@@ -325,18 +327,18 @@ public class MemoryUtils {
 	 * over-fetched candidates down to the caller's scope (owner or workspace) by
 	 * looking each candidate up in MEMORY.
 	 *
-	 * @param vectorEngineId engine id of the vector database to search, or blank
-	 *                       to skip dedup entirely
+	 * @param vectorEngineId engine id of the vector database to search, or blank to
+	 *                       skip dedup entirely
 	 * @param insight        insight context to run the search under
-	 * @param userId         owner scope to search within (used when workspaceId
-	 *                       is blank)
+	 * @param userId         owner scope to search within (used when workspaceId is
+	 *                       blank)
 	 * @param workspaceId    optional workspace scope to search within instead
-	 * @param agentId        optional agent/workspace-persona scope (ROOM.WORKSPACE_ID)
-	 *                       to additionally require a match on - without this, a
-	 *                       memory captured under one agent could get silently
-	 *                       merged into a similar memory captured under a
-	 *                       different agent for the same user, leaving the new
-	 *                       fact permanently invisible to the agent it was
+	 * @param agentId        optional agent/workspace-persona scope
+	 *                       (ROOM.WORKSPACE_ID) to additionally require a match on
+	 *                       - without this, a memory captured under one agent could
+	 *                       get silently merged into a similar memory captured
+	 *                       under a different agent for the same user, leaving the
+	 *                       new fact permanently invisible to the agent it was
 	 *                       actually told to. Ignored when {@code workspaceId} is
 	 *                       set (workspace-shared memories are cross-agent by
 	 *                       design).
@@ -386,7 +388,8 @@ public class MemoryUtils {
 		// normal 0-1 similarity to compare against the same thresholds other
 		// (already-normalized) vector engines use.
 		//
-		// Note: vectorEngine here is typically a dynamic proxy (PipelineInvocationHandler)
+		// Note: vectorEngine here is typically a dynamic proxy
+		// (PipelineInvocationHandler)
 		// wrapping the real engine over a Python socket bridge, so an
 		// `instanceof FaissDatabaseEngine` check on the concrete class always fails -
 		// checking the interface-exposed VECTOR_TYPE property instead works
@@ -429,8 +432,8 @@ public class MemoryUtils {
 	/**
 	 * Indexes a memory's content into the vector engine for future duplicate
 	 * detection, keyed by the memory's own id (so a nearest-neighbor hit can be
-	 * looked back up directly). Best-effort: a failure here does not fail the
-	 * add, it just means this memory will not be found as a future duplicate.
+	 * looked back up directly). Best-effort: a failure here does not fail the add,
+	 * it just means this memory will not be found as a future duplicate.
 	 *
 	 * @param vectorEngineId engine id of the vector database to index into, or
 	 *                       blank to skip
@@ -472,9 +475,10 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Writes a single-row CSV matching {@link prerna.engine.impl.vector.VectorDatabaseCSVTable}'s
-	 * expected columns (Source, Modality, Divider, Part, Tokens, Content), quoting
-	 * the content so embedded commas/quotes/newlines round-trip correctly.
+	 * Writes a single-row CSV matching
+	 * {@link prerna.engine.impl.vector.VectorDatabaseCSVTable}'s expected columns
+	 * (Source, Modality, Divider, Part, Tokens, Content), quoting the content so
+	 * embedded commas/quotes/newlines round-trip correctly.
 	 */
 	private static void writeMemoryEmbeddingCsv(java.io.File file, String memoryId, String content)
 			throws java.io.IOException {
@@ -485,8 +489,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Removes a memory's vector entry, e.g. after a delete. Best-effort: logged
-	 * and swallowed on failure so a vector-engine hiccup never blocks a delete.
+	 * Removes a memory's vector entry, e.g. after a delete. Best-effort: logged and
+	 * swallowed on failure so a vector-engine hiccup never blocks a delete.
 	 *
 	 * @param vectorEngineId engine id of the vector database, or blank to skip
 	 * @param memoryId       id of the memory being removed
@@ -508,8 +512,8 @@ public class MemoryUtils {
 
 	/**
 	 * Calls a reasoning model engine to classify memory content into one of the
-	 * supported event types. Falls back to "memory" if {@code reasoningEngineId}
-	 * is blank or the model call fails/returns an unrecognized value.
+	 * supported event types. Falls back to "memory" if {@code reasoningEngineId} is
+	 * blank or the model call fails/returns an unrecognized value.
 	 *
 	 * @param reasoningEngineId engine id of the reasoning model, or blank to skip
 	 *                          classification
@@ -544,14 +548,14 @@ public class MemoryUtils {
 		}
 	}
 
-	private static final java.util.Set<String> EVENT_TYPES = java.util.Set.of("memory", "decision", "lesson",
-			"error", "task", "session_summary", "user_preference", "observation", "status_update");
+	private static final java.util.Set<String> EVENT_TYPES = java.util.Set.of("memory", "decision", "lesson", "error",
+			"task", "session_summary", "user_preference", "observation", "status_update");
 
 	/**
-	 * Combines two or more memories into a single summary memory. Source
-	 * memories are marked with {@code SUPERSEDES_MEMORY_ID} pointing at the new
-	 * summary (they are not deleted - they remain available for audit/history).
-	 * Only the creator of every source memory may compact them.
+	 * Combines two or more memories into a single summary memory. Source memories
+	 * are marked with {@code SUPERSEDES_MEMORY_ID} pointing at the new summary
+	 * (they are not deleted - they remain available for audit/history). Only the
+	 * creator of every source memory may compact them.
 	 *
 	 * @param userId            user requesting the compaction (must own every
 	 *                          source memory)
@@ -632,12 +636,12 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Generates summary text for a set of source memories via a reasoning
-	 * model, falling back to a simple concatenation when
-	 * {@code reasoningEngineId} is blank or the model call fails.
+	 * Generates summary text for a set of source memories via a reasoning model,
+	 * falling back to a simple concatenation when {@code reasoningEngineId} is
+	 * blank or the model call fails.
 	 *
-	 * @param reasoningEngineId engine id of the reasoning model, or blank to
-	 *                          skip straight to the fallback
+	 * @param reasoningEngineId engine id of the reasoning model, or blank to skip
+	 *                          straight to the fallback
 	 * @param insight           insight context to run the model call under
 	 * @param sources           source memory rows (must contain "content")
 	 * @return summary text, always non-blank
@@ -691,70 +695,64 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Lists non-deleted memories visible to a user: memories they own, plus
-	 * (when {@code workspaceId} is supplied) memories shared to that workspace.
-	 * Callers are responsible for verifying the user can view the workspace
-	 * before passing it in (see SecurityProjectUtils#userCanViewProject).
+	 * Lists non-deleted memories visible to a user: memories they own, plus (when
+	 * {@code workspaceId} is supplied) memories shared to that workspace. Callers
+	 * are responsible for verifying the user can view the workspace before passing
+	 * it in (see SecurityProjectUtils#userCanViewProject).
 	 *
-	 * @param userId             requesting user (required)
-	 * @param workspaceId        optional workspace scope the user has view
-	 *                           access to
-	 * @param roomId             optional room to restrict results to
-	 * @param agentId            optional agent/workspace id (see
-	 *                           {@code ROOM.WORKSPACE_ID} /
-	 *                           {@code SetRoomWorkspaceReactor}) to restrict
-	 *                           results to - always ANDed with the
-	 *                           ownership/workspace-share check above, never a
-	 *                           substitute for it, so this can be used to
-	 *                           recall "everything I told this agent" without
-	 *                           exposing other users' memories
-	 * @param eventTypes         optional event-type filter, OR'd together
-	 *                           (multi-value)
-	 * @param search             optional free-text query. When a vector engine
-	 *                           resolves (see {@code vectorEngineId}), this is
-	 *                           matched by semantic similarity within the same
-	 *                           visibility scope, ranked most-relevant first,
-	 *                           and capped by {@code limit} - not a literal
-	 *                           substring scan of every visible memory. Falls
-	 *                           back to a plain case-insensitive substring
-	 *                           match when no vector engine is available or the
-	 *                           search returns no usable candidates.
-	 * @param metaFilters        optional metakey -&gt; values filters, AND'd
-	 *                           across keys and OR'd within a key's values
-	 *                           (mirrors PROMPTMETA / ENGINEMETA subquery
-	 *                           filtering)
-	 * @param projectId          optional project/app scope: narrows to
-	 *                           memories captured while that specific
-	 *                           project/app's room was active (informational -
-	 *                           separate from which agent was attached to the
-	 *                           room, see {@code agentId})
-	 * @param includeSuperseded  when {@code false} (the default), memories that
-	 *                           have already been folded into a
-	 *                           {@code CompactMemories} summary
-	 *                           ({@code SUPERSEDES_MEMORY_ID} set) are excluded
-	 *                           - the summary already covers them, so showing
-	 *                           both is redundant noise for a caller (agent or
-	 *                           human) just trying to recall what's relevant.
-	 *                           Pass {@code true} to see the full, uncollapsed
-	 *                           history (e.g. for an audit view).
-	 * @param vectorEngineId     resolved vector engine id to use for semantic
-	 *                           ranking of {@code search} (see
-	 *                           {@link #resolveVectorEngineId}), or blank to
-	 *                           force the plain substring path
-	 * @param insight            insight context to run the embedding/search
-	 *                           call under; required only when semantic search
-	 *                           is actually attempted
-	 * @param limit              max rows to return; defaults to
-	 *                           {@link #DEFAULT_LIST_LIMIT} when
-	 *                           {@code null}/&lt;=0 - listing is never
-	 *                           unbounded, even for a caller that forgets to
-	 *                           pass a limit
-	 * @param offset             rows to skip, or {@code null}/&lt;0 for no
-	 *                           offset (ignored once semantic ranking is used -
-	 *                           relevance order doesn't paginate meaningfully)
-	 * @return a map with {@code memories} (the page of rows, most relevant/
-	 *         recent first), {@code total_count} (rows matching the filters
-	 *         across all pages), and {@code has_more}
+	 * @param userId            requesting user (required)
+	 * @param workspaceId       optional workspace scope the user has view access to
+	 * @param roomId            optional room to restrict results to
+	 * @param agentId           optional agent/workspace id (see
+	 *                          {@code ROOM.WORKSPACE_ID} /
+	 *                          {@code SetRoomWorkspaceReactor}) to restrict results
+	 *                          to - always ANDed with the ownership/workspace-share
+	 *                          check above, never a substitute for it, so this can
+	 *                          be used to recall "everything I told this agent"
+	 *                          without exposing other users' memories
+	 * @param eventTypes        optional event-type filter, OR'd together
+	 *                          (multi-value)
+	 * @param search            optional free-text query. When a vector engine
+	 *                          resolves (see {@code vectorEngineId}), this is
+	 *                          matched by semantic similarity within the same
+	 *                          visibility scope, ranked most-relevant first, and
+	 *                          capped by {@code limit} - not a literal substring
+	 *                          scan of every visible memory. Falls back to a plain
+	 *                          case-insensitive substring match when no vector
+	 *                          engine is available or the search returns no usable
+	 *                          candidates.
+	 * @param metaFilters       optional metakey -&gt; values filters, AND'd across
+	 *                          keys and OR'd within a key's values (mirrors
+	 *                          PROMPTMETA / ENGINEMETA subquery filtering)
+	 * @param projectId         optional project/app scope: narrows to memories
+	 *                          captured while that specific project/app's room was
+	 *                          active (informational - separate from which agent
+	 *                          was attached to the room, see {@code agentId})
+	 * @param includeSuperseded when {@code false} (the default), memories that have
+	 *                          already been folded into a {@code CompactMemories}
+	 *                          summary ({@code SUPERSEDES_MEMORY_ID} set) are
+	 *                          excluded - the summary already covers them, so
+	 *                          showing both is redundant noise for a caller (agent
+	 *                          or human) just trying to recall what's relevant.
+	 *                          Pass {@code true} to see the full, uncollapsed
+	 *                          history (e.g. for an audit view).
+	 * @param vectorEngineId    resolved vector engine id to use for semantic
+	 *                          ranking of {@code search} (see
+	 *                          {@link #resolveVectorEngineId}), or blank to force
+	 *                          the plain substring path
+	 * @param insight           insight context to run the embedding/search call
+	 *                          under; required only when semantic search is
+	 *                          actually attempted
+	 * @param limit             max rows to return; defaults to
+	 *                          {@link #DEFAULT_LIST_LIMIT} when {@code null}/&lt;=0
+	 *                          - listing is never unbounded, even for a caller that
+	 *                          forgets to pass a limit
+	 * @param offset            rows to skip, or {@code null}/&lt;0 for no offset
+	 *                          (ignored once semantic ranking is used - relevance
+	 *                          order doesn't paginate meaningfully)
+	 * @return a map with {@code memories} (the page of rows, most relevant/ recent
+	 *         first), {@code total_count} (rows matching the filters across all
+	 *         pages), and {@code has_more}
 	 */
 	public static Map<String, Object> listMemories(String userId, String workspaceId, String roomId, String agentId,
 			List<String> eventTypes, String search, Map<String, Object> metaFilters, String projectId,
@@ -783,11 +781,12 @@ public class MemoryUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		addMemorySelectors(qs);
-		qs.addSelector(new prerna.query.querystruct.selectors.QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
+		qs.addSelector(
+				new prerna.query.querystruct.selectors.QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
 
 		AndQueryFilter visibilityFilter = new AndQueryFilter();
-		visibilityFilter
-				.addFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__DELETED", "==", false, PixelDataType.BOOLEAN));
+		visibilityFilter.addFilter(
+				SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__DELETED", "==", false, PixelDataType.BOOLEAN));
 		if (workspaceId != null && !workspaceId.isBlank()) {
 			// Shared scope: anyone with view access to the workspace (caller already
 			// verified before this call - see SecurityProjectUtils#userCanViewProject).
@@ -814,8 +813,7 @@ public class MemoryUtils {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__PROJECT_ID", "==", projectId));
 		}
 		if (eventTypes != null && !eventTypes.isEmpty()) {
-			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__EVENT_TYPE", "==", eventTypes));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__EVENT_TYPE", "==", eventTypes));
 		}
 		if (!Boolean.TRUE.equals(includeSuperseded)) {
 			// Hide memories already folded into a CompactMemories summary by default -
@@ -856,7 +854,8 @@ public class MemoryUtils {
 			for (int i = 0; i < semanticRankedIds.size(); i++) {
 				rankById.put(semanticRankedIds.get(i), i);
 			}
-			rows.sort(java.util.Comparator.comparingInt(row -> rankById.getOrDefault(row.get("memory_id"), Integer.MAX_VALUE)));
+			rows.sort(java.util.Comparator
+					.comparingInt(row -> rankById.getOrDefault(row.get("memory_id"), Integer.MAX_VALUE)));
 			if (rows.size() > effectiveLimit) {
 				rows = rows.subList(0, (int) effectiveLimit);
 			}
@@ -865,23 +864,23 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Over-fetches the vector engine's nearest neighbors for a free-text query
-	 * and returns just the memory ids, ranked most-similar first. Does
-	 * <b>not</b> filter by visibility scope itself - that's left to the SQL
-	 * query in {@link #listMemories}, which re-applies every ownership/scope
-	 * filter against this candidate list, so a semantic match still has to
-	 * pass the same checks a plain listing would.
+	 * Over-fetches the vector engine's nearest neighbors for a free-text query and
+	 * returns just the memory ids, ranked most-similar first. Does <b>not</b>
+	 * filter by visibility scope itself - that's left to the SQL query in
+	 * {@link #listMemories}, which re-applies every ownership/scope filter against
+	 * this candidate list, so a semantic match still has to pass the same checks a
+	 * plain listing would.
 	 *
 	 * @param vectorEngineId engine id to search (required, non-blank)
 	 * @param insight        insight context to run the embedding call under
 	 * @param query          free-text query to rank memories against
 	 * @param candidateLimit how many nearest neighbors to fetch
-	 * @return memory ids ordered by descending similarity, or an empty list if
-	 *         the search fails/returns nothing usable (best-effort - the
-	 *         caller falls back to a plain substring match in that case)
+	 * @return memory ids ordered by descending similarity, or an empty list if the
+	 *         search fails/returns nothing usable (best-effort - the caller falls
+	 *         back to a plain substring match in that case)
 	 */
-	private static List<String> rankMemoriesBySimilarity(String vectorEngineId, prerna.om.Insight insight,
-			String query, int candidateLimit) {
+	private static List<String> rankMemoriesBySimilarity(String vectorEngineId, prerna.om.Insight insight, String query,
+			int candidateLimit) {
 		try {
 			prerna.engine.api.IVectorDatabaseEngine vectorEngine = Utility.getVectorDatabase(vectorEngineId);
 			if (vectorEngine == null) {
@@ -913,15 +912,14 @@ public class MemoryUtils {
 
 	/**
 	 * Adds one AND'd subquery filter per metakey to {@code qs}, each restricting
-	 * MEMORY_ID to those present in MEMORY_META with that key and any of the
-	 * given values - the same subquery-per-metakey pattern PROMPTMETA/ENGINEMETA
-	 * use for their metadata filters.
+	 * MEMORY_ID to those present in MEMORY_META with that key and any of the given
+	 * values - the same subquery-per-metakey pattern PROMPTMETA/ENGINEMETA use for
+	 * their metadata filters.
 	 *
 	 * @param qs          query struct to add filters to
 	 * @param metaFilters optional metakey -&gt; values filters
 	 */
-	private static void addMemoryMetaFilters(SelectQueryStruct qs,
-			Map<String, Object> metaFilters) {
+	private static void addMemoryMetaFilters(SelectQueryStruct qs, Map<String, Object> metaFilters) {
 		if (metaFilters == null || metaFilters.isEmpty()) {
 			return;
 		}
@@ -937,22 +935,21 @@ public class MemoryUtils {
 			metaFilter.addFilter(
 					SimpleQueryFilter.makeColToValFilter(MEMORY_META_TABLE + "__METAVALUE", "==", entry.getValue()));
 			metaSubQs.addExplicitFilter(metaFilter);
-			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToSubQuery(MEMORY_TABLE + "__MEMORY_ID", "==", metaSubQs));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(MEMORY_TABLE + "__MEMORY_ID", "==", metaSubQs));
 		}
 	}
 
 	/**
 	 * Extracts the {@code total_row_count} window-count pseudo-column that
-	 * {@code COUNT(*) OVER()} adds to every row, removes it from each row map,
-	 * and packages the page into {@code {<itemsKey>, total_count, has_more}}.
+	 * {@code COUNT(*) OVER()} adds to every row, removes it from each row map, and
+	 * packages the page into {@code {<itemsKey>, total_count, has_more}}.
 	 *
-	 * @param rows      rows returned from a query that included a
-	 *                  {@code COUNT(*) OVER()} opaque selector aliased
-	 *                  {@code total_row_count}
-	 * @param itemsKey  key to store the (now-cleaned) rows under
-	 * @param limit     the limit that was applied (0 means "no limit")
-	 * @param offset    the offset that was applied
+	 * @param rows     rows returned from a query that included a
+	 *                 {@code COUNT(*) OVER()} opaque selector aliased
+	 *                 {@code total_row_count}
+	 * @param itemsKey key to store the (now-cleaned) rows under
+	 * @param limit    the limit that was applied (0 means "no limit")
+	 * @param offset   the offset that was applied
 	 * @return the paged result map
 	 */
 	private static Map<String, Object> toPagedResult(List<Map<String, Object>> rows, String itemsKey, long limit,
@@ -976,8 +973,8 @@ public class MemoryUtils {
 	/**
 	 * Updates only a memory's EVENT_TYPE column, with no audit entry - used by
 	 * {@code MemoryClassificationWorker} to backfill an async classification
-	 * result. Not user-facing (no ownership check); the caller must already
-	 * know the memory id is the one it just inserted.
+	 * result. Not user-facing (no ownership check); the caller must already know
+	 * the memory id is the one it just inserted.
 	 *
 	 * @param memoryId  memory identifier
 	 * @param eventType resolved event type
@@ -1006,8 +1003,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Updates a memory's content/metadata and records an audit row with the
-	 * prior values. Only the memory's creator may edit it.
+	 * Updates a memory's content/metadata and records an audit row with the prior
+	 * values. Only the memory's creator may edit it.
 	 *
 	 * @param memoryId   memory identifier
 	 * @param userId     user attempting the edit
@@ -1030,7 +1027,8 @@ public class MemoryUtils {
 		recordAudit(memoryId, "edit", (String) existing.get("content"), (String) existing.get("metadata"), userId);
 
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		String query = "UPDATE " + MEMORY_TABLE + " SET CONTENT = ?, METADATA = ?, DATE_UPDATED = ? WHERE MEMORY_ID = ?";
+		String query = "UPDATE " + MEMORY_TABLE
+				+ " SET CONTENT = ?, METADATA = ?, DATE_UPDATED = ? WHERE MEMORY_ID = ?";
 		PreparedStatement ps = null;
 		try {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
@@ -1057,8 +1055,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Soft-deletes a memory (only the creator may delete it) and records an
-	 * audit row with the content/metadata as of deletion.
+	 * Soft-deletes a memory (only the creator may delete it) and records an audit
+	 * row with the content/metadata as of deletion.
 	 *
 	 * @param memoryId memory identifier
 	 * @param userId   user attempting the delete
@@ -1150,8 +1148,8 @@ public class MemoryUtils {
 
 	/**
 	 * Admin-only soft delete, bypassing the creator-only ownership check that
-	 * {@link #deleteMemory} enforces. The audit row records the acting admin's
-	 * user id, not the memory's original creator, so moderation actions are
+	 * {@link #deleteMemory} enforces. The audit row records the acting admin's user
+	 * id, not the memory's original creator, so moderation actions are
 	 * distinguishable from self-service deletes.
 	 *
 	 * @param memoryId    memory identifier
@@ -1190,8 +1188,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Admin-only usage rollup: memory counts grouped by user, optionally scoped
-	 * to a workspace.
+	 * Admin-only usage rollup: memory counts grouped by user, optionally scoped to
+	 * a workspace.
 	 *
 	 * @param workspaceIdFilter optional exact WORKSPACE_ID filter
 	 * @return rows of {@code {user_id, memory_count}}
@@ -1222,8 +1220,8 @@ public class MemoryUtils {
 	 * @param memoryId         memory identifier
 	 * @param action           "edit" or "delete"
 	 * @param previousContent  content prior to the change
-	 * @param previousMetadata metadata prior to the change (already-serialized
-	 *                         JSON string)
+	 * @param previousMetadata metadata prior to the change (already-serialized JSON
+	 *                         string)
 	 * @param userId           user performing the change
 	 */
 	private static void recordAudit(String memoryId, String action, String previousContent, String previousMetadata,
@@ -1239,8 +1237,8 @@ public class MemoryUtils {
 			ps.setString(index++, GUID.v7().toUUID().toString());
 			ps.setString(index++, memoryId);
 			ps.setString(index++, action);
-			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, previousContent == null ? "" : previousContent,
-					index++, GSON);
+			modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps,
+					previousContent == null ? "" : previousContent, index++, GSON);
 			if (previousMetadata != null) {
 				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, previousMetadata, index++, GSON);
 			} else {
@@ -1283,8 +1281,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Sets or clears a memory's workspace scope (sharing it to / unsharing it
-	 * from a workspace). Only the memory's creator may promote it; callers must
+	 * Sets or clears a memory's workspace scope (sharing it to / unsharing it from
+	 * a workspace). Only the memory's creator may promote it; callers must
 	 * separately verify the user has edit access to the target workspace before
 	 * calling this (see SecurityProjectUtils#userCanEditProject).
 	 *
@@ -1445,8 +1443,8 @@ public class MemoryUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		addActionItemSelectors(qs);
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter(MEMORY_ACTION_ITEM_TABLE + "__ACTION_ITEM_ID", "==", actionItemId));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_ACTION_ITEM_TABLE + "__ACTION_ITEM_ID", "==",
+				actionItemId));
 		qs.setLimit(1L);
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
@@ -1454,8 +1452,8 @@ public class MemoryUtils {
 	}
 
 	/**
-	 * Lists action items visible to a user (owned by them or shared to a
-	 * workspace they can view), with optional filters.
+	 * Lists action items visible to a user (owned by them or shared to a workspace
+	 * they can view), with optional filters.
 	 *
 	 * @param userId      requesting user (required)
 	 * @param workspaceId optional workspace scope the user has view access to
@@ -1467,8 +1465,8 @@ public class MemoryUtils {
 	 * @return matching action item rows, most recently created first
 	 */
 	/**
-	 * Lists action items visible to a user (owned by them or shared to a
-	 * workspace they can view), with optional filters.
+	 * Lists action items visible to a user (owned by them or shared to a workspace
+	 * they can view), with optional filters.
 	 *
 	 * @param userId      requesting user (required)
 	 * @param workspaceId optional workspace scope the user has view access to
@@ -1476,8 +1474,7 @@ public class MemoryUtils {
 	 *                    (multi-value)
 	 * @param statuses    optional status filter, OR'd together (multi-value)
 	 * @param roomId      optional room filter
-	 * @param search      optional case-insensitive substring match against
-	 *                    CONTENT
+	 * @param search      optional case-insensitive substring match against CONTENT
 	 * @param limit       max rows to return, or {@code null}/&lt;=0 for no limit
 	 * @param offset      rows to skip, or {@code null}/&lt;0 for no offset
 	 * @return a map with {@code action_items} (the page of rows, most recently
@@ -1492,11 +1489,12 @@ public class MemoryUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		addActionItemSelectors(qs);
-		qs.addSelector(new prerna.query.querystruct.selectors.QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
+		qs.addSelector(
+				new prerna.query.querystruct.selectors.QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
 
 		if (workspaceId != null && !workspaceId.isBlank()) {
-			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(MEMORY_ACTION_ITEM_TABLE + "__WORKSPACE_ID", "==", workspaceId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_ACTION_ITEM_TABLE + "__WORKSPACE_ID", "==",
+					workspaceId));
 		} else {
 			qs.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(MEMORY_ACTION_ITEM_TABLE + "__USER_ID", "==", userId));
@@ -1574,16 +1572,16 @@ public class MemoryUtils {
 
 	/**
 	 * Fetches the distinct metakey/metavalue combinations in use across the
-	 * caller's visible memories, with a count of how many memories carry each
-	 * one - for populating a filter UI (e.g. the same "Filters" pill/count
-	 * pattern the Engine/Project catalog pages use), mirroring
+	 * caller's visible memories, with a count of how many memories carry each one -
+	 * for populating a filter UI (e.g. the same "Filters" pill/count pattern the
+	 * Engine/Project catalog pages use), mirroring
 	 * {@code SecurityEngineUtils#getAvailableMetaValues}/{@code ENGINEMETA}'s
 	 * shape.
 	 *
 	 * @param userId      requesting user (required)
-	 * @param workspaceId optional workspace scope the user has view access to
-	 *                    (same visibility rule as {@link #listMemories}); when
-	 *                    omitted, scoped to the caller's own memories
+	 * @param workspaceId optional workspace scope the user has view access to (same
+	 *                    visibility rule as {@link #listMemories}); when omitted,
+	 *                    scoped to the caller's own memories
 	 * @return rows shaped {@code {metakey, metavalue, count}}
 	 */
 	public static List<Map<String, Object>> getAvailableMemoryMetaValues(String userId, String workspaceId) {
@@ -1624,9 +1622,9 @@ public class MemoryUtils {
 
 	/**
 	 * Fetches a memory's custom metadata (MEMORY_META rows) as metakey -&gt;
-	 * ordered list of values, for display alongside a memory (e.g. in the
-	 * Settings UI's memory detail view). Returns an empty map if the memory has
-	 * no custom metadata.
+	 * ordered list of values, for display alongside a memory (e.g. in the Settings
+	 * UI's memory detail view). Returns an empty map if the memory has no custom
+	 * metadata.
 	 *
 	 * @param memoryId memory identifier
 	 * @return map of metakey to its values, in METAORDER
@@ -1713,9 +1711,9 @@ public class MemoryUtils {
 	 * database's USERMETAKEYS registry (the same platform-wide metakey registry
 	 * ENGINEMETAKEYS/PROJECTMETAKEYS/PROMPTMETAKEYS sync from) if not already
 	 * present. Best-effort: a metakey not yet registered in USERMETAKEYS is
-	 * silently skipped here - the MEMORY_META row is still inserted by the
-	 * caller, it just will not have display metadata (order/options) until an
-	 * admin registers the key.
+	 * silently skipped here - the MEMORY_META row is still inserted by the caller,
+	 * it just will not have display metadata (order/options) until an admin
+	 * registers the key.
 	 *
 	 * @param metaKey the metakey to ensure exists
 	 */
@@ -1723,7 +1721,8 @@ public class MemoryUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct existsQs = new SelectQueryStruct();
 		existsQs.addSelector(new QueryColumnSelector(MEMORY_METAKEYS_TABLE + "__METAKEY"));
-		existsQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_METAKEYS_TABLE + "__METAKEY", "==", metaKey));
+		existsQs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter(MEMORY_METAKEYS_TABLE + "__METAKEY", "==", metaKey));
 		List<Map<String, Object>> existing = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, existsQs);
 		if (!existing.isEmpty()) {
 			return;

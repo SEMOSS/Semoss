@@ -77,7 +77,8 @@ public class CreateActionItemReactor extends AbstractReactor {
 		String status = this.keyValue.get(ReactorKeysEnum.STATUS.getKey());
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}

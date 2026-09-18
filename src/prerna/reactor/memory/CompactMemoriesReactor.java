@@ -39,8 +39,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Combines two or more memories into a single summary memory (event type
- * "session_summary"). Source memories are kept but marked as superseded by
- * the new summary; only the creator of every source memory may compact them.
+ * "session_summary"). Source memories are kept but marked as superseded by the
+ * new summary; only the creator of every source memory may compact them.
  */
 public class CompactMemoriesReactor extends AbstractReactor {
 

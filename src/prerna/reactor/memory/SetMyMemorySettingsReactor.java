@@ -37,11 +37,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Sets (or clears) the current user's personal vector engine preference for
  * memory dedup/embedding (see {@link MemoryUtils#resolveVectorEngineId}).
- * Deliberately does not validate that the engine exists or is a vector
- * engine - every consumer of the stored value already treats a bad/missing
- * engine as "skip dedup/indexing silently", so a stale or mistaken value here
- * can never turn into a hard error for the user later, only a quieter
- * fallback to the platform default.
+ * Deliberately does not validate that the engine exists or is a vector engine -
+ * every consumer of the stored value already treats a bad/missing engine as
+ * "skip dedup/indexing silently", so a stale or mistaken value here can never
+ * turn into a hard error for the user later, only a quieter fallback to the
+ * platform default.
  */
 public class SetMyMemorySettingsReactor extends AbstractReactor {
 

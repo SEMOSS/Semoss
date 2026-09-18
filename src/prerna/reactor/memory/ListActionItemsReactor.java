@@ -40,9 +40,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Lists memory action items visible to the current user, with optional
- * assignee/status (multi-value)/room/search filters. Same
- * workspace-visibility check as ListMemoriesReactor. Response is paginated:
- * {@code {action_items, total_count, has_more}}.
+ * assignee/status (multi-value)/room/search filters. Same workspace-visibility
+ * check as ListMemoriesReactor. Response is paginated: {@code {action_items,
+ * total_count, has_more}}.
  */
 public class ListActionItemsReactor extends AbstractReactor {
 
@@ -72,7 +72,8 @@ public class ListActionItemsReactor extends AbstractReactor {
 		String userId = user.getPrimaryLoginToken().getId();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
@@ -83,8 +84,8 @@ public class ListActionItemsReactor extends AbstractReactor {
 		Integer limit = parseIntOrNull(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()));
 		Integer offset = parseIntOrNull(this.keyValue.get(ReactorKeysEnum.OFFSET.getKey()));
 
-		Map<String, Object> result = MemoryUtils.listActionItems(userId, workspaceId, owners, statuses, roomId,
-				search, limit, offset);
+		Map<String, Object> result = MemoryUtils.listActionItems(userId, workspaceId, owners, statuses, roomId, search,
+				limit, offset);
 		return new NounMetadata(result, PixelDataType.MAP);
 	}
 

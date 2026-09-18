@@ -36,10 +36,10 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Shares (or unshares) a personal memory to a workspace. Promoting content
- * into a workspace requires edit access on that workspace - a stricter check
- * than the view-only check used to read/list workspace memories - since this
- * action injects new shared content other workspace members will see.
+ * Shares (or unshares) a personal memory to a workspace. Promoting content into
+ * a workspace requires edit access on that workspace - a stricter check than
+ * the view-only check used to read/list workspace memories - since this action
+ * injects new shared content other workspace members will see.
  */
 public class PromoteMemoryToWorkspaceReactor extends AbstractReactor {
 
@@ -70,7 +70,8 @@ public class PromoteMemoryToWorkspaceReactor extends AbstractReactor {
 		String memoryId = this.keyValue.get(ReactorKeysEnum.MEMORY_ID.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have edit access to the workspace");
 		}

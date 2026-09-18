@@ -284,8 +284,7 @@ public class ModelInferenceLogsUtils {
 			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS");
 			executeSql(conn, sql);
 
-			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM",
-					"USER_ID");
+			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", "USER_ID");
 			executeSql(conn, sql);
 
 			sql = queryUtil.createIndexIfNotExists("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID");
@@ -439,8 +438,7 @@ public class ModelInferenceLogsUtils {
 
 			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", database,
 					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM",
-						"USER_ID");
+				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", "USER_ID");
 				executeSql(conn, sql);
 			}
 
@@ -1254,10 +1252,10 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Aggregates token and latency stats from the MESSAGE table for one room.
-	 * Token columns are split by row type (INPUT rows carry input/cache tokens,
-	 * RESPONSE rows carry output/thinking tokens) and RESPONSE_TIME is duplicated
-	 * on both rows of a call, so latency is read from RESPONSE rows only.
+	 * Aggregates token and latency stats from the MESSAGE table for one room. Token
+	 * columns are split by row type (INPUT rows carry input/cache tokens, RESPONSE
+	 * rows carry output/thinking tokens) and RESPONSE_TIME is duplicated on both
+	 * rows of a call, so latency is read from RESPONSE rows only.
 	 * <p>
 	 * Callers must validate room ownership before calling - this aggregates by
 	 * ROOM_ID alone.
@@ -1703,23 +1701,24 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible. Results are deduplicated to one row per
-	 * room in SQL before limit/offset are applied, so pagination operates on rooms
-	 * rather than raw message rows.
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row
+	 * per room in SQL before limit/offset are applied, so pagination operates on
+	 * rooms rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
 	 * @param projectId the project to search within, or null/blank to search all
 	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
 	 * @return a list of matching rooms, one row per room (room_id, room_name, and
-src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *         the room's date_created)
+	 *         src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java
+	 *         * the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
 	}
 
-	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
-			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword, long limit,
+			long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 
 		// Room-only subquery selecting just the room IDs in scope for this user/
@@ -1739,14 +1738,15 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		// Use the search-specific conversion so malformed searchable content cannot
 		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
-				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
+				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
+						"message_text");
 
 		// JOIN, filters, deduplication, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
 		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("MESSAGE__ROOM_ID", "==", roomScopeQs));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
-				"?like", keyword, PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, "?like", keyword,
+				PixelDataType.CONST_STRING));
 
 		qs.setDistinct(true);
 		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
@@ -2036,8 +2036,8 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch,
-				false, false);
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch, false,
+				false);
 	}
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
@@ -2201,17 +2201,17 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	}
 
 	/**
-	 * Fetches a room's attached agent/workspace id (the persona currently
-	 * driving the conversation - see {@link #setRoomWorkspaceId}), independent
-	 * of the room's own {@code PROJECT_ID} (the app/project container the room
-	 * lives under). A room opened inside an app can have a different agent
-	 * attached to it than the app itself, so these two ids are tracked
-	 * separately and must not be conflated.
+	 * Fetches a room's attached agent/workspace id (the persona currently driving
+	 * the conversation - see {@link #setRoomWorkspaceId}), independent of the
+	 * room's own {@code PROJECT_ID} (the app/project container the room lives
+	 * under). A room opened inside an app can have a different agent attached to it
+	 * than the app itself, so these two ids are tracked separately and must not be
+	 * conflated.
 	 *
 	 * @param roomId room identifier
 	 * @param userId user identifier (rooms are scoped per-owner)
-	 * @return the attached workspace/agent id, or {@code null} if none is
-	 *         attached or the room does not exist
+	 * @return the attached workspace/agent id, or {@code null} if none is attached
+	 *         or the room does not exist
 	 */
 	public static String getRoomWorkspaceId(String roomId, String userId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -2232,38 +2232,37 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	}
 
 	/**
-	 * Resolves the agent/workspace actually in effect for a room right now -
-	 * i.e. what an in-flight {@code RunAgent} call would resolve tools and the
-	 * system prompt against - not just what was persisted on the room at
-	 * creation time.
+	 * Resolves the agent/workspace actually in effect for a room right now - i.e.
+	 * what an in-flight {@code RunAgent} call would resolve tools and the system
+	 * prompt against - not just what was persisted on the room at creation time.
 	 *
 	 * <p>
-	 * There are two, independently-maintained places a room's attached agent
-	 * can live: the persisted {@code ROOM.WORKSPACE_ID} column (set by
+	 * There are two, independently-maintained places a room's attached agent can
+	 * live: the persisted {@code ROOM.WORKSPACE_ID} column (set by
 	 * {@code CreateRoom(workspaceId=...)}/{@link #setRoomWorkspaceId}, read by
 	 * {@link #getRoomWorkspaceId}), and the in-memory {@code options.workspace}
 	 * field on the live {@code Room} object, which {@code AgentRunner} may
-	 * temporarily overlay for the duration of a single {@code RunAgent(workspaceId=...)}
-	 * call (restored afterward, never written back to the DB) and which a
-	 * spawned sub-agent inherits by cloning its parent's live options map. The
-	 * persisted column is <b>not</b> consulted anywhere in the actual
-	 * tool/system-prompt resolution path ({@code AgentRunner}/
-	 * {@code Room#getAllToolsJsonForRoom} both only look at
+	 * temporarily overlay for the duration of a single
+	 * {@code RunAgent(workspaceId=...)} call (restored afterward, never written
+	 * back to the DB) and which a spawned sub-agent inherits by cloning its
+	 * parent's live options map. The persisted column is <b>not</b> consulted
+	 * anywhere in the actual tool/system-prompt resolution path
+	 * ({@code AgentRunner}/ {@code Room#getAllToolsJsonForRoom} both only look at
 	 * {@code options.workspace}) - so reading only the column would miss every
-	 * per-run override and every anonymous sub-agent's inherited persona,
-	 * silently orphaning the memories they capture as agent-less/personal.
+	 * per-run override and every anonymous sub-agent's inherited persona, silently
+	 * orphaning the memories they capture as agent-less/personal.
 	 *
 	 * <p>
 	 * This mirrors {@code AgentRunner}'s own resolution order: prefer the live
 	 * {@code options.workspace} field (a string id, or a map with a
-	 * {@code workspace_id} entry), falling back to the persisted column only
-	 * when neither the room nor any active overlay has ever set one.
+	 * {@code workspace_id} entry), falling back to the persisted column only when
+	 * neither the room nor any active overlay has ever set one.
 	 *
-	 * @param room   the already-loaded room (see {@code RoomUtils#getOrLoadRoom}
-	 *               - must be the live/cached instance so an in-flight
-	 *               {@code RunAgent} overlay on it is visible, not a fresh
-	 *               reload from the database, which would only ever see the
-	 *               persisted column)
+	 * @param room   the already-loaded room (see {@code RoomUtils#getOrLoadRoom} -
+	 *               must be the live/cached instance so an in-flight
+	 *               {@code RunAgent} overlay on it is visible, not a fresh reload
+	 *               from the database, which would only ever see the persisted
+	 *               column)
 	 * @param userId user identifier, used only for the persisted-column fallback
 	 * @return the effective agent/workspace id, or {@code null} if none is set
 	 *         anywhere
@@ -2281,10 +2280,10 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	}
 
 	/**
-	 * Mirrors {@code AgentRunner}'s private helper of the same purpose: a
-	 * room's {@code options.workspace} field may be absent, a bare id string,
-	 * or a map with a {@code workspace_id} entry (the shape
-	 * {@code AgentRunner}'s workspace overlay writes).
+	 * Mirrors {@code AgentRunner}'s private helper of the same purpose: a room's
+	 * {@code options.workspace} field may be absent, a bare id string, or a map
+	 * with a {@code workspace_id} entry (the shape {@code AgentRunner}'s workspace
+	 * overlay writes).
 	 */
 	@SuppressWarnings("unchecked")
 	private static String extractWorkspaceIdFromOptionField(Object workspaceField) {
@@ -3087,10 +3086,11 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	 *
 	 * <p>
 	 * Used by {@code SystemAgentSeeder} to self-heal the legacy display columns on
-	 * every boot the same way {@link #updateWorkspaceConfigJson(String, JSONObject)}
-	 * self-heals the config mirror. The legacy SYSTEM_PROMPT column is what
-	 * GetWorkspace/ListWorkspaces surface to the FE, so it must track the seeded
-	 * prompt or the UI shows a stale value after the constant changes.
+	 * every boot the same way
+	 * {@link #updateWorkspaceConfigJson(String, JSONObject)} self-heals the config
+	 * mirror. The legacy SYSTEM_PROMPT column is what GetWorkspace/ListWorkspaces
+	 * surface to the FE, so it must track the seeded prompt or the UI shows a stale
+	 * value after the constant changes.
 	 *
 	 * @param workspaceId  workspace identifier
 	 * @param name         workspace display name

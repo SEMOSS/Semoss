@@ -39,9 +39,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Fetches the current user's personal memory settings - currently just which
  * vector engine to use for dedup/embedding (see
- * {@link MemoryUtils#resolveVectorEngineId}). Returns {@code vectorEngineId: null}
- * when the user has not configured one, meaning the platform default is used;
- * this is never an error state.
+ * {@link MemoryUtils#resolveVectorEngineId}). Returns
+ * {@code vectorEngineId: null} when the user has not configured one, meaning
+ * the platform default is used; this is never an error state.
  */
 public class GetMyMemorySettingsReactor extends AbstractReactor {
 

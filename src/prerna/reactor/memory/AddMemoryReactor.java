@@ -45,12 +45,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Adds a new memory owned by the current user.
  *
  * <p>
- * When {@code eventType} is omitted and {@code reasoningEngineId} is
- * supplied, the memory is inserted immediately with a default "memory" type
- * and classified in a background thread afterward (see
- * {@link MemoryClassificationWorker}), so the reasoning-model call never
- * blocks the reactor's return. Vector-based dedup stays synchronous - it has
- * to run before we decide whether to insert at all.
+ * When {@code eventType} is omitted and {@code reasoningEngineId} is supplied,
+ * the memory is inserted immediately with a default "memory" type and
+ * classified in a background thread afterward (see
+ * {@link MemoryClassificationWorker}), so the reasoning-model call never blocks
+ * the reactor's return. Vector-based dedup stays synchronous - it has to run
+ * before we decide whether to insert at all.
  *
  * <p>
  * {@code roomId} defaults to the calling insight's current room (see
@@ -61,22 +61,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <p>
  * {@code agentId} auto-defaults to the current room's attached agent/persona
  * ({@code ROOM.WORKSPACE_ID}, see {@code SetRoomWorkspaceReactor}) - not the
- * room's own project (which may be a different app the agent is embedded
- * in) and not the underlying LLM model engine. This lets a memory be
- * recalled later by "the same agent" regardless of which room/app it was
- * captured in, while remaining strictly personal: it never bypasses the
- * {@code USER_ID} ownership check the way {@code workspaceId} (deliberate,
- * cross-user sharing via {@link prerna.reactor.memory.PromoteMemoryToWorkspaceReactor})
- * does.
+ * room's own project (which may be a different app the agent is embedded in)
+ * and not the underlying LLM model engine. This lets a memory be recalled later
+ * by "the same agent" regardless of which room/app it was captured in, while
+ * remaining strictly personal: it never bypasses the {@code USER_ID} ownership
+ * check the way {@code workspaceId} (deliberate, cross-user sharing via
+ * {@link prerna.reactor.memory.PromoteMemoryToWorkspaceReactor}) does.
  *
  * <p>
  * When a vector engine is available (defaults to
- * {@link MemoryUtils#DEFAULT_VECTOR_ENGINE_ID}, a FAISS index), the content
- * is embedded and searched against the caller's existing memories in the
- * same scope via real nearest-neighbor search; if a close-enough duplicate is
- * found, its id is returned instead of inserting a new row (mirrors the
- * memory_mcp app's dedup behavior, now backed by a real vector engine instead
- * of a JSON blob + brute-force comparison).
+ * {@link MemoryUtils#DEFAULT_VECTOR_ENGINE_ID}, a FAISS index), the content is
+ * embedded and searched against the caller's existing memories in the same
+ * scope via real nearest-neighbor search; if a close-enough duplicate is found,
+ * its id is returned instead of inserting a new row (mirrors the memory_mcp
+ * app's dedup behavior, now backed by a real vector engine instead of a JSON
+ * blob + brute-force comparison).
  */
 public class AddMemoryReactor extends AbstractReactor {
 
@@ -108,7 +107,8 @@ public class AddMemoryReactor extends AbstractReactor {
 			roomId = this.insight.getRoomId();
 		}
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
@@ -135,16 +135,16 @@ public class AddMemoryReactor extends AbstractReactor {
 		}
 
 		String reasoningEngineId = this.keyValue.get(ReactorKeysEnum.REASONING_ENGINE_ID.getKey());
-		boolean needsAsyncClassification = (eventType == null || eventType.isBlank())
-				&& reasoningEngineId != null && !reasoningEngineId.isBlank();
+		boolean needsAsyncClassification = (eventType == null || eventType.isBlank()) && reasoningEngineId != null
+				&& !reasoningEngineId.isBlank();
 		if (eventType == null || eventType.isBlank()) {
 			// Insert with the default type now; classification (if requested) is
 			// backfilled asynchronously below so it never blocks this call.
 			eventType = "memory";
 		}
 
-		String vectorEngineId = MemoryUtils.resolveVectorEngineId(
-				this.keyValue.get(ReactorKeysEnum.EMBEDDING_ENGINE_ID.getKey()), userId);
+		String vectorEngineId = MemoryUtils
+				.resolveVectorEngineId(this.keyValue.get(ReactorKeysEnum.EMBEDDING_ENGINE_ID.getKey()), userId);
 
 		Map.Entry<String, Double> duplicate = MemoryUtils.findDuplicateMemoryViaVector(vectorEngineId, this.insight,
 				userId, workspaceId, agentId, eventType, content);

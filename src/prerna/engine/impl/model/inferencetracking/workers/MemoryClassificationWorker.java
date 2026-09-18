@@ -35,16 +35,17 @@ import prerna.om.Insight;
 
 /**
  * Backfills a memory's EVENT_TYPE by calling a reasoning model in the
- * background, mirroring {@link prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker}'s
- * fire-and-forget pattern for logging. The memory row is inserted
- * synchronously with a default "memory" type so AddMemoryReactor can return
- * immediately; this worker only runs when a reasoning engine was supplied
- * (classification is opt-in) and updates the row afterward.
+ * background, mirroring
+ * {@link prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker}'s
+ * fire-and-forget pattern for logging. The memory row is inserted synchronously
+ * with a default "memory" type so AddMemoryReactor can return immediately; this
+ * worker only runs when a reasoning engine was supplied (classification is
+ * opt-in) and updates the row afterward.
  *
  * <p>
  * Embedding-based duplicate detection stays on the synchronous path (in
- * AddMemoryReactor) since the caller's return value - either a new memory id
- * or an existing duplicate's id - depends on it.
+ * AddMemoryReactor) since the caller's return value - either a new memory id or
+ * an existing duplicate's id - depends on it.
  */
 public class MemoryClassificationWorker implements Runnable {
 
@@ -72,8 +73,7 @@ public class MemoryClassificationWorker implements Runnable {
 				MemoryUtils.updateEventType(memoryId, eventType);
 			}
 		} catch (Exception e) {
-			classLogger.warn("Async memory classification failed for memory '{}'; leaving default type.", memoryId,
-					e);
+			classLogger.warn("Async memory classification failed for memory '{}'; leaving default type.", memoryId, e);
 		}
 	}
 

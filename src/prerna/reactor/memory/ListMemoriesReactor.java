@@ -97,7 +97,8 @@ public class ListMemoriesReactor extends AbstractReactor {
 		String userId = user.getPrimaryLoginToken().getId();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}
@@ -126,13 +127,13 @@ public class ListMemoriesReactor extends AbstractReactor {
 		String search = this.keyValue.get(ReactorKeysEnum.SEARCH.getKey());
 		Map<String, Object> metaFilters = getMapFromKeyOrCurRow(ReactorKeysEnum.META_FILTERS.getKey());
 		Boolean includeSuperseded = parseBooleanOrNull(this.keyValue.get(ReactorKeysEnum.INCLUDE_SUPERSEDED.getKey()));
-		String vectorEngineId = MemoryUtils.resolveVectorEngineId(
-				this.keyValue.get(ReactorKeysEnum.EMBEDDING_ENGINE_ID.getKey()), userId);
+		String vectorEngineId = MemoryUtils
+				.resolveVectorEngineId(this.keyValue.get(ReactorKeysEnum.EMBEDDING_ENGINE_ID.getKey()), userId);
 		Integer limit = parseIntOrNull(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()));
 		Integer offset = parseIntOrNull(this.keyValue.get(ReactorKeysEnum.OFFSET.getKey()));
 
-		Map<String, Object> result = MemoryUtils.listMemories(userId, workspaceId, roomId, agentId, eventTypes,
-				search, metaFilters, projectId, includeSuperseded, vectorEngineId, this.insight, limit, offset);
+		Map<String, Object> result = MemoryUtils.listMemories(userId, workspaceId, roomId, agentId, eventTypes, search,
+				metaFilters, projectId, includeSuperseded, vectorEngineId, this.insight, limit, offset);
 		return new NounMetadata(result, PixelDataType.MAP);
 	}
 

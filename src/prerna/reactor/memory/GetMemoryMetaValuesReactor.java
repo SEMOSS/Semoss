@@ -40,8 +40,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
  * Fetches the distinct metakey/metavalue combinations in use across the
- * caller's visible memories, with a count of how many memories carry each one
- * - for driving a filter UI (metakey/metavalue/count rows), the same shape
+ * caller's visible memories, with a count of how many memories carry each one -
+ * for driving a filter UI (metakey/metavalue/count rows), the same shape
  * {@code GetEngineMetaValues}/{@code GetProjectMetaValues} return for
  * ENGINEMETA/PROJECTMETA.
  */
@@ -68,7 +68,8 @@ public class GetMemoryMetaValuesReactor extends AbstractReactor {
 		String userId = user.getPrimaryLoginToken().getId();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		if (workspaceId != null && !workspaceId.isBlank() && !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
 		}

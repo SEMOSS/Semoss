@@ -59,8 +59,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
  * Schema-focused tests for the MEMORY / MEMORY_ACTION_ITEM / MEMORY_AUDIT /
- * MEMORY_RELATIONSHIP tables added to {@link ModelInferenceLogsOwlCreator}
- * and wired into {@link ModelInferenceLogsUtils}'s init/migration path.
+ * MEMORY_RELATIONSHIP tables added to {@link ModelInferenceLogsOwlCreator} and
+ * wired into {@link ModelInferenceLogsUtils}'s init/migration path.
  */
 public class MemorySchemaUnitTests {
 
@@ -83,11 +83,10 @@ public class MemorySchemaUnitTests {
 
 		List<String> memoryColumns = schemaByTable.get("MEMORY").stream().map(Pair::getValue0).toList();
 		assertTrue(memoryColumns.containsAll(List.of("MEMORY_ID", "USER_ID", "ROOM_ID", "WORKSPACE_ID", "PROJECT_ID",
-				"EVENT_TYPE", "CONTENT", "METADATA", "EMBEDDING", "PARENT_MEMORY_ID", "SUPERSEDES_MEMORY_ID",
-				"DELETED", "DATE_CREATED", "DATE_UPDATED", "DELETED_AT")));
+				"EVENT_TYPE", "CONTENT", "METADATA", "EMBEDDING", "PARENT_MEMORY_ID", "SUPERSEDES_MEMORY_ID", "DELETED",
+				"DATE_CREATED", "DATE_UPDATED", "DELETED_AT")));
 
-		List<String> actionItemColumns = schemaByTable.get("MEMORY_ACTION_ITEM").stream().map(Pair::getValue0)
-				.toList();
+		List<String> actionItemColumns = schemaByTable.get("MEMORY_ACTION_ITEM").stream().map(Pair::getValue0).toList();
 		assertTrue(actionItemColumns.containsAll(List.of("ACTION_ITEM_ID", "MEMORY_ID", "CONTENT", "OWNER", "STATUS",
 				"DUE_DATE", "USER_ID", "ROOM_ID", "WORKSPACE_ID")));
 
@@ -102,9 +101,10 @@ public class MemorySchemaUnitTests {
 	}
 
 	/**
-	 * Mirrors {@code ModelInferenceLogsUtilsUnitTests#initModelInferenceLogsDatabase}
-	 * but asserts specifically that the new MEMORY-family indexes are created
-	 * during init, using the IF-NOT-EXISTS index syntax branch.
+	 * Mirrors
+	 * {@code ModelInferenceLogsUtilsUnitTests#initModelInferenceLogsDatabase} but
+	 * asserts specifically that the new MEMORY-family indexes are created during
+	 * init, using the IF-NOT-EXISTS index syntax branch.
 	 */
 	@Test
 	void initModelInferenceLogsDatabaseCreatesMemoryIndexes() throws Exception {
@@ -151,10 +151,10 @@ public class MemorySchemaUnitTests {
 			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED");
 			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX",
 					"MEMORY_ACTION_ITEM", "MEMORY_ID");
-			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_ACTION_ITEM_STATUS_INDEX",
-					"MEMORY_ACTION_ITEM", "STATUS");
-			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX",
-					"MEMORY_ACTION_ITEM", "USER_ID");
+			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM",
+					"STATUS");
+			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM",
+					"USER_ID");
 			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT",
 					"MEMORY_ID");
 			verify(queryUtil, times(1)).createIndexIfNotExists("MEMORY_RELATIONSHIP_SOURCE_INDEX",

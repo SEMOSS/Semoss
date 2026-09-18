@@ -35,8 +35,8 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Updates a memory action item's status. Only the item's creator may update
- * it (see MemoryUtils#updateActionItemStatus).
+ * Updates a memory action item's status. Only the item's creator may update it
+ * (see MemoryUtils#updateActionItemStatus).
  */
 public class UpdateActionItemStatusReactor extends AbstractReactor {
 
