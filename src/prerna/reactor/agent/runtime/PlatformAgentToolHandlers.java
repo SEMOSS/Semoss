@@ -62,12 +62,16 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
+import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
@@ -93,6 +97,8 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_PYTHON_CODE_LENGTH = 200_000;
+	private static final int MAX_PYTHON_OUTPUT_LENGTH = 40_000;
 	private static final int MAX_NODE_CODE_LENGTH = 200_000;
 	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
 	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
@@ -210,10 +216,25 @@ final class PlatformAgentToolHandlers {
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
 		}
+		if (isPythonToolEnabled()) {
+			add(tools, handler("ExecutePythonCode",
+					"Executes inline Python in the platform's managed Python runtime. Python state persists "
+							+ "across calls in this room during the current login session while the managed worker "
+							+ "remains alive; use files under ROOT "
+							+ "for durable state. The bare ROOT and "
+							+ "USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the "
+							+ "agent working directory and USER_ROOT is the authenticated user's asset-app root. "
+							+ "APP_ROOT is additionally available when the insight has a current app context. "
+							+ "smss_get_runtime_var is also available for thread-local access. The value of the "
+							+ "last expression is returned.",
+					objectSchema(props(prop("code", stringProp("Inline Python source to execute."))), List.of("code")),
+					PlatformAgentToolHandlers::executePythonCode));
+		}
 		if (NodeUtils.isNodeToolEnabled()) {
 			add(tools, handler("ExecuteNodeCode",
 					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
-							+ "calls within this conversation. Put every require/const/let/class/function declaration "
+							+ "calls in this room during the current login session while the managed worker remains "
+							+ "alive. Put every require/const/let/class/function declaration "
 							+ "inside a single (async () => { ... })(); top-level declarations collide with earlier calls. "
 							+ "Use globalThis for durable state. Await all asynchronous work and return the result "
 							+ "from inside the function; console output is captured too. ROOT is the working directory; "
@@ -674,6 +695,63 @@ final class PlatformAgentToolHandlers {
 		return output == null ? "" : output;
 	}
 
+	private static String executePythonCode(Map<String, Object> params, ToolContext tc) {
+		if (!isPythonToolEnabled()) {
+			return "Error: ExecutePythonCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_PYTHON_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_PYTHON_CODE_LENGTH;
+		}
+		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
+			return "Error: no user is associated with this agent run";
+		}
+
+		try {
+			Insight executionInsight = tc.ctx.getInsight();
+			User user = executionInsight.getUser();
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getPythonSocketClient(true);
+						PyTranslator translator = new PyTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(code);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
+			return formatPythonOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecutePythonCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatPythonOutput(Object output) {
+		String formatted;
+		if (output == null || "\"\"".equals(output)) {
+			formatted = "(no output)";
+		} else if (output instanceof String) {
+			formatted = (String) output;
+		} else {
+			try {
+				formatted = JSONObject.valueToString(output);
+			} catch (Exception e) {
+				formatted = output.toString();
+			}
+		}
+		if (formatted.length() > MAX_PYTHON_OUTPUT_LENGTH) {
+			String marker = "\n[output truncated at " + MAX_PYTHON_OUTPUT_LENGTH + " characters]";
+			return formatted.substring(0, MAX_PYTHON_OUTPUT_LENGTH - marker.length()) + marker;
+		}
+		return formatted;
+	}
+
 	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
 		if (!NodeUtils.isNodeToolEnabled()) {
 			return "Error: ExecuteNodeCode is disabled on this instance.";
@@ -697,14 +775,37 @@ final class PlatformAgentToolHandlers {
 			return "Error: no user is associated with this agent run";
 		}
 		try {
-			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
-			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
-			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L, tc.root);
+			Insight executionInsight = tc.ctx.getInsight();
+			long timeoutMs = timeoutSeconds * 1000L;
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getNodeSocketClient(true);
+						NodeTranslator translator = new NodeTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(executionInsight, code, timeoutMs, tc.root);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
 			return formatNodeOutput(output);
 		} catch (Exception e) {
 			logger.warn("ExecuteNodeCode failed", e);
 			String message = e.getMessage() != null ? e.getMessage() : e.toString();
 			return "Error: " + message;
+		}
+	}
+
+	private static void interruptRoomExecutionIfCancelled(SocketClient socketClient, Insight roomInsight,
+			AgentRunContext ctx) {
+		if (!Thread.currentThread().isInterrupted()) {
+			return;
+		}
+		try {
+			socketClient.interruptInsightJob(roomInsight.getInsightId(), ctx.getRunId());
+		} catch (RuntimeException e) {
+			logger.warn("Failed to interrupt managed code execution for room '{}' and run '{}'",
+					ctx.getRoom().getId(), ctx.getRunId(), e);
 		}
 	}
 
@@ -1113,6 +1214,11 @@ final class PlatformAgentToolHandlers {
 			return Boolean.parseBoolean(explicit);
 		}
 		return isTrue(Constants.CHROOT_ENABLE);
+	}
+
+	private static boolean isPythonToolEnabled() {
+		return !isTrue(Constants.DISABLE_TERMINAL) && !isTrue(Constants.DISABLE_PY_TERMINAL)
+				&& PyUtils.pyEnabled();
 	}
 
 	private static boolean isTrue(String property) {
