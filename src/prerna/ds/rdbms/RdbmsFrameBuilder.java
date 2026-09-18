@@ -638,11 +638,13 @@ public class RdbmsFrameBuilder {
 	 * @return
 	 */
 	public int getNumRecords(String tableName) {
-		String query = "SELECT COUNT(*) * " + getHeaders(tableName).length + " FROM " + tableName;
+		int columnCount = getHeaders(tableName).length;
+		String query = "SELECT COUNT(*) * ? FROM " + tableName;
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {
 			stmt = this.conn.prepareStatement(query);
+			stmt.setInt(1, columnCount);
 			rs = stmt.executeQuery();
 			while (rs.next()) {
 				return rs.getInt(1);
