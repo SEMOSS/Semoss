@@ -54,8 +54,9 @@ public class CreateRoomReactor extends AbstractReactor {
 	public CreateRoomReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.NAME.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
 				ReactorKeysEnum.VECTORDB.getKey(), ReactorKeysEnum.FUNCTION.getKey(),
-				ReactorKeysEnum.WORKSPACE_ID.getKey(), ReactorKeysEnum.PROJECT.getKey() };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+				ReactorKeysEnum.WORKSPACE_ID.getKey(), ReactorKeysEnum.PROJECT.getKey(),
+				ReactorKeysEnum.MEMORY_ENABLED.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -67,6 +68,7 @@ public class CreateRoomReactor extends AbstractReactor {
 		String context = this.keyValue.get(ReactorKeysEnum.CONTEXT.getKey());
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		boolean memoryEnabled = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.MEMORY_ENABLED.getKey()));
 
 		Map<String, Object> options = null;
 		if (workspaceId != null) {
@@ -87,6 +89,16 @@ public class CreateRoomReactor extends AbstractReactor {
 					options.put("vectorDbs", vectorDbs);
 				}
 			}
+		}
+
+		if (memoryEnabled) {
+			if (options == null) {
+				options = new HashMap<>();
+			}
+			Map<String, Object> memoryMcp = new HashMap<>();
+			memoryMcp.put("id", Constants.MCP_MEMORY);
+			memoryMcp.put("type", "PROJECT");
+			options.put("mcp", new java.util.ArrayList<>(List.of(memoryMcp)));
 		}
 
 		Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), insight, null, roomName, workspaceId,

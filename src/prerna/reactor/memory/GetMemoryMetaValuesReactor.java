@@ -1,0 +1,89 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.reactor.memory;
+
+import java.util.List;
+import java.util.Map;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
+import prerna.engine.impl.model.inferencetracking.MemoryUtils;
+import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+/**
+ * Fetches the distinct metakey/metavalue combinations in use across the
+ * caller's visible memories, with a count of how many memories carry each one -
+ * for driving a filter UI (metakey/metavalue/count rows), the same shape
+ * {@code GetEngineMetaValues}/{@code GetProjectMetaValues} return for
+ * ENGINEMETA/PROJECTMETA.
+ */
+public class GetMemoryMetaValuesReactor extends AbstractReactor {
+
+	public GetMemoryMetaValuesReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey() };
+		this.keyRequired = new int[] { 0 };
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Fetches the distinct metakey/metavalue combinations (with counts) across the caller's visible memories, for building a metadata filter UI.";
+	}
+
+	@Override
+	public NounMetadata execute() {
+		organizeKeys();
+
+		User user = this.insight.getUser();
+		if (user == null) {
+			throw new IllegalArgumentException("You are not properly logged in");
+		}
+		String userId = user.getPrimaryLoginToken().getId();
+
+		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		if (workspaceId != null && !workspaceId.isBlank()
+				&& !SecurityProjectUtils.userCanViewProject(user, workspaceId)) {
+			throw new IllegalArgumentException(
+					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
+
+		List<Map<String, Object>> result = MemoryUtils.getAvailableMemoryMetaValues(userId, workspaceId);
+		return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.WORKSPACE_ID.getKey())) {
+			return "Optional workspace to scope the returned metadata values to (same visibility rule as ListMemories)";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+}
