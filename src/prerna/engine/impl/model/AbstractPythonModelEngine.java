@@ -110,10 +110,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 
 		// vars for string substitution
+		this.vars.clear();
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+		// Older init scripts still reference these placeholders. A cleared limit
+		// must resolve to Python None, not a stale value or an unresolved token.
+		this.vars.putIfAbsent(Constants.CONTEXT_WINDOW, "None");
+		this.vars.putIfAbsent(Constants.MAX_TOKENS, "None");
 	}
 
 	/**

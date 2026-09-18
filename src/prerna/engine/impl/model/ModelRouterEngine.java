@@ -243,11 +243,6 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 */
 	private final AtomicInteger rrCounter = new AtomicInteger(0);
 	/**
-	 * Lazily computed min context window across serving targets; null = not yet
-	 * computed.
-	 */
-	private volatile Integer derivedContextWindow;
-	/**
 	 * LRU of roomId -> engineId that last served the room, used when sticky is on.
 	 */
 	private final Map<String, String> roomRoutePins = Collections
@@ -275,9 +270,10 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 	 * Callers sizing work off this engine (e.g. agent auto-compaction) cannot know
 	 * which route will serve them, so answer with the smallest context window among
 	 * the serving targets: routes, default route, and fallbacks. An explicit
-	 * CONTEXT_WINDOW in the smss/metadata still wins. Targets that fail to load or
-	 * do not report a window are skipped; when none report one, 0 is returned and
-	 * callers treat it as unknown. Computed once per config (re)load.
+	 * context window resolved by the base engine still wins. Targets that fail to
+	 * load or do not report a window are skipped; when none report one, 0 is
+	 * returned. Recompute from the targets so saved limit changes take effect
+	 * without also reloading the router's configuration.
 	 */
 	@Override
 	public int getContextWindow() {
@@ -285,12 +281,7 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 		if (inherited > 0) {
 			return inherited;
 		}
-		Integer derived = this.derivedContextWindow;
-		if (derived == null) {
-			derived = computeMinTargetContextWindow();
-			this.derivedContextWindow = derived;
-		}
-		return derived.intValue();
+		return computeMinTargetContextWindow();
 	}
 
 	private int computeMinTargetContextWindow() {
@@ -541,7 +532,6 @@ public class ModelRouterEngine extends AbstractModelEngine implements IModelRout
 
 		this.rrCounter.set(0);
 		this.roomRoutePins.clear();
-		this.derivedContextWindow = null;
 	}
 
 	private static String resolvedMode(RouterConfig cfg) {

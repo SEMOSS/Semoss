@@ -89,7 +89,17 @@ public class NodeTranslator {
 	 *         {@code stdout} keys
 	 */
 	public Object runScript(Insight executionInsight, String script, long timeoutMs) {
-		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
+		return runScript(executionInsight, script, timeoutMs, null);
+	}
+
+	/**
+	 * Execute with an explicitly resolved agent working directory. Project/subdir
+	 * runs can stage their files and skills outside the insight's room folder.
+	 * The caller must resolve and authorize this path before passing it here.
+	 */
+	public Object runScript(Insight executionInsight, String script, long timeoutMs, String workingDir) {
+		final String ROOT = (workingDir == null || workingDir.trim().isEmpty()
+				? this.globalStoreInsight.getInsightFolder() : workingDir).replace('\\', '/');
 		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
 				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 						this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName())
