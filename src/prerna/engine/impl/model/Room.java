@@ -28,6 +28,7 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 public class Room implements Serializable {
@@ -1330,6 +1332,23 @@ public class Room implements Serializable {
 		}
 
 		// normal engine/project mcp
+		engineId = PathSecurityUtils.requireSinglePathSegment(engineId, "MCP engine ID");
+		// Keep canonical validation visible here for Snyk interprocedural analysis.
+		if (engineId == null || engineId.isBlank()) {
+			throw new IllegalArgumentException("MCP engine ID is required");
+		}
+		try {
+			File validationRoot = new File(Utility.getBaseFolder()).getCanonicalFile();
+			File engineIdPath = new File(validationRoot, engineId).getCanonicalFile();
+			if (!engineIdPath.toPath().startsWith(validationRoot.toPath())
+					|| !validationRoot.equals(engineIdPath.getParentFile()) || !engineId.equals(engineIdPath.getName())
+					|| engineId.indexOf('\\') >= 0 || engineId.chars().anyMatch(Character::isISOControl)) {
+				throw new IllegalArgumentException("MCP engine ID must be a single path segment");
+			}
+			engineId = engineIdPath.getName();
+		} catch (IOException e) {
+			throw new IllegalStateException("Unable to securely resolve the MCP engine ID", e);
+		}
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -2177,7 +2196,17 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
-		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
+		try {
+			File roomRoot = new File(Utility.getBaseFolder(), "room").getCanonicalFile();
+			File roomFolder = new File(roomRoot, roomId).getCanonicalFile();
+			if (!roomRoot.equals(roomFolder.getParentFile())) {
+				throw new IllegalArgumentException("Room folder must remain within the room directory");
+			}
+			return roomFolder.getAbsolutePath();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the room folder path", e);
+		}
 	}
 
 	// Core message accessors
