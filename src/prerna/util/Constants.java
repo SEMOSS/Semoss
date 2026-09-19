@@ -1106,17 +1106,19 @@ public class Constants {
 	public static final String SKILL_STORAGE = "storage";
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
+	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
 
 	// system (platform) mcp names
-	public static final String MCP_NODE_BUILDER = "node-builder";
-	public static final String MCP_DATABASE_MAKER = "database-maker";
-	public static final String MCP_REACTOR_HELP = "reactor-help";
-	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
+	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
 }

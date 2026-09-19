@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.Room;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
@@ -82,7 +83,8 @@ final class AgentRunExecutor {
 	 * unregisters the run as it releases the room; the object outlives the registry
 	 * entry and is what still carries the cancel flag.
 	 */
-	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun) {
+	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun,
+			Room automationResumeRoom) {
 		String runId = record.runId();
 		String jobId = runId;
 		String parentRunId = record.request() != null ? record.request().getParentRunId() : null;
@@ -99,10 +101,16 @@ final class AgentRunExecutor {
 			// Detect resume: the persisted request always has resumeMode=false on initial
 			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
 			boolean resumeMode = request.isResumeMode() || AgentRunActionStore.hasAnyActions(runId);
-			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
-					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
-					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(), resumeMode);
+			AgentHarnessResult result = automationResumeRoom == null
+					? AgentRunner.run(request.getRoomId(), request.getInput(), request.getEngineIdFallback(),
+							request.getHarnessType(), request.getMaxTurns(), request.getMaxReflections(),
+							request.getParamMap(), request.getAgentParamMap(), request.getMediaInputPaths(),
+							request.getMediaUrls(), runId, insightHandle.insight(), resumeMode)
+					: AgentRunner.resumeAutomationRun(request.getRoomId(), request.getInput(),
+							request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
+							request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
+							request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(),
+							automationResumeRoom);
 			if (result != null) {
 				AgentRunStore.markInputMessage(runId, result.getInputMessageId());
 			}
