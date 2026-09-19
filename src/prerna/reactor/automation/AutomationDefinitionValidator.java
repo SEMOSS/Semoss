@@ -45,6 +45,7 @@ import com.google.gson.JsonParseException;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.delete.Delete;
 import net.sf.jsqlparser.statement.insert.Insert;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.update.Update;
@@ -426,7 +427,8 @@ public final class AutomationDefinitionValidator {
 	private static void validateGeneratedSql(String nodeId, String nodeType, Map<String, Object> config) {
 		if (!AutomationConstants.NODE_DATABASE_QUERY.equals(nodeType)
 				&& !AutomationConstants.NODE_DATABASE_INSERT.equals(nodeType)
-				&& !AutomationConstants.NODE_DATABASE_UPDATE.equals(nodeType)) {
+				&& !AutomationConstants.NODE_DATABASE_UPDATE.equals(nodeType)
+				&& !AutomationConstants.NODE_DATABASE_DELETE.equals(nodeType)) {
 			return;
 		}
 		String query = (String) config.get("query");
@@ -468,6 +470,17 @@ public final class AutomationDefinitionValidator {
 			}
 			if (update.getWhere() == null) {
 				throw new IllegalArgumentException("Database update node '" + nodeId + "' requires a WHERE clause.");
+			}
+		}
+		if (AutomationConstants.NODE_DATABASE_DELETE.equals(nodeType)) {
+			if (!(statement instanceof Delete delete)) {
+				throw new IllegalArgumentException(
+						"Database delete node '" + nodeId + "' must contain a DELETE statement.");
+			}
+			// An unqualified DELETE empties the table, and an automation runs unattended,
+			// so the same guard the update node carries applies here.
+			if (delete.getWhere() == null) {
+				throw new IllegalArgumentException("Database delete node '" + nodeId + "' requires a WHERE clause.");
 			}
 		}
 	}
