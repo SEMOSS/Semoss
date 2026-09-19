@@ -66,7 +66,7 @@ import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
 import static prerna.reactor.automation.AutomationConstants.NOT_NULL;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
-import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR_NAME;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
@@ -196,7 +196,7 @@ public final class AutomationDatabaseUtility {
 
 	private static final String MARK_NODE_WAITING = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, DURATION_MS = ?, \
-			OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, AGENT_RUN_ID = ? \
+			OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, AGENT_RUN_ID = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ? AND STATUS = ?""";
 
 	private static final String CLAIM_WAITING_RUN = """
@@ -224,7 +224,7 @@ public final class AutomationDatabaseUtility {
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
 			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
@@ -232,10 +232,13 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
 
+	// A null agent run id leaves the persisted one in place: a node that already recorded its
+	// child run keeps that link, which is what makes the child discoverable after the parent stops.
 	private static final String UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
-			AGENT_RUN_ID = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
+			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			AGENT_RUN_ID = COALESCE(?, AGENT_RUN_ID), ERROR_MESSAGE = ? \
+			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE = "UPDATE AUTOMATION_NODE_OUTPUTS SET AGENT_RUN_ID = ? WHERE RUN_ID = ? AND NODE_ID = ?";
 
@@ -710,7 +713,7 @@ public final class AutomationDatabaseUtility {
 				ps.setInt(index++, i);
 				ps.setString(index++, NODE_STATUS_PENDING);
 				setNullableString(ps, index++, traceRoomIds == null ? null : traceRoomIds.get(node.get(NODE_FIELD_ID)));
-				setNullableString(ps, index++, configuredAgentWorkspaceId(node));
+				setNullableString(ps, index++, AutomationRuntime.configuredAgentWorkspaceId(node));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -1272,7 +1275,7 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + STARTED_AT, STARTED_AT));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + COMPLETED_AT, COMPLETED_AT));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + DURATION_MS, DURATION_MS));
-		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR, OUTPUT_VAR));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR_NAME, OUTPUT_VAR_NAME));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ROOM_ID, ROOM_ID));
@@ -1458,7 +1461,7 @@ public final class AutomationDatabaseUtility {
 		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
 		if (!tableExists) {
 			String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, STARTED_AT, COMPLETED_AT,
-					DURATION_MS, OUTPUT_VAR, OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID,
+					DURATION_MS, OUTPUT_VAR_NAME, OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID,
 					AGENT_RUN_ID, ERROR_MESSAGE };
 			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50, dateTimeType, dateTimeType,
 					BIGINT, VARCHAR_255, clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, VARCHAR_50,
@@ -1522,23 +1525,6 @@ public final class AutomationDatabaseUtility {
 		if (value != null && !value.toString().isBlank()) {
 			target.put(key, value);
 		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private static String configuredAgentWorkspaceId(Map<String, Object> node) {
-		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-			return null;
-		}
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (!(rawConfig instanceof Map<?, ?> config)) {
-			return null;
-		}
-		Object workspaceId = ((Map<String, Object>) config).get(AutomationConstants.CONFIG_WORKSPACE_ID);
-		if (workspaceId == null) {
-			return null;
-		}
-		String value = workspaceId.toString().trim();
-		return value.isEmpty() ? null : value;
 	}
 
 	// -- Helpers

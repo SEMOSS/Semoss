@@ -76,8 +76,7 @@ public class GetAutomationRunReactor extends AbstractReactor {
 
 		Map<String, Object> runDetail = AutomationDatabaseUtility.getRunDetail(runId);
 		// Scope by PROJECT_ID so a user with view access to one project cannot read
-		// another
-		// project's run detail/node outputs by guessing or reusing a runId.
+		// another project's run detail/node outputs by guessing or reusing a runId.
 		if (runDetail == null || !projectId.equals(runDetail.get(AutomationConstants.PROJECT_ID))) {
 			Map<String, Object> notFound = new HashMap<>();
 			notFound.put(AutomationConstants.RUN_ID, runId);

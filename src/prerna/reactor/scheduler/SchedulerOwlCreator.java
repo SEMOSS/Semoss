@@ -28,15 +28,12 @@
 package prerna.reactor.scheduler;
 
 import static prerna.reactor.scheduler.SchedulerConstants.BIGINT;
-import static prerna.reactor.scheduler.SchedulerConstants.BLOB;
 import static prerna.reactor.scheduler.SchedulerConstants.BLOB_DATA;
-import static prerna.reactor.scheduler.SchedulerConstants.BOOLEAN;
 import static prerna.reactor.scheduler.SchedulerConstants.BOOL_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.BOOL_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.CALENDAR;
 import static prerna.reactor.scheduler.SchedulerConstants.CALENDAR_NAME;
 import static prerna.reactor.scheduler.SchedulerConstants.CHECKIN_INTERVAL;
-import static prerna.reactor.scheduler.SchedulerConstants.CLOB;
 import static prerna.reactor.scheduler.SchedulerConstants.CRON_EXPRESSION;
 import static prerna.reactor.scheduler.SchedulerConstants.CRON_TIMEZONE;
 import static prerna.reactor.scheduler.SchedulerConstants.DEC_PROP_1;
@@ -49,9 +46,7 @@ import static prerna.reactor.scheduler.SchedulerConstants.EXECUTION_END;
 import static prerna.reactor.scheduler.SchedulerConstants.EXECUTION_START;
 import static prerna.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.FIRED_TIME;
-import static prerna.reactor.scheduler.SchedulerConstants.IMAGE;
 import static prerna.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
-import static prerna.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.IS_DURABLE;
@@ -104,7 +99,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_3;
 import static prerna.reactor.scheduler.SchedulerConstants.SUCCESS;
-import static prerna.reactor.scheduler.SchedulerConstants.TIMESTAMP;
 import static prerna.reactor.scheduler.SchedulerConstants.TIMES_TRIGGERED;
 import static prerna.reactor.scheduler.SchedulerConstants.TIME_ZONE_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.TRIGGER_GROUP;
@@ -133,28 +127,38 @@ import org.javatuples.Pair;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
- * Defines scheduler-owned database tables, column types, and relationships in the scheduler OWL.
+ * Defines scheduler-owned database tables, column types, and relationships in
+ * the scheduler OWL.
  *
  * <p>
- * This includes Automation run-history tables because their lifecycle is tied to scheduled and
- * manual execution rather than project business data.
+ * This includes Automation run-history tables because their lifecycle is tied
+ * to scheduled and manual execution rather than project business data.
  */
 public class SchedulerOwlCreator extends AbstractOwlCreator {
 
-	public SchedulerOwlCreator() {
-		createColumnsAndTypes();
+	public SchedulerOwlCreator(AbstractSqlQueryUtil queryUtil) {
+		super(queryUtil);
 	}
 
-	public void createColumnsAndTypes() {
+	@Override
+	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		this.allSchemas = new ArrayList<>();
+
+		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
+		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 
 		// @formatter:off
 		addTable(QRTZ_CALENDARS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
 				Pair.with(CALENDAR_NAME, VARCHAR_200),
-				Pair.with(CALENDAR, IMAGE)));
+				Pair.with(CALENDAR, IMAGE_DATATYPE)));
 
 		addTable(QRTZ_CRON_TRIGGERS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
@@ -171,12 +175,12 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(INSTANCE_NAME, VARCHAR_200),
 				Pair.with(FIRED_TIME, BIGINT),
 				Pair.with(SCHED_TIME, BIGINT),
-				Pair.with(PRIORITY, INTEGER),
+				Pair.with(PRIORITY, INTEGER_DATATYPE),
 				Pair.with(STATE, VARCHAR_16),
 				Pair.with(JOB_NAME, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200),
-				Pair.with(IS_NONCONCURRENT, BOOLEAN),
-				Pair.with(REQUESTS_RECOVERY, BOOLEAN)));
+				Pair.with(IS_NONCONCURRENT, BOOLEAN_DATATYPE),
+				Pair.with(REQUESTS_RECOVERY, BOOLEAN_DATATYPE)));
 
 		addTable(QRTZ_PAUSED_TRIGGER_GRPS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
@@ -198,11 +202,11 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(JOB_GROUP, VARCHAR_200),
 				Pair.with(DESCRIPTION, VARCHAR_250),
 				Pair.with(JOB_CLASS_NAME, VARCHAR_250),
-				Pair.with(IS_DURABLE, BOOLEAN),
-				Pair.with(IS_NONCONCURRENT, BOOLEAN),
-				Pair.with(IS_UPDATE_DATA, BOOLEAN),
-				Pair.with(REQUESTS_RECOVERY, BOOLEAN),
-				Pair.with(JOB_DATA, IMAGE)));
+				Pair.with(IS_DURABLE, BOOLEAN_DATATYPE),
+				Pair.with(IS_NONCONCURRENT, BOOLEAN_DATATYPE),
+				Pair.with(IS_UPDATE_DATA, BOOLEAN_DATATYPE),
+				Pair.with(REQUESTS_RECOVERY, BOOLEAN_DATATYPE),
+				Pair.with(JOB_DATA, IMAGE_DATATYPE)));
 
 		addTable(QRTZ_SIMPLE_TRIGGERS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
@@ -219,20 +223,20 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(STR_PROP_1, VARCHAR_512),
 				Pair.with(STR_PROP_2, VARCHAR_512),
 				Pair.with(STR_PROP_3, VARCHAR_512),
-				Pair.with(INT_PROP_1, INTEGER),
-				Pair.with(INT_PROP_2, INTEGER),
+				Pair.with(INT_PROP_1, INTEGER_DATATYPE),
+				Pair.with(INT_PROP_2, INTEGER_DATATYPE),
 				Pair.with(LONG_PROP_1, BIGINT),
 				Pair.with(LONG_PROP_2, BIGINT),
 				Pair.with(DEC_PROP_1, NUMERIC_13_4),
 				Pair.with(DEC_PROP_2, NUMERIC_13_4),
-				Pair.with(BOOL_PROP_1, BOOLEAN),
-				Pair.with(BOOL_PROP_2, BOOLEAN)));
+				Pair.with(BOOL_PROP_1, BOOLEAN_DATATYPE),
+				Pair.with(BOOL_PROP_2, BOOLEAN_DATATYPE)));
 
 		addTable(QRTZ_BLOB_TRIGGERS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
 				Pair.with(TRIGGER_NAME, VARCHAR_200),
 				Pair.with(TRIGGER_GROUP, VARCHAR_200),
-				Pair.with(BLOB_DATA, IMAGE)));
+				Pair.with(BLOB_DATA, IMAGE_DATATYPE)));
 
 		addTable(QRTZ_TRIGGERS, Arrays.asList(
 				Pair.with(SCHED_NAME, VARCHAR_120),
@@ -243,14 +247,14 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(DESCRIPTION, VARCHAR_250),
 				Pair.with(NEXT_FIRE_TIME, BIGINT),
 				Pair.with(PREV_FIRE_TIME, BIGINT),
-				Pair.with(PRIORITY, INTEGER),
+				Pair.with(PRIORITY, INTEGER_DATATYPE),
 				Pair.with(TRIGGER_STATE, VARCHAR_16),
 				Pair.with(TRIGGER_TYPE, VARCHAR_8),
 				Pair.with(START_TIME, BIGINT),
 				Pair.with(END_TIME, BIGINT),
 				Pair.with(CALENDAR_NAME, VARCHAR_200),
 				Pair.with(MISFIRE_INSTR, SMALLINT),
-				Pair.with(JOB_DATA, IMAGE)));
+				Pair.with(JOB_DATA, IMAGE_DATATYPE)));
 
 		addTable(SMSS_JOB_RECIPES, Arrays.asList(
 				Pair.with(USER_ID, VARCHAR_120),
@@ -259,21 +263,21 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(JOB_GROUP, VARCHAR_200),
 				Pair.with(CRON_EXPRESSION, VARCHAR_250),
 				Pair.with(CRON_TIMEZONE, VARCHAR_120),
-				Pair.with(PIXEL_RECIPE, BLOB),
-				Pair.with(PIXEL_RECIPE_PARAMETERS, BLOB),
+				Pair.with(PIXEL_RECIPE, BLOB_DATATYPE),
+				Pair.with(PIXEL_RECIPE_PARAMETERS, BLOB_DATATYPE),
 				Pair.with(JOB_CATEGORY, VARCHAR_200),
-				Pair.with(TRIGGER_ON_LOAD, BOOLEAN),
-				Pair.with(UI_STATE, BLOB)));
+				Pair.with(TRIGGER_ON_LOAD, BOOLEAN_DATATYPE),
+				Pair.with(UI_STATE, BLOB_DATATYPE)));
 
 		addTable(SMSS_AUDIT_TRAIL, Arrays.asList(
 				Pair.with(JOB_ID, VARCHAR_200),
 				Pair.with(JOB_GROUP, VARCHAR_200),
-				Pair.with(EXECUTION_START, TIMESTAMP),
-				Pair.with(EXECUTION_END, TIMESTAMP),
+				Pair.with(EXECUTION_START, TIMESTAMP_DATATYPE),
+				Pair.with(EXECUTION_END, TIMESTAMP_DATATYPE),
 				Pair.with(EXECUTION_DELTA, VARCHAR_255),
-				Pair.with(SUCCESS, BOOLEAN),
-				Pair.with(IS_LATEST, BOOLEAN),
-				Pair.with(SCHEDULER_OUTPUT, CLOB)));
+				Pair.with(SUCCESS, BOOLEAN_DATATYPE),
+				Pair.with(IS_LATEST, BOOLEAN_DATATYPE),
+				Pair.with(SCHEDULER_OUTPUT, CLOB_DATATYPE)));
 
 		addTable(SMSS_JOB_TAGS, Arrays.asList(
 				Pair.with(JOB_ID, VARCHAR_200),
@@ -290,26 +294,26 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.AUTOMATION_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.DEFINITION_VERSION, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.DEFINITION_HASH, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.DEFINITION_SNAPSHOT, CLOB),
-				Pair.with(AutomationConstants.INPUT_SNAPSHOT, CLOB),
+				Pair.with(AutomationConstants.DEFINITION_SNAPSHOT, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.INPUT_SNAPSHOT, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.TRIGGER_TYPE, AutomationConstants.VARCHAR_50),
-				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.FAILED_NODE_ID, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB),
-				Pair.with(AutomationConstants.LAST_HEARTBEAT, TIMESTAMP),
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.LAST_HEARTBEAT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.TOTAL_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.COMPLETED_NODES, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN),
+				Pair.with(AutomationConstants.CANCEL_REQUESTED, BOOLEAN_DATATYPE),
 				Pair.with(AutomationConstants.RESULT_SUMMARY_COL, AutomationConstants.VARCHAR_2000)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.SOURCE_HASH, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.SOURCE_CODE, CLOB)));
+				Pair.with(AutomationConstants.SOURCE_CODE, CLOB_DATATYPE)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, Arrays.asList(
 				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
@@ -317,17 +321,17 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.NODE_LABEL, AutomationConstants.VARCHAR_500),
 				Pair.with(AutomationConstants.EXECUTION_ORDER, AutomationConstants.INTEGER),
 				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
-				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.DURATION_MS, AutomationConstants.BIGINT),
-				Pair.with(AutomationConstants.OUTPUT_VAR, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB),
+				Pair.with(AutomationConstants.OUTPUT_VAR_NAME, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.OUTPUT_PREVIEW, AutomationConstants.VARCHAR_2000),
 				Pair.with(AutomationConstants.ROOM_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.WORKSPACE_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.MODEL_MESSAGE_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.AGENT_RUN_ID, AutomationConstants.VARCHAR_50),
-				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB)));
+				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, Arrays.asList(
 				Pair.with(AutomationConstants.WAIT_ID, AutomationConstants.VARCHAR_255),
@@ -339,12 +343,12 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.RESUME_NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.STATUS, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.CREATED_BY, AutomationConstants.VARCHAR_255),
-				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.EXPIRES_AT, TIMESTAMP),
-				Pair.with(AutomationConstants.RESOLVED_AT, TIMESTAMP),
+				Pair.with(AutomationConstants.STARTED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.EXPIRES_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.RESOLVED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.RESOLVED_BY, AutomationConstants.VARCHAR_255)));
 
-		// @formatter:on
+		// @formatter:on 
 	}
 
 	@Override
@@ -378,16 +382,14 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 		owler.addRelation(QRTZ_TRIGGERS, QRTZ_JOB_DETAILS,
 				QRTZ_TRIGGERS + "." + TRIGGER_GROUP + "." + QRTZ_JOB_DETAILS + "." + TRIGGER_GROUP);
 
-		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS,
-				AutomationConstants.TABLE_AUTOMATION_RUNS,
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS, AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_NODE_OUTPUTS + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES,
 				AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
-		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS,
-				AutomationConstants.TABLE_AUTOMATION_RUNS,
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_RUN_WAITS + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
 	}

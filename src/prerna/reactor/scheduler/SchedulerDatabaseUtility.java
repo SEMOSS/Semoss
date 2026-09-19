@@ -47,7 +47,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.EXECUTION_START;
 import static prerna.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.FIRED_TIME;
 import static prerna.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
-import static prerna.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.IS_DURABLE;
@@ -102,7 +101,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_3;
 import static prerna.reactor.scheduler.SchedulerConstants.SUCCESS;
-import static prerna.reactor.scheduler.SchedulerConstants.TIMESTAMP;
 import static prerna.reactor.scheduler.SchedulerConstants.TIMES_TRIGGERED;
 import static prerna.reactor.scheduler.SchedulerConstants.TIME_ZONE_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.TRIGGER_GROUP;
@@ -166,12 +164,13 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
 /**
- * Provides scheduler persistence and Quartz lifecycle operations backed by the SEMOSS scheduler
- * database.
+ * Provides scheduler persistence and Quartz lifecycle operations backed by the
+ * SEMOSS scheduler database.
  *
  * <p>
- * Callers use this utility for parameterized recipe, tag, execution, and audit operations. The
- * logical database schema remains owned by {@link SchedulerOwlCreator}.
+ * Callers use this utility for parameterized recipe, tag, execution, and audit
+ * operations. The logical database schema remains owned by
+ * {@link SchedulerOwlCreator}.
  */
 public class SchedulerDatabaseUtility {
 
@@ -287,7 +286,7 @@ public class SchedulerDatabaseUtility {
 		try {
 			queryUtil = schedulerDb.getQueryUtil();
 
-			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator();
+			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(queryUtil);
 			if (owlCreator.needsRemake(schedulerDb)) {
 				owlCreator.remakeOwl(schedulerDb);
 			}
@@ -1522,10 +1521,12 @@ public class SchedulerDatabaseUtility {
 	private static void createQuartzTables(Connection connection, String database, String schema) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
-		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
+
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 
 		String[] colNames = null;
 		String[] types = null;
@@ -1569,7 +1570,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, ENTRY_ID, TRIGGER_NAME, TRIGGER_GROUP, INSTANCE_NAME, FIRED_TIME,
 					SCHED_TIME, PRIORITY, STATE, JOB_NAME, JOB_GROUP, IS_NONCONCURRENT, REQUESTS_RECOVERY };
 			types = new String[] { VARCHAR_120, VARCHAR_95, VARCHAR_200, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT,
-					INTEGER, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null, null, null, null };
 
@@ -1679,7 +1680,8 @@ public class SchedulerDatabaseUtility {
 					INT_PROP_1, INT_PROP_2, LONG_PROP_1, LONG_PROP_2, DEC_PROP_1, DEC_PROP_2, BOOL_PROP_1,
 					BOOL_PROP_2 };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_512, VARCHAR_512, VARCHAR_512,
-					INTEGER, INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, INTEGER_DATATYPE, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE,
+					BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null, null,
 					null, null, null };
 
@@ -1717,7 +1719,8 @@ public class SchedulerDatabaseUtility {
 					NEXT_FIRE_TIME, PREV_FIRE_TIME, PRIORITY, TRIGGER_STATE, TRIGGER_TYPE, START_TIME, END_TIME,
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
-					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE_DATATYPE };
+					BIGINT, INTEGER_DATATYPE, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT,
+					IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null,
 					NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null };
 
@@ -1754,10 +1757,11 @@ public class SchedulerDatabaseUtility {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		String dateTimeType = queryUtil.getDateWithTimeDataType();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
@@ -1811,11 +1815,8 @@ public class SchedulerDatabaseUtility {
 			// adding is_latest flag to mark the latest record
 			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS,
 					IS_LATEST, SCHEDULER_OUTPUT };
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE,
-					BOOLEAN_DATATYPE, CLOB_DATATYPE };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP_DATATYPE, TIMESTAMP_DATATYPE, VARCHAR_255,
+					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, CLOB_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types,
@@ -1836,9 +1837,6 @@ public class SchedulerDatabaseUtility {
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP };
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200 };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
 			} else {
@@ -1853,25 +1851,6 @@ public class SchedulerDatabaseUtility {
 		} catch (Exception se) {
 			classLogger.error("Failed to create or migrate one or more SMSS scheduler tables: {}", se.getMessage(), se);
 		}
-	}
-
-	/**
-	 * In-place find/replace across a String[]. Used by the table-creation logic to
-	 * swap a generic placeholder type (e.g. {@code TIMESTAMP}) for the
-	 * rdbms-specific equivalent reported by the query util.
-	 *
-	 * @param arrays      array to mutate
-	 * @param value       value to find
-	 * @param replacement value to substitute
-	 * @return the same array reference (for fluent use)
-	 */
-	private static String[] cleanUpDataType(String[] arrays, String value, String replacement) {
-		for (int i = 0; i < arrays.length; i++) {
-			if (arrays[i].equals(value)) {
-				arrays[i] = replacement;
-			}
-		}
-		return arrays;
 	}
 
 	/**

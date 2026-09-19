@@ -61,7 +61,7 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 
 	/** Supported configuration value shapes exposed to authoring clients. */
 	public enum ConfigFieldType {
-		ENGINE("engine"), STRING("string"), STRING_LIST("string[]"), TEXT("textarea"), CODE("code"), SQL("code"),
+		ENGINE("engine"), STRING("string"), STRING_LIST("string[]"), TEXT("textarea"), CODE("code"),
 		INTEGER("number"), JSON("json"), GLOBALS("globals"), BRANCH_CLAUSES("branch-clauses");
 
 		private final String value;

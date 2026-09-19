@@ -29,9 +29,11 @@ package prerna.reactor.automation;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import prerna.engine.api.IEngine;
 import prerna.reactor.automation.AutomationNodeDefinition.ConfigField;
@@ -56,7 +58,10 @@ public final class AutomationNodeCatalog {
 	private static final Port CONTROL_OUTPUT = port("out", "Next", PortKind.CONTROL, PortDirection.OUTPUT, null);
 	private static final Port RESULT_OUTPUT = port("result", "Result", PortKind.DATA, PortDirection.OUTPUT, "unknown");
 	private static final List<AutomationNodeDefinition> DEFINITIONS = createDefinitions();
-	private static final Map<AutomationNodeType, AutomationNodeDefinition> DEFINITIONS_BY_TYPE = indexDefinitions();
+
+	static {
+		validateOneDefinitionPerNodeType();
+	}
 
 	private AutomationNodeCatalog() {
 	}
@@ -66,20 +71,6 @@ public final class AutomationNodeCatalog {
 	 */
 	public static List<AutomationNodeDefinition> getDefinitions() {
 		return DEFINITIONS;
-	}
-
-	/**
-	 * Returns the definition for a supported node type.
-	 *
-	 * @param nodeType node type
-	 * @return matching definition
-	 */
-	public static AutomationNodeDefinition getDefinition(AutomationNodeType nodeType) {
-		AutomationNodeDefinition definition = DEFINITIONS_BY_TYPE.get(nodeType);
-		if (definition == null) {
-			throw new IllegalArgumentException("Missing Automation node definition for " + nodeType.getType());
-		}
-		return definition;
 	}
 
 	/**
@@ -108,7 +99,7 @@ public final class AutomationNodeCatalog {
 				"Retrieve bounded rows with a database query.",
 				orderedConfig("engineId", "", "query", "", "limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT),
 				List.of(engineField(IEngine.CATALOG_TYPE.DATABASE),
-						field("query", ConfigFieldType.SQL, "Query", true, ""),
+						field("query", ConfigFieldType.CODE, "Query", true, ""),
 						boundedIntegerField("limit", "Result limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
 								AutomationConstants.DB_QUERY_MIN_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT)),
 				controlInputs(), controlAndResultOutputs()));
@@ -116,6 +107,8 @@ public final class AutomationNodeCatalog {
 				"Add records to a database table."));
 		definitions.add(databaseWriteDefinition(AutomationNodeType.DATABASE_UPDATE, "Update database rows",
 				"Update matching records in a database table."));
+		definitions.add(databaseWriteDefinition(AutomationNodeType.DATABASE_DELETE, "Delete database rows",
+				"Remove matching records from a database table."));
 
 		definitions.add(
 				definition(AutomationNodeType.MODEL_CHAT, "Chat model", "Ask a language model to generate a response.",
@@ -201,7 +194,7 @@ public final class AutomationNodeCatalog {
 			String description) {
 		return definition(nodeType, label, description, orderedConfig("engineId", "", "query", ""),
 				List.of(engineField(IEngine.CATALOG_TYPE.DATABASE),
-						field("query", ConfigFieldType.SQL, "SQL", true, "")),
+						field("query", ConfigFieldType.CODE, "Query", true, "")),
 				controlInputs(), List.of(CONTROL_OUTPUT));
 	}
 
@@ -268,19 +261,21 @@ public final class AutomationNodeCatalog {
 		return List.of(CONTROL_OUTPUT, RESULT_OUTPUT);
 	}
 
-	private static Map<AutomationNodeType, AutomationNodeDefinition> indexDefinitions() {
-		Map<AutomationNodeType, AutomationNodeDefinition> definitionsByType = new LinkedHashMap<>();
+	/**
+	 * Fails class initialization when the catalog and the node-type enum disagree,
+	 * so a node type added without an authoring definition cannot reach a client.
+	 */
+	private static void validateOneDefinitionPerNodeType() {
+		Set<AutomationNodeType> seen = EnumSet.noneOf(AutomationNodeType.class);
 		for (AutomationNodeDefinition definition : DEFINITIONS) {
-			AutomationNodeDefinition previous = definitionsByType.put(definition.nodeType(), definition);
-			if (previous != null) {
+			if (!seen.add(definition.nodeType())) {
 				throw new IllegalStateException(
 						"Duplicate Automation node definition for " + definition.nodeType().getType());
 			}
 		}
-		if (definitionsByType.size() != AutomationNodeType.values().length) {
+		if (seen.size() != AutomationNodeType.values().length) {
 			throw new IllegalStateException("Every Automation node type must have one authoring definition.");
 		}
-		return Collections.unmodifiableMap(definitionsByType);
 	}
 
 	private static Map<String, Object> orderedConfig(Object... values) {

@@ -129,18 +129,9 @@ public final class SchedulerConstants {
 	public static final String VARCHAR_255 = "VARCHAR (255)";
 	public static final String VARCHAR_512 = "VARCHAR (512)";
 
-	public static final String INTEGER = "INTEGER";
-	public static final String BOOLEAN = "BOOLEAN";
-	public static final String BIT = "BIT";
 	public static final String BIGINT = "BIGINT";
 	public static final String SMALLINT = "SMALLINT";
-	// need to do this based on the sql type
-	@Deprecated
-	public static final String IMAGE = "IMAGE";
 	public static final String NUMERIC_13_4 = "NUMERIC(13,4)";
-	public static final String TIMESTAMP = "TIMESTAMP";
-	public static final String BLOB = "BLOB";
-	public static final String CLOB = "CLOB";
 
 	// Constraints
 	public static final String NOT_NULL = "NOT NULL";

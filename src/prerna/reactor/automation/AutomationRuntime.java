@@ -191,11 +191,12 @@ final class AutomationRuntime {
 	 * playground defaults.
 	 */
 	static Map<String, Object> declaredGlobals(AutomationDefinitionValidator.ValidatedDefinition definition) {
-		Map<String, Object> globals = new LinkedHashMap<>();
-		for (Map<String, Object> global : triggerGlobalDefinitions(definition)) {
-			globals.put((String) global.get("name"), global.get(AutomationConstants.CONFIG_DEFAULT_VALUE));
+		for (Map<String, Object> node : definition.nodes()) {
+			if (AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				return triggerGlobalDefaults(node);
+			}
 		}
-		return globals;
+		return Map.of();
 	}
 
 	/**
@@ -254,6 +255,27 @@ final class AutomationRuntime {
 			}
 		}
 		return globals;
+	}
+
+	/**
+	 * Returns the agent workspace an agent node is bound to, or null for any other
+	 * node type or a node that does not name one. Both the executor and the
+	 * run-history reader compare a child agent's returned workspace against this
+	 * value, so they resolve it the same way.
+	 */
+	static String configuredAgentWorkspaceId(Map<String, Object> node) {
+		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			return null;
+		}
+		if (!(node.get(AutomationConstants.NODE_FIELD_CONFIG) instanceof Map<?, ?> config)) {
+			return null;
+		}
+		Object workspaceId = config.get(AutomationConstants.CONFIG_WORKSPACE_ID);
+		if (workspaceId == null) {
+			return null;
+		}
+		String value = workspaceId.toString().trim();
+		return value.isEmpty() ? null : value;
 	}
 
 	private static String sourceValue(Object value) {

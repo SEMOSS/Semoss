@@ -50,6 +50,8 @@ public enum AutomationNodeType {
 			Permission.EDIT, true, true),
 	DATABASE_UPDATE(AutomationConstants.NODE_DATABASE_UPDATE, Category.DATABASE, IEngine.CATALOG_TYPE.DATABASE,
 			Permission.EDIT, true, true),
+	DATABASE_DELETE(AutomationConstants.NODE_DATABASE_DELETE, Category.DATABASE, IEngine.CATALOG_TYPE.DATABASE,
+			Permission.EDIT, true, true),
 	MODEL_CHAT(AutomationConstants.NODE_MODEL_CHAT, Category.MODEL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW, true,
 			true),
 	MODEL_EMBEDDINGS(AutomationConstants.NODE_MODEL_EMBEDDINGS, Category.MODEL, IEngine.CATALOG_TYPE.MODEL,

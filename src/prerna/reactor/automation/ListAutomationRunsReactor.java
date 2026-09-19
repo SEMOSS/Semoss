@@ -57,6 +57,7 @@ public class ListAutomationRunsReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
+		organizeKeys();
 		String projectId = getString(ReactorKeysEnum.PROJECT.getKey());
 		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), AutomationConstants.DEFAULT_LIST_RUNS_LIMIT);
 

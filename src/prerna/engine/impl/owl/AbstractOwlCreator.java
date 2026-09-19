@@ -35,12 +35,13 @@ import org.javatuples.Pair;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.util.Utility;
+import prerna.util.sql.AbstractSqlQueryUtil;
 
 /**
  * Shared base for the system-engine OWL creators (security, themes, prompts,
  * scheduler, etc.). Each concrete creator declares its schema in
  * {@link #allSchemas} as a list of tables, where every table is paired with its
- * ordered list of (column name, datatype) pairs.
+ * ordered list of (column name, data type) pairs.
  * <p>
  * The schema declaration only needs the SQL dialect (via {@code queryUtil} in
  * the subclass constructor), so the schema can be read from any instance -
@@ -63,12 +64,29 @@ public abstract class AbstractOwlCreator {
 	private static final String BASE_CONCEPT_URI = AbstractOWLEngine.BASE_NODE_URI;
 	private static final String CONTAINS_RELATION_BASE = AbstractOWLEngine.BASE_PROPERTY_URI + "/";
 
-	// Pairs each table name with its respective columns (column name -> datatype).
+	// Pairs each table name with its respective columns (column name -> data type).
 	// concepts are tables within the db, props are columns within a concept.
 	protected List<Pair<String, List<Pair<String, String>>>> allSchemas = new ArrayList<>();
 
 	/**
-	 * The declared schema in (table, [(column, datatype)]) form.
+	 * On constructor, define the database schema
+	 * 
+	 * @param queryUtil
+	 */
+	public AbstractOwlCreator(AbstractSqlQueryUtil queryUtil) {
+		createColumnsAndTypes(queryUtil);
+	}
+
+	/**
+	 * Method that will set the {@link #allSchemas} object with the tables, columns,
+	 * and data types based on the rdbms implementation
+	 * 
+	 * @param queryUtil
+	 */
+	public abstract void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil);
+
+	/**
+	 * The declared schema in (table, [(column, data type)]) form.
 	 *
 	 * @return the table-to-columns structure backing this creator
 	 */
@@ -87,7 +105,7 @@ public abstract class AbstractOwlCreator {
 	}
 
 	/**
-	 * Flatten this creator's declared schema into table/column/datatype rows.
+	 * Flatten this creator's declared schema into table/column/data type rows.
 	 *
 	 * @return one {@link OwlColumn} per declared column
 	 */
@@ -96,9 +114,9 @@ public abstract class AbstractOwlCreator {
 	}
 
 	/**
-	 * Flatten a declared OWL schema into a list of table/column/datatype rows.
+	 * Flatten a declared OWL schema into a list of table/column/data type rows.
 	 *
-	 * @param schemas the table -> [(column, datatype)] structure (e.g. from
+	 * @param schemas the table -> [(column, data type)] structure (e.g. from
 	 *                {@link #getDBSchema()})
 	 * @return one {@link OwlColumn} per column, preserving table and column order
 	 */
@@ -243,11 +261,11 @@ public abstract class AbstractOwlCreator {
 	}
 
 	/**
-	 * A single table/column/datatype triple derived from a declared OWL schema.
+	 * A single table/column/data type triple derived from a declared OWL schema.
 	 *
 	 * @param tableName  the table (concept) name
 	 * @param columnName the column (property) name
-	 * @param dataType   the declared datatype of the column
+	 * @param data       type the declared data type of the column
 	 */
 	public record OwlColumn(String tableName, String columnName, String dataType) {
 	}

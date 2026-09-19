@@ -225,7 +225,7 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "query");
 			validateDatabaseQueryLimit(nodeId, config);
 		}
-		case DATABASE_INSERT, DATABASE_UPDATE -> requireConfigString(nodeId, config, "query");
+		case DATABASE_INSERT, DATABASE_UPDATE, DATABASE_DELETE -> requireConfigString(nodeId, config, "query");
 		case MODEL_CHAT -> {
 			requireConfigString(nodeId, config, "prompt");
 			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);

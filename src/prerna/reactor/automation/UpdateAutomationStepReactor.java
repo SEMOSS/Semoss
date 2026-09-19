@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,7 +62,7 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 		organizeKeys();
 		String projectId = editableProjectId();
 		String nodeId = required(NODE_ID_KEY);
-		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
+		Map<String, Object> config = AutomationRuntimeUtils.parseJsonObject(required(CONFIG_KEY), "config");
 		String label = this.keyValue.get(LABEL_KEY);
 		return AutomationProjectUtils.withLockedDefinition(projectId,
 				files -> updateStep(projectId, files, nodeId, config, label));
@@ -131,21 +129,6 @@ public class UpdateAutomationStepReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Must provide " + key + ".");
 		}
 		return value;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> parseConfig(String rawOrBase64) {
-		String raw;
-		try {
-			raw = new String(Base64.getDecoder().decode(rawOrBase64), StandardCharsets.UTF_8);
-		} catch (IllegalArgumentException ignored) {
-			raw = rawOrBase64;
-		}
-		Object parsed = AutomationRuntimeUtils.GSON.fromJson(raw, Object.class);
-		if (!(parsed instanceof Map<?, ?>)) {
-			throw new IllegalArgumentException("config must be a JSON object.");
-		}
-		return new LinkedHashMap<>((Map<String, Object>) parsed);
 	}
 
 	@Override

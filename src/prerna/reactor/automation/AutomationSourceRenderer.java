@@ -67,6 +67,7 @@ public final class AutomationSourceRenderer {
 		case DATABASE_QUERY -> databaseQuerySource(config);
 		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
+		case DATABASE_DELETE -> databaseWriteSource(config, "removeData");
 		case MODEL_CHAT -> modelChatSource(config);
 		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
 		case MODEL_VISION -> modelVisionSource(config);
@@ -301,7 +302,7 @@ public final class AutomationSourceRenderer {
 				def run(scope):
 				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
 				    return storage.%s(scope.resolve(%s))
-				""".formatted(value(config, "engineId"), value(config, "path"), method, argument);
+				""".formatted(value(config, "engineId"), valueOrDefault(config, "path", ""), method, argument);
 	}
 
 	private static String storageReadSource(Map<String, Object> config) {
@@ -352,7 +353,8 @@ public final class AutomationSourceRenderer {
 				def run(scope):
 				    vector = VectorEngine(engine_id=scope.resolve(ENGINE_ID))
 				    return vector.nearestNeighbor(search_statement=scope.resolve(QUERY), limit=scope.resolve(LIMIT))
-				""".formatted(value(config, "engineId"), value(config, "value"), value(config, "limit"));
+				""".formatted(value(config, "engineId"), value(config, "value"),
+				valueOrDefault(config, "limit", AutomationConstants.DEFAULT_VECTOR_SEARCH_LIMIT));
 	}
 
 	private static String vectorAddSource(Map<String, Object> config) {
@@ -526,6 +528,16 @@ public final class AutomationSourceRenderer {
 
 	private static String value(Map<String, Object> config, String key) {
 		return pythonValue(config.get(key));
+	}
+
+	/**
+	 * Renders an optional configuration value, substituting {@code fallback} when
+	 * the node did not supply one. Without it an absent optional field renders as
+	 * Python {@code None} and the generated call passes null into the SDK.
+	 */
+	private static String valueOrDefault(Map<String, Object> config, String key, Object fallback) {
+		Object value = config.get(key);
+		return pythonValue(value != null ? value : fallback);
 	}
 
 	private static String pythonValue(Object value) {

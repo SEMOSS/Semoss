@@ -86,7 +86,7 @@ public class SystemDatabaseSchemaUtils {
 		AbstractOwlCreator owlCreator = switch (databaseId) {
 		case Constants.SECURITY_DB -> new SecurityOwlCreator(queryUtil);
 		case Constants.LOCAL_MASTER_DB -> new LocalMasterOwlCreator(queryUtil);
-		case Constants.SCHEDULER_DB -> new SchedulerOwlCreator();
+		case Constants.SCHEDULER_DB -> new SchedulerOwlCreator(queryUtil);
 		case Constants.THEMING_DB -> new ThemeOwlCreator(queryUtil);
 		case Constants.USER_TRACKING_DB -> new UserTrackingOwlCreator(queryUtil);
 		case Constants.PROMPT_DB -> new PromptOwlCreator(queryUtil);

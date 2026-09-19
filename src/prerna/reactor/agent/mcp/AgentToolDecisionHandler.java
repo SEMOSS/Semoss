@@ -103,12 +103,12 @@ public final class AgentToolDecisionHandler {
 	/**
 	 * Applies a decision through Automation's trace-authorized edit route.
 	 *
-	 * @param actionId agent action identifier
-	 * @param expectedRunId agent run identifier already verified by Automation
-	 * @param decision requested approval decision
+	 * @param actionId          agent action identifier
+	 * @param expectedRunId     agent run identifier already verified by Automation
+	 * @param decision          requested approval decision
 	 * @param passthroughResult result supplied for reject or respond decisions
-	 * @param toolStatus optional tool status
-	 * @param callerParams optional edited tool parameters
+	 * @param toolStatus        optional tool status
+	 * @param callerParams      optional edited tool parameters
 	 * @return tool result written to the room
 	 */
 	public String handleAutomationDecision(String actionId, String expectedRunId, String decision,
@@ -172,6 +172,10 @@ public final class AgentToolDecisionHandler {
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		if (roomId != null && !roomId.isBlank()) {
 			Room executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
+			if (executionRoom == null) {
+				throw new IllegalStateException(
+						"Cannot execute the agent tool call because room was not found roomId=" + roomId);
+			}
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}

@@ -32,7 +32,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
+
+import com.google.re2j.Pattern;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -184,13 +185,26 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		}
 	}
 
+	/**
+	 * Reports whether a configuration value or node source still reads the removed
+	 * node's output.
+	 *
+	 * <p>
+	 * The node name is escaped and embedded in a scan pattern, so the expression is
+	 * compiled with RE2/J: it evaluates in linear time over node source that may be
+	 * up to {@link AutomationConstants#NODE_SOURCE_MAX_BYTES} bytes. RE2 has no
+	 * backreferences, so the matching-quote case is an explicit alternation rather
+	 * than a captured opening quote reused later in the pattern.
+	 */
 	private static boolean referencesOutput(Object value, String outputVar) {
 		if (value instanceof String string) {
-			String quoted = Pattern.quote(outputVar);
-			return string.contains("${" + outputVar + "}")
-					|| Pattern.compile("\\bscope\\s*\\[\\s*(['\"]?)" + quoted + "\\1\\s*\\]").matcher(string).find()
-					|| Pattern.compile("\\bscope\\s*\\.\\s*get\\s*\\(\\s*(['\"]?)" + quoted + "\\1\\s*(?:,|\\))")
-							.matcher(string).find();
+			if (string.contains("${" + outputVar + "}")) {
+				return true;
+			}
+			String key = "(?:'" + Pattern.quote(outputVar) + "'|\"" + Pattern.quote(outputVar) + "\"|"
+					+ Pattern.quote(outputVar) + ")";
+			return Pattern.compile("\\bscope\\s*\\[\\s*" + key + "\\s*\\]").matcher(string).find() || Pattern
+					.compile("\\bscope\\s*\\.\\s*get\\s*\\(\\s*" + key + "\\s*(?:,|\\))").matcher(string).find();
 		}
 		if (value instanceof Map<?, ?> map) {
 			return map.values().stream().anyMatch(item -> referencesOutput(item, outputVar));

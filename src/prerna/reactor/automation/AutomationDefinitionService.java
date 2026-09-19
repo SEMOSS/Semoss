@@ -287,7 +287,7 @@ public final class AutomationDefinitionService {
 				throw new IllegalArgumentException(
 						"If node '" + entry.getKey() + "' is evaluated by Java and cannot have Python source.");
 			}
-			validateNodeSource(entry.getKey(), entry.getValue());
+			validateNodeSource(entry.getKey(), nodesById.get(entry.getKey()), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
@@ -296,13 +296,13 @@ public final class AutomationDefinitionService {
 			}
 			String source = supplied.get(entry.getKey());
 			String completedSource = source == null ? AutomationSourceRenderer.renderNode(entry.getValue()) : source;
-			validateNodeSource(entry.getKey(), completedSource);
+			validateNodeSource(entry.getKey(), entry.getValue(), completedSource);
 			result.put(entry.getKey(), completedSource);
 		}
 		return result;
 	}
 
-	private static void validateNodeSource(String nodeId, String source) {
+	private static void validateNodeSource(String nodeId, Map<String, Object> node, String source) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalArgumentException("Python source for node '" + nodeId + "' must be nonblank.");
 		}
@@ -311,6 +311,33 @@ public final class AutomationDefinitionService {
 			throw new IllegalArgumentException("Python source for node '" + nodeId + "' exceeds the maximum of "
 					+ AutomationConstants.NODE_SOURCE_MAX_BYTES + " UTF-8 bytes.");
 		}
+		// The trigger's setup source is optional and its globals are read from the module
+		// namespace, so only a node the runtime invokes through run(scope) needs the entry point.
+		if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
+				&& !definesRunEntryPoint(source)) {
+			throw new IllegalArgumentException("Python source for node '" + nodeId
+					+ "' must define run(scope) at the top level. The runtime calls run(scope) with the run's"
+					+ " variables and stores what it returns as this node's output.");
+		}
+	}
+
+	/**
+	 * Reports whether Python source binds a module-level {@code run}, which is the entry point
+	 * {@code execute_node} looks up. Only an unindented definition or assignment counts, so a
+	 * {@code run} nested inside a class or another function is not mistaken for the entry point.
+	 *
+	 * @param source persisted node source
+	 * @return {@code true} when the source binds a top-level {@code run}
+	 */
+	static boolean definesRunEntryPoint(String source) {
+		return source.lines().anyMatch(line -> {
+			if (line.isEmpty() || Character.isWhitespace(line.charAt(0))) {
+				return false;
+			}
+			return line.startsWith("def run(") || line.startsWith("def run (")
+					|| line.startsWith("async def run(") || line.startsWith("async def run (")
+					|| line.startsWith("run=") || line.startsWith("run =");
+		});
 	}
 
 	/**

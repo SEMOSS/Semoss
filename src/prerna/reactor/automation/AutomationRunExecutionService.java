@@ -41,11 +41,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.re2j.Matcher;
+import com.google.re2j.Pattern;
 
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
@@ -91,6 +92,12 @@ final class AutomationRunExecutionService {
 	private final Insight requestInsight;
 	private final String streamJobId;
 
+	/**
+	 * Binds this service to the caller's authenticated Insight and, when the caller
+	 * is a live Pixel job, to the job that streams progress back to it. The request
+	 * Insight supplies the user, base URL, and scheduler mode for every run-local
+	 * Insight created here; it never executes node Python itself.
+	 */
 	AutomationRunExecutionService(Insight requestInsight, String streamJobId) {
 		if (requestInsight == null || requestInsight.getUser() == null) {
 			throw new IllegalArgumentException("Automation execution requires an authenticated Insight.");
@@ -148,6 +155,12 @@ final class AutomationRunExecutionService {
 		return buildResult(runId, projectId, result);
 	}
 
+	/**
+	 * Returns the durable state of a run this caller did not claim, in the same
+	 * shape a claimed execution returns. A caller that lost the claim, or that
+	 * asked again after the run settled, sees node results and any active wait
+	 * rather than an error.
+	 */
 	private static Map<String, Object> buildCurrentRunResult(String runId, String projectId) {
 		Map<String, Object> persisted = AutomationDatabaseUtility.getRunDetail(runId);
 		if (persisted == null) {
@@ -164,6 +177,17 @@ final class AutomationRunExecutionService {
 		return result;
 	}
 
+	/**
+	 * Walks the control path one node at a time starting at {@code initialNodeId},
+	 * publishing each node's output into scope and following the port that node
+	 * selected.
+	 *
+	 * <p>
+	 * The loop ends when the path runs out of edges, a node does not reach SUCCESS,
+	 * or cancellation is observed at a node boundary. Nodes left pending are marked
+	 * skipped only when the path ran to its end, so an interrupted run keeps its
+	 * unreached nodes pending for the caller to see.
+	 */
 	private Map<String, Object> executeInControlOrder(Insight executionInsight, String projectId, String runId,
 			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
 			Map<String, String> nodeSources, Map<String, Object> scope, Map<String, String> traceRoomIds,
@@ -235,6 +259,12 @@ final class AutomationRunExecutionService {
 		return result;
 	}
 
+	/**
+	 * Evaluates an if node's ordered clauses in Java and persists the port it
+	 * selected. The first clause whose expression is true wins; with no match the
+	 * else port is selected. No Python runs for this node, and its decision is
+	 * consumed by the control loop rather than entering scope.
+	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> executeConditionNode(String runId, Map<String, Object> node,
 			Map<String, Object> scope) {
@@ -277,6 +307,12 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Seeds the trigger's declared global defaults into scope without overwriting
+	 * supplied inputs, runs the optional trigger setup Python, and merges any map
+	 * it returns. The resolved globals are persisted as the trigger node's output
+	 * and returned for the run result.
+	 */
 	private Map<String, Object> executeStartNode(Insight executionInsight, String projectId, String runId,
 			Map<String, Object> node, String source, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -331,6 +367,15 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Executes one node's persisted Python against a scope snapshot and persists
+	 * the outcome.
+	 *
+	 * <p>
+	 * A node allocated a run-local room receives it as private scope metadata. When
+	 * the node starts a durable child agent, this waits for that child to settle or
+	 * to ask for human input before the result is persisted.
+	 */
 	private Map<String, Object> executeNodeSource(Insight executionInsight, String projectId, String runId,
 			Map<String, Object> node, String source, Map<String, Object> scope, String traceRoomId,
 			String resumeNodeId) {
@@ -384,6 +429,11 @@ final class AutomationRunExecutionService {
 						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE));
 	}
 
+	/**
+	 * Creates the run-local room a generated agent node posts into, before its
+	 * Python submits the child run, so the room exists for the trace the node is
+	 * about to return.
+	 */
 	@SuppressWarnings("unchecked")
 	private void prepareGeneratedAgentRoom(Insight executionInsight, Map<String, Object> node, String roomId) {
 		if (roomId == null || !isGeneratedAgentRunNode(node)) {
@@ -409,6 +459,15 @@ final class AutomationRunExecutionService {
 				System::nanoTime, Thread::sleep);
 	}
 
+	/**
+	 * Polls a durable child agent run until it settles or asks for human input,
+	 * streaming each status change and cascading cancellation down to the child.
+	 *
+	 * <p>
+	 * The clock and sleep are supplied by the caller so the poll loop can be driven
+	 * without real time. Time the child spends waiting on a human does not count
+	 * against the wait timeout.
+	 */
 	Object awaitGeneratedAgentRun(Insight executionInsight, String automationRunId, Map<String, Object> node,
 			Object value, String traceRoomId, Map<String, Object> scope, LongSupplier monotonicTime,
 			AgentRunSleeper sleeper) throws InterruptedException {
@@ -486,16 +545,32 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Returns whether a durable agent run has settled and will not change again.
+	 */
 	static boolean isAgentRunTerminalStatus(String status) {
 		return "COMPLETED".equalsIgnoreCase(status) || "FAILED".equalsIgnoreCase(status)
 				|| "CANCELLED".equalsIgnoreCase(status);
 	}
 
+	/**
+	 * Sleep strategy for the agent-monitor poll loop, injected so the loop's timing
+	 * can be controlled by the caller.
+	 */
 	@FunctionalInterface
 	interface AgentRunSleeper {
+		/**
+		 * Pauses the poll loop for the requested duration, or throws when the waiting
+		 * thread is interrupted so cancellation still propagates.
+		 */
 		void sleep(long durationMs) throws InterruptedException;
 	}
 
+	/**
+	 * Repackages a settled child agent run into the internal envelope generated
+	 * agent nodes return, with finalText as the business value and the run's
+	 * identifiers kept as trace metadata.
+	 */
 	private static Map<String, Object> generatedAgentRunResult(Map<String, Object> currentRun) {
 		Map<String, Object> metadata = new LinkedHashMap<>();
 		for (String key : List.of("runId", AutomationConstants.TRACE_ROOM_ID, AutomationConstants.TRACE_WORKSPACE_ID,
@@ -508,6 +583,11 @@ final class AutomationRunExecutionService {
 		return completed;
 	}
 
+	/**
+	 * Cancels the child agent after monitoring fails, so a child is never left
+	 * running without a parent watching it. A cancellation failure is attached to
+	 * the original error rather than replacing it.
+	 */
 	private static void cancelAgentRunAfterMonitoringFailure(String agentRunId, String traceRoomId, String reason,
 			Throwable monitoringFailure) {
 		try {
@@ -517,6 +597,11 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Resolves how long this node may wait on its child agent. A configured value
+	 * that is an exact {@code ${name}} reference is read from scope; anything
+	 * absent or not positive falls back to the platform default.
+	 */
 	@SuppressWarnings("unchecked")
 	private static long configuredAgentWaitTimeoutMs(Map<String, Object> node, Map<String, Object> scope) {
 		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
@@ -533,11 +618,20 @@ final class AutomationRunExecutionService {
 		return timeoutMs > 0 ? timeoutMs : configuredAgentRunDefaultWaitTimeoutMs();
 	}
 
+	/**
+	 * Returns the platform-wide agent wait timeout from
+	 * {@code AGENT_RUN_WAIT_TIMEOUT_MS}, or the built-in default when it is unset
+	 * or invalid.
+	 */
 	private static long configuredAgentRunDefaultWaitTimeoutMs() {
 		long timeoutMs = positiveLong(Utility.getDIHelperProperty(AGENT_RUN_WAIT_TIMEOUT_PROPERTY));
 		return timeoutMs > 0 ? timeoutMs : DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS;
 	}
 
+	/**
+	 * Parses a positive millisecond value, returning zero for anything absent,
+	 * unparseable, or not positive, so callers can treat zero as "not configured".
+	 */
 	private static long positiveLong(Object value) {
 		if (value == null) {
 			return 0L;
@@ -550,6 +644,14 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Wait budget that advances only while the child agent is working.
+	 *
+	 * <p>
+	 * Time the child spends in {@code INPUT_REQUIRED} is not charged against the
+	 * timeout, so a person taking hours to approve an action never causes the node
+	 * to time out, while an agent that hangs while working still does.
+	 */
 	private static final class ActiveAgentWaitTimeout {
 
 		private final long timeoutNanos;
@@ -557,6 +659,11 @@ final class AutomationRunExecutionService {
 		private long lastObservedNanos;
 		private boolean paused;
 
+		/**
+		 * Starts the budget from the child's current status, so a child that is already
+		 * waiting on a human begins paused. A timeout large enough to overflow
+		 * nanoseconds is clamped rather than wrapping negative.
+		 */
 		private ActiveAgentWaitTimeout(long timeoutMs, String initialStatus, long initialObservedNanos) {
 			this.timeoutNanos = timeoutMs > Long.MAX_VALUE / 1000000L ? Long.MAX_VALUE
 					: TimeUnit.MILLISECONDS.toNanos(timeoutMs);
@@ -564,6 +671,10 @@ final class AutomationRunExecutionService {
 			this.paused = isInputRequiredStatus(initialStatus);
 		}
 
+		/**
+		 * Charges elapsed time against the budget unless the child was paused for
+		 * input, then records the status this observation saw as the new pause state.
+		 */
 		private void observe(String status, long observedNanos) {
 			if (!this.paused && this.activeNanos < this.timeoutNanos) {
 				long elapsed = observedNanos - this.lastObservedNanos;
@@ -576,10 +687,18 @@ final class AutomationRunExecutionService {
 			this.paused = isInputRequiredStatus(status);
 		}
 
+		/**
+		 * Returns whether the working budget is exhausted while the child is not
+		 * waiting on a human.
+		 */
 		private boolean isExpired() {
 			return !this.paused && this.activeNanos >= this.timeoutNanos;
 		}
 
+		/**
+		 * Returns the next poll delay, shortened so the loop never sleeps past the
+		 * remaining budget.
+		 */
 		private long nextPollDelayMs() {
 			if (this.paused) {
 				return AGENT_RUN_POLL_INTERVAL_MS;
@@ -593,10 +712,18 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Returns whether the child agent has paused itself for a human decision.
+	 */
 	private static boolean isInputRequiredStatus(String status) {
 		return "INPUT_REQUIRED".equalsIgnoreCase(status);
 	}
 
+	/**
+	 * Creates the run-local Insight that owns this run's Python session, carrying
+	 * the caller's user, base URL, and scheduler mode and scoped to the automation
+	 * project.
+	 */
 	private Insight createExecutionInsight(String projectId) {
 		Insight executionInsight = new Insight();
 		executionInsight.setUser(requestInsight.getUser());
@@ -611,6 +738,11 @@ final class AutomationRunExecutionService {
 		return executionInsight;
 	}
 
+	/**
+	 * Drops the run-local Insight and its Python session. When normal teardown
+	 * fails the Insight is still removed from the store so a failed run cannot leak
+	 * a session.
+	 */
 	private static void cleanupExecutionInsight(Insight executionInsight) {
 		if (executionInsight == null) {
 			return;
@@ -645,16 +777,60 @@ final class AutomationRunExecutionService {
 		return roomIds;
 	}
 
+	/**
+	 * Records a node whose work finished after cancellation was requested.
+	 *
+	 * <p>
+	 * The node is terminal rather than successful, because the run is no longer proceeding, but
+	 * its output is retained: the node already produced whatever side effects it produces, and
+	 * this row is the only record of what they were. The value is kept out of scope, since no
+	 * later node runs. A value that cannot be serialized is dropped rather than losing the
+	 * cancellation record itself.
+	 */
+	private Map<String, Object> persistCancelledNodeResult(String runId, Map<String, Object> node, String nodeId,
+			Object value, Timestamp started, long startedMs, String traceRoomId) {
+		long duration = System.currentTimeMillis() - startedMs;
+		String message = "Run cancelled by user";
+		Object persistedValue = null;
+		String output = null;
+		try {
+			persistedValue = splitGeneratedNodeResult(node, value).value();
+			output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' output");
+		} catch (RuntimeException e) {
+			classLogger.warn("Unable to retain the output of cancelled automation node '{}': {}", nodeId,
+					e.getMessage());
+		}
+		String preview = AutomationRuntimeUtils.generatePreview(output);
+		if (output == null) {
+			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+		} else {
+			// A null agent run id preserves the one recorded when the child run started.
+			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, message);
+		}
+		streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, preview, message,
+				traceForNode(node, traceRoomId, null, null));
+		return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, persistedValue, message);
+	}
+
+	/**
+	 * Persists one node's outcome and returns what the control loop needs to
+	 * continue.
+	 *
+	 * <p>
+	 * Generated conversational nodes have their internal envelope split into value
+	 * and trace. A child agent that asked for input becomes a durable wait instead
+	 * of a result, which releases this worker. The prospective scope is
+	 * size-checked before a success is recorded, so a node cannot succeed into a
+	 * scope the next node could not carry.
+	 */
 	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
 			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
 			Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
-			long duration = System.currentTimeMillis() - startedMs;
-			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, "Run cancelled by user");
-			streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, null,
-					"Run cancelled by user", traceForNode(node, traceRoomId, null, null));
-			return nodeResult(nodeId, AutomationConstants.STATUS_CANCELLED, null, "Run cancelled by user");
+			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId);
 		}
 		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
 		Object persistedValue = generatedResult.value();
@@ -715,10 +891,12 @@ final class AutomationRunExecutionService {
 	 * Terminally cancels a run parked on a durable agent wait.
 	 *
 	 * <p>
-	 * The caller authorizes the trace, records the durable cancellation request, and stops the
-	 * child agent before entering this boundary. This method owns only the parent run's terminal
-	 * transition, and unlike {@link #resumeWaitingRun} it never continues the remaining graph -
-	 * a child that settled as COMPLETED while the user was cancelling must not extend the run.
+	 * The caller authorizes the trace, records the durable cancellation request,
+	 * and stops the child agent before entering this boundary. This method owns
+	 * only the parent run's terminal transition, and unlike
+	 * {@link #resumeWaitingRun} it never continues the remaining graph - a child
+	 * that settled as COMPLETED while the user was cancelling must not extend the
+	 * run.
 	 *
 	 * @param runId     waiting Automation run
 	 * @param projectId owning Automation project
@@ -824,7 +1002,8 @@ final class AutomationRunExecutionService {
 							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
 					.count();
 			AutomationPythonRunRegistry.register(runId, translator, executionInsight, streamJobId, completedNodes);
-			Map<String, Object> scope = reconstructScope(runId, executionInsight.getUser());
+			Map<String, Object> scope = reconstructScope(runId, executionInsight.getUser(),
+					AutomationRuntime.startNodeId(definition));
 			String resumeNodeId = stringValue(wait.get(AutomationConstants.RESUME_NODE_ID));
 			if (resumeNodeId != null) {
 				continuation = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
@@ -846,6 +1025,11 @@ final class AutomationRunExecutionService {
 		return buildResult(runId, projectId, continuation);
 	}
 
+	/**
+	 * Terminally reconciles a waiting run whose child agent settled as FAILED or
+	 * CANCELLED: records the node result, resolves the wait, skips the remainder,
+	 * and completes the run without executing any further node.
+	 */
 	private Map<String, Object> finishTerminalAgentWait(String runId, String projectId, String waitingNodeId,
 			String agentRunId, String agentStatus, Map<String, Object> agent, String waitId) {
 		String message = stringValue(agent.get("errorMessage"));
@@ -865,7 +1049,26 @@ final class AutomationRunExecutionService {
 		return buildResult(runId, projectId, Map.of("error", message));
 	}
 
-	private static Map<String, Object> reconstructScope(String runId, prerna.auth.User user) {
+	/**
+	 * Rebuilds the run scope from durable rows after a human wait, because the
+	 * original in-memory scope was released with its worker.
+	 *
+	 * <p>
+	 * Runtime metadata and the persisted trigger inputs are seeded first, then each
+	 * successful node output is replayed under the name that node publishes it as.
+	 *
+	 * <p>
+	 * The trigger is the one node that publishes many names at once, so its map is spread back
+	 * as individual globals. It is identified by node ID rather than by an absent output name,
+	 * because {@code control.if} rows also carry no name: their routing decision is consumed by
+	 * the control loop and must stay out of scope, exactly as it does on a straight-through run.
+	 *
+	 * @param runId       run being resumed
+	 * @param user        user the run executes as, for timezone-local runtime values
+	 * @param startNodeId trigger node ID taken from this run's definition snapshot
+	 * @return scope equivalent to the one the run held before it paused
+	 */
+	private static Map<String, Object> reconstructScope(String runId, prerna.auth.User user, String startNodeId) {
 		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, user);
 		scope.putAll(AutomationDatabaseUtility.getRunInputs(runId));
 		for (Map<String, Object> row : AutomationDatabaseUtility.getNodeOutputsForRun(runId)) {
@@ -874,10 +1077,11 @@ final class AutomationRunExecutionService {
 			}
 			Object raw = row.get(AutomationConstants.OUTPUT_VALUE);
 			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
-			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR));
+			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
 			if (outputVar != null) {
 				scope.put(outputVar, value);
-			} else if (value instanceof Map<?, ?> globals) {
+			} else if (startNodeId.equals(stringValue(row.get(AutomationConstants.NODE_ID)))
+					&& value instanceof Map<?, ?> globals) {
 				for (Map.Entry<?, ?> entry : globals.entrySet()) {
 					if (entry.getKey() instanceof String key) {
 						scope.put(key, entry.getValue());
@@ -890,6 +1094,10 @@ final class AutomationRunExecutionService {
 		return scope;
 	}
 
+	/**
+	 * Returns the rooms already allocated to this run's nodes, so a resumed run
+	 * reuses them instead of creating new ones for nodes that already posted.
+	 */
 	private static Map<String, String> traceRoomIds(String runId) {
 		Map<String, String> roomIds = new LinkedHashMap<>();
 		for (Map<String, Object> row : AutomationDatabaseUtility.getNodeOutputsForRun(runId)) {
@@ -901,15 +1109,28 @@ final class AutomationRunExecutionService {
 		return roomIds;
 	}
 
+	/**
+	 * Returns the acting user's ID, or the system user when the request carries no
+	 * login token.
+	 */
 	private String currentUserId() {
 		return requestInsight.getUser().getPrimaryLoginToken() == null ? AutomationConstants.SYSTEM_USER_ID
 				: requestInsight.getUser().getPrimaryLoginToken().getId();
 	}
 
+	/**
+	 * Returns the current UTC timestamp in the form the scheduler tables store.
+	 */
 	private static Timestamp utcNow() {
 		return Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 	}
 
+	/**
+	 * Separates the business value from the trace metadata for generated
+	 * conversational nodes, which return both inside one envelope. Any other node's
+	 * result is its own value. A partial envelope is rejected rather than guessed
+	 * at.
+	 */
 	private static GeneratedNodeResult splitGeneratedNodeResult(Map<String, Object> node, Object value) {
 		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 		boolean internalResultType = AutomationConstants.NODE_MODEL_CHAT.equals(type)
@@ -932,10 +1153,18 @@ final class AutomationRunExecutionService {
 				map.get(AutomationConstants.INTERNAL_RESULT_METADATA));
 	}
 
+	/**
+	 * One node result split into the value persisted as its output and the metadata
+	 * kept for trace.
+	 */
 	private record GeneratedNodeResult(Object value, Object metadata) {
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * Normalizes a child agent response and proves it belongs to this node: the
+	 * returned room must match the room allocated for this run, and any returned
+	 * workspace must match the agent the node is configured with.
+	 */
 	private static Map<String, Object> normalizeAgentResult(Map<String, Object> node, Object value,
 			String expectedRoomId) {
 		Object response = value;
@@ -958,7 +1187,7 @@ final class AutomationRunExecutionService {
 			throw missingAgentTrace(node);
 		}
 
-		String expectedWorkspaceId = configuredAgentWorkspaceId(node);
+		String expectedWorkspaceId = AutomationRuntime.configuredAgentWorkspaceId(node);
 		String returnedWorkspaceId = stringValue(normalized.get(AutomationConstants.CONFIG_WORKSPACE_ID));
 		if (returnedWorkspaceId != null && !returnedWorkspaceId.equals(expectedWorkspaceId)) {
 			throw new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
@@ -968,6 +1197,10 @@ final class AutomationRunExecutionService {
 		return normalized;
 	}
 
+	/**
+	 * Returns the message describing why a child agent run is not a usable result,
+	 * or null when it completed.
+	 */
 	private static String agentFailureMessage(Map<String, Object> result, String runId) {
 		String status = stringValue(result.get("status"));
 		if (Boolean.TRUE.equals(result.get("waitTimedOut"))) {
@@ -988,11 +1221,20 @@ final class AutomationRunExecutionService {
 		};
 	}
 
+	/**
+	 * Error for a generated agent node whose Python did not return matching runId
+	 * and roomId trace metadata, which is what binds the child run to this node.
+	 */
 	private static IllegalStateException missingAgentTrace(Map<String, Object> node) {
 		return new IllegalStateException("Automation agent node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 				+ "' did not return matching runId and roomId trace metadata.");
 	}
 
+	/**
+	 * Returns the message ID a generated chat or vision node produced, verifying it
+	 * came from the room allocated to this run. Returns null for node types that do
+	 * not post a message.
+	 */
 	private static String extractModelMessageId(Map<String, Object> node, Object value, String expectedRoomId) {
 		String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 		if (expectedRoomId == null || !(AutomationConstants.NODE_MODEL_CHAT.equals(type)
@@ -1018,11 +1260,19 @@ final class AutomationRunExecutionService {
 		return messageId;
 	}
 
+	/**
+	 * Error for a generated model node whose Python did not return the required
+	 * roomId and messageId.
+	 */
 	private static IllegalStateException missingModelTrace(Map<String, Object> node) {
 		return new IllegalStateException("Automation model node '" + node.get(AutomationConstants.NODE_FIELD_ID)
 				+ "' did not return the required roomId and messageId trace metadata.");
 	}
 
+	/**
+	 * Returns the value as a string, or null when it is absent or blank, so callers
+	 * can treat blank database columns and missing keys the same way.
+	 */
 	private static String stringValue(Object value) {
 		if (value == null || value.toString().isBlank()) {
 			return null;
@@ -1030,11 +1280,19 @@ final class AutomationRunExecutionService {
 		return value.toString();
 	}
 
+	/**
+	 * Streams a node transition that carries no trace metadata.
+	 */
 	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
 			String outputPreview, String errorMessage) {
 		streamNodeProgress(runId, node, status, durationMs, outputPreview, errorMessage, null);
 	}
 
+	/**
+	 * Streams the run-start envelope carrying the immutable definition snapshot, so
+	 * a live client renders the graph this run will actually execute rather than
+	 * the one currently being edited.
+	 */
 	private void streamRunStarted(String runId, AutomationDefinitionValidator.ValidatedDefinition definition) {
 		String jobId = streamJobId;
 		if (jobId == null || jobId.isBlank()) {
@@ -1057,6 +1315,11 @@ final class AutomationRunExecutionService {
 		jobManager.addStreamOut(jobId, envelope);
 	}
 
+	/**
+	 * Streams one node transition to the caller's Pixel job. This is a no-op
+	 * without a live job, so a scheduled run needs no listener and progress
+	 * streaming never affects execution.
+	 */
 	private void streamNodeProgress(String runId, Map<String, Object> node, String status, Long durationMs,
 			String outputPreview, String errorMessage, Map<String, Object> trace) {
 		String jobId = streamJobId;
@@ -1092,6 +1355,9 @@ final class AutomationRunExecutionService {
 		jobManager.addStreamOut(jobId, envelope);
 	}
 
+	/**
+	 * Builds a node trace with no agent status attached.
+	 */
 	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
 			String agentRunId) {
 		return traceForNode(node, roomId, modelMessageId, agentRunId, null);
@@ -1106,7 +1372,8 @@ final class AutomationRunExecutionService {
 	 */
 	private static Map<String, Object> traceForNode(Map<String, Object> node, String roomId, String modelMessageId,
 			String agentRunId, String agentStatus) {
-		Map<String, Object> trace = trace(roomId, modelMessageId, agentRunId, configuredAgentWorkspaceId(node));
+		Map<String, Object> trace = trace(roomId, modelMessageId, agentRunId,
+				AutomationRuntime.configuredAgentWorkspaceId(node));
 		Object nodeId = node.get(AutomationConstants.NODE_FIELD_ID);
 		if (nodeId != null) {
 			trace.put(AutomationConstants.TRACE_NODE_ID, nodeId);
@@ -1117,6 +1384,10 @@ final class AutomationRunExecutionService {
 		return trace;
 	}
 
+	/**
+	 * Assembles the trace map, omitting every identifier this node does not have so
+	 * a consumer can treat presence as meaning.
+	 */
 	private static Map<String, Object> trace(String roomId, String modelMessageId, String agentRunId,
 			String workspaceId) {
 		Map<String, Object> trace = new LinkedHashMap<>();
@@ -1135,19 +1406,10 @@ final class AutomationRunExecutionService {
 		return trace;
 	}
 
-	@SuppressWarnings("unchecked")
-	private static String configuredAgentWorkspaceId(Map<String, Object> node) {
-		if (!AutomationConstants.NODE_AGENT_RUN.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
-			return null;
-		}
-		Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);
-		if (!(rawConfig instanceof Map<?, ?> config)) {
-			return null;
-		}
-		String workspaceId = stringValue(((Map<String, Object>) config).get(AutomationConstants.CONFIG_WORKSPACE_ID));
-		return workspaceId != null ? workspaceId.trim() : null;
-	}
-
+	/**
+	 * Builds the in-memory result the control loop reads to decide whether and
+	 * where to continue.
+	 */
 	private static Map<String, Object> nodeResult(String nodeId, String status, Object output, String error) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("nodeId", nodeId);
@@ -1161,6 +1423,15 @@ final class AutomationRunExecutionService {
 		return result;
 	}
 
+	/**
+	 * Writes the terminal status for a run whose control path ended.
+	 *
+	 * <p>
+	 * A cancellation request wins over everything. Otherwise the first failed node
+	 * fails the run, and a node still pending or running means its Python returned
+	 * no structured result, which is also a failure. Only a run with every node
+	 * settled is recorded as successful.
+	 */
 	private void finishRun(String runId, String projectId) {
 		List<Map<String, Object>> outputs = AutomationDatabaseUtility.getNodeOutputsForRun(runId);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
@@ -1201,6 +1472,11 @@ final class AutomationRunExecutionService {
 		AutomationDatabaseUtility.completeRun(runId, projectId, AutomationConstants.STATUS_SUCCESS, null, null);
 	}
 
+	/**
+	 * Writes the terminal status after execution threw, attributing the failure to
+	 * the first node recorded as failed and reporting cancellation when that is
+	 * what interrupted the run.
+	 */
 	private void finishFailedRun(String runId, String projectId, Exception error) {
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			AutomationDatabaseUtility.skipPendingNodes(runId, "Run cancelled by user");
@@ -1216,6 +1492,10 @@ final class AutomationRunExecutionService {
 				safeMessage(error));
 	}
 
+	/**
+	 * Assembles the reactor response from durable run state plus this execution's
+	 * scope and globals, and persists the human-readable summary alongside it.
+	 */
 	private Map<String, Object> buildResult(String runId, String projectId, Map<String, Object> pythonResult) {
 		Map<String, Object> detail = AutomationDatabaseUtility.getRunDetail(runId);
 		if (detail == null) {
@@ -1242,6 +1522,10 @@ final class AutomationRunExecutionService {
 		return detail;
 	}
 
+	/**
+	 * Returns a string-keyed copy of a scope-shaped value, and an empty map for
+	 * anything that is not a map.
+	 */
 	private static Map<String, Object> normalizeScope(Object value) {
 		Map<String, Object> scope = new LinkedHashMap<>();
 		if (!(value instanceof Map<?, ?> map)) {
@@ -1255,6 +1539,10 @@ final class AutomationRunExecutionService {
 		return scope;
 	}
 
+	/**
+	 * Returns the project's asset folder, which bounds the file access granted to
+	 * node Python.
+	 */
 	private String getProjectAssetsFolder(String projectId) {
 		IProject project = Utility.getProject(projectId);
 		if (project == null) {
@@ -1264,14 +1552,26 @@ final class AutomationRunExecutionService {
 				project.getProjectName());
 	}
 
+	/**
+	 * Returns the project's py folder, added to the Python path so node source can
+	 * import project modules.
+	 */
 	private String getProjectPyFolder(String projectId) {
 		return getProjectAssetsFolder(projectId) + File.separator + "py";
 	}
 
+	/**
+	 * Returns an error's message, or its class name when the message is null, so a
+	 * persisted failure always says something.
+	 */
 	private static String safeMessage(Exception error) {
 		return error.getMessage() != null ? error.getMessage() : error.getClass().getSimpleName();
 	}
 
+	/**
+	 * Returns the human-readable summary for a run that neither succeeded nor was
+	 * cancelled.
+	 */
 	private static String buildFailureSummary(Map<String, Object> runDetail) {
 		Object failedNodeId = runDetail.get(AutomationConstants.FAILED_NODE_ID);
 		Object errorMessage = runDetail.get(AutomationConstants.ERROR_MESSAGE);

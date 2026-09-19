@@ -95,7 +95,7 @@ public final class AutomationConstants {
 	public static final String NODE_LABEL = "NODE_LABEL";
 	public static final String EXECUTION_ORDER = "EXECUTION_ORDER";
 	public static final String DURATION_MS = "DURATION_MS";
-	public static final String OUTPUT_VAR = "OUTPUT_VAR";
+	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
@@ -151,6 +151,7 @@ public final class AutomationConstants {
 	public static final String NODE_DATABASE_QUERY = "database.query";
 	public static final String NODE_DATABASE_INSERT = "database.insert";
 	public static final String NODE_DATABASE_UPDATE = "database.update";
+	public static final String NODE_DATABASE_DELETE = "database.delete";
 	public static final String NODE_MODEL_CHAT = "model.chat";
 	public static final String NODE_MODEL_EMBEDDINGS = "model.embeddings";
 	public static final String NODE_MODEL_VISION = "model.vision";

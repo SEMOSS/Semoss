@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -77,7 +75,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		String outputVar = outputVariable(nodeType, this.keyValue.get(OUTPUT_VAR_KEY));
 		String afterNodeId = this.keyValue.get(AFTER_NODE_ID_KEY);
 		String branchPort = this.keyValue.get(BRANCH_PORT_KEY);
-		Map<String, Object> config = parseConfig(required(CONFIG_KEY));
+		Map<String, Object> config = AutomationRuntimeUtils.parseJsonObject(required(CONFIG_KEY), "config");
 		String customSource = customSource(nodeType, config);
 		return AutomationProjectUtils.withLockedDefinition(projectId, files -> addStep(projectId, files, nodeType,
 				label, outputVar, afterNodeId, branchPort, config, customSource));
@@ -226,25 +224,10 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		if (!(value instanceof String source) || source.isBlank()) {
 			throw new IllegalArgumentException("developer.python requires config.source defining run(scope).");
 		}
-		if (!source.contains("def run(scope):")) {
-			throw new IllegalArgumentException("developer.python source must define run(scope).");
+		if (!AutomationDefinitionService.definesRunEntryPoint(source)) {
+			throw new IllegalArgumentException("developer.python source must define run(scope) at the top level.");
 		}
 		return source;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> parseConfig(String rawOrBase64) {
-		String raw;
-		try {
-			raw = new String(Base64.getDecoder().decode(rawOrBase64), StandardCharsets.UTF_8);
-		} catch (IllegalArgumentException ignored) {
-			raw = rawOrBase64;
-		}
-		Object parsed = AutomationRuntimeUtils.GSON.fromJson(raw, Object.class);
-		if (!(parsed instanceof Map<?, ?>)) {
-			throw new IllegalArgumentException("config must be a JSON object.");
-		}
-		return new LinkedHashMap<>((Map<String, Object>) parsed);
 	}
 
 	@SuppressWarnings("unchecked")

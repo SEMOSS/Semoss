@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -88,14 +86,15 @@ public class SaveAutomationReactor extends AbstractReactor {
 		if (value == null || value.isBlank()) {
 			throw new IllegalArgumentException(error);
 		}
-		return decode(value);
+		return AutomationRuntimeUtils.decodeBase64OrRaw(value);
 	}
 
 	private static Map<String, String> decodeNodeSources(String value) {
 		if (value == null || value.isBlank()) {
 			return Map.of();
 		}
-		Object parsed = AutomationRuntimeUtils.GSON.fromJson(decode(value), Object.class);
+		Object parsed = AutomationRuntimeUtils.GSON.fromJson(AutomationRuntimeUtils.decodeBase64OrRaw(value),
+				Object.class);
 		if (!(parsed instanceof Map<?, ?> raw)) {
 			throw new IllegalArgumentException("nodeSources must be a JSON object keyed by node id.");
 		}
@@ -107,14 +106,6 @@ public class SaveAutomationReactor extends AbstractReactor {
 			sources.put(nodeId, source);
 		}
 		return sources;
-	}
-
-	private static String decode(String value) {
-		try {
-			return new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
-		} catch (IllegalArgumentException ignored) {
-			return value;
-		}
 	}
 
 	@Override

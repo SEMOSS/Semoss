@@ -53,8 +53,9 @@ import prerna.tcp.client.SocketClient;
  * Contract for SEMOSS project engines and their project-scoped resources.
  *
  * <p>
- * A project owns its metadata, assets, insights, reactors, and optional Python/R execution
- * context. Specialized project types may add stricter creation and lifecycle requirements.
+ * A project owns its metadata, assets, insights, reactors, and optional
+ * Python/R execution context. Specialized project types may add stricter
+ * creation and lifecycle requirements.
  */
 public interface IProject extends IEngine, IMCP {
 
@@ -66,7 +67,9 @@ public interface IProject extends IEngine, IMCP {
 	String BLOCK_FILE_NAME = "blocks.json";
 	String NOTEBOOK_FOLDER = ".notebooks";
 
-	/** Project capabilities used to select the correct creation and lifecycle path. */
+	/**
+	 * Project capabilities used to select the correct creation and lifecycle path.
+	 */
 	enum PROJECT_TYPE {
 		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, NOTEBOOK, AUTOMATION,
 	};

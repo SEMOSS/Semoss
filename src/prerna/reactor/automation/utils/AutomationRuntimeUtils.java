@@ -38,9 +38,11 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayDeque;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -56,21 +58,25 @@ import prerna.reactor.automation.AutomationConstants;
 /**
  * Shared static utilities for the automation execution engine.
  *
- * <p>Centralizes logic shared by the graph runtime and its engine executors.
+ * <p>
+ * Centralizes logic shared by the graph runtime and its engine executors.
  */
 public final class AutomationRuntimeUtils {
 
-	/** Reusable {@link TypeToken} type for {@code Map<String, Object>} deserialization. */
-	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+	/**
+	 * Reusable {@link TypeToken} type for {@code Map<String, Object>}
+	 * deserialization.
+	 */
+	public static final Type MAP_TYPE = new TypeToken<Map<String, Object>>() {
+	}.getType();
 
 	/**
-	 * Shared Gson instance for the Automation persistence and execution boundaries. Keeping one
-	 * configured instance ensures temporal values, explicit nulls, and errors have the same JSON
-	 * representation across graph, scope, and run-history operations.
+	 * Shared Gson instance for the Automation persistence and execution boundaries.
+	 * Keeping one configured instance ensures temporal values, explicit nulls, and
+	 * errors have the same JSON representation across graph, scope, and run-history
+	 * operations.
 	 */
-	public static final Gson GSON = new GsonBuilder()
-			.disableHtmlEscaping()
-			.serializeNulls()
+	public static final Gson GSON = new GsonBuilder().disableHtmlEscaping().serializeNulls()
 			.registerTypeHierarchyAdapter(ZoneId.class,
 					(JsonSerializer<ZoneId>) (src, t, ctx) -> new JsonPrimitive(src.getId()))
 			.registerTypeAdapter(ZonedDateTime.class,
@@ -90,16 +96,18 @@ public final class AutomationRuntimeUtils {
 	private AutomationRuntimeUtils() {
 	}
 
-	// -- Scope building ------------------------------------------------------------
+	// -- Scope building
+	// ------------------------------------------------------------
 
 	/**
-	 * Builds the initial variable scope for an automation run, seeded with {@code date},
-	 * {@code triggered_at}, and {@code run_id} (when non-blank).
+	 * Builds the initial variable scope for an automation run, seeded with
+	 * {@code date}, {@code triggered_at}, and {@code run_id} (when non-blank).
 	 *
 	 * @param runId the run ID to seed into scope, or {@code null} for test runs
-	 * @param user  the triggering user  - used to localise {@code date} and {@code triggered_at}
-	 *              to the user's configured timezone; falls back to UTC when {@code null} or
-	 *              when no zone has been set on the user
+	 * @param user  the triggering user - used to localise {@code date} and
+	 *              {@code triggered_at} to the user's configured timezone; falls
+	 *              back to UTC when {@code null} or when no zone has been set on
+	 *              the user
 	 * @return mutable scope used only by the current run
 	 */
 	public static Map<String, Object> buildInitialScope(String runId, User user) {
@@ -108,22 +116,63 @@ public final class AutomationRuntimeUtils {
 		ZonedDateTime now = ZonedDateTime.now(zone);
 		scope.put(AutomationConstants.SCOPE_DATE, now.format(DateTimeFormatter.ISO_LOCAL_DATE));
 		scope.put(AutomationConstants.SCOPE_TRIGGERED_AT, now.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME));
-		if (runId != null && !runId.isBlank()) scope.put(AutomationConstants.SCOPE_RUN_ID, runId);
+		if (runId != null && !runId.isBlank()) {
+			scope.put(AutomationConstants.SCOPE_RUN_ID, runId);
+		}
 		return scope;
 	}
 
-	/** Serializes JSON-compatible runtime values without dropping explicit null map entries. */
+	/**
+	 * Serializes JSON-compatible runtime values without dropping explicit null map
+	 * entries.
+	 */
 	public static String toRuntimeJson(Object value) {
 		return GSON.toJson(value);
 	}
 
+	// -- Reactor payload decoding
+	// ---------------------------------------------------
+
 	/**
-	 * Validates container depth before serialization, then limits the encoded UTF-8 payload.
-	 * Runtime values originate as JSON, so repeated container identity has no defined meaning and
-	 * is rejected with cycles before Gson can recurse indefinitely.
+	 * Returns the decoded form of a reactor payload that may arrive raw or Base64
+	 * encoded. A value that is not valid Base64 is returned unchanged, which is
+	 * what lets a caller send readable JSON during development.
 	 *
-	 * @param value runtime value to serialize
-	 * @param maxBytes maximum UTF-8 payload size
+	 * @param value raw or Base64-encoded payload
+	 * @return decoded payload
+	 */
+	public static String decodeBase64OrRaw(String value) {
+		try {
+			return new String(Base64.getDecoder().decode(value), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException ignored) {
+			return value;
+		}
+	}
+
+	/**
+	 * Decodes and parses a reactor payload that must contain a JSON object.
+	 *
+	 * @param value raw or Base64-encoded JSON object
+	 * @param field field name used in the validation error
+	 * @return mutable copy of the parsed object
+	 */
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> parseJsonObject(String value, String field) {
+		Object parsed = GSON.fromJson(decodeBase64OrRaw(value), Object.class);
+		if (!(parsed instanceof Map<?, ?>)) {
+			throw new IllegalArgumentException(field + " must be a JSON object.");
+		}
+		return new LinkedHashMap<>((Map<String, Object>) parsed);
+	}
+
+	/**
+	 * Validates container depth before serialization, then limits the encoded UTF-8
+	 * payload. Runtime values originate as JSON, so repeated container identity has
+	 * no defined meaning and is rejected with cycles before Gson can recurse
+	 * indefinitely.
+	 *
+	 * @param value     runtime value to serialize
+	 * @param maxBytes  maximum UTF-8 payload size
 	 * @param valueName safe value name used in validation errors
 	 * @return serialized JSON
 	 */
@@ -132,8 +181,7 @@ public final class AutomationRuntimeUtils {
 		String json = toRuntimeJson(value);
 		int byteCount = json.getBytes(StandardCharsets.UTF_8).length;
 		if (byteCount > maxBytes) {
-			throw new IllegalArgumentException(valueName + " exceeds the maximum of " + maxBytes
-					+ " UTF-8 bytes.");
+			throw new IllegalArgumentException(valueName + " exceeds the maximum of " + maxBytes + " UTF-8 bytes.");
 		}
 		return json;
 	}
@@ -145,8 +193,7 @@ public final class AutomationRuntimeUtils {
 		while (!pending.isEmpty()) {
 			RuntimeValueDepth current = pending.pop();
 			Object currentValue = current.value();
-			if (!(currentValue instanceof Map<?, ?>)
-					&& !(currentValue instanceof Iterable<?>)
+			if (!(currentValue instanceof Map<?, ?>) && !(currentValue instanceof Iterable<?>)
 					&& (currentValue == null || !currentValue.getClass().isArray())) {
 				continue;
 			}
@@ -155,8 +202,7 @@ public final class AutomationRuntimeUtils {
 						+ AutomationConstants.RUNTIME_JSON_MAX_DEPTH + ".");
 			}
 			if (!visitedContainers.add(currentValue)) {
-				throw new IllegalArgumentException(valueName
-						+ " contains a repeated or cyclic JSON container.");
+				throw new IllegalArgumentException(valueName + " contains a repeated or cyclic JSON container.");
 			}
 			int childDepth = current.depth() + 1;
 			if (currentValue instanceof Map<?, ?> map) {
@@ -182,10 +228,13 @@ public final class AutomationRuntimeUtils {
 	 * @return bounded preview, or {@code null} when the input is null
 	 */
 	public static String generatePreview(String s) {
-		if (s == null) return null;
-		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH
-				? s : s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
+		if (s == null) {
+			return null;
+		}
+		return s.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH ? s
+				: s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
 	}
 
-	private record RuntimeValueDepth(Object value, int depth) {}
+	private record RuntimeValueDepth(Object value, int depth) {
+	}
 }
