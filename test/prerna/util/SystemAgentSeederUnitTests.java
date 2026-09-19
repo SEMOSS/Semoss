@@ -1,8 +1,19 @@
 package prerna.util;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +46,9 @@ class SystemAgentSeederUnitTests {
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
 			JSONObject config = configCaptor.getValue();
 			String prompt = config.getString("system_prompt");
-			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
-					eq("PPTX Agent"), anyString(), eq(prompt), argThat(resources -> resources.size() == 1
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(), eq("PPTX Agent"),
+					anyString(), eq(prompt),
+					argThat(resources -> resources.size() == 1
 							&& Constants.SKILL_PPTX.equals(resources.getFirst().get("resource_id"))
 							&& "SKILL".equals(resources.getFirst().get("resource_type")))));
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
@@ -49,13 +61,14 @@ class SystemAgentSeederUnitTests {
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(Constants.AGENT_PPTX_REVIEWER))
 					.thenReturn(Map.of("name", "PPTX Reviewer", "is_active", true));
-			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-tool-model", Map.of(), Map.of(),
-					40, 5, id);
+			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-tool-model", Map.of(), Map.of(), 40,
+					5, id);
 			assertEquals(prompt, loaded.getAuthoredPrompt());
 			assertEquals("selected-tool-model", loaded.getModelId());
 			assertTrue(loaded.useDefaultAgentTools());
 			assertTrue(loaded.getMcps().isEmpty());
-			assertEquals(List.of(Constants.SKILL_PPTX), loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
+			assertEquals(List.of(Constants.SKILL_PPTX),
+					loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
 			assertTrue(loaded.hasPptxWorkflow());
 			assertEquals(1, loaded.getSubagents().size());
 			var reviewer = loaded.getSubagents().getFirst();
@@ -85,8 +98,8 @@ class SystemAgentSeederUnitTests {
 					.thenReturn(null);
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("PROJECT")))
 					.thenReturn(List.of(Map.of("resource_id", "local-image-mcp")));
-			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("SKILL")))
-					.thenReturn(List.of(Map.of("resource_id", Constants.SKILL_PPTX), Map.of("resource_id", "app-bootstrap")));
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("SKILL"))).thenReturn(
+					List.of(Map.of("resource_id", Constants.SKILL_PPTX), Map.of("resource_id", "app-bootstrap")));
 
 			SystemAgentSeeder.seed(id);
 
@@ -96,11 +109,13 @@ class SystemAgentSeederUnitTests {
 					eq(Constants.SKILL_PPTX), eq("SKILL"), isNull()));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "local-image-mcp", "PROJECT"));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "app-bootstrap", "SKILL"));
-			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"), never());
+			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"),
+					never());
 			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
 			JSONObject config = configCaptor.getValue();
-			assertEquals(Constants.AGENT_PPTX_REVIEWER, config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
+			assertEquals(Constants.AGENT_PPTX_REVIEWER,
+					config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
 			assertEquals(0, config.getJSONArray("mcps").length());
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
 					anyString(), eq(config.getString("system_prompt"))));
@@ -133,8 +148,8 @@ class SystemAgentSeederUnitTests {
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
 					.thenReturn(Map.of("name", "PPTX Reviewer", "system_prompt", prompt));
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
-			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-tool-model", Map.of(), Map.of(),
-					40, 5, id);
+			var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-tool-model", Map.of(), Map.of(), 40,
+					5, id);
 			assertEquals(prompt, loaded.getAuthoredPrompt());
 			assertEquals("selected-tool-model", loaded.getModelId());
 			assertTrue(loaded.useDefaultAgentTools());
@@ -171,9 +186,15 @@ class SystemAgentSeederUnitTests {
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("SKILL")))
 					.thenAnswer(call -> new ArrayList<>(staleSkills));
 			workspaces.when(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "node-builder", "PROJECT"))
-					.thenAnswer(call -> { staleTools.clear(); return 1; });
+					.thenAnswer(call -> {
+						staleTools.clear();
+						return 1;
+					});
 			workspaces.when(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "pptx", "SKILL"))
-					.thenAnswer(call -> { staleSkills.clear(); return 1; });
+					.thenAnswer(call -> {
+						staleSkills.clear();
+						return 1;
+					});
 
 			SystemAgentSeeder.seed(id);
 			SystemAgentSeeder.seed(id);
@@ -183,7 +204,8 @@ class SystemAgentSeederUnitTests {
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "node-builder", "PROJECT"));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "pptx", "SKILL"));
 			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
-			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()), times(2));
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()),
+					times(2));
 			JSONObject first = configCaptor.getAllValues().get(0);
 			assertTrue(first.similar(configCaptor.getAllValues().get(1)));
 			assertEquals(0, first.getJSONArray("mcps").length());
@@ -209,11 +231,11 @@ class SystemAgentSeederUnitTests {
 			JSONObject config = configCaptor.getValue();
 			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
 					eq("App Building Agent"), anyString(), eq(config.getString("system_prompt")),
-					argThat(resources -> resources.size() == SystemDefaultEngines.getSystemAgentMCPs().size()
-							+ SystemDefaultEngines.getSystemSkills().size())));
-			assertEquals(SystemDefaultEngines.getSystemAgentMCPs(), config.getJSONArray("mcps").toList().stream()
-					.map(value -> ((Map<?, ?>) value).get("id")).toList());
-			assertEquals(SystemDefaultEngines.getSystemSkills(), config.getJSONArray("skills").toList().stream()
+					argThat(resources -> resources.size() == SystemDefaultEngines.getSystemAgentMCPs(id).size()
+							+ SystemDefaultEngines.getSystemAgentSkills(id).size())));
+			assertEquals(SystemDefaultEngines.getSystemAgentMCPs(id),
+					config.getJSONArray("mcps").toList().stream().map(value -> ((Map<?, ?>) value).get("id")).toList());
+			assertEquals(SystemDefaultEngines.getSystemAgentSkills(id), config.getJSONArray("skills").toList().stream()
 					.map(value -> ((Map<?, ?>) value).get("skill_id")).toList());
 			assertFalse(config.has("tool_policy"));
 			assertFalse(config.has("spawn_policy"));
