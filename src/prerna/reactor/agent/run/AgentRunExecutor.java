@@ -122,10 +122,12 @@ final class AgentRunExecutor {
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException();
 			}
-			AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			String completionError = result == null ? null : result.getCompletionError();
+            if (completionError == null) AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+            else AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
 			AgentRunStreamService.get().markTerminal(runId);
-			publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.COMPLETED,
-					result != null ? result.getFinalText() : null, null);
+			publishSubagentTerminal(parentRunId, record, runId, completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED,
+					result != null ? result.getFinalText() : null, completionError);
 		} catch (Exception e) {
 			// A cancel reaches this thread as an interrupt and the flag is still set.
 			// Clear it before the bookkeeping below, because this thread is virtual and

@@ -86,7 +86,7 @@ public class SystemDefaultEngines {
 			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
 
 	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
-			Constants.AGENT_AUTOMATION_BUILDER);
+			Constants.AGENT_AUTOMATION_BUILDER, Constants.AGENT_PPTX_REVIEWER, Constants.AGENT_PPTX);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
@@ -141,6 +141,9 @@ public class SystemDefaultEngines {
 		}
 		if (Constants.AGENT_AUTOMATION_BUILDER.equals(agentId)) {
 			return List.of(Constants.SKILL_AUTOMATION);
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of(Constants.SKILL_PPTX);
 		}
 		return List.of();
 	}

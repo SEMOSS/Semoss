@@ -335,6 +335,9 @@ public final class AgentRunService {
 		snapshot.put("finalOutputMessageId", run.get("finalOutputMessageId"));
 		snapshot.put("finalText", run.get("finalText"));
 		snapshot.put("errorMessage", run.get("errorMessage"));
+		if (run.containsKey("progress")) snapshot.put("progress", run.get("progress"));
+        for (String key : List.of("artifacts", "reviewOutcome", "warnings"))
+            if (run.containsKey(key)) snapshot.put(key, run.get(key));
 		List<Map<String, Object>> pendingActions = new ArrayList<>();
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			try {

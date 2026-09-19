@@ -1119,4 +1119,6 @@ public class Constants {
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
 	public static final String AGENT_AUTOMATION_BUILDER = "automation-builder";
+	public static final String AGENT_PPTX = "pptx-agent";
+	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 }

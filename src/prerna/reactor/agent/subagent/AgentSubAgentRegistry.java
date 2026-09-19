@@ -49,6 +49,7 @@ import prerna.om.Insight;
 import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
 import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
@@ -160,7 +161,7 @@ public final class AgentSubAgentRegistry {
 		Insight callerInsight = req.callerInsight;
 		Room parentRoom = RoomUtils.getOrLoadRoom(req.parentRoomId, callerInsight);
 
-		// Spawn-policy enforcement — depth + per-root budget.
+		// Spawn-policy enforcement - depth + per-root budget.
 		SubAgentMeta parentMeta = req.parentJobId == null ? null : byJobId.get(req.parentJobId);
 		int parentDepth = parentMeta == null ? 0 : parentMeta.getSpawnDepth();
 		int childDepth = parentDepth + 1;
@@ -184,7 +185,7 @@ public final class AgentSubAgentRegistry {
 
 		if (childDepth > policy.getMaxSubagentDepth()) {
 			logger.warn(
-					"AgentSubAgentRegistry: spawn REJECTED — childDepth={} > maxSubagentDepth={} (parentJobId={})",
+					"AgentSubAgentRegistry: spawn REJECTED - childDepth={} > maxSubagentDepth={} (parentJobId={})",
 					childDepth, policy.getMaxSubagentDepth(), req.parentJobId);
 			throw new AgentMaxSpawnDepthException(childDepth, policy.getMaxSubagentDepth());
 		}
@@ -192,9 +193,9 @@ public final class AgentSubAgentRegistry {
 		if (rootCtx != null) {
 			int remaining = rootCtx.spawnBudgetRemaining.decrementAndGet();
 			if (remaining < 0) {
-				rootCtx.spawnBudgetRemaining.incrementAndGet(); // restore — we did not spawn
+				rootCtx.spawnBudgetRemaining.incrementAndGet(); // restore - we did not spawn
 				logger.warn(
-						"AgentSubAgentRegistry: spawn REJECTED — per-root budget exhausted (max={}, parentJobId={})",
+						"AgentSubAgentRegistry: spawn REJECTED - per-root budget exhausted (max={}, parentJobId={})",
 						policy.getMaxSubagentsPerRun(), req.parentJobId);
 				throw new AgentSpawnBudgetExhaustedException(policy.getMaxSubagentsPerRun());
 			}
@@ -237,18 +238,24 @@ public final class AgentSubAgentRegistry {
 				}
 			}
 
-			// Shared-filesystem mode. When the caller asked for inherit_parent_workdir,
-			// we record the override on the CHILD ROOM's own options. AgentRunner reads
-			// it from there on every run - RunAgent itself stays oblivious. The child
-			// keeps its own roomId / jobId / stream / history; only the on-disk
-			// working dir is shared with the parent.
-			if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()) {
+			// Project and USER targets are inherited through the child's space/subdir
+			// parameters. Room targets need the source room id so AgentRunner can
+			// authorize the shared directory without trusting a bare absolute path.
+			if (req.workingDirOverride != null && !req.workingDirOverride.trim().isEmpty()
+					&& (req.inheritedTarget == null || req.inheritedTarget.isInsight())) {
 				clonedOptions.put(AgentRunner.ROOM_OPTION_WORKING_DIR, req.workingDirOverride.trim());
+				Object inheritedSource = parentRoom.getOptionsMap() == null ? null
+						: parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+				String sourceRoomId = inheritedSource == null || String.valueOf(inheritedSource).trim().isEmpty()
+						? req.parentRoomId
+						: String.valueOf(inheritedSource).trim();
+				clonedOptions.put(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM, sourceRoomId);
 			} else {
 				// Isolated mode (default). Strip any inherited override from the parent's
 				// options so a clone of a parent that itself has a working_dir set doesn't
 				// accidentally propagate that to children that asked for fresh isolation.
 				clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR);
+				clonedOptions.remove(AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
 			}
 
 			// 2. Resolve only the authored system-prompt layer. The child's harness adds
@@ -316,9 +323,10 @@ public final class AgentSubAgentRegistry {
 				childrenByParent.computeIfAbsent(req.parentJobId, k -> Collections.synchronizedList(new ArrayList<>()))
 						.add(childRunId);
 			}
+			Map<String, Object> childParamMap = inheritedTargetParams(req.inheritedTarget);
 			AgentRunRequest runRequest = new AgentRunRequest(childRoomId, req.prompt, resolvedEngine, harnessType,
-					req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS, null,
-					null, null, null, childInsight).withParentRunId(req.parentJobId);
+					req.workspaceId, AgentRunContext.DEFAULT_MAX_TURNS, AgentRunContext.DEFAULT_MAX_REFLECTIONS,
+					childParamMap, null, null, null, childInsight).withParentRunId(req.parentJobId);
 			AgentRunHandle runHandle = AgentRunService.get().runWithId(childRunId, runRequest);
 			childStarted = true;
 
@@ -369,6 +377,21 @@ public final class AgentSubAgentRegistry {
 			}
 			throw e;
 		}
+	}
+
+	/**
+	 * Re-authorize an inherited project/user target in the child run rather than
+	 * reducing it to a bare room working_dir. Insight targets retain the room
+	 * override because their parent room path is the target itself.
+	 */
+	private static Map<String, Object> inheritedTargetParams(AgentRunTarget target) {
+		Map<String, Object> params = new HashMap<>();
+		if (target == null || target.isInsight()) {
+			return params;
+		}
+		params.put(AgentRunner.PARAM_SPACE, target.getSpace());
+		params.put(AgentRunner.PARAM_SUBDIR, target.getWorkingSubdir());
+		return params;
 	}
 
 	/**
@@ -449,7 +472,7 @@ public final class AgentSubAgentRegistry {
 		return count;
 	}
 
-	// Root spawn-policy registry — called by the harness at run boundaries.
+	// Root spawn-policy registry - called by the harness at run boundaries.
 
 	/**
 	 * Harness calls this at the top of a root run.
