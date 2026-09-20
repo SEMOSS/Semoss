@@ -53,6 +53,8 @@ import org.javatuples.Pair;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -100,212 +102,44 @@ public class MasterDatabaseUtility {
 
 	private static void executeInitLocalMaster(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 		// create the tables and columns from the OWL creator schema
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] schemaCols = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] schemaTypes = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
+		AbstractOwlCreator.syncSchema(engine, conn, dbSchema);
+
+		// create the indexes on the tables
+		AbstractOwlCreator.syncIndexes(engine, conn, List.of(OwlIndex.of("ENGINE_ID_INDEX", "ENGINE", "ID"),
+				OwlIndex.of("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", "ENGINE", "LOCALCONCEPTID"),
+				OwlIndex.of("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", "PHYSICALNAMEID"),
+				OwlIndex.of("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID"),
+				OwlIndex.of("RELATION_TARGETID_INDEX", "RELATION", "TARGETID"),
+				OwlIndex.of("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID"),
+				OwlIndex.of("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE"),
+				OwlIndex.of("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", "TARGETCONCEPTID"),
+				OwlIndex.of("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", "SOURCECONCEPTID"),
+				OwlIndex.of("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, Constants.LM_META_KEY),
+				OwlIndex.of("CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,
+						Constants.LM_PHYSICAL_NAME_ID)));
+
+		// TBD if we want to keep any XRAY in local master
+		{
+			String database = engine.getDatabase();
+			String schema = engine.getSchema();
+			AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
+
+			// XRAYCONFIGS is not described in the OWL schema - create it explicitly
+			final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+			String[] colNames = new String[] { "FILENAME", "CONFIG" };
+			String[] types = new String[] { "varchar(800)", CLOB_DATATYPE };
 			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, schemaCols, schemaTypes);
+				String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
 				classLogger.info("Running sql {}", sql);
 				executeSql(conn, sql);
 			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, schemaCols, schemaTypes);
+				if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
+					String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
 					classLogger.info("Running sql {}", sql);
 					executeSql(conn, sql);
 				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < schemaCols.length; i++) {
-				String col = schemaCols[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, schemaTypes[i]);
-					classLogger.info("Running sql {}", addColumnSql);
-					executeSql(conn, addColumnSql);
-				}
-			}
-		}
-
-		// XRAYCONFIGS is not described in the OWL schema - create it explicitly
-		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
-		String[] colNames = new String[] { "FILENAME", "CONFIG" };
-		String[] types = new String[] { "varchar(800)", CLOB_DATATYPE };
-		if (allowIfExistsTable) {
-			String sql = queryUtil.createTableIfNotExists("XRAYCONFIGS", colNames, types);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			if (!queryUtil.tableExists(engine, "XRAYCONFIGS", database, schema)) {
-				String sql = queryUtil.createTable("XRAYCONFIGS", colNames, types);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINE_ID_INDEX", "ENGINE", "ID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINE_ID_INDEX", "ENGINE", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINE_ID_INDEX", "ENGINE", "ID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine concept table
-		// add index
-		if (allowIfExistsIndexs) {
-			List<String> iCols = new ArrayList<>();
-			iCols.add("ENGINE");
-			iCols.add("LOCALCONCEPTID");
-
-			String sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT",
-					iCols);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-			sql = queryUtil.createIndexIfNotExists("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
-					"PHYSICALNAMEID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", database,
-					schema)) {
-				List<String> iCols = new ArrayList<>();
-				iCols.add("ENGINE");
-				iCols.add("LOCALCONCEPTID");
-
-				String sql = queryUtil.createIndex("ENGINECONCEPT_ENGINE_LOCALCONCEPTID_INDEX", "ENGINECONCEPT", iCols);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINECONCEPT_PHYSICALNAMEID_INDEX", "ENGINECONCEPT",
-						"PHYSICALNAMEID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// concept table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "CONCEPT_ID_INDEX", "CONCEPT", database, schema)) {
-				String sql = queryUtil.createIndex("CONCEPT_ID_INDEX", "CONCEPT", "LOCALCONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// relation table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "RELATION_TARGETID_INDEX", "RELATION", database, schema)) {
-				String sql = queryUtil.createIndex("RELATION_TARGETID_INDEX", "RELATION", "TARGETID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "RELATION_SOURCEID_INDEX", "RELATION", database, schema)) {
-				String sql = queryUtil.createIndex("RELATION_SOURCEID_INDEX", "RELATION", "SOURCEID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// engine relation table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
-					"TARGETCONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
-					"SOURCECONCEPTID");
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", database, schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_ENGINE_INDEX", "ENGINERELATION", "ENGINE");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_TARGETCONCEPTID_INDEX", "ENGINERELATION",
-						"TARGETCONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION", database,
-					schema)) {
-				String sql = queryUtil.createIndex("ENGINERELATION_SOURCECONCEPTID_INDEX", "ENGINERELATION",
-						"SOURCECONCEPTID");
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-		}
-
-		// concept metadata table
-		// add index
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
-					Constants.LM_META_KEY);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
-					Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-			classLogger.info("Running sql {}", sql);
-			executeSql(conn, sql);
-		} else {
-			// see if index exists
-			if (!queryUtil.indexExists(engine, "CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE, database,
-					schema)) {
-				String sql = queryUtil.createIndex("CONCEPTMETADATA_KEY_INDEX", Constants.CONCEPT_METADATA_TABLE,
-						Constants.LM_META_KEY);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
-			}
-			if (!queryUtil.indexExists(engine, "CONCEPTMETADATA_PHYSICALNAMEID_INDEX", Constants.CONCEPT_METADATA_TABLE,
-					database, schema)) {
-				String sql = queryUtil.createIndex("CONCEPTMETADATA_PHYSICALNAMEID_INDEX",
-						Constants.CONCEPT_METADATA_TABLE, Constants.LM_PHYSICAL_NAME_ID);
-				classLogger.info("Running sql {}", sql);
-				executeSql(conn, sql);
 			}
 		}
 	}

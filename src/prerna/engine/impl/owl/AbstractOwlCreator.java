@@ -27,13 +27,22 @@
  *******************************************************************************/
 package prerna.engine.impl.owl;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.engine.api.IDatabaseEngine;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
@@ -60,6 +69,11 @@ import prerna.util.sql.AbstractSqlQueryUtil;
  * any extra remake checks via {@link #additionalRemakeChecks(IDatabaseEngine)}.
  */
 public abstract class AbstractOwlCreator {
+
+	private static final Logger classLogger = LogManager.getLogger(AbstractOwlCreator.class);
+
+	/** Column constraint emitted by {@link #syncSchema} when a table is created. */
+	private static final String NOT_NULL = "NOT NULL";
 
 	private static final String BASE_CONCEPT_URI = AbstractOWLEngine.BASE_NODE_URI;
 	private static final String CONTAINS_RELATION_BASE = AbstractOWLEngine.BASE_PROPERTY_URI + "/";
@@ -92,6 +106,202 @@ public abstract class AbstractOwlCreator {
 	 */
 	public List<Pair<String, List<Pair<String, String>>>> getDBSchema() {
 		return this.allSchemas;
+	}
+
+	/**
+	 * Brings the physical tables in line with this creator's declared schema.
+	 *
+	 * @param engine database holding the tables
+	 * @param conn   open connection on that database; the caller owns the commit
+	 * @throws SQLException if a create or alter fails
+	 */
+	public void syncSchema(IRDBMSEngine engine, Connection conn) throws SQLException {
+		syncSchema(engine, conn, this.allSchemas, Map.of());
+	}
+
+	/**
+	 * Brings the physical tables in line with a declared schema.
+	 *
+	 * @param schemas the table -> [(column, data type)] structure to apply
+	 * @throws SQLException if a create or alter fails
+	 */
+	public static void syncSchema(IRDBMSEngine engine, Connection conn,
+			List<Pair<String, List<Pair<String, String>>>> schemas) throws SQLException {
+		syncSchema(engine, conn, schemas, Map.of());
+	}
+
+	/**
+	 * Creates each declared table that does not exist, then adds any declared
+	 * column the live table is missing.
+	 *
+	 * <p>
+	 * The second half is the reason this is not just a create: a create statement
+	 * only runs against a database that does not have the table yet, so a column
+	 * added to a creator after an installation first booted would otherwise never
+	 * exist there. Both halves are idempotent, so this is safe to run on every
+	 * boot.
+	 *
+	 * <p>
+	 * Columns added to an existing table are always nullable, even when named in
+	 * {@code notNullColumns}. Rows already in the table have no value for a new
+	 * column, so the constraint can only be applied when the table is created.
+	 *
+	 * @param engine         database holding the tables
+	 * @param conn           open connection on that database; the caller owns the
+	 *                       commit
+	 * @param schemas        the table -> [(column, data type)] structure to apply
+	 * @param notNullColumns columns to create NOT NULL, keyed by table name; empty
+	 *                       when the schema has no such constraints
+	 * @throws SQLException if a create or alter fails
+	 */
+	public static void syncSchema(IRDBMSEngine engine, Connection conn,
+			List<Pair<String, List<Pair<String, String>>>> schemas, Map<String, Set<String>> notNullColumns)
+			throws SQLException {
+		if (schemas == null || schemas.isEmpty()) {
+			return;
+		}
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		String database = engine.getDatabase();
+		String schema = engine.getSchema();
+		String engineLabel = engineLabel(engine);
+		boolean allowIfExists = queryUtil.allowsIfExistsTableSyntax();
+
+		for (Pair<String, List<Pair<String, String>>> tableSchema : schemas) {
+			String tableName = tableSchema.getValue0();
+			List<Pair<String, String>> declared = tableSchema.getValue1();
+			String[] colNames = declared.stream().map(Pair::getValue0).toArray(String[]::new);
+			String[] types = declared.stream().map(Pair::getValue1).toArray(String[]::new);
+			Set<String> notNull = notNullColumns == null ? Set.of() : notNullColumns.getOrDefault(tableName, Set.of());
+
+			if (allowIfExists || !queryUtil.tableExists(conn, tableName, database, schema)) {
+				String sql = createTableSql(queryUtil, allowIfExists, tableName, colNames, types, notNull);
+				classLogger.info("[{}] Running sql {}", engineLabel, sql);
+				execute(conn, sql);
+			}
+
+			List<String> existingColumns = queryUtil.getTableColumns(conn, tableName, database, schema);
+			if (existingColumns == null || existingColumns.isEmpty()) {
+				continue;
+			}
+			for (int i = 0; i < colNames.length; i++) {
+				String col = colNames[i];
+				if (existingColumns.contains(col) || existingColumns.contains(col.toLowerCase())) {
+					continue;
+				}
+				classLogger.info("[{}] Column {} missing from {}; adding it. Existing columns: {}", engineLabel, col,
+						tableName, existingColumns);
+				String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
+				classLogger.info("[{}] Running sql {}", engineLabel, addColumnSql);
+				execute(conn, addColumnSql);
+			}
+		}
+	}
+
+	/**
+	 * Creates each index that does not already exist.
+	 *
+	 * <p>
+	 * Dialects split on whether they understand "CREATE INDEX IF NOT EXISTS". The
+	 * ones that do get the single statement; the rest are probed first. Without
+	 * this every index has to be written twice at the call site, once per branch,
+	 * which is where they drift apart.
+	 *
+	 * @param engine  database holding the tables
+	 * @param conn    open connection on that database; the caller owns the commit
+	 * @param indexes indexes to ensure
+	 * @throws SQLException if a create fails
+	 */
+	public static void syncIndexes(IRDBMSEngine engine, Connection conn, Collection<OwlIndex> indexes)
+			throws SQLException {
+		if (indexes == null || indexes.isEmpty()) {
+			return;
+		}
+		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
+		String database = engine.getDatabase();
+		String schema = engine.getSchema();
+		String engineLabel = engineLabel(engine);
+		boolean allowIfExists = queryUtil.allowIfExistsIndexSyntax();
+
+		for (OwlIndex index : indexes) {
+			if (index.columns() == null || index.columns().isEmpty()) {
+				classLogger.warn("[{}] Index {} declares no columns; skipping it.", engineLabel, index.indexName());
+				continue;
+			}
+			boolean single = index.columns().size() == 1;
+			String sql;
+			if (allowIfExists) {
+				sql = single
+						? queryUtil.createIndexIfNotExists(index.indexName(), index.tableName(), index.columns().get(0))
+						: queryUtil.createIndexIfNotExists(index.indexName(), index.tableName(), index.columns());
+			} else {
+				if (queryUtil.indexExists(engine, index.indexName(), index.tableName(), database, schema)) {
+					continue;
+				}
+				sql = single ? queryUtil.createIndex(index.indexName(), index.tableName(), index.columns().get(0))
+						: queryUtil.createIndex(index.indexName(), index.tableName(), index.columns());
+			}
+			classLogger.info("[{}] Running sql {}", engineLabel, sql);
+			execute(conn, sql);
+		}
+	}
+
+	/**
+	 * A human-readable name for the database a statement is running against, for
+	 * logging. Several system databases are reconciled during the same boot, so a
+	 * bare "Running sql" line does not say which one it belongs to.
+	 *
+	 * @param engine database being reconciled
+	 * @return its engine name, falling back to the engine id then the physical
+	 *         database name
+	 */
+	private static String engineLabel(IRDBMSEngine engine) {
+		String name = engine.getEngineName();
+		if (name != null && !name.trim().isEmpty()) {
+			return name;
+		}
+		String id = engine.getEngineId();
+		if (id != null && !id.trim().isEmpty()) {
+			return id;
+		}
+		String database = engine.getDatabase();
+		return database != null && !database.trim().isEmpty() ? database : "unknown database";
+	}
+
+	/**
+	 * 
+	 * @param queryUtil
+	 * @param allowIfExists
+	 * @param tableName
+	 * @param colNames
+	 * @param types
+	 * @param notNull
+	 * @return
+	 */
+	private static String createTableSql(AbstractSqlQueryUtil queryUtil, boolean allowIfExists, String tableName,
+			String[] colNames, String[] types, Set<String> notNull) {
+		if (notNull.isEmpty()) {
+			return allowIfExists ? queryUtil.createTableIfNotExists(tableName, colNames, types)
+					: queryUtil.createTable(tableName, colNames, types);
+		}
+		String[] constraints = new String[colNames.length];
+		for (int i = 0; i < colNames.length; i++) {
+			constraints[i] = notNull.contains(colNames[i]) ? NOT_NULL : null;
+		}
+		return allowIfExists
+				? queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints)
+				: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
+	}
+
+	/**
+	 * 
+	 * @param conn
+	 * @param sql
+	 * @throws SQLException
+	 */
+	private static void execute(Connection conn, String sql) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			ps.execute();
+		}
 	}
 
 	/**
@@ -268,5 +478,23 @@ public abstract class AbstractOwlCreator {
 	 * @param data       type the declared data type of the column
 	 */
 	public record OwlColumn(String tableName, String columnName, String dataType) {
+	}
+
+	/**
+	 * One index to keep in place alongside a declared schema.
+	 *
+	 * @param indexName index name, unique within the database
+	 * @param tableName table the index is on
+	 * @param columns   indexed columns, in order
+	 */
+	public record OwlIndex(String indexName, String tableName, List<String> columns) {
+
+		/**
+		 * @param columns indexed columns, in order; at least one
+		 * @return an index declaration
+		 */
+		public static OwlIndex of(String indexName, String tableName, String... columns) {
+			return new OwlIndex(indexName, tableName, List.of(columns));
+		}
 	}
 }

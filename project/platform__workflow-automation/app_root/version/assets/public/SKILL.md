@@ -143,6 +143,29 @@ The escape hatch, and the last resort. Use it only for custom computation or an
 integration no supported node provides. Prefer a supported generated node: it is
 validated, rendered, and understood by the canvas, and a custom node is none of those.
 
+It is also the one node type whose Python is supplied through `AddAutomationStep`.
+Every other node takes configuration; this one takes its **source**, in a `source`
+key inside `config`:
+
+```json
+{
+  "nodeType": "developer.python",
+  "label": "Total open claims",
+  "outputVar": "open_claims",
+  "config": "{\"source\": \"def run(scope):\\n    return {\\\"count\\\": len(scope[\\\"claims\\\"])}\\n\"}"
+}
+```
+
+`config` is a JSON string, so the source is a JSON string nested inside it and its
+newlines and quotes are escaped twice. The server lifts `source` out of `config`,
+writes it as the node's file, and stores the node with an empty `config` and
+`codeMode: "custom"` - so the response showing `"config":{}` is success, not a
+dropped field. Omitting `source`, or supplying one with no top-level `run(scope)`,
+is rejected.
+
+After creation, change it with `UpdateAutomationCustomStep` and its
+`expectedSourceHash`, never by sending `config` again.
+
 ## Trigger inputs and setup Python
 
 The `trigger.start` node is the automation's parameter list. Its configuration holds

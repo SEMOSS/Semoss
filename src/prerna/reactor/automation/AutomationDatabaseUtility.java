@@ -29,7 +29,6 @@ package prerna.reactor.automation;
 
 import static prerna.reactor.automation.AutomationConstants.AGENT_RUN_ID;
 import static prerna.reactor.automation.AutomationConstants.AUTOMATION_ID;
-import static prerna.reactor.automation.AutomationConstants.BIGINT;
 import static prerna.reactor.automation.AutomationConstants.CANCEL_REQUESTED;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_AT;
 import static prerna.reactor.automation.AutomationConstants.COMPLETED_NODES;
@@ -51,7 +50,6 @@ import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
 import static prerna.reactor.automation.AutomationConstants.INPUT_SNAPSHOT;
-import static prerna.reactor.automation.AutomationConstants.INTEGER;
 import static prerna.reactor.automation.AutomationConstants.LAST_HEARTBEAT;
 import static prerna.reactor.automation.AutomationConstants.MODEL_MESSAGE_ID;
 import static prerna.reactor.automation.AutomationConstants.NODE_FIELD_ID;
@@ -63,7 +61,6 @@ import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_PENDING;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_RUNNING;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SKIPPED;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
-import static prerna.reactor.automation.AutomationConstants.NOT_NULL;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR_NAME;
@@ -89,10 +86,6 @@ import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_WAITS;
 import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
 import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
-import static prerna.reactor.automation.AutomationConstants.VARCHAR_2000;
-import static prerna.reactor.automation.AutomationConstants.VARCHAR_255;
-import static prerna.reactor.automation.AutomationConstants.VARCHAR_50;
-import static prerna.reactor.automation.AutomationConstants.VARCHAR_500;
 import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
 
 import java.io.UnsupportedEncodingException;
@@ -111,18 +104,22 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.reactor.scheduler.SchedulerOwlCreator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
@@ -142,6 +139,21 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public final class AutomationDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationDatabaseUtility.class);
+
+	/** Prefix identifying the automation tables inside the scheduler OWL schema. */
+	private static final String AUTOMATION_TABLE_PREFIX = "AUTOMATION_";
+
+	/**
+	 * Columns created NOT NULL, by table. The OWL schema models column names and
+	 * types only, so the nullability the tables were originally built with is kept
+	 * here rather than being silently dropped.
+	 */
+	private static final Map<String, Set<String>> NOT_NULL_COLUMNS = Map.of(TABLE_AUTOMATION_RUNS,
+			Set.of(RUN_ID, PROJECT_ID, STATUS, TRIGGER_TYPE, STARTED_AT), TABLE_AUTOMATION_RUN_NODE_SOURCES,
+			Set.of(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE), TABLE_AUTOMATION_NODE_OUTPUTS,
+			Set.of(RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS), TABLE_AUTOMATION_RUN_WAITS,
+			Set.of(AutomationConstants.WAIT_ID, RUN_ID, NODE_ID, AutomationConstants.WAIT_TYPE, AGENT_RUN_ID, ROOM_ID,
+					STATUS, STARTED_AT, AutomationConstants.EXPIRES_AT));
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
@@ -232,8 +244,10 @@ public final class AutomationDatabaseUtility {
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, ERROR_MESSAGE = ? WHERE RUN_ID = ? AND NODE_ID = ?""";
 
-	// A null agent run id leaves the persisted one in place: a node that already recorded its
-	// child run keeps that link, which is what makes the child discoverable after the parent stops.
+	// A null agent run id leaves the persisted one in place: a node that already
+	// recorded its
+	// child run keeps that link, which is what makes the child discoverable after
+	// the parent stops.
 	private static final String UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
 			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
@@ -269,15 +283,15 @@ public final class AutomationDatabaseUtility {
 			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 			String database = schedulerDb.getDatabase();
 			String schema = schedulerDb.getSchema();
-
 			boolean allowIfExists = queryUtil.allowsIfExistsTableSyntax();
-			String dateTimeType = queryUtil.getDateWithTimeDataType();
-			String clobType = queryUtil.getClobDataTypeName();
 
-			createAutomationRunsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
-			createAutomationRunNodeSourcesTable(conn, queryUtil, database, schema, allowIfExists, clobType);
-			createAutomationNodeOutputsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType, clobType);
-			createAutomationRunWaitsTable(conn, queryUtil, database, schema, allowIfExists, dateTimeType);
+			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(queryUtil);
+			List<Pair<String, List<Pair<String, String>>>> automationTables = owlCreator.getDBSchema().stream()
+					.filter(table -> table.getValue0().startsWith(AUTOMATION_TABLE_PREFIX)).toList();
+
+			// create the tables and columns from the OWL creator schema
+			AbstractOwlCreator.syncSchema(schedulerDb, conn, automationTables, NOT_NULL_COLUMNS);
+			applyKeysAndIndexes(conn, queryUtil, database, schema, allowIfExists);
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -289,6 +303,43 @@ public final class AutomationDatabaseUtility {
 		} finally {
 			closeConnection(schedulerDb, conn);
 		}
+	}
+
+	/**
+	 * Applies the keys and indexes the OWL schema does not model. Both helpers are
+	 * no-ops when the constraint already exists.
+	 */
+	private static void applyKeysAndIndexes(Connection conn, AbstractSqlQueryUtil queryUtil, String database,
+			String schema, boolean allowIfExists) throws SQLException {
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_RUNS, database, schema, PK_AUTOMATION_RUNS,
+				new String[] { RUN_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_PROJECT, TABLE_AUTOMATION_RUNS,
+				new String[] { PROJECT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STATUS, TABLE_AUTOMATION_RUNS,
+				new String[] { PROJECT_ID, STATUS });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STARTED, TABLE_AUTOMATION_RUNS,
+				new String[] { PROJECT_ID, STARTED_AT });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_RUN_NODE_SOURCES, database, schema,
+				PK_AUTO_RUN_SOURCE, new String[] { RUN_ID, NODE_ID });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_NODE_OUTPUTS, database, schema, PK_AUTO_NODE_OUT,
+				new String[] { RUN_ID, NODE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_RUN, TABLE_AUTOMATION_NODE_OUTPUTS,
+				new String[] { RUN_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_ROOM, TABLE_AUTOMATION_NODE_OUTPUTS,
+				new String[] { ROOM_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_MODEL_MSG, TABLE_AUTOMATION_NODE_OUTPUTS,
+				new String[] { MODEL_MESSAGE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_AGENT_RUN, TABLE_AUTOMATION_NODE_OUTPUTS,
+				new String[] { AGENT_RUN_ID });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_RUN_WAITS, database, schema, PK_AUTO_RUN_WAIT,
+				new String[] { AutomationConstants.WAIT_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_RUN, TABLE_AUTOMATION_RUN_WAITS,
+				new String[] { RUN_ID, STATUS });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_AGENT_RUN, TABLE_AUTOMATION_RUN_WAITS,
+				new String[] { AGENT_RUN_ID });
 	}
 
 	/**
@@ -1388,138 +1439,6 @@ public final class AutomationDatabaseUtility {
 
 	// -- Table Creation
 	// ------------------------------------------------------------
-
-	private static void createAutomationRunsTable(Connection conn, AbstractSqlQueryUtil queryUtil, String database,
-			String schema, boolean allowIfExists, String dateTimeType, String clobType) throws SQLException {
-
-		String tableName = TABLE_AUTOMATION_RUNS;
-
-		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
-		if (!tableExists) {
-			String[] colNames = { RUN_ID, PROJECT_ID, AUTOMATION_ID, DEFINITION_VERSION, DEFINITION_HASH,
-					DEFINITION_SNAPSHOT, INPUT_SNAPSHOT, STATUS, TRIGGER_TYPE, STARTED_AT, COMPLETED_AT, FAILED_NODE_ID,
-					ERROR_MESSAGE, LAST_HEARTBEAT, TOTAL_NODES, COMPLETED_NODES, CREATED_BY, CANCEL_REQUESTED,
-					RESULT_SUMMARY_COL };
-			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, INTEGER, VARCHAR_255, clobType, clobType,
-					VARCHAR_50, VARCHAR_50, dateTimeType, dateTimeType, VARCHAR_255, clobType, dateTimeType, INTEGER,
-					INTEGER, VARCHAR_255, queryUtil.getBooleanDataTypeName(), VARCHAR_2000 };
-			String[] constraints = { NOT_NULL, NOT_NULL, null, null, null, null, null, NOT_NULL, NOT_NULL, NOT_NULL,
-					null, null, null, null, null, null, null, null, null };
-
-			String sql;
-			if (allowIfExists) {
-				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-			} else {
-				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-			}
-			classLogger.info("Creating table {}: {}", tableName, sql);
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.execute();
-			}
-		}
-
-		// Primary key
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTOMATION_RUNS,
-				new String[] { RUN_ID });
-
-		// Indexes
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_PROJECT, tableName, new String[] { PROJECT_ID });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STATUS, tableName,
-				new String[] { PROJECT_ID, STATUS });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_AR_STARTED, tableName,
-				new String[] { PROJECT_ID, STARTED_AT });
-	}
-
-	private static void createAutomationRunNodeSourcesTable(Connection conn, AbstractSqlQueryUtil queryUtil,
-			String database, String schema, boolean allowIfExists, String clobType) throws SQLException {
-
-		String tableName = TABLE_AUTOMATION_RUN_NODE_SOURCES;
-		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
-		if (!tableExists) {
-			String[] colNames = { RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE };
-			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, clobType };
-			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL };
-			String sql = allowIfExists
-					? queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints)
-					: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-			classLogger.info("Creating table {}: {}", tableName, sql);
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.execute();
-			}
-		}
-
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_RUN_SOURCE,
-				new String[] { RUN_ID, NODE_ID });
-	}
-
-	private static void createAutomationNodeOutputsTable(Connection conn, AbstractSqlQueryUtil queryUtil,
-			String database, String schema, boolean allowIfExists, String dateTimeType, String clobType)
-			throws SQLException {
-
-		String tableName = TABLE_AUTOMATION_NODE_OUTPUTS;
-
-		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
-		if (!tableExists) {
-			String[] colNames = { RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, STARTED_AT, COMPLETED_AT,
-					DURATION_MS, OUTPUT_VAR_NAME, OUTPUT_VALUE, OUTPUT_PREVIEW, ROOM_ID, WORKSPACE_ID, MODEL_MESSAGE_ID,
-					AGENT_RUN_ID, ERROR_MESSAGE };
-			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_500, INTEGER, VARCHAR_50, dateTimeType, dateTimeType,
-					BIGINT, VARCHAR_255, clobType, VARCHAR_2000, VARCHAR_50, VARCHAR_50, VARCHAR_50, VARCHAR_50,
-					clobType };
-			String[] constraints = { NOT_NULL, NOT_NULL, null, NOT_NULL, NOT_NULL, null, null, null, null, null, null,
-					null, null, null, null, null };
-
-			String sql;
-			if (allowIfExists) {
-				sql = queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints);
-			} else {
-				sql = queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-			}
-			classLogger.info("Creating table {}: {}", tableName, sql);
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.execute();
-			}
-		}
-
-		// Composite primary key
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_NODE_OUT,
-				new String[] { RUN_ID, NODE_ID });
-
-		// Indexes
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_RUN, tableName, new String[] { RUN_ID });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_ROOM, tableName, new String[] { ROOM_ID });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_MODEL_MSG, tableName,
-				new String[] { MODEL_MESSAGE_ID });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ANO_AGENT_RUN, tableName,
-				new String[] { AGENT_RUN_ID });
-	}
-
-	private static void createAutomationRunWaitsTable(Connection conn, AbstractSqlQueryUtil queryUtil, String database,
-			String schema, boolean allowIfExists, String dateTimeType) throws SQLException {
-		String tableName = TABLE_AUTOMATION_RUN_WAITS;
-		boolean tableExists = !allowIfExists && queryUtil.tableExists(conn, tableName, database, schema);
-		if (!tableExists) {
-			String[] colNames = { AutomationConstants.WAIT_ID, RUN_ID, NODE_ID, AutomationConstants.WAIT_TYPE,
-					AGENT_RUN_ID, ROOM_ID, AutomationConstants.RESUME_NODE_ID, STATUS, CREATED_BY, STARTED_AT,
-					AutomationConstants.EXPIRES_AT, AutomationConstants.RESOLVED_AT, AutomationConstants.RESOLVED_BY };
-			String[] types = { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_50, VARCHAR_50, VARCHAR_50, VARCHAR_255,
-					VARCHAR_50, VARCHAR_255, dateTimeType, dateTimeType, dateTimeType, VARCHAR_255 };
-			String[] constraints = { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, NOT_NULL, null,
-					NOT_NULL, NOT_NULL, null, null };
-			String sql = allowIfExists
-					? queryUtil.createTableIfNotExistsWithCustomConstraints(tableName, colNames, types, constraints)
-					: queryUtil.createTableWithCustomConstraints(tableName, colNames, types, constraints);
-			classLogger.info("Creating table {}: {}", tableName, sql);
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.execute();
-			}
-		}
-		addPrimaryKeyIfNotExists(conn, queryUtil, tableName, database, schema, PK_AUTO_RUN_WAIT,
-				new String[] { AutomationConstants.WAIT_ID });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_RUN, tableName, new String[] { RUN_ID, STATUS });
-		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_AGENT_RUN, tableName,
-				new String[] { AGENT_RUN_ID });
-	}
 
 	private static void putIfPresent(Map<String, Object> target, String key, Object value) {
 		if (value != null && !value.toString().isBlank()) {
