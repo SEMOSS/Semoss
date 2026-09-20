@@ -1,7 +1,7 @@
 #Base Properties
 PROJECT	workflow-automation-builder
 PROJECT_ALIAS	platform
-PROJECT_DISPLAY_NAME	Automation Building Agent
+PROJECT_DISPLAY_NAME	Workflow Automation Builder
 PROJECT_TYPE	prerna.project.impl.Project
 PROJECT_ENUM_TYPE	WORKSPACE
 RDBMS_INSIGHTS	project/@PROJECT@/insights_database
