@@ -71,12 +71,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * still catalogs).
  *
  * <p>
- * The App Building Agent's tools and skills are derived from
- * {@link SystemDefaultEngines} so they stay in sync with the platform lists:
- * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs(String)}</li>
- * <li>skills = {@link SystemDefaultEngines#getSystemAgentSkills(String)}</li>
- * </ul>
+ * The App Building Agent uses explicit lists of tools and skills from
+ * {@link SystemDefaultEngines#getSystemAgentMCPs(String)} and
+ * {@link SystemDefaultEngines#getSystemAgentSkills(String)}.
  * The PPTX Reviewer uses only built-in tools, with file mutations and further
  * delegation disabled. Its InspectPptx result ends the run directly. The PPTX
  * Agent uses the platform pptx skill and the managed BuildPptx workflow, with
