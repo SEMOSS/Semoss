@@ -97,6 +97,43 @@ public class MicrosoftOutlookMessageMapper {
 	}
 
 	/**
+	 * Describe one attachment, without its bytes.
+	 *
+	 * <p>
+	 * What an attachment is matters more than it might seem. A file attachment
+	 * carries its own bytes and can be written out. An item attachment is another
+	 * message or event embedded in this one, and a reference attachment is a link
+	 * to a file living in a drive, so neither has bytes here to save. That is what
+	 * {@code isFile} says, and it is what
+	 * {@code MicrosoftOutlookDownloadAttachment} checks before writing anything.
+	 * </p>
+	 *
+	 * @param attachment the attachment as Graph returned it
+	 * @return the attachment as a map
+	 */
+	public static Map<String, Object> toAttachment(Map<String, Object> attachment) {
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put("id", attachment.get("id"));
+		putIfPresent(output, "name", attachment.get("name"));
+		putIfPresent(output, "contentType", attachment.get("contentType"));
+		putIfPresent(output, "size", attachment.get("size"));
+		putIfPresent(output, "lastModifiedDateTime", attachment.get("lastModifiedDateTime"));
+		output.put("isInline", Boolean.TRUE.equals(attachment.get("isInline")));
+		output.put("type", attachment.get("@odata.type"));
+		output.put("isFile", isFileAttachment(attachment));
+		return output;
+	}
+
+	/**
+	 * @param attachment an attachment as Graph returned it
+	 * @return true when the attachment carries bytes of its own that can be written
+	 *         out
+	 */
+	public static boolean isFileAttachment(Map<String, Object> attachment) {
+		return "#microsoft.graph.fileAttachment".equals(String.valueOf(attachment.get("@odata.type")));
+	}
+
+	/**
 	 * The readable text of a message, preferring what Graph says is plain over
 	 * markup, the same way the protocol engines do.
 	 *
