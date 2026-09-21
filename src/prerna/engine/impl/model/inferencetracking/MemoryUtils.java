@@ -321,6 +321,15 @@ public class MemoryUtils {
 	private static final int SEMANTIC_CANDIDATE_LIMIT = 20;
 
 	/**
+	 * Reciprocal Rank Fusion smoothing constant used to combine the vector and
+	 * text-overlap ranking channels in {@link #listMemories} (see
+	 * {@link #rrfFuse}). 60 is the standard default from Cormack, Clarke &amp;
+	 * Buettcher (2009) and is what the omega-memory MCP server uses for the same
+	 * vector+BM25 fusion.
+	 */
+	private static final int RRF_K = 60;
+
+	/**
 	 * Finds the closest existing memory (same visibility scope) whose vector
 	 * similarity exceeds the event type's duplicate-detection threshold. Runs a
 	 * nearest-neighbor search against the shared vector engine, then filters the
@@ -765,75 +774,57 @@ public class MemoryUtils {
 		long effectiveLimit = (limit != null && limit > 0) ? limit : DEFAULT_LIST_LIMIT;
 		long effectiveOffset = (offset != null && offset > 0) ? offset : 0;
 
-		// Semantic ranking: over-fetch candidate ids from the vector engine (same
-		// scope-agnostic search dedup uses), then let the SQL query below re-apply
-		// every other filter (scope/eventType/metaFilters/superseded) against just
-		// those candidates - so a semantic match still has to pass every ownership
-		// and visibility check a plain listing would. Falls through to the
-		// original substring match if nothing usable comes back.
-		List<String> semanticRankedIds = null;
-		if (search != null && !search.isBlank() && vectorEngineId != null && !vectorEngineId.isBlank()
-				&& insight != null) {
-			semanticRankedIds = rankMemoriesBySimilarity(vectorEngineId, insight, search,
-					Math.max((int) effectiveLimit * 3, SEMANTIC_CANDIDATE_LIMIT));
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		// Hybrid ranking: two independent channels - vector similarity and a
+		// lightweight text/word-overlap signal (our stand-in for BM25 - see
+		// rankMemoriesByTextOverlap's own note on why this isn't real FTS5 BM25) -
+		// fused by Reciprocal Rank Fusion (RRF), the same technique the omega-memory
+		// MCP server uses to combine its own vector + BM25 channels. RRF only needs
+		// each channel's relative rank order, never a directly-comparable score, so
+		// it sidesteps the exact problem that made us turn off the vector engine's
+		// own built-in hybrid mode (see rankMemoriesBySimilarity/
+		// findDuplicateMemoryViaVector's notes on FAISS's opaque fused score).
+		List<String> fusedRankedIds = null;
+		if (search != null && !search.isBlank()) {
+			int candidateWindow = Math.max((int) effectiveLimit * 3, SEMANTIC_CANDIDATE_LIMIT);
+			List<String> vectorRankedIds = null;
+			if (vectorEngineId != null && !vectorEngineId.isBlank() && insight != null) {
+				vectorRankedIds = rankMemoriesBySimilarity(vectorEngineId, insight, search, candidateWindow);
+			}
+			// Text channel: same visibility/eventType/metaFilters/superseded scope as
+			// the final query below, just without a search restriction, so it has
+			// CONTENT to score against - this candidate pool is already
+			// visibility-safe on its own, independent of the vector channel.
+			List<Map<String, Object>> textCandidateRows = fetchScopedCandidateRows(userId, workspaceId, roomId,
+					agentId, projectId, eventTypes, includeSuperseded, metaFilters, candidateWindow * 2);
+			List<String> textRankedIds = rankMemoriesByTextOverlap(textCandidateRows, search, candidateWindow);
+
+			if ((vectorRankedIds != null && !vectorRankedIds.isEmpty()) || !textRankedIds.isEmpty()) {
+				fusedRankedIds = rrfFuse(
+						List.of(vectorRankedIds == null ? List.of() : vectorRankedIds, textRankedIds), RRF_K,
+						candidateWindow);
+			}
 		}
 
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		addMemorySelectors(qs);
 		qs.addSelector(
 				new prerna.query.querystruct.selectors.QueryOpaqueSelector("COUNT(*) OVER()", "total_row_count"));
-
-		AndQueryFilter visibilityFilter = new AndQueryFilter();
-		visibilityFilter.addFilter(
-				SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__DELETED", "==", false, PixelDataType.BOOLEAN));
-		if (workspaceId != null && !workspaceId.isBlank()) {
-			// Shared scope: anyone with view access to the workspace (caller already
-			// verified before this call - see SecurityProjectUtils#userCanViewProject).
-			// Deliberately not ANDed with USER_ID - that is the whole point of
-			// promoting a memory to a workspace (see PromoteMemoryToWorkspaceReactor).
-			visibilityFilter.addFilter(
-					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__WORKSPACE_ID", "==", workspaceId));
-		} else {
-			// Personal scope: always the caller's own memories only. agentId (below)
-			// can narrow this further to "memories I told this specific agent", but
-			// it is ANDed in, never substituted for this ownership check - unlike
-			// workspaceId, it can never expose another user's memories.
-			visibilityFilter.addFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__USER_ID", "==", userId));
-		}
-		qs.addExplicitFilter(visibilityFilter);
-
-		if (roomId != null && !roomId.isBlank()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__ROOM_ID", "==", roomId));
-		}
-		if (agentId != null && !agentId.isBlank()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__AGENT_ID", "==", agentId));
-		}
-		if (projectId != null && !projectId.isBlank()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__PROJECT_ID", "==", projectId));
-		}
-		if (eventTypes != null && !eventTypes.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__EVENT_TYPE", "==", eventTypes));
-		}
-		if (!Boolean.TRUE.equals(includeSuperseded)) {
-			// Hide memories already folded into a CompactMemories summary by default -
-			// the summary already covers them, so surfacing both is redundant noise
-			// for whoever (agent or human) is just trying to recall what's relevant.
+		addMemoryScopeFilters(qs, userId, workspaceId, roomId, agentId, projectId, eventTypes, includeSuperseded);
+		if (fusedRankedIds != null && !fusedRankedIds.isEmpty()) {
 			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__SUPERSEDES_MEMORY_ID", "==", (Object) null));
-		}
-		if (semanticRankedIds != null && !semanticRankedIds.isEmpty()) {
-			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__MEMORY_ID", "==", semanticRankedIds));
+					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__MEMORY_ID", "==", fusedRankedIds));
 		} else if (search != null && !search.isBlank()) {
-			// No vector engine available, or it returned nothing usable - fall back to
-			// a plain substring match rather than silently returning zero results.
+			// Neither channel produced anything usable (e.g. no vector engine and zero
+			// word overlap) - fall back to a plain substring match rather than
+			// silently returning zero results.
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__CONTENT", "?like",
 					"%" + search + "%", PixelDataType.CONST_STRING));
 		}
 		addMemoryMetaFilters(qs, metaFilters);
 
-		if (semanticRankedIds == null || semanticRankedIds.isEmpty()) {
+		if (fusedRankedIds == null || fusedRankedIds.isEmpty()) {
 			qs.addOrderBy(new QueryColumnOrderBySelector(MEMORY_TABLE + "__DATE_CREATED", "DESC"));
 			if (effectiveLimit > 0) {
 				qs.setLimit(effectiveLimit);
@@ -842,17 +833,17 @@ public class MemoryUtils {
 				qs.setOffSet(effectiveOffset);
 			}
 		}
-		// When ranking semantically, deliberately no SQL LIMIT/OFFSET/ORDER BY - the
-		// candidate list from the vector engine is already capped and ordered by
-		// relevance; rows are re-sorted to match that order and capped below, after
-		// the visibility/scope filters above have had a chance to drop any
-		// candidate that isn't actually visible to this caller.
+		// When ranking by the fused vector+text order, deliberately no SQL
+		// LIMIT/OFFSET/ORDER BY - the candidate list is already capped and ordered
+		// by fused relevance; rows are re-sorted to match that order and capped
+		// below, after the visibility/scope filters above have had a chance to drop
+		// any candidate that isn't actually visible to this caller.
 
 		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
-		if (semanticRankedIds != null && !semanticRankedIds.isEmpty()) {
+		if (fusedRankedIds != null && !fusedRankedIds.isEmpty()) {
 			Map<String, Integer> rankById = new java.util.HashMap<>();
-			for (int i = 0; i < semanticRankedIds.size(); i++) {
-				rankById.put(semanticRankedIds.get(i), i);
+			for (int i = 0; i < fusedRankedIds.size(); i++) {
+				rankById.put(fusedRankedIds.get(i), i);
 			}
 			rows.sort(java.util.Comparator
 					.comparingInt(row -> rankById.getOrDefault(row.get("memory_id"), Integer.MAX_VALUE)));
@@ -908,6 +899,201 @@ public class MemoryUtils {
 			classLogger.warn("Memory semantic search failed; falling back to substring match.", e);
 			return List.of();
 		}
+	}
+
+	/**
+	 * Adds the visibility/room/agent/project/eventType/superseded scope filters
+	 * shared by every {@link #listMemories} SQL path - factored out so the
+	 * text-channel candidate pre-fetch (see {@link #fetchScopedCandidateRows}) and
+	 * the final query apply <b>identical</b> scope rules, never two copies that
+	 * could drift apart.
+	 *
+	 * @param qs                query to add filters to
+	 * @param userId            requesting user
+	 * @param workspaceId       optional shared-workspace scope (bypasses
+	 *                          per-user ownership - see {@link #listMemories})
+	 * @param roomId            optional room filter
+	 * @param agentId           optional agent filter (always ANDed with
+	 *                          ownership, never a substitute for it)
+	 * @param projectId         optional project filter
+	 * @param eventTypes        optional event-type filter (OR'd)
+	 * @param includeSuperseded whether to include already-compacted memories
+	 */
+	private static void addMemoryScopeFilters(SelectQueryStruct qs, String userId, String workspaceId, String roomId,
+			String agentId, String projectId, List<String> eventTypes, Boolean includeSuperseded) {
+		AndQueryFilter visibilityFilter = new AndQueryFilter();
+		visibilityFilter.addFilter(
+				SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__DELETED", "==", false, PixelDataType.BOOLEAN));
+		if (workspaceId != null && !workspaceId.isBlank()) {
+			// Shared scope: anyone with view access to the workspace (caller already
+			// verified before this call - see SecurityProjectUtils#userCanViewProject).
+			// Deliberately not ANDed with USER_ID - that is the whole point of
+			// promoting a memory to a workspace (see PromoteMemoryToWorkspaceReactor).
+			visibilityFilter.addFilter(
+					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__WORKSPACE_ID", "==", workspaceId));
+		} else {
+			// Personal scope: always the caller's own memories only. agentId (below)
+			// can narrow this further to "memories I told this specific agent", but
+			// it is ANDed in, never substituted for this ownership check - unlike
+			// workspaceId, it can never expose another user's memories.
+			visibilityFilter.addFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__USER_ID", "==", userId));
+		}
+		qs.addExplicitFilter(visibilityFilter);
+
+		if (roomId != null && !roomId.isBlank()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__ROOM_ID", "==", roomId));
+		}
+		if (agentId != null && !agentId.isBlank()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__AGENT_ID", "==", agentId));
+		}
+		if (projectId != null && !projectId.isBlank()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__PROJECT_ID", "==", projectId));
+		}
+		if (eventTypes != null && !eventTypes.isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__EVENT_TYPE", "==", eventTypes));
+		}
+		if (!Boolean.TRUE.equals(includeSuperseded)) {
+			// Hide memories already folded into a CompactMemories summary by default -
+			// the summary already covers them, so surfacing both is redundant noise
+			// for whoever (agent or human) is just trying to recall what's relevant.
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__SUPERSEDES_MEMORY_ID", "==", (Object) null));
+		}
+	}
+
+	/**
+	 * Fetches a bounded, visibility-safe candidate pool for the text-overlap
+	 * ranking channel (see {@link #rankMemoriesByTextOverlap}) - the same scope
+	 * rules as the final {@link #listMemories} query (via
+	 * {@link #addMemoryScopeFilters}), just without a search restriction, ordered
+	 * most-recent first and capped at {@code candidateLimit} rows.
+	 *
+	 * @return rows with at least {@code memory_id}/{@code content}, most-recent
+	 *         first, capped at {@code candidateLimit}
+	 */
+	private static List<Map<String, Object>> fetchScopedCandidateRows(String userId, String workspaceId,
+			String roomId, String agentId, String projectId, List<String> eventTypes, Boolean includeSuperseded,
+			Map<String, Object> metaFilters, int candidateLimit) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE + "__MEMORY_ID", "memory_id"));
+		qs.addSelector(new QueryColumnSelector(MEMORY_TABLE + "__CONTENT", "content"));
+		addMemoryScopeFilters(qs, userId, workspaceId, roomId, agentId, projectId, eventTypes, includeSuperseded);
+		addMemoryMetaFilters(qs, metaFilters);
+		qs.addOrderBy(new QueryColumnOrderBySelector(MEMORY_TABLE + "__DATE_CREATED", "DESC"));
+		qs.setLimit(candidateLimit);
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	/**
+	 * Ranks candidate rows by simple case-insensitive word-overlap against a
+	 * free-text query - our stand-in for a real BM25 channel. This is
+	 * deliberately <b>not</b> full-text-search BM25 (term-frequency/
+	 * inverse-document-frequency weighting): the underlying database engine
+	 * varies across installations and we can't assume every one of them has an
+	 * FTS5-equivalent available, so this is an honest lightweight approximation -
+	 * a plain "how many distinct query words appear in this memory's content"
+	 * count - used purely as one of two independent ranking channels fed into
+	 * {@link #rrfFuse}. Rows with zero overlapping words are dropped rather than
+	 * ranked last, so an irrelevant tail doesn't dilute the fused ranking.
+	 *
+	 * @param candidateRows  scope-filtered rows to rank (see
+	 *                       {@link #fetchScopedCandidateRows})
+	 * @param query          free-text query to rank against
+	 * @param candidateLimit max ids to return
+	 * @return memory ids ordered by descending word-overlap count, capped at
+	 *         {@code candidateLimit}
+	 */
+	private static List<String> rankMemoriesByTextOverlap(List<Map<String, Object>> candidateRows, String query,
+			int candidateLimit) {
+		String[] queryWords = query.toLowerCase().split("\\W+");
+		java.util.Set<String> distinctWords = new java.util.LinkedHashSet<>();
+		for (String w : queryWords) {
+			if (w.length() > 2) {
+				distinctWords.add(w);
+			}
+		}
+		if (distinctWords.isEmpty() || candidateRows == null || candidateRows.isEmpty()) {
+			return List.of();
+		}
+
+		List<Map.Entry<String, Integer>> scored = new java.util.ArrayList<>();
+		for (Map<String, Object> row : candidateRows) {
+			Object idValue = row.get("memory_id");
+			Object contentValue = row.get("content");
+			if (idValue == null || contentValue == null) {
+				continue;
+			}
+			String contentLower = contentValue.toString().toLowerCase();
+			int matched = 0;
+			for (String word : distinctWords) {
+				if (contentLower.contains(word)) {
+					matched++;
+				}
+			}
+			if (matched > 0) {
+				scored.add(Map.entry(idValue.toString(), matched));
+			}
+		}
+		// Stable sort: ties keep the caller's original (most-recent-first) order.
+		scored.sort((a, b) -> Integer.compare(b.getValue(), a.getValue()));
+		List<String> ids = new java.util.ArrayList<>();
+		for (Map.Entry<String, Integer> entry : scored) {
+			ids.add(entry.getKey());
+			if (ids.size() >= candidateLimit) {
+				break;
+			}
+		}
+		return ids;
+	}
+
+	/**
+	 * Reciprocal Rank Fusion (RRF): combines multiple independently-ranked
+	 * candidate-id lists into one fused ranking, using only each channel's rank
+	 * position - never a raw score - so heterogeneous, non-comparable signals
+	 * (vector cosine/L2 distance vs. word-overlap count) can be merged without
+	 * one channel's scale dominating the other. Same technique (and default
+	 * {@code k=60} smoothing constant, from Cormack et al. 2009) the
+	 * omega-memory MCP server uses to combine its vector + BM25 channels.
+	 *
+	 * <p>
+	 * Formula per channel: {@code score(id) = 1 / (k + rank + 1)}, each channel's
+	 * scores normalized to [0, 1] before summing, so a channel with far more
+	 * candidates than another doesn't get disproportionate weight; the summed
+	 * result is normalized to [0, 1] again before returning ids in descending
+	 * fused-score order.
+	 *
+	 * @param rankedLists    one ordered (best-first) id list per channel; an empty
+	 *                       or null channel is simply skipped
+	 * @param k              smoothing constant (60 is the standard default)
+	 * @param candidateLimit max ids to return
+	 * @return fused ids, best-first, capped at {@code candidateLimit}
+	 */
+	private static List<String> rrfFuse(List<List<String>> rankedLists, int k, int candidateLimit) {
+		Map<String, Double> fusedScores = new java.util.LinkedHashMap<>();
+		for (List<String> ranked : rankedLists) {
+			if (ranked == null || ranked.isEmpty()) {
+				continue;
+			}
+			Map<String, Double> channelScores = new java.util.LinkedHashMap<>();
+			for (int rank = 0; rank < ranked.size(); rank++) {
+				channelScores.put(ranked.get(rank), 1.0 / (k + rank + 1));
+			}
+			double channelMax = channelScores.values().stream().mapToDouble(Double::doubleValue).max().orElse(1.0);
+			for (Map.Entry<String, Double> entry : channelScores.entrySet()) {
+				double normalized = channelMax > 0 ? entry.getValue() / channelMax : 0.0;
+				fusedScores.merge(entry.getKey(), normalized, Double::sum);
+			}
+		}
+		if (fusedScores.isEmpty()) {
+			return List.of();
+		}
+		double maxScore = fusedScores.values().stream().mapToDouble(Double::doubleValue).max().orElse(1.0);
+		return fusedScores.entrySet().stream()
+				.sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+				.limit(candidateLimit)
+				.map(Map.Entry::getKey)
+				.collect(java.util.stream.Collectors.toList());
 	}
 
 	/**
