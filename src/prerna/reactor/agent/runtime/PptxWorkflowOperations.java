@@ -23,13 +23,14 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
                   const generator = path.join(ROOT, args.generator);
                   const stamp = () => fs.existsSync(filename) ? String(fs.statSync(filename, {bigint:true}).mtimeNs) + ':' + String(fs.statSync(filename, {bigint:true}).ctimeNs) : null;
                   const before = stamp();
+                  const deck = require(path.join(ROOT, '.claude/skills/pptx/scripts/deck.js'));
+                  const baseline = args.inputSnapshot ? deck.validate(path.join(ROOT, args.inputSnapshot), {slides: args.expectedSlides, strictCanvas: false}) : null;
                   const source = fs.readFileSync(generator, 'utf8');
                   await eval(source);
                   if (!fs.existsSync(filename) || stamp() === before) throw new Error('Generator did not save the requested PPTX file');
-                  const deck = require(path.join(ROOT, '.claude/skills/pptx/scripts/deck.js'));
                   const validation = deck.validate(filename, {slides: args.expectedSlides, strictCanvas: false});
                   const hash = value => crypto.createHash('sha256').update(value).digest('hex');
-                  return {...validation, sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)};
+                  return {...validation, ...(baseline ? {baselineWarnings: baseline.warnings} : {}), sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)};
                 })()
                 """.formatted(new JSONObject(args).toString());
         String output = PlatformAgentTools.executeDefaultTool("ExecuteNodeCode", Map.of("code", code, "timeout_seconds", 120), ctx);

@@ -66,6 +66,8 @@ import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -143,56 +145,11 @@ public class ModelInferenceLogsUtils {
 	 */
 	private static void executeInitModelInferenceDatabase(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
 
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					executeSql(conn, addColumnSql);
-
-					// was room id just added? 2025-06-26 addition. if so update w/ insight id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-
-					// was model id just added? 2025-06-26 addition. if so update w/ agent id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-				}
-			}
-		}
+		// create the tables and columns from the OWL creator schema
+		AbstractOwlCreator.syncSchema(engine, conn, dbSchema);
 
 		// was roomId just added
 		if (roomIdColumnWasAdded) {
@@ -205,284 +162,42 @@ public class ModelInferenceLogsUtils {
 			migrateAgentAndModelIds(conn);
 		}
 
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
-					Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
-					Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_USER_ID_INDEX", "MEMORY", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_ROOM_ID_INDEX", "MEMORY", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_WORKSPACE_ID_INDEX", "MEMORY", "WORKSPACE_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_EVENT_TYPE_INDEX", "MEMORY", "EVENT_TYPE");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", "PARENT_MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_DELETED_INDEX", "MEMORY", "DELETED");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM",
-					"MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP",
-					"SOURCE_MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP",
-					"TARGET_MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_AGENT_ID_INDEX", "MEMORY", "AGENT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", "MEMORY_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_META_METAKEY_INDEX", "MEMORY_META", "METAKEY");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS",
-					"USER_ID");
-			executeSql(conn, sql);
-		} else {
-			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_ROOM_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_ROOM_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "WORKSPACE_OWNER_INDEX", "WORKSPACE", database, schema)) {
-				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
-						Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
-						Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_USER_ID_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_USER_ID_INDEX", "MEMORY", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_ROOM_ID_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_ROOM_ID_INDEX", "MEMORY", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_WORKSPACE_ID_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_WORKSPACE_ID_INDEX", "MEMORY", "WORKSPACE_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_EVENT_TYPE_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_EVENT_TYPE_INDEX", "MEMORY", "EVENT_TYPE");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", "PARENT_MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_DELETED_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_DELETED_INDEX", "MEMORY", "DELETED");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_DATE_CREATED_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM",
-						"MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP",
-						"SOURCE_MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP",
-						"TARGET_MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_AGENT_ID_INDEX", "MEMORY", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_AGENT_ID_INDEX", "MEMORY", "AGENT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", "MEMORY_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_META_METAKEY_INDEX", "MEMORY_META", database, schema)) {
-				String sql = queryUtil.createIndex("MEMORY_META_METAKEY_INDEX", "MEMORY_META", "METAKEY");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS", database,
-					schema)) {
-				String sql = queryUtil.createIndex("MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS",
-						"USER_ID");
-				executeSql(conn, sql);
-			}
-		}
+		// create the indexes on the tables
+		AbstractOwlCreator.syncIndexes(engine, conn, List.of(
+				OwlIndex.of("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID"),
+				OwlIndex.of("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID"),
+				OwlIndex.of("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID"),
+				OwlIndex.of("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED"),
+				OwlIndex.of("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID"),
+				OwlIndex.of("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID"),
+				OwlIndex.of("ROOM_USER_ID_INDEX", "ROOM", "USER_ID"),
+				OwlIndex.of("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE"),
+				OwlIndex.of("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID"),
+				OwlIndex.of("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER"),
+				OwlIndex.of("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID"),
+				OwlIndex.of("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID"),
+				OwlIndex.of("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID"),
+				OwlIndex.of("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", "USER_ID", "WORKSPACE_ID",
+						"DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID"),
+				OwlIndex.of("MEMORY_USER_ID_INDEX", "MEMORY", "USER_ID"),
+				OwlIndex.of("MEMORY_ROOM_ID_INDEX", "MEMORY", "ROOM_ID"),
+				OwlIndex.of("MEMORY_WORKSPACE_ID_INDEX", "MEMORY", "WORKSPACE_ID"),
+				OwlIndex.of("MEMORY_EVENT_TYPE_INDEX", "MEMORY", "EVENT_TYPE"),
+				OwlIndex.of("MEMORY_PARENT_MEMORY_ID_INDEX", "MEMORY", "PARENT_MEMORY_ID"),
+				OwlIndex.of("MEMORY_DELETED_INDEX", "MEMORY", "DELETED"),
+				OwlIndex.of("MEMORY_DATE_CREATED_INDEX", "MEMORY", "DATE_CREATED"),
+				OwlIndex.of("MEMORY_ACTION_ITEM_MEMORY_ID_INDEX", "MEMORY_ACTION_ITEM", "MEMORY_ID"),
+				OwlIndex.of("MEMORY_ACTION_ITEM_STATUS_INDEX", "MEMORY_ACTION_ITEM", "STATUS"),
+				OwlIndex.of("MEMORY_ACTION_ITEM_USER_ID_INDEX", "MEMORY_ACTION_ITEM", "USER_ID"),
+				OwlIndex.of("MEMORY_AUDIT_MEMORY_ID_INDEX", "MEMORY_AUDIT", "MEMORY_ID"),
+				OwlIndex.of("MEMORY_RELATIONSHIP_SOURCE_INDEX", "MEMORY_RELATIONSHIP", "SOURCE_MEMORY_ID"),
+				OwlIndex.of("MEMORY_RELATIONSHIP_TARGET_INDEX", "MEMORY_RELATIONSHIP", "TARGET_MEMORY_ID"),
+				OwlIndex.of("MEMORY_AGENT_ID_INDEX", "MEMORY", "AGENT_ID"),
+				OwlIndex.of("MEMORY_META_MEMORY_ID_INDEX", "MEMORY_META", "MEMORY_ID"),
+				OwlIndex.of("MEMORY_META_METAKEY_INDEX", "MEMORY_META", "METAKEY"),
+				OwlIndex.of("MEMORY_USER_SETTINGS_USER_ID_INDEX", "MEMORY_USER_SETTINGS", "USER_ID")));
 	}
 
 	/**
