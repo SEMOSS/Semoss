@@ -243,8 +243,11 @@ class SystemAgentSeederUnitTests {
 	}
 
 	@Test
-	void appBuilderRetainsItsPlatformResourcesAndUnrestrictedPolicy() throws Exception {
+	void appBuilderSeedsItsExplicitSkillsAndUnrestrictedPolicy() throws Exception {
 		String id = Constants.AGENT_APP_BUILDER;
+		List<String> expectedSkills = List.of("agent-run", "app-bootstrap", "app-data", "build-and-publish",
+				"database", "exports", "file-uploads", "functions", "model", "pagination", "permissions", "python",
+				"room", "storage", "user", "vector");
 		try (var registry = mockStatic(SystemEngineRegistry.class);
 				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
 				var projects = mockStatic(SecurityProjectUtils.class)) {
@@ -259,10 +262,12 @@ class SystemAgentSeederUnitTests {
 			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
 					eq("App Building Agent"), anyString(), eq(config.getString("system_prompt")),
 					argThat(resources -> resources.size() == SystemDefaultEngines.getSystemAgentMCPs(id).size()
-							+ SystemDefaultEngines.getSystemAgentSkills(id).size())));
+							+ expectedSkills.size()
+							&& resources.stream().noneMatch(
+									resource -> Constants.SKILL_PPTX.equals(resource.get("resource_id"))))));
 			assertEquals(SystemDefaultEngines.getSystemAgentMCPs(id),
 					config.getJSONArray("mcps").toList().stream().map(value -> ((Map<?, ?>) value).get("id")).toList());
-			assertEquals(SystemDefaultEngines.getSystemAgentSkills(id), config.getJSONArray("skills").toList().stream()
+			assertEquals(expectedSkills, config.getJSONArray("skills").toList().stream()
 					.map(value -> ((Map<?, ?>) value).get("skill_id")).toList());
 			assertFalse(config.has("tool_policy"));
 			assertFalse(config.has("spawn_policy"));
