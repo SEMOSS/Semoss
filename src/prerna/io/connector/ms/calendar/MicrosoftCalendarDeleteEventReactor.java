@@ -62,8 +62,8 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarDeleteEventReactor.class);
 
 	public MicrosoftCalendarDeleteEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, CALENDAR_ID };
-		this.keyRequired = new int[] { 1, 0 };
+		this.keysToGet = new String[] { EVENT_ID, CALENDAR_ID, MAILBOX };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
@@ -75,11 +75,12 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 			throw new SemossPixelException("An " + EVENT_ID + " is required to delete a calendar event.");
 		}
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			MicrosoftCalendarHelper.deleteEvent(accessToken, calendarId, eventId);
+			MicrosoftCalendarHelper.deleteEvent(accessToken, mailbox, calendarId, eventId);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("id", eventId);
@@ -97,7 +98,7 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 
 	@Override
 	public String getReactorDescription() {
-		return "Delete an event from the signed in user's own Microsoft 365 calendar, cancelling it for the attendees when the user organized it.";
+		return "Delete an event from a Microsoft 365 calendar, the signed in user's own or one shared with them to write, cancelling it for the attendees when the calendar's owner organized it.";
 	}
 
 	@Override
