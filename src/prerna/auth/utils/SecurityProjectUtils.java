@@ -3400,7 +3400,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// back to the others
-		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
@@ -3667,6 +3668,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		// always add a secondary sort by project_id
+		qs1.addOrderBy(new QueryColumnOrderBySelector("project_id"));
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -3831,7 +3834,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		// back to the others
 		if (projectFilter != null && !projectFilter.isEmpty()) {
