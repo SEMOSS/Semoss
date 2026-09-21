@@ -331,9 +331,11 @@ public class MemoryUtils {
 	/**
 	 * Maximum FAISS L2 distance accepted for semantic search candidates. This
 	 * keeps weak vector matches out of hybrid retrieval while preserving BM25
-	 * keyword matches.
+	 * keyword matches. Relevant superseded sources are resolved to their compacted
+	 * summary after ranking, so this can remain strict without losing summary
+	 * recall.
 	 */
-	private static final double SEMANTIC_RETURN_THRESHOLD = 0.95;
+	private static final double SEMANTIC_RETURN_THRESHOLD = 0.8;
 
 	/**
 	 * Finds the closest existing memory (same visibility scope) whose vector

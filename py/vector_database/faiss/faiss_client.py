@@ -452,6 +452,7 @@ class FAISSSearcher:
 
             if doc_idx in combined_scores:
                 combined_scores[doc_idx]["RRF_Score"] += copy_result["RRF_Score"]
+                combined_scores[doc_idx]["result"]["RRF_Score"] = combined_scores[doc_idx]["RRF_Score"]
                 # add the BM25_Score into the result map
                 combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
                     "BM25_Score"
@@ -524,6 +525,9 @@ class FAISSSearcher:
             if doc_idx in combined_scores:
                 # Add the weighted BM25 score to existing vector score
                 combined_scores[doc_idx]["Weighted_RRF_Score"] += weighted_score
+                combined_scores[doc_idx]["result"]["Weighted_RRF_Score"] = (
+                    combined_scores[doc_idx]["Weighted_RRF_Score"]
+                )
                 # Add the BM25_Score into the result map
                 combined_scores[doc_idx]["result"]["BM25_Score"] = copy_result[
                     "BM25_Score"
