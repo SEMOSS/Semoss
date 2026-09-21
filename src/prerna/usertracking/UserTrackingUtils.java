@@ -30,10 +30,7 @@ package prerna.usertracking;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,10 +43,10 @@ import com.google.gson.Gson;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class UserTrackingUtils {
 
@@ -477,69 +474,12 @@ public class UserTrackingUtils {
 		Connection conn = null;
 		try {
 			conn = userTrackingDb.getConnection();
-			executeInitUserTracker(userTrackingDb, conn, utoc.getDBSchema());
+			AbstractOwlCreator.syncSchema(userTrackingDb, conn, utoc.getDBSchema());
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
-		}
-	}
-
-	/**
-	 * Creates each user-tracking table that does not yet exist and adds any missing
-	 * columns to existing tables, per the provided schema definition.
-	 *
-	 * @param engine   the user-tracking database engine
-	 * @param conn     an open connection to that engine
-	 * @param dbSchema the table-to-(column, type) schema to reconcile against
-	 * @throws SQLException if a DDL statement fails
-	 */
-	private static void executeInitUserTracker(IRDBMSEngine engine, Connection conn,
-			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					executeSql(conn, addColumnSql);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Executes a single SQL/DDL statement on the given connection.
-	 *
-	 * @param conn the connection to execute against
-	 * @param sql  the statement to run
-	 * @throws SQLException if the statement fails
-	 */
-	private static void executeSql(Connection conn, String sql) throws SQLException {
-		try (Statement stmt = conn.createStatement()) {
-			classLogger.info("Running sql {}", sql);
-			stmt.execute(sql);
 		}
 	}
 

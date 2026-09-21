@@ -24,6 +24,31 @@ For the dedicated-reviewer workflow, add `InspectPptx` to the author's `tool_pol
 
 The compiled Java changes require an application reload. If deployment replaces default tools using `AGENT_DEFAULT_TOOLS_MCP_ID`, expose the InspectPptx reactor through that MCP instead of relying on the built-in handler.
 
+## Editing existing presentations
+
+Managed author runs capture existing room PPTX inputs before author tools execute.
+`PreparePptxEdit(filePath, slides, outputFilePath?, editType?, additionalParts?)`
+inspects the authoritative input using presentation relationship order and locks
+an immutable edit scope. Text edits default to preserving all object geometry and
+formatting. The packaged `scripts/edit.js` helper patches exact inspected text
+nodes with JSZip. Save the editing IIFE as `build-deck.js` and call `BuildPptx`;
+creation generators and direct ExecuteNodeCode are not the managed editing route.
+
+BuildPptx blocks overwriting a captured input without preparation. After building,
+it checks unmodified package entries byte for byte and, for text mode, compares
+selected slide XML ignoring only the content of existing DrawingML text nodes.
+Changes to unrelated slides, notes, chart/workbook parts or media fail preservation.
+An explicit slides-mode scope can include exact existing related parts; shared
+resources require every affected slide in scope. Slide order/count and package
+entry names remain fixed. Scope cannot expand during repairs.
+
+Failed edits recover the prior validated output or exact original. Recovering the
+original does not count as delivering a successful edit. The run-owned state stores
+the edit contract and preservation result. Original advisory warnings go to the
+reviewer separately; review targets the requested slides and does not authorize
+unrelated repairs. Broader operations that add or remove package parts require a
+separate authoring path rather than silently weakening this contract.
+
 ## Calls and results
 
 Agent tool arguments:

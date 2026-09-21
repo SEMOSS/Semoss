@@ -152,6 +152,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentConfig.hasPptxWorkflow()) {
             defaultAndExplicitTools.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
             defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
+            defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
         }
         stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
@@ -955,11 +956,17 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("\n- BashCommand, when enabled, allows: ").append(PlatformAgentToolHandlers.describeAllowedCommands());
 		sb.append(". One command per call; no pipes, chaining, redirects, $(), backticks, absolute paths, ~ paths, or .. .");
 		sb.append(" Use working-directory-relative paths and read output from the tool result.");
+        if (ctx.getAgentConfig().hasPptxWorkflow()) {
+            sb.append("\n- node, npm, npx and ExecuteNodeCode are unavailable to the author. Save a single async IIFE as build-deck.js and call BuildPptx.");
+            sb.append("\n- For existing decks, call PreparePptxEdit first. Use its protected inputSnapshot and the editing helper; do not reconstruct the deck.");
+            sb.append("\n- ROOT is the working directory inside BuildPptx. Put all declarations inside the IIFE and await all asynchronous work.");
+        } else {
 		sb.append("\n- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.");
 		sb.append("\n- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it.");
 		sb.append(" Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.");
 		sb.append("\n- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there.");
 		sb.append(" Write outputs with path.join(ROOT, \"<exact filename>\"). APP_ROOT and USER_ROOT identify project and user assets when available.");
+        }
 		return sb.toString();
 	}
 

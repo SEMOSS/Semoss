@@ -247,51 +247,14 @@ public class MyEnginesReactor extends AbstractReactor {
 		itemProperties.put("hasUpvoted", new JSONObject().put("type", "boolean").put("description",
 				"Whether the current user has upvoted when requested"));
 
-		// legacy aliases
-		itemProperties.put("app_id",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
-		itemProperties.put("app_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
-		itemProperties.put("app_display_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_display_name"));
-		itemProperties.put("app_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
-		itemProperties.put("app_subtype",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
-		itemProperties.put("app_cost",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
-		itemProperties.put("app_favorite",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
-		itemProperties.put("database_id",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
-		itemProperties.put("database_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
-		itemProperties.put("database_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
-		itemProperties.put("database_subtype",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
-		itemProperties.put("database_cost",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
-		itemProperties.put("database_discoverable",
-				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_discoverable"));
-		itemProperties.put("database_global",
-				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_global"));
-		itemProperties.put("database_created_by",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by"));
-		itemProperties.put("database_created_by_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by_type"));
-		itemProperties.put("database_date_created",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_date_created"));
-		itemProperties.put("low_database_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of low_engine_name"));
-		itemProperties.put("database_favorite",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
-		itemProperties.put("user_permission",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_user_permission"));
-		itemProperties.put("group_permission",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_group_permission"));
-		itemProperties.put("tool_app",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_tool_app"));
+		// Legacy aliases. Each repeats a column already described above under its
+		// engine_* name, and is kept only because the AngularJS bi client still reads
+		// it. New callers should use the engine_* keys.
+		for (String legacyKey : List.of("app_id", "app_name", "app_type", "app_subtype", "app_cost", "database_id",
+				"database_name", "database_type", "database_discoverable")) {
+			itemProperties.put(legacyKey, new JSONObject().put("type", "string").put("description",
+					"Legacy alias retained for backwards compatibility; prefer the engine_* key."));
+		}
 
 		JSONObject items = new JSONObject();
 		items.put("type", "object");
