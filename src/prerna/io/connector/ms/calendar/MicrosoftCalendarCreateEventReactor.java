@@ -68,7 +68,7 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 	public MicrosoftCalendarCreateEventReactor() {
 		this.keysToGet = EVENT_KEYS.clone();
-		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -77,11 +77,12 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 		Map<String, Object> event = composeEvent(true, "create a calendar event");
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, calendarId, event,
+			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, mailbox, calendarId, event,
 					DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
 			return new NounMetadata(created, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
@@ -96,6 +97,6 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 	@Override
 	public String getReactorDescription() {
-		return "Create an event on the signed in user's own Microsoft 365 calendar, inviting anybody named as an attendee.";
+		return "Create an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, inviting anybody named as an attendee.";
 	}
 }

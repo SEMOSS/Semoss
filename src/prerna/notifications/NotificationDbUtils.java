@@ -50,6 +50,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
@@ -60,7 +62,6 @@ import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class NotificationDbUtils {
 
@@ -82,62 +83,25 @@ public class NotificationDbUtils {
 		initialized = true;
 	}
 
+	/**
+	 * Determine if the theme db is present to be able to set custom themes
+	 * 
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return NotificationDbUtils.initialized;
+	}
+
 	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String database = notificationDb.getDatabase();
-		String schema = notificationDb.getSchema();
 		Connection conn = notificationDb.getConnection();
 		try {
-			AbstractSqlQueryUtil queryUtil = notificationDb.getQueryUtil();
-			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-			boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 			// create the tables and columns from the OWL creator schema
-			for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-				String tableName = tableSchema.getValue0();
-				String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-				String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-				if (allowIfExistsTable) {
-					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-					classLogger.info("Running sql {}", sql);
-					notificationDb.insertData(sql);
-				} else {
-					if (!queryUtil.tableExists(conn, tableName, database, schema)) {
-						String sql = queryUtil.createTable(tableName, colNames, types);
-						classLogger.info("Running sql {}", sql);
-						notificationDb.insertData(sql);
-					}
-				}
-
-				List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column {} missing from {} table; adding it. Existing columns: {}", col,
-								tableName, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						notificationDb.insertData(addColumnSql);
-					}
-				}
-			}
+			AbstractOwlCreator.syncSchema(notificationDb, conn, dbSchema);
 
 			// NOTIFICATION index (kept)
-			if (allowIfExistsIndexs) {
-				String sql = queryUtil.createIndexIfNotExists("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-						"NOTIFICATIONID");
-				classLogger.info("Running sql {}", sql);
-				notificationDb.insertData(sql);
-			} else {
-				// see if index exists
-				if (!queryUtil.indexExists(notificationDb, "NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-						database, schema)) {
-					String sql = queryUtil.createIndex("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION",
-							"NOTIFICATIONID");
-					classLogger.info("Running sql {}", sql);
-					notificationDb.insertData(sql);
-				}
-			}
+			AbstractOwlCreator.syncIndexes(notificationDb, conn,
+					List.of(OwlIndex.of("NOTIFICATION_NOTIFICATIONID_INDEX", "NOTIFICATION", "NOTIFICATIONID")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -148,15 +112,6 @@ public class NotificationDbUtils {
 				conn.close();
 			}
 		}
-	}
-
-	/**
-	 * Determine if the theme db is present to be able to set custom themes
-	 * 
-	 * @return
-	 */
-	public static boolean isInitalized() {
-		return NotificationDbUtils.initialized;
 	}
 
 	/**

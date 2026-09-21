@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -126,8 +127,8 @@ final class HarnessToolExecutor {
 		if (toolCalls.isEmpty()) {
 			return toolResponse;
 		}
-		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> PptxWorkflow.TOOL.equals(new ParsedToolCall(c).rawToolName))) {
-            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx must be called alone; no tools in this batch were executed.");
+		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx and PreparePptxEdit must each be called alone; no tools in this batch were executed.");
         }
         String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
@@ -311,6 +312,8 @@ final class HarnessToolExecutor {
 		try {
 			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
                 outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
+            } else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
+                outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);
             } else if (state.pptxWorkflow() != null && PptxWorkflow.TOOL.equals(tc.rawToolName)) {
                 var value = state.pptxWorkflow().build(tc.toolParams, currentIter + 1);
                 outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
