@@ -53,6 +53,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.MicrosoftGraphDriveClient;
+import prerna.io.connector.ms.MicrosoftGraphJsonClient;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -850,8 +851,8 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 	 * @throws Exception if the request fails
 	 */
 	protected Map<String, Object> graphGet(String url) throws Exception {
-		String response = HttpHelperUtility.getRequest(url,
-				MicrosoftLoginUtils.getBearerHeader(this.tokenProvider.getAccessToken()), null, null, null);
+		String response = MicrosoftGraphJsonClient.get(url,
+				MicrosoftLoginUtils.getBearerHeader(this.tokenProvider.getAccessToken()));
 		if (response == null || response.trim().isEmpty()) {
 			return null;
 		}

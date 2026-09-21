@@ -29,6 +29,8 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -121,7 +123,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> responseListMap = gson.fromJson(nearestNeigborResponse, new TypeToken<List<Map<String, Object>>>() {}.getType());
 		for (Map<String, Object> responseMap : responseListMap) {
 			if (responseMap.get("name") != null && responseMap.get("name").toString().equals(collectionName)) {
-				return (String) responseMap.get("id");
+				return URLEncoder.encode((String) responseMap.get("id"), StandardCharsets.UTF_8).replace("+", "%20");
 			}
 		}
 
@@ -133,7 +135,7 @@ public class ChromaVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		nearestNeigborResponse = HttpHelperUtility.postRequestStringBody(this.url, headersMap, body, ContentType.APPLICATION_JSON, null, null, null);
 		Map<String, Object> responseMap = gson.fromJson(nearestNeigborResponse, new TypeToken<Map<String, Object>>() {}.getType());
 		
-		return (String) responseMap.get("id");
+		return URLEncoder.encode((String) responseMap.get("id"), StandardCharsets.UTF_8).replace("+", "%20");
 	}
 	
 	@Override

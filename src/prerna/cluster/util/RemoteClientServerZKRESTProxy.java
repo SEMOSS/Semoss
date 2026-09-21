@@ -28,7 +28,10 @@
 package prerna.cluster.util;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -163,7 +167,10 @@ public class RemoteClientServerZKRESTProxy implements IRemoteClientServer {
 			formattedPath = formattedPath.substring(1);
 		}
 
-		String url = zkRestProxyBaseUrl + "znodes/v1/" + formattedPath;
+		String encodedPath = Arrays.stream(formattedPath.split("/", -1))
+				.map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
+				.collect(Collectors.joining("/"));
+		String url = zkRestProxyBaseUrl + "znodes/v1/" + encodedPath;
 
 		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(5000).setSocketTimeout(5000).build();
 

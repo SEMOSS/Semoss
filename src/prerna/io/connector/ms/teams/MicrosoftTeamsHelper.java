@@ -53,6 +53,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.io.connector.ms.MicrosoftGraphJsonClient;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
@@ -175,7 +176,7 @@ public class MicrosoftTeamsHelper {
 			requireValue(teamId, "Team ID is required to list Microsoft Teams channels.");
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(CHANNELS, teamId.trim());
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
+			String response = MicrosoftGraphJsonClient.get(url, headers);
 			List<Map<String, Object>> channels = new ArrayList<>();
 			for (Map<String, Object> channel : getValueList(response)) {
 				Map<String, Object> map = new HashMap<>();
@@ -219,7 +220,7 @@ public class MicrosoftTeamsHelper {
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
 			String url = String.format(FILES_FOLDER, teamId.trim(), channelId.trim());
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
+			String response = MicrosoftGraphJsonClient.get(url, headers);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			if (json == null) {
@@ -290,7 +291,7 @@ public class MicrosoftTeamsHelper {
 			}
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
+			String response = MicrosoftGraphJsonClient.get(url, headers);
 			List<Map<String, Object>> items = new ArrayList<>();
 			for (Map<String, Object> item : getValueList(response)) {
 				items.add(toDriveItemMap(item, driveId));
@@ -345,7 +346,7 @@ public class MicrosoftTeamsHelper {
 
 			Map<String, String> headers = MicrosoftLoginUtils.getBearerHeader(accessToken);
 			String metadataUrl = String.format(ITEM, resolvedDriveId.trim(), itemId.trim());
-			String metadataResponse = HttpHelperUtility.getRequest(metadataUrl, headers, null, null, null);
+			String metadataResponse = MicrosoftGraphJsonClient.get(metadataUrl, headers);
 			Map<String, Object> metadata = GSON.fromJson(metadataResponse, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			if (metadata == null) {

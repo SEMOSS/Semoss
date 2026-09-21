@@ -180,7 +180,7 @@ public class MicrosoftGraphDriveClient {
 		// pre-authenticated url is called without the bearer header
 		byte[] bytes = null;
 		Map<String, Object> version = parseObject(
-				HttpHelperUtility.getRequest(versionUrl, authHeaders(), null, null, null));
+				MicrosoftGraphJsonClient.get(versionUrl, authHeaders()));
 		if (version != null) {
 			Object preAuthUrl = version.get(DOWNLOAD_URL);
 			if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
@@ -205,7 +205,7 @@ public class MicrosoftGraphDriveClient {
 		List<Map<String, Object>> collected = new ArrayList<>();
 		String nextUrl = url;
 		while (nextUrl != null) {
-			String response = HttpHelperUtility.getRequest(nextUrl, authHeaders(), null, null, null);
+			String response = MicrosoftGraphJsonClient.get(nextUrl, authHeaders());
 			Map<String, Object> json = parseObject(response);
 			if (json == null) {
 				break;
@@ -234,7 +234,7 @@ public class MicrosoftGraphDriveClient {
 	 */
 	public Map<String, Object> getItem(String relativePath) throws Exception {
 		try {
-			String response = HttpHelperUtility.getRequest(itemUrl(relativePath), authHeaders(), null, null, null);
+			String response = MicrosoftGraphJsonClient.get(itemUrl(relativePath), authHeaders());
 			return parseObject(response);
 		} catch (IllegalArgumentException e) {
 			if (isNotFound(e)) {
