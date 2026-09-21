@@ -168,7 +168,7 @@ class BM25Searcher:
                     doc_idx = document["id"]
                     similarity_score = float(score)
 
-                    if doc_idx != -1:
+                    if doc_idx != -1 and similarity_score > 0:
                         output = {"BM25_Score": similarity_score, "idx": doc_idx}
                         data_row = ds.iloc[doc_idx]
                         output.update({col: data_row[col] for col in columns_to_return})

@@ -327,6 +327,13 @@ public class MemoryUtils {
 	private static final int SEMANTIC_CANDIDATE_LIMIT = 20;
 
 	/**
+	 * Maximum FAISS L2 distance accepted for semantic search candidates. This
+	 * keeps weak vector matches out of hybrid retrieval while preserving BM25
+	 * keyword matches.
+	 */
+	private static final double SEMANTIC_RETURN_THRESHOLD = 0.95;
+
+	/**
 	 * Finds the closest existing memory (same visibility scope) whose vector
 	 * similarity exceeds the event type's duplicate-detection threshold. Runs a
 	 * nearest-neighbor search against the shared vector engine, then filters the
@@ -872,6 +879,8 @@ public class MemoryUtils {
 			}
 			Map<String, Object> params = new HashMap<>();
 			params.put(prerna.reactor.vector.VectorDatabaseParamOptionsEnum.USE_HYBRID_SEARCH.getKey(), true);
+			params.put(prerna.reactor.vector.VectorDatabaseParamOptionsEnum.RETURN_THRESHOLD.getKey(),
+					SEMANTIC_RETURN_THRESHOLD);
 			List<Map<String, Object>> neighbors = vectorEngine.nearestNeighbor(insight, query, candidateLimit, params);
 			if (neighbors == null || neighbors.isEmpty()) {
 				return List.of();
