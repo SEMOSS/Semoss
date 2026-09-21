@@ -102,6 +102,7 @@ public final class MCPUtility {
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
+	public static final String SMSS_INPUT_SCHEMA = "SMSS_INPUT_SCHEMA";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse";
 
@@ -878,6 +879,9 @@ public final class MCPUtility {
 				if (toolEntry.containsKey("description")) {
 					responseToolMap.put("description", toolEntry.get("description"));
 				}
+				if (toolEntry.containsKey("inputSchema")) {
+					responseToolMap.put("inputSchema", toolEntry.get("inputSchema"));
+				}
 				applyMissingArgumentDefaults(responseToolMap, toolEntry);
 
 				Map<String, Object> currentMeta = new HashMap<>(enrichedMeta);
@@ -938,7 +942,6 @@ public final class MCPUtility {
 				if (mcpTool != null && mcpTool.has("description")) {
 					responseToolMap.put("description", mcpTool.getString("description"));
 				}
-
 				if (mcpToolsJson.has("_meta")) {
 					responseToolMap.put("_meta", mcpToolsJson.getJSONObject("_meta").toMap());
 				}

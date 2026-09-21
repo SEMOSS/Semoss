@@ -148,7 +148,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			paramMap.put(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS, false);
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
-				agentConfig.getDisabledDefaultTools());
+				agentConfig.getDisabledDefaultTools(), ctx);
 		if (agentConfig.hasPptxWorkflow()) {
             defaultAndExplicitTools.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
             defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
@@ -836,6 +836,13 @@ public class SemossAgentHarness implements IAgentHarness {
 					}
 					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
 				}
+			}
+			Object inputSchema = toolCall.get("inputSchema");
+			if (inputSchema != null) {
+				if (meta == null) {
+					meta = new HashMap<>();
+				}
+				meta.put(MCPUtility.SMSS_INPUT_SCHEMA, inputSchema);
 			}
 			action.put("toolMeta", meta);
 			Map<String, Object> uiMeta = null;
