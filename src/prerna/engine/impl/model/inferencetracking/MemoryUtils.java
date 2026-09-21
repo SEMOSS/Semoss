@@ -34,7 +34,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -786,13 +788,17 @@ public class MemoryUtils {
 		// no need to reimplement that fusion here), then let the SQL query below
 		// re-apply every other filter (scope/eventType/metaFilters/superseded)
 		// against just those candidates - so a match still has to pass every
-		// ownership and visibility check a plain listing would. Falls through to
-		// the original substring match if nothing usable comes back.
+		// ownership and visibility check a plain listing would. Superseded source
+		// ids resolve to their latest compacted summary before filtering. Falls
+		// through to the original substring match if nothing usable comes back.
 		List<String> rankedIds = null;
 		if (search != null && !search.isBlank() && vectorEngineId != null && !vectorEngineId.isBlank()
 				&& insight != null) {
 			rankedIds = rankMemoriesBySimilarity(vectorEngineId, insight, search,
 					Math.max((int) effectiveLimit * 3, SEMANTIC_CANDIDATE_LIMIT));
+			if (!Boolean.TRUE.equals(includeSuperseded) && !rankedIds.isEmpty()) {
+				rankedIds = resolveCompactedMemoryIds(modelInferenceLogsDb, rankedIds);
+			}
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -837,6 +843,63 @@ public class MemoryUtils {
 			}
 		}
 		return toPagedResult(rows, "memories", effectiveLimit, effectiveOffset);
+	}
+
+	/**
+	 * Replaces ranked source-memory ids with the latest summary that supersedes
+	 * them. Chains are followed so a summary compacted again into a newer summary
+	 * still resolves to the visible row. The original rank order is preserved and
+	 * duplicate summaries are removed.
+	 */
+	private static List<String> resolveCompactedMemoryIds(IRDBMSEngine modelInferenceLogsDb, List<String> rankedIds) {
+		Map<String, String> replacements = new HashMap<>();
+		Set<String> loadedIds = new HashSet<>();
+		Set<String> pendingIds = new LinkedHashSet<>(rankedIds);
+
+		while (!pendingIds.isEmpty()) {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector(MEMORY_TABLE + "__MEMORY_ID", "memory_id"));
+			qs.addSelector(
+					new QueryColumnSelector(MEMORY_TABLE + "__SUPERSEDES_MEMORY_ID", "supersedes_memory_id"));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(MEMORY_TABLE + "__MEMORY_ID", "==", pendingIds));
+
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+			loadedIds.addAll(pendingIds);
+			pendingIds.clear();
+			for (Map<String, Object> row : rows) {
+				Object memoryId = row.get("memory_id");
+				Object supersedesMemoryId = row.get("supersedes_memory_id");
+				if (memoryId == null || supersedesMemoryId == null
+						|| supersedesMemoryId.toString().isBlank()) {
+					continue;
+				}
+				String replacementId = supersedesMemoryId.toString();
+				replacements.put(memoryId.toString(), replacementId);
+				if (!loadedIds.contains(replacementId)) {
+					pendingIds.add(replacementId);
+				}
+			}
+		}
+
+		return replaceSupersededMemoryIds(rankedIds, replacements);
+	}
+
+	static List<String> replaceSupersededMemoryIds(List<String> rankedIds, Map<String, String> replacements) {
+		Set<String> resolvedIds = new LinkedHashSet<>();
+		for (String rankedId : rankedIds) {
+			String resolvedId = rankedId;
+			Set<String> visitedIds = new HashSet<>();
+			while (visitedIds.add(resolvedId)) {
+				String replacementId = replacements.get(resolvedId);
+				if (replacementId == null || replacementId.isBlank()) {
+					break;
+				}
+				resolvedId = replacementId;
+			}
+			resolvedIds.add(resolvedId);
+		}
+		return new ArrayList<>(resolvedIds);
 	}
 
 	/**
@@ -905,10 +968,7 @@ public class MemoryUtils {
 
 	/**
 	 * Adds the visibility/room/agent/project/eventType/superseded scope filters
-	 * shared by every {@link #listMemories} SQL path - factored out so the
-	 * text-channel candidate pre-fetch (see {@link #fetchScopedCandidateRows}) and
-	 * the final query apply <b>identical</b> scope rules, never two copies that
-	 * could drift apart.
+	 * shared by every {@link #listMemories} SQL path.
 	 *
 	 * @param qs                query to add filters to
 	 * @param userId            requesting user
