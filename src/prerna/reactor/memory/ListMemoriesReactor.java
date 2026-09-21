@@ -69,25 +69,14 @@ public class ListMemoriesReactor extends AbstractReactor {
 		return """
 				Lists memories the current user can see: memories they own, or (when \
 				workspaceId is supplied and the user has view access to that workspace) \
-				memories shared to that workspace. Results are capped and ranked, not a \
-				full dump: pass search with a specific question/topic to get a small, \
-				semantically-ranked set of the most relevant memories (uses the same \
-				vector engine memories are deduped against - not just a literal keyword \
-				match), rather than calling with no search term and relying on recency \
-				order alone. IMPORTANT: leave roomId empty when trying to recall what \
-				the user has told you in past conversations - an omitted roomId searches \
-				across every room/conversation you've had with this same agent, which is \
-				what "do you remember..." questions need. Only pass roomId when you \
-				specifically want to restrict to the current conversation. When agentId \
-				is also omitted and the call runs inside a room, agentId defaults to \
-				that room's attached agent (see SetRoomWorkspaceReactor - not the room's \
-				own project, which may be a different app the agent is embedded in), so \
-				an agent naturally recalls everything the caller has personally told it \
-				across every room/app they've used it from - this never bypasses \
-				per-user ownership, unlike workspaceId's deliberate cross-user sharing. \
+				memories shared to that workspace. Use this for browsing and management \
+				by recency, scope, event type, or metadata; agents should use \
+				SearchMemories for query-based hybrid semantic and BM25 recall. The \
+				legacy search argument remains supported for backward compatibility. \
+				When agentId and workspaceId are omitted inside a room, results default \
+				to the room's attached agent without bypassing per-user ownership. \
 				Memories already folded into a compacted summary are hidden by default \
-				(includeSuperseded=true to see them anyway). Supports filtering by \
-				project and event type, with paginated results.\
+				(includeSuperseded=true to see them anyway). Results are paginated.\
 				""";
 	}
 
@@ -181,7 +170,7 @@ public class ListMemoriesReactor extends AbstractReactor {
 			return "Optional event type(s) to filter by (single value or list)";
 		}
 		if (key.equals(ReactorKeysEnum.SEARCH.getKey())) {
-			return "A specific question or topic to semantically rank memories against - not a keyword filter. Prefer this over leaving it blank when you're recalling something specific, so you get a small set of the most relevant memories instead of a plain recency-ordered dump.";
+			return "Legacy optional hybrid-search query; prefer SearchMemories for agent recall";
 		}
 		if (key.equals(ReactorKeysEnum.META_FILTERS.getKey())) {
 			return "Optional map of custom metakey -> value(s) to filter memories by (e.g. {\"topic\": \"billing\"})";
