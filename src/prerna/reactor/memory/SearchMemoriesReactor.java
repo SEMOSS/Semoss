@@ -78,12 +78,14 @@ public class SearchMemoriesReactor extends ListMemoriesReactor {
 		return """
 				Searches memories relevant to a required natural-language question or \
 				topic using the configured vector engine's hybrid semantic and BM25 \
-				ranking. Use this for agent recall; use ListMemories to browse or manage \
-				memories by recency and filters. The search spans every conversation \
-				with the current room's attached agent unless roomId is explicitly \
-				supplied. Every result still passes the same user, agent, workspace, \
-				project, event type, metadata, deletion, and superseded-memory checks as \
-				ListMemories.\
+				ranking. Before answering any question that may depend on information \
+				the user shared previously - including preferences, plans, decisions, \
+				names, dates, or requests to remember - call this tool rather than \
+				assuming no memory exists. Use ListMemories only to browse or manage \
+				memories by recency and filters. Omit roomId to search every conversation \
+				with the current room's attached agent. Every result still passes the \
+				same user, agent, workspace, project, event type, metadata, deletion, and \
+				superseded-memory checks as ListMemories.\
 				""";
 	}
 
