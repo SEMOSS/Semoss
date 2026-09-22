@@ -38,7 +38,11 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -107,14 +111,83 @@ public final class AgentRunService {
 		if (AgentRunStore.runExists(resolvedRunId)) {
 			throw new IllegalArgumentException("AGENT_RUN already exists for runId=" + resolvedRunId);
 		}
+		return submitNewRun(resolvedRunId, request, false);
+	}
+
+	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
 		String userId = resolveUserId(request.getInsight());
-		AgentRunStore.insertSubmitted(resolvedRunId, request, userId);
+		AgentRunStore.insertSubmitted(runId, request, userId);
 		if (supportsCanonicalStreaming(request.getHarnessType())) {
-			AgentRunStreamService.get().register(resolvedRunId);
+			AgentRunStreamService.get().register(runId);
 		}
-		queueLoop.rememberInsight(resolvedRunId, request.getInsight());
+		queueLoop.rememberInsight(runId, request.getInsight(), ownsUser);
 		queueLoop.signal();
-		return new AgentRunHandle(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
+		return new AgentRunHandle(runId, request.getRoomId(), AgentRunStatus.SUBMITTED);
+	}
+
+	/** Submit deterministic server-owned work through the normal RunAgent queue path. */
+	boolean runBackgroundWithIdIfAbsent(String runId, AgentRunRequest request) {
+		if (runId == null || runId.isBlank() || request == null || request.getInsight() == null) {
+			throw new IllegalArgumentException("Background agent submission requires runId and an execution Insight");
+		}
+		String resolvedRunId = runId.trim();
+		if (AgentRunStore.runExists(resolvedRunId)) {
+			request.getInsight().getUser().removeUserMemory();
+			queueLoop.signal();
+			return false;
+		}
+		try {
+			submitNewRun(resolvedRunId, request, true);
+		} catch (RuntimeException e) {
+			// The room lease normally serializes this path. If a retry raced the first
+			// insert, the deterministic run already represents the requested work.
+			if (!AgentRunStore.runExists(resolvedRunId)) {
+				request.getInsight().getUser().removeUserMemory();
+				throw e;
+			}
+			request.getInsight().getUser().removeUserMemory();
+			queueLoop.signal();
+			return false;
+		}
+		return true;
+	}
+
+	/** Creates the minimal authenticated context required by logged-out background work. */
+	static Insight createBackgroundExecutionInsight(String userId, AgentRunRequest request) {
+		if (request == null || userId == null || userId.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner identity");
+		}
+		String authType = request.getOwnerAuthType();
+		if (authType == null || authType.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner authentication type");
+		}
+		AuthProvider provider = AuthProvider.getProviderFromString(authType);
+		if (!provider.getLabel().equalsIgnoreCase(authType) && !provider.name().equalsIgnoreCase(authType)) {
+			throw new SecurityException("Agent run owner authentication type is invalid");
+		}
+		if (!SecurityQueryUtils.isUserType(userId, provider)) {
+			throw new SecurityException("Agent run owner no longer exists");
+		}
+		Object[] accountState = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(userId, provider);
+		if (accountState.length > 0 && Boolean.TRUE.equals(accountState[0])) {
+			throw new SecurityException("Agent run owner is locked");
+		}
+
+		AccessToken token = new AccessToken();
+		token.setProvider(provider);
+		token.setId(userId);
+		SecurityUserUtils.loadUserMetadata(token);
+		User user = new User();
+		user.setAccessToken(token);
+		user.setPrimaryLogin(provider);
+
+		Insight insight = new Insight();
+		insight.setUser(user);
+		if (request.getWorkspaceId() != null && !request.getWorkspaceId().isBlank()) {
+			insight.setProjectId(request.getWorkspaceId());
+			insight.setContextProjectId(request.getWorkspaceId());
+		}
+		return insight;
 	}
 
 	/**

@@ -403,7 +403,8 @@ public final class AgentRunStore {
 		try {
 			StringBuilder query = new StringBuilder(
 					"SELECT child.RUN_ID AS CHILD_RUN_ID, child.PARENT_RUN_ID, child.STATUS, child.FINAL_OUTPUT, "
-							+ "child.ERROR_MESSAGE, child.REQUEST_JSON, child.USER_ID, parent.ROOM_ID AS PARENT_ROOM_ID "
+							+ "child.ERROR_MESSAGE, child.REQUEST_JSON, child.USER_ID, parent.ROOM_ID AS PARENT_ROOM_ID, "
+							+ "parent.REQUEST_JSON AS PARENT_REQUEST_JSON "
 							+ "FROM AGENT_RUN child JOIN AGENT_RUN parent ON child.PARENT_RUN_ID = parent.RUN_ID "
 							+ "AND child.USER_ID = parent.USER_ID WHERE child.PARENT_RUN_ID IS NOT NULL "
 							+ "AND child.STATUS IN (?, ?, ?)");
@@ -441,6 +442,7 @@ public final class AgentRunStore {
 				completion.put("finalText", rs.getString("FINAL_OUTPUT"));
 				completion.put("errorMessage", rs.getString("ERROR_MESSAGE"));
 				completion.put("requestJson", rs.getString("REQUEST_JSON"));
+				completion.put("parentRequestJson", rs.getString("PARENT_REQUEST_JSON"));
 				completion.put("userId", rs.getString("USER_ID"));
 				completions.add(completion);
 			}
@@ -541,8 +543,13 @@ public final class AgentRunStore {
         updateStatus(runId, AgentRunStatus.FAILED, jobId, finalOutput, errorMessage, false, true);
     }
 
-    public static void markFailed(String runId, String jobId, String errorMessage) {
+	public static void markFailed(String runId, String jobId, String errorMessage) {
 		updateStatus(runId, AgentRunStatus.FAILED, jobId, null, errorMessage, false, true);
+	}
+
+	public static boolean markFailedIfSubmitted(String runId, String jobId, String errorMessage) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.SUBMITTED, AgentRunStatus.FAILED, jobId, null,
+				errorMessage, false, true);
 	}
 
 	public static void markCancelled(String runId, String jobId, String errorMessage) {

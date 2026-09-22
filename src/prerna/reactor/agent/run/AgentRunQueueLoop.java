@@ -42,6 +42,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.stream.AgentRunStreamService;
 
 /**
  * Decides which submitted agent runs start on this node, and when.
@@ -65,10 +66,10 @@ import prerna.om.Insight;
  * atomic step that settles who executes the run.</li>
  * </ol>
  *
- * <h3>Node affinity</h3> The loop skips runs it has no remembered
- * {@link InsightHandle} for, so a run executes on the node that received it.
- * That snapshot is taken at submission because the request thread is gone by
- * the time the run starts.
+ * <h3>Execution identity</h3> Runs reuse the submitting node's remembered
+ * {@link InsightHandle}. A deterministic continuation may recreate the same
+ * server-owned background Insight after restart; ordinary user submissions
+ * remain node-affine because their live tokens are not persisted.
  */
 final class AgentRunQueueLoop {
 
@@ -90,10 +91,14 @@ final class AgentRunQueueLoop {
 	 * Call this on the request thread, before {@link #signal}.
 	 */
 	void rememberInsight(String runId, Insight insight) {
+		rememberInsight(runId, insight, false);
+	}
+
+	void rememberInsight(String runId, Insight insight, boolean ownsUser) {
 		if (runId == null || insight == null) {
 			return;
 		}
-		insightsByRun.put(runId, InsightHandle.capture(runId, insight));
+		insightsByRun.put(runId, InsightHandle.capture(runId, insight, ownsUser));
 	}
 
 	/**
@@ -156,6 +161,23 @@ final class AgentRunQueueLoop {
 				List<AgentRunRecord> records = AgentRunStore.getSubmittedRuns(SCAN_LIMIT, null);
 				for (AgentRunRecord record : records) {
 					InsightHandle insightHandle = insightsByRun.get(record.runId());
+					if (insightHandle == null && record.request().getContinuationChildRunId() != null) {
+						try {
+							Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(record.userId(),
+									record.request());
+							rememberInsight(record.runId(), continuationInsight, true);
+							insightHandle = insightsByRun.get(record.runId());
+						} catch (SecurityException e) {
+							String error = "Background agent authorization failed: " + e.getMessage();
+							if (AgentRunStore.markFailedIfSubmitted(record.runId(), record.runId(), error)) {
+								AgentRunStreamService.get().markTerminal(record.runId());
+							}
+							logger.warn("AgentRunQueueLoop: rejected continuation runId={}: {}", record.runId(),
+									e.getMessage());
+							didWork = true;
+							continue;
+						}
+					}
 					if (insightHandle == null) {
 						continue;
 					}

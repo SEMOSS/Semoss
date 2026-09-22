@@ -18,8 +18,9 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.AgentRunMessageContext;
+import prerna.om.Insight;
 
-/** Delivers detached child-run results to the durable parent room. */
+/** Delivers detached child results and submits their optional continuation. */
 public final class ChildRunCompletionService {
 
 	private static final Logger logger = LogManager.getLogger(ChildRunCompletionService.class);
@@ -52,15 +53,17 @@ public final class ChildRunCompletionService {
 		}
 		for (Map<String, Object> completion : completions) {
 			Delivery delivery = deliveryFrom(completion);
-			if (delivery.mode() != SubAgentRunCompletionMode.JOIN
-					&& !deliveredMessageIds.contains(deterministicMessageId(delivery.childRunId()))) {
+			boolean messageMissing = !deliveredMessageIds.contains(deterministicMessageId(delivery.childRunId()));
+			boolean continuationMissing = delivery.mode() == SubAgentRunCompletionMode.CONTINUE
+					&& !AgentRunStore.runExists(deterministicContinuationRunId(delivery.childRunId()));
+			if (delivery.mode() != SubAgentRunCompletionMode.JOIN && (messageMissing || continuationMissing)) {
 				childRunIds.add(delivery.childRunId());
 			}
 		}
 		return childRunIds;
 	}
 
-	/** Append exactly one platform message; callers retain and retry failed work. */
+	/** Append exactly one result and submit exactly one continuation when requested. */
 	static void deliver(Delivery delivery) {
 		AgentRunMessageContext agentRun = new AgentRunMessageContext(delivery.parentRunId(), "subagent_completion");
 		agentRun.setOriginatingRunId(delivery.parentRunId());
@@ -76,6 +79,30 @@ public final class ChildRunCompletionService {
 			logger.info("Delivered child completion runId={} parentRunId={} mode={}", delivery.childRunId(),
 					delivery.parentRunId(), delivery.mode());
 		}
+		if (delivery.mode() == SubAgentRunCompletionMode.CONTINUE) {
+			submitContinuation(delivery);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void submitContinuation(Delivery delivery) {
+		Map<String, Object> persistedParentRequest = GSON.fromJson(delivery.parentRequestJson(), Map.class);
+		AgentRunRequest parentRequest = AgentRunRequest.fromPersistedMap(persistedParentRequest, null);
+		if (parentRequest == null) {
+			throw new IllegalStateException("Parent run is missing its durable request");
+		}
+		String input = "[SEMOSS continuation] Subagent " + delivery.childRunId() + " is now "
+				+ delivery.status().name() + ". Continue the original task using the result delivered immediately "
+				+ "before this message. Do not wait for or repeat that child task.";
+		Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(delivery.userId(), parentRequest);
+		AgentRunRequest continuation = parentRequest.forContinuation(delivery.parentRoomId(), delivery.childRunId(),
+				input, continuationInsight);
+		String continuationRunId = deterministicContinuationRunId(delivery.childRunId());
+		boolean submitted = AgentRunService.get().runBackgroundWithIdIfAbsent(continuationRunId, continuation);
+		if (submitted) {
+			logger.info("Submitted child continuation runId={} childRunId={} parentRunId={}", continuationRunId,
+					delivery.childRunId(), delivery.parentRunId());
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -86,11 +113,13 @@ public final class ChildRunCompletionService {
 		return new Delivery(required(completion, "childRunId"), required(completion, "parentRunId"),
 				required(completion, "parentRoomId"), required(completion, "userId"),
 				AgentRunStatus.valueOf(required(completion, "status")), mode,
-				stringValue(completion.get("finalText")), stringValue(completion.get("errorMessage")));
+				stringValue(completion.get("finalText")), stringValue(completion.get("errorMessage")),
+				stringValue(completion.get("parentRequestJson")));
 	}
 
 	static record Delivery(String childRunId, String parentRunId, String parentRoomId, String userId,
-			AgentRunStatus status, SubAgentRunCompletionMode mode, String finalText, String errorMessage) {
+			AgentRunStatus status, SubAgentRunCompletionMode mode, String finalText, String errorMessage,
+			String parentRequestJson) {
 	}
 
 	private static String messageText(String childRunId, AgentRunStatus status, String finalText, String errorMessage) {
@@ -105,6 +134,11 @@ public final class ChildRunCompletionService {
 
 	private static String deterministicMessageId(String childRunId) {
 		return UUID.nameUUIDFromBytes(("semoss:child-completion:" + childRunId).getBytes(StandardCharsets.UTF_8))
+				.toString();
+	}
+
+	private static String deterministicContinuationRunId(String childRunId) {
+		return UUID.nameUUIDFromBytes(("semoss:child-continuation:" + childRunId).getBytes(StandardCharsets.UTF_8))
 				.toString();
 	}
 
