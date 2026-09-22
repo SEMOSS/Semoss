@@ -56,7 +56,7 @@ class SystemDefaultEnginesUnitTests {
 		assertEquals(List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA,
 				Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS,
 				Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FUNCTIONS, Constants.SKILL_MODEL,
-				Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON,
+				Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON,
 				Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR),
 				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_APP_BUILDER));
 	}

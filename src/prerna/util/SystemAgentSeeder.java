@@ -71,12 +71,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * still catalogs).
  *
  * <p>
- * The App Building Agent's tools and skills are derived from
- * {@link SystemDefaultEngines} so they stay in sync with the platform lists:
- * <ul>
- * <li>tools = {@link SystemDefaultEngines#getSystemAgentMCPs(String)}</li>
- * <li>skills = {@link SystemDefaultEngines#getSystemAgentSkills(String)}</li>
- * </ul>
+ * The App Building Agent uses explicit lists of tools and skills from
+ * {@link SystemDefaultEngines#getSystemAgentMCPs(String)} and
+ * {@link SystemDefaultEngines#getSystemAgentSkills(String)}.
  * The PPTX Reviewer uses only built-in tools, with file mutations and further
  * delegation disabled. Its InspectPptx result ends the run directly. The PPTX
  * Agent uses the platform pptx skill and the managed BuildPptx workflow, with
@@ -102,6 +99,9 @@ public class SystemAgentSeeder {
 	private static final String SYSTEM_OWNER = null;
 
 	private static final int CONFIG_SCHEMA_VERSION = 1;
+
+	/** Mirrors AgentHookRegistry.GIT_COMMIT without adding a util-to-reactor dependency. */
+	private static final String GIT_COMMIT_HOOK_KIND = "git_commit";
 
 	private SystemAgentSeeder() {
 	}
@@ -335,6 +335,14 @@ public class SystemAgentSeeder {
 			skillArr.put(s);
 		}
 		config.put("skills", skillArr);
+
+		// Preserve every file-changing App Building Agent run as a local project
+		// commit. The hook skips the commit when the run leaves the tree unchanged.
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			JSONArray hooks = new JSONArray();
+			hooks.put(new JSONObject().put("kind", GIT_COMMIT_HOOK_KIND));
+			config.put("hooks", hooks);
+		}
 
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			config.put("use_default_agent_tools", true);
