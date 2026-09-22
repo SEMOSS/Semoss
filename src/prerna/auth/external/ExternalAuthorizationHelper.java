@@ -53,6 +53,7 @@ import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -100,9 +101,22 @@ public class ExternalAuthorizationHelper {
 					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
 				}
 				
-				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
+				File engineBaseDirectory = new File(EngineUtility.getLocalEngineBaseDirectory(engineType)).getCanonicalFile();
+				File tempSmss = UploadUtilities
+						.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties)
+						.getCanonicalFile();
+				if (!tempSmss.toPath().startsWith(engineBaseDirectory.toPath())
+						|| !engineBaseDirectory.equals(tempSmss.getParentFile())) {
+					throw new IllegalArgumentException("Temporary engine SMSS path must remain within the engine directory");
+				}
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+				String tempName = tempSmss.getName();
+				String smssName = tempName.substring(0, tempName.length() - ".temp".length()) + ".smss";
+				File smssFile = new File(engineBaseDirectory, smssName).getCanonicalFile();
+				if (!smssFile.toPath().startsWith(engineBaseDirectory.toPath())
+						|| !engineBaseDirectory.equals(smssFile.getParentFile())) {
+					throw new IllegalArgumentException("Engine SMSS path must remain within the engine directory");
+				}
 				FileUtils.copyFile(tempSmss, smssFile);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 				tempSmss.delete();
@@ -193,8 +207,12 @@ public class ExternalAuthorizationHelper {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
 				// these are mandatory
-				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
-				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
+				String engineId = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINEID_KEY).asText(),
+						"External engine ID");
+				String engineName = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINENAME_KEY).asText(),
+						"External engine name");
+				permissionMap.put("engineId", engineId);
+				permissionMap.put("engineName", engineName);
 				
 				IEngine.CATALOG_TYPE engineType = null;
 				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {
@@ -233,7 +251,7 @@ public class ExternalAuthorizationHelper {
 				enginePermissions.add(permissionMap);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			throw new IllegalArgumentException("Unable to validate external engine permissions", e);
 		}
 
 		return enginePermissions;

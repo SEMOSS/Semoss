@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.mcp;
 
+import java.text.Normalizer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -168,6 +169,7 @@ public final class AgentToolDecisionHandler {
 
 		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction),
 				this.insight);
+		engineId = requireSafeEngineId(engineId);
 		String toolName = stringValue(pendingAction.get("toolName"));
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		if (roomId != null && !roomId.isBlank()) {
@@ -532,6 +534,20 @@ public final class AgentToolDecisionHandler {
 			engineId = stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID));
 		}
 		return engineId;
+	}
+
+	/** Enforces the catalog-ID contract before an ID can reach filesystem-backed engine loading. */
+	static String requireSafeEngineId(String engineId) {
+		if (engineId == null || engineId.isBlank()) {
+			throw new IllegalArgumentException("Engine ID contains unsupported characters");
+		}
+
+		String normalized = Normalizer.normalize(engineId, Normalizer.Form.NFKC);
+		String sanitized = normalized.replaceAll("[^A-Za-z0-9_-]", "");
+		if (!engineId.equals(normalized) || !engineId.equals(sanitized)) {
+			throw new IllegalArgumentException("Engine ID contains unsupported characters");
+		}
+		return sanitized;
 	}
 
 	private static void requireEquals(String field, String provided, Object stored) {

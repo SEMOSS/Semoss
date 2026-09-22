@@ -33,6 +33,36 @@ import prerna.auth.User;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class ExternalAuthorizationHelperUnitTests {
+	@Test
+	void invalidRecordDoesNotReturnPartialPermissions() throws Exception {
+		try (org.mockito.MockedStatic<prerna.util.Utility> utility = org.mockito.Mockito
+				.mockStatic(prerna.util.Utility.class);
+				org.mockito.MockedStatic<prerna.util.BeanFiller> filler = org.mockito.Mockito
+						.mockStatic(prerna.util.BeanFiller.class)) {
+			utility.when(prerna.util.Utility::getBaseFolder).thenReturn(System.getProperty("java.io.tmpdir"));
+			utility.when(() -> prerna.util.Utility
+					.getDIHelperProperty(prerna.util.Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINEID)).thenReturn("id");
+			utility.when(() -> prerna.util.Utility
+					.getDIHelperProperty(prerna.util.Constants.EXTERNAL_PERMISSION_MANAGEMENT_ENGINENAME)).thenReturn("name");
+			utility.when(() -> prerna.util.Utility
+					.getDIHelperProperty(prerna.util.Constants.EXTERNAL_PERMISSION_MANAGEMENT_RESPONSE_JMES_PATH))
+					.thenReturn("docs");
+			com.fasterxml.jackson.databind.node.ArrayNode records = new com.fasterxml.jackson.databind.ObjectMapper()
+					.createArrayNode();
+			records.addObject().put("id", "valid-id").put("name", "Valid Model");
+			filler.when(() -> prerna.util.BeanFiller.getJmesResult("response", "docs")).thenReturn(records);
+			java.lang.reflect.Method transform = ExternalAuthorizationHelper.class.getDeclaredMethod(
+					"transformApiResponse", User.class, String.class);
+			transform.setAccessible(true);
+			assertEquals(1, ((java.util.List<?>) transform.invoke(null, new User(), "response")).size());
+
+			records.addObject().put("id", "../outside").put("name", "Invalid Model");
+			java.lang.reflect.InvocationTargetException error = assertThrows(
+					java.lang.reflect.InvocationTargetException.class,
+					() -> transform.invoke(null, new User(), "response"));
+			assertInstanceOf(IllegalArgumentException.class, error.getCause());
+		}
+	}
 
     @Test
     void testUpdateException() {

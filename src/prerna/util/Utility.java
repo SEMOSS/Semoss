@@ -2389,14 +2389,27 @@ public final class Utility {
 				// replace it in the properties
 				// write the properties file or not
 				// return the properties
-				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
-				File engineDir = new File(
-						Utility.normalizeParam(baseFolder) + File.separator + "engines" + File.separator + engineId);
-				if (!engineDir.exists()) {
-					engineDir.mkdirs();
+				String safeEngineId = engineId.replaceAll("[^A-Za-z0-9_-]", "");
+				if (safeEngineId.isEmpty() || !safeEngineId.equals(engineId)) {
+					throw new IllegalArgumentException("Engine ID contains unsupported characters");
 				}
 
-				File owlFile = new File(engineDir.getAbsolutePath() + File.separator + engineId + ".owl");
+				String baseFolder = Utility.getDIHelperProperty(Constants.BASE_FOLDER);
+				File enginesDir = new File(Utility.normalizeParam(baseFolder), "engines").getCanonicalFile();
+				File engineDir = new File(enginesDir, safeEngineId).getCanonicalFile();
+				if (!enginesDir.equals(engineDir.getParentFile())) {
+					throw new IllegalArgumentException("Engine ID must resolve directly beneath the engines directory");
+				}
+				if (!engineDir.exists()) {
+					if (!engineDir.mkdirs()) {
+						throw new IOException("Unable to create engine directory at " + engineDir.getAbsolutePath());
+					}
+				}
+
+				File owlFile = new File(engineDir, safeEngineId + ".owl").getCanonicalFile();
+				if (!engineDir.equals(owlFile.getParentFile())) {
+					throw new IllegalArgumentException("Engine OWL file must remain inside its engine directory");
+				}
 				// engine owlFileName
 				FileUtils.writeStringToFile(owlFile, owl);
 				prop.replace(Constants.OWL, owlFile.getAbsolutePath());

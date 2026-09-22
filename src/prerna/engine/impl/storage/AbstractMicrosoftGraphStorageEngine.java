@@ -390,7 +390,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			return;
 		}
 
-		Path localDirectory = Paths.get(localFolderPath);
+		Path localDirectory = Paths.get(localFolderPath).toFile().getCanonicalFile().toPath();
 		Files.createDirectories(localDirectory);
 
 		Map<String, Map<String, Object>> toDownload = new LinkedHashMap<>();
@@ -425,8 +425,11 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			String relative = relativeToRequest(remotePath, storageFilePath);
 			transfers.add(() -> {
 				try {
+					Path target = localDirectory.resolve(relative).normalize().toFile().getCanonicalFile().toPath();
+					if (target.equals(localDirectory) || !target.startsWith(localDirectory)) {
+						throw new IllegalArgumentException("Download path must remain within the local directory");
+					}
 					byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
-					Path target = localDirectory.resolve(relative);
 					if (target.getParent() != null) {
 						Files.createDirectories(target.getParent());
 					}
@@ -496,7 +499,7 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
 		String storageFolder = normalizeStoragePrefixPath(storagePath);
-		Path localRoot = Paths.get(localPath);
+		Path localRoot = Paths.get(localPath).toFile().getCanonicalFile().toPath();
 		Files.createDirectories(localRoot);
 
 		Map<String, Map<String, Object>> remoteFiles = this.driveClient.listFilesRecursively(storageFolder);
@@ -512,7 +515,10 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 			String remotePath = MicrosoftGraphDriveClient.joinPath(storageFolder, relative);
 			transfers.add(() -> {
 				try {
-					Path target = localRoot.resolve(relative);
+					Path target = localRoot.resolve(relative).normalize().toFile().getCanonicalFile().toPath();
+					if (target.equals(localRoot) || !target.startsWith(localRoot)) {
+						throw new IllegalArgumentException("Download path must remain within the local directory");
+					}
 					if (needsDownload(target, item)) {
 						byte[] bytes = this.driveClient.downloadBytes(item, remotePath);
 						if (target.getParent() != null) {
@@ -669,14 +675,17 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 		String normalized = normalizeStoragePrefixPath(requestedPaths.get(0));
 		Map<String, Object> item = requireFile(normalized, storageFilePath);
 
-		Path localDirectory = Paths.get(localFolderPath);
+		Path localDirectory = Paths.get(localFolderPath).toFile().getCanonicalFile().toPath();
 		Files.createDirectories(localDirectory);
 
-		byte[] bytes = this.driveClient.downloadVersionBytes(item.get(MicrosoftGraphDriveClient.ID).toString(),
-				versionId);
 		Object itemName = item.get(MicrosoftGraphDriveClient.NAME);
 		String fileName = itemName != null ? itemName.toString() : baseName(normalized);
-		Path target = localDirectory.resolve(fileName);
+		Path target = localDirectory.resolve(fileName).normalize().toFile().getCanonicalFile().toPath();
+		if (target.equals(localDirectory) || !target.startsWith(localDirectory)) {
+			throw new IllegalArgumentException("Download path must remain within the local directory");
+		}
+		byte[] bytes = this.driveClient.downloadVersionBytes(item.get(MicrosoftGraphDriveClient.ID).toString(),
+				versionId);
 		Files.write(target, bytes);
 		classLogger.info("Downloaded version {} of '{}' to {}", versionId, normalized, target);
 	}

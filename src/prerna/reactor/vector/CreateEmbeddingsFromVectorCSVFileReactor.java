@@ -29,8 +29,10 @@ package prerna.reactor.vector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -199,49 +201,40 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @param invalidFiles
 	 * @throws IOException
 	 */
-	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
+	void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
 			List<String> invalidFiles) throws IOException {
-		File destDir = new File(Utility.normalizePath(destDirectory));
-		if (!destDir.exists()) {
-			destDir.mkdir();
-		}
+		Path destDir = new File(Utility.normalizePath(destDirectory)).getCanonicalFile().toPath();
+		Files.createDirectories(destDir);
 
 		try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(Utility.normalizePath(zipFilePath)))) {
 			ZipEntry entry = zipIn.getNextEntry();
 
 			while (entry != null) {
-				String filePath = destDirectory + "/" + entry.getName();
-				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
-					if (isSupportedFileType(filePath)) {
-						extractFile(zipIn, filePath);
-						validFiles.add(filePath);
-					} else {
-						invalidFiles.add(filePath);
-					}
-				} else if (entry.isDirectory()) {
-					File dir = new File(Utility.normalizePath(filePath));
-					dir.mkdirs();
-				} else if (isZipFile(filePath)) {
-					// Handle nested zip file
-					this.extractFile(zipIn, filePath);
+				String entryName = entry.getName().replace('\\', '/');
+				Path entryPath = Path.of(entryName);
+				if (entryPath.isAbsolute() || entryName.matches("^[A-Za-z]:.*")) {
+					throw new IOException("ZIP entry must be relative: " + entry.getName());
+				}
 
-					// Check if the entry is not in the root directory
-					String parentPath = null;
-					if (filePath.contains("/")) { // ZIP entries use "/" as a separator
-						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
-					}
+				Path filePath = destDir.resolve(entryPath).normalize().toFile().getCanonicalFile().toPath();
+				if (filePath.equals(destDir) || !filePath.startsWith(destDir)) {
+					throw new IOException("ZIP entry escapes the extraction directory: " + entry.getName());
+				}
 
-					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/")
-							? filePath.substring(filePath.lastIndexOf('/') + 1)
-							: filePath;
-
-					// Remove the extension
-					String baseName = fileNameWithExtension.contains(".")
-							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
-							: fileNameWithExtension;
-
-					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+				if (entry.isDirectory()) {
+					Files.createDirectories(filePath);
+				} else if (isSupportedFileType(filePath.toString())) {
+					Files.createDirectories(filePath.getParent());
+					extractFile(zipIn, filePath);
+					validFiles.add(filePath.toString());
+				} else if (isZipFile(filePath.toString())) {
+					Files.createDirectories(filePath.getParent());
+					extractFile(zipIn, filePath);
+					String fileName = filePath.getFileName().toString();
+					int extensionIndex = fileName.lastIndexOf('.');
+					String baseName = extensionIndex > 0 ? fileName.substring(0, extensionIndex) : fileName;
+					unzipAndFilter(filePath.toString(), filePath.getParent().resolve(baseName).toString(), validFiles,
+							invalidFiles);
 				}
 
 				zipIn.closeEntry();
@@ -270,12 +263,12 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @param filePath
 	 * @throws IOException
 	 */
-	private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-		try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
+	private void extractFile(ZipInputStream zipIn, Path filePath) throws IOException {
+		try (OutputStream output = Files.newOutputStream(filePath)) {
 			byte[] buffer = new byte[1024];
 			int bytesRead;
 			while ((bytesRead = zipIn.read(buffer)) != -1) {
-				fos.write(buffer, 0, bytesRead);
+				output.write(buffer, 0, bytesRead);
 			}
 		}
 	}
