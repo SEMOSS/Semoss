@@ -71,6 +71,9 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 		// GetSubagentRuns using the durable parentRunId relationship.
 		runs.removeIf(run -> run.get("parentRunId") != null);
 		Collections.reverse(runs);
+		for (Map<String, Object> run : runs) {
+			AgentRunService.get().queueChildCompletionsForParent(String.valueOf(run.get("runId")));
+		}
 		if (includeMessages) {
 			List<Map<String, Object>> enriched = new ArrayList<>(runs.size());
 			for (Map<String, Object> run : runs) {

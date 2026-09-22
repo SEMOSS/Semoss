@@ -1091,7 +1091,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("User waits until you're done. Simple, but ties up the conversation.\n\n");
 		sb.append("**Pattern B -- deferred (use when subagents are expected to be slow, ");
 		sb.append("the user might want to keep talking, or you've spawned 3+ children):**\n");
-		sb.append("  spawn -> spawn -> reply to the user IMMEDIATELY with the jobIds and a note ");
+		sb.append("  spawn with completionMode=NOTIFY -> reply to the user IMMEDIATELY with the jobIds and a note ");
 		sb.append("that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.\n");
 		sb.append("  Subagents continue running in the background between your turns -- they don't ");
 		sb.append("pause when you end your turn.\n\n");

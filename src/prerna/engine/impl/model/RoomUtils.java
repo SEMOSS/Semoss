@@ -69,7 +69,6 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -259,7 +258,7 @@ public final class RoomUtils {
 				try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
 					// Attach the current caller before any room operation uses transient context.
 					room.setInsight(insight);
-					refreshCachedRoomMessagesIfRedisEnabled(room, insight);
+					refreshCachedRoomMessages(room, insight);
 					ensureRoomMessagesUpToDate(room, insight);
 				}
 				symlinkRoomFolderIfNeeded(room, insight);
@@ -330,8 +329,8 @@ public final class RoomUtils {
 		return room;
 	}
 
-	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
-		if (room == null || insight == null || insight.getUser() == null || !RedisConnectionConfig.isRedisEnabled()) {
+	private static void refreshCachedRoomMessages(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
 			return;
 		}
 		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());

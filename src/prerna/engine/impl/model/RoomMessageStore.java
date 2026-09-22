@@ -29,12 +29,15 @@ package prerna.engine.impl.model;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,6 +50,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolCallMessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
@@ -66,6 +70,12 @@ public final class RoomMessageStore {
 
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
+	private static final String AGENT_RUN_ID_ORNAMENT = "agentRunId";
+	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
+
+	static {
+		Arrays.setAll(LOCAL_LOCKS, ignored -> new ReentrantLock());
+	}
 
 	private static final ThreadLocal<Map<String, HeldLock>> HELD_LOCKS = ThreadLocal.withInitial(HashMap::new);
 	private static volatile RoomMessageRedisClient cachedRedisClient;
@@ -90,7 +100,7 @@ public final class RoomMessageStore {
 	}
 
 	public static void refreshFromStore(Room room, String userId) {
-		if (room == null || room.getId() == null || userId == null || !RedisConnectionConfig.isRedisEnabled()) {
+		if (room == null || room.getId() == null || userId == null) {
 			return;
 		}
 		Room persistedRoom = ModelInferenceLogsUtils.getRoomById(room.getId(), userId);
@@ -110,10 +120,10 @@ public final class RoomMessageStore {
 	}
 
 	public static void refreshFromLatestProjection(Room room, String userId) {
-		if (room == null || room.getId() == null || userId == null || !RedisConnectionConfig.isRedisEnabled()) {
+		if (room == null || room.getId() == null || userId == null) {
 			return;
 		}
-		if (!refreshFromHotProjection(room)) {
+		if (!RedisConnectionConfig.isRedisEnabled() || !refreshFromHotProjection(room)) {
 			refreshFromStore(room, userId);
 		}
 	}
@@ -186,6 +196,51 @@ public final class RoomMessageStore {
 		}
 	}
 
+	/**
+	 * Append one deterministic platform message to the latest room projection.
+	 * Repeating the same message ID is a no-op.
+	 */
+	public static boolean appendPlatformMessageIfAbsent(String roomId, String userId, String messageId, String text,
+			Map<String, Object> ornaments) {
+		try (RoomMutationLock ignored = acquireMutationLock(roomId)) {
+			Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
+			if (room == null) {
+				throw new IllegalArgumentException("Unable to find room " + roomId + " for its owner");
+			}
+			for (AbstractMessage existing : room.getMessages()) {
+				if (messageId.equals(existing.getMessageId())) {
+					return false;
+				}
+			}
+
+			ResponseMessage message = ResponseMessage.text(text);
+			message.setMessageId(messageId);
+			message.setTransactionId(messageId);
+			message.setRoom(room);
+			message.setModelId(room.getModelId());
+			message.setPlatformGenerated(true);
+			AbstractMessage latestMessage = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			if (latestMessage != null) {
+				message.setParentMessageId(latestMessage.getMessageId());
+			}
+			if (ornaments != null) {
+				ornaments.forEach(message::setOrnament);
+			}
+			// Platform events belong to the conversation segment they follow. Preserve any
+			// originating run in a separate ornament, but group/display this message with
+			// its actual parent run when one is tagged.
+			if (latestMessage != null && latestMessage.getOrnament(AGENT_RUN_ID_ORNAMENT) != null) {
+				message.setOrnament(AGENT_RUN_ID_ORNAMENT,
+						latestMessage.getOrnament(AGENT_RUN_ID_ORNAMENT));
+			}
+			room.getMessages().add(message);
+			if (!persist(room, userId)) {
+				throw new IllegalStateException("Unable to persist platform message for room " + roomId);
+			}
+			return true;
+		}
+	}
+
 	public static RoomMutationLock acquireMutationLock(Room room) {
 		if (room == null) {
 			return RoomMutationLock.NO_OP;
@@ -194,15 +249,29 @@ public final class RoomMessageStore {
 	}
 
 	public static RoomMutationLock acquireMutationLock(String roomId) {
-		if (roomId == null || roomId.trim().isEmpty() || !RedisConnectionConfig.isRedisEnabled()) {
+		if (roomId == null || roomId.trim().isEmpty()) {
 			return RoomMutationLock.NO_OP;
 		}
 		roomId = roomId.trim();
+		if (!RedisConnectionConfig.isRedisEnabled()) {
+			ReentrantLock localLock = LOCAL_LOCKS[Math.floorMod(roomId.hashCode(), LOCAL_LOCKS.length)];
+			long waitMs = getLongProperty(LOCK_WAIT_MS, 5000L);
+			try {
+				if (!localLock.tryLock(Math.max(0L, waitMs), TimeUnit.MILLISECONDS)) {
+					throw new IllegalStateException(
+							"Room is busy; another request is updating room messages. Please retry.");
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Interrupted while waiting to update room messages", e);
+			}
+			return new RoomMutationLock(roomId, null, false, localLock);
+		}
 		Map<String, HeldLock> heldLocks = HELD_LOCKS.get();
 		HeldLock held = heldLocks.get(roomId);
 		if (held != null) {
 			held.count++;
-			return new RoomMutationLock(roomId, held, false);
+			return new RoomMutationLock(roomId, held, false, null);
 		}
 
 		RoomMessageRedisClient redis = redisClient();
@@ -215,7 +284,7 @@ public final class RoomMessageStore {
 				HeldLock newLock = new HeldLock(redis, roomId, token, ttlMs);
 				heldLocks.put(roomId, newLock);
 				newLock.startRenewal();
-				return new RoomMutationLock(roomId, newLock, true);
+				return new RoomMutationLock(roomId, newLock, true, null);
 			}
 			sleepQuietly(100L);
 		} while (System.currentTimeMillis() < deadline);
@@ -433,25 +502,34 @@ public final class RoomMessageStore {
 	}
 
 	public static final class RoomMutationLock implements AutoCloseable {
-		private static final RoomMutationLock NO_OP = new RoomMutationLock(null, null, false);
+		private static final RoomMutationLock NO_OP = new RoomMutationLock(null, null, false, null);
 
 		private final String roomId;
 		private final HeldLock heldLock;
 		private final boolean owner;
+		private final ReentrantLock localLock;
 		private boolean closed;
 
-		private RoomMutationLock(String roomId, HeldLock heldLock, boolean owner) {
+		private RoomMutationLock(String roomId, HeldLock heldLock, boolean owner, ReentrantLock localLock) {
 			this.roomId = roomId;
 			this.heldLock = heldLock;
 			this.owner = owner;
+			this.localLock = localLock;
 		}
 
 		@Override
 		public void close() {
-			if (closed || heldLock == null || roomId == null) {
+			if (closed) {
 				return;
 			}
 			closed = true;
+			if (localLock != null) {
+				localLock.unlock();
+				return;
+			}
+			if (heldLock == null || roomId == null) {
+				return;
+			}
 			Map<String, HeldLock> heldLocks = HELD_LOCKS.get();
 			heldLock.count--;
 			if (heldLock.count > 0) {

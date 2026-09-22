@@ -137,6 +137,10 @@ public final class SubAgentToolSynthesizer {
                         + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
+		properties.put("completionMode", schemaString(
+				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
+						+ "to the parent room without waiting. CONTINUE currently posts like NOTIFY; automatic continuation "
+						+ "is added separately."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -175,6 +179,10 @@ public final class SubAgentToolSynthesizer {
                         + "WriteFile/EditFile calls land in YOUR working directory). Stream + history stay isolated. "
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
+		properties.put("completionMode", schemaString(
+				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
+						+ "to the parent room without waiting. CONTINUE currently posts like NOTIFY; automatic continuation "
+						+ "is added separately."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");

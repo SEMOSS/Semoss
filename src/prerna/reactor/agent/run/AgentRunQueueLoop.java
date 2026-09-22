@@ -30,7 +30,10 @@ package prerna.reactor.agent.run;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.CloseableThreadContext;
@@ -77,6 +80,8 @@ final class AgentRunQueueLoop {
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
 	private final Map<String, Room> automationResumeRoomsByRun = new ConcurrentHashMap<>();
+	private final Queue<String> childCompletions = new ConcurrentLinkedQueue<>();
+	private final Set<String> queuedChildCompletions = ConcurrentHashMap.newKeySet();
 	/** Owns the room lock, the run threads, and the turn leases for this node. */
 	private final AgentRunRegistry activeRuns = new AgentRunRegistry();
 
@@ -111,6 +116,18 @@ final class AgentRunQueueLoop {
 		}
 	}
 
+	/** Queue one idempotent platform-message append without starting a model run. */
+	void enqueueChildCompletion(String childRunId) {
+		if (childRunId == null || childRunId.isBlank()) {
+			return;
+		}
+		String normalized = childRunId.trim();
+		if (queuedChildCompletions.add(normalized)) {
+			childCompletions.offer(normalized);
+		}
+		signal();
+	}
+
 	/**
 	 * Stops the run and frees its room. See
 	 * {@link AgentRunRegistry#requestCancel(String)} for why the room is released
@@ -135,6 +152,7 @@ final class AgentRunQueueLoop {
 		while (true) {
 			boolean didWork = false;
 			try {
+				didWork = tryExecuteChildCompletions();
 				List<AgentRunRecord> records = AgentRunStore.getSubmittedRuns(SCAN_LIMIT, null);
 				for (AgentRunRecord record : records) {
 					InsightHandle insightHandle = insightsByRun.get(record.runId());
@@ -151,6 +169,86 @@ final class AgentRunQueueLoop {
 			if (!didWork) {
 				waitForSignal();
 			}
+		}
+	}
+
+	/**
+	 * Give ready child results the parent room turn before a later submitted run so
+	 * that run receives the result in its model context.
+	 */
+	private boolean tryExecuteChildCompletions() {
+		boolean didWork = false;
+		int pending = childCompletions.size();
+		for (int i = 0; i < pending; i++) {
+			String childRunId = childCompletions.poll();
+			if (childRunId == null) {
+				break;
+			}
+			try {
+				ChildRunCompletionService.Delivery delivery = ChildRunCompletionService.load(childRunId);
+				if (delivery == null) {
+					childCompletions.offer(childRunId);
+					continue;
+				}
+				if (delivery.mode() == SubAgentRunCompletionMode.JOIN) {
+					queuedChildCompletions.remove(childRunId);
+					continue;
+				}
+				if (tryExecuteChildCompletion(delivery)) {
+					didWork = true;
+				} else {
+					childCompletions.offer(childRunId);
+				}
+			} catch (Exception e) {
+				childCompletions.offer(childRunId);
+				logger.warn("AgentRunQueueLoop: unable to prepare child completion runId={}: {}", childRunId,
+						e.getMessage(), e);
+			}
+		}
+		return didWork;
+	}
+
+	private boolean tryExecuteChildCompletion(ChildRunCompletionService.Delivery delivery) {
+		String childRunId = delivery.childRunId();
+		String workId = "child-completion:" + childRunId;
+		Optional<AgentRunRegistry.ActiveRun> claim = activeRuns.claimRoom(workId, delivery.parentRoomId());
+		if (claim.isEmpty()) {
+			return false;
+		}
+		AgentRunRegistry.ActiveRun activeRun = claim.get();
+		try {
+			ClusterRoomTurnLock.RoomTurnLease lease = ClusterRoomTurnLock.tryClaim(workId,
+					delivery.parentRoomId());
+			if (lease == null) {
+				activeRun.close();
+				return false;
+			}
+			activeRun.attachLease(lease);
+
+			Thread thread = Thread.ofVirtual().name("child-completion-" + childRunId).unstarted(() -> {
+				boolean delivered = false;
+				try {
+					ChildRunCompletionService.deliver(delivery);
+					delivered = true;
+				} catch (Exception e) {
+					logger.warn("AgentRunQueueLoop: child completion delivery failed runId={}: {}", childRunId,
+							e.getMessage(), e);
+				} finally {
+					if (delivered) {
+						queuedChildCompletions.remove(childRunId);
+					} else {
+						childCompletions.offer(childRunId);
+					}
+					activeRun.close();
+					signal();
+				}
+			});
+			activeRun.attachThread(thread);
+			thread.start();
+			return true;
+		} catch (RuntimeException e) {
+			activeRun.close();
+			throw e;
 		}
 	}
 

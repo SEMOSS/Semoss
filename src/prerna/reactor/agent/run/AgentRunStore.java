@@ -395,6 +395,63 @@ public final class AgentRunStore {
 		}
 	}
 
+	/** Internal durable inputs for detached-child delivery and repair. */
+	static List<Map<String, Object>> getTerminalChildCompletions(String childRunId, String parentRunId, long limit) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder(
+					"SELECT child.RUN_ID AS CHILD_RUN_ID, child.PARENT_RUN_ID, child.STATUS, child.FINAL_OUTPUT, "
+							+ "child.ERROR_MESSAGE, child.REQUEST_JSON, child.USER_ID, parent.ROOM_ID AS PARENT_ROOM_ID "
+							+ "FROM AGENT_RUN child JOIN AGENT_RUN parent ON child.PARENT_RUN_ID = parent.RUN_ID "
+							+ "AND child.USER_ID = parent.USER_ID WHERE child.PARENT_RUN_ID IS NOT NULL "
+							+ "AND child.STATUS IN (?, ?, ?)");
+			if (childRunId != null && !childRunId.isBlank()) {
+				query.append(" AND child.RUN_ID = ?");
+			}
+			if (parentRunId != null && !parentRunId.isBlank()) {
+				query.append(" AND child.PARENT_RUN_ID = ?");
+			}
+			query.append(" ORDER BY child.COMPLETED_AT DESC, child.RUN_ID DESC");
+			if (limit > 0) {
+				db.getQueryUtil().addLimitOffsetToQuery(query, limit, 0);
+			}
+
+			ps = db.getPreparedStatement(query.toString());
+			int idx = 1;
+			ps.setString(idx++, AgentRunStatus.COMPLETED.name());
+			ps.setString(idx++, AgentRunStatus.FAILED.name());
+			ps.setString(idx++, AgentRunStatus.CANCELLED.name());
+			if (childRunId != null && !childRunId.isBlank()) {
+				ps.setString(idx++, childRunId.trim());
+			}
+			if (parentRunId != null && !parentRunId.isBlank()) {
+				ps.setString(idx++, parentRunId.trim());
+			}
+
+			rs = ps.executeQuery();
+			List<Map<String, Object>> completions = new ArrayList<>();
+			while (rs.next()) {
+				Map<String, Object> completion = new HashMap<>();
+				completion.put("childRunId", rs.getString("CHILD_RUN_ID"));
+				completion.put("parentRunId", rs.getString("PARENT_RUN_ID"));
+				completion.put("parentRoomId", rs.getString("PARENT_ROOM_ID"));
+				completion.put("status", rs.getString("STATUS"));
+				completion.put("finalText", rs.getString("FINAL_OUTPUT"));
+				completion.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+				completion.put("requestJson", rs.getString("REQUEST_JSON"));
+				completion.put("userId", rs.getString("USER_ID"));
+				completions.add(completion);
+			}
+			return completions;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load terminal child completions", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
 	static boolean runExists(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;

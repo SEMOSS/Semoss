@@ -125,6 +125,22 @@ public final class AgentRunService {
 		queueLoop.signal();
 	}
 
+	/** Queue one terminal child's single-message delivery behind its parent room turn. */
+	public void queueChildCompletion(String childRunId) {
+		queueLoop.enqueueChildCompletion(childRunId);
+	}
+
+	/** Rebuild lightweight delivery work from durable child rows when a room is loaded. */
+	public void queueChildCompletionsForParent(String parentRunId) {
+		try {
+			for (String childRunId : ChildRunCompletionService.findTerminalChildIds(parentRunId)) {
+				queueLoop.enqueueChildCompletion(childRunId);
+			}
+		} catch (Exception e) {
+			logger.warn("Unable to queue child completions for parentRunId={}: {}", parentRunId, e.getMessage(), e);
+		}
+	}
+
 	/**
 	 * Wake up the queue loop and remember the insight for a resumed run. Called by
 	 * {@code RunMCPToolReactor} which runs on the user's HTTP request thread and

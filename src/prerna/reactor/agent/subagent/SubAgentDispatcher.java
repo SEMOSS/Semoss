@@ -44,6 +44,7 @@ import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
+import prerna.reactor.agent.run.SubAgentRunCompletionMode;
 
 /**
  * Tool-call dispatch for synthesized subagent tools.
@@ -124,6 +125,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info(
 				"SubAgentDispatcher.spawnNamed: alias={} parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
@@ -186,6 +188,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info("SubAgentDispatcher.spawnAnonymous: parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
 				req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
@@ -330,6 +333,14 @@ public final class SubAgentDispatcher {
 			return (Boolean) v;
 		}
 		return Boolean.parseBoolean(String.valueOf(v).trim());
+	}
+
+	private static SubAgentRunCompletionMode completionModeArg(Map<String, Object> args) {
+		try {
+			return SubAgentRunCompletionMode.fromExternalValue(stringArg(args, "completionMode"));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("completionMode must be JOIN, NOTIFY, or CONTINUE");
+		}
 	}
 
 	private static Map<String, Object> error(String msg) {

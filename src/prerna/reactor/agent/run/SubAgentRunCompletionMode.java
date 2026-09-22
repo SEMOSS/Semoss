@@ -15,6 +15,13 @@ public enum SubAgentRunCompletionMode {
 	NOTIFY,
 	CONTINUE;
 
+	public static SubAgentRunCompletionMode fromExternalValue(String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return JOIN;
+		}
+		return valueOf(value.trim().toUpperCase(Locale.ROOT));
+	}
+
 	/**
 	 * Read the persisted value without allowing old or unknown data to opt into
 	 * asynchronous behavior. Requests written before this field existed therefore
@@ -24,12 +31,8 @@ public enum SubAgentRunCompletionMode {
 		if (value == null) {
 			return JOIN;
 		}
-		String name = String.valueOf(value).trim();
-		if (name.isEmpty()) {
-			return JOIN;
-		}
 		try {
-			return valueOf(name.toUpperCase(Locale.ROOT));
+			return fromExternalValue(String.valueOf(value));
 		} catch (IllegalArgumentException ignored) {
 			return JOIN;
 		}
