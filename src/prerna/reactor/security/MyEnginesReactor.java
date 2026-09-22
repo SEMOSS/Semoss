@@ -152,8 +152,7 @@ public class MyEnginesReactor extends AbstractReactor {
 							continue;
 						}
 						Map<String, Object> engine = engineInfo.get(engineIndex);
-						Map<String, Object> capabilities = SecurityModelMetadataUtils
-								.toCapabilities(entry.getValue());
+						Map<String, Object> capabilities = SecurityModelMetadataUtils.toCapabilities(entry.getValue());
 						engine.put("capabilities", capabilities);
 					}
 				} catch (Exception e) {
@@ -246,15 +245,6 @@ public class MyEnginesReactor extends AbstractReactor {
 				new JSONObject().put("type", "integer").put("description", "Catalog upvote count when requested"));
 		itemProperties.put("hasUpvoted", new JSONObject().put("type", "boolean").put("description",
 				"Whether the current user has upvoted when requested"));
-
-		// Legacy aliases. Each repeats a column already described above under its
-		// engine_* name, and is kept only because the AngularJS bi client still reads
-		// it. New callers should use the engine_* keys.
-		for (String legacyKey : List.of("app_id", "app_name", "app_type", "app_subtype", "app_cost", "database_id",
-				"database_name", "database_type", "database_discoverable")) {
-			itemProperties.put(legacyKey, new JSONObject().put("type", "string").put("description",
-					"Legacy alias retained for backwards compatibility; prefer the engine_* key."));
-		}
 
 		JSONObject items = new JSONObject();
 		items.put("type", "object");
