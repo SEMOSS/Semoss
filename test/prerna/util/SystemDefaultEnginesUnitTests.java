@@ -31,8 +31,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 class SystemDefaultEnginesUnitTests {
@@ -69,6 +76,47 @@ class SystemDefaultEnginesUnitTests {
 	void appBuilderReceivesOnlyHeadlessMcps() {
 		assertEquals(List.of(Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP),
 				SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_APP_BUILDER));
+	}
+
+	@Test
+	void everySystemMcpHasBootstrapAssets() {
+		Path projectRoot = Path.of("project");
+		for (String mcpId : SystemDefaultEngines.getSystemMCPs()) {
+			String projectName = "platform__" + mcpId;
+			assertTrue(Files.isRegularFile(projectRoot.resolve(projectName + ".smss")),
+					mcpId + " must package its project SMSS");
+
+			Path mcpRoot = projectRoot.resolve(projectName).resolve("app_root/version/assets/mcp");
+			assertTrue(Files.isRegularFile(mcpRoot.resolve("pixel_mcp.json"))
+					|| Files.isRegularFile(mcpRoot.resolve("py_mcp.json")),
+					mcpId + " must package a Pixel or Python MCP definition");
+		}
+	}
+
+	@Test
+	void memoryMcpPackagesEveryMemoryTool() throws IOException {
+		Path mcpFile = Path.of("project", "platform__" + Constants.MCP_MEMORY, "app_root", "version", "assets", "mcp",
+				"pixel_mcp.json");
+		JSONArray tools = new JSONObject(Files.readString(mcpFile)).getJSONArray("tools");
+		Set<String> toolNames = new HashSet<>();
+		JSONObject searchMemories = null;
+		for (int i = 0; i < tools.length(); i++) {
+			JSONObject tool = tools.getJSONObject(i);
+			String toolName = tool.getString("name");
+			toolNames.add(toolName);
+			if ("SearchMemories".equals(toolName)) {
+				searchMemories = tool;
+			}
+		}
+
+		assertEquals(Set.of("AddMemory", "SearchMemories", "ListMemories", "EditMemory", "DeleteMemory",
+				"ListMemoryAudit", "CreateActionItem", "UpdateActionItemStatus", "ListActionItems",
+				"CompactMemories", "PromoteMemoryToWorkspace", "GetMemoryMeta", "GetMemoryMetaValues",
+				"GetMyMemorySettings", "SetMyMemorySettings"), toolNames);
+		assertEquals(toolNames.size(), tools.length(), "Memory MCP tool names must be unique");
+		assertTrue(searchMemories != null
+				&& searchMemories.getString("description").contains("Before answering any question"),
+				"SearchMemories must package its recall guidance");
 	}
 
 	/**

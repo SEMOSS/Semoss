@@ -1,0 +1,598 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-09-22"
+  },
+  "tools": [
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "AddMemory_Arguments",
+        "properties": {
+          "metadata": {
+            "description": "Additional metadata",
+            "title": "metadata",
+            "type": "object"
+          },
+          "embeddingEngineId": {
+            "description": "Engine id used to embed the content for duplicate detection (defaults to the platform default embedding engine)",
+            "title": "embeddingEngineId",
+            "type": "string"
+          },
+          "reasoningEngineId": {
+            "description": "Engine id used to auto-classify eventType in the background when omitted (skipped if not supplied)",
+            "title": "reasoningEngineId",
+            "type": "string"
+          },
+          "eventType": {
+            "description": "Memory event type, e.g. memory/decision/lesson/error/task (auto-classified in the background via reasoningEngineId when omitted, else defaults to \"memory\")",
+            "title": "eventType",
+            "type": "string"
+          },
+          "content": {
+            "description": "The memory text to store",
+            "title": "content",
+            "type": "string"
+          },
+          "roomId": {
+            "description": "Optional room/conversation this memory was captured in",
+            "title": "roomId",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "Optional workspace to share this memory with",
+            "title": "workspaceId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "name": "AddMemory",
+      "description": "Stores a new memory for the current user. When eventType is omitted and reasoningEngineId is supplied, the memory is classified in the background after being saved. When an embedding engine is available (defaults to the platform default), near-duplicate content in the same scope is detected and the existing memory's id is returned instead of inserting a new row.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "AddMemory",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Add Memory"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SearchMemories_Arguments",
+        "properties": {
+          "search": {
+            "description": "Required natural-language question or topic used for hybrid semantic and BM25 memory recall",
+            "title": "search",
+            "type": "string"
+          },
+          "roomId": {
+            "description": "Optional room to restrict results to; omit to search across conversations with the current agent",
+            "title": "roomId",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "Optional workspace to search shared memories from",
+            "title": "workspaceId",
+            "type": "string"
+          },
+          "agentId": {
+            "description": "Optional agent id; defaults to the current room's attached agent",
+            "title": "agentId",
+            "type": "string"
+          },
+          "projectId": {
+            "description": "Optional project or app id to restrict results to",
+            "title": "projectId",
+            "type": "string"
+          },
+          "eventType": {
+            "description": "Optional event type or types to filter by",
+            "title": "eventType",
+            "type": "string"
+          },
+          "metaFilters": {
+            "description": "Optional custom metadata filters",
+            "title": "metaFilters",
+            "type": "object"
+          },
+          "includeSuperseded": {
+            "description": "Whether to include memories already folded into a compacted summary",
+            "title": "includeSuperseded",
+            "type": "boolean"
+          },
+          "embeddingEngineId": {
+            "description": "Optional vector engine used for hybrid recall",
+            "title": "embeddingEngineId",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Maximum number of memories to return",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "search"
+        ]
+      },
+      "name": "SearchMemories",
+      "description": "Searches memories relevant to a required natural-language question or topic using hybrid semantic and BM25 ranking. Before answering any question that may depend on information the user shared previously—including preferences, plans, decisions, names, dates, or requests to remember—call this tool rather than assuming no memory exists. Use ListMemories only to browse or manage memories by recency and filters. Omit roomId to search every conversation with the current room's attached agent.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "SearchMemories",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Search Memories"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListMemories_Arguments",
+        "properties": {
+          "search": {
+            "description": "A specific question or topic to semantically rank memories against - not a keyword filter. Prefer this over leaving it blank when you're recalling something specific, so you get a small set of the most relevant memories instead of a plain recency-ordered dump.",
+            "title": "search",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Offset to add for the query results",
+            "title": "offset",
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Limit to add for the query results",
+            "title": "limit",
+            "type": "integer"
+          },
+          "eventType": {
+            "description": "Optional event type(s) to filter by (single value or list)",
+            "title": "eventType",
+            "type": "string"
+          },
+          "roomId": {
+            "description": "Optional room to restrict results to. Leave this empty to recall memories across every room/conversation with this agent - only set it to narrow to just the current conversation.",
+            "title": "roomId",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "Optional workspace to list shared memories from",
+            "title": "workspaceId",
+            "type": "string"
+          },
+          "includeSuperseded": {
+            "description": "Whether to include memories already folded into a CompactMemories summary (default false)",
+            "title": "includeSuperseded",
+            "type": "boolean"
+          },
+          "embeddingEngineId": {
+            "description": "Vector engine id used to semantically rank the search term (defaults to the platform/user default vector engine)",
+            "title": "embeddingEngineId",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "ListMemories",
+      "description": "Lists memories the current user can see: memories they own, or (when workspaceId is supplied and the user has view access to that workspace) memories shared to that workspace. Results are capped and ranked, not a full dump: pass search with a specific question/topic to get a small, semantically-ranked set of the most relevant memories (uses the same vector engine memories are deduped against - not just a literal keyword match), rather than calling with no search term and relying on recency order alone. IMPORTANT: leave roomId empty when trying to recall what the user has told you in past conversations - an omitted roomId searches across every room/conversation you've had with this same agent, which is what \"do you remember...\" questions need. Only pass roomId when you specifically want to restrict to the current conversation. When agentId is also omitted and the call runs inside a room, agentId defaults to that room's attached agent (see SetRoomWorkspaceReactor - not the room's own project, which may be a different app the agent is embedded in), so an agent naturally recalls everything the caller has personally told it across every room/app they've used it from - this never bypasses per-user ownership, unlike workspaceId's deliberate cross-user sharing. Memories already folded into a compacted summary are hidden by default (includeSuperseded=true to see them anyway). Supports filtering by project and event type, with paginated results.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "ListMemories",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Memories"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "EditMemory_Arguments",
+        "properties": {
+          "metadata": {
+            "description": "Replacement metadata map (omit to leave metadata unchanged)",
+            "title": "metadata",
+            "type": "object"
+          },
+          "memoryId": {
+            "description": "Id of the memory to edit",
+            "title": "memoryId",
+            "type": "string"
+          },
+          "content": {
+            "description": "Replacement memory content",
+            "title": "content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId",
+          "content"
+        ]
+      },
+      "name": "EditMemory",
+      "description": "Updates a memory's content and/or metadata. Only the memory's creator may edit it; the prior content/metadata is recorded in the memory's audit trail before the update is applied.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "EditMemory",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Edit Memory"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "DeleteMemory_Arguments",
+        "properties": {
+          "memoryId": {
+            "description": "Id of the memory to delete",
+            "title": "memoryId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ]
+      },
+      "name": "DeleteMemory",
+      "description": "Soft-deletes a memory. Only the memory's creator may delete it; the memory is hidden from normal listings but preserved in the audit trail, not permanently removed.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "DeleteMemory",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Delete Memory"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListMemoryAudit_Arguments",
+        "properties": {
+          "memoryId": {
+            "description": "Id of the memory to fetch audit history for",
+            "title": "memoryId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ]
+      },
+      "name": "ListMemoryAudit",
+      "description": "Lists the audit history (edits and deletes) for one memory, most recent first.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "ListMemoryAudit",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Memory Audit"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "CreateActionItem_Arguments",
+        "properties": {
+          "owner": {
+            "description": "Optional owner/assignee",
+            "title": "owner",
+            "type": "string"
+          },
+          "metadata": {
+            "description": "Additional metadata",
+            "title": "metadata",
+            "type": "object"
+          },
+          "dueDate": {
+            "description": "Optional due date, e.g. '2026-01-01 00:00:00'",
+            "title": "dueDate",
+            "type": "string"
+          },
+          "memoryId": {
+            "description": "Optional parent memory this action item was derived from",
+            "title": "memoryId",
+            "type": "string"
+          },
+          "content": {
+            "description": "The action item text",
+            "title": "content",
+            "type": "string"
+          },
+          "roomId": {
+            "description": "Room ID used for llm calls",
+            "title": "roomId",
+            "type": "string"
+          },
+          "status": {
+            "description": "Status: open/in_progress/blocked/completed/cancelled (defaults to open)",
+            "title": "status",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "The id used for an agent workspace",
+            "title": "workspaceId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      },
+      "name": "CreateActionItem",
+      "description": "Creates a first-class action-item memory (a task to follow up on), optionally linked to a parent memory it was derived from, with an owner, due date, and status.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "CreateActionItem",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Create Action Item"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "UpdateActionItemStatus_Arguments",
+        "properties": {
+          "actionItemId": {
+            "description": "Id of the action item to update",
+            "title": "actionItemId",
+            "type": "string"
+          },
+          "status": {
+            "description": "New status: open/in_progress/blocked/completed/cancelled",
+            "title": "status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "actionItemId",
+          "status"
+        ]
+      },
+      "name": "UpdateActionItemStatus",
+      "description": "Updates a memory action item's status (open/in_progress/blocked/completed/cancelled).",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "UpdateActionItemStatus",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Update Action Item Status"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListActionItems_Arguments",
+        "properties": {
+          "owner": {
+            "description": "Optional owner/assignee filter (single value or list)",
+            "title": "owner",
+            "type": "string"
+          },
+          "search": {
+            "description": "Optional case-insensitive substring to search for in action item content",
+            "title": "search",
+            "type": "string"
+          },
+          "offset": {
+            "description": "Offset to add for the query results",
+            "title": "offset",
+            "type": "integer"
+          },
+          "limit": {
+            "description": "Limit to add for the query results",
+            "title": "limit",
+            "type": "integer"
+          },
+          "roomId": {
+            "description": "Optional room filter",
+            "title": "roomId",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "Optional workspace to list shared action items from",
+            "title": "workspaceId",
+            "type": "string"
+          },
+          "status": {
+            "description": "Optional status filter (single value or list)",
+            "title": "status",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "ListActionItems",
+      "description": "Lists memory action items (follow-up tasks) visible to the current user, with optional owner/status/room filters and free-text content search.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "ListActionItems",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Action Items"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "CompactMemories_Arguments",
+        "properties": {
+          "reasoningEngineId": {
+            "description": "Engine id used to generate the summary text (falls back to a simple concatenation if omitted)",
+            "title": "reasoningEngineId",
+            "type": "string"
+          },
+          "memoryIds": {
+            "description": "Two or more memory ids to combine into a single summary memory",
+            "title": "memoryIds",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryIds"
+        ]
+      },
+      "name": "CompactMemories",
+      "description": "Combines two or more memories into a single summary memory (a session summary), using a reasoning model to write the summary when reasoningEngineId is supplied. The source memories are kept, not deleted, but are marked as superseded by the new summary.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "CompactMemories",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Compact Memories"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "PromoteMemoryToWorkspace_Arguments",
+        "properties": {
+          "memoryId": {
+            "description": "Id of the memory to share/unshare",
+            "title": "memoryId",
+            "type": "string"
+          },
+          "workspaceId": {
+            "description": "Workspace to share the memory with, or omit to make the memory personal again",
+            "title": "workspaceId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ]
+      },
+      "name": "PromoteMemoryToWorkspace",
+      "description": "Shares (or unshares) a personal memory to a workspace so everyone with access to that workspace can see it. Only the memory's creator may promote it, and the caller must have edit access to the target workspace.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "PromoteMemoryToWorkspace",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Promote Memory To Workspace"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetMemoryMeta_Arguments",
+        "properties": {
+          "memoryId": {
+            "description": "Id of the memory to fetch custom metadata for",
+            "title": "memoryId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "memoryId"
+        ]
+      },
+      "name": "GetMemoryMeta",
+      "description": "Fetches a memory's custom metadata (metakey -> value(s)) previously attached via AddMemory's metaFilters.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "GetMemoryMeta",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Memory Meta"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetMemoryMetaValues_Arguments",
+        "properties": {
+          "workspaceId": {
+            "description": "Optional workspace to scope the returned metadata values to (same visibility rule as ListMemories)",
+            "title": "workspaceId",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "GetMemoryMetaValues",
+      "description": "Fetches the distinct metakey/metavalue combinations (with counts) across the caller's visible memories, for building a metadata filter UI.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "GetMemoryMetaValues",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Memory Meta Values"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetMyMemorySettings_Arguments",
+        "properties": {},
+        "required": []
+      },
+      "name": "GetMyMemorySettings",
+      "description": "Fetches the current user's personal memory settings (currently: which vector engine to use for duplicate detection/embedding). A null vectorEngineId means the platform default is used - not an error.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "GetMyMemorySettings",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get My Memory Settings"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SetMyMemorySettings_Arguments",
+        "properties": {
+          "embeddingEngineId": {
+            "description": "Vector engine id to use for this user's future memory operations, or blank to clear the preference and use the platform default",
+            "title": "embeddingEngineId",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "SetMyMemorySettings",
+      "description": "Sets the current user's personal vector engine to use for memory duplicate detection/embedding. Pass an empty/omitted embeddingEngineId to clear the preference and fall back to the platform default.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "SetMyMemorySettings",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Set My Memory Settings"
+    }
+  ]
+}
