@@ -3,7 +3,6 @@ package prerna.reactor.agent.run;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -18,7 +17,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 
 /** Delivers detached child-run results to the durable parent room. */
 public final class ChildRunCompletionService {
@@ -63,18 +62,16 @@ public final class ChildRunCompletionService {
 
 	/** Append exactly one platform message; callers retain and retry failed work. */
 	static void deliver(Delivery delivery) {
-		Map<String, Object> ornaments = new LinkedHashMap<>();
-		ornaments.put(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, delivery.parentRunId());
-		ornaments.put("originatingAgentRunId", delivery.parentRunId());
-		ornaments.put(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, "subagent_completion");
-		ornaments.put("childRunId", delivery.childRunId());
-		ornaments.put("completionMode", delivery.mode().name());
-		ornaments.put("childStatus", delivery.status().name());
+		AgentRunMessageContext agentRun = new AgentRunMessageContext(delivery.parentRunId(), "subagent_completion");
+		agentRun.setOriginatingRunId(delivery.parentRunId());
+		agentRun.setChildRunId(delivery.childRunId());
+		agentRun.setCompletionMode(delivery.mode().name());
+		agentRun.setChildStatus(delivery.status().name());
 
 		boolean appended = RoomMessageStore.appendPlatformMessageIfAbsent(delivery.parentRoomId(), delivery.userId(),
 				deterministicMessageId(delivery.childRunId()),
 				messageText(delivery.childRunId(), delivery.status(), delivery.finalText(), delivery.errorMessage()),
-				ornaments);
+				agentRun);
 		if (appended) {
 			logger.info("Delivered child completion runId={} parentRunId={} mode={}", delivery.childRunId(),
 					delivery.parentRunId(), delivery.mode());

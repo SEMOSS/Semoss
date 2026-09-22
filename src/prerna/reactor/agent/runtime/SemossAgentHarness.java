@@ -41,6 +41,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -114,10 +115,6 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_SUBDIR = "subdir";
 	private static final String PARAM_WORKSPACE_ID = "workspace_id";
 	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
-	/** Ornament key tagging every room message produced by a given agent run. */
-	public static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
-	/** Ornament key tagging the role each message played within the run. */
-	public static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
 	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
 	private static final String RUN_ROLE_ASSISTANT = "assistant";
@@ -710,10 +707,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (message == null || runId == null || runId.trim().isEmpty()) {
 			return;
 		}
-		message.setOrnament(ORNAMENT_AGENT_RUN_ID, runId);
-		if (role != null && !role.trim().isEmpty()) {
-			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
-		}
+		message.setAgentRun(new AgentRunMessageContext(runId, role));
 	}
 
 	private static void tagAgentRunMessagesFrom(Room room, int startIndex, String runId) {
@@ -727,8 +721,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (message == null) {
 				continue;
 			}
-			Object existingRole = message.getOrnament(ORNAMENT_AGENT_RUN_ROLE);
-			String role = existingRole == null ? roleForMessage(message) : String.valueOf(existingRole);
+			AgentRunMessageContext existingAgentRun = message.getAgentRun();
+			String role = existingAgentRun == null || existingAgentRun.getRole() == null ? roleForMessage(message)
+					: existingAgentRun.getRole();
 			tagAgentRun(message, runId, role);
 		}
 	}

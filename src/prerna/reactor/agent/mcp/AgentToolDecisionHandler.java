@@ -44,6 +44,7 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
@@ -55,7 +56,6 @@ import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
@@ -344,8 +344,7 @@ public final class AgentToolDecisionHandler {
 		}
 		InputMessage toolResultMessage = findToolResultMessage(room, parentMessageId, toolCallId);
 		if (toolResultMessage != null) {
-			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, runId);
-			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, "tool_result");
+			toolResultMessage.setAgentRun(new AgentRunMessageContext(runId, "tool_result"));
 			RoomMessageStore.persist(room, userId);
 		}
 

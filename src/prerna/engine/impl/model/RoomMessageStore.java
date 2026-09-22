@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
@@ -70,7 +71,6 @@ public final class RoomMessageStore {
 
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
-	private static final String AGENT_RUN_ID_ORNAMENT = "agentRunId";
 	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
 
 	static {
@@ -201,7 +201,7 @@ public final class RoomMessageStore {
 	 * Repeating the same message ID is a no-op.
 	 */
 	public static boolean appendPlatformMessageIfAbsent(String roomId, String userId, String messageId, String text,
-			Map<String, Object> ornaments) {
+			AgentRunMessageContext agentRun) {
 		try (RoomMutationLock ignored = acquireMutationLock(roomId)) {
 			Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
 			if (room == null) {
@@ -223,16 +223,14 @@ public final class RoomMessageStore {
 			if (latestMessage != null) {
 				message.setParentMessageId(latestMessage.getMessageId());
 			}
-			if (ornaments != null) {
-				ornaments.forEach(message::setOrnament);
-			}
 			// Platform events belong to the conversation segment they follow. Preserve any
-			// originating run in a separate ornament, but group/display this message with
+			// originating run in its context, but group/display this message with
 			// its actual parent run when one is tagged.
-			if (latestMessage != null && latestMessage.getOrnament(AGENT_RUN_ID_ORNAMENT) != null) {
-				message.setOrnament(AGENT_RUN_ID_ORNAMENT,
-						latestMessage.getOrnament(AGENT_RUN_ID_ORNAMENT));
+			AgentRunMessageContext latestAgentRun = latestMessage == null ? null : latestMessage.getAgentRun();
+			if (agentRun != null && latestAgentRun != null) {
+				agentRun.setRunId(latestAgentRun.getRunId());
 			}
+			message.setAgentRun(agentRun);
 			room.getMessages().add(message);
 			if (!persist(room, userId)) {
 				throw new IllegalStateException("Unable to persist platform message for room " + roomId);

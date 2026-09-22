@@ -43,6 +43,7 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.ClaudeCodeAgentHarness;
@@ -471,8 +472,8 @@ public final class AgentRunService {
 			if (message == null) {
 				continue;
 			}
-			Object taggedRunId = message.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
-			if (taggedRunId != null && runId.equals(String.valueOf(taggedRunId))) {
+			AgentRunMessageContext agentRun = message.getAgentRun();
+			if (agentRun != null && runId.equals(agentRun.getRunId())) {
 				runMessages.add(message);
 			}
 		}
