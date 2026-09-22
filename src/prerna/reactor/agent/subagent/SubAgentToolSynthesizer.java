@@ -139,8 +139,8 @@ public final class SubAgentToolSynthesizer {
                         + "Default: false (subagent gets its own private room folder)."));
 		properties.put("completionMode", schemaString(
 				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
-						+ "to the parent room without waiting. CONTINUE currently posts like NOTIFY; automatic continuation "
-						+ "is added separately."));
+						+ "to the parent room without waiting. CONTINUE posts the result and then starts one new run in "
+						+ "the parent room to continue the task; do not call WaitForSubAgent for NOTIFY or CONTINUE."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -181,8 +181,8 @@ public final class SubAgentToolSynthesizer {
                         + "Default: false (subagent gets its own private room folder)."));
 		properties.put("completionMode", schemaString(
 				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
-						+ "to the parent room without waiting. CONTINUE currently posts like NOTIFY; automatic continuation "
-						+ "is added separately."));
+						+ "to the parent room without waiting. CONTINUE posts the result and then starts one new run in "
+						+ "the parent room to continue the task; do not call WaitForSubAgent for NOTIFY or CONTINUE."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");

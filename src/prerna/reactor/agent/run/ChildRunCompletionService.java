@@ -3,6 +3,7 @@ package prerna.reactor.agent.run;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,52 +20,95 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.om.Insight;
+import prerna.util.Utility;
 
 /** Delivers detached child results and submits their optional continuation. */
 public final class ChildRunCompletionService {
 
 	private static final Logger logger = LogManager.getLogger(ChildRunCompletionService.class);
 	private static final Gson GSON = new Gson();
+	private static final String MAX_CONTINUATION_DEPTH = "AGENT_RUN_MAX_CONTINUATION_DEPTH";
+	private static final int DEFAULT_MAX_CONTINUATION_DEPTH = 5;
+	private static final int MAX_ERROR_TEXT_LENGTH = 2000;
+	private static final int RECOVERY_SCAN_LIMIT = 1000;
 
 	private ChildRunCompletionService() {
 	}
 
 	/** Load the durable delivery payload for one terminal child. */
 	static Delivery load(String childRunId) {
-		List<Map<String, Object>> completions = AgentRunStore.getTerminalChildCompletions(childRunId, null, 1);
+		List<Map<String, Object>> completions = AgentRunStore.getTerminalChildCompletions(childRunId, null, null, null, 1);
 		return completions.isEmpty() ? null : deliveryFrom(completions.getFirst());
 	}
 
-	/** Find terminal children whose deterministic delivery can be re-queued. */
-	static List<String> findTerminalChildIds(String parentRunId) {
-		List<Map<String, Object>> completions = AgentRunStore.getTerminalChildCompletions(null, parentRunId, 0);
-		List<String> childRunIds = new ArrayList<>();
-		if (completions.isEmpty()) {
-			return childRunIds;
-		}
-		Delivery first = deliveryFrom(completions.getFirst());
-		Room room = ModelInferenceLogsUtils.getRoomById(first.parentRoomId(), first.userId());
-		if (room == null) {
-			throw new IllegalStateException("Unable to find parent room for runId=" + parentRunId);
-		}
-		Set<String> deliveredMessageIds = new HashSet<>();
-		for (AbstractMessage message : room.getMessages()) {
-			deliveredMessageIds.add(message.getMessageId());
-		}
+	/** Find terminal children of runs in this room whose delivery can be re-queued. */
+	static List<String> findUndeliveredChildIdsForRoom(String parentRoomId, String userId) {
+		return findUndelivered(AgentRunStore.getTerminalChildCompletions(null, null, parentRoomId, userId, 0));
+	}
+
+	/** Bounded scan of the most recent terminal children, used once per JVM to repair lost queue items. */
+	static List<String> findRecentUndeliveredChildIds() {
+		return findUndelivered(AgentRunStore.getTerminalChildCompletions(null, null, null, null, RECOVERY_SCAN_LIMIT));
+	}
+
+	private static List<String> findUndelivered(List<Map<String, Object>> completions) {
+		// Rooms are keyed by (roomId, userId); load each projection once.
+		Map<String, List<Delivery>> byRoom = new LinkedHashMap<>();
 		for (Map<String, Object> completion : completions) {
-			Delivery delivery = deliveryFrom(completion);
-			boolean messageMissing = !deliveredMessageIds.contains(deterministicMessageId(delivery.childRunId()));
-			boolean continuationMissing = delivery.mode() == SubAgentRunCompletionMode.CONTINUE
-					&& !AgentRunStore.runExists(deterministicContinuationRunId(delivery.childRunId()));
-			if (delivery.mode() != SubAgentRunCompletionMode.JOIN && (messageMissing || continuationMissing)) {
-				childRunIds.add(delivery.childRunId());
+			Delivery delivery;
+			try {
+				delivery = deliveryFrom(completion);
+			} catch (RuntimeException e) {
+				logger.warn("Skipping malformed child completion row: {}", e.getMessage());
+				continue;
+			}
+			if (delivery.mode() != SubAgentRunCompletionMode.JOIN) {
+				byRoom.computeIfAbsent(delivery.parentRoomId() + "\n" + delivery.userId(), ignored -> new ArrayList<>())
+						.add(delivery);
+			}
+		}
+		List<String> childRunIds = new ArrayList<>();
+		for (List<Delivery> deliveries : byRoom.values()) {
+			Delivery first = deliveries.getFirst();
+			Room room;
+			try {
+				room = ModelInferenceLogsUtils.getRoomById(first.parentRoomId(), first.userId());
+			} catch (RuntimeException e) {
+				logger.warn("Skipping child completions for parent roomId={}: {}", first.parentRoomId(), e.getMessage());
+				continue;
+			}
+			if (room == null) {
+				logger.warn("Skipping child completions for missing parent roomId={}", first.parentRoomId());
+				continue;
+			}
+			Set<String> deliveredMessageIds = new HashSet<>();
+			for (AbstractMessage message : room.getMessages()) {
+				deliveredMessageIds.add(message.getMessageId());
+			}
+			for (Delivery delivery : deliveries) {
+				boolean messageMissing = !deliveredMessageIds.contains(deterministicMessageId(delivery.childRunId()));
+				if (messageMissing || continuationMissing(delivery)) {
+					childRunIds.add(delivery.childRunId());
+				}
 			}
 		}
 		return childRunIds;
 	}
 
+	private static boolean continuationMissing(Delivery delivery) {
+		if (delivery.mode() != SubAgentRunCompletionMode.CONTINUE) {
+			return false;
+		}
+		AgentRunRequest parentRequest = parentRequestOrNull(delivery);
+		return parentRequest != null && withinDepthLimit(parentRequest)
+				&& !AgentRunStore.runExists(deterministicContinuationRunId(delivery.childRunId()));
+	}
+
 	/** Append exactly one result and submit exactly one continuation when requested. */
 	static void deliver(Delivery delivery) {
+		boolean continueRun = delivery.mode() == SubAgentRunCompletionMode.CONTINUE;
+		AgentRunRequest parentRequest = continueRun ? parentRequestOrNull(delivery) : null;
+		boolean depthExceeded = parentRequest != null && !withinDepthLimit(parentRequest);
 		AgentRunMessageContext agentRun = new AgentRunMessageContext(delivery.parentRunId(), "subagent_completion");
 		agentRun.setOriginatingRunId(delivery.parentRunId());
 		agentRun.setChildRunId(delivery.childRunId());
@@ -73,27 +117,31 @@ public final class ChildRunCompletionService {
 
 		boolean appended = RoomMessageStore.appendPlatformMessageIfAbsent(delivery.parentRoomId(), delivery.userId(),
 				deterministicMessageId(delivery.childRunId()),
-				messageText(delivery.childRunId(), delivery.status(), delivery.finalText(), delivery.errorMessage()),
+				messageText(delivery.childRunId(), delivery.status(), delivery.finalText(), delivery.errorMessage(),
+						depthExceeded),
 				agentRun);
 		if (appended) {
 			logger.info("Delivered child completion runId={} parentRunId={} mode={}", delivery.childRunId(),
 					delivery.parentRunId(), delivery.mode());
 		}
-		if (delivery.mode() == SubAgentRunCompletionMode.CONTINUE) {
-			submitContinuation(delivery);
+		if (!continueRun) {
+			return;
+		}
+		if (parentRequest == null) {
+			logger.warn("Skipped child continuation childRunId={} parentRunId={}: parent request is missing",
+					delivery.childRunId(), delivery.parentRunId());
+		} else if (depthExceeded) {
+			logger.warn("Skipped child continuation childRunId={} parentRunId={}: continuation depth limit reached",
+					delivery.childRunId(), delivery.parentRunId());
+		} else {
+			submitContinuation(delivery, parentRequest);
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	private static void submitContinuation(Delivery delivery) {
-		Map<String, Object> persistedParentRequest = GSON.fromJson(delivery.parentRequestJson(), Map.class);
-		AgentRunRequest parentRequest = AgentRunRequest.fromPersistedMap(persistedParentRequest, null);
-		if (parentRequest == null) {
-			throw new IllegalStateException("Parent run is missing its durable request");
-		}
-		String input = "[SEMOSS continuation] Subagent " + delivery.childRunId() + " is now "
+	private static void submitContinuation(Delivery delivery, AgentRunRequest parentRequest) {
+		String input = "[SEMOSS continuation] Delegated task " + delivery.childRunId() + " is now "
 				+ delivery.status().name() + ". Continue the original task using the result delivered immediately "
-				+ "before this message. Do not wait for or repeat that child task.";
+				+ "before this message. Do not wait for or repeat that delegated task.";
 		Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(delivery.userId(), parentRequest);
 		AgentRunRequest continuation = parentRequest.forContinuation(delivery.parentRoomId(), delivery.childRunId(),
 				input, continuationInsight);
@@ -102,6 +150,34 @@ public final class ChildRunCompletionService {
 		if (submitted) {
 			logger.info("Submitted child continuation runId={} childRunId={} parentRunId={}", continuationRunId,
 					delivery.childRunId(), delivery.parentRunId());
+		}
+	}
+
+	// Continuations inherit depth from the run that spawned the child, so chains stop at the cap.
+	private static boolean withinDepthLimit(AgentRunRequest parentRequest) {
+		return parentRequest.getContinuationDepth() < maxContinuationDepth();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static AgentRunRequest parentRequestOrNull(Delivery delivery) {
+		try {
+			Map<String, Object> persisted = delivery.parentRequestJson() == null ? null
+					: GSON.fromJson(delivery.parentRequestJson(), Map.class);
+			return AgentRunRequest.fromPersistedMap(persisted, null);
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
+	private static int maxContinuationDepth() {
+		String value = Utility.getDIHelperProperty(MAX_CONTINUATION_DEPTH);
+		if (value == null || value.isBlank()) {
+			return DEFAULT_MAX_CONTINUATION_DEPTH;
+		}
+		try {
+			return Math.max(0, Integer.parseInt(value.trim()));
+		} catch (NumberFormatException e) {
+			return DEFAULT_MAX_CONTINUATION_DEPTH;
 		}
 	}
 
@@ -122,14 +198,26 @@ public final class ChildRunCompletionService {
 			String parentRequestJson) {
 	}
 
-	private static String messageText(String childRunId, AgentRunStatus status, String finalText, String errorMessage) {
+	private static String messageText(String childRunId, AgentRunStatus status, String finalText, String errorMessage,
+			boolean depthExceeded) {
+		String text;
 		if (status == AgentRunStatus.COMPLETED) {
-			return "Subagent " + childRunId + " completed:\n\n" + defaultText(finalText, "(no output)");
+			text = "Subagent " + childRunId + " completed:\n\n" + defaultText(finalText, "(no output)");
+		} else if (status == AgentRunStatus.CANCELLED) {
+			text = "Subagent " + childRunId + " was cancelled.";
+		} else {
+			// Error text becomes model context, so keep it bounded.
+			text = "Subagent " + childRunId + " failed:\n\n"
+					+ truncate(defaultText(errorMessage, "Unknown failure"), MAX_ERROR_TEXT_LENGTH);
 		}
-		if (status == AgentRunStatus.CANCELLED) {
-			return "Subagent " + childRunId + " was cancelled.";
+		if (depthExceeded) {
+			text += "\n\nAutomatic continuation was skipped because the continuation limit was reached.";
 		}
-		return "Subagent " + childRunId + " failed:\n\n" + defaultText(errorMessage, "Unknown failure");
+		return text;
+	}
+
+	private static String truncate(String value, int maxLength) {
+		return value.length() <= maxLength ? value : value.substring(0, maxLength) + "... [truncated]";
 	}
 
 	private static String deterministicMessageId(String childRunId) {

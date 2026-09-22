@@ -205,14 +205,20 @@ public final class AgentRunService {
 	}
 
 	/** Rebuild lightweight delivery work from durable child rows when a room is loaded. */
-	public void queueChildCompletionsForParent(String parentRunId) {
+	public void queueChildCompletionsForRoom(String parentRoomId, Insight insight) {
 		try {
-			for (String childRunId : ChildRunCompletionService.findTerminalChildIds(parentRunId)) {
+			String userId = resolveUserId(insight);
+			if (userId == null) {
+				return;
+			}
+			for (String childRunId : ChildRunCompletionService.findUndeliveredChildIdsForRoom(parentRoomId, userId)) {
 				queueLoop.enqueueChildCompletion(childRunId);
 			}
 		} catch (Exception e) {
-			logger.warn("Unable to queue child completions for parentRunId={}: {}", parentRunId, e.getMessage(), e);
+			logger.warn("Unable to queue child completions for roomId={}: {}", parentRoomId, e.getMessage(), e);
 		}
+		// Starts the loop, and with it the one-time recovery scan, on the first room open.
+		queueLoop.signal();
 	}
 
 	/**

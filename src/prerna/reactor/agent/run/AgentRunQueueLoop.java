@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -76,6 +77,8 @@ final class AgentRunQueueLoop {
 	private static final Logger logger = LogManager.getLogger(AgentRunQueueLoop.class);
 	private static final int SCAN_LIMIT = 0;
 	private static final long IDLE_WAIT_MS = 1000L;
+	private static final long DELIVERY_RETRY_BASE_MS = 1000L;
+	private static final long DELIVERY_RETRY_MAX_MS = 60000L;
 
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
@@ -83,6 +86,9 @@ final class AgentRunQueueLoop {
 	private final Map<String, Room> automationResumeRoomsByRun = new ConcurrentHashMap<>();
 	private final Queue<String> childCompletions = new ConcurrentLinkedQueue<>();
 	private final Set<String> queuedChildCompletions = ConcurrentHashMap.newKeySet();
+	// Failed deliveries wait here until their backoff expires.
+	private final Map<String, DeliveryRetry> deliveryRetries = new ConcurrentHashMap<>();
+	private final AtomicBoolean recoveryScanStarted = new AtomicBoolean(false);
 	/** Owns the room lock, the run threads, and the turn leases for this node. */
 	private final AgentRunRegistry activeRuns = new AgentRunRegistry();
 
@@ -154,11 +160,19 @@ final class AgentRunQueueLoop {
 	}
 
 	private void loop() {
+		startRecoveryScan();
 		while (true) {
 			boolean didWork = false;
 			try {
 				didWork = tryExecuteChildCompletions();
+				// Snapshot before the scan so a handle remembered mid-scan is never swept.
+				Set<String> rebuiltBeforeScan = rebuiltHandleRunIds();
 				List<AgentRunRecord> records = AgentRunStore.getSubmittedRuns(SCAN_LIMIT, null);
+				Set<String> submittedRunIds = new HashSet<>();
+				for (AgentRunRecord record : records) {
+					submittedRunIds.add(record.runId());
+				}
+				releaseStaleRebuiltHandles(rebuiltBeforeScan, submittedRunIds);
 				for (AgentRunRecord record : records) {
 					InsightHandle insightHandle = insightsByRun.get(record.runId());
 					if (insightHandle == null && record.request().getContinuationChildRunId() != null) {
@@ -194,6 +208,48 @@ final class AgentRunQueueLoop {
 		}
 	}
 
+	// Lost in-memory queue items are rebuilt once per JVM from recent durable child rows.
+	private void startRecoveryScan() {
+		if (!recoveryScanStarted.compareAndSet(false, true)) {
+			return;
+		}
+		Thread.ofVirtual().name("child-completion-recovery").start(() -> {
+			try {
+				List<String> childRunIds = ChildRunCompletionService.findRecentUndeliveredChildIds();
+				for (String childRunId : childRunIds) {
+					enqueueChildCompletion(childRunId);
+				}
+				if (!childRunIds.isEmpty()) {
+					logger.info("AgentRunQueueLoop: recovered {} undelivered child completions", childRunIds.size());
+				}
+			} catch (Exception e) {
+				logger.warn("AgentRunQueueLoop: child completion recovery scan failed: {}", e.getMessage(), e);
+			}
+		});
+	}
+
+	private Set<String> rebuiltHandleRunIds() {
+		Set<String> runIds = new HashSet<>();
+		for (Map.Entry<String, InsightHandle> entry : insightsByRun.entrySet()) {
+			if (entry.getValue().ownsUser()) {
+				runIds.add(entry.getKey());
+			}
+		}
+		return runIds;
+	}
+
+	// A rebuilt context whose run started on another node would otherwise stay in memory forever.
+	private void releaseStaleRebuiltHandles(Set<String> rebuiltBeforeScan, Set<String> submittedRunIds) {
+		for (String runId : rebuiltBeforeScan) {
+			if (!submittedRunIds.contains(runId) && !activeRuns.isRegistered(runId)) {
+				InsightHandle removed = insightsByRun.remove(runId);
+				if (removed != null) {
+					removed.release();
+				}
+			}
+		}
+	}
+
 	/**
 	 * Give ready child results the parent room turn before a later submitted run so
 	 * that run receives the result in its model context.
@@ -206,10 +262,17 @@ final class AgentRunQueueLoop {
 			if (childRunId == null) {
 				break;
 			}
+			DeliveryRetry retry = deliveryRetries.get(childRunId);
+			if (retry != null && retry.nextAttemptAtMs() > System.currentTimeMillis()) {
+				childCompletions.offer(childRunId);
+				continue;
+			}
 			try {
 				ChildRunCompletionService.Delivery delivery = ChildRunCompletionService.load(childRunId);
 				if (delivery == null) {
-					childCompletions.offer(childRunId);
+					// Terminal child or its same-owner parent no longer exists; nothing to deliver.
+					deliveryRetries.remove(childRunId);
+					queuedChildCompletions.remove(childRunId);
 					continue;
 				}
 				if (delivery.mode() == SubAgentRunCompletionMode.JOIN) {
@@ -222,12 +285,27 @@ final class AgentRunQueueLoop {
 					childCompletions.offer(childRunId);
 				}
 			} catch (Exception e) {
-				childCompletions.offer(childRunId);
-				logger.warn("AgentRunQueueLoop: unable to prepare child completion runId={}: {}", childRunId,
-						e.getMessage(), e);
+				retryDelivery(childRunId, e);
 			}
 		}
 		return didWork;
+	}
+
+	// Durable work never gives up; capped backoff keeps a stuck item cheap.
+	private void retryDelivery(String childRunId, Exception e) {
+		DeliveryRetry previous = deliveryRetries.get(childRunId);
+		int attempts = previous == null ? 1 : previous.attempts() + 1;
+		long delayMs = Math.min(DELIVERY_RETRY_MAX_MS, DELIVERY_RETRY_BASE_MS << Math.min(attempts - 1, 16));
+		deliveryRetries.put(childRunId, new DeliveryRetry(attempts, System.currentTimeMillis() + delayMs));
+		childCompletions.offer(childRunId);
+		// Log on attempts 1, 2, 4, 8, ... so a permanently stuck item does not flood the log.
+		if (Integer.bitCount(attempts) == 1) {
+			logger.warn("AgentRunQueueLoop: child completion delivery failed runId={} attempt={} retryInMs={}: {}",
+					childRunId, attempts, delayMs, e.getMessage(), e);
+		}
+	}
+
+	private record DeliveryRetry(int attempts, long nextAttemptAtMs) {
 	}
 
 	private boolean tryExecuteChildCompletion(ChildRunCompletionService.Delivery delivery) {
@@ -248,19 +326,13 @@ final class AgentRunQueueLoop {
 			activeRun.attachLease(lease);
 
 			Thread thread = Thread.ofVirtual().name("child-completion-" + childRunId).unstarted(() -> {
-				boolean delivered = false;
 				try {
 					ChildRunCompletionService.deliver(delivery);
-					delivered = true;
+					deliveryRetries.remove(childRunId);
+					queuedChildCompletions.remove(childRunId);
 				} catch (Exception e) {
-					logger.warn("AgentRunQueueLoop: child completion delivery failed runId={}: {}", childRunId,
-							e.getMessage(), e);
+					retryDelivery(childRunId, e);
 				} finally {
-					if (delivered) {
-						queuedChildCompletions.remove(childRunId);
-					} else {
-						childCompletions.offer(childRunId);
-					}
 					activeRun.close();
 					signal();
 				}

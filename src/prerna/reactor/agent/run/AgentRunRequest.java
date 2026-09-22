@@ -58,6 +58,8 @@ public final class AgentRunRequest {
 	private final String parentRunId;
 	private final String ownerAuthType;
 	private final String continuationChildRunId;
+	// Number of automatic continuations that led to this run; root user runs are 0.
+	private final int continuationDepth;
 	private final SubAgentRunCompletionMode completionMode;
 	private final String input;
 	private final String engineIdFallback;
@@ -77,7 +79,7 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null, SubAgentRunCompletionMode.JOIN, null,
-				null);
+				null, 0);
 	}
 
 	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
@@ -85,18 +87,19 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight, boolean resumeMode) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null, SubAgentRunCompletionMode.JOIN,
-				null, null);
+				null, null, 0);
 	}
 
 	private AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
 			boolean resumeMode, String parentRunId, SubAgentRunCompletionMode completionMode, String ownerAuthType,
-			String continuationChildRunId) {
+			String continuationChildRunId, int continuationDepth) {
 		this.roomId = roomId;
 		this.parentRunId = trimmedStringValue(parentRunId);
 		this.ownerAuthType = ownerAuthType == null ? resolveOwnerAuthType(insight) : trimmedStringValue(ownerAuthType);
 		this.continuationChildRunId = trimmedStringValue(continuationChildRunId);
+		this.continuationDepth = Math.max(0, continuationDepth);
 		this.completionMode = completionMode == null ? SubAgentRunCompletionMode.JOIN : completionMode;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -142,6 +145,10 @@ public final class AgentRunRequest {
 		return continuationChildRunId;
 	}
 
+	public int getContinuationDepth() {
+		return continuationDepth;
+	}
+
 	/**
 	 * Returns an immutable copy associated with the durable run that spawned it.
 	 * Root runs use the original request and therefore retain a {@code null}
@@ -150,7 +157,7 @@ public final class AgentRunRequest {
 	public AgentRunRequest withParentRunId(String parentRunId) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId);
+				ownerAuthType, continuationChildRunId, continuationDepth);
 	}
 
 	/**
@@ -159,7 +166,7 @@ public final class AgentRunRequest {
 	public AgentRunRequest withCompletionMode(SubAgentRunCompletionMode completionMode) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId);
+				ownerAuthType, continuationChildRunId, continuationDepth);
 	}
 
 	/** Builds a fresh same-room run that follows one detached child result. */
@@ -167,7 +174,7 @@ public final class AgentRunRequest {
 			Insight continuationInsight) {
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
 				maxTurns, maxReflections, paramMap, agentParamMap, null, null, continuationInsight, false, null,
-				SubAgentRunCompletionMode.JOIN, ownerAuthType, childRunId);
+				SubAgentRunCompletionMode.JOIN, ownerAuthType, childRunId, continuationDepth + 1);
 	}
 
 	public String getInput() {
@@ -224,6 +231,7 @@ public final class AgentRunRequest {
 		map.put("parentRunId", parentRunId);
 		map.put("ownerAuthType", ownerAuthType);
 		map.put("continuationChildRunId", continuationChildRunId);
+		map.put("continuationDepth", continuationDepth);
 		map.put("completionMode", completionMode.name());
 		map.put("input", input);
 		map.put("engineIdFallback", engineIdFallback);
@@ -253,7 +261,8 @@ public final class AgentRunRequest {
 				listValue(map.get("mediaInputPaths")), listValue(map.get("mediaUrls")), insight,
 				booleanValue(map.get("resumeMode")), stringValue(map.get("parentRunId")),
 				SubAgentRunCompletionMode.fromPersistedValue(map.get("completionMode")),
-				stringValue(map.get("ownerAuthType")), stringValue(map.get("continuationChildRunId")));
+				stringValue(map.get("ownerAuthType")), stringValue(map.get("continuationChildRunId")),
+				intValue(map.get("continuationDepth"), 0));
 	}
 
 	private static String resolveOwnerAuthType(Insight insight) {

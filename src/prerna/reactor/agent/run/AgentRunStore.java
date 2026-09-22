@@ -396,7 +396,8 @@ public final class AgentRunStore {
 	}
 
 	/** Internal durable inputs for detached-child delivery and repair. */
-	static List<Map<String, Object>> getTerminalChildCompletions(String childRunId, String parentRunId, long limit) {
+	static List<Map<String, Object>> getTerminalChildCompletions(String childRunId, String parentRunId,
+			String parentRoomId, String userId, long limit) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -414,6 +415,12 @@ public final class AgentRunStore {
 			if (parentRunId != null && !parentRunId.isBlank()) {
 				query.append(" AND child.PARENT_RUN_ID = ?");
 			}
+			if (parentRoomId != null && !parentRoomId.isBlank()) {
+				query.append(" AND parent.ROOM_ID = ?");
+			}
+			if (userId != null && !userId.isBlank()) {
+				query.append(" AND child.USER_ID = ?");
+			}
 			query.append(" ORDER BY child.COMPLETED_AT DESC, child.RUN_ID DESC");
 			if (limit > 0) {
 				db.getQueryUtil().addLimitOffsetToQuery(query, limit, 0);
@@ -429,6 +436,12 @@ public final class AgentRunStore {
 			}
 			if (parentRunId != null && !parentRunId.isBlank()) {
 				ps.setString(idx++, parentRunId.trim());
+			}
+			if (parentRoomId != null && !parentRoomId.isBlank()) {
+				ps.setString(idx++, parentRoomId.trim());
+			}
+			if (userId != null && !userId.isBlank()) {
+				ps.setString(idx++, userId.trim());
 			}
 
 			rs = ps.executeQuery();
