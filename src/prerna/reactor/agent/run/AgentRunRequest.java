@@ -56,6 +56,7 @@ public final class AgentRunRequest {
 
 	private final String roomId;
 	private final String parentRunId;
+	private final SubAgentRunCompletionMode completionMode;
 	private final String input;
 	private final String engineIdFallback;
 	private final String harnessType;
@@ -73,22 +74,23 @@ public final class AgentRunRequest {
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
-				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null);
+				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null, SubAgentRunCompletionMode.JOIN);
 	}
 
 	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
 			int maxTurns, int maxReflections, Map<String, Object> paramMap, Map<String, Object> agentParamMap,
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight, boolean resumeMode) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
-				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null);
+				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null, SubAgentRunCompletionMode.JOIN);
 	}
 
 	private AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
-			boolean resumeMode, String parentRunId) {
+			boolean resumeMode, String parentRunId, SubAgentRunCompletionMode completionMode) {
 		this.roomId = roomId;
 		this.parentRunId = trimmedStringValue(parentRunId);
+		this.completionMode = completionMode == null ? SubAgentRunCompletionMode.JOIN : completionMode;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
 		this.harnessType = harnessType;
@@ -121,6 +123,10 @@ public final class AgentRunRequest {
 		return parentRunId;
 	}
 
+	public SubAgentRunCompletionMode getCompletionMode() {
+		return completionMode;
+	}
+
 	/**
 	 * Returns an immutable copy associated with the durable run that spawned it.
 	 * Root runs use the original request and therefore retain a {@code null}
@@ -128,7 +134,15 @@ public final class AgentRunRequest {
 	 */
 	public AgentRunRequest withParentRunId(String parentRunId) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
-				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId);
+				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode);
+	}
+
+	/**
+	 * Returns an immutable copy with the requested child-completion behavior.
+	 */
+	public AgentRunRequest withCompletionMode(SubAgentRunCompletionMode completionMode) {
+		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
+				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode);
 	}
 
 	public String getInput() {
@@ -183,6 +197,7 @@ public final class AgentRunRequest {
 		Map<String, Object> map = new HashMap<>();
 		map.put("roomId", roomId);
 		map.put("parentRunId", parentRunId);
+		map.put("completionMode", completionMode.name());
 		map.put("input", input);
 		map.put("engineIdFallback", engineIdFallback);
 		map.put("harnessType", harnessType);
@@ -209,7 +224,8 @@ public final class AgentRunRequest {
 				map.get("paramMap") instanceof Map ? (Map<String, Object>) map.get("paramMap") : null,
 				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
 				listValue(map.get("mediaInputPaths")), listValue(map.get("mediaUrls")), insight,
-				booleanValue(map.get("resumeMode")), stringValue(map.get("parentRunId")));
+				booleanValue(map.get("resumeMode")), stringValue(map.get("parentRunId")),
+				SubAgentRunCompletionMode.fromPersistedValue(map.get("completionMode")));
 	}
 
 	private static List<String> immutableStringList(List<String> values) {
