@@ -66,8 +66,8 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 	private static final String SEND_RESPONSE = "sendResponse";
 
 	public MicrosoftCalendarRespondToEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, RESPONSE, COMMENT, SEND_RESPONSE };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { EVENT_ID, RESPONSE, COMMENT, SEND_RESPONSE, MAILBOX };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -87,11 +87,12 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 		// what accepting or declining usually means
 		Boolean sendResponse = optionalBoolean(SEND_RESPONSE);
 		boolean tellOrganizer = sendResponse == null || sendResponse;
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			String replied = MicrosoftCalendarHelper.respondToEvent(accessToken, eventId, response, comment,
+			String replied = MicrosoftCalendarHelper.respondToEvent(accessToken, mailbox, eventId, response, comment,
 					tellOrganizer);
 
 			Map<String, Object> output = new LinkedHashMap<>();
@@ -114,7 +115,7 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 
 	@Override
 	public String getReactorDescription() {
-		return "Accept, decline or tentatively accept a Microsoft 365 meeting invitation as the signed in user.";
+		return "Accept, decline or tentatively accept a Microsoft 365 meeting invitation, as the signed in user or on behalf of somebody they are a delegate of.";
 	}
 
 	@Override
