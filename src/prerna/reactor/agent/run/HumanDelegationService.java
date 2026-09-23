@@ -56,6 +56,7 @@ public final class HumanDelegationService {
 	public static final String ROOM_OPTION_ACTION_ID = "delegation_action_id";
 	private static final String ENABLED_PROPERTY = "COLLAB_DELEGATION_ENABLED";
 	private static final String STATUS_PENDING = "PENDING";
+	private static final String STATUS_CANCELLED = "CANCELLED";
 	private static final String STATUS_RESPONDED = "RESPONDED";
 	private static final String STATUS_DECLINED = "DECLINED";
 	// Child ERROR_MESSAGE prefix; the completion message keys off it.
@@ -68,6 +69,7 @@ public final class HumanDelegationService {
 	public static final String FILES_FOLDER = "delegations";
 	// Files sent with a request land in the assignee's room folder here.
 	private static final String REQUEST_FILES_FOLDER = "from-requester";
+	public static final String REQUEST_ORNAMENT = "delegationRequest";
 	private static final int MAX_LINKS = 20;
 	private static final String MAX_FILES_PROPERTY = "COLLAB_DELEGATION_MAX_FILES";
 	private static final String MAX_FILE_MB_PROPERTY = "COLLAB_DELEGATION_MAX_FILE_MB";
@@ -195,6 +197,10 @@ public final class HumanDelegationService {
 		actionId = (String) action.get("actionId");
 		String runId = (String) action.get("runId");
 		String userId = (String) action.get("userId");
+		if (STATUS_CANCELLED.equals(action.get("status"))) {
+			throw new IllegalStateException(requesterLabel(parseJson(action.get("toolMeta")))
+					+ " withdrew this request, so nothing was sent.");
+		}
 		if (STATUS_PENDING.equals(action.get("status"))) {
 			String result = decline ? trimToNull(reason) : trimToNull(response);
 			if (!decline && result == null) {
@@ -485,8 +491,32 @@ public final class HumanDelegationService {
 		RoomUtils.createRoomIfNotExists(roomId, assigneeInsight, null,
 				"Request from " + requester.shortName() + ": " + packet.get("question"), null, options, null, null, null);
 		RoomMessageStore.appendPlatformMessageIfAbsent(roomId, assignee.userId(),
-				deterministicId("semoss:delegation-packet:" + actionId), packetText(requester, packet),
-				null);
+				deterministicId("semoss:delegation-packet:" + actionId), packetText(requester, packet), null,
+				Map.of(REQUEST_ORNAMENT, requestOrnament(roomId, requester, packet)), null);
+	}
+
+	// Structured copy of the packet so clients show a request card; the model still reads the text.
+	private static Map<String, Object> requestOrnament(String roomId, Person requester, Map<String, Object> packet) {
+		Map<String, Object> ornament = new LinkedHashMap<>(packet);
+		ornament.put("requester", requester.label());
+		if (packet.get("files") instanceof List<?> paths) {
+			Path folder = Paths.get(Room.roomFolderPath(roomId));
+			List<Map<String, Object>> files = new ArrayList<>();
+			for (Object item : paths) {
+				String path = String.valueOf(item);
+				Map<String, Object> file = new LinkedHashMap<>();
+				file.put("path", path);
+				file.put("name", Paths.get(path).getFileName().toString());
+				try {
+					file.put("size", Files.size(folder.resolve(path)));
+				} catch (IOException e) {
+					// Size is display only.
+				}
+				files.add(file);
+			}
+			ornament.put("files", files);
+		}
+		return ornament;
 	}
 
 	private static String packetText(Person requester, Map<String, Object> packet) {
