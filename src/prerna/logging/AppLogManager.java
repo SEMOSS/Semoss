@@ -27,12 +27,9 @@
  *******************************************************************************/
 package prerna.logging;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +43,8 @@ import org.apache.logging.log4j.core.filter.ThreadContextMapFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.apache.logging.log4j.core.util.KeyValuePair;
 
-import prerna.util.AssetUtility;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * Manages per-project Log4j2 {@link RollingFileAppender} instances.
@@ -62,14 +60,19 @@ import prerna.util.AssetUtility;
  * an appender has been registered. This means appenders are automatically
  * re-registered if Log4j2 reloads its configuration at runtime.
  * <p>
- * Log files are written to:
- * <pre>{projectVersionFolder}/logs/app.log</pre>
- * The {@code logs/} directory is added to the project's {@code .gitignore} to
- * prevent log files from being committed to git and causing pod filespace issues.
+ * Log files are written outside project content so project synchronization,
+ * publication, and Git operations never copy runtime logs.
  */
 public final class AppLogManager {
 
 	private static final Logger classLogger = LogManager.getLogger(AppLogManager.class);
+	private static final String APP_LOG_DIRECTORY_PROPERTY = "APP_LOG_DIRECTORY";
+	private static final String APP_LOG_MAX_FILE_SIZE_PROPERTY = "APP_LOG_MAX_FILE_SIZE";
+	private static final String APP_LOG_MAX_FILES_PROPERTY = "APP_LOG_MAX_FILES";
+	private static final String DEFAULT_MAX_FILE_SIZE = "10MB";
+	private static final int DEFAULT_MAX_FILES = 5;
+	private static final int MAX_CONFIGURED_FILES = 20;
+	private static final Pattern FILE_SIZE_PATTERN = Pattern.compile("(?i)^\\d+\\s*(KB|MB|GB)$");
 
 	/** Log pattern used for per-project appenders - mirrors the global file appender. */
 	private static final String LOG_PATTERN =
@@ -100,9 +103,12 @@ public final class AppLogManager {
 	 * Idempotent - safe to call on every {@code setContext()} invocation.
 	 *
 	 * @param projectId   the project whose logs should be captured
-	 * @param projectName the project display name used to resolve the version folder path
+	 * @param projectName the project display name retained for caller compatibility
 	 */
 	public static void ensureAppender(String projectId, String projectName) {
+		if (!isEnabled()) {
+			return;
+		}
 		if (projectId == null || projectId.isBlank()) {
 			return;
 		}
@@ -135,30 +141,31 @@ public final class AppLogManager {
 	 *
 	 * @param projectId   the project ID
 	 * @param projectName the project display name
-	 * @return absolute path, e.g. {@code .../version/logs/app.log}
+	 * @return absolute path, e.g. {@code .../logs/apps/{projectId}/app.log}
 	 */
 	public static String getLogFilePath(String projectId, String projectName) {
-		return AssetUtility.getProjectVersionFolder(projectName, projectId) + "/logs/app.log";
+		return getLogDirectory() + File.separator + projectId + File.separator + "app.log";
+	}
+
+	/**
+	 * Global operational kill switch. The feature remains enabled when the
+	 * property is absent for backward compatibility.
+	 */
+	public static boolean isEnabled() {
+		String configured = Utility.getDIHelperProperty(Constants.APP_LOGGING_ENABLED);
+		return configured == null || configured.isBlank() || Boolean.parseBoolean(configured);
 	}
 
 	// -- private --------------------------------------------------------------
 
 	private static void registerAppender(String projectId, String projectName,
 			String appenderName, LoggerContext ctx) throws IOException {
-		// Write to version/logs/ - sits alongside assets/ so editors browsing the
-		// assets folder never see log files, but it's still within the project tree.
-		String versionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
-		String logDir = versionFolder + "/logs";
-		String logFile = logDir + "/app.log";
+		String logFile = getLogFilePath(projectId, projectName);
+		File logDirFile = new File(logFile).getParentFile();
 
-		// Create version/logs/ directory if it doesn't exist
-		File logDirFile = new File(logDir);
 		if (!logDirFile.exists() && !logDirFile.mkdirs()) {
-			classLogger.warn("Could not create log directory '{}' for project '{}'", logDir, projectId);
+			classLogger.warn("Could not create log directory '{}' for project '{}'", logDirFile, projectId);
 		}
-
-		// Ensure logs/ is gitignored - .gitignore is at the version folder root
-		ensureLogsGitIgnored(versionFolder);
 
 		Configuration config = ctx.getConfiguration();
 
@@ -179,9 +186,9 @@ public final class AppLogManager {
 				.withAppend(true)
 				.withLayout(layout)
 				.withFilter(filter)
-				.withPolicy(SizeBasedTriggeringPolicy.createPolicy("50MB"))
+				.withPolicy(SizeBasedTriggeringPolicy.createPolicy(getMaxFileSize()))
 				.withStrategy(DefaultRolloverStrategy.newBuilder()
-						.withMax("10")
+						.withMax(Integer.toString(getMaxFiles()))
 						.withConfig(config)
 						.build())
 				.setConfiguration(config)
@@ -204,29 +211,37 @@ public final class AppLogManager {
 		classLogger.info("Registered per-project log appender for '{}' -> {}", projectId, logFile);
 	}
 
-	/**
-	 * Appends {@code logs/} to the project's {@code .gitignore} if not already present.
-	 * The {@code .gitignore} lives at the version folder root (next to {@code assets/}).
-	 */
-	private static void ensureLogsGitIgnored(String versionFolder) {
+	private static String getLogDirectory() {
+		String configured = Utility.getDIHelperProperty(APP_LOG_DIRECTORY_PROPERTY);
+		if (configured != null && !configured.isBlank()) {
+			return Utility.normalizePath(configured.trim());
+		}
+		String logPath = System.getProperty("LOG_PATH");
+		String base = logPath == null || logPath.isBlank()
+				? Utility.getBaseFolder() + File.separator + "logs"
+				: logPath.trim();
+		return Utility.normalizePath(base + File.separator + "apps");
+	}
+
+	private static String getMaxFileSize() {
+		String configured = Utility.getDIHelperProperty(APP_LOG_MAX_FILE_SIZE_PROPERTY);
+		if (configured != null && FILE_SIZE_PATTERN.matcher(configured.trim()).matches()) {
+			return configured.trim().toUpperCase();
+		}
+		return DEFAULT_MAX_FILE_SIZE;
+	}
+
+	static int getMaxFiles() {
+		String configured = Utility.getDIHelperProperty(APP_LOG_MAX_FILES_PROPERTY);
+		if (configured == null || configured.isBlank()) {
+			return DEFAULT_MAX_FILES;
+		}
 		try {
-			File gitignore = new File(versionFolder, ".gitignore");
-
-			if (gitignore.exists()) {
-				String content = new String(Files.readAllBytes(gitignore.toPath()), StandardCharsets.UTF_8);
-				if (content.contains("logs/")) {
-					return;
-				}
-			}
-
-			try (FileWriter fw = new FileWriter(gitignore, true);
-					BufferedWriter bw = new BufferedWriter(fw)) {
-				bw.newLine();
-				bw.write("logs/");
-				bw.newLine();
-			}
-		} catch (IOException e) {
-			classLogger.warn("Could not update .gitignore for project at '{}': {}", versionFolder, e.getMessage());
+			return Math.max(1, Math.min(Integer.parseInt(configured.trim()), MAX_CONFIGURED_FILES));
+		} catch (NumberFormatException e) {
+			classLogger.warn("Invalid {} value '{}'; using {}", APP_LOG_MAX_FILES_PROPERTY, configured,
+					DEFAULT_MAX_FILES);
+			return DEFAULT_MAX_FILES;
 		}
 	}
 }

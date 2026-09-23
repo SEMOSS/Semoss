@@ -27,10 +27,9 @@
  *******************************************************************************/
 package prerna.logging;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +39,7 @@ import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
@@ -55,8 +55,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 /**
  * Searches a project's app log file (and its rotated siblings) on disk for
  * lines matching a text query and/or level filter. No database involved -
- * {@code app.log}'s own rotation (50MB x 10 files, see {@link AppLogManager})
- * already bounds how much there is to search.
+ * {@code app.log}'s configurable rotation already bounds how much there is to
+ * search.
  * <p>
  * Pixel usage:
  * <pre>
@@ -68,8 +68,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *   "limit": "50"
  * }]);
  * </pre>
- * Returns {@code {"lines": [...], "totalMatches": N, "hasMore": bool}} - lines
- * are newest-first.
+ * Returns {@code {"lines": [...], "hasMore": bool}} - lines are newest-first.
  * <p>
  * Security: owner-only, same rule {@code InsightWebsocket}'s app_logs watch
  * gate uses - logs can expose request/response payloads and other users'
@@ -81,8 +80,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 
 	private static final int DEFAULT_LIMIT = 50;
 	private static final int MAX_LIMIT = 500;
-	/** Rotated file suffixes to search, newest-rotated first - mirrors AppLogManager's DefaultRolloverStrategy numbering. */
-	private static final int MAX_ROTATED_FILES = 10;
+	private static final int MAX_OFFSET = 10_000;
 
 	public SearchAppLogsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PARAM_VALUES_MAP.getKey() };
@@ -92,6 +90,9 @@ public class SearchAppLogsReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
+		if (!AppLogManager.isEnabled()) {
+			throw new IllegalStateException("Application logging is disabled");
+		}
 
 		User user = this.insight.getUser();
 		if (user == null || user.getPrimaryLoginToken() == null) {
@@ -115,40 +116,56 @@ public class SearchAppLogsReactor extends AbstractReactor {
 
 		String query = getString(params, "query").toLowerCase();
 		Set<String> levels = parseLevels(getString(params, "levels"));
-		int offset = Math.max(0, (int) parseLong(getString(params, "offset"), 0L));
+		int offset = clampOffset(parseLong(getString(params, "offset"), 0L));
 		int limit = clampLimit(parseLong(getString(params, "limit"), DEFAULT_LIMIT));
 
 		String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 		List<File> files = resolveLogFiles(projectId, projectName);
+		SearchResult searchResult = searchFiles(files, query, levels, offset, limit);
+		return buildResult(searchResult.lines(), searchResult.hasMore());
+	}
 
-		List<String> matches = new ArrayList<>();
-		int totalMatches = 0;
-		// Newest file first, and within each file, newest line first - scan
-		// everything to get an accurate total, but stop building `matches` once
-		// we've collected enough for this page (offset + limit).
+	static SearchResult searchFiles(List<File> files, String query, Set<String> levels, int offset, int limit) {
+		List<String> matches = new ArrayList<>(limit);
+		int matchedLines = 0;
+		boolean hasMore = false;
 		for (File file : files) {
-			List<String> lines = readLinesReversed(file);
-			for (String line : lines) {
-				if (!matchesFilter(line, query, levels)) {
-					continue;
+			try (ReversedLinesFileReader reader = ReversedLinesFileReader.builder()
+					.setFile(file)
+					.setCharset(StandardCharsets.UTF_8)
+					.get()) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (!matchesFilter(line, query, levels)) {
+						continue;
+					}
+					if (matchedLines >= offset) {
+						if (matches.size() == limit) {
+							hasMore = true;
+							break;
+						}
+						matches.add(line);
+					}
+					matchedLines++;
 				}
-				if (totalMatches >= offset && matches.size() < limit) {
-					matches.add(line);
-				}
-				totalMatches++;
+			} catch (IOException e) {
+				classLogger.warn("Could not read log file '{}'", file.getPath(), e);
+			}
+			if (hasMore) {
+				break;
 			}
 		}
 
-		return buildResult(matches, totalMatches, offset + matches.size() < totalMatches);
+		return new SearchResult(matches, hasMore);
 	}
 
 	// -- private helpers --------------------------------------------------------
 
 	/**
-	 * {@code app.log} plus any existing rotated siblings ({@code app.log.1} ...
-	 * {@code app.log.10}), newest-first - {@code app.log.1} is the most
+	 * {@code app.log} plus any existing rotated siblings, newest-first -
+	 * {@code app.log.1} is the most
 	 * recently rotated file under Log4j2's default (ascending) fileIndex
-	 * strategy, {@code .10} the oldest still retained.
+	 * strategy, and the highest configured suffix is the oldest retained.
 	 */
 	private List<File> resolveLogFiles(String projectId, String projectName) {
 		List<File> files = new ArrayList<>();
@@ -157,7 +174,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 		if (active.exists()) {
 			files.add(active);
 		}
-		for (int i = 1; i <= MAX_ROTATED_FILES; i++) {
+		for (int i = 1; i <= AppLogManager.getMaxFiles(); i++) {
 			File rotated = new File(basePath + "." + i);
 			if (rotated.exists()) {
 				files.add(rotated);
@@ -166,23 +183,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 		return files;
 	}
 
-	/** Reads a file and returns its lines newest-first (last line in the file first). */
-	private List<String> readLinesReversed(File file) {
-		List<String> lines = new ArrayList<>();
-		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-			String line;
-			while ((line = reader.readLine()) != null) {
-				lines.add(line);
-			}
-		} catch (IOException e) {
-			classLogger.warn("Could not read log file '{}': {}", file.getPath(), e.getMessage());
-			return lines;
-		}
-		java.util.Collections.reverse(lines);
-		return lines;
-	}
-
-	private boolean matchesFilter(String line, String query, Set<String> levels) {
+	private static boolean matchesFilter(String line, String query, Set<String> levels) {
 		if (!levels.isEmpty()) {
 			boolean levelMatch = false;
 			for (String level : levels) {
@@ -222,12 +223,21 @@ public class SearchAppLogsReactor extends AbstractReactor {
 		return (int) Math.min(requested, MAX_LIMIT);
 	}
 
-	private NounMetadata buildResult(List<String> lines, int totalMatches, boolean hasMore) {
+	private int clampOffset(long requested) {
+		if (requested <= 0) {
+			return 0;
+		}
+		return (int) Math.min(requested, MAX_OFFSET);
+	}
+
+	private NounMetadata buildResult(List<String> lines, boolean hasMore) {
 		Map<String, Object> result = new HashMap<>();
 		result.put("lines", lines);
-		result.put("totalMatches", totalMatches);
 		result.put("hasMore", hasMore);
 		return new NounMetadata(GSON.toJson(result), PixelDataType.JSON_OBJECT, PixelOperationType.LOGGING_DATA);
+	}
+
+	record SearchResult(List<String> lines, boolean hasMore) {
 	}
 
 	private Map<String, Object> getParamMap() {
