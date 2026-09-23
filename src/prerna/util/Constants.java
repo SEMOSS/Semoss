@@ -1096,7 +1096,9 @@ public class Constants {
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
 	public static final String SKILL_FUNCTIONS = "functions";
+	public static final String SKILL_MCP = "mcp";
 	public static final String SKILL_MODEL = "model";
 	public static final String SKILL_PAGINATION = "pagination";
 	public static final String SKILL_PERMISSIONS = "permissions";
@@ -1118,6 +1120,8 @@ public class Constants {
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
+	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";

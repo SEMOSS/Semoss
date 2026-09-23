@@ -95,7 +95,7 @@ public class MicrosoftOneDriveListSharedFilesReactor extends AbstractMicrosoftOn
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> files = MicrosoftOneDriveHelper.listSharedFiles(accessToken, search, limit);
 
 			Map<String, Object> output = new LinkedHashMap<>();

@@ -57,7 +57,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * The id of a chat here is what the other chat reactors take as their
  * {@code chatId}. A one on one chat has no topic of its own, so the
  * {@code displayName} that comes back is the name of whoever else is in it,
- * which is how it is labelled in the Teams client too.
+ * which is how it is labeled in the Teams client too.
  * </p>
  *
  * <p>
@@ -98,7 +98,7 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			// the signed in user's own address is what keeps them out of the name a
 			// chat is given
 			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);

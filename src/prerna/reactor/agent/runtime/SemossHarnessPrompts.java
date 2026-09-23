@@ -43,8 +43,9 @@ package prerna.reactor.agent.runtime;
  * are in play (see {@link SemossAgentHarness})</li>
  * <li>Project AGENTS.md / CLAUDE.md -- disabled by default; opt-in per
  * room</li>
- * <li>{@code room.options.instructions} or -- room/run-specific overrides
- * workspace {@code CONFIG_JSON.system_prompt}</li>
+ * <li>Workspace {@code CONFIG_JSON.system_prompt}, with room instructions
+ * appended when {@code overrideSystemPrompt=false}; otherwise room instructions
+ * replace it</li>
  * </ol>
  *
  * <p>

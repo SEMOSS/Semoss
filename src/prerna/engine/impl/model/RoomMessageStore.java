@@ -153,18 +153,35 @@ public final class RoomMessageStore {
 	public static String messageHistoryWithNewMessage(Room room, AbstractMessage newMessage) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), newMessage);
 		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(branch));
 	}
 
 	public static String currentMessageHistory(Room room) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), null);
 		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(branch));
 	}
 
 	public static String providerMessageHistory(Room room, List<AbstractMessage> messages) {
 		validateProviderPayload(room, messages);
-		return MessageUtils.toJsonArrayWithImageData(messages);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(messages));
+	}
+
+	public static final String PPTX_EDIT_CONTEXT_START = "semossPptxEditContextStart";
+
+	/** Filter only the provider view. Stored messages and their parent links remain intact. */
+	public static List<AbstractMessage> providerContext(List<AbstractMessage> branch) {
+		for (int i = branch.size() - 1; i >= 0; i--) {
+			AbstractMessage message = branch.get(i);
+			if (message instanceof prerna.engine.impl.model.message.InputMessage && message.hasTextPart()
+					&& !message.hasToolResultPart() && !message.isPlatformGenerated()
+					&& !"reflection_input".equals(message.getOrnament("agentRunRole"))) {
+				// A later ordinary request opts back into full context; no room-wide setting is changed.
+				return Boolean.TRUE.equals(message.getOrnament(PPTX_EDIT_CONTEXT_START))
+						? new ArrayList<>(branch.subList(i, branch.size())) : branch;
+			}
+		}
+		return branch;
 	}
 
 	public static void normalizeForProviderPayload(Room room) {

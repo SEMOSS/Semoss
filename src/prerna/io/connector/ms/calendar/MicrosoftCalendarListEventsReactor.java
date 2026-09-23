@@ -120,7 +120,7 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 			}
 
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> events = MicrosoftCalendarHelper.listEvents(accessToken, mailbox, calendarId,
 					start, end, subject, includeBody, maxBodyChars, timeZone, limit);
 

@@ -101,7 +101,7 @@ public class MicrosoftTeamsSendChannelMessageReactor extends AbstractMicrosoftTe
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> sent = MicrosoftTeamsMessageHelper.sendChannelMessage(accessToken, teamId, channelId,
 					replyToId, subject, content, html, mentions, attachmentUrls, attachmentNames,
 					DEFAULT_MAX_BODY_CHARS);

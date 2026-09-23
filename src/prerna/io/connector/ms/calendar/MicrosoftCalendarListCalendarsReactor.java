@@ -84,7 +84,7 @@ public class MicrosoftCalendarListCalendarsReactor extends AbstractMicrosoftCale
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			// the signed in user's own address is what tells their calendars apart
 			// from the ones other people shared with them
 			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
