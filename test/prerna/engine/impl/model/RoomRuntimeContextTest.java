@@ -133,6 +133,7 @@ class RoomRuntimeContextTest {
 		var first = results(room, firstCall, "a", "b");
 		try (var store = mockStatic(RoomMessageStore.class); var media = mockStatic(RoomUtils.class)) {
 			store.when(() -> RoomMessageStore.currentMessageHistory(room)).thenCallRealMethod();
+			store.when(() -> RoomMessageStore.providerContext(org.mockito.ArgumentMatchers.anyList())).thenCallRealMethod();
 			room.continueAfterToolExecutionResultsWithRuntimeContext(new HashMap<>(), firstCall.getMessageId(), engine,
 					insight, SYSTEM, "[SEMOSS runtime status]\n39 remaining\n[/SEMOSS runtime status]");
 			String priorParts = new JSONArray(requests.getFirst().getJSONObject(requests.getFirst().length() - 1)
@@ -162,6 +163,35 @@ class RoomRuntimeContextTest {
 		if (output != null) {
 			Files.writeString(Path.of(output), new JSONObject().put("requests", new JSONArray(requests)).toString(2));
 		}
+	}
+
+	@Test
+	void focusedEditOmitsHistoricalCodeButKeepsStoredChatAndCompleteToolPairs() {
+		var room = room();
+		var old = InputMessage.builder(room).withText("Original brief").build();
+		room.getMessages().add(old);
+		var oldReply = ResponseMessage.text("OLD_GENERATOR_CODE"); oldReply.setRoom(room);
+		oldReply.setParentMessageId(old.getMessageId()); room.getMessages().add(oldReply);
+		var edit = InputMessage.builder(room).withText("Edit slide 3. Original/recent user requests included here.").build();
+		edit.setParentMessageId(oldReply.getMessageId());
+		edit.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
+		String first = RoomMessageStore.messageHistoryWithNewMessage(room, edit);
+		assertFalse(first.contains("OLD_GENERATOR_CODE"));
+		assertTrue(first.contains("Edit slide 3"));
+		assertEquals(2, room.getMessages().size()); // Provider inspection did not delete any history.
+		room.getMessages().add(edit);
+		var call = calls(room, "inspect-slide"); results(room, call, "inspect-slide");
+		String continuation = RoomMessageStore.currentMessageHistory(room);
+		assertFalse(continuation.contains("OLD_GENERATOR_CODE"));
+		assertTrue(continuation.contains("TOOL_CALL") && continuation.contains("TOOL_RESULT"));
+		assertEquals(5, room.getMessages().size());
+		assertEquals(oldReply.getMessageId(), edit.getParentMessageId());
+		String persisted = prerna.engine.impl.model.message.MessageUtils.toJsonArray(room.getMessages());
+		room.setMessages(prerna.engine.impl.model.message.MessageUtils.fromJsonArrayPreservingToolState(persisted, room));
+		assertFalse(RoomMessageStore.currentMessageHistory(room).contains("OLD_GENERATOR_CODE"));
+		var ordinary = InputMessage.builder(room).withText("A subsequent ordinary request").build();
+		ordinary.setParentMessageId(room.getMessages().getLast().getMessageId());
+		assertTrue(RoomMessageStore.messageHistoryWithNewMessage(room, ordinary).contains("OLD_GENERATOR_CODE"));
 	}
 
 	@Test

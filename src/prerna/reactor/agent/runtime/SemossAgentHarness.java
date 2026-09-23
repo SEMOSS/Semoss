@@ -90,7 +90,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * <li>Pre/post tool hooks and run lifecycle hooks via
  * {@link prerna.reactor.agent.IAgentRunHook}
  * </ul>
- * 
+ *
  * <p>
  * Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
  * to {@code RunAgent()}.
@@ -154,6 +154,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
 			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
+			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
 		}
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
@@ -293,7 +294,11 @@ public class SemossAgentHarness implements IAgentHarness {
 				completeActiveItems(ctx.getRunId(), response);
 			} else {
 				// --- Normal mode: initial ask ---
-				AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
+				Object editFile = runtimeParamMap.get(PptxEditContext.PARAM);
+				boolean focusedEdit = state.pptxWorkflow() != null && editFile instanceof String file
+						&& state.pptxWorkflow().hasInput(file);
+				AutoCompactionOutcome compactionOutcome = focusedEdit ? AutoCompactionOutcome.NOT_NEEDED
+						: autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
 				if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
 					autoCompactionContextWarningLogged = true;
 				}
@@ -301,11 +306,13 @@ public class SemossAgentHarness implements IAgentHarness {
 				// run. Start run tagging after any automatic compaction messages.
 				runMessageStartIndex = room.getMessages().size();
 
+				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput() + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				if (focusedEdit) firstMsg.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
 				inputMessageId = firstMsg.getMessageId();
 
 				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
@@ -525,7 +532,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 
 		AbstractMessage leaf = messages.getLast();
-		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId());
+		List<AbstractMessage> branch = RoomMessageStore.providerContext(MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()));
 		int contextTokens = currentContextTokens(branch);
 		double usageRatio = (double) contextTokens / contextWindow;
 		if (usageRatio < AUTO_COMPACTION_TRIGGER_RATIO) {
@@ -941,6 +948,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		// "Agent-runtime paramMap key handling" for the design discussion (prefix
 		// convention vs. moving runtime info onto AgentRunContext as typed fields).
 		paramMap.remove(PARAM_MAX_SECONDS);
+		paramMap.remove(PptxEditContext.PARAM);
+		paramMap.remove(PptxEditContext.PROPOSALS_PARAM);
 		paramMap.remove(PARAM_FILE_PATH);
 		paramMap.remove(PARAM_FILE_PATH_CAMEL);
 		paramMap.remove(PARAM_PERMISSION_MODE);
