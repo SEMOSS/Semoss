@@ -78,6 +78,30 @@ public final class NotificationService {
 				message, priority);
 	}
 
+	/**
+	 * Notifies one user of a platform action that concerns them, e.g. a delegation.
+	 * Server-side only: never expose this through a reactor, or callers could message arbitrary users.
+	 */
+	public static String createUserNotification(String notificationId, String type, String recipientId,
+			String recipientType, String title, String message, String sourceType, String sourceId,
+			String targetType, String targetId, String metadataJson, String createdBy) {
+		String normalizedTitle = requireValue(title, "title");
+		if (normalizedTitle.length() > 255) {
+			throw new IllegalArgumentException("Notification title cannot exceed 255 characters");
+		}
+		return NotificationDbUtils.insertNotificationEvent(requireValue(notificationId, "id"),
+				requireValue(type, "type"), NotificationConstants.Scope.SYSTEM, null,
+				NotificationConstants.Audience.USER, requireValue(recipientId, "recipient id"),
+				requireValue(recipientType, "recipient type"), normalizedTitle, requireValue(message, "message"),
+				NotificationConstants.Priority.NORMAL, NotificationConstants.DisplaySurface.BELL, sourceType,
+				sourceId, targetType, targetId, metadataJson, createdBy);
+	}
+
+	/** Clears a notification from one recipient's inbox once it no longer needs attention. */
+	public static int dismissUserNotification(String notificationId, String recipientId, String recipientType) {
+		return NotificationDbUtils.deleteNotification(recipientId, recipientType, notificationId);
+	}
+
 	private static String createAppUserNotification(String projectId, String userId, String userType, String title,
 			String message, String priority) {
 		return createAppNotification(projectId, NotificationConstants.Audience.USER, requireValue(userId, "user id"),

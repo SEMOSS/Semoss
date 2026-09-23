@@ -75,6 +75,7 @@ public final class NotificationConstants {
 		public static final String ACCESS_REQUEST = "ACCESS_REQUEST";
 		public static final String ANNOUNCEMENT = "ANNOUNCEMENT";
 		public static final String APP_TASK_COMPLETE = "APP_TASK_COMPLETE";
+		public static final String DELEGATION_REQUEST = "DELEGATION_REQUEST";
 	}
 
 	public static final class Scope {
@@ -114,6 +115,7 @@ public final class NotificationConstants {
 		public static final String NONE = "NONE";
 		public static final String ROUTE = "ROUTE";
 		public static final String APP = "APP";
+		public static final String ROOM = "ROOM";
 	}
 
 }
