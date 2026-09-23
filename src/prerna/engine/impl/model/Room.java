@@ -1589,7 +1589,7 @@ public class Room implements Serializable {
 	/**
 	 * Returns the final system prompt this room should send to the model. Starts
 	 * with the room/workspace-authored prompt, then applies any outer wrapper
-	 * required by the room's runtime surface. Today only SYSTEM__PLAYGROUND (and SYSTEM__COLLABORATION) has an
+	 * required by the room's runtime surface. Today only SYSTEM__PLAYGROUND has an
 	 * outer wrapper: the active playground global system prompt from the admin
 	 * theme.
 	 *
@@ -1623,7 +1623,7 @@ public class Room implements Serializable {
 	 * prompt wrapper.
 	 */
 	public boolean usesPlaygroundSystemPromptWrapper() {
-		return PlaygroundUtils.isSystemChatProject(this.projectId);
+		return PlaygroundUtils.PLAYGROUND_PROJECT_ID.equals(this.projectId);
 	}
 
 	/**

@@ -53,6 +53,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -208,8 +209,9 @@ public final class RoomUtils {
 			projectId = insight.getProjectId();
 		}
 		String projectName = null;
-		// ignore system chat project ids
-		if (projectId != null && !PlaygroundUtils.isSystemChatProject(projectId)) {
+		// ignore playground project id; collaboration rooms have no backing project either
+		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)
+				&& !projectId.equals(CollaborationUtils.COLLABORATION_PROJECT_ID)) {
 			IProject project = Utility.getProject(projectId);
 			projectName = project != null ? project.getProjectName() : null;
 		}
