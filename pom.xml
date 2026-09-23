@@ -59,13 +59,13 @@
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
-		<jackson2.version>2.22.2</jackson2.version>
+		<jackson2.version>2.22.3</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
 		<jackson3.version>3.1.5</jackson3.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
-		<rdf4j.version>5.3.2</rdf4j.version>
+		<rdf4j.version>6.0.0</rdf4j.version>
 		<jena.version>6.2.0</jena.version>
 		<tinkerpop.version>3.7.6</tinkerpop.version>
 		<poi.version>5.5.1</poi.version>
