@@ -33,6 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -86,6 +88,17 @@ public class AutomationRuntimeUtilsUnitTests {
 		Map<String, Object> parsed = AutomationRuntimeUtils.parseJsonObject("{\"a\":1}", "inputs");
 		parsed.put("b", 2);
 		assertEquals(2, parsed.size());
+	}
+
+	@Test
+	void initialScopeContainsStableRunMetadata() {
+		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope("run-123", null);
+
+		assertEquals("run-123", scope.get(AutomationConstants.SCOPE_RUN_ID));
+		LocalDate date = LocalDate.parse(scope.get(AutomationConstants.SCOPE_DATE).toString());
+		OffsetDateTime triggeredAt = OffsetDateTime
+				.parse(scope.get(AutomationConstants.SCOPE_TRIGGERED_AT).toString());
+		assertEquals(date, triggeredAt.toLocalDate());
 	}
 
 	@Test
