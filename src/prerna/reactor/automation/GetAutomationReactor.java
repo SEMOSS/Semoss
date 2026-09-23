@@ -58,6 +58,8 @@ public class GetAutomationReactor extends AbstractReactor {
 				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey())).getProjectId();
 
 		AutomationDefinitionService.DefinitionFiles files = AutomationDefinitionService.load(projectId);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(files.definition());
 		Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(files.definition(),
 				AutomationRuntimeUtils.MAP_TYPE);
 		definition.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
@@ -67,14 +69,15 @@ public class GetAutomationReactor extends AbstractReactor {
 		definition.put("sourceHashes", sourceHashes);
 		definition.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
-		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime
-				.declaredGlobals(AutomationDefinitionValidator.parseAndValidateForAuthoring(files.definition())));
+		definition.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));
+		definition.put(AutomationConstants.RESULT_SCOPE_VARIABLES,
+				AutomationScopeCatalog.variablesByNode(validated));
 		return new NounMetadata(definition, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns the automation graph, nodeSources, sourceHashes, revision, and trigger globals for a project.";
+		return "Returns the automation graph, node sources, revision, trigger globals, and scope variables for a project.";
 	}
 
 	@Override

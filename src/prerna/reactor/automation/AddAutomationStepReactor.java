@@ -158,9 +158,9 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String outputVariable(String nodeType, String value) {
-		if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
+		if (isRoutingNode(nodeType)) {
 			if (value != null && !value.isBlank()) {
-				throw new IllegalArgumentException("control.if does not produce an outputVar.");
+				throw new IllegalArgumentException(nodeType + " does not produce an outputVar.");
 			}
 			return null;
 		}
@@ -181,15 +181,15 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		Map<String, Object> parent = nodes.stream()
 				.filter(node -> parentId.equals(node.get(AutomationConstants.NODE_FIELD_ID))).findFirst().orElseThrow();
 		String parentType = (String) parent.get(AutomationConstants.NODE_FIELD_TYPE);
-		if (!AutomationConstants.NODE_CONTROL_IF.equals(parentType)) {
+		if (!isRoutingNode(parentType)) {
 			if (branchPort != null && !branchPort.isBlank()) {
 				throw new IllegalArgumentException(
-						"branchPort can only be used when afterNodeId is a control.if node.");
+						"branchPort can only be used when afterNodeId is a routing node.");
 			}
 			return AutomationConstants.CONTROL_PORT_OUT;
 		}
 		if (!isConfiguredBranchPort(parent, branchPort)) {
-			throw new IllegalArgumentException("Adding after a control.if node requires branchPort 'else' or "
+			throw new IllegalArgumentException("Adding after a routing node requires branchPort 'else' or "
 					+ "a configured 'case:<clause-id>' value.");
 		}
 		return branchPort;
@@ -216,13 +216,19 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		return false;
 	}
 
-	private static String customSource(String nodeType, Map<String, Object> config) {
+	static String customSource(String nodeType, Map<String, Object> config) {
 		if (!AutomationConstants.NODE_DEVELOPER_PYTHON.equals(nodeType)) {
 			return null;
 		}
 		Object value = config.remove("source");
-		if (!(value instanceof String source) || source.isBlank()) {
-			throw new IllegalArgumentException("developer.python requires config.source defining run(scope).");
+		if (value == null) {
+			return AutomationSourceRenderer.defaultDeveloperSource();
+		}
+		if (!(value instanceof String source)) {
+			throw new IllegalArgumentException("developer.python config.source must be a string when provided.");
+		}
+		if (source.isBlank()) {
+			return AutomationSourceRenderer.defaultDeveloperSource();
 		}
 		if (!AutomationDefinitionService.definesRunEntryPoint(source)) {
 			throw new IllegalArgumentException("developer.python source must define run(scope) at the top level.");
@@ -274,7 +280,7 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		}
 		updated.add(controlEdge(parentId, nodeId, sourcePort));
 		if (replaced != null) {
-			String nodePort = AutomationConstants.NODE_CONTROL_IF.equals(nodeType) ? firstCasePort(config)
+			String nodePort = isRoutingNode(nodeType) ? firstCasePort(config)
 					: AutomationConstants.CONTROL_PORT_OUT;
 			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));
 		}
@@ -285,13 +291,18 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		Object value = config.get(AutomationConstants.CONFIG_CLAUSES);
 		if (!(value instanceof List<?> clauses) || clauses.isEmpty()
 				|| !(clauses.get(0) instanceof Map<?, ?> firstClause)) {
-			throw new IllegalArgumentException("control.if config.clauses must be a non-empty array.");
+			throw new IllegalArgumentException("Routing node config.clauses must be a non-empty array.");
 		}
 		Object clauseId = firstClause.get(AutomationConstants.CONFIG_CLAUSE_ID);
 		if (!(clauseId instanceof String id) || id.isBlank()) {
-			throw new IllegalArgumentException("control.if config.clauses[0].id must be a nonblank string.");
+			throw new IllegalArgumentException("Routing node config.clauses[0].id must be a nonblank string.");
 		}
 		return AutomationConstants.CONTROL_PORT_CASE_PREFIX + id;
+	}
+
+	private static boolean isRoutingNode(String nodeType) {
+		return AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+				|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType);
 	}
 
 	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
@@ -321,13 +332,13 @@ public class AddAutomationStepReactor extends AbstractReactor {
 			return "The user-facing node label.";
 		}
 		if (OUTPUT_VAR_KEY.equals(key)) {
-			return "The Python identifier that stores this node's output; omitted for control.if.";
+			return "The Python identifier that stores this node's output; omitted for routing nodes.";
 		}
 		if (AFTER_NODE_ID_KEY.equals(key)) {
 			return "The existing node after which this node is inserted; defaults to the last graph node.";
 		}
 		if (BRANCH_PORT_KEY.equals(key)) {
-			return "The else or case:<clause-id> port when inserting directly after a control.if node.";
+			return "The else or case:<clause-id> port when inserting directly after a routing node.";
 		}
 		return super.getDescriptionForKey(key);
 	}
