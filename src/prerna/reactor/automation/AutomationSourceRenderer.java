@@ -62,8 +62,8 @@ public final class AutomationSourceRenderer {
 				: Map.of();
 		String source = switch (nodeType) {
 		case TRIGGER_START -> triggerSource();
-		case CONTROL_IF ->
-			throw new IllegalArgumentException("If nodes are evaluated by Java and do not have Python source.");
+		case CONTROL_IF, CONTROL_JEV ->
+			throw new IllegalArgumentException("Routing nodes are evaluated by Java and do not have Python source.");
 		case DATABASE_QUERY -> databaseQuerySource(config);
 		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
@@ -84,7 +84,7 @@ public final class AutomationSourceRenderer {
 		case APP_PIXEL -> appPixelSource(config);
 		case AGENT_RUN -> agentRunSource(config);
 		case CONTROL_WAIT -> waitSource(config);
-		case DEVELOPER_PYTHON -> developerSource();
+		case DEVELOPER_PYTHON -> defaultDeveloperSource();
 		};
 		return source;
 	}
@@ -515,7 +515,8 @@ public final class AutomationSourceRenderer {
 				""".formatted(value(config, "durationSeconds"));
 	}
 
-	private static String developerSource() {
+	/** Returns the editable starter source for a custom Python node. */
+	static String defaultDeveloperSource() {
 		return """
 				# Write arbitrary Python for this automation node here.
 				# scope is a read-only, run-local mapping: inputs, globals, metadata, and prior outputs by outputVar.
