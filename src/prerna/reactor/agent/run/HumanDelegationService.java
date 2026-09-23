@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.run;
 
 import java.io.IOException;
@@ -42,13 +69,14 @@ import prerna.util.Utility;
 
 /**
  * Delegates a question from an agent run to a person. The owner keeps a HUMAN
- * child run; the assignee gets one AGENT_RUN_ACTION and a room of their own.
- * An explicit response completes the child through the normal child-completion
+ * child run; the assignee gets one AGENT_RUN_ACTION and a room of their own. An
+ * explicit response completes the child through the normal child-completion
  * path.
  */
 public final class HumanDelegationService {
 
 	private static final Logger logger = LogManager.getLogger(HumanDelegationService.class);
+
 	private static final Gson GSON = new Gson();
 
 	public static final String TOOL_NAME = "DelegateToPerson";
@@ -58,7 +86,8 @@ public final class HumanDelegationService {
 	private static final int FIND_PERSON_LIMIT = 10;
 	// Rows scanned per search before the every-word filter trims them.
 	private static final int PEOPLE_SCAN_LIMIT = 200;
-	// Tool name on the assignee's action row; distinct from the owner's DelegateToPerson approval.
+	// Tool name on the assignee's action row; distinct from the owner's
+	// DelegateToPerson approval.
 	private static final String ASSIGNEE_ACTION = "DelegationRequest";
 	public static final String ROOM_OPTION_ACTION_ID = CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID;
 	private static final String STATUS_PENDING = "PENDING";
@@ -71,7 +100,8 @@ public final class HumanDelegationService {
 	private static final int MAX_CONTEXT_LENGTH = 32_000;
 	private static final int MAX_RESPONSE_LENGTH = 32_000;
 	private static final int LIST_LIMIT = 200;
-	// Returned files land in the owner's room folder under delegations/<childRunId>/.
+	// Returned files land in the owner's room folder under
+	// delegations/<childRunId>/.
 	public static final String FILES_FOLDER = "delegations";
 	// Files sent with a request land in the assignee's room folder here.
 	private static final String REQUEST_FILES_FOLDER = "from-requester";
@@ -88,14 +118,17 @@ public final class HumanDelegationService {
 		return action != null && ASSIGNEE_ACTION.equals(action.get("toolName"));
 	}
 
-	/** Create the assignee's room and action plus the owner's child run; returns immediately. */
+	/**
+	 * Create the assignee's room and action plus the owner's child run; returns
+	 * immediately.
+	 */
 	public static Map<String, Object> delegate(Map<String, Object> args, String parentRunId, Insight ownerInsight) {
 		AgentRunRecord parent = parentRunId == null ? null : AgentRunStore.getRun(parentRunId, ownerInsight);
 		if (parent == null) {
 			throw new IllegalArgumentException(TOOL_NAME + " must be called from an agent run");
 		}
-		if (!CollaborationUtils.isCollaborationRoom(
-				ModelInferenceLogsUtils.getRoomById(parent.roomId(), ownerInsight.getUserId()))) {
+		if (!CollaborationUtils
+				.isCollaborationRoom(ModelInferenceLogsUtils.getRoomById(parent.roomId(), ownerInsight.getUserId()))) {
 			throw new IllegalStateException(TOOL_NAME + " is only available in collaboration rooms");
 		}
 		String question = bounded(args, "question", MAX_QUESTION_LENGTH, true);
@@ -133,7 +166,8 @@ public final class HumanDelegationService {
 			packet.put("links", links);
 		}
 
-		// Room, then action, then child run: a failure never leaves a child for the owner's room to report.
+		// Room, then action, then child run: a failure never leaves a child for the
+		// owner's room to report.
 		createAssigneeRoom(assignee, assigneeRoomId, actionId, requester, packet);
 		// Both people by exact principal; label fields are display only.
 		Map<String, Object> meta = new HashMap<>();
@@ -188,12 +222,18 @@ public final class HumanDelegationService {
 		return out;
 	}
 
-	/** Decline from "Assigned to you" without opening the room; the reason goes back to the requester. */
+	/**
+	 * Decline from "Assigned to you" without opening the room; the reason goes back
+	 * to the requester.
+	 */
 	public static Map<String, Object> decline(Insight insight, String actionId, String reason) {
 		return respond(insight, actionId, null, true, reason, null);
 	}
 
-	/** Record the assignee's one answer or decline, then complete the owner's child run. */
+	/**
+	 * Record the assignee's one answer or decline, then complete the owner's child
+	 * run.
+	 */
 	private static Map<String, Object> respond(Insight insight, String actionId, String response, boolean decline,
 			String reason, List<String> files) {
 		Map<String, Object> action = findAssigned(requireUser(insight), actionId);
@@ -201,8 +241,8 @@ public final class HumanDelegationService {
 		String runId = (String) action.get("runId");
 		String userId = (String) action.get("userId");
 		if (STATUS_CANCELLED.equals(action.get("status"))) {
-			throw new IllegalStateException(requesterLabel(parseJson(action.get("toolMeta")))
-					+ " withdrew this request, so nothing was sent.");
+			throw new IllegalStateException(
+					requesterLabel(parseJson(action.get("toolMeta"))) + " withdrew this request, so nothing was sent.");
 		}
 		if (STATUS_PENDING.equals(action.get("status"))) {
 			String result = decline ? trimToNull(reason) : trimToNull(response);
@@ -213,7 +253,8 @@ public final class HumanDelegationService {
 				throw new IllegalArgumentException("response exceeds " + MAX_RESPONSE_LENGTH + " characters");
 			}
 			if (!decline && files != null && !files.isEmpty()) {
-				// Files reach cloud storage before the answer counts, so delivery always finds them.
+				// Files reach cloud storage before the answer counts, so delivery always finds
+				// them.
 				copyFilesToOwnerRoom((String) action.get("roomId"), runId, files);
 			}
 			// Only one submission can move the action off PENDING.
@@ -241,7 +282,10 @@ public final class HumanDelegationService {
 		return trimToNull(value);
 	}
 
-	/** What the model sees when the user turns down one of the delegation cards; null for other tools. */
+	/**
+	 * What the model sees when the user turns down one of the delegation cards;
+	 * null for other tools.
+	 */
 	public static String rejectedResult(String toolName) {
 		if (SUBMIT_TOOL_NAME.equals(toolName)) {
 			return "Not sent. The user chose to keep working, and nothing reached the requester. Stop here and "
@@ -254,7 +298,10 @@ public final class HumanDelegationService {
 		return null;
 	}
 
-	/** Who asked for the delegation a room was made for, or null if it cannot be read. */
+	/**
+	 * Who asked for the delegation a room was made for, or null if it cannot be
+	 * read.
+	 */
 	public static String requesterName(Insight insight, String actionId) {
 		try {
 			return requesterLabel(parseJson(findAssigned(insight.getUser(), actionId).get("toolMeta")));
@@ -263,7 +310,10 @@ public final class HumanDelegationService {
 		}
 	}
 
-	/** Runs an approved SubmitDelegationResponse call; the room, not the model, names the delegation. */
+	/**
+	 * Runs an approved SubmitDelegationResponse call; the room, not the model,
+	 * names the delegation.
+	 */
 	public static ToolExecutionResult submitFromTool(Insight insight, Room room, Map<String, Object> params) {
 		String actionId = delegationActionId(room);
 		if (actionId == null) {
@@ -286,8 +336,12 @@ public final class HumanDelegationService {
 		}
 	}
 
-	/** Runs an approved DelegateToPerson call with the arguments the owner confirmed. */
-	public static ToolExecutionResult delegateFromTool(Insight insight, String parentRunId, Map<String, Object> params) {
+	/**
+	 * Runs an approved DelegateToPerson call with the arguments the owner
+	 * confirmed.
+	 */
+	public static ToolExecutionResult delegateFromTool(Insight insight, String parentRunId,
+			Map<String, Object> params) {
 		try {
 			return ToolExecutionResult.success(GSON.toJson(delegate(params, parentRunId, insight)));
 		} catch (RuntimeException e) {
@@ -295,7 +349,10 @@ public final class HumanDelegationService {
 		}
 	}
 
-	/** Files a person sent back, relative to the owner's room folder; empty when none. */
+	/**
+	 * Files a person sent back, relative to the owner's room folder; empty when
+	 * none.
+	 */
 	public static List<Map<String, Object>> returnedFiles(String parentRoomId, String childRunId) {
 		List<Map<String, Object>> out = new ArrayList<>();
 		Path roomRoot = Paths.get(Room.roomFolderPath(parentRoomId));
@@ -321,7 +378,8 @@ public final class HumanDelegationService {
 		return out;
 	}
 
-	// Validate every file first, then replace delegations/<childRunId>/ in the owner's room and push it.
+	// Validate every file first, then replace delegations/<childRunId>/ in the
+	// owner's room and push it.
 	private static void copyFilesToOwnerRoom(String assigneeRoomId, String childRunId, List<String> files) {
 		String parentRoomId = AgentRunStore.getParentRoomId(childRunId);
 		if (assigneeRoomId == null || parentRoomId == null) {
@@ -334,7 +392,8 @@ public final class HumanDelegationService {
 				parentRoomId);
 	}
 
-	// Replace target with copies of sources, then push the room; returns paths relative to the room folder.
+	// Replace target with copies of sources, then push the room; returns paths
+	// relative to the room folder.
 	private static List<String> copyFiles(List<Path> sources, Path target, String roomId) {
 		Path roomRoot = Paths.get(Room.roomFolderPath(roomId));
 		List<String> copied = new ArrayList<>();
@@ -355,7 +414,8 @@ public final class HumanDelegationService {
 		return copied;
 	}
 
-	// Links stay links: access to Microsoft 365 or other documents is controlled at their source.
+	// Links stay links: access to Microsoft 365 or other documents is controlled at
+	// their source.
 	@SuppressWarnings("unchecked")
 	private static List<Map<String, String>> links(Object value) {
 		List<Map<String, String>> out = new ArrayList<>();
@@ -424,8 +484,8 @@ public final class HumanDelegationService {
 			}
 			total += size;
 			if (total > maxTotalBytes) {
-				throw new IllegalArgumentException("Files are larger than " + (maxTotalBytes / 1024 / 1024)
-						+ " MB in total");
+				throw new IllegalArgumentException(
+						"Files are larger than " + (maxTotalBytes / 1024 / 1024) + " MB in total");
 			}
 			sources.add(real);
 		}
@@ -464,7 +524,8 @@ public final class HumanDelegationService {
 		}
 	}
 
-	// Canonical is ["a.md"]; also read [{"path": "a.md"}] and {"a.md": "a.md"}, which models send.
+	// Canonical is ["a.md"]; also read [{"path": "a.md"}] and {"a.md": "a.md"},
+	// which models send.
 	private static List<String> stringList(Object value) {
 		List<Object> items = new ArrayList<>();
 		if (value instanceof List<?> list) {
@@ -499,7 +560,8 @@ public final class HumanDelegationService {
 				Map.of(REQUEST_ORNAMENT, requestOrnament(roomId, requester, packet)), null);
 	}
 
-	// Structured copy of the packet so clients show a request card; the model still reads the text.
+	// Structured copy of the packet so clients show a request card; the model still
+	// reads the text.
 	private static Map<String, Object> requestOrnament(String roomId, Person requester, Map<String, Object> packet) {
 		Map<String, Object> ornament = new LinkedHashMap<>(packet);
 		ornament.put("requester", requester.label());
@@ -554,7 +616,8 @@ public final class HumanDelegationService {
 		}
 	}
 
-	// Load by each of the caller's logins; a wrong user and an unknown id look the same.
+	// Load by each of the caller's logins; a wrong user and an unknown id look the
+	// same.
 	private static Map<String, Object> findAssigned(User user, String actionId) {
 		if (actionId != null && !actionId.isBlank()) {
 			for (AuthProvider provider : user.getLogins()) {
@@ -594,7 +657,10 @@ public final class HumanDelegationService {
 		return out;
 	}
 
-	/** FindPerson tool: names and emails only, so the model can pass one to DelegateToPerson. */
+	/**
+	 * FindPerson tool: names and emails only, so the model can pass one to
+	 * DelegateToPerson.
+	 */
 	public static ToolExecutionResult findPersonFromTool(Insight insight, Room room, Map<String, Object> params) {
 		try {
 			if (!CollaborationUtils.isCollaborationRoom(room) || delegationActionId(room) != null) {
@@ -620,7 +686,8 @@ public final class HumanDelegationService {
 		}
 	}
 
-	// The card sends an exact {userId, provider}; a bare hint must match exactly one person.
+	// The card sends an exact {userId, provider}; a bare hint must match exactly
+	// one person.
 	private static Person resolveAssignee(Object value) {
 		if (value instanceof Map<?, ?> map) {
 			Person picked = Person.fromMap(map);
@@ -648,7 +715,8 @@ public final class HumanDelegationService {
 				: "Assignee " + hint + " matches " + pool.size() + " people; pick one in the request card");
 	}
 
-	// Every word must appear in the name, email, or username; rank 0 is an exact match.
+	// Every word must appear in the name, email, or username; rank 0 is an exact
+	// match.
 	private static List<PersonMatch> matchPeople(String query, int limit) {
 		String q = trimToNull(query);
 		if (q == null) {
@@ -701,7 +769,8 @@ public final class HumanDelegationService {
 		return mode;
 	}
 
-	// Models invent deadlines; a date already past is dropped, free text is kept for display.
+	// Models invent deadlines; a date already past is dropped, free text is kept
+	// for display.
 	static String dueDate(String value) {
 		if (value == null) {
 			return null;
@@ -767,7 +836,10 @@ public final class HumanDelegationService {
 		return text.isEmpty() ? null : text;
 	}
 
-	/** A SEMOSS principal: userId plus provider is the identity, name and email are for display. */
+	/**
+	 * A SEMOSS principal: userId plus provider is the identity, name and email are
+	 * for display.
+	 */
 	private record Person(String userId, String provider, String name, String email) {
 		static Person of(AccessToken token) {
 			if (token == null) {
