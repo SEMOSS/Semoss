@@ -527,9 +527,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 	public List<Map<String, Object>> keywordSearch(Insight insight, String searchStatement, List<String> searchFields,
 			Number limit, Map<String, Object> parameters) {
 		Map<String, AzureIndexField> liveFields = getLiveIndexFields();
-		JsonObject search = buildTextSearch(searchStatement, searchFields, limit, liveFields);
+		List<String> selectFields = resolveSelectFields(parameters, liveFields);
+		JsonObject search = buildTextSearch(searchStatement, searchFields, selectFields, limit, parameters, liveFields);
 		applyNewSearchFilters(search, parameters, false);
-		return executeNewSearch(search);
+		return executeNewSearch(search, selectFields);
 	}
 
 	@Override
@@ -544,7 +545,9 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 
 		Map<String, AzureIndexField> liveFields = getLiveIndexFields();
 		int resultLimit = normalizeLimit(limit);
-		JsonObject search = buildTextSearch(searchStatement, searchFields, resultLimit, liveFields);
+		List<String> selectFields = resolveSelectFields(parameters, liveFields);
+		JsonObject search = buildTextSearch(searchStatement, searchFields, selectFields, resultLimit, parameters,
+				liveFields);
 
 		IModelEngine engine = Utility.getModel(this.embedderEngineId);
 		EmbeddingsModelEngineResponse embeddingsResponse = engine.embeddings(Collections.singletonList(searchStatement),
@@ -559,10 +562,11 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		search.add("vectorQueries", vectorQueries);
 
 		applyNewSearchFilters(search, parameters, true);
-		return executeNewSearch(search);
+		return executeNewSearch(search, selectFields);
 	}
 
-	private JsonObject buildTextSearch(String searchStatement, List<String> requestedSearchFields, Number limit,
+	private JsonObject buildTextSearch(String searchStatement, List<String> requestedSearchFields,
+			List<String> selectFields, Number limit, Map<String, Object> parameters,
 			Map<String, AzureIndexField> liveFields) {
 		if (searchStatement == null || searchStatement.trim().isEmpty()) {
 			throw new IllegalArgumentException("Search statement must not be blank");
@@ -570,11 +574,66 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject search = new JsonObject();
 		search.addProperty("search", searchStatement);
 		search.addProperty("searchFields", String.join(",", resolveSearchFields(requestedSearchFields, liveFields)));
-		search.addProperty("searchMode", "any");
+		search.addProperty("searchMode", resolveSearchMode(parameters));
 		search.addProperty("top", normalizeLimit(limit));
 		search.addProperty("count", true);
-		search.addProperty("select", "*");
+		search.addProperty("select", selectFields == null ? "*" : String.join(",", selectFields));
 		return search;
+	}
+
+	private String resolveSearchMode(Map<String, Object> parameters) {
+		Object value = parameters == null ? null : parameters.get(SEARCH_MODE_KEY);
+		if (value == null) {
+			return "any";
+		}
+		String searchMode = value.toString().trim();
+		if (!"any".equals(searchMode) && !"all".equals(searchMode)) {
+			throw new IllegalArgumentException("Search mode must be either 'any' or 'all'");
+		}
+		return searchMode;
+	}
+
+	private List<String> resolveSelectFields(Map<String, Object> parameters,
+			Map<String, AzureIndexField> liveFields) {
+		if (parameters == null || !parameters.containsKey(SELECT_KEY) || parameters.get(SELECT_KEY) == null) {
+			return null;
+		}
+		Object value = parameters.get(SELECT_KEY);
+		List<?> requestedFields;
+		if (value instanceof Collection<?>) {
+			requestedFields = new ArrayList<>((Collection<?>) value);
+		} else if (value instanceof String) {
+			requestedFields = Arrays.asList(((String) value).split(",", -1));
+		} else {
+			throw new IllegalArgumentException("Select must be supplied as a field name or list of field names");
+		}
+		if (requestedFields.isEmpty()) {
+			throw new IllegalArgumentException("Select must contain at least one field");
+		}
+
+		Set<String> resolved = new LinkedHashSet<>();
+		for (Object requestedField : requestedFields) {
+			if (requestedField == null || requestedField.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Select must not contain blank field names");
+			}
+			String fieldName = requestedField.toString().trim();
+			if ("*".equals(fieldName)) {
+				if (requestedFields.size() != 1) {
+					throw new IllegalArgumentException("Select wildcard '*' cannot be combined with field names");
+				}
+				return null;
+			}
+			AzureIndexField field = liveFields.get(fieldName);
+			if (field == null) {
+				throw new IllegalArgumentException(
+						"Select field '" + fieldName + "' does not exist in the Azure AI Search index");
+			}
+			if (!field.selectable) {
+				throw new IllegalArgumentException("Select field '" + fieldName + "' is not selectable");
+			}
+			resolved.add(fieldName);
+		}
+		return new ArrayList<>(resolved);
 	}
 
 	private int normalizeLimit(Number limit) {
@@ -641,7 +700,9 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			String name = fieldJson.get("name").getAsString();
 			String type = fieldJson.get("type").getAsString();
 			boolean searchable = fieldJson.has("searchable") && fieldJson.get("searchable").getAsBoolean();
-			liveFields.put(name, new AzureIndexField(name, type, searchable));
+			boolean selectable = !fieldJson.has("retrievable") || fieldJson.get("retrievable").isJsonNull()
+					|| fieldJson.get("retrievable").getAsBoolean();
+			liveFields.put(name, new AzureIndexField(name, type, searchable, selectable));
 			liveFieldTypes.put(name, type);
 		}
 		this.otherPropsToType = liveFieldTypes;
@@ -671,7 +732,7 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		}
 	}
 
-	private List<Map<String, Object>> executeNewSearch(JsonObject search) {
+	private List<Map<String, Object>> executeNewSearch(JsonObject search, List<String> selectFields) {
 		String url = this.clusterUrl + "/" + SEARCH_ENDPOINT.replace("{{INDEX_NAME}}", this.indexName) + "?"
 				+ this.getMustQueryParamString();
 		String response = HttpHelperUtility.postRequestStringBody(url, getAzureHeaders(), search.toString(),
@@ -682,12 +743,20 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			JsonObject hitJson = element.getAsJsonObject();
 			Map<String, Object> match = new HashMap<>();
 			match.put("Score", hitJson.get("@search.score").getAsDouble());
-			match.put(VectorDatabaseCSVTable.SOURCE, hitJson.get(VectorDatabaseCSVTable.SOURCE).getAsString());
-			match.put(VectorDatabaseCSVTable.MODALITY, hitJson.get(VectorDatabaseCSVTable.MODALITY).getAsString());
-			match.put(VectorDatabaseCSVTable.DIVIDER, hitJson.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
-			match.put(VectorDatabaseCSVTable.PART, hitJson.get(VectorDatabaseCSVTable.PART).getAsString());
-			match.put(VectorDatabaseCSVTable.TOKENS, hitJson.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
-			match.put(VectorDatabaseCSVTable.CONTENT, hitJson.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			if (selectFields == null) {
+				match.put(VectorDatabaseCSVTable.SOURCE, hitJson.get(VectorDatabaseCSVTable.SOURCE).getAsString());
+				match.put(VectorDatabaseCSVTable.MODALITY, hitJson.get(VectorDatabaseCSVTable.MODALITY).getAsString());
+				match.put(VectorDatabaseCSVTable.DIVIDER, hitJson.get(VectorDatabaseCSVTable.DIVIDER).getAsString());
+				match.put(VectorDatabaseCSVTable.PART, hitJson.get(VectorDatabaseCSVTable.PART).getAsString());
+				match.put(VectorDatabaseCSVTable.TOKENS, hitJson.get(VectorDatabaseCSVTable.TOKENS).getAsLong());
+				match.put(VectorDatabaseCSVTable.CONTENT, hitJson.get(VectorDatabaseCSVTable.CONTENT).getAsString());
+			} else {
+				for (String fieldName : selectFields) {
+					if (hitJson.has(fieldName)) {
+						match.put(fieldName, GSON.fromJson(hitJson.get(fieldName), Object.class));
+					}
+				}
+			}
 			searchResults.add(match);
 		}
 		return searchResults;
@@ -704,11 +773,13 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		private final String name;
 		private final String type;
 		private final boolean searchable;
+		private final boolean selectable;
 
-		private AzureIndexField(String name, String type, boolean searchable) {
+		private AzureIndexField(String name, String type, boolean searchable, boolean selectable) {
 			this.name = name;
 			this.type = type;
 			this.searchable = searchable;
+			this.selectable = selectable;
 		}
 	}
 

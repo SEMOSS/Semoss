@@ -34,8 +34,9 @@ public class HybridSearchReactor extends AbstractReactor {
 
 	public HybridSearchReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				SEARCH_FIELDS_KEY, ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.FILTERS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+				SEARCH_FIELDS_KEY, ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.FILTERS.getKey(),
+				AbstractVectorDatabaseEngine.SEARCH_MODE_KEY, AbstractVectorDatabaseEngine.SELECT_KEY };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -72,14 +73,22 @@ public class HybridSearchReactor extends AbstractReactor {
 		if (filters != null) {
 			parameters.put(AbstractVectorDatabaseEngine.FILTERS_KEY, filters);
 		}
+		String searchMode = getString(AbstractVectorDatabaseEngine.SEARCH_MODE_KEY);
+		if (searchMode != null) {
+			parameters.put(AbstractVectorDatabaseEngine.SEARCH_MODE_KEY, searchMode);
+		}
+		List<String> selectFields = getFields(AbstractVectorDatabaseEngine.SELECT_KEY);
+		if (selectFields != null) {
+			parameters.put(AbstractVectorDatabaseEngine.SELECT_KEY, selectFields);
+		}
 
-		List<Map<String, Object>> output = engine.hybridSearch(this.insight, searchStatement, getSearchFields(), limit,
-				parameters);
+		List<Map<String, Object>> output = engine.hybridSearch(this.insight, searchStatement,
+				getFields(SEARCH_FIELDS_KEY), limit, parameters);
 		return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.OPERATION);
 	}
 
-	private List<String> getSearchFields() {
-		GenRowStruct fieldsGrs = this.store.getGenRowStruct(SEARCH_FIELDS_KEY);
+	private List<String> getFields(String key) {
+		GenRowStruct fieldsGrs = this.store.getGenRowStruct(key);
 		if (fieldsGrs == null || fieldsGrs.isEmpty()) {
 			return null;
 		}
@@ -111,7 +120,7 @@ public class HybridSearchReactor extends AbstractReactor {
 
 	@Override
 	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
-		if (SEARCH_FIELDS_KEY.equals(key)) {
+		if (SEARCH_FIELDS_KEY.equals(key) || AbstractVectorDatabaseEngine.SELECT_KEY.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		}
 		if (ReactorKeysEnum.FILTERS.getKey().equals(key)) {
@@ -132,6 +141,10 @@ public class HybridSearchReactor extends AbstractReactor {
 			return "The maximum number of documents to return. Defaults to 5";
 		} else if (ReactorKeysEnum.FILTERS.getKey().equals(key)) {
 			return "Optional filters to apply to indexed document fields";
+		} else if (AbstractVectorDatabaseEngine.SEARCH_MODE_KEY.equals(key)) {
+			return "Optional search matching mode: 'any' (default) or 'all'";
+		} else if (AbstractVectorDatabaseEngine.SELECT_KEY.equals(key)) {
+			return "Optional list of selectable index fields to return. Defaults to the standard document fields";
 		}
 		return super.getDescriptionForKey(key);
 	}
