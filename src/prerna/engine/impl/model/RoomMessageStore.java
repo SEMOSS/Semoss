@@ -50,6 +50,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolCallMessagePart;
@@ -202,6 +203,12 @@ public final class RoomMessageStore {
 	 */
 	public static boolean appendPlatformMessageIfAbsent(String roomId, String userId, String messageId, String text,
 			AgentRunMessageContext agentRun) {
+		return appendPlatformMessageIfAbsent(roomId, userId, messageId, text, null, null, agentRun);
+	}
+
+	/** Same, with a display version of the text (the model still reads {@code text}) and display ornaments. */
+	public static boolean appendPlatformMessageIfAbsent(String roomId, String userId, String messageId, String text,
+			String uiText, Map<String, Object> ornaments, AgentRunMessageContext agentRun) {
 		try (RoomMutationLock ignored = acquireMutationLock(roomId)) {
 			Room room = ModelInferenceLogsUtils.getRoomById(roomId, userId);
 			if (room == null) {
@@ -213,12 +220,16 @@ public final class RoomMessageStore {
 				}
 			}
 
-			ResponseMessage message = ResponseMessage.text(text);
+			ResponseMessage message = ResponseMessage.builder().withText(text, uiText)
+					.withType(MessageType.RESPONSE_TEXT).build();
 			message.setMessageId(messageId);
 			message.setTransactionId(messageId);
 			message.setRoom(room);
 			message.setModelId(room.getModelId());
 			message.setPlatformGenerated(true);
+			if (ornaments != null) {
+				ornaments.forEach(message::setOrnament);
+			}
 			AbstractMessage latestMessage = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
 			if (latestMessage != null) {
 				message.setParentMessageId(latestMessage.getMessageId());

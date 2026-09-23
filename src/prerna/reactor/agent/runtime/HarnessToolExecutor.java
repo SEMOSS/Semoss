@@ -66,6 +66,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -620,6 +621,12 @@ final class HarnessToolExecutor {
 			}
 			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId,
 					parentAuthoredSystemPrompt, parentTarget);
+		}
+		if (SubAgentToolSynthesizer.TOOL_DELEGATE_TO_PERSON.equals(rawToolName)) {
+			if (ctx.getSpawnDepth() != AgentRunContext.ROOT_SPAWN_DEPTH) {
+				throw new IllegalStateException("Only a top-level agent run can delegate to a person");
+			}
+			return GSON.toJson(HumanDelegationService.delegate(params, parentJobId, ctx.getInsight()));
 		}
 		if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
 			Object jobIdObj = params == null ? null : params.get("jobId");

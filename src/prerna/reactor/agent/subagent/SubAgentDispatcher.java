@@ -339,7 +339,7 @@ public final class SubAgentDispatcher {
 		try {
 			return SubAgentRunCompletionMode.fromExternalValue(stringArg(args, "completionMode"));
 		} catch (IllegalArgumentException e) {
-			throw new IllegalArgumentException("completionMode must be JOIN, NOTIFY, or CONTINUE");
+			throw new IllegalArgumentException("completionMode must be WAIT, POST, or POST_AND_CONTINUE");
 		}
 	}
 

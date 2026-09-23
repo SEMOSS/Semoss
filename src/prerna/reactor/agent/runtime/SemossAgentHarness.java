@@ -63,6 +63,8 @@ import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.ChildRunCompletionService;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.stream.AgentRunStreamService;
@@ -164,6 +166,13 @@ public class SemossAgentHarness implements IAgentHarness {
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
+		}
+		if (HumanDelegationService.isEnabled() && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+		}
+		if (HumanDelegationService.delegationActionId(ctx.getRoom()) != null) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool());
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -292,6 +301,10 @@ public class SemossAgentHarness implements IAgentHarness {
 						.withMediaUrls(ctx.getMediaUrls()).withModelType(ctx.getModelEngine().getModelType())
 						.withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				// A continuation prompt is platform-authored model context, not something the user said.
+				if (ctx.getInput() != null && ctx.getInput().startsWith(ChildRunCompletionService.CONTINUATION_PREFIX)) {
+					firstMsg.setVisible(false);
+				}
 				inputMessageId = firstMsg.getMessageId();
 
 				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
@@ -1086,7 +1099,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("User waits until you're done. Simple, but ties up the conversation.\n\n");
 		sb.append("**Pattern B -- deferred (use when subagents are expected to be slow, ");
 		sb.append("the user might want to keep talking, or you've spawned 3+ children):**\n");
-		sb.append("  spawn with completionMode=NOTIFY -> reply to the user IMMEDIATELY with the jobIds and a note ");
+		sb.append("  spawn with completionMode=POST -> reply to the user IMMEDIATELY with the jobIds and a note ");
 		sb.append("that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.\n");
 		sb.append("  Subagents continue running in the background between your turns -- they don't ");
 		sb.append("pause when you end your turn.\n\n");

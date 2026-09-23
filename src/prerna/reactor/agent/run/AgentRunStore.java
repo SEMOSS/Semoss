@@ -84,6 +84,11 @@ public final class AgentRunStore {
 		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
 	}
 
+	// Human children start waiting; no worker ever picks them up.
+	static void insertInputRequired(String runId, AgentRunRequest request, String userId) {
+		insert(runId, request, userId, AgentRunStatus.INPUT_REQUIRED);
+	}
+
 	private static void insert(String runId, AgentRunRequest request, String userId, AgentRunStatus status) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -373,7 +378,7 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
 					+ " WHERE ar.USER_ID = ? AND ar.PARENT_RUN_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, userId);
@@ -382,7 +387,13 @@ public final class AgentRunStore {
 
 			List<Map<String, Object>> runs = new ArrayList<>();
 			while (rs.next()) {
-				runs.add(runMapFromRow(rs));
+				Map<String, Object> run = runMapFromRow(rs);
+				// Lets child cards tell a person's task from an agent's.
+				AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
+				boolean human = request != null && request.isHumanExecutor();
+				run.put("executorType", human ? "HUMAN" : "AGENT");
+				run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+				runs.add(run);
 			}
 			return runs;
 		} catch (Exception e) {
@@ -588,6 +599,16 @@ public final class AgentRunStore {
 				false, false);
 	}
 
+	static boolean markCompletedIfInputRequired(String runId, String finalOutput) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.COMPLETED, runId,
+				finalOutput, null, false, true);
+	}
+
+	static boolean markFailedIfInputRequired(String runId, String errorMessage) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.FAILED, runId, null,
+				errorMessage, false, true);
+	}
+
 	public static boolean markCancelledIfNotTerminal(String runId, String jobId, String errorMessage) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -788,6 +809,15 @@ public final class AgentRunStore {
 				stringValue(row.get("workspaceId")), AgentRunContext.DEFAULT_MAX_TURNS,
 				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight)
 				.withParentRunId(stringValue(row.get("parentRunId")));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static AgentRunRequest requestFromJson(String json) {
+		try {
+			return json == null ? null : AgentRunRequest.fromPersistedMap(GSON.fromJson(json, Map.class), null);
+		} catch (RuntimeException e) {
+			return null;
+		}
 	}
 
 	private static AgentRunStatus parseRunStatus(String value) {

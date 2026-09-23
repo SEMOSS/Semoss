@@ -131,25 +131,28 @@ public final class AgentRunService {
 			throw new IllegalArgumentException("Background agent submission requires runId and an execution Insight");
 		}
 		String resolvedRunId = runId.trim();
-		if (AgentRunStore.runExists(resolvedRunId)) {
-			request.getInsight().getUser().removeUserMemory();
-			queueLoop.signal();
-			return false;
-		}
+		boolean submitted = false;
 		try {
-			submitNewRun(resolvedRunId, request, true);
+			if (!AgentRunStore.runExists(resolvedRunId)) {
+				submitNewRun(resolvedRunId, request, true);
+				submitted = true;
+			}
 		} catch (RuntimeException e) {
 			// The room lease normally serializes this path. If a retry raced the first
 			// insert, the deterministic run already represents the requested work.
 			if (!AgentRunStore.runExists(resolvedRunId)) {
-				request.getInsight().getUser().removeUserMemory();
 				throw e;
 			}
-			request.getInsight().getUser().removeUserMemory();
-			queueLoop.signal();
-			return false;
+		} finally {
+			// A submitted run's handle owns the background user; otherwise release it here.
+			if (!submitted) {
+				request.getInsight().getUser().removeUserMemory();
+			}
 		}
-		return true;
+		if (!submitted) {
+			queueLoop.signal();
+		}
+		return submitted;
 	}
 
 	/** Creates the minimal authenticated context required by logged-out background work. */
@@ -157,7 +160,13 @@ public final class AgentRunService {
 		if (request == null || userId == null || userId.isBlank()) {
 			throw new SecurityException("Agent run is missing its durable owner identity");
 		}
-		String authType = request.getOwnerAuthType();
+		return createBackgroundExecutionInsight(userId, request.getOwnerAuthType(), request.getWorkspaceId());
+	}
+
+	static Insight createBackgroundExecutionInsight(String userId, String authType, String workspaceId) {
+		if (userId == null || userId.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner identity");
+		}
 		if (authType == null || authType.isBlank()) {
 			throw new SecurityException("Agent run is missing its durable owner authentication type");
 		}
@@ -183,9 +192,9 @@ public final class AgentRunService {
 
 		Insight insight = new Insight();
 		insight.setUser(user);
-		if (request.getWorkspaceId() != null && !request.getWorkspaceId().isBlank()) {
-			insight.setProjectId(request.getWorkspaceId());
-			insight.setContextProjectId(request.getWorkspaceId());
+		if (workspaceId != null && !workspaceId.isBlank()) {
+			insight.setProjectId(workspaceId);
+			insight.setContextProjectId(workspaceId);
 		}
 		return insight;
 	}
@@ -359,6 +368,13 @@ public final class AgentRunService {
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
 		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
 			notifyStreamCancelled(runId, "Agent run cancelled");
+			if (record.request() != null && record.request().isHumanExecutor()) {
+				AgentRunActionStore.cancelPendingForRun(runId);
+			}
+			// A child cancelled while idle has no executor to report it.
+			if (record.request() != null && record.request().getParentRunId() != null) {
+				queueChildCompletion(runId);
+			}
 		}
 		return getRun(runId, insight);
 	}

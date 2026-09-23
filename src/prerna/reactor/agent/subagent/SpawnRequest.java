@@ -44,7 +44,7 @@ import prerna.reactor.agent.run.SubAgentRunCompletionMode;
 public final class SpawnRequest {
 
 	/** How the child reports a terminal result to its parent. */
-	public SubAgentRunCompletionMode completionMode = SubAgentRunCompletionMode.JOIN;
+	public SubAgentRunCompletionMode completionMode = SubAgentRunCompletionMode.WAIT;
 
     /** Async pixel job id of the caller; used to address {@code subagent-spawned} stream events. May be {@code null}. */
     public String parentJobId;

@@ -167,7 +167,7 @@ final class AgentRunExecutor {
 
 	private static void queueChildCompletion(String parentRunId, AgentRunRecord record, String childRunId) {
 		if (parentRunId != null && !parentRunId.isBlank() && record.request() != null
-				&& record.request().getCompletionMode() != SubAgentRunCompletionMode.JOIN) {
+				&& record.request().getCompletionMode() != SubAgentRunCompletionMode.WAIT) {
 			AgentRunService.get().queueChildCompletion(childRunId);
 		}
 	}

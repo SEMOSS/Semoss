@@ -52,6 +52,7 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
@@ -166,12 +167,15 @@ public final class AgentToolDecisionHandler {
 					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
-		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction),
-				this.insight);
 		String toolName = stringValue(pendingAction.get("toolName"));
+		// A delegation reply is a platform action, not an MCP tool, so it has no engine.
+		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
+		String engineId = delegationSubmit ? null
+				: AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
+		Room executionRoom = null;
 		if (roomId != null && !roomId.isBlank()) {
-			Room executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
+			executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
 			if (executionRoom == null) {
 				throw new IllegalStateException(
 						"Cannot execute the agent tool call because room was not found roomId=" + roomId);
@@ -196,7 +200,9 @@ public final class AgentToolDecisionHandler {
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
 
-		ToolExecutionResult toolResult = MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
+		ToolExecutionResult toolResult = delegationSubmit
+				? HumanDelegationService.submitFromTool(this.insight, executionRoom, paramMap)
+				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
 		String executedToolStatus = toolResult.getStatusValue();
 		try {
@@ -398,7 +404,8 @@ public final class AgentToolDecisionHandler {
 		Map<String, Object> action = automationAuthorized
 				? AgentRunActionStore.getActionByIdForAutomation(actionId.trim())
 				: AgentRunActionStore.getActionById(actionId.trim(), userId.trim());
-		if (action == null) {
+		// Delegations are answered only through SubmitDelegationResponse.
+		if (action == null || HumanDelegationService.isDelegationAction(action)) {
 			throw new SecurityException("No agent action found for actionId=" + actionId);
 		}
 		if (expectedRunId != null) {

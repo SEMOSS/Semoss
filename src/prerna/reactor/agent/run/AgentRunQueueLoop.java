@@ -275,7 +275,7 @@ final class AgentRunQueueLoop {
 					queuedChildCompletions.remove(childRunId);
 					continue;
 				}
-				if (delivery.mode() == SubAgentRunCompletionMode.JOIN) {
+				if (delivery.mode() == SubAgentRunCompletionMode.WAIT) {
 					queuedChildCompletions.remove(childRunId);
 					continue;
 				}

@@ -38,6 +38,7 @@ import java.util.Set;
 
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.run.HumanDelegationService;
 
 /**
  * Turns {@link SubAgentSpec} entries + built-in subagent control tools
@@ -60,10 +61,11 @@ public final class SubAgentToolSynthesizer {
     public static final String TOOL_SPAWN_SUBAGENT = "SpawnSubAgent";
     public static final String TOOL_CHECK_SUBAGENT = "CheckSubAgentStatus";
     public static final String TOOL_WAIT_SUBAGENT  = "WaitForSubAgent";
+    public static final String TOOL_DELEGATE_TO_PERSON = HumanDelegationService.TOOL_NAME;
     /** Convenience set for {@code contains()} checks during dispatch. */
     public static final Set<String> BUILTIN_TOOL_NAMES = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
-                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT)));
+                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT, TOOL_DELEGATE_TO_PERSON)));
 
     private SubAgentToolSynthesizer() {}
 
@@ -138,9 +140,9 @@ public final class SubAgentToolSynthesizer {
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
 		properties.put("completionMode", schemaString(
-				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
-						+ "to the parent room without waiting. CONTINUE posts the result and then starts one new run in "
-						+ "the parent room to continue the task; do not call WaitForSubAgent for NOTIFY or CONTINUE."));
+				"WAIT (default): collect the result with WaitForSubAgent. POST: the result is posted to this room "
+						+ "when the subagent finishes. POST_AND_CONTINUE: the result is posted, then a new run starts in "
+						+ "this room to continue the task. Do not call WaitForSubAgent for POST or POST_AND_CONTINUE."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -149,8 +151,9 @@ public final class SubAgentToolSynthesizer {
         inputSchema.put("required", Collections.singletonList("prompt"));
 
         String description = spec.getDescription() != null && !spec.getDescription().isBlank()
-                ? spec.getDescription() + " (Returns a jobId handle -- call WaitForSubAgent to collect.)"
-                : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle -- call WaitForSubAgent to collect.";
+                ? spec.getDescription() + " (Returns a jobId handle; completionMode says how the result comes back.)"
+                : "Delegate to the '" + spec.getAlias() + "' subagent. Returns a jobId handle; completionMode says "
+                        + "how the result comes back.";
 
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", spec.getAlias());
@@ -180,9 +183,9 @@ public final class SubAgentToolSynthesizer {
                         + "Use this when you want multiple subagents to collaborate on files in one place. "
                         + "Default: false (subagent gets its own private room folder)."));
 		properties.put("completionMode", schemaString(
-				"JOIN (default) requires WaitForSubAgent to collect the result. NOTIFY posts the terminal result "
-						+ "to the parent room without waiting. CONTINUE posts the result and then starts one new run in "
-						+ "the parent room to continue the task; do not call WaitForSubAgent for NOTIFY or CONTINUE."));
+				"WAIT (default): collect the result with WaitForSubAgent. POST: the result is posted to this room "
+						+ "when the subagent finishes. POST_AND_CONTINUE: the result is posted, then a new run starts in "
+						+ "this room to continue the task. Do not call WaitForSubAgent for POST or POST_AND_CONTINUE."));
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -194,7 +197,8 @@ public final class SubAgentToolSynthesizer {
         tool.put("name", TOOL_SPAWN_SUBAGENT);
         tool.put("description",
                 "Spawn an anonymous subagent (clone of yourself: same model, MCP tools, system prompt). "
-                        + "Returns a jobId handle IMMEDIATELY -- call WaitForSubAgent(jobId) to collect the final answer. "
+                        + "Returns a jobId handle IMMEDIATELY. With the default completionMode=WAIT, call "
+                        + "WaitForSubAgent(jobId) to collect the final answer. "
                         + "You may spawn multiple subagents in parallel before waiting on any.");
         tool.put("inputSchema", inputSchema);
 
@@ -202,6 +206,73 @@ public final class SubAgentToolSynthesizer {
         meta.put("SMSS_TOOL_KIND", "semoss_subagent_spawn");
         // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
+        tool.put("_meta", meta);
+        return tool;
+    }
+
+    /** Root-run tool that hands a question to a person and returns without waiting. */
+    public static Map<String, Object> buildDelegateTool() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("assignee", schemaString("Email address of the person to ask."));
+        properties.put("question", schemaString("What you need from them, written so it stands on its own."));
+        properties.put("context", schemaString(
+                "Everything they need to answer. They cannot see this conversation, your files, or your tools, "
+                        + "so include a short summary of only what is relevant and safe to share."));
+        properties.put("responseFormat", schemaString("Optional description of the answer you want back."));
+        properties.put("dueAt", schemaString("Optional due date shown to them."));
+        properties.put("completionMode", schemaString(
+                "POST_AND_CONTINUE (default): their response is posted to this room, then a new run starts to "
+                        + "continue the task. POST: the response is only posted."));
+
+        Map<String, Object> inputSchema = new LinkedHashMap<>();
+        inputSchema.put("type", "object");
+        inputSchema.put("title", TOOL_DELEGATE_TO_PERSON + "_Arguments");
+        inputSchema.put("properties", properties);
+        inputSchema.put("required", Arrays.asList("assignee", "question"));
+
+        Map<String, Object> tool = new LinkedHashMap<>();
+        tool.put("name", TOOL_DELEGATE_TO_PERSON);
+        tool.put("description",
+                "Ask a person for input. They get their own room to work in and respond when ready, which may take "
+                        + "hours or days. Returns immediately with a runId; do not wait for or poll the response. "
+                        + "Their response arrives in this room as a new message.");
+        tool.put("inputSchema", inputSchema);
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("SMSS_TOOL_KIND", "semoss_delegate_to_person");
+        // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
+        tool.put("_meta", meta);
+        return tool;
+    }
+
+    /** Delegation-room tool; ask mode makes the person confirm exactly what is sent. */
+    public static Map<String, Object> buildSubmitDelegationTool() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("response", schemaString(
+                "The final answer to send back to the requester, written for them. Required unless declining."));
+        properties.put("decline", schemaBool("Set true to decline the request instead of answering it."));
+        properties.put("reason", schemaString("Optional reason sent back when declining."));
+
+        Map<String, Object> inputSchema = new LinkedHashMap<>();
+        inputSchema.put("type", "object");
+        inputSchema.put("title", HumanDelegationService.SUBMIT_TOOL_NAME + "_Arguments");
+        inputSchema.put("properties", properties);
+
+        Map<String, Object> tool = new LinkedHashMap<>();
+        tool.put("name", HumanDelegationService.SUBMIT_TOOL_NAME);
+        tool.put("description",
+                "Send the answer to the request at the top of this room back to the person who asked. Call it only "
+                        + "when the user says they are ready to send, with the full final text. The user reviews and "
+                        + "confirms it before anything is sent. Nothing else in this room is shared with the requester.");
+        tool.put("inputSchema", inputSchema);
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("SMSS_TOOL_KIND", "semoss_submit_delegation");
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        // Confirm the send in the chat rather than the side dock.
+        meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
+                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue())));
         tool.put("_meta", meta);
         return tool;
     }
