@@ -114,10 +114,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	protected Object builtinTools = null;
 
 	/**
-	 * The max output tokens to request when the caller does not name one - the smss
-	 * value when defined, otherwise the MODELMETADATA row's maxOutputTokens. Null
-	 * when neither names one, in which case the python clients fall back to the
-	 * model's own output cap.
+	 * The max output tokens from MODELMETADATA to request when the caller does not
+	 * name one. Legacy engines without a metadata row fall back to their SMSS.
+	 * Null leaves the output limit to the python client/provider.
 	 */
 	protected Long maxTokens = null;
 
@@ -150,71 +149,48 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	 */
 	protected Set<ModelModalityEnum> inputModalities = null;
 
+	/**
+	 * Whether the model accepts document attachments per the MODELMETADATA row
+	 * (the static catalog's attachment flag). The catalog has no "file" input
+	 * modality - its vocabulary stops at text/image/audio/video/pdf - so this flag
+	 * is what lets generic FILE media (pptx, docx, xlsx, ...) through the input
+	 * modality gate. Null when the table does not say.
+	 */
+	protected Boolean attachmentSupported = null;
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
 
-		// backfill runtime settings from the MODELMETADATA table into the working
-		// smss properties - a value defined in the smss file always wins
+		// Resolve saved limits into the working properties for legacy consumers.
+		// The original SMSS stays untouched; the metadata table owns token limits.
 		fillModelSettingsFromMetadata();
 		applySmssInputModalitiesOverride();
 
 		this.keepConversationHistory = Boolean
 				.parseBoolean(this.smssProp.getProperty(Constants.KEEP_CONVERSATION_HISTORY));
-		String contextWindowStr = this.smssProp.getProperty(Constants.CONTEXT_WINDOW);
-		this.contextWindow = contextWindowStr != null && !contextWindowStr.trim().isEmpty()
-				? Integer.parseInt(contextWindowStr.trim())
-				: 0;
-		this.maxTokens = resolveMaxTokens();
 	}
 
 	/**
-	 * The effective max output tokens after the metadata merge: the smss file wins
-	 * under either key casing, then the metadata backfill placed under the
-	 * lowercase param key. A value that does not parse reads as unset rather than
-	 * failing engine open.
-	 */
-	private Long resolveMaxTokens() {
-		String value = this.smssProp.getProperty(Constants.MAX_TOKENS);
-		if (value == null || value.trim().isEmpty()) {
-			value = this.smssProp.getProperty(MAX_TOKENS);
-		}
-		if (value == null || value.trim().isEmpty()) {
-			return null;
-		}
-		try {
-			return Long.parseLong(value.trim());
-		} catch (NumberFormatException e) {
-			classLogger.warn("Model {} has an invalid max tokens value '{}' - ignoring it", this.engineId, value);
-			return null;
-		}
-	}
-
-	/**
-	 * Query the MODELMETADATA table once on engine open and fill in any model
-	 * settings that are not defined in the smss file. Downstream consumers (the
-	 * INIT_MODEL_ENGINE var substitution, getSmssProp callers, getContextWindow)
-	 * all read from the merged smssProp so they do not need to know about the
-	 * table. The original file contents remain untouched in origSmssProp.
+	 * Query MODELMETADATA once on engine open. Its token limits replace legacy
+	 * SMSS limits, including explicit clears. Downstream consumers (init-script
+	 * substitution, getSmssProp and getContextWindow) share the resolved values.
+	 * The original file contents remain untouched in origSmssProp.
 	 */
 	private void fillModelSettingsFromMetadata() {
-		if (this.engineId == null || this.engineId.trim().isEmpty()) {
-			return;
+		Map<String, Object> metadata = null;
+		if (this.engineId != null && !this.engineId.isBlank()) {
+			metadata = SecurityModelMetadataUtils.getModelMetadata(this.engineId);
 		}
 
-		Map<String, Object> metadata = null;
-		try {
-			metadata = SecurityModelMetadataUtils.getModelMetadata(this.engineId);
-		} catch (Exception e) {
-			classLogger.warn("Unable to load model metadata for engine {} - using smss values only", this.engineId, e);
-			return;
-		}
+		ModelTokenLimits limits = ModelTokenLimits.resolve(metadata, this.smssProp);
+		limits.applyTo(this.smssProp);
+		this.contextWindow = limits.contextWindow();
+		this.maxTokens = limits.maxTokens();
 		if (metadata == null) {
 			return;
 		}
 
-		fillIfMissing("context_window", metadata.get("contextWindow"));
-		fillIfMissing("max_tokens", metadata.get("maxOutputTokens"));
 		this.builtinTools = metadata.get("builtinTools");
 		this.inputModalities = toModalitySet(metadata.get("inputModalities"));
 
@@ -224,6 +200,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 		if (metadata.get("temperature") instanceof Boolean) {
 			this.temperatureSupported = (Boolean) metadata.get("temperature");
 		}
+		if (metadata.get("attachment") instanceof Boolean) {
+			this.attachmentSupported = (Boolean) metadata.get("attachment");
+		}
 		if (metadata.get("reasoningConfig") instanceof Map) {
 			@SuppressWarnings("unchecked")
 			Map<String, Object> config = (Map<String, Object>) metadata.get("reasoningConfig");
@@ -232,10 +211,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	}
 
 	/**
-	 * The smss file wins over the MODELMETADATA row for input modalities, same as
-	 * the other metadata-backed settings. An INPUT_MODALITIES property that is
-	 * present but blank disables enforcement entirely - the per-engine escape hatch
-	 * when stored metadata is wrong.
+	 * Input modalities retain their per-engine SMSS override. An INPUT_MODALITIES
+	 * property that is present but blank disables enforcement entirely - the
+	 * per-engine escape hatch when stored metadata is wrong.
 	 */
 	private void applySmssInputModalitiesOverride() {
 		String smssModalities = this.smssProp.getProperty(Constants.INPUT_MODALITIES);
@@ -268,21 +246,6 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 			}
 		}
 		return modalities.isEmpty() ? null : modalities;
-	}
-
-	/**
-	 * Set the smss property to the metadata value only when the smss file does not
-	 * already define a non-empty value for the key.
-	 */
-	private void fillIfMissing(String smssKey, Object metadataValue) {
-		if (metadataValue == null) {
-			return;
-		}
-		String current = this.smssProp.getProperty(smssKey);
-		if (current != null && !current.trim().isEmpty()) {
-			return;
-		}
-		this.smssProp.put(smssKey, String.valueOf(metadataValue));
 	}
 
 	/**
@@ -781,14 +744,34 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	/**
 	 * Throw when the given modality is not in the configured input modalities.
 	 * No-op when the engine does not restrict input.
+	 * <p>
+	 * FILE is special-cased: the static catalog never declares a "file" modality,
+	 * so a generic document (pptx, docx, xlsx, json, ...) is also allowed when the
+	 * model accepts attachments or already accepts PDF documents. The provider
+	 * remains the authority on which specific file types it can parse.
 	 */
 	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
 		if (this.inputModalities == null || this.inputModalities.contains(modality)) {
 			return;
 		}
+		if (modality == ModelModalityEnum.FILE && allowsGenericFileInput()) {
+			return;
+		}
 		String model = this.engineName == null || this.engineName.isBlank() ? this.engineId : this.engineName;
 		throw new IllegalArgumentException("Model " + model + " does not allow " + modality.name()
 				+ " input. Configured input modalities: " + this.inputModalities);
+	}
+
+	/**
+	 * Whether generic FILE media may be sent even though FILE is not listed in the
+	 * configured input modalities: true when the metadata row flags attachment
+	 * support or when PDF documents are already accepted.
+	 */
+	private boolean allowsGenericFileInput() {
+		if (Boolean.TRUE.equals(this.attachmentSupported)) {
+			return true;
+		}
+		return this.inputModalities != null && this.inputModalities.contains(ModelModalityEnum.PDF);
 	}
 
 	private static ModelModalityEnum modalityFor(MessagePart part) {

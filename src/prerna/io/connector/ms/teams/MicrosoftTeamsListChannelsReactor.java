@@ -90,7 +90,7 @@ public class MicrosoftTeamsListChannelsReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> result = MicrosoftTeamsHelper.listChannels(accessToken, teamId, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {

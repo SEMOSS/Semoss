@@ -66,6 +66,8 @@ import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -143,56 +145,11 @@ public class ModelInferenceLogsUtils {
 	 */
 	private static void executeInitModelInferenceDatabase(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
 
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					executeSql(conn, addColumnSql);
-
-					// was room id just added? 2025-06-26 addition. if so update w/ insight id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-
-					// was model id just added? 2025-06-26 addition. if so update w/ agent id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-				}
-			}
-		}
+		// create the tables and columns from the OWL creator schema
+		AbstractOwlCreator.syncSchema(engine, conn, dbSchema);
 
 		// was roomId just added
 		if (roomIdColumnWasAdded) {
@@ -205,134 +162,25 @@ public class ModelInferenceLogsUtils {
 			migrateAgentAndModelIds(conn);
 		}
 
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
-					Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
-					Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
-			executeSql(conn, sql);
-		} else {
-			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_ROOM_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_ROOM_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "WORKSPACE_OWNER_INDEX", "WORKSPACE", database, schema)) {
-				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN",
-						Arrays.asList("USER_ID", "WORKSPACE_ID", "DATE_CREATED"));
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN",
-						Arrays.asList("USER_ID", "ROOM_ID", "DATE_CREATED"));
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID");
-				executeSql(conn, sql);
-			}
-		}
+		// create the indexes on the tables
+		AbstractOwlCreator.syncIndexes(engine, conn, List.of(
+				OwlIndex.of("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID"),
+				OwlIndex.of("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID"),
+				OwlIndex.of("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID"),
+				OwlIndex.of("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED"),
+				OwlIndex.of("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID"),
+				OwlIndex.of("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID"),
+				OwlIndex.of("ROOM_USER_ID_INDEX", "ROOM", "USER_ID"),
+				OwlIndex.of("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE"),
+				OwlIndex.of("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID"),
+				OwlIndex.of("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER"),
+				OwlIndex.of("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID"),
+				OwlIndex.of("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID"),
+				OwlIndex.of("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID"),
+				OwlIndex.of("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", "USER_ID", "WORKSPACE_ID",
+						"DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID")));
 	}
 
 	/**
@@ -1102,10 +950,10 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Aggregates token and latency stats from the MESSAGE table for one room.
-	 * Token columns are split by row type (INPUT rows carry input/cache tokens,
-	 * RESPONSE rows carry output/thinking tokens) and RESPONSE_TIME is duplicated
-	 * on both rows of a call, so latency is read from RESPONSE rows only.
+	 * Aggregates token and latency stats from the MESSAGE table for one room. Token
+	 * columns are split by row type (INPUT rows carry input/cache tokens, RESPONSE
+	 * rows carry output/thinking tokens) and RESPONSE_TIME is duplicated on both
+	 * rows of a call, so latency is read from RESPONSE rows only.
 	 * <p>
 	 * Callers must validate room ownership before calling - this aggregates by
 	 * ROOM_ID alone.
@@ -1551,26 +1399,36 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible. Results are deduplicated to one row per
-	 * room in SQL before limit/offset are applied, so pagination operates on rooms
-	 * rather than raw message rows.
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row
+	 * per room in SQL before limit/offset are applied, so pagination operates on
+	 * rooms rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
 	 * @param projectId the project to search within, or null/blank to search all
 	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
 	 * @return a list of matching rooms, one row per room (room_id, room_name, and
-src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *         the room's date_created)
+	 *         src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java
+	 *         * the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
 		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
 	}
 
-	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword,
-			long limit, long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword, long limit,
+			long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
 
+		// Room-only subquery selecting just the room IDs in scope for this user/
+		// project. Used below as an indexed MESSAGE.ROOM_ID IN (...) filter so the
+		// (unindexable) blob-to-text LIKE match only has to run against messages in
+		// those rooms, instead of Postgres scanning every message row in the system
+		// before the ROOM-side filters ever get applied.
+		SelectQueryStruct roomScopeQs = new SelectQueryStruct();
+		roomScopeQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+		addRoomScopeFilters(roomScopeQs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+
+		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
 		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
@@ -1578,10 +1436,30 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		// Use the search-specific conversion so malformed searchable content cannot
 		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
-				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
+				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
+						"message_text");
 
 		// JOIN, filters, deduplication, and ordering
 		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
+		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("MESSAGE__ROOM_ID", "==", roomScopeQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, "?like", keyword,
+				PixelDataType.CONST_STRING));
+
+		qs.setDistinct(true);
+		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
 		if (projectId != null && !projectId.trim().isEmpty()) {
@@ -1595,19 +1473,6 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 		if (!includeChildRooms) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector,
-				"?like", keyword, PixelDataType.CONST_STRING));
-
-		qs.setDistinct(true);
-		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
-		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
-		if (limit > 0) {
-			qs.setLimit(limit);
-		}
-		if (offset > 0) {
-			qs.setOffSet(offset);
-		}
-		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
 	}
 
 	/**
@@ -1869,8 +1734,8 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch,
-				false, false);
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch, false,
+				false);
 	}
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
@@ -2814,10 +2679,11 @@ src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java	 *  
 	 *
 	 * <p>
 	 * Used by {@code SystemAgentSeeder} to self-heal the legacy display columns on
-	 * every boot the same way {@link #updateWorkspaceConfigJson(String, JSONObject)}
-	 * self-heals the config mirror. The legacy SYSTEM_PROMPT column is what
-	 * GetWorkspace/ListWorkspaces surface to the FE, so it must track the seeded
-	 * prompt or the UI shows a stale value after the constant changes.
+	 * every boot the same way
+	 * {@link #updateWorkspaceConfigJson(String, JSONObject)} self-heals the config
+	 * mirror. The legacy SYSTEM_PROMPT column is what GetWorkspace/ListWorkspaces
+	 * surface to the FE, so it must track the seeded prompt or the UI shows a stale
+	 * value after the constant changes.
 	 *
 	 * @param workspaceId  workspace identifier
 	 * @param name         workspace display name

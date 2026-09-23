@@ -74,7 +74,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String JAVASCRIPT_LABEL = "How to use in JavaScript/TypeScript with the @semoss/sdk";
 	private static final String GUARDRAIL_LABEL = "How to configure the guardrail pipeline JSON";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
-	private static final String OPENAI_LABEL = "How to use externally with OpenAI API";
+	private static final String OPENAI_LABEL = "How to use with the OpenAI API";
 	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API";
 	private static final String OLLAMA_LABEL = "How to use externally with Ollama API";
 
@@ -764,130 +764,200 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				```
 				""", engineId);
 
-		addUsage(usage, OPENAI, OPENAI_LABEL, """
-				Direct Client Setup (without sdk)
-				```python
-				from openai import OpenAI
+		addUsage(usage, OPENAI, OPENAI_LABEL,
+				"""
+						## In the platform
+						Client Setup
+						```python
+						# Python running in the platform is already authenticated, so there is no api key and no base url to set.
+						# Which models you can reach is decided based on the user's access, the same as everywhere else in the platform.
+						from openai import OpenAI
 
-				# access key + secret key format
-				client = OpenAI(
-				    api_key="<accesskey>:<secretkey>",
-				    base_url="<openaiendpoint>"
-				)
-				```
+						client = OpenAI()
+						```
 
-				Chat Completions (without sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"}
-				    ]
-				)
-				print(response.choices[0].message.content)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						response.choices[0].message.content
+						```
 
-				Responses API (without sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?"
-				)
-				print(response.output[0].text)
-				```
+						Streaming
+						```python
+						for chunk in client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Count from 1 to 5."}],
+						    stream=True
+						):
+						    if chunk.choices and chunk.choices[0].delta.content:
+						        print(chunk.choices[0].delta.content, end="")
+						```
 
-				Legacy Completions (Deprecated by OpenAI, without sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    extra_body={"insight_id":"<optional insight id>"}
-				)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						response.output_text
+						```
 
-				Embeddings (without sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"]
-				)
-				```
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
 
-				Client Setup (with sdk)
+						Continuing a conversation
+						```python
+						# Each call starts a new room unless you name one to carry the history.
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Where was it played?"}],
+						    extra_body={"room_id": "<your room id>"}
+						)
+						```
 
-				SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
-				```python
-				# Requires user access/secret, service account, or bearer token
-				import ai_server
-				server_connection=ai_server.ServerClient(
-				    base="<apiendpoint>",
-				    access_key="<your access key>",
-				    secret_key="<your secret key>"
-				)
+						Listing the models you can reach
+						```python
+						[model.id for model in client.models.list().data]
+						```
 
-				# Configure the OpenAI client to route through this Semoss instance
-				from openai import OpenAI
-				import httpx as httpx
-				http_client = httpx.Client()
-				http_client.cookies=server_connection.cookies
+						## External, direct OpenAI client
+						Client Setup
+						```python
+						from openai import OpenAI
 
-				client = OpenAI(
-				    api_key="EMPTY",
-				    base_url=server_connection.get_openai_endpoint(),
-				    default_headers=server_connection.get_auth_headers(),
-				    http_client=http_client
-				)
-				```
+						# access key + secret key format
+						client = OpenAI(
+						    api_key="<accesskey>:<secretkey>",
+						    base_url="<openaiendpoint>"
+						)
+						```
 
-				Chat Completions (with sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"},
-				        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-				        {"role": "user", "content": "Where was it played?"}
-				    ],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						print(response.choices[0].message.content)
+						```
 
-				Responses API (with sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?",
-					# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				print(response.output[0].text)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						print(response.output[0].text)
+						```
 
-				Legacy Completions (Deprecated by OpenAI, with sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    extra_body={"insight_id":"<optional insight id>"}
+						)
+						```
 
-				Embeddings (with sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
-				""", engineId);
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
+
+						## External, with the ai-server-sdk
+						Client Setup
+
+						SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
+						```python
+						# Requires user access/secret, service account, or bearer token
+						import ai_server
+						server_connection=ai_server.ServerClient(
+						    base="<apiendpoint>",
+						    access_key="<your access key>",
+						    secret_key="<your secret key>"
+						)
+
+						# Configure the OpenAI client to route through this Semoss instance
+						from openai import OpenAI
+						import httpx as httpx
+						http_client = httpx.Client()
+						http_client.cookies=server_connection.cookies
+
+						client = OpenAI(
+						    api_key="EMPTY",
+						    base_url=server_connection.get_openai_endpoint(),
+						    default_headers=server_connection.get_auth_headers(),
+						    http_client=http_client
+						)
+						```
+
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?",
+							# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						print(response.output[0].text)
+						```
+
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+						""",
+				engineId);
 
 		addUsage(usage, ANTHROPIC, ANTHROPIC_LABEL, """
 				Direct Client Setup
@@ -1331,7 +1401,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others) queried behind one consistent interface. The examples below assume SQL; substitute SPARQL, Gremlin, or whichever dialect the underlying database speaks.
+						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others).
+						Choose a supported query route for the actual engine: SqlQuery for relational engines, SparqlQuery for RDF SELECTs, and structured Database | Select | Collect pipelines for Tinker/JanusGraph/DataStax graph engines.
+						Those graph engines translate structured queries to Gremlin/Cypher internally
 
 						## What you can do
 
@@ -2344,6 +2416,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						- `input` guardrails run before the protected engine method. They can block, mask an argument, return a guardrail-provided response, or close a model room after a block.
 						- `output` guardrails run after the protected engine method. They can block the result or close a model room after a block.
 						- Entries run in list order. A failed blocking guardrail stops the remaining work.
+
+						## Tool-result continuations
+
+						`askRoom` carries both a user's turn and the agent loop's tool results, so a guardrail meant for user-typed text also screens every tool result. These optional `params` on an input guardrail let a mount skip the tool turns:
+
+						- `skipOnToolContinuationForAllTools` (boolean) skips every tool-result continuation and ignores the allowlist below.
+						- `skipOnToolContinuationForTools` (list) skips only when every tool result on the message names a listed tool. Names are the ones the model was given, so a tool served by another engine carries that engine's prefix, such as `a<engineid>_search`.
+						- `toolContinuationArg` (string, default `arg0`) names the argument holding the message, for an intercepted method that does not take it first.
+
+						A turn carrying user-written text is always screened, whatever these are set to. Skipping is not free: tool output is untrusted content, and a mount that skips it stops protecting the boundary where a web search or a file read can carry an injection. Prefer the allowlist, and keep a screening mount attached for the rest.
 						""",
 				engineId);
 

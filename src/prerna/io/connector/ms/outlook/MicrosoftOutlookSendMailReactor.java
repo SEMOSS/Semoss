@@ -94,7 +94,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 
 			ComposedMail composed = compose(true, "send");

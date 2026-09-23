@@ -84,13 +84,24 @@ class SqlQueryGuardrailEngineUnitTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = { "waitfor delay 0:0:20", "WAITFOR DELAY '00:00:20'", "COPY users TO '/tmp/users.csv'",
-			"CALL privileged_procedure()", "GRANT SELECT ON users TO public", "DO $$ BEGIN NULL; END $$" })
+			"DO $$ BEGIN NULL; END $$" })
 	void unsupportedVendorOrControlStatementsFailClosed(String query) {
 		GuardrailNounMetadata result = evaluate(query, SqlQueryGuardrailEngine.CallerAccess.OWNER);
 
 		assertFalse(result.isPass());
 		assertEquals("FAILED", details(result).get("parserStatus"));
 		assertTrue(violationValues(result).contains("GENERIC"));
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "CALL privileged_procedure()", "GRANT SELECT ON users TO public" })
+	void routineAndPrivilegeStatementsAreDeniedEvenThoughTheyParse(String query) {
+		// these parse into real statement types rather than failing, so they have to be
+		// denied on their own merits rather than riding on a parser failure
+		GuardrailNounMetadata result = evaluate(query, SqlQueryGuardrailEngine.CallerAccess.OWNER);
+
+		assertFalse(result.isPass());
+		assertEquals("PARSED", details(result).get("parserStatus"));
 	}
 
 	@ParameterizedTest
@@ -279,10 +290,12 @@ class SqlQueryGuardrailEngineUnitTests {
 		properties.setProperty(SqlQueryGuardrailEngine.PARSER_FAILURE_POLICY_KEY, "OWNER");
 		SqlQueryGuardrailEngine engine = configured(properties);
 
+		// a statement that genuinely does not parse, so the parser failure policy is
+		// what decides the outcome
 		assertFalse(
-				engine.evaluateQuery("CALL vendor_extension()", SqlQueryGuardrailEngine.CallerAccess.EDIT).isPass());
+				engine.evaluateQuery("WAITFOR DELAY '00:00:20'", SqlQueryGuardrailEngine.CallerAccess.EDIT).isPass());
 		assertTrue(
-				engine.evaluateQuery("CALL vendor_extension()", SqlQueryGuardrailEngine.CallerAccess.OWNER).isPass());
+				engine.evaluateQuery("WAITFOR DELAY '00:00:20'", SqlQueryGuardrailEngine.CallerAccess.OWNER).isPass());
 	}
 
 	@Test

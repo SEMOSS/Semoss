@@ -61,8 +61,8 @@ public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarR
 	private static final String MAX_BODY_CHARS = "maxBodyChars";
 
 	public MicrosoftCalendarGetEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, TIME_ZONE, MAX_BODY_CHARS, CALENDAR_ID };
-		this.keyRequired = new int[] { 1, 0, 0, 0 };
+		this.keysToGet = new String[] { EVENT_ID, TIME_ZONE, MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -75,13 +75,14 @@ public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarR
 		}
 		String timeZone = trimToNull(this.keyValue.get(TIME_ZONE));
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			Map<String, Object> event = MicrosoftCalendarHelper.getEvent(accessToken, calendarId, eventId, maxBodyChars,
-					timeZone);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			Map<String, Object> event = MicrosoftCalendarHelper.getEvent(accessToken, mailbox, calendarId, eventId,
+					maxBodyChars, timeZone);
 			return new NounMetadata(event, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while reading calendar event '{}'", eventId, e);
@@ -95,7 +96,7 @@ public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarR
 
 	@Override
 	public String getReactorDescription() {
-		return "Read one event from the signed in user's own Microsoft 365 calendar.";
+		return "Read one event from a Microsoft 365 calendar, the signed in user's own or one shared or delegated to them.";
 	}
 
 	@Override

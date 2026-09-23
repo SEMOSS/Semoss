@@ -115,7 +115,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			// null mailbox is what addresses /me, so the signed in user is the only
 			// mailbox this reactor is able to read

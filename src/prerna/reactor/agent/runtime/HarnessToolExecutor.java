@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -58,6 +59,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
@@ -125,13 +127,23 @@ final class HarnessToolExecutor {
 		if (toolCalls.isEmpty()) {
 			return toolResponse;
 		}
-		String jobId = ThreadStore.getJobId();
+		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx, PreparePptxEdit and ApplyPptxEdits must each be called alone; no tools in this batch were executed.");
+        }
+        String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 
 		// Per-turn spawn cap - shared across the batch. Only spawn-kind calls
 		// decrement.
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
+
+		String resultTool = ctx.getAgentConfig().getResultTool();
+		boolean returnsToolResult = resultTool != null && toolCalls.stream()
+				.anyMatch(call -> resultTool.equals(new ParsedToolCall(call).rawToolName));
+		if (returnsToolResult && toolCalls.size() != 1) {
+			throw new IllegalArgumentException("The final result tool " + resultTool + " must be called alone");
+		}
 
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
@@ -152,8 +164,45 @@ final class HarnessToolExecutor {
 			throw new AgentInputRequiredException(parentMsgId, askToolCalls);
 		}
 
-		nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
-				spawnsRemainingInBatch);
+		if (returnsToolResult) {
+			ParsedToolCall tc = new ParsedToolCall(toolCalls.getFirst());
+			ToolExecResult result = executeOneTool(tc, state, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+					spawnsRemainingInBatch);
+			state.addToolCallRecord(result.record);
+            state.incrementIterations();
+			ResponseMessage finalResponse = (ResponseMessage) room.getMessages().getLast();
+			state.setFinalText(finalResponse.getContent());
+			state.setTerminal(true);
+			return finalResponse;
+		}
+
+        executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+        state.incrementIterations();
+        if (state.pptxWorkflow() != null) {
+            var workflow = state.pptxWorkflow();
+            workflow.afterRound(state.getIterations(), ctx.getMaxTurns());
+            if (workflow.isTerminal()) {
+                ResponseMessage delivery = ResponseMessage.text(workflow.finalText());
+                delivery.setPlatformGenerated(true);
+                room.continueAfterToolExecutionResults(new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
+                        ctx.getInsight(), null, delivery);
+                state.setFinalText(workflow.finalText());
+                state.setTerminal(true);
+                return (ResponseMessage) room.getMessages().getLast();
+            }
+        }
+        Map<String, Object> nextParams = new HashMap<>(paramMap);
+        if (ctx.getAgentConfig().getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
+            nextParams.put("tool_choice", "none");
+        }
+        AgentRunStreamService.get().beginModelCall(ctx.getRunId());
+        state.progress().beginModel();
+        try {
+            nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                    ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+        } finally {
+            state.progress().endModel();
+        }
 
 		if (nextModelResp == null) {
 			return null;
@@ -174,7 +223,7 @@ final class HarnessToolExecutor {
 		AskModelEngineResponse<?> nextModelResp = null;
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-			ToolExecResult r = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+			ToolExecResult r = executeOneTool(tc, state, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
 					spawnsRemainingInBatch);
 			state.addToolCallRecord(r.record);
 			nextModelResp = r.modelResponse;
@@ -189,7 +238,7 @@ final class HarnessToolExecutor {
 				for (int i = 0; i < toolCalls.size(); i++) {
 					final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
 					futures[i] = CompletableFuture.supplyAsync(
-							() -> parentContext.call(() -> executeOneTool(tc, state.getIterations(), paramMap,
+							() -> parentContext.call(() -> executeOneTool(tc, state, state.getIterations(), paramMap,
 										parentMsgId, ctx, jobId, spawnsRemainingInBatch)),
 							pool);
 				}
@@ -240,7 +289,7 @@ final class HarnessToolExecutor {
 	 * Executes one tool call and submits the result to the Room. Safe to call
 	 * concurrently - Room.addToolExecutionResult() is synchronized.
 	 */
-	private static ToolExecResult executeOneTool(ParsedToolCall tc, int currentIter, Map<String, Object> paramMap,
+	private static ToolExecResult executeOneTool(ParsedToolCall tc, AgentLoopState state, int currentIter, Map<String, Object> paramMap,
 			String parentMsgId, AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch) {
 
 		logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}", tc.rawToolName, tc.toolCallId,
@@ -254,19 +303,43 @@ final class HarnessToolExecutor {
 		runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
 		AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
 
-		long startMs = System.currentTimeMillis();
+		state.progress().beginTool(tc.rawToolName);
+        long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
 		// forwarded so subagent dispatch can address the parent's stream queue even
 		// when this method runs on a worker thread from the parallel-tool pool.
 		ToolExecOutcome outcome;
 		try {
-			outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
+                outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
+            } else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
+                outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);
+            } else if (state.pptxWorkflow() != null && PptxStructuredEdits.TOOL.equals(tc.rawToolName)) {
+                var value = state.pptxWorkflow().applyEdits(tc.toolParams, currentIter + 1);
+                outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
+            } else if (state.pptxWorkflow() != null && PptxWorkflow.TOOL.equals(tc.rawToolName)) {
+                var value = state.pptxWorkflow().build(tc.toolParams, currentIter + 1);
+                outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
+            } else if (state.pptxWorkflow() != null && ("ExecuteNodeCode".equals(tc.rawToolName) || "InspectPptx".equals(tc.rawToolName)
+                    || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
+                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
+            } else {
+                outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+            }
 		} catch (AgentCancelledException cancelEx) {
+            state.progress().endTool(tc.rawToolName, tc.toolParams, false, cancelEx.getMessage(), System.currentTimeMillis() - startMs);
 			publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
 					System.currentTimeMillis() - startMs);
 			throw cancelEx;
+		} catch (IllegalArgumentException invalidEdit) {
+			if (state.pptxWorkflow() == null || !Set.of(PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(tc.rawToolName))
+				throw invalidEdit;
+			// A rejected plan must be a recoverable tool result with a matching call ID.
+			// Let the author correct its arguments without losing the run or saved deck.
+			outcome = new ToolExecOutcome("Edit rejected: " + invalidEdit.getMessage(), false);
 		}
 		long durMs = System.currentTimeMillis() - startMs;
+        state.progress().endTool(tc.rawToolName, tc.toolParams, outcome.success, outcome.content, durMs);
 
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
@@ -282,9 +355,20 @@ final class HarnessToolExecutor {
 				outcome.content, durMs, outcome.success);
 
 		// Pass a fresh copy - Room.appendToolsToParams() mutates the map.
-		AskModelEngineResponse<?> modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
-				outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
-				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+		AskModelEngineResponse<?> modelResp;
+		if (tc.rawToolName.equals(ctx.getAgentConfig().getResultTool())) {
+			// Persist the tool result and a matching assistant message through Room's existing
+			// prebuilt-response path. Coverage and verdict cannot be rewritten by the reviewer.
+			modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
+					outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
+					ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR,
+					ResponseMessage.text(outcome.content));
+		} else {
+            ctx.getRoom().addToolExecutionResultWithoutModel(tc.toolCallId, tc.rawToolName,
+                    outcome.content, tc.toolParams, parentMsgId, ctx.getModelEngine(),
+                    ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+            modelResp = null;
+		}
 
 		return new ToolExecResult(record, modelResp);
 	}
@@ -535,6 +619,7 @@ final class HarnessToolExecutor {
 	private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params, AgentRunContext ctx,
 			java.util.List<SubAgentSpec> specs, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
 		Room parentRoom = ctx.getRoom();
+		AgentRunTarget parentTarget = ctx.getAgentTarget();
 		// Do not read instructions back from the live room here. SemossAgentHarness
 		// temporarily replaces them with its fully composed runtime prompt while tools run.
 		String parentAuthoredSystemPrompt = ctx.getAgentConfig().getAuthoredPrompt();
@@ -543,7 +628,7 @@ final class HarnessToolExecutor {
 				return perTurnRejectedJson(ctx);
 			}
 			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId,
-					parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 		}
 		if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
 			Object jobIdObj = params == null ? null : params.get("jobId");
@@ -573,7 +658,7 @@ final class HarnessToolExecutor {
 			return perTurnRejectedJson(ctx);
 		}
 		return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId,
-				parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 	}
 
 	/** Atomic claim against the per-turn spawn budget; restores on miss. */

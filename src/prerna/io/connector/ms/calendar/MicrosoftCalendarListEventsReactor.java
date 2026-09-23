@@ -51,7 +51,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * </p>
  * <ul>
  * <li>{@code Calendars.Read} for {@code GET /me/calendarView} and
- * {@code GET /me/calendars/{id}/calendarView}</li>
+ * {@code GET /me/calendars/{id}/calendarView}, which covers the signed in
+ * user's own calendars and the shared custom calendars sitting in their own
+ * list</li>
+ * <li>{@code Calendars.Read.Shared} as well, when a {@code mailbox} names
+ * somebody else, for {@code GET /users/{id}/calendarView}. This is what reaches
+ * a primary calendar that was shared or delegated, which never appears in the
+ * signed in user's own calendar list.</li>
  * </ul>
  *
  * <p>
@@ -81,8 +87,8 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 
 	public MicrosoftCalendarListEventsReactor() {
 		this.keysToGet = new String[] { START, END, DAYS, TIME_ZONE, SUBJECT, ReactorKeysEnum.LIMIT.getKey(),
-				INCLUDE_BODY, MAX_BODY_CHARS, CALENDAR_ID };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				INCLUDE_BODY, MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -91,6 +97,7 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 
 		String timeZone = trimToNull(this.keyValue.get(TIME_ZONE));
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 		String subject = trimToNull(this.keyValue.get(SUBJECT));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 		int days = positiveInt(DAYS, DEFAULT_DAYS, Integer.MAX_VALUE);
@@ -113,9 +120,9 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 			}
 
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			List<Map<String, Object>> events = MicrosoftCalendarHelper.listEvents(accessToken, calendarId, start, end,
-					subject, includeBody, maxBodyChars, timeZone, limit);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			List<Map<String, Object>> events = MicrosoftCalendarHelper.listEvents(accessToken, mailbox, calendarId,
+					start, end, subject, includeBody, maxBodyChars, timeZone, limit);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("start", start);
@@ -137,7 +144,7 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 
 	@Override
 	public String getReactorDescription() {
-		return "Read the events on the signed in user's own Microsoft 365 calendar.";
+		return "Read the events on a Microsoft 365 calendar, the signed in user's own or one shared or delegated to them.";
 	}
 
 	@Override

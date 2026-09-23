@@ -1390,6 +1390,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		return getAllEngineSettings(engineFilter, engineTypes, engineMetadataFilter, searchTerm, limit, offset, null);
 	}
 
+	/**
+	 * 
+	 * @param engineFilter
+	 * @param engineTypes
+	 * @param engineMetadataFilter
+	 * @param searchTerm
+	 * @param limit
+	 * @param offset
+	 * @param sortFields
+	 * @return
+	 */
 	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
 			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
@@ -1417,16 +1428,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "database_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "database_tool_app"));
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "ENGINE__ENGINENAME",
-				"low_database_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "database_global"));
-		// legacy alias names
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID", "app_id"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINENAME", "app_name"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__TOOL_APP", "tool_app"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__GLOBAL", "app_global"));
-		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "app_display_name"));
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEDISPLAYNAME", "engine_display_name"));
 
 		if (engineFilter != null && !engineFilter.isEmpty()) {

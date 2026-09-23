@@ -110,10 +110,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 
 		// vars for string substitution
+		this.vars.clear();
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+		// Older init scripts still reference these placeholders. A cleared limit
+		// must resolve to Python None, not a stale value or an unresolved token.
+		this.vars.putIfAbsent(Constants.CONTEXT_WINDOW, "None");
+		this.vars.putIfAbsent(Constants.MAX_TOKENS, "None");
 	}
 
 	/**
@@ -187,10 +192,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				}
 
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				// it has to be -- don't change this unless you can send engine calls from
-				// python
 				boolean nativePyServer = true;
 				try {
+					cpwToInit.setEngineOwned(true);
 					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory,
 							customClassPath, debug, timeout, loggerLevel);
 				} catch (Exception e) {

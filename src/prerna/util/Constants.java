@@ -769,6 +769,8 @@ public class Constants {
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
+	// Colon/semicolon-separated executable directories exposed inside sandboxes
+	public static final String SANDBOX_PATH = "SANDBOX_PATH";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -920,6 +922,9 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
+	// node.js agent execution environment
+	public static final String JS_BASE_FOLDER = "js";
+
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -994,7 +999,7 @@ public class Constants {
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String TCP_WORKER = "TCP_WORKER";
-	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
+	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
 
@@ -1092,23 +1097,31 @@ public class Constants {
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
 	public static final String SKILL_FUNCTIONS = "functions";
+	public static final String SKILL_MCP = "mcp";
 	public static final String SKILL_MODEL = "model";
 	public static final String SKILL_PAGINATION = "pagination";
 	public static final String SKILL_PERMISSIONS = "permissions";
+	public static final String SKILL_PPTX = "pptx";
 	public static final String SKILL_PYTHON = "python";
 	public static final String SKILL_ROOM = "room";
 	public static final String SKILL_STORAGE = "storage";
 	public static final String SKILL_USER = "user";
 	public static final String SKILL_VECTOR = "vector";
+	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
 
 	// system (platform) mcp names
-	public static final String MCP_NODE_BUILDER = "node-builder";
-	public static final String MCP_DATABASE_MAKER = "database-maker";
-	public static final String MCP_REACTOR_HELP = "reactor-help";
-	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
 	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
+	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
+	public static final String AGENT_PPTX = "pptx-agent";
+	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
+	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
 }
