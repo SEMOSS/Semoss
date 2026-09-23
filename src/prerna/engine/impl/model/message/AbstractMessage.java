@@ -75,6 +75,10 @@ public abstract class AbstractMessage {
 	protected String transactionId;
 	protected String parentMessageId;
 	protected String summaryLeafMessageId;
+
+	@SerializedName("agentRun")
+	protected AgentRunMessageContext agentRun;
+
 	protected MessageFeedback feedback;
 	protected int tokens;
 
@@ -126,6 +130,9 @@ public abstract class AbstractMessage {
 	 * format.
 	 */
 	public void normalizeForWrite() {
+		if (agentRun != null) {
+			agentRun.validate();
+		}
 		if (schemaVersion == null || schemaVersion < LATEST_SCHEMA_VERSION) {
 			schemaVersion = LATEST_SCHEMA_VERSION;
 		}
@@ -297,6 +304,21 @@ public abstract class AbstractMessage {
 
 	public void setSummaryLeafMessageId(String summaryLeafMessageId) {
 		this.summaryLeafMessageId = summaryLeafMessageId;
+	}
+
+	/**
+	 * Returns first-class agent-run attribution, or a read-only projection of the
+	 * legacy ornament fields when loading an older message.
+	 */
+	public AgentRunMessageContext getAgentRun() {
+		return agentRun != null ? agentRun : AgentRunMessageContext.fromLegacyOrnaments(ornaments);
+	}
+
+	public void setAgentRun(AgentRunMessageContext agentRun) {
+		if (agentRun != null) {
+			agentRun.validate();
+		}
+		this.agentRun = agentRun;
 	}
 
 	public MessageFeedback getFeedback() {

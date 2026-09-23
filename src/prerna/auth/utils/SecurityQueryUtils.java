@@ -410,6 +410,42 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
+	/** Unlocked accounts whose name, email, username, or id contains the term (case-insensitive). */
+	public static List<Map<String, Object>> searchUnlockedUsers(String term, int limit) {
+		SelectQueryStruct qs = unlockedUserQuery();
+		OrQueryFilter orFilter = new OrQueryFilter();
+		for (String column : List.of("SMSS_USER__NAME", "SMSS_USER__EMAIL", "SMSS_USER__USERNAME", "SMSS_USER__ID")) {
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(column, "?like", term));
+		}
+		qs.addExplicitFilter(orFilter);
+		qs.addOrderBy("SMSS_USER__NAME");
+		qs.setLimit(limit);
+		return QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(), qs);
+	}
+
+	/** The unlocked account with exactly this id and provider type; null when none. */
+	public static Map<String, Object> getUnlockedUser(String id, String type) {
+		SelectQueryStruct qs = unlockedUserQuery();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", id));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
+		List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(), qs);
+		return rows.isEmpty() ? null : rows.getFirst();
+	}
+
+	private static SelectQueryStruct unlockedUserQuery() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+		List<Boolean> unlocked = new ArrayList<>();
+		unlocked.add(false);
+		unlocked.add(null);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", unlocked));
+		return qs;
+	}
+
 	public static boolean checkUsernameExist(String username) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
