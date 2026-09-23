@@ -153,10 +153,14 @@ final class AutomationRuntime {
 	}
 
 	/**
-	 * Runs one node module with the workflow scope supplied by the Java scheduler.
+	 * Runs one node module with the workflow scope and run-local Insight folder
+	 * supplied by the Java scheduler.
 	 */
-	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_node", source, scope);
+	static String buildNodeInvocationScript(String source, Map<String, Object> scope, String workspaceRoot) {
+		if (workspaceRoot == null || workspaceRoot.isBlank()) {
+			throw new IllegalArgumentException("Automation node execution requires a run-local Insight folder.");
+		}
+		return buildPythonInvocation("execute_node", source, scope, workspaceRoot);
 	}
 
 	/**
@@ -165,26 +169,29 @@ final class AutomationRuntime {
 	 * {@code run(scope)} to define computed globals.
 	 */
 	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope);
+		return buildPythonInvocation("execute_trigger", source, scope, null);
 	}
 
-	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope) {
+	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
+			String workspaceRoot) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
+		String workspaceArgument = workspaceRoot == null ? ""
+				: ", " + AutomationRuntimeUtils.GSON.toJson(workspaceRoot);
 		return """
 				import importlib.util as _automation_importlib
 				_automation_spec = _automation_importlib.spec_from_file_location(
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s", %d)
+				_automation_runtime.%s("%s", "%s", %d%s)
 				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
-				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES, workspaceArgument);
 	}
 
 	/**

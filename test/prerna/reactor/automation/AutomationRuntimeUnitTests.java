@@ -115,4 +115,13 @@ public class AutomationRuntimeUnitTests {
 				.definesRunEntryPoint("class Job:\n    def run(self, scope):\n        return {}\n"));
 		assertFalse(AutomationDefinitionService.definesRunEntryPoint("def outer():\n    run = 1\n    return run\n"));
 	}
+
+	@Test
+	void passesTheRunLocalInsightFolderOnlyToNodeExecution() {
+		String workspaceRoot = "/tmp/automation-run";
+		assertTrue(AutomationRuntime
+				.buildNodeInvocationScript("def run(scope):\n    return ROOT\n", Map.of(), workspaceRoot)
+				.contains(", \"/tmp/automation-run\")"));
+		assertFalse(AutomationRuntime.buildTriggerInvocationScript("", Map.of()).contains(workspaceRoot));
+	}
 }

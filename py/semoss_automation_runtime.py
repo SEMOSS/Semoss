@@ -14,6 +14,9 @@ from typing import Any
 
 
 _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
+_REFERENCE_ROOT_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_REFERENCE_KEY_PATTERN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_MAX_REFERENCE_SEGMENTS = 32
 
 
 class AutomationScope(dict[str, Any]):
@@ -60,13 +63,58 @@ class AutomationScope(dict[str, Any]):
 
         return _PLACEHOLDER_PATTERN.sub(replace, value)
 
-    def _required(self, name: str) -> Any:
-        if name not in self:
-            raise KeyError(
-                f"Generated automation configuration references unavailable "
-                f"scope value '{name}'."
-            )
-        return self[name]
+    def _required(self, reference: str) -> Any:
+        """Resolve the canonical ``root.key[0]`` scope-reference syntax."""
+        root_match = _REFERENCE_ROOT_PATTERN.match(reference)
+        if root_match is None:
+            self._raise_missing_reference(reference)
+
+        root = root_match.group(0)
+        if root not in self:
+            self._raise_missing_reference(reference)
+
+        current: Any = self[root]
+        position = root_match.end()
+        segment_count = 0
+        while position < len(reference):
+            if segment_count >= _MAX_REFERENCE_SEGMENTS:
+                raise KeyError(
+                    f"Generated automation configuration scope reference "
+                    f"'{reference}' exceeds {_MAX_REFERENCE_SEGMENTS} path segments."
+                )
+
+            if reference[position] == ".":
+                key_match = _REFERENCE_KEY_PATTERN.match(reference, position + 1)
+                if key_match is None or not isinstance(current, dict):
+                    self._raise_missing_reference(reference)
+                key = key_match.group(0)
+                if key not in current:
+                    self._raise_missing_reference(reference)
+                current = current[key]
+                position = key_match.end()
+            elif reference[position] == "[":
+                close = reference.find("]", position + 1)
+                if close < 0:
+                    self._raise_missing_reference(reference)
+                index_text = reference[position + 1 : close]
+                if not index_text.isdigit() or not isinstance(current, list):
+                    self._raise_missing_reference(reference)
+                index = int(index_text)
+                if index >= len(current):
+                    self._raise_missing_reference(reference)
+                current = current[index]
+                position = close + 1
+            else:
+                self._raise_missing_reference(reference)
+            segment_count += 1
+        return current
+
+    @staticmethod
+    def _raise_missing_reference(reference: str) -> None:
+        raise KeyError(
+            f"Generated automation configuration references unavailable "
+            f"scope value '{reference}'."
+        )
 
     def resolve_config(self, value: Any) -> Any:
         """Resolve a generated-node configuration while preserving native types."""
@@ -77,11 +125,18 @@ class AutomationScope(dict[str, Any]):
         return self.resolve(value)
 
 
-def execute_node(encoded_scope: str, encoded_source: str, max_output_bytes: int) -> Any:
+def execute_node(
+    encoded_scope: str,
+    encoded_source: str,
+    max_output_bytes: int,
+    workspace_root: str | None = None,
+) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
     scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
     module: dict[str, Any] = {"__name__": "__automation_node__"}
+    if workspace_root is not None:
+        module["ROOT"] = workspace_root
     # Java selects this persisted source only after authorizing the run. Keeping
     # exec here makes that trust boundary explicit and avoids hidden source edits.
     exec(source, module)
