@@ -208,8 +208,17 @@ public class NotificationDbUtils {
 			String audienceType, String audienceId, String audienceUserType, String title, String message,
 			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
 			String targetId, String metadataJson, String createdBy) {
+		return insertNotificationEvent(GUID.v7().toUUID().toString(), type, scopeType, scopeId, audienceType,
+				audienceId, audienceUserType, title, message, priority, displaySurface, sourceType, sourceId,
+				targetType, targetId, metadataJson, createdBy);
+	}
+
+	// Caller-chosen id so a producer can find (and dismiss) its own notification later.
+	static String insertNotificationEvent(String notificationId, String type, String scopeType, String scopeId,
+			String audienceType, String audienceId, String audienceUserType, String title, String message,
+			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
+			String targetId, String metadataJson, String createdBy) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String notificationId = GUID.v7().toUUID().toString();
 		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
 		try {
