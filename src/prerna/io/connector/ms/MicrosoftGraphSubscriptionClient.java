@@ -107,24 +107,35 @@ public class MicrosoftGraphSubscriptionClient {
 	/** Where the Microsoft scopes this deployment asks for are configured. */
 	private static final String MS_SCOPE_PROPERTY = "ms_scope";
 
-	/** The longest a subscription on a mailbox may live, in minutes. */
-	private static final int OUTLOOK_MAX_MINUTES = 10_080;
+	/** Leave room for clock skew between this process and Graph. */
+	private static final int SAFETY_BUFFER_MINUTES = 5;
 
-	/** The longest a subscription on anything in Teams may live, in minutes. */
-	private static final int TEAMS_MAX_MINUTES = 4_320;
+	/** Graph currently enforces 10,070 minutes for Outlook subscriptions. */
+	private static final int OUTLOOK_MAX_MINUTES = 10_070 - SAFETY_BUFFER_MINUTES;
 
-	/** The longest a subscription on a drive may live, in minutes. */
-	private static final int DRIVE_MAX_MINUTES = 42_300;
+	/** The documented maximum for Teams chat/channel subscriptions. */
+	private static final int TEAMS_MAX_MINUTES = 4_320 - SAFETY_BUFFER_MINUTES;
+
+	/** The maximum for Teams approvals subscriptions. */
+	private static final int TEAMS_APPROVALS_MAX_MINUTES = 43_200 - SAFETY_BUFFER_MINUTES;
+
+	/** The maximum for Microsoft Graph security alert subscriptions. */
+	private static final int SECURITY_ALERT_MAX_MINUTES = 43_200 - SAFETY_BUFFER_MINUTES;
+
+	/** The maximum for Teams Shifts subscriptions. */
+	private static final int TEAMS_SHIFTS_MAX_MINUTES = 360 - SAFETY_BUFFER_MINUTES;
+
+	/** The maximum for OneDrive and SharePoint list subscriptions. */
+	private static final int DRIVE_MAX_MINUTES = 42_300 - SAFETY_BUFFER_MINUTES;
+
+	/** The maximum for directory resource subscriptions. */
+	private static final int DIRECTORY_MAX_MINUTES = 41_760 - SAFETY_BUFFER_MINUTES;
 
 	/** The longest a subscription on somebody's presence may live, in minutes. */
-	private static final int PRESENCE_MAX_MINUTES = 60;
+	private static final int PRESENCE_MAX_MINUTES = 60 - SAFETY_BUFFER_MINUTES;
 
-	/**
-	 * What anything not named above is held to. It is the shortest of the maximums
-	 * Graph documents, so it is safe for a resource this class has not been taught
-	 * about.
-	 */
-	private static final int DEFAULT_MAX_MINUTES = 4_230;
+	/** The maximum for resources whose documented limit is 4,230 minutes. */
+	private static final int STANDARD_MAX_MINUTES = 4_230 - SAFETY_BUFFER_MINUTES;
 
 	/**
 	 * Graph rounds anything sooner than this up to it, so asking for less is only a
@@ -221,6 +232,7 @@ public class MicrosoftGraphSubscriptionClient {
 			throws Exception {
 		try {
 			requireValue(id, "A subscription id is required to renew a Microsoft Graph subscription.");
+			requireValue(resource, "A resource is required to renew a Microsoft Graph subscription.");
 
 			Map<String, Object> body = new LinkedHashMap<>();
 			body.put("expirationDateTime", expiration(resource, minutes));
@@ -429,38 +441,81 @@ public class MicrosoftGraphSubscriptionClient {
 	}
 
 	/**
-	 * The longest Graph lets a subscription on a resource live.
+	 * The longest this client requests for a subscription on a resource.
 	 *
 	 * <p>
-	 * Graph refuses anything longer, and the limits differ by an order of magnitude
-	 * between one resource and another, so asking for "as long as possible" means
-	 * knowing which resource this is.
+	 * The limits differ by an order of magnitude between one resource and another,
+	 * and each configured limit includes a five-minute buffer. Unknown resources
+	 * are rejected so they cannot accidentally be sent with an invalid lifetime.
 	 * </p>
 	 *
 	 * @param resource what the subscription watches
 	 * @return how many minutes it may live for
+	 * @throws IllegalArgumentException when the resource is blank or unsupported
 	 */
 	public static int maxLifetimeMinutes(String resource) {
-		if (resource == null) {
-			return DEFAULT_MAX_MINUTES;
-		}
+		requireValue(resource, "A resource is required to determine the Microsoft Graph subscription lifetime.");
 		String wanted = resource.trim().toLowerCase(Locale.ROOT);
-		// teams first: a chat and a channel both hold things called messages, and
-		// they are held to a quarter of what a mailbox is
-		if (wanted.startsWith("chats") || wanted.startsWith("teams/") || wanted.contains("/channels/")) {
+
+		// Check the special Teams families before checking generic message paths.
+		// Teams channel messages also contain a `messages` path segment.
+		if (hasSegment(wanted, "offershiftrequests") || hasSegment(wanted, "openshiftchangerequests")
+				|| hasSegment(wanted, "shiftswaprequests") || hasSegment(wanted, "shifts")
+				|| hasSegment(wanted, "timeoffrequests")) {
+			return TEAMS_SHIFTS_MAX_MINUTES;
+		}
+		if (hasSegment(wanted, "approvals") || hasSegment(wanted, "approval") || hasSegment(wanted, "approvalitems")) {
+			return TEAMS_APPROVALS_MAX_MINUTES;
+		}
+		if (hasSegment(wanted, "recordings") || hasSegment(wanted, "transcripts")
+				|| hasSegment(wanted, "callrecordings") || hasSegment(wanted, "calltranscripts")
+				|| hasSegment(wanted, "installedapps") || hasSegment(wanted, "chats") || hasSegment(wanted, "channels")
+				|| hasSegment(wanted, "teams")) {
 			return TEAMS_MAX_MINUTES;
 		}
-		if (wanted.contains("/presence") || wanted.startsWith("communications/presences")) {
+		if (hasSegment(wanted, "presence") || hasSegment(wanted, "presences")) {
 			return PRESENCE_MAX_MINUTES;
 		}
-		if (wanted.contains("/drive")) {
+		if (hasSegment(wanted, "drive") || hasSegment(wanted, "drives") || hasSegment(wanted, "driveitems")
+				|| hasSegment(wanted, "lists")) {
 			return DRIVE_MAX_MINUTES;
 		}
-		if (wanted.contains("/messages") || wanted.contains("/events") || wanted.contains("/calendar")
-				|| wanted.contains("/contacts")) {
+		if (hasSegment(wanted, "messages") || hasSegment(wanted, "events") || hasSegment(wanted, "calendar")
+				|| hasSegment(wanted, "calendarview") || hasSegment(wanted, "contacts")) {
 			return OUTLOOK_MAX_MINUTES;
 		}
-		return DEFAULT_MAX_MINUTES;
+		if (hasSegment(wanted, "conversations") || hasSegment(wanted, "threads") || hasSegment(wanted, "callrecords")
+				|| hasSegment(wanted, "onlinemeetings") || hasSegment(wanted, "print") || hasSegment(wanted, "printer")
+				|| hasSegment(wanted, "printtaskdefinitions") || hasSegment(wanted, "todo")
+				|| hasSegment(wanted, "tasks") || hasSegment(wanted, "basetask")
+				|| hasSegment(wanted, "aiinteraction")) {
+			return STANDARD_MAX_MINUTES;
+		}
+		if (hasSegment(wanted, "users") || hasSegment(wanted, "groups")) {
+			return DIRECTORY_MAX_MINUTES;
+		}
+		if (hasSegment(wanted, "alerts") && wanted.contains("health")) {
+			return DRIVE_MAX_MINUTES;
+		}
+		if (hasSegment(wanted, "alerts") && wanted.contains("security")) {
+			return SECURITY_ALERT_MAX_MINUTES;
+		}
+		throw new IllegalArgumentException(
+				"No Microsoft Graph subscription lifetime is configured for resource: " + resource);
+	}
+
+	private static boolean hasSegment(String resource, String segment) {
+		for (String part : resource.split("/")) {
+			String pathSegment = part;
+			int queryStart = pathSegment.indexOf('(');
+			if (queryStart >= 0) {
+				pathSegment = pathSegment.substring(0, queryStart);
+			}
+			if (segment.equals(pathSegment)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
