@@ -159,7 +159,15 @@ class SecurityQueryUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 	@Test
 	void testSearchForUserReturnsMatchingUser() throws Exception {
 		List<Map<String, Object>> results = SecurityQueryUtils.searchForUser(testDisplayName);
-		assertTrue(results.stream().anyMatch(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))));
+		Map<String, Object> result = results.stream()
+				.filter(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))).findFirst()
+				.orElseThrow();
+		assertEquals("NATIVE", result.get("type"));
+		assertEquals(testUsername, result.get("username"));
+		assertEquals(testDisplayName, result.get("name"));
+		assertEquals(testEmail, result.get("email"));
+		assertTrue(SecurityQueryUtils.searchForUser(testUsername).stream()
+				.anyMatch(entry -> testUserId.equalsIgnoreCase(Objects.toString(entry.get("id")))));
 	}
 
 	@Test
