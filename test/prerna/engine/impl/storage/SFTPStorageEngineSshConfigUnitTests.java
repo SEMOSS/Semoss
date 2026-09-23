@@ -27,7 +27,10 @@
  *******************************************************************************/
 package prerna.engine.impl.storage;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -64,8 +67,8 @@ class SFTPStorageEngineSshConfigUnitTests {
 					.filter(entry -> !Path.of(entry).getFileName().toString().matches("bc(prov|pkix|util)-jdk.*"))
 					.collect(Collectors.joining(java.io.File.pathSeparator));
 		}
-		List<String> command = new ArrayList<>(List.of(
-				Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", classpath));
+		List<String> command = new ArrayList<>(
+				List.of(Path.of(System.getProperty("java.home"), "bin", "java").toString(), "-cp", classpath));
 		if (!scenario.equals("standard-unset")) {
 			command.add("-Dorg.bouncycastle.fips.approved_only="
 					+ !(scenario.equals("standard") || scenario.equals("general")));
@@ -76,7 +79,8 @@ class SFTPStorageEngineSshConfigUnitTests {
 			Path security = temporaryDirectory.resolve("java.security");
 			// Preserve the JDK's entropy/strong-random settings when replacing providers.
 			Properties properties = new Properties();
-			try (var reader = Files.newBufferedReader(Path.of(System.getProperty("java.home"), "conf", "security", "java.security"))) {
+			try (var reader = Files
+					.newBufferedReader(Path.of(System.getProperty("java.home"), "conf", "security", "java.security"))) {
 				properties.load(reader);
 			}
 			properties.keySet().removeIf(key -> key.toString().startsWith("security.provider."));
@@ -133,16 +137,16 @@ class SFTPStorageEngineSshConfigUnitTests {
 		}
 		assertEquals("BCFIPS", Security.getProviders()[0].getName());
 		assertTrue(CryptoServicesRegistrar.isInApprovedOnlyMode());
-		assertFalse(names(actual.getKeyExchangeFactories()).stream().anyMatch(
-				name -> name.contains("25519") || name.endsWith("sha1") || name.contains("group-exchange")));
+		assertFalse(names(actual.getKeyExchangeFactories()).stream()
+				.anyMatch(name -> name.contains("25519") || name.endsWith("sha1") || name.contains("group-exchange")));
 		assertTrue(names(actual.getKeyExchangeFactories()).contains("ext-info-c"));
-		assertFalse(names(actual.getKeyAlgorithms()).stream().anyMatch(
-				name -> name.equals("ssh-rsa") || name.equals("ssh-dss") || name.contains("-cert-") || name.startsWith("sk-")));
+		assertFalse(names(actual.getKeyAlgorithms()).stream().anyMatch(name -> name.equals("ssh-rsa")
+				|| name.equals("ssh-dss") || name.contains("-cert-") || name.startsWith("sk-")));
 		assertTrue(names(actual.getCipherFactories()).stream().allMatch(name -> name.matches("aes(128|192|256)-ctr")));
 		assertTrue(names(actual.getMACFactories()).stream().allMatch(name -> name.startsWith("hmac-sha2-")));
 		assertEquals("BCFIPS", SecurityUtils.getCipher("AES/CTR/NoPadding").getProvider().getName());
-		for (String signature : List.of("SHA256withRSA", "SHA512withRSA", "SHA256withECDSA",
-				"SHA384withECDSA", "SHA512withECDSA", "Ed25519")) {
+		for (String signature : List.of("SHA256withRSA", "SHA512withRSA", "SHA256withECDSA", "SHA384withECDSA",
+				"SHA512withECDSA", "Ed25519")) {
 			assertEquals("BCFIPS", SecurityUtils.getSignature(signature).getProvider().getName());
 		}
 	}
