@@ -71,7 +71,7 @@ public class CountIfReactor extends AbstractFrameReactor {
 
 		// escape single quote for sql
 		if (regex.contains("'")) {
-			regex = regex.replaceAll("'", "''");
+			regex = regex.replace("'", "''");
 		}
 		// 1) first add new column name
 		String addColumnSQL = "ALTER TABLE " + table + " ADD " + newColumnName + " " + dataType + ";";

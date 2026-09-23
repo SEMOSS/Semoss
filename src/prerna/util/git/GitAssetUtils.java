@@ -126,14 +126,14 @@ public class GitAssetUtils {
 			relative = prefix + relative;
 			fileMap.put("path", relative);
 			if (f.isFile()) {
-				String path = f.getAbsolutePath().replaceAll("\\\\", "/");
+				String path = f.getAbsolutePath().replace("\\", "/");
 				if (replacer != null) {
 					path = path.replaceAll(replacer, repString);
 				}
 				path = path.replaceFirst("/", "");
 				fileMap.put("type", FilenameUtils.getExtension(path));
 			} else if (f.isDirectory()) {
-				String path = f.getName().replaceAll("\\\\", "/");
+				String path = f.getName().replace("\\", "/");
 				// no hidden files
 				if (!path.startsWith(".")) {
 					if (replacer != null) {
@@ -202,7 +202,7 @@ public class GitAssetUtils {
 			fileMap.put("lastModified", getDate(f.lastModified()));
 			if (f.isFile()) {
 				String path = f.getAbsolutePath();
-				path = path.replaceAll("\\\\", "/");
+				path = path.replace("\\", "/");
 				if (isMatch(Utility.getInstanceName(path), extn)) {
 					if (replacer != null) {
 						path = path.replaceAll(replacer, "");
@@ -313,7 +313,7 @@ public class GitAssetUtils {
 				String time = getDate(listOfFiles[i].lastModified());
 				fileDates.add(time);
 			} else if (listOfFiles[i].isDirectory()) {
-				String path = listOfFiles[i].getName().replaceAll("\\\\", "/");
+				String path = listOfFiles[i].getName().replace("\\", "/");
 				// no hidden files
 				if (!path.startsWith(".")) {
 					if (replacer != null) {

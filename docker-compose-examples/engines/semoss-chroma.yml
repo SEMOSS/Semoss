@@ -1,0 +1,28 @@
+name: semoss-chroma
+
+# Chroma - vector DB.
+#
+# Run:    docker compose -f chroma.yml up -d
+# Stop:   docker compose -f chroma.yml down            (add -v to wipe data)
+# Check:  curl http://localhost:8000/api/v2/version
+#
+# Equivalent to:
+#   docker run -d --name semoss-chroma -p 8000:8000 chromadb/chroma:1.0.0
+services:
+  chroma:
+    image: chromadb/chroma:1.0.0
+    container_name: semoss-chroma
+    ports:
+      - "8000:8000"   # REST API
+    volumes:
+      - chroma-data:/data
+    networks:
+      - semoss-net
+
+volumes:
+  chroma-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

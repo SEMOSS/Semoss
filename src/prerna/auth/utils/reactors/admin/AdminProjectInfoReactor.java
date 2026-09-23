@@ -35,12 +35,15 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 public class AdminProjectInfoReactor extends AbstractReactor {
 
@@ -71,6 +74,11 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 		// we filtered to a single project
 		Map<String, Object> projectInfo = baseInfo.get(0);
 		projectInfo.putAll(SecurityProjectUtils.getAggregateProjectMetadata(projectId, getMetaKeys(), true));
+
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
+				+ Constants.PORTALS_FOLDER + "/";
+		projectInfo.put("project_portal_url", url);
+
 		// append any gh keys with gh_ into the project info map
 		Map<String, Object> githubConnector = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (githubConnector != null && !githubConnector.isEmpty()) {
@@ -80,6 +88,8 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 				}
 			});
 		}
+
+		addRemoteMCPInfo(projectInfo, projectId);
 
 		return new NounMetadata(projectInfo, PixelDataType.CUSTOM_DATA_STRUCTURE, PixelOperationType.PROJECT_INFO);
 	}
@@ -91,6 +101,26 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 		}
 
 		return null;
+	}
+
+	private void addRemoteMCPInfo(Map<String, Object> projectInfo, String projectId) {
+		IProject project = Utility.getProject(projectId);
+		if (project == null) {
+			return;
+		}
+
+		String endpoint = project.getRemoteMCPEndpoint();
+		if (endpoint == null) {
+			projectInfo.put("project_remote_mcp", false);
+			return;
+		}
+
+		String authScheme = project.getRemoteMCPAuthScheme();
+
+		projectInfo.put("project_remote_mcp", true);
+		projectInfo.put("project_remote_mcp_endpoint", endpoint);
+		projectInfo.put("project_remote_mcp_auth_scheme", authScheme == null ? "" : authScheme);
+		projectInfo.put("project_remote_mcp_auth_token", Constants.SENSITIVE_INFO_MASK);
 	}
 
 	@Override
@@ -108,7 +138,7 @@ public class AdminProjectInfoReactor extends AbstractReactor {
 
 				Returns a single map (PROJECT_INFO/CUSTOM_DATA_STRUCTURE) containing:
 				  Core project fields: project_id, project_name, project_display_name, project_type, project_cost,
-				    project_global, project_discoverable, project_catalog_name, project_created_by, project_created_by_type,
+				    project_global, project_discoverable, project_is_template, project_catalog_name, project_created_by, project_created_by_type,
 				    project_date_created, project_date_last_edited, low_project_name.
 				  Portal fields: project_has_portal, project_portal_name, project_portal_published_date, project_published_user,
 				    project_published_user_type, project_reactors_compiled_date, project_reactors_compiled_user,

@@ -32,6 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,6 +54,10 @@ public class GetUsageStatisticsReactor extends AbstractReactor {
 		organizeKeys();
 
 		String agentId = this.keyValue.get(AGENT_ID);
+		agentId = SecurityQueryUtils.testUserEngineIdForAlias(this.insight.getUser(), agentId);
+		if (!SecurityEngineUtils.userCanViewEngine(this.insight.getUser(), agentId)) {
+			throw new IllegalArgumentException("Model does not exist or user does not have access to view the model");
+		}
 		String startDate = this.keyValue.get(ReactorKeysEnum.START_DATE.getKey());
 		String endDate = this.keyValue.get(ReactorKeysEnum.END_DATE.getKey());
 		String type = this.keyValue.get(ReactorKeysEnum.TYPE.getKey());

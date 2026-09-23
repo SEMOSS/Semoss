@@ -1,0 +1,51 @@
+name: semoss-clickhouse
+
+# ClickHouse - columnar OLAP database. Not a vector DB like the rest of this
+# folder; it connects to SEMOSS as an RDBMS engine (RDBMS_TYPE CLICKHOUSE).
+# Image: https://hub.docker.com/_/clickhouse
+#
+# Run:    docker compose -f semoss-clickhouse.yml up -d
+# Stop:   docker compose -f semoss-clickhouse.yml down       (add -v to wipe data)
+# Check:  curl http://localhost:8123/ping                    (returns "Ok.")
+#
+# NOTE ON PORTS: JDBC uses the HTTP interface on 8123. The native protocol port
+# 9000 is taken by MinIO in the SEMOSS compose files, so it is published on host
+# 9010; the in-container port stays 9000. Change the left side of "9010:9000" if
+# 9010 is also taken.
+services:
+  clickhouse:
+    image: clickhouse:25.8
+    container_name: semoss-clickhouse
+    environment:
+      CLICKHOUSE_DB: semoss
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      # let the created user run GRANT/CREATE USER etc. - handy for local dev
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    ports:
+      - "8123:8123"   # HTTP interface (JDBC / curl)
+      - "9010:9000"   # host 9010 -> container 9000 native protocol (avoids MinIO on 9000)
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - clickhouse-logs:/var/log/clickhouse-server
+    ulimits:
+      # recommended by the image docs - ClickHouse opens a lot of files
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semoss-net
+
+volumes:
+  clickhouse-data:
+  clickhouse-logs:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

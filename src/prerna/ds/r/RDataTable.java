@@ -42,6 +42,7 @@ import java.util.Vector;
 
 import javax.crypto.Cipher;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rosuda.REngine.Rserve.RConnection;
 
@@ -55,31 +56,25 @@ import prerna.ds.shared.RawCachedWrapper;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.HeadersException;
-import prerna.om.Insight;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.RInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.RawRSelectWrapper;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
-import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
 import prerna.reactor.imports.ImportUtility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
-import prerna.util.Constants;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class RDataTable extends AbstractTableDataFrame {
 
 	private static final Logger classLogger = LogManager.getLogger(RDataTable.class);
 
 	public static final String DATA_MAKER_NAME = "RDataTable";
-	
+
 	private RFrameBuilder builder;
-	Map <String, Object> rJMap = null;
+	Map<String, Object> rJMap = null;
 
 	// THIS CONSTRUCTOR IS USED FOR TESTING
 //	public RDataTable(String name) {
@@ -93,15 +88,15 @@ public class RDataTable extends AbstractTableDataFrame {
 //		this.frameName = getName();
 //		this.originalName = this.frameName;
 //	}
-	
+
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator) {
 		this.builder = new RFrameBuilder(rJavaTranslator);
 		this.frameName = getName();
 		this.originalName = this.frameName;
 	}
-	
+
 	public RDataTable(AbstractRJavaTranslator rJavaTranslator, String rTableVarName) {
-		if(rTableVarName != null && !rTableVarName.isEmpty()) {
+		if (rTableVarName != null && !rTableVarName.isEmpty()) {
 			this.builder = new RFrameBuilder(rJavaTranslator, rTableVarName);
 		} else {
 			this.builder = new RFrameBuilder(rJavaTranslator);
@@ -109,37 +104,38 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.frameName = getName();
 		this.originalName = this.frameName;
 	}
-	
+
 	public RFrameBuilder getBuilder() {
 		return this.builder;
 	}
-	
+
 	public RConnection getConnection() {
 		return this.builder.getConnection();
 	}
-	
+
 	public String getPort() {
 		return this.builder.getPort();
 	}
-	
+
 	@Override
 	public void setLogger(Logger logger) {
 		this.logger = logger;
 		this.builder.setLogger(logger);
 	}
-	
+
 	/**
 	 * Get the table name for the current frame
+	 * 
 	 * @return
 	 */
 	@Override
 	public String getName() {
-		if(this.builder == null) {
+		if (this.builder == null) {
 			return this.frameName;
 		}
 		return this.builder.getTableName();
 	}
-	
+
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////
@@ -148,52 +144,53 @@ public class RDataTable extends AbstractTableDataFrame {
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> it) {
 		// we really need another way to get the data types....
 		Map<String, SemossDataType> rawDataTypeMap = this.metaData.getHeaderToTypeMap();
-		
+
 		// TODO: this is annoying, need to get the frame on the same page as the meta
 		Map<String, SemossDataType> dataTypeMap = new HashMap<String, SemossDataType>();
-		for(String rawHeader : rawDataTypeMap.keySet()) {
+		for (String rawHeader : rawDataTypeMap.keySet()) {
 			dataTypeMap.put(rawHeader.split("__")[1], rawDataTypeMap.get(rawHeader));
 		}
 		this.addRowsViaIterator(it, this.getName(), dataTypeMap);
 	}
-	
-	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName, Map<String, SemossDataType> dataTypeMap) {
+
+	public void addRowsViaIterator(Iterator<IHeadersDataRow> it, String tableName,
+			Map<String, SemossDataType> dataTypeMap) {
 		this.builder.createTableViaIterator(tableName, it, dataTypeMap);
 		syncHeaders();
 	}
-	
+
 	public Object[] getDataRow(String rScript, String[] headerOrdering) {
 		return this.builder.getDataRow(rScript, headerOrdering);
 	}
-	
+
 	public List<Object[]> getBulkDataRow(String rScript, String[] headerOrdering) {
 		return this.builder.getBulkDataRow(rScript, headerOrdering);
 	}
-	
+
 	public void executeRScript(String rScript) {
-		//Validate user input won't break R and crash JVM
+		// Validate user input won't break R and crash JVM
 		RregexValidator reg = new RregexValidator();
 		reg.Validate(rScript);
-		
+
 		this.builder.evalR(rScript);
 	}
-	
+
 	public String[] getColumnNames() {
 		return this.builder.getColumnNames();
 	}
-	
+
 	public String[] getColumnTypes() {
 		return this.builder.getColumnTypes();
 	}
-	
+
 	public String[] getColumnNames(String varName) {
 		return this.builder.getColumnNames(varName);
 	}
-	
+
 	public String[] getColumnTypes(String varName) {
 		return this.builder.getColumnTypes(varName);
 	}
-	
+
 	@Override
 	public IRawSelectWrapper query(String query) {
 		RIterator output = new RIterator(this.builder, query);
@@ -206,10 +203,10 @@ public class RDataTable extends AbstractTableDataFrame {
 	public IRawSelectWrapper query(SelectQueryStruct qs) {
 		// R does not support relations in general
 		// so we are going to remove any that may have been added
-		// this is important for when the BE changes the frame without 
+		// this is important for when the BE changes the frame without
 		// the FE knowing and that frame was native and had joins
 		qs.getRelations().clear();
-		
+
 		qs = QSAliasToPhysicalConverter.getPhysicalQs(qs, this.metaData);
 		RInterpreter interp = new RInterpreter();
 		interp.setQueryStruct(qs);
@@ -221,21 +218,21 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setRDataTable(this);
 
 		boolean cache = true;
-		if(qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
-			cache = ((String)qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true:false;
+		if (qs.getPragmap() != null && qs.getPragmap().containsKey("xCache")) {
+			cache = ((String) qs.getPragmap().get("xCache")).equalsIgnoreCase("True") ? true : false;
 		}
-		
+
 		logger.info("Generating R Data Table query...");
 		String query = interp.composeQuery();
 		logger.info("Done generating R Data Table query");
 		Map<String, SemossDataType> convertedDates = interp.getConvertedDates();
-		
+
 		RawRSelectWrapper it = null;
 		IRawSelectWrapper retWrapper = null;
 		String looker = interp.getMainQuery();
 		looker = looker + qs.getLimit() + qs.getOffset();
 		// sets the frame builder
-		if(!queryCache.containsKey(looker) || !cache) {
+		if (!queryCache.containsKey(looker) || !cache) {
 			logger.info("Executing query...");
 			RIterator output = new RIterator(this.builder, query, qs);
 			// add the random var used from the insight
@@ -246,8 +243,8 @@ public class RDataTable extends AbstractTableDataFrame {
 			it.directExecution(output);
 			logger.info("Done executing query");
 			retWrapper = it;
-			
-			if(!cache) {
+
+			if (!cache) {
 				clearQueryCache();
 			}
 		} else {
@@ -258,7 +255,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 		return retWrapper;
 	}
-	
+
 	@Override
 	public IQueryInterpreter getQueryInterpreter() {
 		RInterpreter interp = new RInterpreter();
@@ -266,34 +263,35 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setColDataTypes(this.metaData.getHeaderToTypeMap());
 		return interp;
 	}
-	
+
 	@Override
 	public Iterator<List<Object[]>> scaledUniqueIterator(String columnName, List<String> attributeUniqueHeaderName) {
 		int numSelectors = attributeUniqueHeaderName.size();
 		List<SemossDataType> dataTypes = new Vector<SemossDataType>();
 		Double[] max = new Double[numSelectors];
 		Double[] min = new Double[numSelectors];
-		
+
 		for (int i = 0; i < numSelectors; i++) {
 			String uniqueHeader = this.metaData.getUniqueNameFromAlias(attributeUniqueHeaderName.get(i));
-			if(uniqueHeader == null) {
+			if (uniqueHeader == null) {
 				uniqueHeader = attributeUniqueHeaderName.get(i);
 			}
 			SemossDataType dataType = this.metaData.getHeaderTypeAsEnum(uniqueHeader);
 			dataTypes.add(dataType);
-			if(dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
+			if (dataType == SemossDataType.INT || dataType == SemossDataType.DOUBLE) {
 				max[i] = getMax(uniqueHeader);
 				min[i] = getMin(uniqueHeader);
 			}
 		}
 
-		RScaledUniqueFrameIterator iterator = new RScaledUniqueFrameIterator(this, this.builder, columnName, max, min, dataTypes, attributeUniqueHeaderName);
+		RScaledUniqueFrameIterator iterator = new RScaledUniqueFrameIterator(this, this.builder, columnName, max, min,
+				dataTypes, attributeUniqueHeaderName);
 		return iterator;
 	}
-	
+
 	public Set<String> getColumnsWithIndexes() {
 		Set<String> cols = new HashSet<String>();
-		for(String s : this.builder.columnIndexSet) {
+		for (String s : this.builder.columnIndexSet) {
 			// table name and col name are appended together with +++
 			cols.add(s.split("\\+\\+\\+")[1]);
 		}
@@ -301,7 +299,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	public void addColumnIndex(String columnName) {
-		if(columnName.contains("__")) {
+		if (columnName.contains("__")) {
 			String[] split = columnName.split("__");
 			this.builder.addColumnIndex(split[0], split[1]);
 		} else {
@@ -309,12 +307,12 @@ public class RDataTable extends AbstractTableDataFrame {
 			this.builder.addColumnIndex(tableName, columnName);
 		}
 	}
-	
+
 	public void addColumnIndex(String[] columnName) {
 		String tableName = getName();
 		this.builder.addColumnIndex(tableName, columnName);
 	}
-	
+
 	public void removeAllColumnIndex() {
 		this.builder.removeAllColumnIndex();
 	}
@@ -326,30 +324,30 @@ public class RDataTable extends AbstractTableDataFrame {
 		this.metaData.dropProperty(tableName + "__" + columnHeader, tableName);
 		syncHeaders();
 	}
-	
+
 	@Override
 	public boolean isEmpty() {
 		return this.builder.isEmpty();
 	}
-	
+
 	@Override
 	public void setName(String tableVarName) {
 		this.builder.setTableName(tableVarName);
 		this.frameName = this.builder.getTableName();
 	}
-	
+
 	@Override
 	public long size(String tableName) {
-		if(this.builder.isEmpty(tableName)) {
+		if (this.builder.isEmpty(tableName)) {
 			return 0;
 		}
 		return this.builder.getFrameSize(tableName);
 	}
-	
+
 	public int getNumRows(String varName) {
 		return this.builder.getNumRows(varName);
 	}
-	
+
 	@Override
 	public Double[] getColumnAsNumeric(String columnHeader) {
 		// TODO Auto-generated method stub
@@ -362,34 +360,34 @@ public class RDataTable extends AbstractTableDataFrame {
 
 		String frameName = this.getName();
 		cf.setFrameName(frameName);
-		
+
 		// save frame
 		try {
 			// this throws an exception if the library doesn't exist
-			this.builder.rJavaTranslator.checkPackages(new String[] {"fst"});
+			this.builder.rJavaTranslator.checkPackages(new String[] { "fst" });
 			String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".fst";
 			cf.setFrameCacheLocation(frameFilePath);
 			this.builder.saveFst(frameFilePath, frameName);
-		} catch(Exception e) {
+		} catch (Exception e) {
 			String frameFilePath = folderDir + DIR_SEPARATOR + frameName + ".rda";
 			cf.setFrameCacheLocation(frameFilePath);
 			this.builder.saveRda(frameFilePath, frameName);
 		}
-		
+
 		// also save the meta details
 		this.saveMeta(cf, folderDir, frameName, cipher);
 		return cf;
 	}
-	
+
 	@Override
 	public void open(CachePropFileFrameObject cf, Cipher cipher) {
 		// set the frame name
 		this.builder.dataTableName = cf.getFrameName();
 		// load the environment
 		String filePath = cf.getFrameCacheLocation();
-		if(filePath.endsWith(".fst")){
+		if (filePath.endsWith(".fst")) {
 			this.builder.openFst(cf.getFrameCacheLocation(), cf.getFrameName());
-		} else if(filePath.endsWith(".rda")) {
+		} else if (filePath.endsWith(".rda")) {
 			this.builder.openRda(cf.getFrameCacheLocation());
 		} else {
 			throw new SemossPixelException("Unknown R cache format");
@@ -397,58 +395,58 @@ public class RDataTable extends AbstractTableDataFrame {
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
 	}
-	
+
 	@Override
 	public String getDataMakerName() {
 		return DATA_MAKER_NAME;
 	}
-	
+
 	@Override
 	protected Boolean calculateIsUnqiueColumn(String columnName) {
 		// we override this method because it is faster to get the unique count
 		// using the below syntax which works for only a single column
 		// than it is using the syntax in the interpreter
-		
+
 		String tableName = getName();
 		String[] cleanCols = new String[1];
-		if(columnName.contains("__")) {
+		if (columnName.contains("__")) {
 			cleanCols[0] = columnName.split("__")[1];
 		} else {
 			cleanCols[0] = columnName;
 		}
-		
+
 		long start = System.currentTimeMillis();
-		String rQuery = tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "]"; 
+		String rQuery = tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "]";
 		int val1 = getNumRows(rQuery);
 		long end = System.currentTimeMillis();
-		logger.info("R duplicates query1 time = " + (end-start) + "ms");
-		
+		logger.info("R duplicates query1 time = " + (end - start) + "ms");
+
 		start = System.currentTimeMillis();
-		String distinctQuery = "unique(" + tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "])"; 
+		String distinctQuery = "unique(" + tableName + "[, " + RSyntaxHelper.createStringRColVec(cleanCols) + "])";
 		int val2 = getNumRows(distinctQuery);
 		end = System.currentTimeMillis();
-		logger.info("R duplicates query2 time = " + (end-start) + "ms");
-		
+		logger.info("R duplicates query2 time = " + (end - start) + "ms");
+
 		boolean isUnique = (long) val1 == (long) val2;
 		return isUnique;
 	}
-	
+
 	// generates a row id and binds it
 	public void generateRowIdWithName() {
 		this.builder.genRowId(getName(), "PRIM_KEY_PLACEHOLDER");
 	}
-	
+
 	@Override
 	public void close() {
 		super.close();
 		this.builder.dropTable();
-		if(!this.originalName.equals(this.frameName)) {
+		if (!this.originalName.equals(this.frameName)) {
 			this.builder.setTableName(this.originalName);
 			this.builder.dropTable();
 		}
 		closeConnection();
 	}
-	
+
 	public void closeConnection() {
 		// now we only hold 1 connection
 		// do not do this...
@@ -460,14 +458,14 @@ public class RDataTable extends AbstractTableDataFrame {
 //			}
 //		}
 	}
-	
+
 	/**
 	 * Recreate the metadata for this existing frame
 	 */
 	public void recreateMeta() {
 		String[] colNames = this.builder.getColumnNames();
 		String[] colTypes = this.builder.getColumnTypes();
-		//clean headers
+		// clean headers
 		HeadersException headerChecker = HeadersException.getInstance();
 		colNames = headerChecker.getCleanHeaders(colNames);
 		// update frame header names in R
@@ -490,180 +488,171 @@ public class RDataTable extends AbstractTableDataFrame {
 		// load into it
 		this.metaData.close();
 		this.metaData = new OwlTemporalEngineMeta();
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName(), additionalDataTypes, sources, complexSelectors);
-		
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(this.metaData, colNames, colTypes, getName(),
+				additionalDataTypes, sources, complexSelectors);
+
 		// clear the cached info
 		this.clearCachedMetrics();
 		this.clearQueryCache();
 	}
-	
+
 	@Override
 	public DataFrameTypeEnum getFrameType() {
 		return DataFrameTypeEnum.R;
 	}
-	
-	
+
 	@Override
 	public Object querySQL(String sql) {
 		// columns
 		// types
 		// data
-		if(sql.trim().toUpperCase().startsWith("SELECT")) {
+		if (sql.trim().toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
-			
+
 			String tempFrameName = Utility.getRandomString(5);
 			String makeNewFrame = tempFrameName + " <- as.data.table(sqldf(\"" + sql.replace("\"", "\\\"") + "\"));";
 			String deleteAll = "rm(" + tempFrameName + ")";
-			
+
 			this.builder.getRJavaTranslator().executeEmptyR("library(sqldf);");
 			this.builder.getRJavaTranslator().executeEmptyR(makeNewFrame);
-			
-			String [] columns = getColumnNames(tempFrameName);
-			String [] types = getColumnTypes(tempFrameName);
-			
-			List <Object[]> retObject = getBulkDataRow(tempFrameName, columns); //(frameName + "_dict"); // get the dictionary back
+
+			String[] columns = getColumnNames(tempFrameName);
+			String[] types = getColumnTypes(tempFrameName);
+
+			List<Object[]> retObject = getBulkDataRow(tempFrameName, columns); // (frameName + "_dict"); // get the
+																				// dictionary back
 			// will delete later
 			this.builder.getRJavaTranslator().executeEmptyR(deleteAll);
-			Object [] convertedTypeArray = new Object[columns.length];
-			//https://www.tutorialspoint.com/r/r_data_types.htm
+			Object[] convertedTypeArray = new Object[columns.length];
+			// https://www.tutorialspoint.com/r/r_data_types.htm
 			getRJMap();
-			for(int columnIndex = 0;columnIndex < columns.length;columnIndex++)
-			{
+			for (int columnIndex = 0; columnIndex < columns.length; columnIndex++) {
 				String thisColumn = columns[columnIndex];
 				String thisType = types[columnIndex];
 
 				// convert this to type array
 				// for now will just move this all to string
 				Object javaType = rJMap.get(thisType);
-				if(javaType != null) {
+				if (javaType != null) {
 					convertedTypeArray[columnIndex] = javaType;
 				} else {
 					convertedTypeArray[columnIndex] = java.lang.String.class;
 				}
 			}
-			
+
 			retMap.put("columns", columns);
 			retMap.put("types", convertedTypeArray);
 			retMap.put("dataArray", retObject);
-			
+
 			return retMap;
 		} else {
 			Map retMap = new HashMap();
 
-			String [] commands = sql.split("\\R");
+			String[] commands = sql.split("\\R");
 			// execute each command and drop the result
-			String [] columns = new String [] {"Command", "Output"};
-			Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
-			
-			List <List<Object>> data = new ArrayList<List<Object>>();
-			
-			for(int commandIndex = 0;commandIndex < commands.length;commandIndex++) {
-				List <Object> row = new ArrayList <Object>();
+			String[] columns = new String[] { "Command", "Output" };
+			Object[] types = new Object[] { java.lang.String.class, java.lang.String.class };
+
+			List<List<Object>> data = new ArrayList<List<Object>>();
+
+			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+				List<Object> row = new ArrayList<Object>();
 				String thisCommand = commands[commandIndex];
 				Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
-				
+
 				row.add(thisCommand);
 				row.add(output);
-				
+
 				data.add(row);
 			}
-			
+
 			retMap.put("data", data);
 			retMap.put("types", types);
 			retMap.put("columns", columns);
-			
+
 			return retMap;
 		}
 	}
-	
+
 	@Override
-	public Object queryCSV(String sql)
-	{
+	public Object queryCSV(String sql) {
 		// columns
 		// types
 		// data
-		if(sql.toUpperCase().startsWith("SELECT"))
-		{
+		if (sql.toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
-			
+
 			String loadsqlDF = "library(sqldf);";
 			String frameName = Utility.getRandomString(5);
 			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
-			
+
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
 			String newFrame = "write.csv(sqldf('" + sql + "'), '" + fileNameStr + "')";
-			
+
 			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
 			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
-			
+
 			return fileName;
-		}
-		else
-		{
+		} else {
 			String frameName = Utility.getRandomString(5);
-			File fileName = new File(Utility.getInsightCacheDir(),   frameName + ".csv");
+			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 
 			try {
 				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
 				bw.write("Command, Output");
 				bw.println();
-				
-				String [] commands = sql.split("\\R");
+
+				String[] commands = sql.split("\\R");
 				// execute each command and drop the result
-				String [] columns = new String [] {"Command", "Output"};
-				Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
-				
-				List <List<Object>> data = new ArrayList<List<Object>>();
-				
-				for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
-				{
-					List <Object> row = new ArrayList <Object>();
+				String[] columns = new String[] { "Command", "Output" };
+				Object[] types = new Object[] { java.lang.String.class, java.lang.String.class };
+
+				List<List<Object>> data = new ArrayList<List<Object>>();
+
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					List<Object> row = new ArrayList<Object>();
 					String thisCommand = commands[commandIndex];
 					Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
-					
+
 					bw.write(thisCommand);
 					bw.print(", ");
 					bw.print(output);
-					
+
 					bw.println();
 				}
 				bw.flush();
 				bw.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to write command output to CSV file {}", fileName, e);
 			}
-			
+
 			return fileName;
 		}
 	}
 
 	@Override
-	public Object queryJSON(String sql)
-	{
+	public Object queryJSON(String sql) {
 		// columns
 		// types
 		// data
-		if(sql.toUpperCase().startsWith("SELECT"))
-		{
+		if (sql.toUpperCase().startsWith("SELECT")) {
 			Map retMap = new HashMap();
-			
+
 			String loadsqlDF = "library(sqldf);library(jsonlite);";
 			String frameName = Utility.getRandomString(5);
 			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
-			
+
 			String fileNameStr = fileName.getAbsolutePath().replace("\\", "/");
 
 			String newFrame = "write_json(sqldf('" + sql + "'), '" + fileNameStr + "')";
-			
+
 			this.builder.getRJavaTranslator().executeEmptyR(loadsqlDF);
 			this.builder.getRJavaTranslator().executeEmptyR(newFrame);
-			
+
 			return fileName;
-		}
-		else
-		{
+		} else {
 			String frameName = Utility.getRandomString(5);
 			File fileName = new File(Utility.getInsightCacheDir(), frameName + ".csv");
 
@@ -671,40 +660,37 @@ public class RDataTable extends AbstractTableDataFrame {
 				PrintWriter bw = new PrintWriter(new FileWriter(fileName));
 				bw.write("Command, Output");
 				bw.println();
-				
-				String [] commands = sql.split("\\R");
+
+				String[] commands = sql.split("\\R");
 				// execute each command and drop the result
-				String [] columns = new String [] {"Command", "Output"};
-				Object [] types = new Object [] {java.lang.String.class, java.lang.String.class};
-				
-				List <List<Object>> data = new ArrayList<List<Object>>();
-				
-				for(int commandIndex = 0;commandIndex < commands.length;commandIndex++)
-				{
-					List <Object> row = new ArrayList <Object>();
+				String[] columns = new String[] { "Command", "Output" };
+				Object[] types = new Object[] { java.lang.String.class, java.lang.String.class };
+
+				List<List<Object>> data = new ArrayList<List<Object>>();
+
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					List<Object> row = new ArrayList<Object>();
 					String thisCommand = commands[commandIndex];
 					Object output = this.builder.getRJavaTranslator().runRAndReturnOutput(thisCommand);
-					
+
 					bw.write(thisCommand);
 					bw.print(", ");
 					bw.print(output);
-					
+
 					bw.println();
 				}
 				bw.flush();
 				bw.close();
 			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to write command output to JSON file {}", fileName, e);
 			}
-			
+
 			return fileName;
 		}
 	}
 
-	
-	
 	private Map getRJMap() {
-		if(this.rJMap == null) {
+		if (this.rJMap == null) {
 			rJMap = new HashMap();
 			rJMap.put("integer", java.lang.Integer.class);
 			rJMap.put("character", java.lang.String.class);
@@ -714,7 +700,7 @@ public class RDataTable extends AbstractTableDataFrame {
 		}
 		return rJMap;
 	}
-	
+
 	@Override
 	public String createVarFrame() {
 		RInterpreter interp = new RInterpreter();
@@ -730,22 +716,22 @@ public class RDataTable extends AbstractTableDataFrame {
 		interp.setLogger(this.logger);
 		// need to do this for subqueries where we flush the values into a filter
 		interp.setRDataTable(this);
-		
+
 		String query = interp.composeQuery();
 		String newFrame = Utility.getRandomString(6);
-		String command = newFrame  + " = " + query;
+		String command = newFrame + " = " + query;
 		// create the frame
 		builder.getRJavaTranslator().executeEmptyR(command);
 		return newFrame;
 	}
-	
+
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/*
 	 * Deprecated DataMakerComponent stuff
 	 */
-	
+
 //	@Override
 //	@Deprecated
 //	public Map<String, String> getScriptReactors() {
@@ -792,7 +778,7 @@ public class RDataTable extends AbstractTableDataFrame {
 //
 //		return reactorNames;
 //	}
-	
+
 	@Override
 	@Deprecated
 	public void processDataMakerComponent(DataMakerComponent component) {
@@ -803,13 +789,13 @@ public class RDataTable extends AbstractTableDataFrame {
 		logger.info("Processing Component..................................");
 		processPostTransformations(component, component.getPostTrans());
 		long endTime = System.currentTimeMillis();
-		logger.info("Component Processed: " + (endTime - startTime) + " ms");		
+		logger.info("Component Processed: " + (endTime - startTime) + " ms");
 	}
-	
+
 	@Override
 	@Deprecated
 	public void addRow(Object[] cleanCells, String[] headers) {
 		// TODO Auto-generated method stub
-		
+
 	}
 }

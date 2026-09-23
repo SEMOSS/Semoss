@@ -98,6 +98,7 @@ public class FederationBlend extends AbstractRFrameReactor {
 		String joinType = this.keyValue.get(this.keysToGet[0]);
 		String frameCol = this.keyValue.get(this.keysToGet[1]);
 		String newDb = this.keyValue.get(this.keysToGet[2]);
+		newDb = testDatabaseId(newDb, false);
 		String newTable = this.keyValue.get(this.keysToGet[3]);
 		String newCol = this.keyValue.get(this.keysToGet[4]);
 		List<String> columns = getColumns();

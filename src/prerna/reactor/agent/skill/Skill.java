@@ -27,22 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.agent.skill;
 
-import java.util.Map;
-
-import org.json.JSONObject;
-
 /**
- * POJO mirror of a {@code SKILL__} row.
+ * Stateless helpers for skill content.
  *
- * <p>A skill is a Project of type {@code SKILL} (tagged {@code Skill_Project} in
- * {@code PROJECTMETA}). The underlying Project owns the {@code SKILL.md} (stored
- * under {@code version/assets/skill/}), git-based versioning, and permissions.
- * This class is just a thin DTO over the slim metadata row in
- * {@code modellogs.SKILL__}: row-mapping in {@link #fromRow(Map)} plus a couple of
- * stateless helpers (frontmatter parse, slugify) used by the reactors and the
- * run-time stager.
+ * <p>A skill is a Project of type {@code SKILL} (tagged {@code SKILL} in
+ * {@code PROJECTMETA}). The Project owns the {@code SKILL.md} (stored under
+ * {@code version/assets/public/}, or the legacy {@code version/assets/skill/}
+ * for skills created before that change), git-based versioning, and
+ * permissions; the
+ * SKILL.md frontmatter is the source of truth for the skill's name and
+ * description (see {@link SkillProjects}). This class holds the frontmatter
+ * parse/build/strip helpers, {@link #slugify}, and the folder/file constants
+ * used by the reactors and the run-time stager.
  */
-public class Skill {
+public final class Skill {
+
+	private Skill() {}
 
 	/**
 	 * Filename inside a skill folder. Every Anthropic-style skill folder contains
@@ -53,55 +53,27 @@ public class Skill {
 
 	/**
 	 * Subfolder under {@code <project>/version/assets/} that holds the skill
-	 * content. Mirrored by {@code SkillStager} when copying to a working dir.
+	 * content for newly-created skills, matching where the shipped platform
+	 * skill projects already keep theirs (see
+	 * {@link prerna.util.Constants#PUBLIC_ASSETS_FOLDER}) - so custom skills are
+	 * readable by users with only view (not edit) access to the skill project,
+	 * same as built-in ones. Mirrored by {@code SkillStager} when copying to a
+	 * working dir.
 	 */
-	public static final String SKILL_ASSET_SUBFOLDER = "skill";
+	public static final String SKILL_ASSET_SUBFOLDER = "public";
 
-	// SKILL.ORIGIN values
-	public static final String ORIGIN_USER      = "USER";
-	public static final String ORIGIN_PLATFORM  = "PLATFORM";
-	public static final String ORIGIN_IMPORTED  = "IMPORTED";
-	public static final String ORIGIN_GENERATED = "GENERATED";
+	/**
+	 * Legacy subfolder under {@code <project>/version/assets/} used for skill
+	 * content written before it moved to {@link #SKILL_ASSET_SUBFOLDER}. Still
+	 * probed as a fallback (by {@link SkillProjects#resolveSkillDir}) so skills
+	 * created before that change keep resolving; no longer written to.
+	 */
+	public static final String LEGACY_SKILL_ASSET_SUBFOLDER = "skill";
 
 	// frontmatter keys
 	public static final String FRONTMATTER_DELIM = "---";
 	public static final String FM_KEY_NAME = "name";
 	public static final String FM_KEY_DESCRIPTION = "description";
-
-	// SKILL__ fields (SKILL_ID == underlying Project ID)
-	private String skillId;
-	private String slug;
-	private String name;
-	private String description;
-	private String createdBy;
-	private String origin;
-	private JSONObject configJson;
-	private String dateCreated;
-	private String dateUpdated;
-
-	public Skill() {}
-
-	/**
-	 * Builds a {@code Skill} from a row map returned by
-	 * {@code ModelInferenceLogsUtils.getSkillEntry / getSkillBySlug}. Unknown
-	 * columns are ignored; missing columns default to null.
-	 */
-	public static Skill fromRow(Map<String, Object> row) {
-		if (row == null) {
-			return null;
-		}
-		Skill s = new Skill();
-		s.skillId      = asString(row.get("skill_id"));
-		s.slug         = asString(row.get("slug"));
-		s.name         = asString(row.get("name"));
-		s.description  = asString(row.get("description"));
-		s.createdBy    = asString(row.get("created_by"));
-		s.origin       = asString(row.get("origin"));
-		s.configJson   = asJson(row.get("config_json"));
-		s.dateCreated  = asString(row.get("date_created"));
-		s.dateUpdated  = asString(row.get("date_updated"));
-		return s;
-	}
 
 	/**
 	 * Extracts {@code name} and {@code description} from the YAML frontmatter of a
@@ -274,50 +246,4 @@ public class Skill {
 				.replaceAll("^-|-$", "");
 		return slug.isEmpty() ? "skill" : slug;
 	}
-
-	private static String asString(Object o) {
-		return o == null ? null : o.toString();
-	}
-
-	private static JSONObject asJson(Object o) {
-		if (o == null) {
-			return null;
-		}
-		String text = o.toString().trim();
-		if (text.isEmpty()) {
-			return null;
-		}
-		try {
-			return new JSONObject(text);
-		} catch (Exception ignored) {
-			return null;
-		}
-	}
-
-	public String getSkillId()              { return skillId; }
-	public void   setSkillId(String v)      { this.skillId = v; }
-
-	public String getSlug()                 { return slug; }
-	public void   setSlug(String v)         { this.slug = v; }
-
-	public String getName()                 { return name; }
-	public void   setName(String v)         { this.name = v; }
-
-	public String getDescription()          { return description; }
-	public void   setDescription(String v)  { this.description = v; }
-
-	public String getCreatedBy()            { return createdBy; }
-	public void   setCreatedBy(String v)    { this.createdBy = v; }
-
-	public String getOrigin()               { return origin; }
-	public void   setOrigin(String v)       { this.origin = v; }
-
-	public JSONObject getConfigJson()       { return configJson; }
-	public void       setConfigJson(JSONObject v) { this.configJson = v; }
-
-	public String getDateCreated()          { return dateCreated; }
-	public void   setDateCreated(String v)  { this.dateCreated = v; }
-
-	public String getDateUpdated()          { return dateUpdated; }
-	public void   setDateUpdated(String v)  { this.dateUpdated = v; }
 }

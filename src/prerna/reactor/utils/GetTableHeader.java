@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.utils;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import prerna.engine.impl.web.WebScrapeEngine;
@@ -47,21 +48,22 @@ public class GetTableHeader extends AbstractReactor {
 		String url = this.keyValue.get(this.keysToGet[0]);
 		HashMap aliasMap = (HashMap)this.getNounStore().getGenRowStruct("aliasMap").get(0);
 		
-		WebScrapeEngine engine = new WebScrapeEngine();
-		
-		String [] headers = engine.getHeaders(url, aliasMap);
-				
-		StringBuffer accumulator = new StringBuffer("");
-		
-		for(int headerIndex = 0;headerIndex < headers.length;headerIndex++)
-		{
-			if(headerIndex != 0)
-				accumulator.append("||");
-			accumulator.append(headers[headerIndex]);
+		try (WebScrapeEngine engine = new WebScrapeEngine()) {
+			String[] headers = engine.getHeaders(url, aliasMap);
+			StringBuffer accumulator = new StringBuffer("");
+
+			for (int headerIndex = 0; headerIndex < headers.length; headerIndex++) {
+				if (headerIndex != 0) {
+					accumulator.append("||");
+				}
+				accumulator.append(headers[headerIndex]);
+			}
+			accumulator.append("");
+
+			return new NounMetadata(accumulator.toString(), PixelDataType.CONST_STRING);
+		} catch (IOException e) {
+			throw new IllegalStateException("Unable to close web scrape engine", e);
 		}
-		accumulator.append("");
-		
-		return new NounMetadata(accumulator.toString(), PixelDataType.CONST_STRING);
 	}
 
 }

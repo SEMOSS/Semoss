@@ -8,55 +8,34 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 
 # from google.genai.types import (
 #     EnterpriseWebSearch,
 # )
 
-from ...text_generation.abstract_text_generation_client import ModelLimits
 from .google_genai_models import GoogleRoles
 from google.genai import types
 from ...utils import string_to_bool
+from ..semoss_base.builtin_tools import normalize_built_in_tools
 from ..semoss_base.reasoning import normalize_reasoning
 
 
 class GoogleGenAIMessageBuilder:
 
-    def _normalize_web_search_tool(self, value: Any) -> str:
-        """
-        Controls which Google built-in web search tool is used when `built_in_tools`
-        includes `web_search`.
-
-        Supported values:
-        - "enterprise" | "enterprise_web_search" (default)
-        - "google" | "google_search"
-        """
-        if value is None:
-            return "enterprise"
-        if isinstance(value, str):
-            normalized = value.strip().lower()
-            if normalized in {"enterprise", "enterprise_web_search"}:
-                return "enterprise"
-            if normalized in {"google", "google_search"}:
-                return "google"
-        raise ValueError(
-            f"Unsupported web search tool: {value!r}. Use 'enterprise' or 'google'."
-        )
-
     def build_messages(
         self,
         semoss_messages: List[SEMOSSMessage],
         model_settings: ModelSettings,
-        model_limits: ModelLimits,
     ) -> Dict[str, Any]:
         """Convert SEMOSS messages to Google GenAI Content."""
         self.model_settings = model_settings
-        self.model_limits = model_limits
         google_messages = []
 
         pending_tool_responses = []
         expected_tool_count = 0
+        self._blob_seq = 0
 
         for i, message in enumerate(semoss_messages):
             if message.parts:
@@ -95,12 +74,15 @@ class GoogleGenAIMessageBuilder:
                         parts.append(fc_part)
 
                     elif p.type == SEMOSSMessagePartType.TOOL_RESULT:
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = parse_multimodal_tool_response(output)
                         parts.append(
-                            Part.from_function_response(
+                            self._build_function_response_part(
                                 name=tool_id_to_name.get(
                                     p.tool_result.id, "unknown_tool"
                                 ),
-                                response={"result": p.tool_result.output},
+                                output=output,
+                                blocks=blocks,
                             )
                         )
 
@@ -199,9 +181,13 @@ class GoogleGenAIMessageBuilder:
                                 break
 
                         if tool_name and message.content:
+                            output = message.content
+                            blocks = parse_multimodal_tool_response(output)
                             pending_tool_responses.append(
-                                Part.from_function_response(
-                                    name=tool_name, response={"result": message.content}
+                                self._build_function_response_part(
+                                    name=tool_name,
+                                    output=output,
+                                    blocks=blocks,
                                 )
                             )
 
@@ -262,15 +248,13 @@ class GoogleGenAIMessageBuilder:
             return types.ThinkingConfig(include_thoughts=False)
 
         model_name = (self.model_settings.model_name or "").lower()
-        if "gemini-3" in model_name:
+        if "gemini-3" in model_name and "gemini-3-pro-image" not in model_name:
             return types.ThinkingConfig(
                 include_thoughts=True,
                 thinking_level=self._GEMINI_THINKING_LEVEL.get(
                     resolved.effort, types.ThinkingLevel.HIGH
                 ),
             )
-
-        # Gemini 2.5 / 2.0 family -> explicit token budget.
         return types.ThinkingConfig(
             include_thoughts=True, thinking_budget=resolved.budget
         )
@@ -299,7 +283,7 @@ class GoogleGenAIMessageBuilder:
         if max_output_tokens is None:
             max_output_tokens = kwargs.pop("max_tokens", None)
         if max_output_tokens is None:
-            max_output_tokens = self.model_limits.max_completion_tokens
+            max_output_tokens = self.model_settings.max_tokens
 
         stream = kwargs.pop("streaming", None)
         if stream is None:
@@ -350,6 +334,46 @@ class GoogleGenAIMessageBuilder:
 
         return config, stream
 
+    def _build_function_response_part(self, name: str, output: str, blocks) -> Part:
+        """Build a function_response Part, embedding binary blocks as FunctionResponseBlob."""
+        if blocks is None:
+            return Part.from_function_response(name=name, response={"result": output})
+
+        text_parts = [b.text for b in blocks if b.type == "text"]
+        text = "\n".join(text_parts) if text_parts else "See attached media."
+
+        try:
+            media_parts = []
+            for block in blocks:
+                if block.type in ("image", "document") and block.data:
+                    try:
+                        data_bytes = base64.b64decode(block.data)
+                    except (ValueError, TypeError):
+                        continue  # malformed base64 - skip this block
+                    mime = block.mime_type or "image/png"
+                    ext = mime.split("/")[-1]
+                    display_name = f"attachment_{self._blob_seq}.{ext}"
+                    self._blob_seq += 1
+                    media_parts.append(
+                        types.FunctionResponsePart(
+                            inline_data=types.FunctionResponseBlob(
+                                mime_type=mime,
+                                display_name=display_name,
+                                data=data_bytes,
+                            )
+                        )
+                    )
+            if media_parts:
+                return Part.from_function_response(
+                    name=name,
+                    response={"result": text},
+                    parts=media_parts,
+                )
+        except (TypeError, AttributeError, ValueError):
+            pass
+
+        return Part.from_function_response(name=name, response={"result": text})
+
     def _build_text_content_part(self, content: str) -> Part:
         """Build a text content part for Google GenAI."""
         return Part.from_text(text=content)
@@ -397,14 +421,37 @@ class GoogleGenAIMessageBuilder:
             raise ValueError(f"Unsupported SEMOSSMediaContent type: {media.type}")
 
     _GOOGLE_SCHEMA_ALLOWED = {
-        "type", "format", "description", "default", "enum", "example",
-        "properties", "required", "items",
-        "min_items", "max_items", "minItems", "maxItems",
-        "min_length", "max_length", "minLength", "maxLength", "pattern",
-        "minimum", "maximum", "nullable",
-        "any_of", "anyOf", "property_ordering", "propertyOrdering",
-        "min_properties", "max_properties", "minProperties", "maxProperties",
-        "additional_properties", "additionalProperties",
+        "type",
+        "format",
+        "description",
+        "default",
+        "enum",
+        "example",
+        "properties",
+        "required",
+        "items",
+        "min_items",
+        "max_items",
+        "minItems",
+        "maxItems",
+        "min_length",
+        "max_length",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "minimum",
+        "maximum",
+        "nullable",
+        "any_of",
+        "anyOf",
+        "property_ordering",
+        "propertyOrdering",
+        "min_properties",
+        "max_properties",
+        "minProperties",
+        "maxProperties",
+        "additional_properties",
+        "additionalProperties",
     }
 
     def _sanitize_schema_for_google(self, schema: Dict[str, Any]) -> Dict[str, Any]:
@@ -444,11 +491,15 @@ class GoogleGenAIMessageBuilder:
         if isinstance(excl_min, (int, float)) and not isinstance(excl_min, bool):
             if is_int:
                 translated = int(excl_min) + 1
-                out["minimum"] = max(out["minimum"], translated) if "minimum" in out else translated
+                out["minimum"] = (
+                    max(out["minimum"], translated) if "minimum" in out else translated
+                )
         if isinstance(excl_max, (int, float)) and not isinstance(excl_max, bool):
             if is_int:
                 translated = int(excl_max) - 1
-                out["maximum"] = min(out["maximum"], translated) if "maximum" in out else translated
+                out["maximum"] = (
+                    min(out["maximum"], translated) if "maximum" in out else translated
+                )
 
         return out
 
@@ -482,31 +533,19 @@ class GoogleGenAIMessageBuilder:
 
         return function_declarations
 
-    def _build_built_in_tools(
-        self, built_in_tools: List[str], web_search_tool: str = "enterprise"
-    ) -> List[types.Tool]:
-        """Add built-in Google GenAI tools based on names."""
+    def _build_built_in_tools(self, built_in_tools: Any) -> List[types.Tool]:
+        """Add built-in Google GenAI tools.
+
+        A selection's params name the Tool field directly (google_search={},
+        url_context={}, ...) - pydantic coerces the dict values onto the
+        field types, the same way function_declarations already accepts
+        dicts. A selection without params has nothing to enable and is
+        skipped.
+        """
         google_built_in_tools: List[types.Tool] = []
-        for tool in built_in_tools:
-            if tool.lower() == "web_search":
-                if web_search_tool == "google":
-                    google_built_in_tools.append(
-                        types.Tool(google_search=types.GoogleSearch())
-                    )
-                else:
-                    google_built_in_tools.append(
-                        types.Tool(enterprise_web_search=types.EnterpriseWebSearch())
-                    )
-            if tool.lower() == "websearch_retrieval":
-                google_built_in_tools.append(
-                    types.Tool(google_search_retrieval=types.GoogleSearchRetrieval())
-                )
-            if tool.lower() == "google_maps":
-                google_built_in_tools.append(types.Tool(google_maps=types.GoogleMaps()))
-            if tool.lower() == "code_execution":
-                google_built_in_tools.append(
-                    types.Tool(code_execution=types.ToolCodeExecution())
-                )
+        for selection in normalize_built_in_tools(built_in_tools):
+            if selection["params"]:
+                google_built_in_tools.append(types.Tool(**selection["params"]))
         return google_built_in_tools
 
     def build_tools(
@@ -516,24 +555,13 @@ class GoogleGenAIMessageBuilder:
         tools = param_map.get("tools", [])
         built_in_tools = param_map.get("built_in_tools", [])
         tool_choice = param_map.get("tool_choice", {})
-        web_search_tool = "enterprise"
-        if any(
-            isinstance(t, str) and t.lower() == "web_search"
-            for t in (built_in_tools or [])
-        ):
-            web_search_tool = self._normalize_web_search_tool(
-                param_map.get("web_search_tool", param_map.get("web_search_type"))
-            )
 
         if tools:
             func_declarations = self.convert_mcp_to_google_tools(tools)
             tools = [types.Tool(function_declarations=func_declarations)]
 
         if built_in_tools:
-            google_built_in_tools = self._build_built_in_tools(
-                built_in_tools, web_search_tool=web_search_tool
-            )
-            tools.extend(google_built_in_tools)
+            tools.extend(self._build_built_in_tools(built_in_tools))
 
         tool_config = self._create_tool_config(tool_choice, tools) if (tools) else None
 

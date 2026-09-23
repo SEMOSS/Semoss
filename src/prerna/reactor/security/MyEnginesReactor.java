@@ -40,6 +40,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -134,6 +135,29 @@ public class MyEnginesReactor extends AbstractReactor {
 						}
 					}
 				}
+
+				try {
+					List<String> modelEngineIds = new ArrayList<>();
+					for (Map<String, Object> engine : engineInfo) {
+						if ("MODEL".equals(String.valueOf(engine.get("engine_type")))) {
+							modelEngineIds.add(engine.get("engine_id").toString());
+						}
+					}
+
+					Map<String, Map<String, Object>> modelMetadata = SecurityModelMetadataUtils
+							.getModelMetadata(modelEngineIds);
+					for (Map.Entry<String, Map<String, Object>> entry : modelMetadata.entrySet()) {
+						Integer engineIndex = index.get(entry.getKey());
+						if (engineIndex == null) {
+							continue;
+						}
+						Map<String, Object> engine = engineInfo.get(engineIndex);
+						Map<String, Object> capabilities = SecurityModelMetadataUtils.toCapabilities(entry.getValue());
+						engine.put("capabilities", capabilities);
+					}
+				} catch (Exception e) {
+					classLogger.error("Error retrieving model metadata in MyEnginesReactor", e);
+				}
 			}
 			if (includeUserT && Utility.isUserTrackingEnabled()) {
 				try (IRawSelectWrapper wrapper = UserCatalogVoteUtils.getAllVotesWrapper(index.keySet())) {
@@ -173,6 +197,7 @@ public class MyEnginesReactor extends AbstractReactor {
 
 				Inputs: filterWord, limit, offset, onlyFavorites, engineType, engine, permissionFilters, metaKeys, metaFilters, noMeta, includeUserTracking, sort.
 				Response keys: prefer engine_* fields (engine_id, engine_name, engine_display_name, engine_type, engine_subtype, engine_cost, engine_discoverable, engine_global, engine_tool_app, engine_created_by, engine_created_by_type, engine_date_created, low_engine_name, engine_user_permission, engine_group_permission, engine_favorite).
+				Model engines also include a capabilities object containing modelId, capability, inputModalities, outputModalities, contextWindow, maxOutputTokens, and builtinTools when model metadata is available and noMeta is false.
 				Any response key prefixed with app_* or database_* is legacy and should not be used.
 				""";
 	}
@@ -220,52 +245,6 @@ public class MyEnginesReactor extends AbstractReactor {
 				new JSONObject().put("type", "integer").put("description", "Catalog upvote count when requested"));
 		itemProperties.put("hasUpvoted", new JSONObject().put("type", "boolean").put("description",
 				"Whether the current user has upvoted when requested"));
-
-		// legacy aliases
-		itemProperties.put("app_id",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
-		itemProperties.put("app_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
-		itemProperties.put("app_display_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_display_name"));
-		itemProperties.put("app_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
-		itemProperties.put("app_subtype",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
-		itemProperties.put("app_cost",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
-		itemProperties.put("app_favorite",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
-		itemProperties.put("database_id",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_id"));
-		itemProperties.put("database_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_name"));
-		itemProperties.put("database_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_type"));
-		itemProperties.put("database_subtype",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_subtype"));
-		itemProperties.put("database_cost",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_cost"));
-		itemProperties.put("database_discoverable",
-				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_discoverable"));
-		itemProperties.put("database_global",
-				new JSONObject().put("type", "boolean").put("description", "Legacy alias of engine_global"));
-		itemProperties.put("database_created_by",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by"));
-		itemProperties.put("database_created_by_type",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_created_by_type"));
-		itemProperties.put("database_date_created",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_date_created"));
-		itemProperties.put("low_database_name",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of low_engine_name"));
-		itemProperties.put("database_favorite",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_favorite"));
-		itemProperties.put("user_permission",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_user_permission"));
-		itemProperties.put("group_permission",
-				new JSONObject().put("type", "integer").put("description", "Legacy alias of engine_group_permission"));
-		itemProperties.put("tool_app",
-				new JSONObject().put("type", "string").put("description", "Legacy alias of engine_tool_app"));
 
 		JSONObject items = new JSONObject();
 		items.put("type", "object");

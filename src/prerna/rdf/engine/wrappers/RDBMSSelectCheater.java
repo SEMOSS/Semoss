@@ -75,7 +75,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 			rs = (ResultSet) map.get(IRDBMSEngine.RESULTSET_OBJECT);
 			setVariables(); // get the variables
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error executing the query and retrieving the result set", e);
 			ConnectionUtils.closeAllConnections(conn, stmt, rs);
 		}
 	}
@@ -98,8 +98,9 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 	}
 
 	private IConstructStatement populateQueryResults() {
-		IConstructStatement stmt = null; // I know I need to run the magic of doing multiple indexes, but this is how we
-											// run it for now i.e. assumes 3 only
+		// I know I need to run the magic of doing multiple indexes, but this is how we
+		// run it for now i.e. assumes 3 only
+		IConstructStatement stmt = null;
 		try {
 			if (rs.next()) {
 				stmt = new ConstructStatement();
@@ -138,7 +139,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				stmt.setPredicate(predicate);
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error reading the next construct statement from the result set", e);
 		}
 		return stmt;
 	}
@@ -205,7 +206,7 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 
 				if (query.startsWith("SELECT")) {
 					SQLQueryParser p = new SQLQueryParser(query);
-					Hashtable<String, Hashtable<String, String>> h = p.getReturnVarsFromQuery(query);
+					Map<String, Map<String, String>> h = p.getReturnVarsFromQuery(query);
 
 					if (h != null && !h.isEmpty()) {
 						for (String tab : h.keySet()) {
@@ -239,14 +240,13 @@ public class RDBMSSelectCheater extends AbstractWrapper implements IConstructWra
 				int type = rsmd.getColumnType(colIndex);
 				columnTypes.put(headers[colIndex - 1], type);
 
-				if (logName != null && logName.length() != 0) // will use this to find what is the type to strap it
-																// together
-				{
+				// will use this to find what is the type to strap it together
+				if (logName != null && logName.length() != 0) {
 					columnTables.put(headers[colIndex - 1], logName);
 				}
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error setting the variables from the result set metadata", e);
 		}
 	}
 

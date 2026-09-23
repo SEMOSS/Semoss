@@ -458,12 +458,62 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean logIn(String user, String password) {
 		Map<String, String> databaseUser = getUserFromDatabase(user);
-		if (!databaseUser.isEmpty()) {
-			String typedHash = hash(password, databaseUser.get("SALT"));
-			return databaseUser.get("PASSWORD").equals(typedHash);
-		} else {
+		if (databaseUser.isEmpty()) {
 			return false;
 		}
+
+		String storedSalt = databaseUser.get("SALT");
+		if (!credentialMatches(password, databaseUser.get("PASSWORD"), storedSalt)) {
+			return false;
+		}
+
+		if (isLegacySalt(storedSalt)) {
+			migrateCredentialToApprovedHash(databaseUser.get("ID"), password);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Rehash the password with PBKDF2 if the stored salt is still legacy. Called
+	 * after the password is verified, since that is when the plaintext is
+	 * available. Failures are logged so a valid login is not rejected.
+	 *
+	 * @param userId
+	 * @param password
+	 */
+	private static void migrateCredentialToApprovedHash(String userId, String password) {
+		if (userId == null) {
+			classLogger.warn("Cannot migrate a stored password hash without a user id");
+			return;
+		}
+
+		runCredentialMigration(userId, () -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String salt = AbstractSecurityUtils.generateSalt();
+			String hashedPassword = AbstractSecurityUtils.hash(password, salt);
+			String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=? AND TYPE=?";
+
+			PreparedStatement ps = null;
+			try {
+				ps = securityDb.getPreparedStatement(updateQuery);
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, salt);
+				ps.setString(parameterIndex++, hashedPassword);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, AuthProvider.NATIVE.getLabel());
+				ps.execute();
+
+				if (!ps.getConnection().getAutoCommit()) {
+					ps.getConnection().commit();
+				}
+				classLogger.info("Migrated the stored password hash for user id={} to the approved scheme", userId);
+			} catch (SQLException e) {
+				classLogger.error("Unable to migrate the stored password hash to the approved scheme.", e);
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+			}
+		});
 	}
 
 	static String getUsernameByUserId(String userId) {

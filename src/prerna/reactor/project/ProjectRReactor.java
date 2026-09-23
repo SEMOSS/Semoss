@@ -49,16 +49,7 @@ public class ProjectRReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			projectId = this.insight.getContextProjectId();
-			if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-				projectId = this.insight.getProjectId();
-			}
-		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must input an project id");
-		}
+		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
 
 		String code = this.keyValue.get(ReactorKeysEnum.CODE.getKey());
 

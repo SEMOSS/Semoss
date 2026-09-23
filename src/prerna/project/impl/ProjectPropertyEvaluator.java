@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
+@Deprecated
 public class ProjectPropertyEvaluator {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectPropertyEvaluator.class);
@@ -43,10 +44,12 @@ public class ProjectPropertyEvaluator {
 	private String methodName;
 	private Object[] params;
 
+	@Deprecated
 	public ProjectPropertyEvaluator() {
 
 	}
 
+	@Deprecated
 	public Object eval() {
 		ProjectProperties props = Utility.getProject(this.projectId).getProjectProperties();
 		try {
@@ -70,18 +73,22 @@ public class ProjectPropertyEvaluator {
 		return null;
 	}
 
+	@Deprecated
 	public String getProjectId() {
 		return projectId;
 	}
 
+	@Deprecated
 	public void setProjectId(String projectId) {
 		this.projectId = projectId;
 	}
 
+	@Deprecated
 	public String getMethodName() {
 		return methodName;
 	}
 
+	@Deprecated
 	public void setMethodName(String methodName) {
 		this.methodName = methodName;
 	}

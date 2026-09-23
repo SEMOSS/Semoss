@@ -31,47 +31,68 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessagePart;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.ToolResultMessagePart;
+import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.IAgentHarness;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentBudgetException;
 import prerna.reactor.agent.exceptions.AgentBudgetException.BudgetKind;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
+import prerna.reactor.model.CompactRoomMessagesReactor;
+import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * SEMOSS-native agent harness - the canonical replacement for
- * {@link prerna.reactor.agent.RoomAgentHarness}.
+ * SEMOSS-native agent harness.
  *
- * <p>Capabilities:
+ * <p>
+ * Capabilities:
  * <ul>
  * <li>Multi-turn tool loop with parallel tool execution
  * <li>Configurable reflection rounds
  * <li>Cooperative cancellation via {@code Thread.isInterrupted()}
- * <li>Run-time budget via {@code max_seconds} paramMap key (0 = unlimited)
- * <li>Turn cap, reflection cap, and spawn depth from {@link AgentRunContext#getAgentConfig()}
+ * <li>Run-time budget from {@link AgentConfig.Budgets} (0 = unlimited)
+ * <li>Turn cap, reflection cap, and spawn depth from
+ * {@link AgentRunContext#getAgentConfig()}
  * <li>Subagent spawning with per-run and per-turn spawn caps
- * <li>Pre/post tool hooks and run lifecycle hooks via {@link prerna.reactor.agent.IAgentRunHook}
+ * <li>Pre/post tool hooks and run lifecycle hooks via
+ * {@link prerna.reactor.agent.IAgentRunHook}
  * </ul>
  *
- * <p>Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
+ * <p>
+ * Register name: {@value #NAME}. Activated by passing {@code harness="semoss"}
  * to {@code RunAgent()}.
  */
 public class SemossAgentHarness implements IAgentHarness {
@@ -81,8 +102,9 @@ public class SemossAgentHarness implements IAgentHarness {
 	/** Registry key {@value}. */
 	public static final String NAME = "semoss";
 
-	/** paramMap key for an optional run-time limit in seconds (0 = no limit). */
+	/** Harness-only paramMap key stripped before provider model calls. */
 	public static final String PARAM_MAX_SECONDS = "max_seconds";
+	private static final double AUTO_COMPACTION_TRIGGER_RATIO = 0.80;
 
 	private static final String PARAM_FILE_PATH = "file_path";
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
@@ -116,27 +138,42 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		AgentConfig agentConfig = ctx.getAgentConfig();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
-		int maxSeconds = resolveMaxSeconds(paramMap);
-		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap);
+		// AgentConfigLoader has already combined the caller's requested limit with
+		// the workspace cap. This is the one wall-clock budget the harness enforces.
+		int enforcedMaxSeconds = agentConfig.getBudgets().getMaxSeconds();
+		if (!agentConfig.useDefaultAgentTools()) {
+			paramMap.put(PlatformAgentTools.PARAM_USE_DEFAULT_AGENT_TOOLS, false);
+		}
+		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
+				agentConfig.getDisabledDefaultTools());
+		if (agentConfig.hasPptxWorkflow()) {
+			defaultAndExplicitTools
+					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
+			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
+			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
+		}
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 
 		// Spawn tools are shown when this run is below the configured depth cap.
-		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root + one level; etc.
-		AgentConfig agentConfig = ctx.getAgentConfig();
+		// max_subagent_depth=0 disables spawning entirely; =1 = root only; =2 = root +
+		// one level; etc.
 		AgentConfig.SubAgentSpawnPolicy policy = agentConfig.getSpawnPolicy();
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
 		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
-		if (canSpawn) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
-		// Register on root only; descendants look up the shared per-tree budget. Released in finally.
+		// Register on root only; descendants look up the shared per-tree budget.
+		// Released in finally.
 		String rootJobIdRegistered = null;
 		if (ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH) {
 			String runJobId = ThreadStore.getJobId();
@@ -156,14 +193,18 @@ public class SemossAgentHarness implements IAgentHarness {
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
+		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
+		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
-		// Advertise skills materialized into the working dir (by SkillStager, earlier in the run) so
-		// the model knows what it can pull in via LoadSkill. Empty when no skills are present.
+		// Advertise skills materialized into the working dir (by SkillStager, earlier
+		// in the run) so
+		// the model knows what it can pull in via LoadSkill. Empty when no skills are
+		// present.
 		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
@@ -172,45 +213,126 @@ public class SemossAgentHarness implements IAgentHarness {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
+		if (agentConfig.hasPptxWorkflow()) {
+			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		}
 		opts.put("instructions", composed.toString());
+		// The agent and room layers are already composed; do not append them again.
+		opts.put("overrideSystemPrompt", true);
 		room.setOptionsMap(opts);
 
 		logger.info(
 				"SemossAgentHarness: composed system prompt room={} workspaceId={} harnessChars={} agentSideChars={} (agentAgentsMd={} workdirAgentsMd={} authored={})",
-				room.getId(), agentConfig.getWorkspaceId(),
-				SemossHarnessPrompts.SYSTEM_PROMPT.length(),
-				agentSidePrompt != null ? agentSidePrompt.length() : 0,
-				lengthOrZero(agentConfig.getAgentAgentsMd()),
-				lengthOrZero(agentConfig.getWorkdirAgentsMd()),
-				lengthOrZero(agentConfig.getAuthoredPrompt()));
+				room.getId(), agentConfig.getWorkspaceId(), SemossHarnessPrompts.SYSTEM_PROMPT.length(),
+				agentSidePrompt != null ? agentSidePrompt.length() : 0, lengthOrZero(agentConfig.getAgentAgentsMd()),
+				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()));
 
+		AgentLoopState state = new AgentLoopState();
+		String progressOutcome = "failed";
+		String inputMessageId = null;
+		String finalOutputMessageId = null;
+		state.initializeProgress(ctx);
 		try {
-			String systemPrompt = room.getSystemPromptForModel();
+			String systemPrompt = state.systemPrompt();
 
-			// Start the clock BEFORE the first model call so it counts against max_seconds.
-			AgentLoopState state = new AgentLoopState();
-			String inputMessageId = null;
-			String finalOutputMessageId = null;
+			// Start the clock BEFORE the first model call so it counts against the resolved
+			// budget.
 			int runMessageStartIndex = room.getMessages().size();
+			boolean autoCompactionContextWarningLogged = false;
 
-			InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt).withText(ctx.getInput())
-					.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
-					.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
-			tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
-			inputMessageId = firstMsg.getMessageId();
+			ResponseMessage response;
 
-			logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
-					ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+			if (ctx.isResumeMode()) {
+				// --- Resume mode ---
+				// The tool results were already written to the room by RunMCPToolReactor.
+				// If an older path already produced an assistant response, pick it up.
+				// Otherwise continue from the completed tool-result message here so the
+				// worker owns the post-HITL model call and harness prompt/tool context.
+				List<AbstractMessage> messages = room.getMessages();
+				AbstractMessage last = messages.isEmpty() ? null : messages.get(messages.size() - 1);
+				if (last instanceof ResponseMessage) {
+					response = (ResponseMessage) last;
+					logger.info("SemossAgentHarness: resume mode room={} picking up from messageId={}", room.getId(),
+							response.getMessageId());
+				} else if (last instanceof InputMessage && last.hasToolResultPart()) {
+					logger.info("SemossAgentHarness: resume mode room={} continuing from tool results messageId={}",
+							room.getId(), last.getMessageId());
+					Map<String, Object> resumeParams = new HashMap<>(paramMap);
+					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
+					state.incrementIterations();
+					if (agentConfig.getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
+						resumeParams.put("tool_choice", "none");
+					}
+					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
+					Object resumeModelResponse;
+					state.progress().beginModel();
+					try {
+						resumeModelResponse = room.continueAfterToolExecutionResultsWithRuntimeContext(resumeParams,
+								last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight(), systemPrompt,
+								state.runtimeContext());
+					} finally {
+						state.progress().endModel();
+					}
+					if (resumeModelResponse == null) {
+						throw new IllegalStateException("Cannot resume agent run because tool results are incomplete");
+					}
+					AbstractMessage continuedLast = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+					if (!(continuedLast instanceof ResponseMessage)) {
+						throw new IllegalStateException("Cannot resume agent run because model continuation did not "
+								+ "produce an assistant response");
+					}
+					response = (ResponseMessage) continuedLast;
+				} else {
+					throw new IllegalStateException("Cannot resume agent run because latest room message is not a "
+							+ "tool result or assistant response room=" + room.getId());
+				}
+				if (response == null) {
+					throw new IllegalStateException(
+							"Cannot resume agent run because no assistant response was produced");
+				}
+				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				completeActiveItems(ctx.getRunId(), response);
+			} else {
+				// --- Normal mode: initial ask ---
+				Object editFile = runtimeParamMap.get(PptxEditContext.PARAM);
+				boolean focusedEdit = state.pptxWorkflow() != null && editFile instanceof String file
+						&& state.pptxWorkflow().hasInput(file);
+				AutoCompactionOutcome compactionOutcome = focusedEdit ? AutoCompactionOutcome.NOT_NEEDED
+						: autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
+				if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
+					autoCompactionContextWarningLogged = true;
+				}
+				// Compaction messages are implementation history, not messages produced by this
+				// run. Start run tagging after any automatic compaction messages.
+				runMessageStartIndex = room.getMessages().size();
 
-			ResponseMessage response = room.ask(firstMsg, ctx.getModelEngine(), null);
-			tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
+				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
+						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
+				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				if (focusedEdit) firstMsg.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
+				inputMessageId = firstMsg.getMessageId();
+
+				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
+						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
+
+				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
+				state.progress().beginModel();
+				try {
+					response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+							"during initial model call");
+				} finally {
+					state.progress().endModel();
+				}
+				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+				completeActiveItems(ctx.getRunId(), response);
+			}
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException("Agent run cancelled during initial model call");
 			}
-			if (maxSeconds > 0 && state.getElapsedMs() > maxSeconds * 1000L) {
-				throw new AgentBudgetException(BudgetKind.RUN_TIME, "Run-time budget of " + maxSeconds
-						+ "s exceeded during initial model call (" + state.getElapsedMs() + "ms elapsed)");
-			}
+			enforceRunTimeBudget(state, enforcedMaxSeconds, "during initial model call");
 
 			while (!state.isTerminal()) {
 
@@ -221,49 +343,71 @@ public class SemossAgentHarness implements IAgentHarness {
 							"Agent run cancelled after " + state.getIterations() + " iterations");
 				}
 
-				if (state.getIterations() >= ctx.getMaxTurns()) {
-					logger.warn("SemossAgentHarness: maxTurns ({}) reached room={}", ctx.getMaxTurns(),
-							room.getId());
+				if (state.getIterations() >= ctx.getMaxTurns() && hasAssistantToolCalls(response)) {
+					logger.warn("SemossAgentHarness: maxTurns ({}) reached room={}", ctx.getMaxTurns(), room.getId());
 					throw new AgentMaxTurnsException(ctx.getMaxTurns());
 				}
 
-				if (maxSeconds > 0 && state.getElapsedMs() > maxSeconds * 1000L) {
-					throw new AgentBudgetException(BudgetKind.RUN_TIME,
-							"Run-time budget of " + maxSeconds + "s exceeded after " + state.getIterations()
-									+ " iterations (" + state.getElapsedMs() + "ms elapsed)");
-				}
-
-				if (response == null) {
-					logger.warn("SemossAgentHarness: null response from model at iteration={} - treating as terminal",
-							state.getIterations());
-					state.setTerminal(true);
-					break;
-				}
+				enforceRunTimeBudget(state, enforcedMaxSeconds, "after " + state.getIterations() + " iterations");
 
 				// Continue the agent loop while the assistant response contains tool calls.
 				// Messages may also contain text/thinking parts; tool-call presence is the
 				// execution signal, not the legacy response-type field.
 				if (hasAssistantToolCalls(response)) {
 					room.updateToolResponseMeta(response);
+					// subAgentTools is resolved separately from defaultAndExplicitTools;
+					// merge so restoreAskMetadataForParameterTools also sees them.
+					List<Map<String, Object>> toolsForMetaRestore = new ArrayList<>(defaultAndExplicitTools);
+					toolsForMetaRestore.addAll(subAgentTools);
+					restoreAskMetadataForParameterTools(response, toolsForMetaRestore, subAgentSpecs);
 					tagAgentRun(response, ctx.getRunId(), RUN_ROLE_ASSISTANT_TOOL);
+					publishToolItemsQueued(ctx, response);
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
-					ResponseMessage next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
-					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
-					state.incrementIterations();
-
-					if (next != null) {
-						response = next;
-					} else {
-						logger.warn(
-								"SemossAgentHarness: no model response after tool batch at iteration={} - treating as terminal",
-								state.getIterations());
-						state.setTerminal(true);
+					ResponseMessage next;
+					try {
+						next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
+					} catch (AgentInputRequiredException pauseEx) {
+						// One or more tools require user approval (SMSS_MCP_EXECUTION=ask).
+						// Non-ask tools may already have written results to the room, so tag
+						// and persist those messages before releasing the worker.
+						tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
+						persistAgentRunTags(room, ctx);
+						persistPendingActions(ctx, room, pauseEx);
+						publishAskToolsInputRequired(ctx.getRunId(), pauseEx);
+						throw pauseEx;
 					}
+					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
+					response = requireModelResponse(next, "after tool batch at iteration " + state.getIterations());
+					if (state.isTerminal()) {
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+					}
+					completeActiveItems(ctx.getRunId(), response);
 
 				} else {
-					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
+					if (state.pptxWorkflow() != null) {
+						state.pptxWorkflow().modelStopped(response.getContent());
+						response = room.appendHarnessResponse(state.pptxWorkflow().finalText(), response.getMessageId(),
+								ctx.getModelEngine(), ctx.getInsight());
+						state.setFinalText(response.getContent());
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+						state.setTerminal(true);
+						completeActiveItems(ctx.getRunId(), response);
+					} else if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
+						AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx,
+								!autoCompactionContextWarningLogged);
+						if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
+							autoCompactionContextWarningLogged = true;
+						}
+						if (compactionOutcome == AutoCompactionOutcome.COMPACTED) {
+							// Everything before the synthetic compaction pair is already tagged. Future
+							// batch tagging should begin after that pair.
+							runMessageStartIndex = room.getMessages().size();
+						}
+
 						state.incrementReflections();
 						logger.info("SemossAgentHarness: reflection {}/{} room={}", state.getReflectionsUsed(),
 								ctx.getMaxReflections(), room.getId());
@@ -271,11 +415,21 @@ public class SemossAgentHarness implements IAgentHarness {
 						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
 						injectHarnessTools(reflectionParams, defaultAndExplicitTools, subAgentTools);
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-								.withText(SemossHarnessPrompts.REFLECTION_PROMPT).withModelType(ctx.getModelEngine().getModelType())
-								.withParamMap(reflectionParams).build();
+								.withText(SemossHarnessPrompts.REFLECTION_PROMPT + "\n\n" + state.runtimeContext(),
+										SemossHarnessPrompts.REFLECTION_PROMPT)
+								.withModelType(ctx.getModelEngine().getModelType()).withParamMap(reflectionParams)
+								.build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
-						response = room.ask(reflectionMsg, ctx.getModelEngine(), null);
+						AgentRunStreamService.get().beginModelCall(ctx.getRunId());
+						state.progress().beginModel();
+						try {
+							response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
+									"during reflection " + state.getReflectionsUsed());
+						} finally {
+							state.progress().endModel();
+						}
 						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
+						completeActiveItems(ctx.getRunId(), response);
 
 					} else {
 						state.setFinalText(response.getContent());
@@ -289,24 +443,296 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
-			if (state.getFinalText() != null) {
+			if (state.getFinalText() != null
+					&& (state.pptxWorkflow() == null || state.pptxWorkflow().completionError() == null)) {
 				AgentSubAgentRegistry.getManager().emitSubAgentCompleted(ThreadStore.getJobId(), state.getFinalText());
 			}
 
+			String completionError = state.pptxWorkflow() == null ? null : state.pptxWorkflow().completionError();
+			progressOutcome = completionError == null ? "completed" : "incomplete";
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
 					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
-					finalOutputMessageId);
+					finalOutputMessageId, completionError);
+		} catch (AgentInputRequiredException e) {
+			progressOutcome = "input_required";
+			throw e;
+		} catch (AgentCancelledException e) {
+			progressOutcome = "cancelled";
+			throw e;
+		} catch (Exception e) {
+			if (Thread.currentThread().isInterrupted()) {
+				throw new AgentCancelledException("Agent run cancelled");
+			}
+			if (state.pptxWorkflow() == null) {
+				throw e;
+			}
+			logger.warn("PPTX author stopped; preserving any validated saved artifact for run={}", ctx.getRunId(), e);
+			state.pptxWorkflow()
+					.executionFailed(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+			var last = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			ResponseMessage delivery = room.appendHarnessResponse(state.pptxWorkflow().finalText(),
+					last == null ? null : last.getMessageId(), ctx.getModelEngine(), ctx.getInsight());
+			tagAgentRun(delivery, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+			persistAgentRunTags(room, ctx);
+			completeActiveItems(ctx.getRunId(), delivery);
+			String completionError = state.pptxWorkflow().completionError();
+			progressOutcome = completionError == null ? "completed" : "incomplete";
+			return new AgentHarnessResult(delivery.getContent(), state.getIterations(),
+					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
+					delivery.getMessageId(), completionError);
 		} finally {
+			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
 			// Always restore -- we always mutated options.instructions above.
 			if (hadInstructions) {
 				opts.put("instructions", originalInstructions);
 			} else {
 				opts.remove("instructions");
 			}
+			if (hadPromptOverride) {
+				opts.put("overrideSystemPrompt", originalPromptOverride);
+			} else {
+				opts.remove("overrideSystemPrompt");
+			}
 			room.setOptionsMap(opts);
 			if (rootJobIdRegistered != null) {
 				AgentSubAgentRegistry.getManager().unregisterRoot(rootJobIdRegistered);
 			}
+		}
+	}
+
+	private static AutoCompactionOutcome autoCompactIfNeeded(AgentRunContext ctx, boolean logMissingContextWindow)
+			throws Exception {
+		Room room = ctx.getRoom();
+		int contextWindow;
+		try {
+			contextWindow = ctx.getModelEngine().getContextWindow();
+		} catch (RuntimeException e) {
+			if (logMissingContextWindow) {
+				logger.warn(
+						"SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
+								+ "context window could not be resolved",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), e);
+			}
+			return AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE;
+		}
+
+		if (contextWindow <= 0) {
+			if (logMissingContextWindow) {
+				logger.warn(
+						"SemossAgentHarness: auto compaction disabled for run={} room={} model={} because the "
+								+ "context window is {}",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextWindow);
+			}
+			return AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE;
+		}
+
+		List<AbstractMessage> messages = room.getMessages();
+		if (messages == null || messages.isEmpty()) {
+			return AutoCompactionOutcome.NOT_NEEDED;
+		}
+
+		AbstractMessage leaf = messages.getLast();
+		List<AbstractMessage> branch = RoomMessageStore.providerContext(MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()));
+		int contextTokens = currentContextTokens(branch);
+		double usageRatio = (double) contextTokens / contextWindow;
+		if (usageRatio < AUTO_COMPACTION_TRIGGER_RATIO) {
+			return AutoCompactionOutcome.NOT_NEEDED;
+		}
+
+		if (leaf instanceof InputMessage || leaf.hasToolCallPart()) {
+			String reason = leaf instanceof InputMessage ? "the active leaf is an input message"
+					: "the active leaf has unresolved tool calls";
+			return handleUnavailableCompaction(ctx, contextTokens, contextWindow, reason);
+		}
+
+		NounMetadata reactorResult;
+		try {
+			reactorResult = invokeCompactionReactor(ctx, leaf.getMessageId());
+		} catch (Exception e) {
+			throw new IllegalStateException(autoCompactionDiagnostic(ctx, contextTokens, contextWindow,
+					"existing compaction reactor failed: " + e.getMessage()), e);
+		}
+
+		List<Map<String, Object>> results = compactionResultMaps(reactorResult);
+		if (results.isEmpty()) {
+			return handleUnavailableCompaction(ctx, contextTokens, contextWindow,
+					"the existing compaction reactor did not find an eligible strategy");
+		}
+
+		for (Map<String, Object> result : results) {
+			if (Boolean.TRUE.equals(result.get("success"))) {
+				int tokensAfter = currentContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
+						room.getMessages().getLast().getMessageId()));
+				logger.info(
+						"SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
+								+ "tokensBefore={} tokensAfter={} contextWindow={}",
+						ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), result.get("type"),
+						contextTokens, tokensAfter, contextWindow);
+				return AutoCompactionOutcome.COMPACTED;
+			}
+		}
+
+		throw new IllegalStateException(autoCompactionDiagnostic(ctx, contextTokens, contextWindow,
+				"existing compaction reactor returned failure: " + results));
+	}
+
+	private static NounMetadata invokeCompactionReactor(AgentRunContext ctx, String parentMessageId) {
+		Room room = ctx.getRoom();
+		Map<String, Object> options = room.getOptionsMap();
+		boolean hadModelIdOption = options.containsKey("modelId");
+		Object originalModelIdOption = options.get("modelId");
+
+		// CompactRoomMessagesReactor currently resolves its summary model from this
+		// option. Point that lookup at the model AgentRunner resolved for this call so
+		// switching to a smaller model uses the selected model, then restore it.
+		options.put("modelId", ctx.getModelEngine().getEngineId());
+		room.setOptionsMap(options);
+		try {
+			CompactRoomMessagesReactor reactor = new CompactRoomMessagesReactor();
+			reactor.In();
+			reactor.setInsight(ctx.getInsight());
+			addReactorStringInput(reactor, ReactorKeysEnum.ROOM_ID.getKey(), room.getId());
+			addReactorStringInput(reactor, ReactorKeysEnum.PARENT_MESSAGE_ID.getKey(), parentMessageId);
+			return reactor.execute();
+		} finally {
+			if (hadModelIdOption) {
+				options.put("modelId", originalModelIdOption);
+			} else {
+				options.remove("modelId");
+			}
+			room.setOptionsMap(options);
+		}
+	}
+
+	private static void addReactorStringInput(CompactRoomMessagesReactor reactor, String key, String value) {
+		GenRowStruct row = new GenRowStruct();
+		row.add(new NounMetadata(value, PixelDataType.CONST_STRING));
+		reactor.getNounStore().addNoun(key, row);
+	}
+
+	private static int currentContextTokens(List<AbstractMessage> branch) {
+		if (branch == null || branch.size() < 2) {
+			return 0;
+		}
+		return branch.getLast().getTokensInMessage() + branch.get(branch.size() - 2).getTokensInMessage();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> compactionResultMaps(NounMetadata result) {
+		List<Map<String, Object>> maps = new ArrayList<>();
+		Object value = result != null ? result.getValue() : null;
+		if (value instanceof Map) {
+			maps.add((Map<String, Object>) value);
+		} else if (value instanceof List) {
+			for (Object item : (List<?>) value) {
+				if (item instanceof Map) {
+					maps.add((Map<String, Object>) item);
+				}
+			}
+		}
+		return maps;
+	}
+
+	private static AutoCompactionOutcome handleUnavailableCompaction(AgentRunContext ctx, int contextTokens,
+			int contextWindow, String reason) {
+		String diagnostic = autoCompactionDiagnostic(ctx, contextTokens, contextWindow, reason);
+		if (contextTokens >= contextWindow) {
+			throw new IllegalStateException(diagnostic);
+		}
+		logger.warn(diagnostic);
+		return AutoCompactionOutcome.SKIPPED;
+	}
+
+	private static String autoCompactionDiagnostic(AgentRunContext ctx, int contextTokens, int contextWindow,
+			String result) {
+		return "SemossAgentHarness: automatic compaction could not free context before inference" + " run="
+				+ ctx.getRunId() + " room=" + ctx.getRoom().getId() + " model=" + ctx.getModelEngine().getEngineId()
+				+ " estimatedTokens=" + contextTokens + " contextWindow=" + contextWindow + " result=" + result;
+	}
+
+	private enum AutoCompactionOutcome {
+		NOT_NEEDED, CONTEXT_WINDOW_UNAVAILABLE, COMPACTED, SKIPPED
+	}
+
+	private static void completeActiveItems(String runId, ResponseMessage response) {
+		if (runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		AgentRunStreamService streams = AgentRunStreamService.get();
+		streams.completeActiveReasoning(runId);
+		streams.completeActiveMessage(runId, response != null ? response.getMessageId() : null,
+				response != null ? response.getContent() : null);
+		publishServerToolItems(runId, response);
+	}
+
+	@SuppressWarnings("unchecked")
+	private static void publishToolItemsQueued(AgentRunContext ctx, ResponseMessage response) {
+		String runId = ctx.getRunId();
+		if (runId == null || runId.trim().isEmpty()) {
+			return;
+		}
+		List<Map<String, Object>> toolCalls = response.getToolResponses();
+		if (toolCalls == null || toolCalls.isEmpty()) {
+			return;
+		}
+		for (Map<String, Object> toolCall : toolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
+			Object metaObj = toolCall.get("_meta");
+			Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
+			Object title = toolCall.get("title");
+			AgentRunStreamService.get().publishToolStarted(runId,
+					AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, title != null ? title.toString() : null,
+							tc.toolParams, meta, AgentStreamItems.TOOL_QUEUED));
+		}
+	}
+
+	/**
+	 * Publishes provider-executed built-in tool calls (web_search, etc.) as
+	 * already-completed run items so the workbench shows the activity and its
+	 * output. Their results are embedded in the assistant response as
+	 * server-flagged TOOL_RESULT parts - the harness never executes them.
+	 */
+	private static void publishServerToolItems(String runId, ResponseMessage response) {
+		if (runId == null || runId.trim().isEmpty() || response == null || !response.hasToolResponses()) {
+			return;
+		}
+		Map<String, String> serverOutputsByCallId = new HashMap<>();
+		for (MessagePart part : response.getParts()) {
+			if (part instanceof ToolResultMessagePart) {
+				ToolResultPart toolResult = ((ToolResultMessagePart) part).getToolResult();
+				if (toolResult != null && Boolean.TRUE.equals(toolResult.getServerTool())
+						&& toolResult.getToolCallId() != null) {
+					serverOutputsByCallId.put(toolResult.getToolCallId(), toolResult.getOutput());
+				}
+			}
+		}
+		for (Map<String, Object> toolCall : response.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			HarnessToolExecutor.ParsedToolCall tc = new HarnessToolExecutor.ParsedToolCall(toolCall);
+			Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName, null, tc.toolParams,
+					null, AgentStreamItems.TOOL_COMPLETED);
+			String output = AgentStreamItems.truncate(serverOutputsByCallId.get(tc.toolCallId),
+					HarnessToolExecutor.MAX_LIVE_TOOL_RESULT_CHARS);
+			if (output != null && !output.isBlank()) {
+				item.put("output", output);
+			}
+			AgentRunStreamService.get().publishToolCompleted(runId, item);
+		}
+	}
+
+	private static void publishAskToolsInputRequired(String runId, AgentInputRequiredException pauseEx) {
+		if (runId == null || runId.trim().isEmpty() || pauseEx.getPendingToolCalls() == null) {
+			return;
+		}
+		for (Map<String, Object> askCall : pauseEx.getPendingToolCalls()) {
+			Map<String, Object> patch = new HashMap<>();
+			patch.put("status", AgentStreamItems.TOOL_INPUT_REQUIRED);
+			AgentRunStreamService.get().publishToolUpdated(runId, String.valueOf(askCall.get("id")), patch);
 		}
 	}
 
@@ -364,8 +790,23 @@ public class SemossAgentHarness implements IAgentHarness {
 		return RUN_ROLE_ASSISTANT;
 	}
 
+	/**
+	 * True when the response contains at least one tool call the harness must
+	 * execute. Provider-executed built-in tools (flagged {@code server_tool}) are
+	 * excluded - the provider already ran them mid-turn and their results are
+	 * embedded in the response, so a response containing only server tool calls is
+	 * a normal assistant text turn.
+	 */
 	private static boolean hasAssistantToolCalls(ResponseMessage message) {
-		return message != null && message.hasToolResponses();
+		if (message == null || !message.hasToolResponses()) {
+			return false;
+		}
+		for (Map<String, Object> toolCall : message.getToolResponses()) {
+			if (!MessageUtils.isServerToolCall(toolCall)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private static void persistAgentRunTags(Room room, AgentRunContext ctx) {
@@ -382,19 +823,139 @@ public class SemossAgentHarness implements IAgentHarness {
 		RoomMessageStore.persist(room, userId);
 	}
 
+	/**
+	 * Persist {@code AGENT_RUN_ACTION} rows for each tool call that was paused.
+	 * Each row captures the tool call id, name, original args, enriched
+	 * {@code _meta} (including {@code SMSS_MCP_UI}), and the resolved UI URL (when
+	 * the tool has an associated portal).
+	 */
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> persistPendingActions(AgentRunContext ctx, Room room,
+			AgentInputRequiredException pauseEx) {
+		String runId = ctx.getRunId();
+		if (runId == null || runId.trim().isEmpty()) {
+			throw new IllegalStateException("Cannot persist pending actions without a runId");
+		}
+		String roomId = room != null ? room.getId() : null;
+		String userId = ctx.getUserId();
+		if (userId == null || userId.trim().isEmpty()) {
+			userId = room != null ? room.getUserId() : null;
+		}
+		List<Map<String, Object>> pendingToolCalls = pauseEx.getPendingToolCalls();
+		List<Map<String, Object>> actions = new ArrayList<>();
+		for (Map<String, Object> toolCall : pendingToolCalls) {
+			Map<String, Object> action = new HashMap<>();
+			action.put("actionId", GUID.v7().toUUID().toString());
+			action.put("parentMessageId", pauseEx.getParentMessageId());
+			action.put("toolCallId", String.valueOf(toolCall.get("id")));
+			action.put("toolName", String.valueOf(toolCall.get("name")));
+			// Preserve the original args (either "arguments" or "input")
+			Object argsObj = toolCall.get("arguments");
+			if (argsObj == null) {
+				argsObj = toolCall.get("input");
+			}
+			action.put("toolArgs", argsObj);
+			// The enriched _meta (set by Room.updateToolResponseMeta)
+			Map<String, Object> meta = null;
+			Object metaObj = toolCall.get("_meta");
+			if (metaObj instanceof Map) {
+				meta = new HashMap<>((Map<String, Object>) metaObj);
+			}
+			// updateToolResponseMeta already resolved a display-friendly title
+			// onto toolCall; carry it in _meta so the FE (which only ever sees
+			// toolName/toolMeta for a pending action, never toolCall itself) can
+			// display it instead of the raw, engine-id-prefixed tool name.
+			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
+						: toolCall.get("original_name");
+				if (resolvedTitle != null) {
+					if (meta == null) {
+						meta = new HashMap<>();
+					}
+					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+				}
+			}
+			action.put("toolMeta", meta);
+			Map<String, Object> uiMeta = null;
+			if (meta != null) {
+				Object uiObj = meta.get(MCPUtility.SMSS_MCP_UI);
+				if (uiObj instanceof Map) {
+					uiMeta = (Map<String, Object>) uiObj;
+				}
+				Object execVal = meta.get(MCPUtility.SMSS_MCP_EXECUTION);
+				if (execVal != null) {
+					action.put("executionMode", execVal);
+				}
+			}
+			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
+			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
+			action.put("hasUi", hasUi);
+			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action) : null);
+			actions.add(action);
+		}
+		try {
+			AgentRunActionStore.insertPendingActions(runId, roomId, userId, actions);
+			logger.info("SemossAgentHarness: persisted {} pending action(s) for runId={}", actions.size(), runId);
+			return actions;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to persist pending actions for runId=" + runId, e);
+		}
+	}
+
+	/**
+	 * Resolve the {@code resourceURI} (relative to the app's portals folder) into
+	 * an absolute portal URL carrying only the {@code actionId}. The portal calls
+	 * {@code GetAgentRunAction} on load to fetch the rest from the row.
+	 */
+	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta, Map<String, Object> action) {
+		String projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
+		if (projectId == null) {
+			projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
+		}
+		if (MCPUtility.ROOM_MCP_ID.equals(projectId)) {
+			// Room scoped tools have no project portal to point at.
+			projectId = null;
+		}
+		if (projectId == null) {
+			// Cannot resolve the app context; GetAgentRun.pendingActions still
+			// exposes the action id and tool metadata for UI-driven execution.
+			return null;
+		}
+		// Strip any leading slash from resourceURI so the path never gets a double
+		// slash.
+		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
+		// The URL only carries the actionId. The portal calls GetAgentRunAction on
+		// load to fetch the run context and prefill args from the persisted row.
+		return "/Monolith/public_home/" + projectId + "/portals/" + normalizedURI + "?actionId="
+				+ action.get("actionId");
+	}
+
+	private static String stringValue(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String s = String.valueOf(value).trim();
+		return s.isEmpty() ? null : s;
+	}
+
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
 		// These values steer the agent runner/tool harness, not the provider model API.
 		// TODO(harness-params-refactor): this strip-list is the Java half of the same
-		// concern handled in genai_client/message_builders/<provider>/SEMOSS_RUNTIME_PARAM_KEYS.
-		// Both lists have to be kept in sync by hand today. See AGENTS_TASKS/harness-build-progress.md
+		// concern handled in
+		// genai_client/message_builders/<provider>/SEMOSS_RUNTIME_PARAM_KEYS.
+		// Both lists have to be kept in sync by hand today. See
+		// AGENTS_TASKS/harness-build-progress.md
 		// "Agent-runtime paramMap key handling" for the design discussion (prefix
 		// convention vs. moving runtime info onto AgentRunContext as typed fields).
 		paramMap.remove(PARAM_MAX_SECONDS);
+		paramMap.remove(PptxEditContext.PARAM);
+		paramMap.remove(PptxEditContext.PROPOSALS_PARAM);
 		paramMap.remove(PARAM_FILE_PATH);
 		paramMap.remove(PARAM_FILE_PATH_CAMEL);
 		paramMap.remove(PARAM_PERMISSION_MODE);
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
 		paramMap.remove(PARAM_PROJECT);
+		paramMap.remove(AgentRunner.PARAM_SPACE);
 		paramMap.remove(PARAM_SUBDIR);
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
@@ -417,7 +978,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (workingDir != null) {
 			sb.append("\n- Working directory: ").append(workingDir);
 		}
-		if (projectParam != null) {
+		if (ctx != null && ctx.getAgentTarget() != null && ctx.getAgentTarget().isUser()) {
+			sb.append("\n- Working directory source: authenticated user assets");
+			sb.append("\n- User asset project id: ").append(ctx.getAgentTarget().getProjectId());
+		} else if (projectParam != null) {
 			sb.append("\n- Working directory source: target project ").append(projectParam);
 		} else if (roomId != null) {
 			sb.append("\n- Working directory source: room ").append(roomId);
@@ -426,6 +990,30 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("\n- Target SEMOSS project id: ").append(targetProjectId);
 			sb.append("\n- Use this exact id for project-scoped Pixel or tool calls that act on the target project.");
 			sb.append("\n- Do not substitute the room id or another project id for the target project id.");
+		}
+		sb.append("\n\n## Tool environment");
+		sb.append("\n- BashCommand, when enabled, allows: ")
+				.append(PlatformAgentToolHandlers.describeAllowedCommands());
+		sb.append(
+				". One command per call; no pipes, chaining, redirects, $(), backticks, absolute paths, ~ paths, or .. .");
+		sb.append(" Use working-directory-relative paths and read output from the tool result.");
+		if (ctx.getAgentConfig().hasPptxWorkflow()) {
+			sb.append(
+					"\n- node, npm, npx and ExecuteNodeCode are unavailable to the author. Save a single async IIFE as build-deck.js and call BuildPptx.");
+			sb.append(
+					"\n- For existing decks, call PreparePptxEdit first. Use its protected inputSnapshot and the editing helper; do not reconstruct the deck.");
+			sb.append(
+					"\n- ROOT is the working directory inside BuildPptx. Put all declarations inside the IIFE and await all asynchronous work.");
+		} else {
+			sb.append(
+					"\n- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.");
+			sb.append(
+					"\n- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it.");
+			sb.append(
+					" Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.");
+			sb.append("\n- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there.");
+			sb.append(
+					" Write outputs with path.join(ROOT, \"<exact filename>\"). APP_ROOT and USER_ROOT identify project and user assets when available.");
 		}
 		return sb.toString();
 	}
@@ -456,16 +1044,18 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * Stuff a fresh copy of the harness-owned tool list into {@code paramMap.tools}.
-	 * No-op when no harness tools are configured. We always replace (rather than merge)
-	 * so the in-place mutation done by {@code Room.appendToolsToParams} on the previous
-	 * call doesn't carry stale entries forward.
+	 * Stuff a fresh copy of the harness-owned tool list into
+	 * {@code paramMap.tools}. No-op when no harness tools are configured. We always
+	 * replace (rather than merge) so the in-place mutation done by
+	 * {@code Room.appendToolsToParams} on the previous call doesn't carry stale
+	 * entries forward.
 	 */
 	private static void injectHarnessTools(Map<String, Object> paramMap, List<Map<String, Object>> baseTools,
 			List<Map<String, Object>> subAgentTools) {
 		if (paramMap == null) {
 			return;
 		}
+		paramMap.remove("tools");
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (baseTools != null && !baseTools.isEmpty()) {
 			tools.addAll(baseTools);
@@ -475,6 +1065,39 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		if (!tools.isEmpty()) {
 			paramMap.put("tools", tools);
+		}
+	}
+
+	/**
+	 * Room metadata enrichment only covers room/workspace MCP tools. Reattach
+	 * {@code _meta} for explicit ask-mode tools and subagent tools too, since
+	 * neither comes from that enrichment.
+	 */
+	@SuppressWarnings("unchecked")
+	private static void restoreAskMetadataForParameterTools(ResponseMessage response, List<Map<String, Object>> tools,
+			List<SubAgentSpec> subAgentSpecs) {
+		if (response == null || tools == null || tools.isEmpty()) {
+			return;
+		}
+		Map<String, Map<String, Object>> metaByName = new HashMap<>();
+		for (Map<String, Object> tool : tools) {
+			if (tool == null || tool.get("name") == null) {
+				continue;
+			}
+			String name = String.valueOf(tool.get("name"));
+			Object metaObj = tool.get("_meta");
+			if (!(metaObj instanceof Map)) {
+				continue;
+			}
+			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
+			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
+			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
+			if (isAsk || isSubAgentTool) {
+				metaByName.put(name, tool);
+			}
+		}
+		if (!metaByName.isEmpty()) {
+			MCPUtility.updateToolResponseWithProjectMeta(response, null, metaByName);
 		}
 	}
 
@@ -490,7 +1113,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("You can delegate work to specialist subagents via these tools: ");
 			boolean first = true;
 			for (SubAgentSpec spec : specs) {
-				if (!first) sb.append(", ");
+				if (!first) {
+					sb.append(", ");
+				}
 				sb.append(spec.getAlias());
 				first = false;
 			}
@@ -498,15 +1123,15 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("You can also spawn anonymous subagents (clones of yourself) via `SpawnSubAgent`.\n\n");
 		} else {
 			sb.append("You can spawn anonymous subagents (clones of yourself) via `SpawnSubAgent` ")
-			  .append("to delegate independent pieces of work in parallel.\n\n");
+					.append("to delegate independent pieces of work in parallel.\n\n");
 		}
 		sb.append("Each spawn tool returns IMMEDIATELY with a `jobId` handle -- NOT the final answer.\n");
 		sb.append("- To get a subagent's answer, call `WaitForSubAgent(jobId=<handle>)`. This blocks ")
-		  .append("until the subagent completes or your timeoutSec elapses.\n");
+				.append("until the subagent completes or your timeoutSec elapses.\n");
 		sb.append("- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.\n");
 		sb.append("- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.\n\n");
 		sb.append("Subagents have separate room transcripts. They may share your workdir only when ")
-		  .append("you explicitly set `inherit_parent_workdir=true` while spawning them.\n\n");
+				.append("you explicitly set `inherit_parent_workdir=true` while spawning them.\n\n");
 
 		sb.append("## Two patterns: blocking vs deferred\n\n");
 		sb.append("**Pattern A -- blocking (default for quick subagent work, <30s expected):**\n");
@@ -577,15 +1202,25 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	/**
-	 * Renders the skills discovered in {@code workingDir} as an {@code <available_skills>} block
-	 * for the system prompt, mirroring {@link #buildSubAgentPromptBlock}. Returns an empty string
-	 * when the working dir is blank or no skills are present, so the caller can skip appending an
+	 * Renders the skills discovered in {@code workingDir} as an
+	 * {@code <available_skills>} block for the system prompt, mirroring
+	 * {@link #buildSubAgentPromptBlock}. Returns an empty string when the working
+	 * dir is blank or no skills are present, so the caller can skip appending an
 	 * empty block.
 	 *
-	 * <p>Discovery is delegated to {@link SkillScanner#scan(String)} -- the same logic the
-	 * {@code ListSkill} tool uses -- so the prompt and the tool agree on what's available. The
-	 * {@code <location>} of each skill is its working-dir-relative folder (e.g.
-	 * {@code .claude/skills/pdf}).
+	 * <p>
+	 * Discovery is delegated to {@link SkillScanner#scan(String)} -- the same logic
+	 * the {@code ListSkill} tool uses -- so the prompt and the tool agree on what's
+	 * available. The {@code <location>} of each skill is its working-dir-relative
+	 * folder (e.g. {@code .claude/skills/pdf}).
+	 *
+	 * <p>
+	 * The catalog is followed by the instruction for what to do with it, because a
+	 * bare list of names and descriptions reads as reference material the model can
+	 * skip. The instruction lives here rather than in
+	 * {@link SemossHarnessPrompts#SYSTEM_PROMPT}, which is deliberately
+	 * domain-neutral and names no tools, and it ships only when at least one skill
+	 * is present.
 	 */
 	private static String buildAvailableSkillsPromptBlock(String workingDir) {
 		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir);
@@ -605,11 +1240,23 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("    <location>").append(xmlEscape(skill.getDirectory())).append("</location>\n");
 			sb.append("  </skill>\n");
 		}
-		sb.append("</available_skills>");
+		sb.append("</available_skills>\n");
+		sb.append("\n");
+		sb.append("Each entry above is a packaged set of instructions for a recurring task, ");
+		sb.append("written because getting that task right from memory is unreliable. When the ");
+		sb.append("work in front of you is covered by one, call LoadSkill(skill_name=\"<name>\") ");
+		sb.append("and follow what it says before writing anything. A description is all you get ");
+		sb.append("here; the actual patterns, parameters, and output shapes are only in the body. ");
+		sb.append("Loading a skill that turns out not to apply costs one tool call, so load it ");
+		sb.append("when unsure rather than guessing. This list is already complete -- you do not ");
+		sb.append("need ListSkill to discover these.");
 		return sb.toString();
 	}
 
-	/** Minimal XML escaping for values interpolated into the {@code <available_skills>} block. */
+	/**
+	 * Minimal XML escaping for values interpolated into the
+	 * {@code <available_skills>} block.
+	 */
 	private static String xmlEscape(String s) {
 		if (s == null || s.isEmpty()) {
 			return "";
@@ -618,28 +1265,40 @@ public class SemossAgentHarness implements IAgentHarness {
 		for (int i = 0; i < s.length(); i++) {
 			char c = s.charAt(i);
 			switch (c) {
-				case '&': sb.append("&amp;"); break;
-				case '<': sb.append("&lt;");  break;
-				case '>': sb.append("&gt;");  break;
-				default:  sb.append(c);
+			case '&':
+				sb.append("&amp;");
+				break;
+			case '<':
+				sb.append("&lt;");
+				break;
+			case '>':
+				sb.append("&gt;");
+				break;
+			default:
+				sb.append(c);
 			}
 		}
 		return sb.toString();
 	}
 
-	private static int resolveMaxSeconds(Map<String, Object> paramMap) {
-		Object val = paramMap.get(PARAM_MAX_SECONDS);
-		if (val == null)
-			return 0;
-		if (val instanceof Number)
-			return ((Number) val).intValue();
-		if (val instanceof String) {
-			try {
-				return Integer.parseInt(((String) val).trim());
-			} catch (NumberFormatException ignored) {
-			}
+	private static void enforceRunTimeBudget(AgentLoopState state, int enforcedMaxSeconds, String phase) {
+		if (enforcedMaxSeconds <= 0) {
+			return;
 		}
-		return 0;
+
+		long elapsedMs = state.getElapsedMs();
+		long budgetMs = enforcedMaxSeconds * 1000L;
+		if (elapsedMs > budgetMs) {
+			throw new AgentBudgetException(BudgetKind.RUN_TIME, "Run-time budget of " + enforcedMaxSeconds
+					+ "s exceeded " + phase + " (" + elapsedMs + "ms elapsed)");
+		}
+	}
+
+	private static ResponseMessage requireModelResponse(ResponseMessage response, String phase) {
+		if (response == null) {
+			throw new IllegalStateException("Agent model returned no response " + phase);
+		}
+		return response;
 	}
 
 }

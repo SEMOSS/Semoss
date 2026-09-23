@@ -155,6 +155,46 @@ public class AskModelEngineResponseUnitTests {
     }
 
     @Test
+    void fromMapReadsMetadata() {
+        Map<String, Object> metadata = new HashMap<String, Object>(){{
+            put("key","value");
+            put("nested", new HashMap<String, Object>(){{
+                put("inner", 42);
+            }});
+        }};
+
+        Map<String, Object> map = new HashMap();
+        map.put("response", "response");
+        map.put("numberOfTokensInPrompt",0);
+        map.put("numberOfTokensInResponse",0);
+        map.put("messageType","CHAT");
+        map.put("metadata", metadata);
+
+        AskModelEngineResponse ans = abs.fromMap(map);
+
+        assertNotNull(ans);
+        assertEquals(metadata, ans.getMetadata());
+        // round-trips back out through toMap()
+        assertEquals(metadata, ans.toMap().get("metadata"));
+    }
+
+    @Test
+    void fromMapNoMetadata() {
+        Map<String, Object> map = new HashMap();
+        map.put("response", "response");
+        map.put("numberOfTokensInPrompt",0);
+        map.put("numberOfTokensInResponse",0);
+        map.put("messageType","CHAT");
+
+        AskModelEngineResponse ans = abs.fromMap(map);
+
+        assertNotNull(ans);
+        assertEquals(null, ans.getMetadata());
+        // omitted from toMap() when absent
+        assertEquals(false, ans.toMap().containsKey("metadata"));
+    }
+
+    @Test
     void nonStringResponseForChatType() {
         Map<String, Object> map = new HashMap();
         map.put("response", 0);

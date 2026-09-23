@@ -29,6 +29,7 @@ package prerna.reactor.agent.runtime;
 
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -49,6 +50,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -58,15 +60,23 @@ import org.json.JSONObject;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.ds.node.NodeTranslator;
+import prerna.ds.node.NodeUtils;
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
+import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.pptx.SemossPptxInspector;
 
 final class PlatformAgentToolHandlers {
 
@@ -87,17 +97,24 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_PYTHON_CODE_LENGTH = 200_000;
+	private static final int MAX_PYTHON_OUTPUT_LENGTH = 40_000;
+	private static final int MAX_NODE_CODE_LENGTH = 200_000;
+	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
+	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
+	private static final int MAX_NODE_TIMEOUT_SECONDS = 600;
+	private static final String PARAM_PATH = "path";
+	private static final String PARAM_NEW_PATH = "new_path";
 
-	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList(
-			"pwd", "ls", "dir", "find", "cat", "head", "tail", "wc", "stat",
-			"grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff",
-			"python", "python3",
-			"mkdir", "touch", "cp", "mv",
-			"curl", "wget",
-			"zip", "unzip",
-			"jq", "which"));
+	private static final Set<String> ALLOWED_COMMANDS = new HashSet<>(Arrays.asList("pwd", "ls", "dir", "find", "cat",
+			"head", "tail", "wc", "stat", "grep", "rg", "sed", "awk", "cut", "sort", "uniq", "tr", "diff", "python",
+			"python3", "mkdir", "touch", "cp", "mv", "curl", "wget", "zip", "unzip", "jq", "which"));
 
 	private PlatformAgentToolHandlers() {
+	}
+
+	static String describeAllowedCommands() {
+		return String.join(", ", ALLOWED_COMMANDS.stream().sorted().toList());
 	}
 
 	interface ToolHandler {
@@ -110,108 +127,157 @@ final class PlatformAgentToolHandlers {
 
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
-		add(tools, handler("ReadFile",
-				"Reads a file from the working directory. Returns content with line numbers.",
-				objectSchema(props(
-						prop("file_path", stringProp("Path to read, relative to the working directory.")),
-						prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
-						prop("limit", integerProp("Maximum lines to return. Defaults to 2000."))),
-						List.of("file_path")),
-				PlatformAgentToolHandlers::readFile));
+		add(tools, handler("InspectPptx",
+				"Render a PowerPoint through UnoServer and inspect its slides with a vision model using your review instructions. "
+						+ "Returns structured issues, exact slide coverage, source hash and image/report paths. "
+						+ "A pass requires status=complete and verdict=pass. Does not edit the source deck.",
+				SemossPptxInspector.inputSchema(), (params, tc) -> SemossPptxInspector.inspect(
+						Path.of(tc.root), params, tc.ctx.getInsight(), tc.ctx.getRoom().getId(),
+						tc.ctx.getAgentConfig().getModelId()).toString()));
+		add(tools,
+				handler("ReadFile",
+						"Reads a file from the working directory. Returns content with line numbers "
+								+ "and a continuation marker when more lines remain.",
+						objectSchema(
+								props(prop(PARAM_PATH, stringProp("Path to read, relative to the working directory.")),
+										prop("offset", integerProp("1-based first line to read. Defaults to 1.")),
+										prop("limit", integerProp("Maximum lines to return. Defaults to 2000."))),
+								List.of(PARAM_PATH)),
+						PlatformAgentToolHandlers::readFile));
 		add(tools, handler("WriteFile",
 				"Writes text to a file under the working directory, creating parent directories as needed.",
-				objectSchema(props(
-						prop("filePath", stringProp("Path to write, relative to the working directory.")),
-						prop("content", stringProp("Complete file content."))),
-						List.of("filePath", "content")),
+				objectSchema(props(prop(PARAM_PATH, stringProp("Path to write, relative to the working directory.")),
+						prop("content", stringProp("Complete file content."))), List.of(PARAM_PATH, "content")),
 				PlatformAgentToolHandlers::writeFile));
 		add(tools, handler("EditFile",
 				"Performs one exact string replacement in a file. Fails if the old string is not unique unless replace_all=true.",
-				objectSchema(props(
-						prop("file_path", stringProp("Path to edit, relative to the working directory.")),
-						prop("old_string", stringProp("Exact text to replace.")),
-						prop("new_string", stringProp("Replacement text.")),
-						prop("replace_all", booleanProp("Replace every occurrence instead of requiring uniqueness."))),
-						List.of("file_path", "old_string", "new_string")),
+				objectSchema(
+						props(prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
+								prop("old_string", stringProp("Exact text to replace.")),
+								prop("new_string", stringProp("Replacement text.")),
+								prop("replace_all",
+										booleanProp("Replace every occurrence instead of requiring uniqueness."))),
+						List.of(PARAM_PATH, "old_string", "new_string")),
 				PlatformAgentToolHandlers::editFile));
 		add(tools, handler("MultiEdit",
 				"Applies multiple exact string replacements to one file in a single all-or-nothing operation.",
-				objectSchema(props(
-						prop("file_path", stringProp("Path to edit, relative to the working directory.")),
+				objectSchema(props(prop(PARAM_PATH, stringProp("Path to edit, relative to the working directory.")),
 						prop("edits_json", stringProp(
 								"JSON array of edits: [{\"old_string\":\"...\",\"new_string\":\"...\",\"replace_all\":false}]."))),
-						List.of("file_path", "edits_json")),
+						List.of(PARAM_PATH, "edits_json")),
 				PlatformAgentToolHandlers::multiEdit));
-		add(tools, handler("MoveFile",
-				"Moves or renames a path under the working directory.",
-				objectSchema(props(
-						prop("filePath", stringProp("Existing path, relative to the working directory.")),
-						prop("newValue", stringProp("New path, relative to the working directory."))),
-						List.of("filePath", "newValue")),
-				PlatformAgentToolHandlers::moveFile));
-		add(tools, handler("DeleteFile",
-				"Deletes a file or directory under the working directory.",
-				objectSchema(props(
-						prop("filePath", stringProp("Path to delete, relative to the working directory."))),
-						List.of("filePath")),
-				PlatformAgentToolHandlers::deleteFile));
-		add(tools, handler("GlobFiles",
-				"Finds files matching a glob pattern under the working directory.",
-				objectSchema(props(
-						prop("pattern", stringProp("Glob pattern such as **/*.java or src/**/*.ts.")),
-						prop("path", stringProp("Optional directory to search, relative to the working directory."))),
-						List.of("pattern")),
-				PlatformAgentToolHandlers::globFiles));
-		add(tools, handler("GrepFiles",
-				"Searches file contents with a regular expression.",
-				objectSchema(props(
-						prop("pattern", stringProp("Regex pattern to search for.")),
-						prop("path", stringProp("Optional path to search, relative to the working directory.")),
-						prop("glob", stringProp("Optional file glob filter, such as *.java.")),
-						prop("output_mode", stringProp("files_with_matches, content, or count. Defaults to files_with_matches.")),
-						prop("after_context", integerProp("Lines after each match.")),
-						prop("before_context", integerProp("Lines before each match.")),
-						prop("context", integerProp("Lines before and after each match.")),
-						prop("case_insensitive", booleanProp("Case-insensitive matching.")),
-						prop("head_limit", integerProp("Maximum result lines. Defaults to 200."))),
-						List.of("pattern")),
-				PlatformAgentToolHandlers::grepFiles));
-		add(tools, handler("ListDirectory",
-				"Lists directory contents under the working directory.",
-				objectSchema(props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
-						Collections.emptyList()),
-				PlatformAgentToolHandlers::listDirectory));
+		add(tools,
+				handler("MoveFile", "Moves or renames a path under the working directory.",
+						objectSchema(
+								props(prop(PARAM_PATH, stringProp("Existing path, relative to the working directory.")),
+										prop(PARAM_NEW_PATH,
+												stringProp("New path, relative to the working directory."))),
+								List.of(PARAM_PATH, PARAM_NEW_PATH)),
+						PlatformAgentToolHandlers::moveFile));
+		add(tools,
+				handler("DeleteFile", "Deletes a file or directory under the working directory.", objectSchema(
+						props(prop(PARAM_PATH, stringProp("Path to delete, relative to the working directory."))),
+						List.of(PARAM_PATH)), PlatformAgentToolHandlers::deleteFile));
+		add(tools,
+				handler("GlobFiles", "Finds files matching a glob pattern under the working directory.",
+						objectSchema(
+								props(prop("pattern", stringProp("Glob pattern such as **/*.java or src/**/*.ts.")),
+										prop("path", stringProp(
+												"Optional directory to search, relative to the working directory."))),
+								List.of("pattern")),
+						PlatformAgentToolHandlers::globFiles));
+		add(tools,
+				handler("GrepFiles", "Searches file contents with a regular expression.", objectSchema(
+						props(prop("pattern", stringProp("Regex pattern to search for.")),
+								prop("path", stringProp("Optional path to search, relative to the working directory.")),
+								prop("glob", stringProp("Optional file glob filter, such as *.java.")),
+								prop("output_mode", stringProp(
+										"files_with_matches, content, or count. Defaults to files_with_matches.")),
+								prop("after_context", integerProp("Lines after each match.")),
+								prop("before_context", integerProp("Lines before each match.")),
+								prop("context", integerProp("Lines before and after each match.")),
+								prop("case_insensitive", booleanProp("Case-insensitive matching.")),
+								prop("head_limit", integerProp("Maximum result lines. Defaults to 200."))),
+						List.of("pattern")), PlatformAgentToolHandlers::grepFiles));
+		add(tools,
+				handler("ListDirectory", "Lists directory contents under the working directory.", objectSchema(
+						props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
+						Collections.emptyList()), PlatformAgentToolHandlers::listDirectory));
 		if (isBashEnabled()) {
 			add(tools, handler("BashCommand",
-					"Executes one allowlisted shell command in the working directory.",
-					objectSchema(props(
-							prop("command", stringProp("Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
+					"Executes one command in the working directory. Allowed commands: " + describeAllowedCommands()
+							+ ". One command per call: no pipes, chaining, redirects (including 2>&1), $(), or backticks. "
+							+ "Use working-directory-relative paths; no absolute paths, ~ paths, or .. . "
+							+ "node, npm, npx are not available here; use ExecuteNodeCode for JavaScript. "
+							+ "Capture output via the tool result, not shell redirects.",
+					objectSchema(props(prop("command", stringProp(
+							"Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
 							prop("description", stringProp("Short reason for running the command."))),
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
 		}
-		add(tools, handler("TodoWrite",
-				"Replaces the current todo list with a validated full-state JSON array.",
+		if (isPythonToolEnabled()) {
+			add(tools, handler("ExecutePythonCode",
+					"Executes inline Python in the platform's managed Python runtime. Python state persists "
+							+ "across calls in this room during the current login session while the managed worker "
+							+ "remains alive; use files under ROOT "
+							+ "for durable state. The bare ROOT and "
+							+ "USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the "
+							+ "agent working directory and USER_ROOT is the authenticated user's asset-app root. "
+							+ "APP_ROOT is additionally available when the insight has a current app context. "
+							+ "smss_get_runtime_var is also available for thread-local access. The value of the "
+							+ "last expression is returned.",
+					objectSchema(props(prop("code", stringProp("Inline Python source to execute."))), List.of("code")),
+					PlatformAgentToolHandlers::executePythonCode));
+		}
+		if (NodeUtils.isNodeToolEnabled()) {
+			add(tools, handler("ExecuteNodeCode",
+					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
+							+ "calls in this room during the current login session while the managed worker remains "
+							+ "alive. Put every require/const/let/class/function declaration "
+							+ "inside a single (async () => { ... })(); top-level declarations collide with earlier calls. "
+							+ "Use globalThis for durable state. Await all asynchronous work and return the result "
+							+ "from inside the function; console output is captured too. ROOT is the working directory; "
+							+ "APP_ROOT is the project's assets directory and USER_ROOT is the user's assets directory "
+							+ "when available. Relative paths resolve to the working directory. Use path.join(ROOT, "
+							+ "\"<exact filename>\") for output files. Bare require() resolves against curated packages: "
+							+ NodeUtils.describeCuratedPackages() + ". There is no npm install.",
+					objectSchema(props(
+							prop("code", stringProp("JavaScript source to execute.")),
+							prop("timeout_seconds", integerProp(
+									"Maximum execution seconds before the run is killed. Defaults to 60, max 600."))),
+							List.of("code")),
+					PlatformAgentToolHandlers::executeNodeCode));
+		}
+		add(tools, handler("TodoWrite", "Replaces the current todo list with a validated full-state JSON array.",
 				objectSchema(props(prop("items_json", stringProp(
 						"JSON array of todo items: [{\"id\":\"...\",\"content\":\"...\",\"status\":\"pending|in_progress|completed\",\"priority\":\"high|medium|low\"}]."))),
 						List.of("items_json")),
 				PlatformAgentToolHandlers::todoWrite));
-		add(tools, handler("TodoRead",
-				"Reads the current todo list from todos.json in the working directory.",
-				objectSchema(new LinkedHashMap<>(), Collections.emptyList()),
-				PlatformAgentToolHandlers::todoRead));
+		add(tools, handler("TodoRead", "Reads the current todo list from todos.json in the working directory.",
+				objectSchema(new LinkedHashMap<>(), Collections.emptyList()), PlatformAgentToolHandlers::todoRead));
 		add(tools, handler("ListSkill",
-				"Lists skills discovered under conventional skill folders in the working directory.",
-				objectSchema(new LinkedHashMap<>(), Collections.emptyList()),
-				PlatformAgentToolHandlers::listSkill));
-		add(tools, handler("LoadSkill",
-				"Loads a chunk of a named skill from SKILL.md under the working directory.",
-				objectSchema(props(
-						prop("skill_name", stringProp("Skill folder name to load.")),
-						prop("offset", integerProp("Byte offset to start at. Defaults to 0.")),
-						prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
-						List.of("skill_name")),
-				PlatformAgentToolHandlers::loadSkill));
+				"Rescans the working directory for skills and returns each name, path, and description. "
+						+ "The available_skills block in the system prompt already lists the same set, so use "
+						+ "this only to pick up a skill created or attached partway through the run.",
+				objectSchema(new LinkedHashMap<>(), Collections.emptyList()), PlatformAgentToolHandlers::listSkill));
+		add(tools,
+				handler("LoadSkill",
+						"Loads a named skill's instructions so you can follow them. Call this before starting work "
+								+ "the skill covers, rather than working from memory -- a skill exists because that "
+								+ "task is unreliable to get right by guessing. Returns up to max_bytes and reports "
+								+ "what remains; call again with offset to read the rest. A skill's other files are "
+								+ "listed at the end of its body and load the same way, by folder-relative path.",
+						objectSchema(
+								props(prop("skill_name",
+										stringProp("Skill folder name, such as \"app-bootstrap\", to load that skill's "
+												+ "instructions. To load one of its other files instead, append that "
+												+ "file's path as the skill's own docs write it, such as "
+												+ "\"app-bootstrap/references/react-app.md\".")),
+										prop("offset", integerProp("Byte offset to start at. Defaults to 0.")),
+										prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
+								List.of("skill_name")),
+						PlatformAgentToolHandlers::loadSkill));
 		return Collections.unmodifiableMap(tools);
 	}
 
@@ -262,7 +328,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String readFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		int offset = parseIntOr(params.get("offset"), 1);
 		int limit = parseIntOr(params.get("limit"), DEFAULT_READ_MAX_LINES);
 		if (offset < 1) {
@@ -278,7 +347,8 @@ final class PlatformAgentToolHandlers {
 		if (!file.isFile()) {
 			return "Error: not a file: " + filePath;
 		}
-		List<String> lines = Files.readAllLines(file.toPath());
+		String content = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+		List<String> lines = content.lines().toList();
 		int start = offset - 1;
 		if (start >= lines.size()) {
 			return "";
@@ -288,22 +358,30 @@ final class PlatformAgentToolHandlers {
 		for (int i = start; i < end; i++) {
 			sb.append(String.format("%6d\t%s%n", i + 1, lines.get(i)));
 		}
+		if (end < lines.size()) {
+			sb.append(String.format("%n[--- file continues: showing lines %d-%d of %d; continue with offset=%d. ---]%n",
+					start + 1, end, lines.size(), end + 1));
+		}
 		return sb.toString();
 	}
 
 	private static String writeFile(Map<String, Object> params, ToolContext tc) {
-		String filePath = firstStringParam(params, "filePath", "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
 		String content = stringParam(params, "content");
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		saveTextFile(file, content, tc);
 		return "Wrote file: " + tc.toRelative(file.getAbsolutePath());
 	}
 
 	private static String editFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		String oldString = stringParam(params, "old_string");
 		String newString = stringParam(params, "new_string");
 		boolean replaceAll = parseBoolean(params.get("replace_all"));
@@ -314,6 +392,7 @@ final class PlatformAgentToolHandlers {
 			newString = "";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -333,7 +412,10 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String multiEdit(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = stringParam(params, "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
+		if (filePath == null || filePath.trim().isEmpty()) {
+			return "Error: path is required";
+		}
 		String editsJson = stringParam(params, "edits_json");
 		if (editsJson == null || editsJson.trim().isEmpty()) {
 			return "Error: edits_json is required";
@@ -351,6 +433,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: too many edits (" + edits.length() + " > " + MAX_MULTI_EDITS + ")";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -394,16 +477,18 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String moveFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = firstStringParam(params, "filePath", "file_path");
-		String newValue = firstStringParam(params, "newValue", "new_value");
+		String filePath = stringParam(params, PARAM_PATH);
+		String newValue = stringParam(params, PARAM_NEW_PATH);
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		if (newValue == null || newValue.trim().isEmpty()) {
-			return "Error: newValue is required";
+			return "Error: new_path is required";
 		}
 		File source = tc.resolve(filePath);
 		File target = tc.resolve(newValue);
+		tc.requireWritable(source);
+		tc.requireWritable(target);
 		if (!source.exists()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -417,11 +502,12 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String deleteFile(Map<String, Object> params, ToolContext tc) throws Exception {
-		String filePath = firstStringParam(params, "filePath", "file_path");
+		String filePath = stringParam(params, PARAM_PATH);
 		if (filePath == null || filePath.trim().isEmpty()) {
-			return "Error: filePath is required";
+			return "Error: path is required";
 		}
 		File target = tc.resolve(filePath);
+		tc.requireWritable(target);
 		if (!target.exists()) {
 			return "Error: path not found: " + filePath;
 		}
@@ -439,14 +525,12 @@ final class PlatformAgentToolHandlers {
 		}
 		PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + pattern);
 		List<Path> matches = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> {
-					Path rel = baseDir.toPath().relativize(p);
-					return matcher.matches(rel) || matcher.matches(p.getFileName());
-				})
-				.limit(MAX_GLOB_RESULTS)
-				.forEach(matches::add);
+		try (Stream<Path> paths = Files.walk(baseDir.toPath())) {
+			paths.filter(p -> !Files.isDirectory(p)).filter(p -> {
+				Path rel = baseDir.toPath().relativize(p);
+				return matcher.matches(rel) || matcher.matches(p.getFileName());
+			}).limit(MAX_GLOB_RESULTS).forEach(matches::add);
+		}
 		if (matches.isEmpty()) {
 			return "No files matched pattern: " + pattern;
 		}
@@ -501,12 +585,11 @@ final class PlatformAgentToolHandlers {
 		boolean isCountMode = "count".equals(outputMode);
 		List<String> results = new ArrayList<>();
 		List<Path> paths = new ArrayList<>();
-		Files.walk(baseDir.toPath())
-				.filter(p -> !Files.isDirectory(p))
-				.filter(p -> fileMatcher == null || fileMatcher.matches(p.getFileName())
-						|| fileMatcher.matches(baseDir.toPath().relativize(p)))
-				.sorted()
-				.forEach(paths::add);
+		try (Stream<Path> walk = Files.walk(baseDir.toPath())) {
+			walk.filter(p -> !Files.isDirectory(p)).filter(p -> fileMatcher == null
+					|| fileMatcher.matches(p.getFileName()) || fileMatcher.matches(baseDir.toPath().relativize(p)))
+					.sorted().forEach(paths::add);
+		}
 		for (Path p : paths) {
 			if (results.size() >= headLimit) {
 				break;
@@ -566,16 +649,15 @@ final class PlatformAgentToolHandlers {
 		for (File f : files) {
 			String type = f.isDirectory() ? "DIR " : "FILE";
 			String size = f.isDirectory() ? "         " : String.format("%9d", f.length());
-			sb.append(String.format("%s  %s  %s  %s%n", type,
-					sdf.format(new java.util.Date(f.lastModified())), size, f.getName()));
+			sb.append(String.format("%s  %s  %s  %s%n", type, sdf.format(new java.util.Date(f.lastModified())), size,
+					f.getName()));
 		}
 		return sb.toString().trim();
 	}
 
 	private static String bashCommand(Map<String, Object> params, ToolContext tc) {
 		if (!isBashEnabled()) {
-			return "Error: BashCommand is disabled. Enable CHROOT_ENABLE or "
-					+ PROP_ENABLE_BASH + " to use it.";
+			return "Error: BashCommand is disabled. Enable CHROOT_ENABLE or " + PROP_ENABLE_BASH + " to use it.";
 		}
 		String command = stringParam(params, "command");
 		String description = stringParam(params, "description");
@@ -602,13 +684,168 @@ final class PlatformAgentToolHandlers {
 		if (!isWithinRoot(normalizePath(cmdUtil.getWorkingDir()), tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
 		}
-		String output = cmdUtil.executeCommand(command);
+		String[] commandResult = cmdUtil.executeCommandWithStatus(command);
+        String output = commandResult[1];
+        if (!Boolean.parseBoolean(commandResult[0])) output = "Error: " + (output == null || output.isBlank() ? "Command failed" : output);
 		String updatedDir = normalizePath(cmdUtil.getWorkingDir());
 		if (!isWithinRoot(updatedDir, tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
 			throw new IllegalArgumentException("Command attempted to navigate outside the working directory sandbox.");
 		}
 		return output == null ? "" : output;
+	}
+
+	private static String executePythonCode(Map<String, Object> params, ToolContext tc) {
+		if (!isPythonToolEnabled()) {
+			return "Error: ExecutePythonCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_PYTHON_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_PYTHON_CODE_LENGTH;
+		}
+		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
+			return "Error: no user is associated with this agent run";
+		}
+
+		try {
+			Insight executionInsight = tc.ctx.getInsight();
+			User user = executionInsight.getUser();
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getPythonSocketClient(true);
+						PyTranslator translator = new PyTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(code);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
+			return formatPythonOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecutePythonCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatPythonOutput(Object output) {
+		String formatted;
+		if (output == null || "\"\"".equals(output)) {
+			formatted = "(no output)";
+		} else if (output instanceof String) {
+			formatted = (String) output;
+		} else {
+			try {
+				formatted = JSONObject.valueToString(output);
+			} catch (Exception e) {
+				formatted = output.toString();
+			}
+		}
+		if (formatted.length() > MAX_PYTHON_OUTPUT_LENGTH) {
+			String marker = "\n[output truncated at " + MAX_PYTHON_OUTPUT_LENGTH + " characters]";
+			return formatted.substring(0, MAX_PYTHON_OUTPUT_LENGTH - marker.length()) + marker;
+		}
+		return formatted;
+	}
+
+	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
+		if (!NodeUtils.isNodeToolEnabled()) {
+			return "Error: ExecuteNodeCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_NODE_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_NODE_CODE_LENGTH;
+		}
+		int timeoutSeconds = parseIntOr(params.get("timeout_seconds"), DEFAULT_NODE_TIMEOUT_SECONDS);
+		if (timeoutSeconds < 1) {
+			timeoutSeconds = DEFAULT_NODE_TIMEOUT_SECONDS;
+		}
+		if (timeoutSeconds > MAX_NODE_TIMEOUT_SECONDS) {
+			timeoutSeconds = MAX_NODE_TIMEOUT_SECONDS;
+		}
+		User user = tc.ctx.getInsight().getUser();
+		if (user == null) {
+			return "Error: no user is associated with this agent run";
+		}
+		try {
+			Insight executionInsight = tc.ctx.getInsight();
+			long timeoutMs = timeoutSeconds * 1000L;
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getNodeSocketClient(true);
+						NodeTranslator translator = new NodeTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(executionInsight, code, timeoutMs, tc.root);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
+			return formatNodeOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecuteNodeCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static void interruptRoomExecutionIfCancelled(SocketClient socketClient, Insight roomInsight,
+			AgentRunContext ctx) {
+		if (!Thread.currentThread().isInterrupted()) {
+			return;
+		}
+		try {
+			socketClient.interruptInsightJob(roomInsight.getInsightId(), ctx.getRunId());
+		} catch (RuntimeException e) {
+			logger.warn("Failed to interrupt managed code execution for room '{}' and run '{}'",
+					ctx.getRoom().getId(), ctx.getRunId(), e);
+		}
+	}
+
+	private static String formatNodeOutput(Object output) {
+		String stdout = null;
+		Object result = output;
+		if (output instanceof Map) {
+			Map<?, ?> map = (Map<?, ?>) output;
+			Object stdoutValue = map.get("stdout");
+			stdout = stdoutValue != null ? stdoutValue.toString() : null;
+			result = map.get("result");
+		}
+		StringBuilder sb = new StringBuilder();
+		if (stdout != null && !stdout.isEmpty()) {
+			sb.append(stdout);
+		}
+		if (result != null) {
+			if (sb.length() > 0) {
+				sb.append("\n\n=> ");
+			} else {
+				sb.append("=> ");
+			}
+			if (result instanceof String) {
+				sb.append((String) result);
+			} else {
+				try {
+					sb.append(JSONObject.valueToString(result));
+				} catch (Exception e) {
+					sb.append(result.toString());
+				}
+			}
+		}
+		if (sb.length() == 0) {
+			return "(no output)";
+		}
+		if (sb.length() > MAX_NODE_OUTPUT_LENGTH) {
+			return sb.substring(0, MAX_NODE_OUTPUT_LENGTH) + "\n[output truncated at " + MAX_NODE_OUTPUT_LENGTH
+					+ " characters]";
+		}
+		return sb.toString();
 	}
 
 	private static String todoWrite(Map<String, Object> params, ToolContext tc) {
@@ -665,8 +902,8 @@ final class PlatformAgentToolHandlers {
 		doc.put("updated_at", Instant.now().toString());
 		doc.put("items", validated);
 		saveTextFile(tc.resolve(TODOS_FILE), doc.toString(2), tc);
-		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed",
-				validated.length(), pending, inProgress, completed);
+		return String.format("Wrote %d todo(s): %d pending, %d in_progress, %d completed", validated.length(), pending,
+				inProgress, completed);
 	}
 
 	private static String todoRead(Map<String, Object> params, ToolContext tc) throws Exception {
@@ -710,23 +947,38 @@ final class PlatformAgentToolHandlers {
 		if (raw == null || raw.trim().isEmpty()) {
 			return "Error: skill_name is required";
 		}
-		String name = raw.trim();
-		if (name.contains("/") || name.contains("\\") || name.contains("..")) {
-			return "Error: invalid skill_name (must be a single folder name with no slashes or '..'): " + name;
+		String requested = raw.trim().replace('\\', '/');
+		if (requested.startsWith("/") || requested.contains("..")) {
+			return "Error: invalid skill_name (no absolute paths and no '..'): " + requested;
 		}
+		// "<skill>" loads that skill's SKILL.md. "<skill>/<path>" loads one of the
+		// skill's other files, addressed by the same skill-folder-relative path its
+		// own docs use, so a cross-reference in a SKILL.md can be followed verbatim.
+		int slash = requested.indexOf('/');
+		String name = (slash < 0) ? requested : requested.substring(0, slash);
+		String subPath = (slash < 0) ? "" : requested.substring(slash + 1).replaceAll("^/+", "");
+		if (name.isEmpty()) {
+			return "Error: invalid skill_name (no skill folder name): " + requested;
+		}
+		boolean isSkillBody = subPath.isEmpty();
+		String relativeFile = isSkillBody ? Skill.SKILL_FILE : subPath;
+
 		long offset = parseLongAtLeast(params.get("offset"), 0L, 0L);
 		int maxBytes = parseIntAtLeast(params.get("max_bytes"), DEFAULT_SKILL_MAX_BYTES, 1);
 		if (maxBytes > HARD_SKILL_MAX_BYTES) {
 			maxBytes = HARD_SKILL_MAX_BYTES;
 		}
+		File skillDir = null;
 		File skillFile = null;
 		List<String> attempted = new ArrayList<>();
 		for (String baseDir : SkillScanner.SKILL_BASE_DIRS) {
 			for (String hostDir : SkillScanner.SKILL_HOST_DIRS) {
-				String candidatePath = joinSkillPath(baseDir, hostDir, name);
+				String candidateDir = joinSkillPath(baseDir, hostDir, name);
+				String candidatePath = candidateDir + "/" + relativeFile;
 				attempted.add(candidatePath);
 				File candidate = tc.resolve(candidatePath);
 				if (candidate.isFile()) {
+					skillDir = tc.resolve(candidateDir);
 					skillFile = candidate;
 					break;
 				}
@@ -736,12 +988,67 @@ final class PlatformAgentToolHandlers {
 			}
 		}
 		if (skillFile == null) {
-			return "Error: skill not found: " + name + " (checked: " + String.join(", ", attempted) + ")";
+			String what = isSkillBody ? "skill not found: " + name
+					: "no file '" + subPath + "' in skill '" + name + "'";
+			return "Error: " + what + " (checked: " + String.join(", ", attempted) + ")";
 		}
-		return readSkillChunk(skillFile, name, offset, maxBytes);
+		String chunk = readSkillChunk(skillFile, requested, offset, maxBytes);
+		if (isSkillBody && offset == 0) {
+			chunk += skillFileListing(skillDir, name, tc);
+		}
+		return chunk;
+	}
+
+	/**
+	 * Footer listing a skill's other files, appended to the first chunk of its
+	 * SKILL.md.
+	 *
+	 * A skill's docs cross-reference its files as they sit next to SKILL.md
+	 * ({@code references/react-app.md}), but every read tool is relative to the
+	 * working directory and the staging root varies across
+	 * {@link SkillScanner#SKILL_BASE_DIRS}, so that path is not resolvable by a
+	 * caller that only read the body. Listing both forms makes those references
+	 * actionable and makes the files discoverable at all.
+	 *
+	 * @return the footer, or an empty string for a skill that is a lone SKILL.md
+	 */
+	private static String skillFileListing(File skillDir, String name, ToolContext tc) {
+		List<String> rows = new ArrayList<>();
+		Path skillRoot = skillDir.toPath();
+		try (Stream<Path> walk = Files.walk(skillRoot)) {
+			walk.sorted().forEach(p -> {
+				String fileName = p.getFileName().toString();
+				// dotfiles here are staging bookkeeping, such as .skill-meta
+				if (Files.isDirectory(p) || fileName.startsWith(".")) {
+					return;
+				}
+				// the top-level SKILL.md is the body this footer is attached to
+				if (Skill.SKILL_FILE.equals(fileName) && skillRoot.equals(p.getParent())) {
+					return;
+				}
+				rows.add("- " + skillRoot.relativize(p).toString().replace('\\', '/') + "  ->  "
+						+ tc.toRelative(p.toFile().getAbsolutePath()));
+			});
+		} catch (Exception e) {
+			logger.warn("LoadSkill: could not list the files of skill '{}': {}", name, e.getMessage());
+			return "";
+		}
+		if (rows.isEmpty()) {
+			return "";
+		}
+		StringBuilder out = new StringBuilder();
+		out.append("\n\n[--- this skill ships ").append(rows.size()).append(" other file")
+				.append(rows.size() == 1 ? "" : "s").append(", listed as <skill-folder path>  ->  <working-dir path>. ")
+				.append("Read one with LoadSkill(skill_name=\"").append(name)
+				.append("/<skill-folder path>\") or ReadFile(path=\"<working-dir path>\"). ---]\n");
+		for (String row : rows) {
+			out.append(row).append('\n');
+		}
+		return out.toString();
 	}
 
 	private static void saveTextFile(File file, String content, ToolContext tc) {
+		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
 		}
@@ -795,7 +1102,7 @@ final class PlatformAgentToolHandlers {
 			return "[empty: offset " + offset + " is at or past end-of-file (" + size + " bytes total)]";
 		}
 		long remaining = size - offset;
-		int toRead = (int) Math.min(remaining, (long) maxBytes);
+		int toRead = (int) Math.min(remaining, maxBytes);
 		byte[] bytes = new byte[toRead];
 		try (RandomAccessFile raf = new RandomAccessFile(skillFile, "r")) {
 			raf.seek(offset);
@@ -826,8 +1133,8 @@ final class PlatformAgentToolHandlers {
 					.append(" bytes remaining. To read more call LoadSkill(skill_name=\"").append(name)
 					.append("\", offset=").append(endOffset).append("). ---]");
 		} else if (offset > 0) {
-			body.append("\n\n[--- end of skill: bytes ").append(offset).append('-').append(endOffset - 1)
-					.append(" of ").append(size).append(" (final chunk). ---]");
+			body.append("\n\n[--- end of skill: bytes ").append(offset).append('-').append(endOffset - 1).append(" of ")
+					.append(size).append(" (final chunk). ---]");
 		}
 		return body.toString();
 	}
@@ -850,22 +1157,24 @@ final class PlatformAgentToolHandlers {
 			return "Error: items[" + index + "].content too long (max " + MAX_TODO_CONTENT_LEN + ")";
 		}
 		if (status == null || !VALID_TODO_STATUSES.contains(status)) {
-			return "Error: items[" + index + "].status must be one of " + VALID_TODO_STATUSES
-					+ " (got '" + status + "')";
+			return "Error: items[" + index + "].status must be one of " + VALID_TODO_STATUSES + " (got '" + status
+					+ "')";
 		}
 		if (priority != null && !priority.isEmpty() && !VALID_TODO_PRIORITIES.contains(priority)) {
-			return "Error: items[" + index + "].priority must be one of " + VALID_TODO_PRIORITIES
-					+ " or omitted (got '" + priority + "')";
+			return "Error: items[" + index + "].priority must be one of " + VALID_TODO_PRIORITIES + " or omitted (got '"
+					+ priority + "')";
 		}
 		return null;
 	}
 
 	private static String validateCommand(String command) {
 		if (containsUnquoted(command, '>') || containsUnquoted(command, '<')) {
-			return "Redirects (>, <, >>) are not allowed. Use curl/wget -o to write files.";
+			return "Redirects (>, <, >>, 2>&1) are not allowed. Capture output via the tool result, "
+					+ "not > or 2>&1. Use WriteFile for text, curl -o or wget -O with working-directory-relative "
+					+ "paths for downloads.";
 		}
-		if (containsUnquoted(command, '|') || containsUnquoted(command, ';')
-				|| containsUnquotedSequence(command, "&&") || containsUnquotedSequence(command, "||")) {
+		if (containsUnquoted(command, '|') || containsUnquoted(command, ';') || containsUnquotedSequence(command, "&&")
+				|| containsUnquotedSequence(command, "||")) {
 			return "Command chaining and pipes are not allowed. Run one command per BashCommand call.";
 		}
 		if (command.contains("`")) {
@@ -877,17 +1186,20 @@ final class PlatformAgentToolHandlers {
 		for (String token : tokenize(command)) {
 			String clean = stripQuotes(token);
 			if (clean.startsWith("/") || clean.startsWith("~")) {
-				return "Absolute paths and home-directory paths are not allowed: " + clean;
+				return "Absolute paths and home-directory paths are not allowed: " + clean
+						+ ". Use working-directory-relative paths (for example, deck.pptx or scripts/deck.js).";
 			}
 			if (clean.contains("..")) {
-				return "Parent directory traversal (..) is not allowed: " + clean;
+				return "Parent directory traversal (..) is not allowed: " + clean
+						+ ". Use paths within the working directory.";
 			}
 		}
 		String[] parts = command.trim().split("\\s+");
 		if (parts.length > 0) {
 			String cmd = stripQuotes(parts[0]);
 			if (!cmd.isEmpty() && !ALLOWED_COMMANDS.contains(cmd)) {
-				return "Command not allowed: " + cmd;
+				return "Command not allowed: " + cmd + ". Allowed commands: " + describeAllowedCommands() + "."
+						+ (Set.of("node", "npm", "npx").contains(cmd) ? " Use ExecuteNodeCode for JavaScript." : "");
 			}
 		}
 		return null;
@@ -902,6 +1214,11 @@ final class PlatformAgentToolHandlers {
 			return Boolean.parseBoolean(explicit);
 		}
 		return isTrue(Constants.CHROOT_ENABLE);
+	}
+
+	private static boolean isPythonToolEnabled() {
+		return !isTrue(Constants.DISABLE_TERMINAL) && !isTrue(Constants.DISABLE_PY_TERMINAL)
+				&& PyUtils.pyEnabled();
 	}
 
 	private static boolean isTrue(String property) {
@@ -1026,47 +1343,43 @@ final class PlatformAgentToolHandlers {
 		return value == null ? null : value.toString();
 	}
 
-	private static String firstStringParam(Map<String, Object> params, String first, String second) {
-		String value = stringParam(params, first);
-		return value != null ? value : stringParam(params, second);
-	}
-
 	private static boolean parseBoolean(Object value) {
 		return value != null && "true".equalsIgnoreCase(value.toString().trim());
 	}
 
 	private static int parseIntOr(Object value, int defaultValue) {
-		if (value == null || value.toString().trim().isEmpty()) {
+		Long parsed = parseIntegralLong(value);
+		if (parsed == null || parsed < Integer.MIN_VALUE || parsed > Integer.MAX_VALUE) {
 			return defaultValue;
 		}
-		try {
-			return Integer.parseInt(value.toString().trim());
-		} catch (NumberFormatException e) {
-			return defaultValue;
-		}
+		return parsed.intValue();
 	}
 
 	private static long parseLongAtLeast(Object value, long defaultValue, long minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
-		}
-		try {
-			long parsed = Long.parseLong(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
-		}
+		Long parsed = parseIntegralLong(value);
+		return parsed != null && parsed >= minInclusive ? parsed : defaultValue;
 	}
 
 	private static int parseIntAtLeast(Object value, int defaultValue, int minInclusive) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return defaultValue;
+		int parsed = parseIntOr(value, defaultValue);
+		return parsed >= minInclusive ? parsed : defaultValue;
+	}
+
+	private static Long parseIntegralLong(Object value) {
+		if (value == null) {
+			return null;
+		}
+		String text = value.toString().trim();
+		if (text.isEmpty()) {
+			return null;
 		}
 		try {
-			int parsed = Integer.parseInt(value.toString().trim());
-			return parsed >= minInclusive ? parsed : defaultValue;
-		} catch (NumberFormatException ignored) {
-			return defaultValue;
+			if (value instanceof Number) {
+				return new BigDecimal(text).longValueExact();
+			}
+			return Long.parseLong(text);
+		} catch (NumberFormatException | ArithmeticException ignored) {
+			return null;
 		}
 	}
 
@@ -1083,8 +1396,9 @@ final class PlatformAgentToolHandlers {
 		return value == null ? null : value.trim();
 	}
 
+	/** Working-dir-relative path of one skill's folder under one host directory. */
 	private static String joinSkillPath(String baseDir, String hostDir, String skillName) {
-		String suffix = hostDir + "/" + skillName + "/SKILL.md";
+		String suffix = hostDir + "/" + skillName;
 		if (baseDir == null || baseDir.isEmpty()) {
 			return suffix;
 		}
@@ -1175,6 +1489,10 @@ final class PlatformAgentToolHandlers {
 				throw new IllegalArgumentException("Path escapes the working directory: " + clean);
 			}
 			return resolved;
+		}
+
+		private void requireWritable(File file) {
+			ReadOnlyPathPolicy.requireWritable(Path.of(root), file.toPath(), ctx.getAgentConfig().getReadOnlyPaths());
 		}
 
 		private String toRelative(String absolutePath) {

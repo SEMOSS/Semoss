@@ -28,21 +28,120 @@
 package prerna.util;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.project.impl.ProjectHelper;
 
 public class ProjectWatcher extends AbstractFileWatcher {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ProjectWatcher.class);
-	
+
+	private static List<String> INIT_LIST = new ArrayList<>();
+
+	@Override
+	public void process(String fileName) {
+		catalogProject(fileName, folderToWatch);
+	}
+
+	@Override
+	public void init() {
+		// loading generic platform apps
+		List<String> defaultApps = SystemDefaultEngines.getSystemApps();
+		for (String engineId : defaultApps) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "APP", "SYSTEM");
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			} else {
+				classLogger.warn("Platform app '{}' is registered but {}/platform__{} is missing; it will not be "
+						+ "available", engineId, folderToWatch, fileName);
+			}
+		}
+
+		// we will load the platform skills
+		List<String> defaultPlatforms = SystemDefaultEngines.getSystemSkills();
+		for (String engineId : defaultPlatforms) {
+			// find the local master
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					// set all as global
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
+							ProjectHelper.SKILL_PROJECT_TAG, "SYSTEM");
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
+
+		// loading platform mcps (system apps - most are headless, some expose a UI
+		// served from the web app rather than from a published portal)
+		List<String> defaultMCPs = SystemDefaultEngines.getSystemMCPs();
+		for (String engineId : defaultMCPs) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName, "MCP", "SYSTEM");
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			} else {
+				// surface a bad deploy at boot instead of at the first tool call
+				classLogger.warn("Platform MCP '{}' is registered but {}/platform__{} is missing; its tools will "
+						+ "not be available", engineId, folderToWatch, fileName);
+			}
+		}
+
+		// loading platform agents (immutable, global system workspaces)
+		List<String> defaultAgents = SystemDefaultEngines.getSystemAgents();
+		for (String engineId : defaultAgents) {
+			String fileName = engineId + this.extension;
+			if (new File(folderToWatch + "/platform__" + fileName).exists()) {
+				try {
+					catalogProject("platform__" + fileName, folderToWatch, true);
+					INIT_LIST.add("platform__" + fileName);
+					SystemProjectSeeder.seed(engineId, folderToWatch + "/platform__" + fileName,
+							ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG, "SYSTEM");
+					SystemAgentSeeder.seed(engineId);
+					// load the project object and don't pull from cloud
+					Utility.getProject(engineId, false);
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the {}", engineId, e);
+					continue;
+				}
+			}
+		}
+	}
+
+
+
 	/**
 	 * Used in the starter class for processing SMSS files.
 	 */
@@ -50,82 +149,91 @@ public class ProjectWatcher extends AbstractFileWatcher {
 	public void loadFirst() {
 		File dir = new File(folderToWatch);
 		String[] fileNames = dir.list(this);
-		String[] projectIds = new String[fileNames.length];
-		
+		if (fileNames == null || fileNames.length == 0) {
+			return;
+		}
+
+		Set<String> projectIds = new HashSet<>(fileNames.length);
 		// loop through and load all the projects
 		for (int fileIdx = 0; fileIdx < fileNames.length; fileIdx++) {
 			try {
 				String fileName = fileNames[fileIdx];
-//				//we need to add projects to security db
+				if (INIT_LIST.contains(fileName)) {
+					// ignore - we have already loaded these
+					continue;
+				}
+
+				// we need to add projects to security db
 				String loadedProject = catalogProject(fileName, folderToWatch);
-				projectIds[fileIdx] = loadedProject;
+				projectIds.add(loadedProject);
 			} catch (RuntimeException ex) {
-				classLogger.error(Constants.STACKTRACE, ex);
-				classLogger.fatal("Project Failed " + folderToWatch + "/" + fileNames[fileIdx]);
+				classLogger.error("Project failed to load: {}/{}", folderToWatch, fileNames[fileIdx], ex);
 			}
 		}
-		
+
 		if (!ClusterUtil.IS_CLUSTER) {
+			// reserved system projects (platform apps + skills + mcps + agents) reload
+			// from disk every boot and must never be pruned during file-system
+			// reconciliation
+			Set<String> reservedProjects = new HashSet<>(SystemDefaultEngines.getSystemSkills());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemApps());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemMCPs());
+			reservedProjects.addAll(SystemDefaultEngines.getSystemAgents());
 			// if projects are removed from the file system
 			// remove them
 			List<String> projects = SecurityProjectUtils.getAllProjectIds();
-			for(String project : projects) {
-				if(!ArrayUtilityMethods.arrayContainsValue(projectIds, project)) {
+			for (String project : projects) {
+				if (!projectIds.contains(project) && !reservedProjects.contains(project)) {
 					SecurityProjectUtils.deleteProject(project);
 				}
 			}
 		}
 	}
-	
-	// this is an alternate method.. which will not load the database but would merely keep the name of the engine
-	// and the SMSS file
+
 	/**
-	 * Loads a new database by setting a specific engine with associated properties.
-	 * @param 	Specifies properties to load 
-	 */	
+	 * Loads a new project by setting a specific engine with associated properties.
+	 * 
+	 * @param Specifies properties to load
+	 */
 	public static String catalogProject(String newFile, String folderToWatch) {
+		return catalogProject(newFile, folderToWatch, false);
+	}
+
+	/**
+	 * Loads a new project by setting a specific engine with associated properties.
+	 * 
+	 * @param Specifies properties to load
+	 */
+	public static String catalogProject(String newFile, String folderToWatch, boolean global) {
 		String projects = DIHelper.getInstance().getProjectProperty(Constants.PROJECTS) + "";
-		FileInputStream fileIn = null;
 		String projectId = null;
-		try{
-			Properties prop = new Properties();
-			fileIn = new FileInputStream(Utility.normalizePath(folderToWatch) + "/"  +  Utility.normalizePath(newFile));
-			prop.load(fileIn);
-			
+		try {
+			String smssFile = Utility.normalizePath(folderToWatch) + "/" + Utility.normalizePath(newFile);
+			Properties prop = Utility.loadProperties(smssFile);
+
 			projectId = prop.getProperty(Constants.PROJECT);
-			
-			if(projects.startsWith(projectId) || projects.contains(";"+projectId+";") || projects.endsWith(";"+projectId)) {
-				classLogger.debug("Project " + folderToWatch + "<>" + newFile + " is already loaded...");
+
+			if (projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+					|| projects.endsWith(";" + projectId)) {
+				classLogger.debug("Project {}<>{} is already loaded...", folderToWatch, newFile);
 			} else {
 				String fileName = folderToWatch + "/" + newFile;
 				DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, fileName);
-				
-				String projectNames = (String)DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
-				if(!(projects.startsWith(projectId) || projects.contains(";"+projectId+";") || projects.endsWith(";"+projectId))) {
+
+				String projectNames = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
+				if (!(projects.startsWith(projectId) || projects.contains(";" + projectId + ";")
+						|| projects.endsWith(";" + projectId))) {
 					projectNames = projectNames + ";" + projectId;
 					DIHelper.getInstance().setProjectProperty(Constants.PROJECTS, projectNames);
 				}
-				
-				SecurityProjectUtils.addProject(projectId, null);
+
+				SecurityProjectUtils.addProject(projectId, global, null);
 			}
-		} catch(Exception e){
-			classLogger.error(Constants.STACKTRACE, e);
-		} finally {
-			try{
-				if(fileIn != null) {
-					fileIn.close();
-				}
-			} catch(IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+		} catch (Exception e) {
+			classLogger.error("Failed to catalog project from smss file {}/{}", folderToWatch, newFile, e);
 		}
-		
+
 		return projectId;
 	}
 
-	@Override
-	public void process(String fileName) {
-		catalogProject(fileName, folderToWatch);
-	}
-	
 }

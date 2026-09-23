@@ -28,7 +28,9 @@
 package prerna.reactor.utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,15 +45,22 @@ import prerna.cluster.util.DeleteProjectRunner;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Deletes projects owned by the caller and removes project-type-specific references before the
+ * project assets are torn down.
+ */
 public class DeleteProjectReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(DeleteProjectReactor.class);
@@ -70,7 +79,7 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 			boolean isAdmin = SecurityAdminUtils.userIsAdmin(user);
 			if (!isAdmin) {
-				if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+					if (AbstractSecurityUtils.adminOnlyProjectDelete(projectId)) {
 					throwFunctionalityOnlyExposedForAdminsError();
 				}
 
@@ -80,6 +89,14 @@ public class DeleteProjectReactor extends AbstractReactor {
 							+ " does not exist or user does not have permissions to delete the project. "
 							+ "User must be the owner to perform this function.");
 				}
+			}
+
+			if (SystemDefaultEngines.getSystemApps().contains(projectId)
+					|| SystemDefaultEngines.getSystemSkills().contains(projectId)
+					|| SystemDefaultEngines.getSystemMCPs().contains(projectId)
+					|| SystemDefaultEngines.getSystemAgents().contains(projectId)) {
+				throw new IllegalArgumentException(
+						"Project " + projectId + " is a built-in platform app/MCP/skill/agent and cannot be deleted");
 			}
 
 			IProject project = Utility.getProject(projectId);
@@ -106,13 +123,16 @@ public class DeleteProjectReactor extends AbstractReactor {
 	 */
 	private boolean deleteProject(IProject project) {
 		String projectId = project.getProjectId();
-		// skill-projects carry a SKILL__ row + any WORKSPACE_RESOURCE__ refs in
-		// modellogs; clean those up before tearing down the project itself
+		if (project.getProjectType() == IProject.PROJECT_TYPE.AUTOMATION) {
+			SchedulerDatabaseUtility.removeJobsForProject(projectId);
+		}
+		// skill-projects carry WORKSPACE_RESOURCE__ refs + CONFIG_JSON.skills[]
+		// mirrors in modellogs; scrub those before tearing down the project itself
 		if (project.getProjectType() == IProject.PROJECT_TYPE.SKILL) {
 			try {
-				ModelInferenceLogsUtils.deleteSkillEntry(projectId);
+				ModelInferenceLogsUtils.detachSkillFromAllWorkspaces(projectId);
 			} catch (Exception e) {
-				classLogger.error("Failed to delete SKILL__ row for project '{}'.", projectId, e);
+				classLogger.error("Failed to detach skill project '{}' from workspaces.", projectId, e);
 			}
 		}
 		// remove from DIHelper
@@ -156,5 +176,15 @@ public class DeleteProjectReactor extends AbstractReactor {
 			projectIds.add(this.curRow.get(i).toString());
 		}
 		return projectIds;
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

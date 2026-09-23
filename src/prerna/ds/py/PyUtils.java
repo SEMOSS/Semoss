@@ -63,11 +63,12 @@ public final class PyUtils {
 	 */
 	public static boolean pyEnabled() {
 		if (pyEnabled == null) {
-			pyEnabled = false;
+			boolean proxy = false;
 			String usePythonStr = Utility.getDIHelperProperty(Constants.USE_PYTHON);
 			if (usePythonStr != null) {
-				pyEnabled = Boolean.parseBoolean(usePythonStr);
+				proxy = Boolean.parseBoolean(usePythonStr);
 			}
+			pyEnabled = proxy;
 		}
 		return pyEnabled;
 	}
@@ -160,7 +161,10 @@ public final class PyUtils {
 				.replace("\t", "\\t"); // Escape tabs
 	}
 
-	/** Quote-and-escape a Java string into a single-quoted Python string literal. Returns "None" for null. */
+	/**
+	 * Quote-and-escape a Java string into a single-quoted Python string literal.
+	 * Returns "None" for null.
+	 */
 	public static String pyQuote(String value) {
 		if (value == null) {
 			return "None";
@@ -170,17 +174,27 @@ public final class PyUtils {
 		for (int i = 0; i < value.length(); i++) {
 			char c = value.charAt(i);
 			switch (c) {
-				case '\\': sb.append("\\\\"); break;
-				case '\'': sb.append("\\'"); break;
-				case '\n': sb.append("\\n"); break;
-				case '\r': sb.append("\\r"); break;
-				case '\t': sb.append("\\t"); break;
-				default:
-					if (c < 0x20) {
-						sb.append(String.format("\\x%02x", (int) c));
-					} else {
-						sb.append(c);
-					}
+			case '\\':
+				sb.append("\\\\");
+				break;
+			case '\'':
+				sb.append("\\'");
+				break;
+			case '\n':
+				sb.append("\\n");
+				break;
+			case '\r':
+				sb.append("\\r");
+				break;
+			case '\t':
+				sb.append("\\t");
+				break;
+			default:
+				if (c < 0x20) {
+					sb.append(String.format("\\x%02x", (int) c));
+				} else {
+					sb.append(c);
+				}
 			}
 		}
 		sb.append('\'');

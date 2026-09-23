@@ -101,6 +101,12 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Uploads an Excel file (.xlsx, .xlsm, .xls) to create a new relational (RDBMS) database or append to an existing one. "
+				+ "Each sheet/range is loaded as a table using the user-defined data types, headers, and table names.";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, final String newDatabaseName, final String filePath) throws Exception {
 		/*
 		 * Things we need to do 1) make directory 2) make owl 3) make temporary smss 4)
@@ -129,29 +135,29 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 
 		// start by validation
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Create metadata for database...");
+		logger.info("{}. Create metadata for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create properties file for database...");
+		logger.info("{}. Create properties file for database...", stepCounter);
 		this.tempSmss = UploadUtilities.createTemporaryFileBasedRdbmsSmss(this.databaseId, newDatabaseName, owlFile,
 				RdbmsTypeEnum.H2_DB, null);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create database store...");
+		logger.info("{}. Create database store...", stepCounter);
 		this.database = new RDBMSNativeEngine();
 		this.database.setEngineId(this.databaseId);
 		this.database.setEngineName(newDatabaseName);
 		Properties smssProps = Utility.loadProperties(this.tempSmss.getAbsolutePath());
 		smssProps.put("TEMP", true);
 		this.database.open(smssProps);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start loading data..");
+		logger.info("{}. Start loading data..", stepCounter);
 		logger.info("Load excel file...");
 		this.helper = new ExcelWorkbookFileHelper();
 		this.helper.parse(filePath);
@@ -165,7 +171,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// TODO
@@ -294,7 +300,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		// logger.info("Done getting existing database schema");
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Start loading data..");
+		logger.info("{}. Start loading data..", stepCounter);
 		logger.info("Load excel file...");
 		this.helper = new ExcelWorkbookFileHelper();
 		this.helper.parse(filePath);
@@ -311,7 +317,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 	}
 
@@ -700,7 +706,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 
 				// batch commit based on size
 				if (++count % batchSize == 0) {
-					logger.info("Done inserting " + count + " number of rows");
+					logger.info("Done inserting {} number of rows", count);
 					ps.executeBatch();
 				}
 			}
@@ -708,7 +714,7 @@ public class RdbmsUploadExcelDataReactor extends AbstractDatabaseUploadFileReact
 			// well, we are done looping through now
 			ps.executeBatch(); // insert any remaining records
 			logger.info("Finished");
-			logger.info("Completed " + count + " number of rows");
+			logger.info("Completed {} number of rows", count);
 			ps.close();
 		} catch (SQLException e) {
 			logger.error("Error occurred while bulk inserting Excel data into table '{}': {}", TABLE_NAME,

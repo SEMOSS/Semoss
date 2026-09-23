@@ -32,18 +32,18 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.interpreters.sql.HiveSqlInterpreter;
 
-public class HiveQueryUtil  extends AnsiSqlQueryUtil {
+public class HiveQueryUtil extends AnsiSqlQueryUtil {
 
 	HiveQueryUtil() {
 		super();
 		setDbType(RdbmsTypeEnum.HIVE);
 	}
-	
+
 	HiveQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.HIVE);
 	}
-	
+
 	@Override
 	public IQueryInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new HiveSqlInterpreter(engine);

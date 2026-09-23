@@ -1,0 +1,51 @@
+name: semoss-sftp
+
+# SFTP - plain SSH file transfer, used as a SEMOSS storage engine (STORAGE_TYPE SFTP).
+# Image: https://hub.docker.com/r/atmoz/sftp
+#
+# Run:    docker compose -f semoss-sftp.yml up -d
+# Stop:   docker compose -f semoss-sftp.yml down       (add -v to wipe data)
+# Check:  docker exec semoss-sftp nc -z localhost 22 && echo ok
+# Poke:   sftp -P 2222 foo@localhost                   (password: pass)
+#
+# NOTE ON THE WRITABLE PATH: atmoz/sftp chroots the user to /home/foo, which is
+# owned by root, so the user cannot write at the top level. Only the mounted
+# subfolder is writable, so every storage path has to start with "upload/".
+#
+# NOTE ON THE IMAGE TAG: upstream publishes no version tags, only latest, alpine
+# and debian. The alpine variant is pinned here since that is as specific as it
+# gets; the other files in this folder pin a real version.
+#
+# NOTE ON APPLE SILICON: there is no arm64 build, so docker runs the amd64 image
+# under emulation and prints a platform warning on up. It works, just slower.
+services:
+  sftp:
+    image: atmoz/sftp:alpine
+    container_name: semoss-sftp
+    # user:password:uid:gid:dir - the trailing "upload" matters. It tells the
+    # entrypoint to create that folder inside the chroot and chown it to the user.
+    # Without it the mounted volume stays root owned and every write gets
+    # "Permission denied", since docker creates named volumes owned by root.
+    command: foo:pass:1001::upload
+    ports:
+      - "2222:22"
+    volumes:
+      # mounted at the home dir, not at home/upload. If the volume covered
+      # /home/foo/upload the entrypoint would log "Directory already exists" and
+      # skip the chown, leaving it root owned and unwritable
+      - sftp-data:/home/foo
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 22 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - semoss-net
+
+volumes:
+  sftp-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

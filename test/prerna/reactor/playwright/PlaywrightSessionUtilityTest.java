@@ -30,6 +30,7 @@ package prerna.reactor.playwright;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -115,6 +116,23 @@ class PlaywrightSessionUtilityTest extends SemossUnitTest {
 			id, type, url, coords, null, null, text, pressEnter, deltaY, null, waitAfterMs,
 			null, null, label, null, isPassword, storeValue, selector, null, true, true, null, tag
 		);
+	}
+
+	@Test
+	void resetPagesForNewViewerPreservesContextAndReplacesTabs() {
+		Page originalPage = page;
+		Page popupPage = context.newPage();
+		session.registerPage(popupPage, "tab-2");
+
+		Page replacementPage = session.resetPagesForNewViewer();
+		page = replacementPage;
+
+		assertSame(context, session.getBrowserContext());
+		assertSame(replacementPage, session.getPage());
+		assertEquals(1, session.getTabPages().size());
+		assertTrue(originalPage.isClosed());
+		assertTrue(popupPage.isClosed());
+		assertFalse(replacementPage.isClosed());
 	}
 
 	@Test

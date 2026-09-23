@@ -28,6 +28,7 @@
 package prerna.reactor.model.upload;
 
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,6 +42,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -56,6 +58,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
 import prerna.util.PythonVariableValidator;
 import prerna.util.Settings;
+import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -105,8 +108,11 @@ public class CreateModelEngineReactor extends AbstractReactor {
 					"Invalid Name: It must start with a letter and can only contain letters, numbers, and spaces.");
 		}
 
-		// String modelName = getModelName();
-		Map<String, Object> modelDetails = getModelDetails();
+		Map<String, Object> suppliedModelDetails = new LinkedHashMap<>(getModelDetails());
+		StaticModelMetadataCatalog.applyStaticDefaults(suppliedModelDetails);
+		Map<String, Object> modelMetadata = SecurityModelMetadataUtils.normalizeModelDetails(suppliedModelDetails);
+		String modelDescription = (String) modelMetadata.remove(Constants.DESCR);
+		Map<String, Object> modelDetails = SecurityModelMetadataUtils.getModelEngineProperties(modelMetadata);
 		boolean global = Boolean.parseBoolean(this.keyValue.get(ReactorKeysEnum.GLOBAL.getKey()) + "");
 
 		NounMetadata warning = null;
@@ -158,6 +164,8 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
 			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(modelId, tempSmss.getAbsolutePath());
+			// Limits are stored only in MODELMETADATA and must exist before open.
+			SecurityModelMetadataUtils.upsertModelMetadata(modelId, modelMetadata);
 			model.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -166,6 +174,9 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
+			if (modelDescription != null) {
+				SecurityEngineUtils.updateEngineMetadata(modelId, Map.of(Constants.DESCRIPTION, modelDescription));
+			}
 
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
@@ -176,6 +187,8 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			SecurityEngineUtils.deleteEngine(modelId);
+			throw new IllegalArgumentException("Unable to create model engine " + modelName, e);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);

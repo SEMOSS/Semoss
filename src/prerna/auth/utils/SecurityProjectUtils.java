@@ -30,6 +30,7 @@ package prerna.auth.utils;
 import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -89,7 +90,6 @@ import prerna.util.EmailUtility;
 import prerna.util.InsightsRDBMSUtils;
 import prerna.util.NotificationConstants;
 import prerna.util.QueryExecutionUtility;
-import prerna.util.Settings;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -125,6 +125,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String smssFile = DIHelper.getInstance().getProjectProperty(projectId + "_" + Constants.STORE) + "";
 		Properties prop = Utility.loadProperties(smssFile);
+		boolean isTemplate = Boolean.parseBoolean(prop.getProperty(Constants.IS_TEMPLATE, "false"));
 
 		String projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 		if (projectName == null) {
@@ -135,9 +136,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (displayName == null || displayName.trim().isEmpty()) {
 			displayName = projectName;
 		}
-
-		boolean hasPortal = Boolean.parseBoolean(prop.getProperty(Settings.PUBLIC_HOME_ENABLE));
-		String portalName = prop.getProperty(Settings.PORTAL_NAME);
 
 		boolean reloadInsights = false;
 		if (prop.containsKey(Constants.RELOAD_INSIGHTS)) {
@@ -153,13 +151,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					Utility.cleanLogString(SmssUtilities.getUniqueName(prop)));
 			return;
 		} else if (!projectExists) {
-			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], hasPortal, portalName,
-					global, user);
+			addProject(projectId, projectName, displayName, typeAndCost[0], typeAndCost[1], global, isTemplate, user);
 		} else if (projectExists) {
 			// delete values if currently present
 			deleteInsightsFromProjectForRecreation(projectId);
 			// update project properties anyway ... in case global was shifted for example
-			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], hasPortal, portalName, global);
+			updateProject(projectId, projectName, typeAndCost[0], typeAndCost[1], global);
 		}
 
 		classLogger.info("Security database going to add project with alias = {}", Utility.cleanLogString(projectName));
@@ -458,21 +455,25 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param projectName
 	 * @param projectType
 	 * @param projectCost
-	 * @param hasPortal
 	 * @param portalName
 	 * @param global
 	 * @param user
 	 */
 	public static void addProject(String projectId, String projectName, String projectType, String projectCost,
-			boolean hasPortal, String portalName, boolean global, User user) {
-		addProject(projectId, projectName, projectName, projectType, projectCost, hasPortal, portalName, global, user);
+			boolean global, User user) {
+		addProject(projectId, projectName, projectName, projectType, projectCost, global, user);
 	}
 
 	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
-			String projectCost, boolean hasPortal, String portalName, boolean global, User user) {
+			String projectCost, boolean global, User user) {
+		addProject(projectId, projectName, projectDisplayName, projectType, projectCost, global, false, user);
+	}
+
+	public static void addProject(String projectId, String projectName, String projectDisplayName, String projectType,
+			String projectCost, boolean global, boolean isTemplate, User user) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, HASPORTAL, PORTALNAME, PROJECTDISPLAYNAME) "
-				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
+		String query = "INSERT INTO PROJECT (PROJECTID, PROJECTNAME, TYPE, COST, GLOBAL, DISCOVERABLE, IS_TEMPLATE, CREATEDBY, CREATEDBYTYPE, DATECREATED, DATELASTEDITED, PROJECTDISPLAYNAME) "
+				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		PreparedStatement ps = null;
 		try {
@@ -484,6 +485,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
 			ps.setBoolean(parameterIndex++, false);
+			ps.setBoolean(parameterIndex++, isTemplate);
 			if (user != null) {
 				AuthProvider ap = user.getPrimaryLogin();
 				AccessToken token = user.getAccessToken(ap);
@@ -495,12 +497,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			ps.setBoolean(parameterIndex++, hasPortal);
-			if (portalName != null) {
-				ps.setString(parameterIndex++, portalName);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
 			if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
 				ps.setString(parameterIndex++, projectName);
 			} else {
@@ -545,9 +541,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	public static void updateProject(String projectID, String projectName, String projectType, String projectCost,
-			boolean hasPortal, String portalName, boolean global) {
+			boolean global) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=?, HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
+		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
 		PreparedStatement ps = null;
 		try {
 			ps = securityDb.getPreparedStatement(query);
@@ -556,12 +552,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			ps.setString(parameterIndex++, projectType);
 			ps.setString(parameterIndex++, projectCost);
 			ps.setBoolean(parameterIndex++, global);
-			ps.setBoolean(parameterIndex++, hasPortal);
-			if (portalName != null) {
-				ps.setString(parameterIndex++, portalName);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
 			ps.setString(parameterIndex++, projectID);
 			ps.execute();
 			if (!ps.getConnection().getAutoCommit()) {
@@ -883,6 +873,27 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Get the catalog type (PROJECT.TYPE, e.g. SKILL / WORKSPACE / CODE) for a
+	 * project id. Returns null when the project row does not exist. This is a
+	 * single securitydb query - unlike {@code Utility.getProject(id)} it never
+	 * force-loads the project, so it is safe for validation loops.
+	 *
+	 * @param id project id
+	 * @return the PROJECT.TYPE value, or null when the project is not cataloged
+	 */
+	public static String getProjectTypeForId(String id) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("PROJECT__TYPE"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", id));
+		List<String> results = QueryExecutionUtility.flushToListString(securityDb, qs);
+		if (results.isEmpty()) {
+			return null;
+		}
+		return results.get(0);
+	}
+
+	/**
 	 * Set the display name for a project. Only the project owner can perform this
 	 * action.
 	 *
@@ -985,18 +996,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		Map<String, Object> portalDetails = new HashMap<>();
 
 		IProject project = Utility.getProject(projectId);
-		boolean hasPortal = project.isHasPortal();
-		portalDetails.put("project_has_portal", hasPortal);
 		portalDetails.put("project_is_published", project.isPublished());
-		// TODO: old - will remove once confirmed from FE
-		portalDetails.put("isPublished", project.isPublished());
-		if (hasPortal) {
-			String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
-					+ Constants.PORTALS_FOLDER + "/";
-			portalDetails.put("project_portal_url", url);
-			// TODO: old - will remove once confirmed from FE
-			portalDetails.put("url", url);
-		}
+		String url = Utility.getApplicationUrl() + "/" + Utility.getPublicHomeFolder() + "/" + projectId + "/"
+				+ Constants.PORTALS_FOLDER + "/";
+		portalDetails.put("project_portal_url", url);
 		return portalDetails;
 	}
 
@@ -1142,47 +1145,149 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * See if specific project is global
-	 * 
-	 * @return
+	 * Determine whether a project has been explicitly enabled as a template.
+	 *
+	 * @param projectId project identifier
+	 * @return {@code true} only when the persisted template flag is true
 	 */
-	public static boolean projectHasPortal(String projectId) {
+	public static boolean projectIsTemplate(String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID"));
 		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("PROJECT__HASPORTAL", "==", true, PixelDataType.BOOLEAN));
+				SimpleQueryFilter.makeColToValFilter("PROJECT__IS_TEMPLATE", "==", true, PixelDataType.BOOLEAN));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return true;
-			}
+			return wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error("Failed to determine whether the project has portal", e);
+			classLogger.error("Failed to determine whether project is enabled as a template", e);
+			return false;
 		}
-		return false;
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @return
+	 * Determine whether a user may clone a project. The user must be able to view
+	 * the project and the owner must have explicitly enabled it as a template.
+	 *
+	 * @param user      current user
+	 * @param projectId project identifier
+	 * @return whether the user may clone the project
 	 */
-	public static SemossDate getPortalPublishedTimestamp(String projectId) {
+	public static boolean userCanCloneProject(User user, String projectId) {
+		return userCanViewProject(user, projectId) && projectIsTemplate(projectId);
+	}
+
+	/**
+	 * Reads back a PROJECT timestamp column that holds a timestamp.
+	 *
+	 * The columns these queries target are written with
+	 * {@link Utility#getCurrentSqlTimestampUTC()}, which stores the UTC wall clock
+	 * with no offset attached to it. Reading the value straight off the result set
+	 * returns those same fields, so what comes back compares directly against
+	 * another UTC wall clock with no zone applied on either side. Going through a
+	 * query wrapper instead would attach a zone on the way out and shift the value
+	 * by that zone's offset.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @param selectQ   single column select taking the project id as its only
+	 *                  parameter
+	 * @param label     name of the timestamp, used when logging a failure
+	 * @return the stored UTC wall clock, or null when the project has no row or the
+	 *         column is empty
+	 */
+	private static LocalDateTime getProjectUtcTimestamp(String projectId, String selectQ, String label) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return (SemossDate) wrapper.next().getValues()[0];
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(selectQ);
+			ps.setString(1, projectId);
+			try (ResultSet rs = ps.executeQuery()) {
+				if (rs.next()) {
+					Timestamp storedValue = rs.getTimestamp(1);
+					if (storedValue != null) {
+						return storedValue.toLocalDateTime();
+					}
+				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to retrieve project portal published timestamp", e);
+			classLogger.error("Failed to retrieve the {} timestamp for project '{}'", label, projectId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 		return null;
 	}
 
+	/**
+	 * The cluster timestamp for this project's portal: when a container last
+	 * reported changing the portal content.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @return the UTC wall clock of the last reported change, or null when no
+	 *         container has reported one
+	 */
+	public static LocalDateTime getPortalPublishedTimestamp(String projectId) {
+		String selectQ = "SELECT PORTALPUBLISHED FROM PROJECT WHERE PROJECTID=?";
+		return getProjectUtcTimestamp(projectId, selectQ, "portal published");
+	}
+
+	/**
+	 * Gives a project a cluster timestamp for its portal when it does not have one.
+	 *
+	 * A container works out whether the portal copy it serves is current by
+	 * comparing the cluster timestamp against its own local timestamp, so the
+	 * comparison needs both to exist. A project that has never had a content change
+	 * reported has no cluster timestamp, and nothing about the folder itself
+	 * records when it last changed, which leaves every container free to keep
+	 * serving whatever it published first. Recording the current time supplies the
+	 * reference point that later comparisons work from, and reads as a change to
+	 * any container whose local timestamp is older, resyncing those containers
+	 * once.
+	 *
+	 * Only PORTALPUBLISHED is written. The user columns stay empty because no user
+	 * asked for this, and DATELASTEDITED is untouched because nothing was edited.
+	 * The IS NULL guard leaves the value to whichever container gets there first,
+	 * so containers racing to record it settle on one time rather than overwriting
+	 * each other.
+	 *
+	 * @param projectId project to give a cluster timestamp
+	 * @return true when the project carries a cluster timestamp afterwards,
+	 *         including when another container recorded it first, false when it
+	 *         could not be written
+	 */
+	public static boolean initPortalPublishedTimestamp(String projectId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=? WHERE PROJECTID=? AND PORTALPUBLISHED IS NULL";
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement(updateQ);
+			ps.setTimestamp(1, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(2, projectId);
+			ps.execute();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return true;
+		} catch (Exception e) {
+			classLogger.error("Failed to record an initial cluster timestamp for project '{}'", projectId, e);
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+	}
+
+	/**
+	 * Moves the cluster timestamp for this project's portal to now, recording that
+	 * the portal content changed.
+	 *
+	 * Every other container compares this against its own local timestamp for when
+	 * it last published the portal into public_home, to decide whether the copy it
+	 * serves is still current. This is the db write on its own; routes reporting a
+	 * write go through ProjectPortalsHelper, which owns when a change counts as
+	 * one.
+	 *
+	 * @param user      user performing the write
+	 * @param projectId project that was written to
+	 */
 	public static void setPortalPublish(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
@@ -1208,25 +1313,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param projectId
-	 * @return
+	 * The cluster timestamp for this project's custom reactors: when a container
+	 * last reported compiling them.
+	 *
+	 * @param projectId project to read the timestamp for
+	 * @return the UTC wall clock of the last reported compilation, or null when no
+	 *         container has reported one
 	 */
-	public static SemossDate getReactorCompilationTimestamp(String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectId));
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				return (SemossDate) wrapper.next().getValues()[0];
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve project reactor compilation timestamp", e);
-		}
-		return null;
+	public static LocalDateTime getReactorCompilationTimestamp(String projectId) {
+		String selectQ = "SELECT REACTORSCOMPILED FROM PROJECT WHERE PROJECTID=?";
+		return getProjectUtcTimestamp(projectId, selectQ, "reactor compilation");
 	}
 
+	/**
+	 * 
+	 * @param user
+	 * @param projectId
+	 */
 	public static void setReactorCompilation(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
@@ -1314,14 +1417,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 */
 	static int getMaxUserProjectPermission(User user, String projectId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// String userFilters = getUserFilters(user);
-		// // query the database
-		// String query = "SELECT DISTINCT ENGINEPERMISSION.PERMISSION FROM
-		// ENGINEPERMISSION "
-		// + "WHERE ENGINEID='" + engineId + "' AND USERID IN " + userFilters + " ORDER
-		// BY PERMISSION";
-		// IRawSelectWrapper wrapper =
-		// WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PERMISSION"));
@@ -1806,6 +1901,58 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		}
+		return true;
+	}
+
+	/**
+	 * Set whether viewers may clone a project as a template.
+	 *
+	 * @param user       current user
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 * @throws IllegalAccessException when the user is not the project owner
+	 */
+	public static boolean setProjectTemplate(User user, String projectId, boolean isTemplate)
+			throws IllegalAccessException {
+		if (!SecurityUserProjectUtils.userIsOwner(user, projectId)) {
+			throw new IllegalAccessException(
+					"The user doesn't have permission to set this project as a template. Only the owner or an admin can perform this action.");
+		}
+		return setProjectTemplate(projectId, isTemplate);
+	}
+
+	/**
+	 * System variant of {@link #setProjectTemplate(User, String, boolean)} with no
+	 * permission check. Used at boot to heal the template flag on platform projects
+	 * from their smss; must never be exposed to user input.
+	 *
+	 * @param projectId  project identifier
+	 * @param isTemplate whether the project is a template
+	 * @return {@code true} when the flag is updated
+	 */
+	public static boolean setProjectTemplate(String projectId, boolean isTemplate) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		PreparedStatement ps = null;
+		try {
+			ps = securityDb.getPreparedStatement("UPDATE PROJECT SET IS_TEMPLATE=? WHERE PROJECTID=?");
+			ps.setBoolean(1, isTemplate);
+			ps.setString(2, projectId);
+			int updatedRows = ps.executeUpdate();
+			if (updatedRows != 1) {
+				throw new IllegalArgumentException("Project does not exist");
+			}
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+		} catch (IllegalArgumentException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to update project template setting", e);
+			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
@@ -3063,28 +3210,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Check if a user has a project with that name
-	 * 
-	 * @param user
-	 * @param projectName
-	 */
-	public static boolean userHasProjectWithName(User user, String projectName) {
-		// get all projects the user can see
-		List<Map<String, Object>> userProjects = getUserProjectList(user, /* projectTypes */ null,
-				/* projectIdFilters */ null, /* favoritesOnly */ false, /* portalsOnly */ false,
-				/* projectMetadataFilter */ null, /* permissionFilters */ null, /* searchTerm */ projectName,
-				/* limit */ null, /* offset */ null);
-		// check for a case-insensitive match
-		for (Map<String, Object> project : userProjects) {
-			Object name = project.get("project_name");
-			if (name != null && name.toString().equalsIgnoreCase(projectName)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	/*
 	 * Copying permissions
 	 */
@@ -3217,7 +3342,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @param user
 	 * @param projectIdFilters
 	 * @param favoritesOnly
-	 * @param portalsOnly
 	 * @param projectMetadataFilter
 	 * @param permissionFilters
 	 * @param limit
@@ -3225,17 +3349,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserProjectList(User user, List<String> projectTypes,
-			List<String> projectIdFilters, boolean favoritesOnly, boolean portalsOnly,
-			Map<String, Object> projectMetadataFilter, List<Integer> permissionFilters, String searchTerm, String limit,
-			String offset) {
-		return getUserProjectList(user, projectTypes, projectIdFilters, favoritesOnly, portalsOnly,
-				projectMetadataFilter, permissionFilters, searchTerm, limit, offset, null);
+			List<String> projectIdFilters, boolean favoritesOnly, Map<String, Object> projectMetadataFilter,
+			List<Integer> permissionFilters, String searchTerm, String limit, String offset) {
+		return getUserProjectList(user, projectTypes, projectIdFilters, favoritesOnly, projectMetadataFilter,
+				permissionFilters, searchTerm, limit, offset, null);
 	}
 
 	public static List<Map<String, Object>> getUserProjectList(User user, List<String> projectTypes,
-			List<String> projectIdFilters, boolean favoritesOnly, boolean portalsOnly,
-			Map<String, Object> projectMetadataFilter, List<Integer> permissionFilters, String searchTerm, String limit,
-			String offset, Map<String, String> sortFields) {
+			List<String> projectIdFilters, boolean favoritesOnly, Map<String, Object> projectMetadataFilter,
+			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields) {
+		return getUserProjectList(user, projectTypes, projectIdFilters, favoritesOnly, projectMetadataFilter,
+				permissionFilters, searchTerm, limit, offset, sortFields, false);
+	}
+
+	public static List<Map<String, Object>> getUserProjectList(User user, List<String> projectTypes,
+			List<String> projectIdFilters, boolean favoritesOnly, Map<String, Object> projectMetadataFilter,
+			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields, boolean onlyTemplates) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		boolean hasSearchTerm = searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty();
@@ -3253,6 +3384,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "COST", "project_cost"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "GLOBAL", "project_global"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DISCOVERABLE", "project_discoverable"));
+		qs1.addSelector(new QueryColumnSelector(projectPrefix + "IS_TEMPLATE", "project_is_template"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CATALOGNAME", "project_catalog_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBY", "project_created_by"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "CREATEDBYTYPE", "project_created_by_type"));
@@ -3260,8 +3392,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "DATELASTEDITED", "project_date_last_edited"));
 
 		// dont forget reactors/portal information
-		qs1.addSelector(new QueryColumnSelector(projectPrefix + "HASPORTAL", "project_has_portal"));
-		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PORTALNAME", "project_portal_name"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHED", "project_portal_published_date"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDUSER", "project_published_user"));
 		qs1.addSelector(new QueryColumnSelector(projectPrefix + "PORTALPUBLISHEDTYPE", "project_published_user_type"));
@@ -3271,7 +3401,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// back to the others
-		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
@@ -3423,6 +3554,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
 
+		if (onlyTemplates) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "IS_TEMPLATE", "==", true,
+					PixelDataType.BOOLEAN));
+		}
+
 		if (projectIdFilters != null && !projectIdFilters.isEmpty()) {
 			qs1.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(projectPrefix + "PROJECTID", "==", projectIdFilters));
@@ -3443,10 +3579,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (favoritesOnly) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", 1,
 					PixelDataType.CONST_INT));
-		}
-		if (portalsOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
 		}
 
 		if (hasSearchTerm) {
@@ -3537,6 +3669,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		// always add a secondary sort by project_id
+		qs1.addOrderBy(new QueryColumnOrderBySelector("project_id"));
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -3556,13 +3690,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * Get the list of the project ids that the user has access to
 	 * 
 	 * @param user
+	 * @param projectTypes
 	 * @param includeGlobal
 	 * @param includeDiscoverable
 	 * @param includeExistingAccess
 	 * @return
 	 */
-	public static List<String> getUserProjectIdList(User user, boolean includeGlobal, boolean includeDiscoverable,
-			boolean includeExistingAccess) {
+	public static List<String> getUserProjectIdList(User user, List<String> projectTypes, boolean includeGlobal,
+			boolean includeDiscoverable, boolean includeExistingAccess) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String projectPrefix = "PROJECT__";
 		String projectPermissionPrefix = "PROJECTPERMISSION__";
@@ -3584,6 +3719,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (includeDiscoverable) {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "DISCOVERABLE", "==", true,
 					PixelDataType.BOOLEAN));
+		}
+		if (projectTypes != null && !projectTypes.isEmpty()) {
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "TYPE", "==", projectTypes));
 		}
 		String existingAccessComparator = "==";
 		if (!includeExistingAccess) {
@@ -3681,6 +3819,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
@@ -3688,8 +3827,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 
 		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
@@ -3698,7 +3835,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		// back to the others
 		if (projectFilter != null && !projectFilter.isEmpty()) {
@@ -3769,14 +3907,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__GLOBAL", "project_global"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DISCOVERABLE", "project_discoverable"));
+		qs.addSelector(new QueryColumnSelector("PROJECT__IS_TEMPLATE", "project_is_template"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME", "project_catalog_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY", "project_created_by"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE", "project_created_by_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED", "project_date_created"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__DATELASTEDITED", "project_date_last_edited"));
 		// dont forget reactors/portal information
-		qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL", "project_has_portal"));
-		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME", "project_portal_name"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED", "project_portal_published_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER", "project_published_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE", "project_published_user_type"));
@@ -3813,8 +3950,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	 * @return
 	 */
 	public static List<Map<String, Object>> getUserDiscoverableProjectList(User user, List<String> projectTypes,
-			List<String> projectFilters, boolean portalsOnly, Map<String, Object> projectMetadataFilter,
-			String searchTerm, String limit, String offset) {
+			List<String> projectFilters, Map<String, Object> projectMetadataFilter, String searchTerm, String limit,
+			String offset) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Collection<String> userIds = getUserFiltersQs(user);
 
@@ -3878,10 +4015,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (projectTypes != null && !projectTypes.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", projectTypes));
 		}
-		if (portalsOnly) {
-			qs1.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("PROJECT__HASPORTAL", "==", true, PixelDataType.BOOLEAN));
-		}
 		// optional word filter on the engine name
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -3920,70 +4053,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs1);
 	}
-
-	// /**
-	// * Get the list of the projects with an optional filter
-	// * @param userId
-	// * @return
-	// */
-	// public static List<Map<String, Object>> getAllProjectList(String
-	// projectFilter, String limit, String offset) {
-	// SelectQueryStruct qs = new SelectQueryStruct();
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTID", "project_id"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PROJECTNAME",
-	// "project_name"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__TYPE","project_type"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__COST", "project_cost"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__CATALOGNAME",
-	// "project_catalog_name"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBY",
-	// "project_created_by"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__CREATEDBYTYPE",
-	// "project_created_by_type"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__DATECREATED",
-	// "project_date_created"));
-	// // dont forget reactors/portal information
-	// qs.addSelector(new QueryColumnSelector("PROJECT__HASPORTAL",
-	// "project_has_portal"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALNAME",
-	// "project_portal_name"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHED",
-	// "project_portal_published_date"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDUSER",
-	// "project_published_user"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__PORTALPUBLISHEDTYPE",
-	// "project_published_user_type"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED",
-	// "project_reactors_compiled_date"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER",
-	// "project_reactors_compiled_user"));
-	// qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE",
-	// "project_reactors_compiled_user_type"));
-	// // back to the others
-	// QueryFunctionSelector fun = new QueryFunctionSelector();
-	// fun.setFunction(QueryFunctionHelper.LOWER);
-	// fun.addInnerSelector(new QueryColumnSelector("PROJECT__PROJECTNAME"));
-	// fun.setAlias("low_project_name");
-	// qs.addSelector(fun);
-	// if(projectFilter != null && !projectFilter.isEmpty()) {
-	// qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID",
-	// "==", projectFilter));
-	// }
-	// qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
-	//
-	// Long long_limit = -1L;
-	// Long long_offset = -1L;
-	// if(limit != null && !limit.trim().isEmpty()) {
-	// long_limit = ((Number) Double.parseDouble(limit)).longValue();
-	// }
-	// if(offset != null && !offset.trim().isEmpty()) {
-	// long_offset = ((Number) Double.parseDouble(offset)).longValue();
-	// }
-	// qs.setLimit(long_limit);
-	// qs.setOffSet(long_offset);
-	//
-	// return QueryExecutionUtility.flushRsToMap(securityDb, qs);
-	// }
 
 	/**
 	 * Change the user visibility (show/hide) for a project. Without removing its
@@ -4064,9 +4133,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					classLogger.error("Failed to update project visibility", e);
 					throw e;
 				} finally {
-					if (ps != null) {
-						ps.close();
-					}
+					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 				}
 			}
 		} catch (Exception e) {
@@ -4162,52 +4229,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 	}
 
-	/**
-	 * Change if this project has a portal or not
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
-	 */
-	public static void setProjectPortal(User user, String projectId, boolean hasPortal, String portalName)
-			throws SQLException, IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!userIsOwner(user, projectId)) {
-			throw new IllegalAccessException(
-					"The user doesn't have the permission to set if this project has a portal");
-		}
-
-		String query = "UPDATE PROJECT SET HASPORTAL=?, PORTALNAME=? WHERE PROJECTID=?";
-		PreparedStatement ps = securityDb.getPreparedStatement(query);
-		if (ps == null) {
-			throw new IllegalArgumentException("Error generating prepared statement to set project portal");
-		}
-		try {
-			int parameterIndex = 1;
-			ps.setBoolean(parameterIndex++, hasPortal);
-			if (portalName != null) {
-				ps.setString(parameterIndex++, portalName);
-			} else {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			}
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update project portal availability setting", e);
-			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-		}
-	}
-
 	///////////////////////////////////////////////
 	///////////////////////////////////////////////
-	///////////////// PROJECTS//////////////////////
+	///////////////// PROJECTS/////////////////////
 
 	/**
 	 * Return the projects the user has explicit access to

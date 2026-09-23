@@ -47,7 +47,7 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 
 	// the code that was executed
 	private List<String> codeExecuted = new ArrayList<>();
-	
+
 	protected ITableDataFrame recreateMetadata(PandasFrame frame, boolean override) {
 		// grab the existing metadata from the frame
 		Map<String, String> additionalDataTypes = frame.getMetaData().getHeaderToAdtlTypeMap();
@@ -55,58 +55,61 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		Map<String, String[]> complexSelectors = frame.getMetaData().getComplexSelectorsMap();
 
 		String frameName = frame.getName();
-		PandasFrame newFrame = frame; 
+		PandasFrame newFrame = frame;
 		// I am just going to try to recreate the frame here
-		if(override) {
+		if (override) {
 			newFrame = new PandasFrame(frameName, insight.getPyTranslator());
 			String makeWrapper = PandasSyntaxHelper.makeWrapper(newFrame.getWrapperName(), frameName);
-			//newFrame.runScript(makeWrapper);
+			// newFrame.runScript(makeWrapper);
 			insight.getPyTranslator().runEmptyPy(makeWrapper);
 		}
 		String[] colNames = getColumns(newFrame);
 		// I bet this is being done for pixel.. I will keep the same
-		//newFrame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
+		// newFrame.runScript(PandasSyntaxHelper.cleanFrameHeaders(frameName,
+		// colNames));
 		insight.getPyTranslator().runEmptyPy(PandasSyntaxHelper.cleanFrameHeaders(frameName, colNames));
 		colNames = getColumns(newFrame);
-		
+
 		String[] colTypes = getColumnTypes(newFrame);
-		if(colNames == null || colTypes == null) {
-			throw new IllegalArgumentException("Please make sure the variable " + frameName + " exists and can be a valid data.table object");
+		if (colNames == null || colTypes == null) {
+			throw new IllegalArgumentException(
+					"Please make sure the variable " + frameName + " exists and can be a valid data.table object");
 		}
-		
+
 		// create the pandas frame
 		// and set up everything else
-		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName, additionalDataTypes, sources, complexSelectors);
+		ImportUtility.parseTableColumnsAndTypesToFlatTable(newFrame.getMetaData(), colNames, colTypes, frameName,
+				additionalDataTypes, sources, complexSelectors);
 		if (override) {
 			this.insight.setDataMaker(newFrame);
 		}
 		// update varStore
 		NounMetadata noun = new NounMetadata(newFrame, PixelDataType.FRAME);
 		this.insight.getVarStore().put(frame.getName(), noun);
-		
+
 		return newFrame;
 	}
-	
+
 	protected ITableDataFrame recreateMetadata(PandasFrame frame) {
 		return recreateMetadata(frame, true);
 	}
-	
-	public String[] getColumns(PandasFrame frame) {		
+
+	public String[] getColumns(PandasFrame frame) {
 		String wrapperName = frame.getWrapperName();
-		// get jep thread and get the names
 		List<String> val = (List) insight.getPyTranslator().getList("list(" + wrapperName + ".cache['data'])");
 		return val.toArray(new String[val.size()]);
 	}
-	
+
 	public String[] getColumnTypes(PandasFrame frame) {
 		String wrapperName = frame.getWrapperName();
-		// get jep thread and get the names
-		List<String> val = (List) insight.getPyTranslator().getList(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
+		List<String> val = (List) insight.getPyTranslator()
+				.getList(PandasSyntaxHelper.getTypes(wrapperName + ".cache['data']"));
 		return val.toArray(new String[val.size()]);
 	}
-	
+
 	/**
 	 * Get the data type of a column by querying the python frame
+	 * 
 	 * @param frame
 	 * @param column
 	 * @return
@@ -117,45 +120,44 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 		String pythonDt = (String) insight.getPyTranslator().runScript(columnType);
 		SemossDataType smssDT = this.insight.getPyTranslator().convertDataType(pythonDt);
 		return smssDT.toString();
-	}	
-	
+	}
+
 	public boolean smartSync(PyTranslator pyt) {
 		// at this point try to see if something has changed and if so
 		// trigger smart sync
 		boolean frameChanged = false;
-		if(this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame)
-		{
+		if (this.insight.getCurFrame() != null && this.insight.getCurFrame() instanceof PandasFrame) {
 			StringBuffer script = new StringBuffer();
 			// source the script
 			script.append(this.insight.getCurFrame().getName() + "w.hasFrameChanged()");
 			String sync = pyt.runScript(script.toString()) + "";
 			frameChanged = sync.equalsIgnoreCase("true");
-			//changing this to always on
-			//frameChanged = true;
-			if(frameChanged) {
-				recreateMetadata((PandasFrame)insight.getCurFrame(), true);	
+			// changing this to always on
+			// frameChanged = true;
+			if (frameChanged) {
+				recreateMetadata((PandasFrame) insight.getCurFrame(), true);
 			}
-		}	
+		}
 		return frameChanged;
 	}
 
- 	/////////////////////////////////////////////////////
- 	
- 	/*
- 	 * ICodeExecution methods
- 	 */
+	/////////////////////////////////////////////////////
 
- 	public void addExecutedCode(String code) {
- 		if(this.codeExecuted.isEmpty()) {
- 			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
- 		}
- 		this.codeExecuted.add(code);
- 	}
-	
+	/*
+	 * ICodeExecution methods
+	 */
+
+	public void addExecutedCode(String code) {
+		if (this.codeExecuted.isEmpty()) {
+			this.codeExecuted.add("###### Code executed from " + getClass().getSimpleName() + " #######");
+		}
+		this.codeExecuted.add(code);
+	}
+
 	@Override
 	public String getExecutedCode() {
 		StringBuffer finalScript = new StringBuffer();
-		for(String c : this.codeExecuted) {
+		for (String c : this.codeExecuted) {
 			finalScript.append(c).append("\n");
 		}
 		return finalScript.toString();
@@ -165,10 +167,10 @@ public abstract class AbstractPyFrameReactor extends AbstractFrameReactor implem
 	public LANGUAGE getLanguage() {
 		return LANGUAGE.PYTHON;
 	}
-	
+
 	@Override
 	public boolean isUserScript() {
 		return false;
 	}
-	
+
 }

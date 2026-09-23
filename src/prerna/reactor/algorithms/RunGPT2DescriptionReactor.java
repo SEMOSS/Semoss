@@ -68,6 +68,7 @@ public class RunGPT2DescriptionReactor extends AbstractRFrameReactor {
 		// get inputs
 		String descType = getInputString(DESCRIPTION_TYPE);
 		String databaseId = getInputString(ReactorKeysEnum.DATABASE.getKey());
+		databaseId = testDatabaseId(databaseId, false);
 		String tableName = getInputString(ReactorKeysEnum.TABLE.getKey());
 		int numDescriptions = getInputInt(NUMBER_DESCRIPTIONS);
 

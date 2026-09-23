@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.OldInsight;
@@ -63,6 +64,10 @@ public class RunPlaysheetReactor extends AbstractReactor {
 			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, insightId)) {
+			throw new IllegalArgumentException("User does not have access to this insight");
+		}
 		IProject project = Utility.getProject(projectId);
 		Insight insightObj = project.getInsight(insightId).get(0);
 		InsightUtility.transferDefaultVars(this.insight, insightObj);

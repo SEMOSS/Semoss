@@ -59,6 +59,7 @@ import prerna.engine.impl.InsightAdministrator;
 import prerna.om.PixelList;
 import prerna.project.api.IProject;
 import prerna.query.parsers.ParamStruct;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.insights.AbstractInsightReactor;
 import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.om.PixelDataType;
@@ -417,5 +418,15 @@ public class SaveInsightReactor extends AbstractInsightReactor {
 		}
 		// keep track of any engines used
 		UserTrackingUtils.addEngineUsage(queriedDatabaseIds, insightIdToSave, projectId);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = new HashMap<>();
+		// default to auto execution for reactors
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		// sidebar to view default json for reactor input+output
+		meta.put(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.SIDEBAR.getValue());
+		return meta;
 	}
 }

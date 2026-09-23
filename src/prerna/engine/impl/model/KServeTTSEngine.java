@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskTTSModelEngineResponse;
 import prerna.om.Insight;
 
@@ -43,13 +44,14 @@ public class KServeTTSEngine extends AbstractRemoteModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(KServeTTSEngine.class);
 
 	@Override
-	public AskTTSModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> parameters) {
-		classLogger.debug("Handling KServeTTS Request for text: {}", question);
+	public AskTTSModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> parameters) {
+		String inputText = inputMessage.getFullInputPrompt();
+		classLogger.debug("Handling KServeTTS Request for text: {}", inputText);
 
 		JSONObject payload = new JSONObject();
 
-		payload.put("text", question);
+		payload.put("text", inputText);
 
 		if (parameters != null) {
 			if (parameters.containsKey("voice")) {

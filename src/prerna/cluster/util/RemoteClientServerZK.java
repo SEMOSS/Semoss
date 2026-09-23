@@ -90,7 +90,7 @@ public final class RemoteClientServerZK implements IRemoteClientServer {
 	private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
 	private RemoteClientServerZK() {
-		classLogger.info("RemoteClientServerZK being initialized...");
+
 	}
 
 	public static RemoteClientServerZK getInstance() {
@@ -101,8 +101,12 @@ public final class RemoteClientServerZK implements IRemoteClientServer {
 		if (instance == null) {
 			synchronized (RemoteClientServerZK.class) {
 				if (instance == null) {
-					instance = new RemoteClientServerZK();
-					instance.init();
+					// Fully initialize before publishing to the volatile field so other
+					// threads never observe a half-constructed singleton (mid-init()).
+					RemoteClientServerZK proxy = new RemoteClientServerZK();
+					proxy.init();
+					instance = proxy;
+					classLogger.info("RemoteClientServerZK is initialized.");
 				}
 			}
 		}

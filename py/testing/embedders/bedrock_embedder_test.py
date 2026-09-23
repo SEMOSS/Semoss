@@ -53,11 +53,3 @@ def test_bedrock_embeddings_call_success(bedrock_embedder):
     assert len(response.response) == 1
     assert isinstance(response.response[0], list)
     assert isinstance(response.response[0][0], float)
-
-
-def test_bedrock_image_embeddings_not_supported(bedrock_embedder):
-    """
-    Tests that image_embeddings_call raises NotImplementedError.
-    """
-    with pytest.raises(NotImplementedError):
-        bedrock_embedder.image_embeddings_call(images_to_embed=["dummy_image_data"])

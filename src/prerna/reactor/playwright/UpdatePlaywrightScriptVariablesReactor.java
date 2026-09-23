@@ -40,6 +40,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -67,6 +68,13 @@ public class UpdatePlaywrightScriptVariablesReactor extends AbstractReactor {
 		// Get the variables map from the noun store
 		Map<String, String> variablesToUpdate = getVariablesMap();
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
+		}
 
 		if (fileName == null || fileName.trim().isEmpty()) {
 			throw new IllegalArgumentException("Script file name cannot be null or empty");

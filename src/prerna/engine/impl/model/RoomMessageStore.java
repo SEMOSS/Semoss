@@ -81,13 +81,16 @@ public final class RoomMessageStore {
 		}
 		List<AbstractMessage> loaded = MessageUtils.fromJsonArrayPreservingToolState(projection, room);
 		List<AbstractMessage> messages = loaded != null ? loaded : new ArrayList<>();
-		validateForPersistence(room, messages);
+		// loading tolerates broken parent links so a legacy or hand-edited
+		// projection still opens; provider payloads and persists re-validate
+		Set<String> messageIds = requireUniqueMessageIds(messages);
+		warnOnBrokenParentLinks(room, messages, messageIds);
 		warmRedisProjection(room, projection);
 		return messages;
 	}
 
 	public static void refreshFromStore(Room room, String userId) {
-		if (room == null || room.getId() == null || userId == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || userId == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		Room persistedRoom = ModelInferenceLogsUtils.getRoomById(room.getId(), userId);
@@ -107,7 +110,7 @@ public final class RoomMessageStore {
 	}
 
 	public static void refreshFromLatestProjection(Room room, String userId) {
-		if (room == null || room.getId() == null || userId == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || userId == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		if (!refreshFromHotProjection(room)) {
@@ -116,7 +119,7 @@ public final class RoomMessageStore {
 	}
 
 	public static boolean refreshFromHotProjection(Room room) {
-		if (room == null || room.getId() == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return false;
 		}
 		try {
@@ -139,18 +142,35 @@ public final class RoomMessageStore {
 	public static String messageHistoryWithNewMessage(Room room, AbstractMessage newMessage) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), newMessage);
 		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(branch));
 	}
 
 	public static String currentMessageHistory(Room room) {
 		List<AbstractMessage> branch = MessageUtils.getMessageBranchWithNewMessage(room.getMessages(), null);
 		validateProviderPayload(room, branch);
-		return MessageUtils.toJsonArrayWithImageData(branch);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(branch));
 	}
 
 	public static String providerMessageHistory(Room room, List<AbstractMessage> messages) {
 		validateProviderPayload(room, messages);
-		return MessageUtils.toJsonArrayWithImageData(messages);
+		return MessageUtils.toJsonArrayWithImageData(providerContext(messages));
+	}
+
+	public static final String PPTX_EDIT_CONTEXT_START = "semossPptxEditContextStart";
+
+	/** Filter only the provider view. Stored messages and their parent links remain intact. */
+	public static List<AbstractMessage> providerContext(List<AbstractMessage> branch) {
+		for (int i = branch.size() - 1; i >= 0; i--) {
+			AbstractMessage message = branch.get(i);
+			if (message instanceof prerna.engine.impl.model.message.InputMessage && message.hasTextPart()
+					&& !message.hasToolResultPart() && !message.isPlatformGenerated()
+					&& !"reflection_input".equals(message.getOrnament("agentRunRole"))) {
+				// A later ordinary request opts back into full context; no room-wide setting is changed.
+				return Boolean.TRUE.equals(message.getOrnament(PPTX_EDIT_CONTEXT_START))
+						? new ArrayList<>(branch.subList(i, branch.size())) : branch;
+			}
+		}
+		return branch;
 	}
 
 	public static void normalizeForProviderPayload(Room room) {
@@ -191,7 +211,7 @@ public final class RoomMessageStore {
 	}
 
 	public static RoomMutationLock acquireMutationLock(String roomId) {
-		if (roomId == null || roomId.trim().isEmpty() || !isRedisEnabled()) {
+		if (roomId == null || roomId.trim().isEmpty() || !RedisConnectionConfig.isRedisEnabled()) {
 			return RoomMutationLock.NO_OP;
 		}
 		roomId = roomId.trim();
@@ -229,7 +249,28 @@ public final class RoomMessageStore {
 		if (messages == null || messages.isEmpty()) {
 			return;
 		}
+		Set<String> messageIds = requireUniqueMessageIds(messages);
+		for (AbstractMessage message : messages) {
+			String parentMessageId = trimToNull(message.getParentMessageId());
+			if (parentMessageId == null) {
+				continue;
+			}
+			if (parentMessageId.equals(message.getMessageId())) {
+				throw new IllegalStateException("Room message cannot be its own parent: " + parentMessageId);
+			}
+			if (!messageIds.contains(parentMessageId)) {
+				String roomId = room != null ? room.getId() : "<unknown>";
+				throw new IllegalStateException(
+						"Room " + roomId + " message parent does not exist: " + parentMessageId);
+			}
+		}
+	}
+
+	private static Set<String> requireUniqueMessageIds(List<AbstractMessage> messages) {
 		Set<String> messageIds = new HashSet<>();
+		if (messages == null) {
+			return messageIds;
+		}
 		for (AbstractMessage message : messages) {
 			if (message == null) {
 				throw new IllegalStateException("Room message list contains a null message.");
@@ -242,18 +283,19 @@ public final class RoomMessageStore {
 				throw new IllegalStateException("Room message list contains duplicate messageId: " + messageId);
 			}
 		}
+		return messageIds;
+	}
+
+	private static void warnOnBrokenParentLinks(Room room, List<AbstractMessage> messages, Set<String> messageIds) {
 		for (AbstractMessage message : messages) {
 			String parentMessageId = trimToNull(message.getParentMessageId());
 			if (parentMessageId == null) {
 				continue;
 			}
-			if (parentMessageId.equals(message.getMessageId())) {
-				throw new IllegalStateException("Room message cannot be its own parent: " + parentMessageId);
-			}
-			if (!messageIds.contains(parentMessageId)) {
+			if (parentMessageId.equals(message.getMessageId()) || !messageIds.contains(parentMessageId)) {
 				String roomId = room != null ? room.getId() : "<unknown>";
-				throw new IllegalStateException("Room " + roomId + " message parent does not exist: "
-						+ parentMessageId);
+				classLogger.warn("Room {} persisted message {} references a parent that does not exist: {}",
+						roomId, message.getMessageId(), parentMessageId);
 			}
 		}
 	}
@@ -282,8 +324,8 @@ public final class RoomMessageStore {
 		if (!toolCallIds.containsAll(toolResultIds)) {
 			Set<String> unmatched = new HashSet<>(toolResultIds);
 			unmatched.removeAll(toolCallIds);
-			throw new IllegalStateException("Room message payload contains tool results without tool calls: "
-					+ unmatched);
+			throw new IllegalStateException(
+					"Room message payload contains tool results without tool calls: " + unmatched);
 		}
 		if (!toolResultIds.containsAll(toolCallIds)) {
 			Set<String> unmatched = new HashSet<>(toolCallIds);
@@ -329,7 +371,7 @@ public final class RoomMessageStore {
 	}
 
 	private static void warmRedisProjection(Room room, String messageHistory) {
-		if (room == null || room.getId() == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		try {
@@ -344,7 +386,7 @@ public final class RoomMessageStore {
 	}
 
 	private static void updateRedisProjection(Room room, String messageHistory) {
-		if (room == null || room.getId() == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		try {
@@ -358,7 +400,7 @@ public final class RoomMessageStore {
 	}
 
 	private static void invalidateRedisProjection(Room room) {
-		if (room == null || room.getId() == null || !isRedisEnabled()) {
+		if (room == null || room.getId() == null || !RedisConnectionConfig.isRedisEnabled()) {
 			return;
 		}
 		try {
@@ -368,12 +410,8 @@ public final class RoomMessageStore {
 		}
 	}
 
-	public static boolean isRedisEnabled() {
-		return Boolean.parseBoolean(String.valueOf(Utility.getDIHelperProperty(RedisConnectionConfig.REDIS_ENABLED)));
-	}
-
 	public static RoomMessageRedisClient redisClient() {
-		RedisConnectionConfig config = RedisConnectionConfig.fromDIHelper();
+		RedisConnectionConfig config = RedisConnectionConfig.requireFromDIHelper();
 		String cacheKey = config.cacheKey();
 		RoomMessageRedisClient client = cachedRedisClient;
 		if (client != null && cacheKey.equals(cachedRedisClientKey)) {
@@ -384,7 +422,7 @@ public final class RoomMessageStore {
 			if (client != null && cacheKey.equals(cachedRedisClientKey)) {
 				return client;
 			}
-			RoomMessageRedisClient next = new RoomMessageRedisClient(RedisConnectionFactory.getPool(config));
+			RoomMessageRedisClient next = new RoomMessageRedisClient(RedisConnectionFactory.getClient(config));
 			cachedRedisClient = next;
 			cachedRedisClientKey = cacheKey;
 			return next;
@@ -482,7 +520,14 @@ public final class RoomMessageStore {
 		@Override
 		public void close() {
 			closed = true;
-			redis.releaseLock(roomId, token);
+			boolean interrupted = Thread.interrupted();
+			try {
+				redis.releaseLock(roomId, token);
+			} finally {
+				if (interrupted) {
+					Thread.currentThread().interrupt();
+				}
+			}
 		}
 	}
 }

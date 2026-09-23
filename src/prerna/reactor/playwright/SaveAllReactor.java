@@ -30,9 +30,10 @@ package prerna.reactor.playwright;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -40,12 +41,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SaveAllReactor extends AbstractReactor {
 
-	ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final Logger classLogger = LogManager.getLogger(SaveAllReactor.class);
 
 	public SaveAllReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title",
-				"description", "intent"};
-		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), "sessionId", "name", "title", "description",
+				"intent" };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -58,7 +59,14 @@ public class SaveAllReactor extends AbstractReactor {
 		String title = this.keyValue.get(this.keysToGet[3]);
 		String desc = this.keyValue.get(this.keysToGet[4]);
 		String intent = this.keyValue.get(this.keysToGet[5]);
-		
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to edit the project");
+		}
 
 		// Build meta with timestamps
 		long now = System.currentTimeMillis();
@@ -72,15 +80,18 @@ public class SaveAllReactor extends AbstractReactor {
 		RecordingMeta existingMeta = null;
 		if (Files.exists(file)) {
 			try {
-				StepsEnvelope existing = json.readValue(file.toFile(), StepsEnvelope.class);
+				StepsEnvelope existing = PlaywrightUtility.readStepsEnvelope(file.toFile());
 				existingMeta = existing.meta();
-			} catch (Exception ignored) {
+			} catch (Exception e) {
+				classLogger.warn("Unable to read existing recording metadata from '{}'; creating fresh metadata", file,
+						e);
 			}
 		}
 
 		RecordingMeta newMeta = new RecordingMeta(
 				(existingMeta != null && existingMeta.id() != null) ? existingMeta.id() : sessionId, title, desc,
-				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now, intent);
+				(existingMeta != null && existingMeta.createdAt() != null) ? existingMeta.createdAt() : now, now,
+				intent);
 
 		PlaywrightSession playwrightSession = this.insight.getUser().getPlaywrightSession(sessionId);
 
@@ -89,7 +100,7 @@ public class SaveAllReactor extends AbstractReactor {
 		// TODO: shouldn't be returning the full path
 		String filePath = null;
 		try {
-			json.writeValue(file.toFile(), env);
+			PlaywrightUtility.writeStepsEnvelope(file.toFile(), env);
 			filePath = file.toAbsolutePath().toString();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to save script to: " + file, e);
@@ -115,7 +126,7 @@ public class SaveAllReactor extends AbstractReactor {
 			return "The title of the recorded file";
 		} else if (key.equals("intent")) {
 			return "The intention or the purpose of the recorded file";
-		} 
+		}
 		return super.getDescriptionForKey(key);
 	}
 }

@@ -89,6 +89,14 @@ public final class ProjectHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectHelper.class);
 
+	/**
+	 * PROJECTMETA tag value marking a SKILL-type project. Written by
+	 * {@link #createSkillProject} for user skills and by ProjectWatcher for the
+	 * built-in platform skill projects. (Legacy rows may carry the old value
+	 * "Skill_Project"; PROJECT.TYPE is the authoritative marker.)
+	 */
+	public static final String SKILL_PROJECT_TAG = "SKILL";
+
 	// regex pattern for UUIDs
 	private static final String UUID_PATTERN_STRING = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
@@ -117,10 +125,9 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectName, IProject.PROJECT_TYPE projectType, boolean global,
-			boolean hasPortal, String portalName, String gitProvider, String gitCloneUrl, User user, Logger logger) {
+			String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		String projectId = UUID.randomUUID().toString();
-		return generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName, gitProvider,
-				gitCloneUrl, user, logger);
+		return generateNewProject(projectId, projectName, projectType, global, gitProvider, gitCloneUrl, user, logger);
 	}
 
 	/**
@@ -138,8 +145,7 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject generateNewProject(String projectId, String projectName, IProject.PROJECT_TYPE projectType,
-			boolean global, boolean hasPortal, String portalName, String gitProvider, String gitCloneUrl, User user,
-			Logger logger) {
+			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
 		if (projectName == null || projectName.isEmpty()) {
 			throw new IllegalArgumentException("Need to provide a name for the project");
 		}
@@ -162,7 +168,7 @@ public final class ProjectHelper {
 			AbstractReactor.throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
+		if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
 			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
 		}
 
@@ -183,8 +189,8 @@ public final class ProjectHelper {
 			logger.info("Creating project workspace");
 			// Add database into DIHelper so that the web watcher doesn't try to load as
 			// well
-			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, hasPortal,
-					portalName, gitProvider, gitCloneUrl, null);
+			tempSmss = SmssUtilities.createTemporaryProjectSmss(projectId, projectName, projectType, gitProvider,
+					gitCloneUrl, null);
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
 
 			// Only at end do we add to DIHelper
@@ -203,9 +209,6 @@ public final class ProjectHelper {
 			logger.info("Finished creating project");
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 
-//			EngineUtility.createPipelineJsonInSpecificEngineFolder(IEngine.CATALOG_TYPE.PROJECT, projectId,
-//			projectName);
-
 			if (ClusterUtil.IS_CLUSTER) {
 				logger.info("Syncing project for cloud backup");
 				ClusterUtil.pushProject(projectId);
@@ -222,6 +225,7 @@ public final class ProjectHelper {
 			return project;
 		} catch (Exception e) {
 			error = true;
+			classLogger.error("Failed to create project '{}' with id {}", projectName, projectId, e);
 			throw new SemossPixelException(
 					NounMetadata.getErrorNounMessage("An error occurred creating the new project"));
 		} finally {
@@ -240,14 +244,16 @@ public final class ProjectHelper {
 								try {
 									FileUtils.forceDelete(f);
 								} catch (IOException e) {
-									classLogger.error(Constants.STACKTRACE, e);
+									classLogger.error("Failed to delete {} while cleaning up after project '{}' "
+											+ "could not be created", f, projectId, e);
 								}
 							}
 						}
 						try {
 							FileUtils.forceDelete(projectFolder);
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to delete folder {} while cleaning up after project '{}' "
+									+ "could not be created", projectFolder, projectId, e);
 						}
 					}
 				}
@@ -303,7 +309,7 @@ public final class ProjectHelper {
 		insightSmssProp.put(Constants.DRIVER, rdbmsInsightsType.getDriver());
 		insightSmssProp.put(Constants.RDBMS_TYPE, rdbmsInsightsType.getLabel());
 		String connURL = null;
-		logger.info("Insight rdbms database location is " + Utility.cleanLogString(insightDatabaseLoc));
+		logger.info("Insight rdbms database location is {}", Utility.cleanLogString(insightDatabaseLoc));
 
 		if (rdbmsInsightsType == RdbmsTypeEnum.SQLITE) {
 			connURL = rdbmsInsightsType.getUrlPrefix() + ":" + insightDatabaseLoc;
@@ -314,7 +320,7 @@ public final class ProjectHelper {
 			insightSmssProp.put(Constants.USERNAME, "sa");
 			insightSmssProp.put(Constants.PASSWORD, "");
 		}
-		logger.info("Insight rdbms database url is " + Utility.cleanLogString(connURL));
+		logger.info("Insight rdbms database url is {}", Utility.cleanLogString(connURL));
 		insightSmssProp.put(Constants.CONNECTION_URL, connURL);
 		insightsRdbms.setBasic(true);
 		insightsRdbms.open(insightSmssProp);
@@ -327,7 +333,8 @@ public final class ProjectHelper {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(insightsRdbms, tableExistsQuery)) {
 			tableExists = wrapper.hasNext();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to check whether the QUESTION_ID table exists in the insights database "
+					+ "for project '{}', treating it as absent", projectId, e);
 		}
 
 		if (!tableExists) {
@@ -346,11 +353,14 @@ public final class ProjectHelper {
 					try {
 						insightsRdbms.insertData(queryUtil.createTable("INSIGHTMETA", columns, types));
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to create the INSIGHTMETA table in the insights database " + "for project '{}'",
+								projectId, e);
 					}
 				}
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to check whether the INSIGHTMETA table exists in the insights database "
+						+ "for project '{}'", projectId, e);
 			}
 
 			{
@@ -420,7 +430,8 @@ public final class ProjectHelper {
 						}
 					}
 				} catch (SQLException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to add missing columns to the {} table in the insights database "
+							+ "for project '{}'", InsightAdministrator.TABLE_NAME, projectId, e);
 				}
 			}
 		}
@@ -541,12 +552,12 @@ public final class ProjectHelper {
 					}
 
 				} catch (IOException e) {
-					classLogger.error("Error reading file: " + path);
+					classLogger.error("Failed to read {} while extracting engine ids, skipping it", path, e);
 				}
 			});
 
 		} catch (IOException e) {
-			classLogger.error("Error reading file: {}", folderPath, e);
+			classLogger.error("Failed to walk project folder {} while extracting engine ids", folderPath, e);
 		}
 
 		return uuidDetailsMap;
@@ -599,22 +610,33 @@ public final class ProjectHelper {
 	 * @return
 	 */
 	public static IProject createWorkspaceProject(String projectId, String projectName,
-			IProject.PROJECT_TYPE projectType, boolean global, boolean hasPortal, String portalName, String gitProvider,
-			String gitCloneUrl, User user, Logger logger) {
-		IProject project = generateNewProject(projectId, projectName, projectType, global, hasPortal, portalName,
-				gitProvider, gitCloneUrl, user, logger);
+			IProject.PROJECT_TYPE projectType, boolean global, String gitProvider, String gitCloneUrl, User user,
+			Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, projectType, global, gitProvider, gitCloneUrl,
+				user, logger);
 		Map<String, Object> metadata = new HashMap<>();
 		metadata.put("tag", ModelInferenceLogsUtils.WORKSPACE_PROJECT_TAG);
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		return project;
 	}
 
-	public static IProject createSkillProject(String projectId, String projectName,
-			boolean global, String gitProvider, String gitCloneUrl, User user, Logger logger) {
-		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, false, null,
-				gitProvider, gitCloneUrl, user, logger);
+	/**
+	 * 
+	 * @param projectId
+	 * @param projectName
+	 * @param global
+	 * @param gitProvider
+	 * @param gitCloneUrl
+	 * @param user
+	 * @param logger
+	 * @return
+	 */
+	public static IProject createSkillProject(String projectId, String projectName, boolean global, String gitProvider,
+			String gitCloneUrl, User user, Logger logger) {
+		IProject project = generateNewProject(projectId, projectName, IProject.PROJECT_TYPE.SKILL, global, gitProvider,
+				gitCloneUrl, user, logger);
 		Map<String, Object> metadata = new HashMap<>();
-		metadata.put("tag", ModelInferenceLogsUtils.SKILL_PROJECT_TAG);
+		metadata.put("tag", SKILL_PROJECT_TAG);
 		SecurityProjectUtils.updateProjectMetadata(projectId, metadata);
 		return project;
 	}

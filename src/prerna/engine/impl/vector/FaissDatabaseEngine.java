@@ -79,15 +79,11 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(FaissDatabaseEngine.class);
 
-	public static final String ENABLE_HYBRID_SEARCH = "ENABLE_HYBRID_SEARCH";
-
 	private String vectorDatabaseSearcher = null;
-	private boolean enableHybridSearch = true;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
-		this.enableHybridSearch = Boolean.parseBoolean(this.smssProp.getProperty(ENABLE_HYBRID_SEARCH, "true"));
 
 		// if we've already opened don't automatically drop the searcher variable
 		if (this.vectorDatabaseSearcher == null
@@ -107,7 +103,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 		String faissInitScript = this.vectorDatabaseSearcher + "=vector_database.FAISSDatabase("
 				+ "embedder_engine_id = '${EMBEDDER_ENGINE_ID}', tokenizer = cfg_tokenizer"
 				+ ", keyword_engine_id = '${KEYWORD_ENGINE_ID}', distance_method = '${DISTANCE_METHOD}'"
-				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.enableHybridSearch) + ")";
+				+ ", enable_hybrid_search=" + PyUtils.determineStringType(this.useHybridSearch) + ")";
 		String[] commands = (TOKENIZER_INIT_SCRIPT + faissInitScript).split(PyUtils.PY_COMMAND_SEPARATOR);
 
 		// need to iterate through and potential spin up tables themselves
@@ -294,7 +290,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		String script = addDocumentPyCommand.toString();
 
-		classLogger.info("Running >>> " + script);
+		classLogger.info("Running >>> {}", script);
 		Map<String, Object> pythonResponseAfterCreatingFiles = (Map<String, Object>) this.pyTranslator
 				.runDirectPy(insight, script);
 
@@ -453,7 +449,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 						classLogger.error("Failed to delete indexed file '{}'", entry, e);
 						throw new IllegalArgumentException("Unable to remove file: " + entry.getFileName());
 					}
-					classLogger.info("Deleted: " + entry.toString());
+					classLogger.info("Deleted: {}", entry);
 				}
 			} catch (IllegalArgumentException e) {
 				throw e;
@@ -511,17 +507,17 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 					.append(indexDirectory.getParent().toString().replace("\\", FILE_SEPARATOR)).append("')");
 
 			String updateFaissMaster = updateMasterFilesCommandBuilder.toString();
-			classLogger.info("Running >>> " + updateFaissMaster);
+			classLogger.info("Running >>> {}", updateFaissMaster);
 
 			// also handle bm25 files
 			String updateBM25 = null;
-			if (this.enableHybridSearch) {
+			if (this.useHybridSearch) {
 				StringBuilder updateBM25Builder = new StringBuilder();
 				updateBM25Builder.append(this.vectorDatabaseSearcher).append(".rebuild_bm25_indexes(indexClasses=['")
 						.append(indexClass).append("'])");
 
 				updateBM25 = updateBM25Builder.toString();
-				classLogger.info("Running >>> " + updateBM25);
+				classLogger.info("Running >>> {}", updateBM25);
 			}
 			this.pyTranslator.runScript(updateFaissMaster, updateBM25);
 		}
@@ -632,7 +628,7 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		// close the method
 		callMaker.append(")");
-		classLogger.info("Running >>> " + callMaker.toString());
+		classLogger.info("Running >>> {}", callMaker);
 		List<Map<String, Object>> output = (List<Map<String, Object>>) pyTranslator.runDirectPy(insight,
 				callMaker.toString());
 		return output;
@@ -742,21 +738,26 @@ public class FaissDatabaseEngine extends AbstractVectorDatabaseEngine {
 	 * @param port the port the python server should bind to
 	 */
 	@Override
-	protected synchronized void startServer(int port) {
-		// Detect any legacy .pkl files BEFORE Python starts;
-		// FAISSSearcher.__init__ will
-		// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
-		// script.
-		Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
+	protected void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// Detect any legacy .pkl files BEFORE Python starts;
+			// FAISSSearcher.__init__ will
+			// auto-migrate them to .parquet/.npy (and delete the .pkl) as part of the init
+			// script.
+			Map<String, String> pendingPickleMigrations = detectLegacyPickleFiles();
 
-		super.startServer(port);
+			super.startServer(port);
 
-		// In cluster mode the engine folder was just hydrated from cloud and likely
-		// still contains the legacy .pkl entries we just converted locally. Push the
-		// migrated counterparts up and remove the obsolete .pkl from cloud so peers
-		// don't re-pull them.
-		if (!pendingPickleMigrations.isEmpty()) {
-			syncMigratedFilesToCloud(pendingPickleMigrations);
+			// In cluster mode the engine folder was just hydrated from cloud and likely
+			// still contains the legacy .pkl entries we just converted locally. Push the
+			// migrated counterparts up and remove the obsolete .pkl from cloud so peers
+			// don't re-pull them.
+			if (!pendingPickleMigrations.isEmpty()) {
+				syncMigratedFilesToCloud(pendingPickleMigrations);
+			}
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 

@@ -31,7 +31,7 @@ import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Playwright;
 
-final class PlaywrightBrowserProvider {
+public final class PlaywrightBrowserProvider {
 
 	private static volatile Playwright playwright;
 	private static volatile Browser browser;
@@ -40,7 +40,7 @@ final class PlaywrightBrowserProvider {
 
 	}
 
-	static Browser getBrowser() {
+	public static Browser getBrowser() {
 		Browser localBrowser = browser;
 		if (localBrowser == null) {
 			synchronized (PlaywrightBrowserProvider.class) {

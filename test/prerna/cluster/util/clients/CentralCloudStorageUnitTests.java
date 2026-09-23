@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.cluster.util.clients;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -77,10 +76,11 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.owl.WriteOWLEngine;
-import prerna.engine.impl.storage.AbstractRCloneStorageEngine;
+import prerna.engine.impl.storage.AbstractStorageEngine;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineSyncUtility;
 import prerna.util.EngineUtility;
@@ -882,18 +882,6 @@ class CentralCloudStorageUnitTests {
 			assertEquals("mydb.mv.db", result.get(0));
 		}
 
-		// ------- Legacy methods -------
-
-		@Test
-		void testListAllBlobContainers_returnsNull() throws Exception {
-			assertNull(instance.listAllBlobContainers());
-		}
-
-		@Test
-		void testDeleteContainer_doesNotThrow() {
-			assertDoesNotThrow(() -> instance.deleteContainer("any-id"));
-		}
-
 		// ------- Default container prefix values -------
 
 		@Test
@@ -1017,7 +1005,7 @@ class CentralCloudStorageUnitTests {
 	class StorageOperationTests {
 
 		private CentralCloudStorage instance;
-		private AbstractRCloneStorageEngine mockStorageEngine;
+		private AbstractStorageEngine mockStorageEngine;
 
 		@BeforeAll
 		void ensureEngineUtilityLoaded() {
@@ -1037,7 +1025,7 @@ class CentralCloudStorageUnitTests {
 			Unsafe unsafe = (Unsafe) f.get(null);
 			instance = (CentralCloudStorage) unsafe.allocateInstance(CentralCloudStorage.class);
 
-			mockStorageEngine = mock(AbstractRCloneStorageEngine.class);
+			mockStorageEngine = mock(AbstractStorageEngine.class);
 			Field storageField = CentralCloudStorage.class.getDeclaredField("centralStorageEngine");
 			storageField.setAccessible(true);
 			storageField.set(null, mockStorageEngine);
@@ -1231,8 +1219,7 @@ class CentralCloudStorageUnitTests {
 		void testPullUserAsset_alreadyLoaded_nullProject_throws() {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
 				utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(null);
-				assertThrows(IllegalArgumentException.class,
-						() -> instance.pullUserAsset("proj1", true));
+				assertThrows(IllegalArgumentException.class, () -> instance.pullUserAsset("proj1", true));
 			}
 		}
 
@@ -1293,9 +1280,8 @@ class CentralCloudStorageUnitTests {
 		// ------- listAllContainersByBucket -------
 
 		@Test
-		void testListAllContainersByBucket_noReuseConfig() throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-			when(mockStorageEngine.list(anyString(), (String) isNull())).thenReturn(Arrays.asList("item1"));
+		void testListAllContainersByBucket_coversEveryBucket() throws Exception {
+			when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("item1"));
 
 			Map<String, List<String>> result = instance.listAllContainersByBucket();
 
@@ -1308,14 +1294,12 @@ class CentralCloudStorageUnitTests {
 			assertTrue(result.containsKey(CentralCloudStorage.FUNCTION_BLOB));
 			assertTrue(result.containsKey(CentralCloudStorage.VENV_BLOB));
 			assertTrue(result.containsKey(CentralCloudStorage.PROJECT_BLOB));
-			verify(mockStorageEngine, times(7)).list(anyString(), (String) isNull());
+			verify(mockStorageEngine, times(7)).list(anyString());
 		}
 
 		@Test
-		void testListAllContainersByBucket_withReuseConfig() throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("rcloneConfig");
-			when(mockStorageEngine.list(anyString(), eq("rcloneConfig"))).thenReturn(Arrays.asList("f1", "f2"));
+		void testListAllContainersByBucket_returnsEachBucketsFiles() throws Exception {
+			when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("f1", "f2"));
 
 			Map<String, List<String>> result = instance.listAllContainersByBucket();
 
@@ -1323,8 +1307,7 @@ class CentralCloudStorageUnitTests {
 			for (List<String> files : result.values()) {
 				assertEquals(2, files.size());
 			}
-			verify(mockStorageEngine, times(7)).list(anyString(), eq("rcloneConfig"));
-			verify(mockStorageEngine).deleteRcloneConfig("rcloneConfig");
+			verify(mockStorageEngine, times(7)).list(anyString());
 		}
 
 		// ------- deleteEngineAndProjectImageById -------
@@ -1370,7 +1353,9 @@ class CentralCloudStorageUnitTests {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
 				utilMock.when(Utility::getBaseFolder).thenReturn("/base");
 				instance.pullRoomFolderFromCloud("room1");
-				verify(mockStorageEngine).syncStorageToLocal(contains("room1"), contains("room1"));
+				// a copy, not a sync - a sync would delete local files missing on the
+				// cloud side and wipe in-flight session state
+				verify(mockStorageEngine).copyToLocal(contains("room1"), contains("room1"));
 			}
 		}
 
@@ -1378,7 +1363,7 @@ class CentralCloudStorageUnitTests {
 		void testPushRoomFolderToCloud_withFiles() throws Exception {
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class)) {
 				utilMock.when(Utility::getBaseFolder).thenReturn("/base");
-				utilMock.when(() -> Utility.folderHasAnyFiles(anyString())).thenReturn(true);
+				utilMock.when(() -> Utility.folderIsNotEmpty(anyString())).thenReturn(true);
 
 				instance.pushRoomFolderToCloud("room1");
 
@@ -1410,6 +1395,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class)) {
 
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1431,6 +1417,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class)) {
 
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
@@ -1451,6 +1438,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("MyProject");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyProject", "proj1")).thenReturn("MyProject__proj1");
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
@@ -1470,6 +1458,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("MyProject");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyProject", "proj1")).thenReturn("MyProject__proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
@@ -1485,23 +1474,20 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testDeleteEngine_withType(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			try (MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class)) {
 				euMock.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.DATABASE))
 						.thenReturn(testDir.toString());
 
 				instance.deleteEngine("eng1", IEngine.CATALOG_TYPE.DATABASE);
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("eng1"), (String) isNull());
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("eng1"));
 				verify(mockStorageEngine).deleteFolderFromStorage(
-						argThat(s -> s.contains("eng1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)),
-						(String) isNull());
+						argThat(s -> s.contains("eng1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)));
 			}
 		}
 
 		@Test
 		void testDeleteEngine_singleArg(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			try (MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
 					MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class)) {
 
@@ -1512,23 +1498,21 @@ class CentralCloudStorageUnitTests {
 
 				instance.deleteEngine("eng1");
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), (String) isNull());
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString());
 			}
 		}
 
 		@Test
 		void testDeleteProject(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			try (MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class)) {
 				euMock.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
 						.thenReturn(testDir.toString());
 
 				instance.deleteProject("proj1");
 
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("proj1"), (String) isNull());
+				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(contains("proj1"));
 				verify(mockStorageEngine).deleteFolderFromStorage(
-						argThat(s -> s.contains("proj1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)),
-						(String) isNull());
+						argThat(s -> s.contains("proj1") && s.contains(CentralCloudStorage.SMSS_POSTFIX)));
 			}
 		}
 
@@ -1569,7 +1553,6 @@ class CentralCloudStorageUnitTests {
 			IEngine mockEngine = mock(IEngine.class);
 			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.DATABASE);
 			when(mockEngine.holdsFileLocks()).thenReturn(false);
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -1581,6 +1564,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEngine");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyEngine", "eng1")).thenReturn("MyEngine__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1589,9 +1573,9 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushEngine("eng1");
 
-				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
+				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
 				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("MyEngine__eng1.smss")),
-						argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)), (String) isNull(), any());
+						argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)), any());
 				verify(mockEngine, never()).close();
 			}
 		}
@@ -1601,8 +1585,6 @@ class CentralCloudStorageUnitTests {
 			IEngine mockEngine = mock(IEngine.class);
 			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.MODEL);
 			when(mockEngine.holdsFileLocks()).thenReturn(true);
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("cfg1");
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -1615,6 +1597,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("Eng");
 				smssMock.when(() -> SmssUtilities.getUniqueName("Eng", "eng1")).thenReturn("Eng__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL))
@@ -1622,14 +1605,15 @@ class CentralCloudStorageUnitTests {
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
 				DIHelper mockDI = mock(DIHelper.class);
 				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 				instance.pushEngine("eng1");
 
 				verify(mockDI).removeEngineProperty("eng1");
 				verify(mockEngine).close();
-				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), eq("cfg1"), any());
-				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("cfg1"), any());
-				verify(mockStorageEngine).deleteRcloneConfig("cfg1");
+				verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), any());
 			}
 		}
 
@@ -1637,7 +1621,6 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullEngine_notLoaded_withType(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -1649,6 +1632,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
 				utilMock.when(() -> Utility.cleanLogString(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("MyEng");
 				smssMock.when(() -> SmssUtilities.getUniqueName("MyEng", "eng1")).thenReturn("MyEng__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1657,9 +1641,9 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1", IEngine.CATALOG_TYPE.DATABASE, false);
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
-						eq(testDir.toString()), (String) isNull());
+						eq(testDir.toString()));
 				watcherMock.verify(() -> SMSSWebWatcher.catalogEngine(eq("MyEng__eng1.smss"), any()));
 			}
 		}
@@ -1668,7 +1652,6 @@ class CentralCloudStorageUnitTests {
 		void testPullEngine_alreadyLoaded(@TempDir Path testDir) throws Exception {
 			IEngine mockEngine = mock(IEngine.class);
 			when(mockEngine.getCatalogType()).thenReturn(IEngine.CATALOG_TYPE.STORAGE);
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -1683,6 +1666,7 @@ class CentralCloudStorageUnitTests {
 						.thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
 				utilMock.when(() -> Utility.cleanLogString(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("Eng");
 				smssMock.when(() -> SmssUtilities.getUniqueName("Eng", "eng1")).thenReturn("Eng__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.STORAGE))
@@ -1690,19 +1674,20 @@ class CentralCloudStorageUnitTests {
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
 				DIHelper mockDI = mock(DIHelper.class);
 				diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+				when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+				when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 				instance.pullEngine("eng1", IEngine.CATALOG_TYPE.STORAGE, true);
 
 				verify(mockDI).removeEngineProperty("eng1");
 				verify(mockEngine).close();
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-				verify(mockStorageEngine).copyToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
+				verify(mockStorageEngine).copyToLocal(anyString(), anyString());
 			}
 		}
 
 		@Test
 		void testPullEngine_notLoaded_nullType() throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -1714,6 +1699,7 @@ class CentralCloudStorageUnitTests {
 
 				secMock.when(() -> SecurityEngineUtils.getEngineTypeAndSubtype("eng1"))
 						.thenReturn(new Object[] { IEngine.CATALOG_TYPE.MODEL, null });
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("Eng");
 				smssMock.when(() -> SmssUtilities.getUniqueName("Eng", "eng1")).thenReturn("Eng__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL))
@@ -1724,7 +1710,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1", null, false);
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				watcherMock.verify(() -> SMSSNoInitEngineWatcher.catalogEngine(anyString(), any()));
 			}
 		}
@@ -1733,7 +1719,6 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullEngine_singleArg_delegates() throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
@@ -1745,6 +1730,7 @@ class CentralCloudStorageUnitTests {
 
 				secMock.when(() -> SecurityEngineUtils.getEngineTypeAndSubtype("eng1"))
 						.thenReturn(new Object[] { IEngine.CATALOG_TYPE.VECTOR, null });
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("Eng");
 				smssMock.when(() -> SmssUtilities.getUniqueName("Eng", "eng1")).thenReturn("Eng__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.VECTOR))
@@ -1755,7 +1741,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pullEngine("eng1");
 
-				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+				verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 			}
 		}
 
@@ -1770,6 +1756,7 @@ class CentralCloudStorageUnitTests {
 
 				secMock.when(() -> SecurityEngineUtils.getEngineTypeAndSubtype("eng1"))
 						.thenReturn(new Object[] { IEngine.CATALOG_TYPE.DATABASE, null });
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("E");
 				smssMock.when(() -> SmssUtilities.getUniqueName("E", "eng1")).thenReturn("E__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1793,6 +1780,7 @@ class CentralCloudStorageUnitTests {
 
 				secMock.when(() -> SecurityEngineUtils.getEngineTypeAndSubtype("eng1"))
 						.thenReturn(new Object[] { IEngine.CATALOG_TYPE.STORAGE, null });
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("E");
 				smssMock.when(() -> SmssUtilities.getUniqueName("E", "eng1")).thenReturn("E__eng1");
 				syncMock.when(() -> EngineSyncUtility.getEngineLock("eng1")).thenReturn(lock);
@@ -1820,6 +1808,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("E");
 				smssMock.when(() -> SmssUtilities.getUniqueName("E", "eng1")).thenReturn("E__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1849,6 +1838,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getEngine("eng1", false)).thenReturn(mockEngine);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("E");
 				smssMock.when(() -> SmssUtilities.getUniqueName("E", "eng1")).thenReturn("E__eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
@@ -1885,22 +1875,6 @@ class CentralCloudStorageUnitTests {
 				instance.deleteEngineCloudFile("eng1", IEngine.CATALOG_TYPE.DATABASE, localFile);
 
 				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("eng1")));
-			}
-		}
-
-		// ------- deleteEngine with rclone reuse -------
-
-		@Test
-		void testDeleteEngine_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("rcfg");
-			try (MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class)) {
-				euMock.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.STORAGE))
-						.thenReturn(testDir.toString());
-
-				instance.deleteEngine("eng1", IEngine.CATALOG_TYPE.STORAGE);
-
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), eq("rcfg"));
 			}
 		}
 
@@ -1954,7 +1928,6 @@ class CentralCloudStorageUnitTests {
 		void testPushInsightImage_bothOldAndNew() throws Exception {
 			IProject mockProject = mock(IProject.class);
 			when(mockProject.getProjectName()).thenReturn("Proj");
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<AssetUtility> assetMock = mockStatic(AssetUtility.class)) {
@@ -1967,9 +1940,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", "old.png", "new.png");
 
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")), (String) isNull());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(),
-						(String) isNull(), any());
+				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")));
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(), any());
 			}
 		}
 
@@ -1977,7 +1949,6 @@ class CentralCloudStorageUnitTests {
 		void testPushInsightImage_oldNull_newPresent() throws Exception {
 			IProject mockProject = mock(IProject.class);
 			when(mockProject.getProjectName()).thenReturn("Proj");
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<AssetUtility> assetMock = mockStatic(AssetUtility.class)) {
@@ -1990,9 +1961,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", null, "new.png");
 
-				verify(mockStorageEngine, never()).deleteFromStorage(anyString(), (String) any());
-				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(),
-						(String) isNull(), any());
+				verify(mockStorageEngine, never()).deleteFromStorage(anyString());
+				verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains("new.png")), anyString(), any());
 			}
 		}
 
@@ -2000,7 +1970,6 @@ class CentralCloudStorageUnitTests {
 		void testPushInsightImage_oldPresent_newNull() throws Exception {
 			IProject mockProject = mock(IProject.class);
 			when(mockProject.getProjectName()).thenReturn("Proj");
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 					MockedStatic<AssetUtility> assetMock = mockStatic(AssetUtility.class)) {
@@ -2010,31 +1979,8 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushInsightImage("proj1", "ins1", "old.png", null);
 
-				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")), (String) isNull());
-				verify(mockStorageEngine, never()).copyToStorage(anyString(), anyString(), (String) any(), any());
-			}
-		}
-
-		@Test
-		void testPushInsightImage_withRcloneReuse() throws Exception {
-			IProject mockProject = mock(IProject.class);
-			when(mockProject.getProjectName()).thenReturn("Proj");
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("rcfg");
-
-			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-					MockedStatic<AssetUtility> assetMock = mockStatic(AssetUtility.class)) {
-
-				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
-				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
-				utilMock.when(() -> Utility.cleanLogString(anyString())).thenAnswer(inv -> inv.getArgument(0));
-				assetMock.when(() -> AssetUtility.getProjectVersionFolder("Proj", "proj1")).thenReturn("/version");
-
-				instance.pushInsightImage("proj1", "ins1", "old.png", "new.png");
-
-				verify(mockStorageEngine).deleteFromStorage(anyString(), eq("rcfg"));
-				verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("rcfg"), any());
-				verify(mockStorageEngine).deleteRcloneConfig("rcfg");
+				verify(mockStorageEngine).deleteFromStorage(argThat(s -> s.contains("old.png")));
+				verify(mockStorageEngine, never()).copyToStorage(anyString(), anyString(), any());
 			}
 		}
 
@@ -2197,7 +2143,6 @@ class CentralCloudStorageUnitTests {
 
 		@Test
 		void testPullEngine_engineIdEqualsName_setsNameNull(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2208,6 +2153,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<SMSSNoInitEngineWatcher> watcherMock = mockStatic(SMSSNoInitEngineWatcher.class)) {
 
 				// engineName == engineId triggers the name-null branch
+				secMock.when(() -> SecurityEngineUtils.engineExists("eng1")).thenReturn(true);
 				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("eng1")).thenReturn("eng1");
 				smssMock.when(() -> SmssUtilities.getUniqueName(null, "eng1")).thenReturn("eng1");
 				euMock.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.MODEL))
@@ -2249,6 +2195,7 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 				smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
@@ -2271,6 +2218,7 @@ class CentralCloudStorageUnitTests {
 					MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 				smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
@@ -2294,12 +2242,16 @@ class CentralCloudStorageUnitTests {
 
 				utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
 				utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+				secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 				secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 				smssMock.when(() -> SmssUtilities.getUniqueName("P", "proj1")).thenReturn("P__proj1");
 				syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
-				// storageRelativePath is null - should just use container + projectId
-				assertThrows(NullPointerException.class, () -> instance.pushProjectFolder("proj1", "/local", null));
+				// storageRelativePath is null, so the target is just container + projectId
+				instance.pushProjectFolder("proj1", "/local", null);
+
+				verify(mockStorageEngine).syncLocalToStorage(eq("/local"), argThat(target -> target.endsWith("proj1")),
+						any());
 			}
 		}
 
@@ -2313,7 +2265,6 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn("MyProj");
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 				ReentrantLock lock = new ReentrantLock();
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2323,15 +2274,16 @@ class CentralCloudStorageUnitTests {
 					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 					instance.pushProject("proj1");
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(),
-							(String) isNull(), any());
+					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2346,7 +2298,6 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn(null);
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 				ReentrantLock lock = new ReentrantLock();
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2355,15 +2306,18 @@ class CentralCloudStorageUnitTests {
 						MockedStatic<ProjectSyncUtility> syncMock = mockStatic(ProjectSyncUtility.class)) {
 
 					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
+					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("AliasProj");
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 					instance.pushProject("proj1");
 
 					verify(mockStorageEngine).syncLocalToStorage(argThat(s -> s.contains("AliasProj__proj1")),
-							anyString(), (String) isNull(), any());
+							anyString(), any());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2376,7 +2330,6 @@ class CentralCloudStorageUnitTests {
 			try {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
 
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 				ReentrantLock lock = new ReentrantLock();
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2385,14 +2338,15 @@ class CentralCloudStorageUnitTests {
 						MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
 
 					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 					instance.pullProject("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains(CentralCloudStorage.SMSS_POSTFIX)),
-							eq(testDir.toString()), (String) isNull());
+							eq(testDir.toString()));
 					watcherMock.verify(() -> ProjectWatcher.catalogProject(eq("P__proj1.smss"), any()));
 				}
 			} finally {
@@ -2407,7 +2361,6 @@ class CentralCloudStorageUnitTests {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
 
 				IProject mockProject = mock(IProject.class);
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 				ReentrantLock lock = new ReentrantLock();
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2417,16 +2370,19 @@ class CentralCloudStorageUnitTests {
 
 					utilMock.when(() -> Utility.getProject("proj1", false)).thenReturn(mockProject);
 					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 					instance.pullProject("proj1", true);
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2439,7 +2395,6 @@ class CentralCloudStorageUnitTests {
 			try {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", testDir.toString());
 
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 				ReentrantLock lock = new ReentrantLock();
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2448,12 +2403,13 @@ class CentralCloudStorageUnitTests {
 						MockedStatic<ProjectWatcher> watcherMock = mockStatic(ProjectWatcher.class)) {
 
 					utilMock.when(() -> Utility.normalizePath(anyString())).thenAnswer(inv -> inv.getArgument(0));
+					secMock.when(() -> SecurityProjectUtils.projectExists("proj1")).thenReturn(true);
 					secMock.when(() -> SecurityProjectUtils.getProjectAliasForId("proj1")).thenReturn("P");
 					syncMock.when(() -> ProjectSyncUtility.getProjectLock("proj1")).thenReturn(lock);
 
 					instance.pullProject("proj1");
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "PROJECT_FOLDER", origProjectFolder);
@@ -2488,6 +2444,8 @@ class CentralCloudStorageUnitTests {
 					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
@@ -2525,6 +2483,8 @@ class CentralCloudStorageUnitTests {
 					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pushLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
@@ -2544,9 +2504,7 @@ class CentralCloudStorageUnitTests {
 
 				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
 				ReentrantLock lock = new ReentrantLock();
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-				when(mockStorageEngine.list(anyString(), (String) isNull()))
-						.thenReturn(Arrays.asList("mydata.sqlite", "other.txt"));
+				when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.sqlite", "other.txt"));
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
@@ -2560,13 +2518,14 @@ class CentralCloudStorageUnitTests {
 					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.SQLITE);
 
 					// Should only pull .sqlite files, not other.txt
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.sqlite")), anyString(),
-							(String) isNull());
-					verify(mockStorageEngine, times(1)).copyToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.sqlite")), anyString());
+					verify(mockStorageEngine, times(1)).copyToLocal(anyString(), anyString());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
@@ -2581,9 +2540,7 @@ class CentralCloudStorageUnitTests {
 
 				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
 				ReentrantLock lock = new ReentrantLock();
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-				when(mockStorageEngine.list(anyString(), (String) isNull()))
-						.thenReturn(Arrays.asList("mydata.mv.db", "other.txt"));
+				when(mockStorageEngine.list(anyString())).thenReturn(Arrays.asList("mydata.mv.db", "other.txt"));
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
@@ -2597,11 +2554,12 @@ class CentralCloudStorageUnitTests {
 					syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pullLocalDatabaseFile("db1", RdbmsTypeEnum.H2_DB);
 
-					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.mv.db")), anyString(),
-							(String) isNull());
+					verify(mockStorageEngine).copyToLocal(argThat(s -> s.contains("mydata.mv.db")), anyString());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
@@ -2616,7 +2574,6 @@ class CentralCloudStorageUnitTests {
 			Files.createFile(testDir.resolve("positions.json"));
 
 			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 			ReentrantLock lock = new ReentrantLock();
 
 			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
@@ -2632,8 +2589,7 @@ class CentralCloudStorageUnitTests {
 
 				instance.pushOwl("db1", null);
 
-				verify(mockStorageEngine).copyToStorage(eq(owlFile.toAbsolutePath().toString()), anyString(),
-						(String) isNull(), any());
+				verify(mockStorageEngine).copyToStorage(eq(owlFile.toAbsolutePath().toString()), anyString(), any());
 			}
 		}
 
@@ -2661,17 +2617,15 @@ class CentralCloudStorageUnitTests {
 			try {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
 
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
-
 				try (MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
-					smssMock.when(() -> SmssUtilities
-							.getUniqueName(prerna.auth.utils.UserAssetUtils.ASSET_APP_NAME, "proj1"))
+					smssMock.when(
+							() -> SmssUtilities.getUniqueName(prerna.auth.utils.UserAssetUtils.ASSET_APP_NAME, "proj1"))
 							.thenReturn("Asset__proj1");
 
 					instance.pullUserAsset("proj1", false);
 
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
-					verify(mockStorageEngine).copyToLocal(anyString(), eq(testDir.toString()), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
+					verify(mockStorageEngine).copyToLocal(anyString(), eq(testDir.toString()));
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
@@ -2686,7 +2640,6 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn("AssetApp");
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
@@ -2696,12 +2649,14 @@ class CentralCloudStorageUnitTests {
 					smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pullUserAsset("proj1", true);
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), (String) isNull());
+					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
@@ -2716,7 +2671,6 @@ class CentralCloudStorageUnitTests {
 
 				IProject mockProject = mock(IProject.class);
 				when(mockProject.getProjectName()).thenReturn("AssetApp");
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
@@ -2724,33 +2678,18 @@ class CentralCloudStorageUnitTests {
 					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
 					DIHelper mockDI = mock(DIHelper.class);
 					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
+					when(mockDI.getEngineProperty(Constants.ENGINES)).thenReturn("eng1");
+					when(mockDI.getProjectProperty(Constants.PROJECTS)).thenReturn("proj1");
 
 					instance.pushUserAsset("proj1");
 
 					verify(mockDI).removeProjectProperty("proj1");
 					verify(mockProject).close();
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), (String) isNull(), any());
-					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(),
-							(String) isNull(), any());
+					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), any());
+					verify(mockStorageEngine).copyToStorage(argThat(s -> s.contains(".smss")), anyString(), any());
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
-			}
-		}
-
-		// ------- deleteProject with rclone reuse -------
-
-		@Test
-		void testDeleteProject_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("rcfg");
-			try (MockedStatic<EngineUtility> euMock = mockStatic(EngineUtility.class)) {
-				euMock.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
-						.thenReturn(testDir.toString());
-
-				instance.deleteProject("proj1");
-
-				verify(mockStorageEngine, times(2)).deleteFolderFromStorage(anyString(), eq("rcfg"));
 			}
 		}
 
@@ -2765,7 +2704,6 @@ class CentralCloudStorageUnitTests {
 				Path owlFile = Files.createFile(testDir.resolve("mydb.owl"));
 				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
 				WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
@@ -2802,7 +2740,6 @@ class CentralCloudStorageUnitTests {
 						prerna.engine.impl.owl.OWLEngineFactory.class);
 				when(mockDb.getOWLEngineFactory()).thenReturn(mockFactory);
 				when(mockFactory.getWriteOWL()).thenReturn(mockOwlEngine);
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(false);
 
 				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
 						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
@@ -2820,36 +2757,6 @@ class CentralCloudStorageUnitTests {
 					verify(mockOwlEngine).reloadOWLFile();
 					// autoClose should be true - owlEngine.close() should be called
 					verify(mockOwlEngine).close();
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
-			}
-		}
-
-		@Test
-		void testPullOwl_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			String origDbFolder = EngineUtility.DATABASE_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", testDir.toString());
-
-				Path owlFile = Files.createFile(testDir.resolve("mydb.owl"));
-				IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-				WriteOWLEngine mockOwlEngine = mock(WriteOWLEngine.class);
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-				when(mockStorageEngine.createRCloneConfig()).thenReturn("cfg");
-
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class)) {
-
-					utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-					secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
-					smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
-					smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
-
-					instance.pullOwl("db1", mockOwlEngine);
-
-					verify(mockStorageEngine).deleteRcloneConfig("cfg");
 				}
 			} finally {
 				setStaticFinalField(EngineUtility.class, "DATABASE_FOLDER", origDbFolder);
@@ -2943,101 +2850,5 @@ class CentralCloudStorageUnitTests {
 			}
 		}
 
-		// ------- pushOwl with rclone reuse -------
-
-		@Test
-		void testPushOwl_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			Path owlFile = Files.createFile(testDir.resolve("mydb.owl"));
-			Path posFile = Files.createFile(testDir.resolve("positions.json"));
-
-			IDatabaseEngine mockDb = mock(IDatabaseEngine.class);
-			when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-			when(mockStorageEngine.createRCloneConfig()).thenReturn("cfg");
-			ReentrantLock lock = new ReentrantLock();
-
-			try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-					MockedStatic<SecurityEngineUtils> secMock = mockStatic(SecurityEngineUtils.class);
-					MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-					MockedStatic<EngineSyncUtility> syncMock = mockStatic(EngineSyncUtility.class)) {
-
-				utilMock.when(() -> Utility.getDatabase("db1", false)).thenReturn(mockDb);
-				secMock.when(() -> SecurityEngineUtils.getEngineAliasForId("db1")).thenReturn("Db");
-				smssMock.when(() -> SmssUtilities.getUniqueName("Db", "db1")).thenReturn("Db__db1");
-				smssMock.when(() -> SmssUtilities.getOwlFile(any(), any())).thenReturn(owlFile.toFile());
-				syncMock.when(() -> EngineSyncUtility.getEngineLock("db1")).thenReturn(lock);
-
-				instance.pushOwl("db1", null);
-
-				verify(mockStorageEngine).copyToStorage(eq(owlFile.toAbsolutePath().toString()), anyString(), eq("cfg"),
-						any());
-				// positions.json should also be pushed
-				verify(mockStorageEngine, times(2)).copyToStorage(anyString(), anyString(), eq("cfg"), any());
-				verify(mockStorageEngine).deleteRcloneConfig("cfg");
-			}
-		}
-
-		// ------- pushUserAsset with rclone reuse -------
-
-		@Test
-		void testPushUserAsset_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
-
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("AssetApp");
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-				when(mockStorageEngine.createRCloneConfig()).thenReturn("rcfg");
-
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
-
-					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-
-					instance.pushUserAsset("proj1");
-
-					verify(mockStorageEngine).syncLocalToStorage(anyString(), anyString(), eq("rcfg"), any());
-					verify(mockStorageEngine).copyToStorage(anyString(), anyString(), eq("rcfg"), any());
-					verify(mockStorageEngine).deleteRcloneConfig("rcfg");
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
-			}
-		}
-
-		// ------- pullUserAsset with rclone reuse -------
-
-		@Test
-		void testPullUserAsset_loaded_withRcloneReuse(@TempDir Path testDir) throws Exception {
-			String origUserFolder = EngineUtility.USER_FOLDER;
-			try {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", testDir.toString());
-
-				IProject mockProject = mock(IProject.class);
-				when(mockProject.getProjectName()).thenReturn("AssetApp");
-				when(mockStorageEngine.canReuseRcloneConfig()).thenReturn(true);
-				when(mockStorageEngine.createRCloneConfig()).thenReturn("rcfg");
-
-				try (MockedStatic<Utility> utilMock = mockStatic(Utility.class);
-						MockedStatic<SmssUtilities> smssMock = mockStatic(SmssUtilities.class);
-						MockedStatic<DIHelper> diMock = mockStatic(DIHelper.class)) {
-
-					utilMock.when(() -> Utility.getUserAssetProject("proj1")).thenReturn(mockProject);
-					smssMock.when(() -> SmssUtilities.getUniqueName("AssetApp", "proj1")).thenReturn("AssetApp__proj1");
-					DIHelper mockDI = mock(DIHelper.class);
-					diMock.when(DIHelper::getInstance).thenReturn(mockDI);
-
-					instance.pullUserAsset("proj1", true);
-
-					verify(mockStorageEngine).syncStorageToLocal(anyString(), anyString(), eq("rcfg"));
-					verify(mockStorageEngine).copyToLocal(anyString(), anyString(), eq("rcfg"));
-					verify(mockStorageEngine).deleteRcloneConfig("rcfg");
-				}
-			} finally {
-				setStaticFinalField(EngineUtility.class, "USER_FOLDER", origUserFolder);
-			}
-		}
 	}
 }

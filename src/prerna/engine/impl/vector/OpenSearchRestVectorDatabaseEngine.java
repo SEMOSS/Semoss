@@ -116,6 +116,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	private static final String NEAREST_NEIGHBOR_QUERY = "NEAREST_NEIGHBOR_QUERY";
 	private static final String NEAREST_NEIGHBOR_RESULTS_PATH = "NEAREST_NEIGHBOR_RESULTS_PATH";
 
+	private static final String HYBRID_SEARCH_PIPELINE_NAME = "semoss-hybrid-pipeline";
+	private static final String PIPELINES_ENDPOINT = "/_search/pipeline";
+
 	private static final String DEFAULT_LIST_DOCUMENTS_QUERY = """
 				{
 				  "size": 0,
@@ -179,6 +182,50 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 				  }
 				}
 			""";
+	private static final String HYBRID_PIPELINE_BODY = """
+			{
+			  "phase_results_processors": [
+			    {
+			      "normalization-processor": {
+			        "normalization": {
+			          "technique": "min_max"
+			        },
+			        "combination": {
+			          "technique": "arithmetic_mean"
+			        }
+			      }
+			    }
+			  ]
+			}
+			""";
+	private static final String DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY = """
+				{
+				  "from": ${FROM},
+				  "size": ${SIZE},
+				  "query": {
+				    "hybrid": {
+				      "queries": [
+				        {
+				          "match": {
+				            "%s": {
+				              "query": ${QUERY}
+				            }
+				          }
+				        },
+				        {
+				          "knn": {
+				            "${EMBEDDINGS}": {
+				              "vector": ${VECTOR},
+				              "k": ${K},
+				              "filter": ${FILTER}
+				            }
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+			""".formatted(VectorDatabaseCSVTable.CONTENT);
 	private static final String DEFAULT_NEAREST_NEIGHBOR_RESULTS_PATH = "$.hits.hits[*]";
 
 	private String clusterUrl = null;
@@ -277,6 +324,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			}
 		}
 
+		if (this.useHybridSearch) {
+			ensureHybridPipeline();
+		}
+
 		if (!externallyManagedIndex) {
 			String additionalMappingsStr = this.smssProp.getProperty(ADDITIONAL_MAPPINGS);
 			if (additionalMappingsStr != null && !(additionalMappingsStr = additionalMappingsStr.trim()).isEmpty()) {
@@ -352,18 +403,10 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		List<JsonObject> bulkInsert = new ArrayList<>();
 		Map<String, Integer> fileRecordCountMap = new HashMap<>();
-		Set<String> fileNamesSet = new HashSet<>();
-		Map<String, Integer> sourceId = new HashMap<>();
 		for (VectorDatabaseCSVRow row : vectorCsvTable.getRows()) {
 			String source = row.getSource();
-			fileRecordCountMap.put(source, fileRecordCountMap.getOrDefault(source, 0) + 1);
-			int index = 0;
-			if (sourceId.containsKey(source)) {
-				index = sourceId.get(source);
-				sourceId.put(source, ++index);
-			} else {
-				sourceId.put(source, 0);
-			}
+			int index = fileRecordCountMap.getOrDefault(source, 0) + 1;
+			fileRecordCountMap.put(source, index);
 
 			// store creation of the index
 			{
@@ -413,13 +456,13 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 			Map<String, Object> index = (Map<String, Object>) item.get("index");
 			if (index.containsKey("error")) {
 				String id = (String) index.get("_id"); // format: fileName_index
-				String[] parts = id.split("_");
-				String fileName = parts[0];
+				int lastUnderscore = id.lastIndexOf('_');
+				String fileName = id.substring(0, lastUnderscore);
 				failedCountPerFile.put(fileName, failedCountPerFile.getOrDefault(fileName, 0) + 1);
 			}
 		}
 		List<FileEmbeddingStatus> fileStatusList = new ArrayList<>();
-		for (String fileName : fileNamesSet) {
+		for (String fileName : fileRecordCountMap.keySet()) {
 			int total = fileRecordCountMap.getOrDefault(fileName, 0);
 			int failed = failedCountPerFile.getOrDefault(fileName, 0);
 			int inserted = total - failed;
@@ -534,8 +577,14 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	@Override
 	public List<Map<String, Object>> nearestNeighborCall(Insight insight, String searchStatement, Number limit,
 			Map<String, Object> parameters) {
+		String nearestNeighborQueryToRun = this.useHybridSearch ? DEFAULT_HYBRID_NEAREST_NEIGHBOR_QUERY
+				: nearestNeighborQuery;
+		String nearestNeighborSearchEndpoint = this.useHybridSearch
+				? SEARCH_ENDPOINT + "?search_pipeline=" + HYBRID_SEARCH_PIPELINE_NAME
+				: SEARCH_ENDPOINT;
+
 		String vectorString = "";
-		if (nearestNeighborQuery.contains("${VECTOR}")) {
+		if (nearestNeighborQueryToRun.contains("${VECTOR}")) {
 			if (!this.modelPropsLoaded) {
 				verifyModelProps();
 			}
@@ -619,9 +668,9 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 			StringSubstitutor substitutor = new StringSubstitutor(replacements);
 			substitutor.setEnableSubstitutionInVariables(true);
-			String searchString = substitutor.replace(nearestNeighborQuery);
+			String searchString = substitutor.replace(nearestNeighborQueryToRun);
 
-			String searchResponse = getSearchResponse(searchString);
+			String searchResponse = getSearchResponse(searchString, nearestNeighborSearchEndpoint);
 			DocumentContext jsonContext = JsonPath.using(configuration).parse(searchResponse);
 
 			Set<String> hitKeys = new HashSet<>();
@@ -1028,12 +1077,34 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 	}
 
 	/**
-	 * 
-	 * @param searchBody
-	 * @return
+	 * Creates the OpenSearch search pipeline used for hybrid (vector + BM25)
+	 * search. Applies min-max score normalization and arithmetic mean combination,
+	 * which is the standard approach for OpenSearch hybrid search (GA since 2.10).
+	 *
+	 * Safe to call on every engine startup — PUT is idempotent.
 	 */
+	private void ensureHybridPipeline() {
+		String url = this.clusterUrl + PIPELINES_ENDPOINT + "/" + HYBRID_SEARCH_PIPELINE_NAME;
+		Map<String, String> headersMap = new HashMap<>();
+		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
+		headersMap.put(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+
+		String response = HttpHelperUtility.putRequestStringBody(url, headersMap, HYBRID_PIPELINE_BODY,
+				ContentType.APPLICATION_JSON, null, null, null);
+		if (!parseResponseForAcknowledged(response)) {
+			classLogger.warn("Did not receive acknowledgement when creating hybrid search pipeline '{}'; "
+					+ "hybrid search queries may fail", HYBRID_SEARCH_PIPELINE_NAME);
+		} else {
+			classLogger.info("Hybrid search pipeline '{}' is ready", HYBRID_SEARCH_PIPELINE_NAME);
+		}
+	}
+
 	protected String getSearchResponse(String searchBody) {
-		String url = this.clusterUrl + "/" + this.indexName + SEARCH_ENDPOINT;
+		return getSearchResponse(searchBody, SEARCH_ENDPOINT);
+	}
+
+	protected String getSearchResponse(String searchBody, String searchEndpoint) {
+		String url = this.clusterUrl + "/" + this.indexName + searchEndpoint;
 		Map<String, String> headersMap = new HashMap<>();
 		headersMap.put(HttpHeaders.AUTHORIZATION, "Basic " + getCredsBase64Encoded());
 		headersMap.put(HttpHeaders.CONTENT_TYPE, "application/json");

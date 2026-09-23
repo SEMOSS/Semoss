@@ -38,6 +38,8 @@ import java.util.Vector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ISelectStatement;
@@ -86,6 +88,10 @@ public class GetPlaysheetParamsReactor extends AbstractReactor {
 			projectId = this.store.getGenRowStruct("app").get(0) + "";
 		}
 		String insightId = this.keyValue.get(this.keysToGet[1]);
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, insightId)) {
+			throw new IllegalArgumentException("User does not have access to this insight");
+		}
 		IProject project = Utility.getProject(projectId);
 		Insight in = project.getInsight(insightId).get(0);
 		Map<String, Object> outputHash = new Hashtable<String, Object>();

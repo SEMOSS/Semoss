@@ -1,0 +1,48 @@
+name: semoss-weaviate
+
+# Weaviate - vector DB.
+#
+# Run:    docker compose -f semoss-weaviate.yml up -d
+# Stop:   docker compose -f semoss-weaviate.yml down          (add -v to wipe data)
+# Check:  curl http://localhost:8081/v1/.well-known/ready
+#
+# Equivalent to the docker run with API-key auth enabled (key: test-key).
+services:
+  weaviate:
+    image: semitechnologies/weaviate:1.38.6
+    container_name: semoss-weaviate
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8080"
+      - --scheme
+      - http
+    ports:
+      - "8081:8080"     # REST API on host 8081, container stays 8080
+      - "50051:50051"   # gRPC - required by the v6 (client6) Java client
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "test-key"
+      AUTHENTICATION_APIKEY_USERS: "tester@semoss.org"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: ""
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      QUERY_DEFAULTS_LIMIT: "25"
+      # stable node identity so single-node RAFT keeps its leader across restarts
+      # (without this Weaviate uses the random container hostname -> "leader not found")
+      CLUSTER_HOSTNAME: "node1"
+      RAFT_BOOTSTRAP_EXPECT: "1"
+    volumes:
+      - weaviate-data:/var/lib/weaviate
+    networks:
+      - semoss-net
+
+volumes:
+  weaviate-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

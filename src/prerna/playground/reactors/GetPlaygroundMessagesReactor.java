@@ -28,28 +28,20 @@
 package prerna.playground.reactors;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
-
 import prerna.auth.User;
-import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
-import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
-import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
-import prerna.util.Utility;
 
 public class GetPlaygroundMessagesReactor extends AbstractReactor {
 
@@ -121,45 +113,9 @@ public class GetPlaygroundMessagesReactor extends AbstractReactor {
 		 */
 		List<AbstractMessage> page = RoomUtils.getPagedMessages(room.getMessages(), dateSort, offset, limit);
 
-		/**
-		 * Populate the per-room LLM-name lookup map so that new short-prefix tool names
-		 * can be resolved without regex parsing. Uses the model engine's max length to
-		 * reproduce the same name transformations that were applied when messages were
-		 * stored.
-		 */
-		IModelEngine roomModelEngine = null;
-		String modelId = room.getModelId();
-		if (modelId != null) {
-			try {
-				roomModelEngine = (IModelEngine) Utility.getEngine(modelId);
-			} catch (Exception ignore) {
-			}
-		}
-		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine));
-
-		Map<String, JSONObject> toolCache = new HashMap<>();
-		boolean hideSystemMessages = PlaygroundThemeUtils.hidePlaygroundSystemMessages();
-		for (AbstractMessage m : page) {
-			if (m.hasParts() && m.hasToolCallPart()) {
-				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
-						room.getToolLookupByLLMName());
-			}
-			// legacy check
-			else if (m.getMessageType() == MessageType.RESPONSE_TOOL) {
-				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) m, toolCache,
-						room.getToolLookupByLLMName());
-			}
-			Map<String, Object> messageMap = jsonToMap(MessageUtils.toJsonWithImage(m));
-			if (hideSystemMessages) {
-				MessageUtils.removeSystemPromptFromMessageMap(messageMap);
-			}
-//				if (m instanceof prerna.engine.impl.model.message.InputMessage) {
-//					MessageUtils.applyLegacyInputFields((prerna.engine.impl.model.message.InputMessage) m,
-//							messageMap);
-//				} else if (m instanceof ResponseMessage) {
-//					MessageUtils.applyLegacyResponseFields((ResponseMessage) m, messageMap);
-//				}
-			outputMap.add(messageMap);
+		outputMap.addAll(RoomUtils.getMessagesForClient(room, page));
+		if (PlaygroundThemeUtils.hidePlaygroundSystemMessages()) {
+			outputMap.forEach(MessageUtils::removeSystemPromptFromMessageMap);
 		}
 
 		return new NounMetadata(outputMap, PixelDataType.VECTOR);

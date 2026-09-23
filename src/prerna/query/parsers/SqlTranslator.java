@@ -43,10 +43,12 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.select.Select;
+import net.sf.jsqlparser.statement.select.SelectVisitor;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 import net.sf.jsqlparser.util.deparser.SelectDeParser;
 
 public class SqlTranslator {
+
 	private Iterator<Collection<String>> it = null;
 	private Map<String, List<String>> translationMap = null;
 
@@ -78,8 +80,9 @@ public class SqlTranslator {
 
 	/**
 	 * Replace query with new column/table names
-	 * @param query      Query to replace
-	 * @param mapCombo   {"oldName":"newName"}
+	 * 
+	 * @param query    Query to replace
+	 * @param mapCombo {"oldName":"newName"}
 	 * @return
 	 * @throws JSQLParserException
 	 */
@@ -88,7 +91,7 @@ public class SqlTranslator {
 		StringBuilder buffer = new StringBuilder();
 		ExpressionDeParser expressionDeParser = new ExpressionDeParser() {
 			@Override
-			public void visit(Column tableColumn) {
+			public <S> StringBuilder visit(Column tableColumn, S context) {
 				Table table = tableColumn.getTable();
 				if (table != null) {
 					String tableName = table.getName();
@@ -104,56 +107,32 @@ public class SqlTranslator {
 					String newColumnName = mapCombo.get(colName);
 					tableColumn.setColumnName(newColumnName);
 				}
-				super.visit(tableColumn);
+				return super.visit(tableColumn, context);
 			}
 		};
 		SelectDeParser deparser = new SelectDeParser(expressionDeParser, buffer) {
 			@Override
-			public void visit(Table table) {
+			public <S> StringBuilder visit(Table table, S context) {
 				String tableName = table.getName();
 				// replace table name
 				if (mapCombo.containsKey(tableName)) {
 					String newTableName = mapCombo.get(tableName);
 					table.setName(newTableName);
 				}
-				super.visit(table);
+				return super.visit(table, context);
 			}
 		};
 		expressionDeParser.setSelectVisitor(deparser);
-		expressionDeParser.setBuffer(buffer);
-		select.getSelectBody().accept(deparser);
+		expressionDeParser.setBuilder(buffer);
+		// SelectDeParser is both a SelectVisitor and a FromItemVisitor, and Select
+		// accepts
+		// either, so the visitor type has to be pinned down for overload resolution
+		select.accept((SelectVisitor<StringBuilder>) deparser, null);
 		return buffer.toString();
 	}
 
-//	public static void main(String args[]) throws JSQLParserException {
-//
-//		Map<String, List<String>> map = new HashMap<>();
-//		map.put("a", Arrays.asList(new String[] { "x", "y" }));
-//		map.put("b", Arrays.asList(new String[] { "z", "d" }));
-//		map.put("c", Arrays.asList(new String[] { "d", "f" }));
-//		String sql = "select a , b from t";
-//
-//		sql = "SELECT t1.a, t2.b FROM t t1 INNER JOIN t t2 ON t1.a = t2.b";
-//		sql = "select min(a)from(select distinct b from t order by salary desc)where rownum<=2;";
-//		sql = "Select * from Employee a where rowid <>( select max(rowid) from Employee b where a.Employee_num=b.Employee_num);";
-//		sql = " Select * from Employee where t =1;";
-//		sql = "SELECT DISTINCT TEDI.a AS \"DeersEnrollmentFacilityName\" , TEDI.b AS \"totalPatientCostShare\" FROM t TEDI";
-//		sql = "select distinct salary from employee a where 3 >= (select count(distinct salary) from employee b where a.salary <= b.salary) order by a.salary desc;";
-//		sql = "select a, b from c;";
-//		SqlTranslator translator = new SqlTranslator(map);
-//		try {
-//			Set<String> queries = translator.processQuery(sql);
-//			for(String q: queries) {
-//				System.out.println(q);
-//			}
-//		} catch (Exception e) {
-//			classLogger.error(Constants.STACKTRACE, e);
-//		}
-//
-//	}
-	
 	/**
-	 * Generate combinations for Lists 
+	 * Generate combinations for Lists
 	 */
 	private class CombinatorIterator implements Iterator<Collection<String>> {
 		private final String[][] arrays;
@@ -199,5 +178,3 @@ public class SqlTranslator {
 	}
 
 }
-
-

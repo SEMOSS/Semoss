@@ -27,16 +27,21 @@
  *******************************************************************************/
 package prerna.reactor.security;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
+import prerna.engine.api.IEngine;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 
 public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
+	private static final String CAPABILITIES_KEY = "capabilities";
 
 	public SetEngineMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), META, ReactorKeysEnum.JSON_CLEANUP.getKey() };
@@ -51,7 +56,8 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 			throw new IllegalArgumentException("Engine does not exist or user does not have access to edit");
 		}
 
-		Map<String, Object> metadata = getMetaMap();
+		Map<String, Object> metadata = new LinkedHashMap<>(getMetaMap());
+		Map<String, Object> capabilityUpdates = getCapabilityUpdates(engineId, metadata);
 		// check for invalid metakeys
 		List<String> validMetakeys = SecurityEngineUtils.getAllMetakeys();
 		if (!validMetakeys.containsAll(metadata.keySet())) {
@@ -59,6 +65,9 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 		}
 
 		SecurityEngineUtils.updateEngineMetadata(engineId, metadata);
+		if (capabilityUpdates != null && !capabilityUpdates.isEmpty()) {
+			SecurityModelMetadataUtils.updateModelMetadata(engineId, capabilityUpdates);
+		}
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(
 				NounMetadata.getSuccessNounMessage("Successfully set the new metadata values for the engine"));
@@ -67,17 +76,51 @@ public class SetEngineMetadataReactor extends AbstractSetMetadataReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Define metadata on a datasource";
+		return "Defines metadata on an engine, including model capabilities when supplied";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(META)) {
-			return "Map containing {'metaKey':['value1','value2', etc.]} containing the list of metadata values to define on the engine. The list of values will determine the order that is defined for field";
+			return "Map containing engine metadata values. Model engines may also include editable capability, modality, token, and built-in tool values in a capabilities map.";
 		} else if (key.equals(ReactorKeysEnum.JSON_CLEANUP.getKey())) {
 			return "Legacy compatibility flag for older clients that sent escaped JSON strings. Modern clients should not set this.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	private Map<String, Object> getCapabilityUpdates(String engineId, Map<String, Object> metadata) {
+		if (!metadata.containsKey(CAPABILITIES_KEY)) {
+			return null;
+		}
+
+		Object value = metadata.remove(CAPABILITIES_KEY);
+		if (!(value instanceof Map<?, ?> capabilities)) {
+			throw new IllegalArgumentException("Capabilities must be a map");
+		}
+		if (SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL) {
+			throw new IllegalArgumentException("Capabilities can only be set on a model engine");
+		}
+
+		Map<String, Object> updates = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : capabilities.entrySet()) {
+			if (!(entry.getKey() instanceof String capabilityKey)) {
+				throw new IllegalArgumentException("Capability field names must be strings");
+			}
+
+			String modelMetadataKey = switch (capabilityKey) {
+			case "capability" -> Constants.MODEL_CAPABILITY;
+			case "inputModalities" -> Constants.INPUT_MODALITIES;
+			case "outputModalities" -> Constants.OUTPUT_MODALITIES;
+			case "contextWindow" -> Constants.CONTEXT_WINDOW;
+			case "maxOutputTokens" -> Constants.MAX_TOKENS;
+			case "builtinTools" -> Constants.BUILTIN_TOOLS;
+			default -> throw new IllegalArgumentException("Unallowed capability field " + capabilityKey);
+			};
+			updates.put(modelMetadataKey, entry.getValue());
+		}
+
+		return SecurityModelMetadataUtils.normalizeModelDetails(updates);
 	}
 
 }

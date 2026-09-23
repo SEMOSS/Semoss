@@ -1,0 +1,58 @@
+name: semoss-opensearch
+
+# OpenSearch - vector DB + dashboards.
+#
+# Run:   docker compose -f opensearch.yml up -d
+# Stop:  docker compose -f opensearch.yml down        (add -v to wipe data)
+#
+# The admin password must satisfy OpenSearch's complexity rules. A default is
+# provided below; override it by exporting OPENSEARCH_INITIAL_ADMIN_PASSWORD or
+# putting it in a .env file next to this compose file.
+services:
+  opensearch:
+    image: opensearchproject/opensearch:2.19.5
+    container_name: semoss-opensearch
+    environment:
+      - cluster.name=opensearch-local
+      - node.name=opensearch-node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-Str0ngVectorP@ss1}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    ports:
+      - "9200:9200"   # REST API (HTTPS, self-signed cert)
+      - "9600:9600"   # performance analyzer
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    networks:
+      - semoss-net
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.19.5
+    container_name: semoss-opensearch-dashboards
+    ports:
+      - "5601:5601"   # web UI
+    environment:
+      - OPENSEARCH_HOSTS=["https://semoss-opensearch:9200"]
+      - OPENSEARCH_USERNAME=admin
+      - OPENSEARCH_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD:-Str0ngVectorP@ss1}
+      - NODE_TLS_REJECT_UNAUTHORIZED=0
+    networks:
+      - semoss-net
+    depends_on:
+      - opensearch
+
+volumes:
+  opensearch-data:
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

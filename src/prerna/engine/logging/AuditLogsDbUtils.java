@@ -29,7 +29,6 @@ package prerna.engine.logging;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -40,10 +39,11 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.javatuples.Pair;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.logging.LogActivityRecord;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.OrQueryFilter;
@@ -80,127 +80,6 @@ public class AuditLogsDbUtils {
 	}
 
 	/**
-	 * @param engine
-	 * @param conn
-	 * @param columnNamesAndTypes
-	 * @throws SQLException
-	 */
-	private static void executeInitDatabaseSchema(IRDBMSEngine auditLogsDb, Connection conn,
-			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-
-		String database = auditLogsDb.getDatabase();
-		String schema = auditLogsDb.getSchema();
-
-		AbstractSqlQueryUtil queryUtil = auditLogsDb.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(auditLogsDb, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					executeSql(conn, addColumnSql);
-				}
-			}
-		}
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
-					List.of("PROJECT_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
-					List.of("USER_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
-					List.of("ENGINE_ID", "LOG_TIMESTAMP"));
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
-			classLogger.info("Running sql " + sql);
-			executeSql(conn, sql);
-		} else {
-			// REQUEST_ID
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID");
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-			// COMPOSITE INDEX PROJECT_ID + LOG_TIMESTAMP
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS",
-						List.of("PROJECT_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-			// COMPOSITE INDEX USER_ID + LOG_TIMESTAMP
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS",
-						List.of("USER_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-			// COMPOSITE INDEX ENGINE_ID + LOG_TIMESTAMP
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS",
-						List.of("ENGINE_ID", "LOG_TIMESTAMP"));
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-			// SESSION_ID
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID");
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-			// ROOM_ID
-			if (!queryUtil.indexExists(auditLogsDb, "AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", database, schema)) {
-				String sql = queryUtil.createIndex("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID");
-				classLogger.info("Running sql " + sql);
-				executeSql(conn, sql);
-			}
-		}
-	}
-
-	/**
-	 * @param conn
-	 * @param sql
-	 * @throws SQLException
-	 */
-	private static void executeSql(Connection conn, String sql) throws SQLException {
-		try (Statement stmt = conn.createStatement()) {
-			classLogger.info("Running sql " + sql);
-			stmt.execute(sql);
-		}
-	}
-
-	/**
 	 * 
 	 * @return
 	 */
@@ -223,7 +102,19 @@ public class AuditLogsDbUtils {
 		Connection conn = null;
 		try {
 			conn = auditLogsDb.getConnection();
-			executeInitDatabaseSchema(auditLogsDb, conn, owlCreator.getDBSchema());
+
+			// create the tables and columns from the OWL creator schema
+			AbstractOwlCreator.syncSchema(auditLogsDb, conn, owlCreator.getDBSchema());
+
+			// create the indexes on the tables
+			AbstractOwlCreator.syncIndexes(auditLogsDb, conn,
+					List.of(OwlIndex.of("AUDIT_LOGS__REQUEST_ID_INDEX", "AUDIT_LOGS", "REQUEST_ID"),
+							OwlIndex.of("AUDIT_LOGS__PROJECT_TS_INDEX", "AUDIT_LOGS", "PROJECT_ID", "LOG_TIMESTAMP"),
+							OwlIndex.of("AUDIT_LOGS__USER_TS_INDEX", "AUDIT_LOGS", "USER_ID", "LOG_TIMESTAMP"),
+							OwlIndex.of("AUDIT_LOGS__ENGINE_TS_INDEX", "AUDIT_LOGS", "ENGINE_ID", "LOG_TIMESTAMP"),
+							OwlIndex.of("AUDIT_LOGS__SESSION_ID_INDEX", "AUDIT_LOGS", "SESSION_ID"),
+							OwlIndex.of("AUDIT_LOGS__ROOM_ID_INDEX", "AUDIT_LOGS", "ROOM_ID")));
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -270,6 +161,9 @@ public class AuditLogsDbUtils {
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__LOG_TIMESTAMP"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__REQUEST_START_TIME"));
 		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__RESPONSE_END_TIME"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__GUARDRAIL_ACTION"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_READ_TOKENS"));
+		qs.addSelector(new QueryColumnSelector("AUDIT_LOGS__NUMBER_OF_CACHE_CREATION_TOKENS"));
 
 		addStartDateEndDateFitler(qs, "AUDIT_LOGS__LOG_TIMESTAMP", startDate, endDate);
 		addFilter(qs, "AUDIT_LOGS__USER_ID", "==", userId);
@@ -310,18 +204,23 @@ public class AuditLogsDbUtils {
 			String engineName = getOrDefault(map.get("ENGINE_NAME"), null);
 			String engineType = getOrDefault(map.get("ENGINE_TYPE"), null);
 			boolean status = map.get("IS_SUCCESS") instanceof Boolean && (Boolean) map.get("IS_SUCCESS");
-			int tokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"))
-					+ getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			int promptTokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_PROMPT"));
+			int responseTokens = getIntValue(map.get("NUMBER_OF_TOKENS_IN_RESPONSE"));
+			int tokens = promptTokens + responseTokens;
 			String methodName = getOrDefault(map.get("METHOD_NAME"), "");
 			String userNameFromRow = getOrDefault(map.get("USER_NAME"), null);
 			String userIdFromRow = getOrDefault(map.get("USER_ID"), null);
 			String sessionIdFromRow = getOrDefault(map.get("SESSION_ID"), null);
 			String spanIdFromRow = getOrDefault(map.get("SPAN_ID"), null);
 			String logTimestamp = toUtcIso(map.get("LOG_TIMESTAMP"));
+			String guardrailAction = getOrDefault(map.get("GUARDRAIL_ACTION"), null);
+			int cacheReadTokens = getIntValue(map.get("NUMBER_OF_CACHE_READ_TOKENS"));
+			int cacheCreationTokens = getIntValue(map.get("NUMBER_OF_CACHE_CREATION_TOKENS"));
 
 			activityList.add(new LogActivityRecord(requestId, startTime, endTime, request, response, tokens, latency,
 					status, engineName, engineType, methodName, userNameFromRow, userIdFromRow, sessionIdFromRow,
-					spanIdFromRow, logTimestamp));
+					spanIdFromRow, logTimestamp, guardrailAction, cacheReadTokens, cacheCreationTokens, promptTokens,
+					responseTokens));
 
 		}
 		return activityList;

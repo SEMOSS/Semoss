@@ -49,7 +49,7 @@ public class GenericMapLambda extends AbstractMapLambda {
 		// extends the map transformation interface
 		myClass.addSuper(CLASS_NAME);
 		// add all the imports
-		for(int i = 0; i > imports.size(); i++) {
+		for(int i = 0; i < imports.size(); i++) {
 			String importPackage = imports.get(i).trim();
 			if(importPackage.endsWith(";")) {
 				importPackage = importPackage.substring(0, importPackage.length()-1);

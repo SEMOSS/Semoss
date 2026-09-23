@@ -2,6 +2,10 @@ from typing import List, Dict, Any, Optional, Tuple, Union
 import json
 from pydantic import BaseModel
 from ...utils import get_image_extension, string_to_bool
+from ..semoss_base.builtin_tools import (
+    built_in_tool_request_fields,
+    normalize_built_in_tools,
+)
 from ..semoss_base.reasoning import normalize_reasoning
 from .openai_models import (
     OpenAIResponsesToolCall,
@@ -29,6 +33,7 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
 
 
@@ -63,8 +68,11 @@ class OpenAIMessageBuilder:
             request.update(self.model_settings.global_param_override)
 
         if "built_in_tools" in request:
-            built_in_tools = request.pop("built_in_tools")
-            openai_built_in = [{"type": tool} for tool in built_in_tools]
+            openai_built_in = []
+            for selection in normalize_built_in_tools(request.pop("built_in_tools")):
+                spec = built_in_tool_request_fields(selection)
+                spec.setdefault("type", selection["alias"])
+                openai_built_in.append(spec)
             if openai_built_in:
                 existing_tools = request.get("tools", [])
                 existing_tools.extend(openai_built_in)
@@ -135,7 +143,9 @@ class OpenAIMessageBuilder:
                         if is_assistant:
                             # OpenAI does not allow image blocks in assistant turns;
                             # add a text placeholder and queue the image for a synthetic user message.
-                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            file_name = (
+                                getattr(p.media_info, "file_name", None) or "image"
+                            )
                             content_parts.append(
                                 self._build_text_content_part(
                                     f"[Generated image: {file_name}]",
@@ -191,11 +201,13 @@ class OpenAIMessageBuilder:
                             )
                             content_parts = []
 
+                        output = p.tool_result.output or "Tool executed successfully."
+                        blocks = parse_multimodal_tool_response(output)
                         openai_messages.append(
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
                                 call_id=p.tool_result.id,
-                                output=p.tool_result.output,
+                                output=self._build_responses_tool_output(output, blocks),
                             )
                         )
 
@@ -255,11 +267,13 @@ class OpenAIMessageBuilder:
                     continue
 
                 if message.type == "INPUT_TOOL_EXEC" and message.tool_call_id:
+                    output = message.content or "Tool executed successfully."
+                    blocks = parse_multimodal_tool_response(output)
                     openai_messages.append(
                         OpenAIResponsesToolCallOutput(
                             type="function_call_output",
                             call_id=message.tool_call_id,
-                            output=message.content,
+                            output=self._build_responses_tool_output(output, blocks),
                         )
                     )
                     if is_last:
@@ -355,7 +369,9 @@ class OpenAIMessageBuilder:
                         if is_assistant:
                             # OpenAI does not allow image blocks in assistant turns;
                             # add a text placeholder and queue the image for a synthetic user message.
-                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            file_name = (
+                                getattr(p.media_info, "file_name", None) or "image"
+                            )
                             content_parts.append(
                                 self._build_text_content_part(
                                     f"[Generated image: {file_name}]"
@@ -887,6 +903,8 @@ class OpenAIMessageBuilder:
             param_map.pop("max_tokens", None)
             or param_map.pop("max_new_tokens", None)
             or param_map.pop("max_completion_tokens", None)
+            or param_map.pop("max_output_tokens", None)
+            or self.model_settings.max_tokens
         )
         if max_tokens:
             param_map["max_output_tokens"] = max_tokens
@@ -946,6 +964,8 @@ class OpenAIMessageBuilder:
             param_map.pop("max_tokens", None)
             or param_map.pop("max_new_tokens", None)
             or param_map.pop("max_output_tokens", None)
+            or param_map.pop("max_completion_tokens", None)
+            or self.model_settings.max_tokens
         )
         if max_tokens:
             param_map["max_completion_tokens"] = max_tokens
@@ -1017,6 +1037,28 @@ class OpenAIMessageBuilder:
                 return OpenAIRoles.ASSISTANT.value
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _build_responses_tool_output(self, output: str, blocks):
+        """Convert SEMOSS multimodal blocks to Responses API tool content.
+        Images become input_image data-URIs; documents become input_file blocks."""
+        if blocks is None:
+            return output or "Tool executed successfully."
+        result = []
+        for b in blocks:
+            if b.type == "text":
+                result.append({"type": "input_text", "text": b.text})
+            elif not b.data:
+                continue  # unresolved file ref - Java should have inlined this
+            elif b.type == "image":
+                mime = b.mime_type or "image/png"
+                result.append({"type": "input_image",
+                               "image_url": f"data:{mime};base64,{b.data}"})
+            else:
+                mime = b.mime_type or "application/pdf"
+                result.append({"type": "input_file",
+                               "filename": "document.pdf",
+                               "file_data": f"data:{mime};base64,{b.data}"})
+        return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(
         self, content: str, type: Optional[str] = "input_text"
@@ -1147,120 +1189,3 @@ class OpenAIMessageBuilder:
         if resolved is None:
             return None
         return self._OPENAI_EFFORT.get(resolved.effort, "medium")
-
-    # def _truncate_by_tokens(
-    #     self,
-    #     messages: List[dict],
-    #     safe_window: int,
-    #     keep_system: bool = True,
-    # ) -> List[dict]:
-    #     """
-    #     Returns a ChatML history whose **total** token count
-    #     is <= safe_window.
-    #     Oldest non-system messages are dropped first; when only
-    #     one message needs trimming we cut tokens from its *start*.
-    #     """
-
-    #     # --- Tokenise *once* ----------------------------------------
-    #     toks_per_msg = []
-    #     total = 0
-    #     for m in messages:
-    #         toks = self.tokenizer._safe_encode(m["content"])
-    #         toks_per_msg.append(toks)
-    #         total += len(toks)
-
-    #     if total <= safe_window:
-    #         return messages  # nothing to do
-
-    #     to_cut = total - safe_window  # exact excess
-    #     keep_flags = [True] * len(messages)
-
-    #     # --- Build truncation order ---------------------------------
-    #     # oldest->newest
-    #     # if keep_system, then we will maintain it up until the last message
-    #     order = list(range(len(messages)))
-    #     if keep_system and messages and messages[0]["role"] == "system":
-    #         # assuming we have [system_prompt, message2, message3, message4]
-    #         # Process order: message2, message3, system_prompt, message4
-    #         order = list(range(1, len(messages) - 1)) + [
-    #             0,
-    #             len(messages) - 1,
-    #         ]
-
-    #     # --- Drop or trim -------------------------------------------
-    #     for idx in order:
-    #         if to_cut == 0:
-    #             break
-    #         toks = toks_per_msg[idx]
-    #         if len(toks) <= to_cut:
-    #             # drop whole message
-    #             keep_flags[idx] = False
-    #             to_cut -= len(toks)
-    #         else:
-    #             # keep tail part of this message
-    #             toks_per_msg[idx] = toks[-(len(toks) - to_cut) :]
-    #             to_cut = 0
-
-    #     # --- Re-build ChatML ----------------------------------------
-    #     new_messages = []
-    #     for keep, m, toks in zip(keep_flags, messages, toks_per_msg):
-    #         if not keep:
-    #             continue
-    #         m = m.copy()
-    #         m["content"] = self.tokenizer._safe_decode(toks)
-    #         new_messages.append(m)
-    #     return new_messages
-
-    # def check_token_limits(
-    #     self,
-    #     messages: List,
-    #     max_tokens: int,
-    #     context_window: int,
-    # ) -> Tuple[List, int, AskModelEngineResponse]:
-    #     """
-    #     Calculate tokens in the prompt and adjust max_completion_tokens to fit within context window.
-    #     Args:
-    #         messages (List): The prompt in the form of chat history
-    #         max_tokens (int): The maximum tokens for completion
-    #         context_window (int): The model's context window size
-    #     Returns:
-    #         Tuple[List, int, AskModelEngineResponse]: The truncated messages, adjusted max_tokens, and response object
-    #     """
-    #     model_engine_response = AskModelEngineResponse()
-    #     warnings = []
-
-    #     # Saving 10% of the context window for completion tokens at minimum
-    #     # We can consider updating this in the future to something more nuanced
-    #     safe_window = int(context_window * 0.9)
-
-    #     # Get token count for all messages
-    #     message_tokens = self.tokenizer.count_tokens(messages)
-
-    #     updated_messages = messages.copy()
-
-    #     # The total tokens we have to remove (if a positive number)
-    #     tokens_over_limit = message_tokens - safe_window
-
-    #     if tokens_over_limit > 0:
-    #         updated_messages = self._truncate_by_tokens(updated_messages, safe_window)
-
-    #         updated_token_count = self.tokenizer.count_tokens(updated_messages)
-
-    #         message_tokens = updated_token_count
-
-    #     # Calculating the max completion tokens we have available from the context window
-    #     # I need a buffer of 5% to be safe due to discrepancies in the tokenization process
-    #     final_max_tokens = math.floor(
-    #         min(context_window - message_tokens, max_tokens) * 0.95
-    #     )  # 5% buffer
-    #     # If the final max tokens is greater than the passed in max tokens, we set it to passed in max tokens
-    #     # This is to ensure we are not exceeding the max tokens set by the user or config
-    #     if final_max_tokens > max_tokens:
-    #         final_max_tokens = max_tokens
-
-    #     model_engine_response.prompt_tokens = message_tokens
-
-    #     if warnings:
-    #         model_engine_response.warning = "\n\n".join(warnings)
-
-    #     return updated_messages, final_max_tokens, model_engine_response

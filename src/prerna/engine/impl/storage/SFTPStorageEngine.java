@@ -28,6 +28,9 @@
 package prerna.engine.impl.storage;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,6 +63,10 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	private static final String KEEP_ALIVE_INTERVAL = "KEEP_ALIVE_INTERVAL";
 	private static final String SSH_TIMEOUT = "SSH_TIMEOUT";
 	private static final String NEW_CONNECTION = "NEW_CONNECTION";
+
+	// sftp keeps modified times in whole seconds, so anything under a second apart
+	// is the same file as far as a sync is concerned
+	private static final long SFTP_MTIME_TOLERANCE_MILLIS = 1000L;
 
 	private transient SSHClient sshClient = null;
 	private transient SFTPClient sftpClient = null;
@@ -259,20 +267,187 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 	}
 
 	@Override
-	public void syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
+	public StorageSyncStatus syncLocalToStorage(String localPath, String storagePath, Map<String, Object> metadata)
 			throws Exception {
-		// TODO Auto-generated method stub
+		if (metadata != null && !metadata.isEmpty()) {
+			// there is nowhere to put it - sftp only carries file attributes
+			classLogger.warn("SFTP has no user metadata, ignoring {} entries for: {}", metadata.size(), storagePath);
+		}
 
+		Path localFolder = Paths.get(localPath);
+		if (!Files.isDirectory(localFolder)) {
+			throw new IllegalArgumentException("Local path is not a directory: " + localPath);
+		}
+		String remoteFolder = toRemotePath(storagePath);
+
+		SSHClient sshClient = null;
+		SFTPClient sftpClient = null;
+		try {
+			if (this.newConnection) {
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
+				sshClient = getSSHClient();
+				sftpClient = sshClient.newSFTPClient();
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
+			} else {
+				sftpClient = this.sftpClient;
+			}
+
+			// one walk of what is already there, so the comparison below is local
+			Map<String, StoredObjectStat> stored = new HashMap<>();
+			collectStoredFiles(sftpClient, remoteFolder, "", stored);
+
+			List<Path> localFiles;
+			try (Stream<Path> stream = Files.walk(localFolder)) {
+				localFiles = stream.filter(Files::isRegularFile).toList();
+			}
+
+			List<String> uploadedFiles = new ArrayList<>();
+			List<String> skippedFiles = new ArrayList<>();
+			List<String> failedFiles = new ArrayList<>();
+			for (Path localFile : localFiles) {
+				String relativePath = localFolder.relativize(localFile).toString().replace("\\", "/").trim();
+				String targetPath = remoteFolder + "/" + relativePath;
+				try {
+					if (!needsUpload(localFile, stored.get(relativePath), SFTP_MTIME_TOLERANCE_MILLIS)) {
+						skippedFiles.add(targetPath);
+						continue;
+					}
+					int lastSlash = targetPath.lastIndexOf('/');
+					if (lastSlash > 0) {
+						sftpClient.mkdirs(targetPath.substring(0, lastSlash));
+					}
+					// sshj preserves the local mtime by default, which is what lets the
+					// comparison above work on the next pass
+					sftpClient.put(new FileSystemFile(localFile.toString()), targetPath);
+					uploadedFiles.add(targetPath);
+				} catch (Exception e) {
+					// one bad file should not abandon the rest of the folder
+					classLogger.error("Failed to upload {} to {}", localFile, targetPath, e);
+					failedFiles.add(targetPath);
+				}
+			}
+
+			classLogger.info("Sync of {} to {} uploaded {}, skipped {}, failed {}", localPath, remoteFolder,
+					uploadedFiles.size(), skippedFiles.size(), failedFiles.size());
+			return StorageSyncStatus.of(remoteFolder, uploadedFiles, skippedFiles, failedFiles);
+		} finally {
+			if (this.newConnection) {
+				close(sftpClient, sshClient);
+			}
+		}
 	}
 
 	@Override
 	public void syncStorageToLocal(String storagePath, String localPath) throws Exception {
-		// TODO Auto-generated method stub
+		String remoteFolder = toRemotePath(storagePath);
+		Path localFolder = Paths.get(localPath);
+		Files.createDirectories(localFolder);
 
+		SSHClient sshClient = null;
+		SFTPClient sftpClient = null;
+		try {
+			if (this.newConnection) {
+				classLogger.info("Attempting to establishing connection to {} on port {}", this.host, this.port);
+				sshClient = getSSHClient();
+				sftpClient = sshClient.newSFTPClient();
+				classLogger.info("Successfully establishing connection to {} on port {}", this.host, this.port);
+			} else {
+				sftpClient = this.sftpClient;
+			}
+
+			if (sftpClient.statExistence(remoteFolder) == null) {
+				throw new IllegalArgumentException("Storage path does not exist: " + storagePath);
+			}
+
+			// unlike the upload side this pulls everything down, matching how the other
+			// engines behave when the local copy is treated as disposable
+			int downloaded = downloadDirectoryContents(sftpClient, remoteFolder, localFolder);
+			classLogger.info("Sync of {} to {} downloaded {} files", remoteFolder, localPath, downloaded);
+		} finally {
+			if (this.newConnection) {
+				close(sftpClient, sshClient);
+			}
+		}
+	}
+
+	/**
+	 * Turns a user supplied storage path into the absolute remote path sshj wants.
+	 * Everything here is rooted at the server's path, so a relative path and an
+	 * absolute one mean the same thing.
+	 *
+	 * @param storagePath the path as it came in, may be null or empty for the root
+	 * @return the path with a leading slash and no trailing one
+	 */
+	private String toRemotePath(String storagePath) {
+		String normalized = normalizeStoragePrefixPath(storagePath);
+		return normalized.isEmpty() ? "/" : "/" + normalized;
+	}
+
+	/**
+	 * Walks the server below the given folder and records the size and modified
+	 * time of every file, keyed by its path relative to that folder.
+	 *
+	 * @param sftpClient      the open client
+	 * @param remoteDirectory the directory to walk, absolute
+	 * @param relativePrefix  where this directory sits under the sync root
+	 * @param stored          collects the results
+	 * @throws IOException if a listing fails for a reason other than the folder not
+	 *                     being there
+	 */
+	private void collectStoredFiles(SFTPClient sftpClient, String remoteDirectory, String relativePrefix,
+			Map<String, StoredObjectStat> stored) throws IOException {
+		if (sftpClient.statExistence(remoteDirectory) == null) {
+			// nothing uploaded yet, so every local file is new
+			return;
+		}
+		for (RemoteResourceInfo remoteInfo : sftpClient.ls(remoteDirectory)) {
+			String name = remoteInfo.getName();
+			if (".".equals(name) || "..".equals(name)) {
+				continue;
+			}
+			String relativePath = relativePrefix.isEmpty() ? name : relativePrefix + "/" + name;
+			FileAttributes attributes = remoteInfo.getAttributes();
+			if (attributes.getType() == Type.DIRECTORY) {
+				collectStoredFiles(sftpClient, remoteInfo.getPath(), relativePath, stored);
+			} else {
+				// sftp reports mtime in whole seconds
+				stored.put(relativePath, new StoredObjectStat(attributes.getSize(), attributes.getMtime() * 1000L));
+			}
+		}
+	}
+
+	/**
+	 * Copies the contents of a remote directory into a local one, without nesting
+	 * the remote directory's own name underneath it.
+	 *
+	 * @param sftpClient      the open client
+	 * @param remoteDirectory the directory to read, absolute
+	 * @param localDirectory  where its contents land
+	 * @return how many files were written
+	 * @throws IOException if a read or write fails
+	 */
+	private int downloadDirectoryContents(SFTPClient sftpClient, String remoteDirectory, Path localDirectory)
+			throws IOException {
+		Files.createDirectories(localDirectory);
+
+		int downloaded = 0;
+		for (RemoteResourceInfo remoteInfo : sftpClient.ls(remoteDirectory)) {
+			String name = remoteInfo.getName();
+			if (".".equals(name) || "..".equals(name)) {
+				continue;
+			}
+			if (remoteInfo.getAttributes().getType() == Type.DIRECTORY) {
+				downloaded += downloadDirectoryContents(sftpClient, remoteInfo.getPath(), localDirectory.resolve(name));
+			} else {
+				sftpClient.get(remoteInfo.getPath(), new FileSystemFile(localDirectory.resolve(name).toString()));
+				downloaded++;
+			}
+		}
+		return downloaded;
 	}
 
 	@Override
-	public void copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
+	public String copyToStorage(String localFilePath, String storageFolderPath, Map<String, Object> metadata)
 			throws Exception {
 		SSHClient sshClient = null;
 		SFTPClient sftpClient = null;
@@ -306,10 +481,15 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 				close(sftpClient, sshClient);
 			}
 		}
+		return null;
 	}
 
 	@Override
-	public void copyToLocal(String storageFilePath, String localFolderPath) throws Exception {
+	public void copyToLocal(String storageFilePath, String localFolderPath, String versionId) throws Exception {
+		if (versionId != null && !versionId.trim().isEmpty()) {
+			throw new UnsupportedOperationException("Object versioning is not supported by SFTP");
+		}
+
 		SSHClient sshClient = null;
 		SFTPClient sftpClient = null;
 		try {
@@ -342,11 +522,6 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 				close(sftpClient, sshClient);
 			}
 		}
-	}
-
-	@Override
-	public void deleteFromStorage(String storagePath) throws Exception {
-		deleteFromStorage(storagePath, false);
 	}
 
 	@Override
@@ -447,55 +622,5 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 			}
 		}
 	}
-
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////
-
-//	public static void main(String[] args) throws Exception {
-//		/**
-//		 * 
-//		 	version: '3.1'
-//			services:
-//			    sftp:
-//			        image: atmoz/sftp
-//			        volumes:
-//			            - C:\Users\mahkhalil\Documents\sftp\mount:/home/foo/upload
-//			        ports:
-//			            - "2222:22"
-//			        command: foo:pass:1001
-//		 */
-//
-//		// these are not real/import access/secret - only for local docker
-//		Properties mockSmss = new Properties();
-//		mockSmss.put(Constants.HOSTNAME, "localhost");
-//		mockSmss.put(Constants.PORT, "2222");
-//		mockSmss.put(Constants.USERNAME, "foo");
-//		mockSmss.put(Constants.PASSWORD, "pass");
-//
-//		SFTPStorageEngine engine = new SFTPStorageEngine();
-//		engine.connect(mockSmss);
-//
-//		{
-//			List<String> list = engine.list("/");
-//			System.out.println(list);
-//		}
-//		{
-//			List<Map<String, Object>> list = engine.listDetails("/upload/");
-//			System.out.println(list);
-//		}
-//		{
-//			engine.copyToStorage("C:\\Users\\mahkhalil\\Downloads\\MooseAI Logo.png", "upload/test1");
-//		}
-//		{
-//			engine.copyToLocal("upload/MooseAI Logo.png", "C:\\Users\\mahkhalil");
-//		}
-//		{
-//			engine.deleteFromStorage("upload/test1/MooseAI Logo.png");
-//		}
-//		
-//		engine.disconnect();
-//	}
 
 }

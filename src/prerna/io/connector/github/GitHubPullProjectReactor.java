@@ -75,6 +75,11 @@ public class GitHubPullProjectReactor extends AbstractReactor {
 			throw new SemossPixelException("Project is required.");
 		}
 		projectId = projectId.trim();
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new SemossPixelException(
+					"Project does not exist or user does not have access to edit the project.");
+		}
 
 		Map<String, Object> link = SecurityExternalConnectorsUtils.getGitHubProjectLink(projectId);
 		if (link == null) {

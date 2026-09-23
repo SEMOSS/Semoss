@@ -34,7 +34,6 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ValidateRReactor extends AbstractReactor {
@@ -57,13 +56,13 @@ public class ValidateRReactor extends AbstractReactor {
 
 		String baseFolder = Utility.getBaseFolder();
 		String rFolder = baseFolder + "/R/util/smssutil.r";
-		rFolder = rFolder.replaceAll("\\\\", "/");
+		rFolder = rFolder.replace("\\", "/");
 
 		rJavaTranslator.runR("source('" + rFolder + "');");
 
 		try {
 			String rScript = insight.getInsightFolder() + "/" + keyValue.get(keysToGet[0]);
-			rScript = rScript.replaceAll("\\\\", "/");
+			rScript = rScript.replace("\\", "/");
 			Object outObject = rJavaTranslator.executeR("canLoad('" + rScript + "')");
 
 			String output = "";
@@ -73,7 +72,7 @@ public class ValidateRReactor extends AbstractReactor {
 				output = ((org.rosuda.JRI.REXP) outObject).asString();
 			}
 
-			output = output.replaceAll("\\\"", "");
+			output = output.replace("\"", "");
 
 			if (output.length() == 0) {
 				result = keyValue.get(keysToGet[0]) + " : All Libraries available";
@@ -83,8 +82,7 @@ public class ValidateRReactor extends AbstractReactor {
 				result = library.toString();
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to validate R libraries for script {}", keyValue.get(keysToGet[0]), e);
 		}
 		return new NounMetadata(result, PixelDataType.CONST_STRING);
 	}

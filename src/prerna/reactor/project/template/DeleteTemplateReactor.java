@@ -29,6 +29,7 @@ package prerna.reactor.project.template;
 
 import java.util.Map;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -54,7 +55,14 @@ public class DeleteTemplateReactor extends AbstractReactor {
 		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
 		String templateFile = this.keyValue.get(ReactorKeysEnum.TEMPLATE_FILE.getKey());
 		String templateName = this.keyValue.get(ReactorKeysEnum.TEMPLATE_NAME.getKey());
-		
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException("Project does not exist or user does not have access to edit the project");
+		}
+
 		IProject project = Utility.getProject(projectId);
 		ClusterUtil.pullProjectFolder(project, AssetUtility.getProjectVersionFolder(project.getProjectName(), projectId));
 		Map<String, String> templateDataMap = TemplateUtility.deleteTemplate(projectId, templateFile, templateName);

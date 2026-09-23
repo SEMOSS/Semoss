@@ -142,8 +142,8 @@ public final class HttpHelperUtility {
 			if (keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {
 				File keyStoreF = new File(keyStore);
 				if (!keyStoreF.exists() && !keyStoreF.isFile()) {
-					classLogger.warn("Defined a keystore to use in the request but the file "
-							+ keyStoreF.getAbsolutePath() + " does not exist");
+					classLogger.warn("Defined a keystore to use in the request but the file {} does not exist",
+							keyStoreF.getAbsolutePath());
 				} else {
 					if (keyPass == null || keyPass.isEmpty()) {
 						sslContextBuilder.loadKeyMaterial(keyStoreF, keyStorePass.toCharArray(),
@@ -216,7 +216,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			classLogger.error("Failed to execute GET request to URL: {}", url, e);
 			throw buildConnectionException("GET", url, e);
 		}
 	}
@@ -239,7 +239,6 @@ public final class HttpHelperUtility {
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
 				keyPass)) {
 			HttpGet httpGet = new HttpGet(url);
-
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
 					httpGet.addHeader(key, headerMap.get(key));
@@ -259,7 +258,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute GET request to URL: " + url, e);
+			classLogger.error("Failed to execute GET request to URL: {}", url, e);
 			throw buildConnectionException("GET", url, e);
 		}
 	}
@@ -322,8 +321,8 @@ public final class HttpHelperUtility {
 					if (!fileDir.exists()) {
 						Boolean success = fileDir.mkdirs();
 						if (!success) {
-							classLogger.warn("Unable to make the directory to save the file at location: "
-									+ Utility.cleanLogString(saveFilePath));
+							classLogger.warn("Unable to make the directory to save the file at location: {}",
+									Utility.cleanLogString(saveFilePath));
 							throw new IllegalArgumentException("Unable to create download directory '" + saveFilePath
 									+ "' for URL '" + url + "'.");
 						}
@@ -361,7 +360,7 @@ public final class HttpHelperUtility {
 							FileUtils.copyInputStreamToFile(is, savedFile);
 						}
 					} catch (IOException e) {
-						classLogger.error("Failed while reading or scanning downloaded file content from URL: " + url,
+						classLogger.error("Failed while reading or scanning downloaded file content from URL: {}", url,
 								e);
 						throw new IllegalArgumentException("Failed to read or save downloaded content from URL '" + url
 								+ "' to '" + savedFile.getAbsolutePath() + "'.", e);
@@ -371,7 +370,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to download file from URL: " + url, e);
+			classLogger.error("Failed to download file from URL: {}", url, e);
 			throw buildConnectionException("GET (file download)", url, e);
 		}
 	}
@@ -421,7 +420,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			classLogger.error("Failed to execute POST request to URL: {}", url, e);
 			throw buildConnectionException("POST", url, e);
 		}
 	}
@@ -467,7 +466,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute POST request to URL: " + url, e);
+			classLogger.error("Failed to execute POST request to URL: {}", url, e);
 			throw buildConnectionException("POST", url, e);
 		}
 	}
@@ -515,7 +514,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute POST request with byte[] payload to URL: " + url, e);
+			classLogger.error("Failed to execute POST request with byte[] payload to URL: {}", url, e);
 			throw buildConnectionException("POST", url, e);
 		}
 	}
@@ -561,7 +560,55 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			classLogger.error("Failed to execute PUT request to URL: {}", url, e);
+			throw buildConnectionException("PUT", url, e);
+		}
+	}
+
+	/**
+	 * Executes an HTTP PUT request with a byte-array payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyBytes    request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String putRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+
+			HttpPut httpPut = new HttpPut(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+					httpPut.addHeader(entry.getKey(), entry.getValue());
+				}
+			}
+			if (bodyBytes != null && bodyBytes.length > 0) {
+				httpPut.setEntity(new ByteArrayEntity(bodyBytes, contentType));
+			}
+
+			return httpClient.execute(httpPut, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PUT request with byte[] payload to URL: {}", url, e);
 			throw buildConnectionException("PUT", url, e);
 		}
 	}
@@ -611,7 +658,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute PUT request to URL: " + url, e);
+			classLogger.error("Failed to execute PUT request to URL: {}", url, e);
 			throw buildConnectionException("PUT", url, e);
 		}
 	}
@@ -657,7 +704,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute PATCH request to URL: " + url, e);
+			classLogger.error("Failed to execute PATCH request to URL: {}", url, e);
 			throw buildConnectionException("PATCH", url, e);
 		}
 	}
@@ -704,7 +751,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute HEAD request to URL: " + url, e);
+			classLogger.error("Failed to execute HEAD request to URL: {}", url, e);
 			throw buildConnectionException("HEAD", url, e);
 		}
 	}
@@ -737,7 +784,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute HEAD request while fetching status for URL: " + url, e);
+			classLogger.error("Failed to execute HEAD request while fetching status for URL: {}", url, e);
 			throw buildConnectionException("HEAD", url, e);
 		}
 	}
@@ -778,7 +825,7 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (IOException e) {
-			classLogger.error("Failed to execute DELETE request to URL: " + url, e);
+			classLogger.error("Failed to execute DELETE request to URL: {}", url, e);
 			throw buildConnectionException("DELETE", url, e);
 		}
 	}
@@ -845,7 +892,7 @@ public final class HttpHelperUtility {
 				@Override
 				public AccessToken handleResponse(ClassicHttpResponse response) throws IOException {
 					int status = response.getCode();
-					classLogger.info("Request for access token at " + url + " returned status code = " + status);
+					classLogger.info("Request for access token at {} returned status code = {}", url, status);
 
 					HttpEntity entity = response.getEntity();
 					if (entity != null) {
@@ -855,7 +902,7 @@ public final class HttpHelperUtility {
 					} else {
 						resultHolder[0] = null;
 					}
-					classLogger.info("Request response = " + Utility.cleanLogString(resultHolder[0]));
+					classLogger.info("Request response = {}", Utility.cleanLogString(resultHolder[0]));
 
 					if (status == 200 && extract) {
 						if (json) {
@@ -868,25 +915,25 @@ public final class HttpHelperUtility {
 			});
 			result = resultHolder[0];
 		} catch (UnsupportedEncodingException e) {
-			classLogger.error("Unsupported encoding while processing token response from URL: " + url, e);
+			classLogger.error("Unsupported encoding while processing token response from URL: {}", url, e);
 		} catch (ClientProtocolException e) {
-			classLogger.error("HTTP protocol error while requesting token from URL: " + url, e);
+			classLogger.error("HTTP protocol error while requesting token from URL: {}", url, e);
 		} catch (UnsupportedOperationException e) {
-			classLogger.error("Unsupported operation while requesting token from URL: " + url, e);
+			classLogger.error("Unsupported operation while requesting token from URL: {}", url, e);
 		} catch (IOException e) {
-			classLogger.error("I/O error while requesting token from URL: " + url, e);
+			classLogger.error("I/O error while requesting token from URL: {}", url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after token request to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after token request to URL: {}", url, e);
 				}
 			}
 		}
 
 		if (tok != null && tok.getAccess_token() == null) {
-			classLogger.warn("Error occurred grabbing the access token: " + Utility.cleanLogString(result));
+			classLogger.warn("Error occurred grabbing the access token: {}", Utility.cleanLogString(result));
 		}
 
 		// send back the token
@@ -926,7 +973,7 @@ public final class HttpHelperUtility {
 				@Override
 				public AccessToken handleResponse(ClassicHttpResponse response) throws IOException {
 					int status = response.getCode();
-					classLogger.info("Request for access token at " + url + " returned status code = " + status);
+					classLogger.info("Request for access token at {} returned status code = {}", url, status);
 
 					HttpEntity entity = response.getEntity();
 					if (entity != null) {
@@ -936,7 +983,7 @@ public final class HttpHelperUtility {
 					} else {
 						resultHolder[0] = null;
 					}
-					classLogger.info("Request response = " + Utility.cleanLogString(resultHolder[0]));
+					classLogger.info("Request response = {}", Utility.cleanLogString(resultHolder[0]));
 
 					if (status == 200 && extract) {
 						if (json) {
@@ -949,19 +996,19 @@ public final class HttpHelperUtility {
 			});
 			result = resultHolder[0];
 		} catch (Exception e) {
-			classLogger.error("Failed to request or parse ID token from URL: " + url, e);
+			classLogger.error("Failed to request or parse ID token from URL: {}", url, e);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after ID token request to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after ID token request to URL: {}", url, e);
 				}
 			}
 		}
 
 		if (tok != null && tok.getAccess_token() == null) {
-			classLogger.warn("Error occurred grabbing the id token: " + Utility.cleanLogString(result));
+			classLogger.warn("Error occurred grabbing the id token: {}", Utility.cleanLogString(result));
 		}
 
 		// send back the token
@@ -1009,7 +1056,7 @@ public final class HttpHelperUtility {
 			if (thisToken.startsWith(nameOfToken)) {
 				accessToken = thisToken.replaceAll(nameOfToken + "=", "");
 			} else if (thisToken.startsWith("refresh_token=")) {
-				refreshToken = thisToken.replaceAll("refresh_token=", "");
+				refreshToken = thisToken.replace("refresh_token=", "");
 			}
 		}
 		AccessToken tok = new AccessToken();
@@ -1072,7 +1119,7 @@ public final class HttpHelperUtility {
 			}
 			tok.init();
 		} catch (IOException e) {
-			classLogger.error("Failed to parse access-token JSON response: " + input, e);
+			classLogger.error("Failed to parse access-token JSON response: {}", input, e);
 		}
 		return tok;
 
@@ -1116,7 +1163,7 @@ public final class HttpHelperUtility {
 			}
 			tok.init();
 		} catch (IOException e) {
-			classLogger.error("Failed to parse ID-token JSON response: " + input, e);
+			classLogger.error("Failed to parse ID-token JSON response: {}", input, e);
 		}
 		return tok;
 	}
@@ -1206,26 +1253,26 @@ public final class HttpHelperUtility {
 
 			responseCode = con.getResponseCode();
 		} catch (Exception e) {
-			classLogger.error("Failed to execute GET request to URL: " + urlStr, e);
+			classLogger.error("Failed to execute GET request to URL: {}", urlStr, e);
 			requestException = e;
 		} finally {
 			if (br != null) {
 				try {
 					br.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close response BufferedReader for URL: " + urlStr, e);
+					classLogger.error("Failed to close response BufferedReader for URL: {}", urlStr, e);
 				}
 			}
 			if (isr != null) {
 				try {
 					isr.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close response InputStreamReader for URL: " + urlStr, e);
+					classLogger.error("Failed to close response InputStreamReader for URL: {}", urlStr, e);
 				}
 			}
 		}
 
-		classLogger.info("Return from " + urlStr + " with response " + responseCode + " = " + retString);
+		classLogger.info("Return from {} with response {} = {}", urlStr, responseCode, retString);
 		if (requestException != null) {
 			throw buildConnectionException("GET", urlStr, requestException);
 		}
@@ -1293,7 +1340,7 @@ public final class HttpHelperUtility {
 			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
 			return br;
 		} catch (Exception e) {
-			classLogger.error("Failed to open HTTP stream for URL: " + urlStr, e);
+			classLogger.error("Failed to open HTTP stream for URL: {}", urlStr, e);
 		}
 
 		return null;
@@ -1353,13 +1400,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("Failed to execute POST request to URL: " + url, ex);
+			classLogger.error("Failed to execute POST request to URL: {}", url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after POST request to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after POST request to URL: {}", url, e);
 				}
 			}
 		}
@@ -1406,13 +1453,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("Failed to upload file via PUT request to URL: " + url, ex);
+			classLogger.error("Failed to upload file via PUT request to URL: {}", url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after PUT file upload to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after PUT file upload to URL: {}", url, e);
 				}
 			}
 		}
@@ -1461,13 +1508,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("Failed to upload file via POST request to URL: " + url, ex);
+			classLogger.error("Failed to upload file via POST request to URL: {}", url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after POST file upload to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after POST file upload to URL: {}", url, e);
 				}
 			}
 		}
@@ -1511,13 +1558,13 @@ public final class HttpHelperUtility {
 				}
 			});
 		} catch (Exception ex) {
-			classLogger.error("Failed to upload file via PATCH request to URL: " + url, ex);
+			classLogger.error("Failed to upload file via PATCH request to URL: {}", url, ex);
 		} finally {
 			if (httpclient != null) {
 				try {
 					httpclient.close();
 				} catch (IOException e) {
-					classLogger.error("Failed to close HTTP client after PATCH file upload to URL: " + url, e);
+					classLogger.error("Failed to close HTTP client after PATCH file upload to URL: {}", url, e);
 				}
 			}
 		}
@@ -1631,10 +1678,10 @@ public final class HttpHelperUtility {
 		for (int inputIndex = 0; inputIndex < inputCodes.length; inputIndex++) {
 			String thisToken = Utility.inputSQLSanitizer(inputCodes[inputIndex]);
 			if (thisToken.startsWith("state")) {
-				retString[1] = thisToken.replaceAll("state=", "");
+				retString[1] = thisToken.replace("state=", "");
 			}
 			if (thisToken.startsWith("code")) {
-				retString[0] = thisToken.replaceAll("code=", "");
+				retString[0] = thisToken.replace("code=", "");
 			}
 		}
 

@@ -28,24 +28,24 @@
 package prerna.reactor.frame.gaas.processors;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.detect.Detector;
-import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaCoreProperties;
 
 import prerna.engine.impl.vector.VectorDatabaseCSVWriter;
-import prerna.util.Constants;
+import prerna.util.MimeTypeUtility;
 
 public abstract class AbstractFileProcessor implements IFileProcessor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractFileProcessor.class);
+
+	/**
+	 * The kinds of files the processors know how to parse
+	 */
+	public enum FILE_PROCESSOR_TYPE {
+		DOC, PPT, PDF, EML, MSG, TEXT
+	}
 
 	protected String filePath = null;
 	protected VectorDatabaseCSVWriter writer = null;
@@ -66,36 +66,18 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 	}
 
 	/**
+	 * Determine what kind of file this is based on its mime type
 	 * 
 	 * @param file
-	 * @param writer
-	 * @return
+	 * @return the matching type or null when the file is not supported
 	 */
-	public static IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
-		// pick up the files and convert them to CSV
-		classLogger.info("Processing file : " + file.getName());
-
-		// process this file
+	protected static FILE_PROCESSOR_TYPE getFileProcessorType(File file) {
 		String filetype = FilenameUtils.getExtension(file.getAbsolutePath());
-		String mimeType = null;
-
-		// using tika for mime type check since it is more consistent across env + rhel
-		// OS and macOS
-		TikaConfig config = TikaConfig.getDefaultConfig();
-		Detector detector = config.getDetector();
-		Metadata metadata = new Metadata();
-		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getName());
-		try (TikaInputStream stream = TikaInputStream.get(new FileInputStream(file))) {
-			mimeType = detector.detect(stream, metadata).toString();
-		} catch (IOException e) {
-			classLogger.error(Constants.ERROR_MESSAGE, e);
-		}
+		String mimeType = MimeTypeUtility.detectMimeType(file);
 
 		if (mimeType == null) {
 			throw new NullPointerException("Unable to determine the mimType for file " + file.getName());
 		}
-
-		IFileProcessor processor = null;
 
 		classLogger.info("Processing file : " + file.getName() + " mime type: " + mimeType);
 		if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
@@ -104,44 +86,65 @@ public abstract class AbstractFileProcessor implements IFileProcessor {
 						|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
 						&& (filetype.equals("doc") || filetype.equals("docx")))) {
 			// document
-			processor = new DocProcessor(file.getAbsolutePath(), writer);
+			return FILE_PROCESSOR_TYPE.DOC;
 		} else if (mimeType
 				.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.presentationml.presentation")
 				|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 						|| (mimeType.equalsIgnoreCase("application/vnd.ms-powerpoint")))
 						&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 			// powerpoint
-			processor = new PPTProcessor(file.getAbsolutePath(), writer);
+			return FILE_PROCESSOR_TYPE.PPT;
 		} else if (mimeType.equalsIgnoreCase("application/pdf")) {
-			processor = new PDFProcessor(file.getAbsolutePath(), writer);
-		} else if (mimeType.equalsIgnoreCase("message/rfc822")
-				|| (filetype.equals("eml"))) {
+			return FILE_PROCESSOR_TYPE.PDF;
+		} else if (mimeType.equalsIgnoreCase("message/rfc822") || (filetype.equals("eml"))) {
 			// eml email
-			processor = new EMLProcessor(file.getAbsolutePath(), writer);
-		} else if (mimeType.equalsIgnoreCase("application/vnd.ms-outlook")
-				|| (filetype.equals("msg"))) {
+			return FILE_PROCESSOR_TYPE.EML;
+		} else if (mimeType.equalsIgnoreCase("application/vnd.ms-outlook") || (filetype.equals("msg"))) {
 			// msg email
-			processor = new MSGProcessor(file.getAbsolutePath(), writer);
-		} else if (mimeType.equalsIgnoreCase("text/plain")
-				|| mimeType.equalsIgnoreCase("application/rtf")
-				|| mimeType.equalsIgnoreCase("text/txt")
-				|| mimeType.equalsIgnoreCase("text/rtf")
-				|| mimeType.equalsIgnoreCase("text/richtext")
-				|| mimeType.equalsIgnoreCase("application/json")
+			return FILE_PROCESSOR_TYPE.MSG;
+		} else if (mimeType.equalsIgnoreCase("text/plain") || mimeType.equalsIgnoreCase("application/rtf")
+				|| mimeType.equalsIgnoreCase("text/txt") || mimeType.equalsIgnoreCase("text/rtf")
+				|| mimeType.equalsIgnoreCase("text/richtext") || mimeType.equalsIgnoreCase("application/json")
 				|| mimeType.equalsIgnoreCase("application/xml")) {
 			// basic text
-			processor = new TextFileProcessor(file.getAbsolutePath(), writer);
-		} else {
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
-			classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+			return FILE_PROCESSOR_TYPE.TEXT;
 		}
 
-		return processor;
+		classLogger.warn("No support exists for parsing mime-type = " + mimeType);
+		return null;
+	}
+
+	/**
+	 *
+	 * @param file
+	 * @param writer
+	 * @return
+	 */
+	public static IFileProcessor getFileProcessor(File file, VectorDatabaseCSVWriter writer) {
+		// pick up the files and convert them to CSV
+		classLogger.info("Processing file : " + file.getName());
+
+		FILE_PROCESSOR_TYPE fileProcessorType = getFileProcessorType(file);
+		if (fileProcessorType == null) {
+			return null;
+		}
+
+		switch (fileProcessorType) {
+		case DOC:
+			return new DocProcessor(file.getAbsolutePath(), writer);
+		case PPT:
+			return new PPTProcessor(file.getAbsolutePath(), writer);
+		case PDF:
+			return new PDFProcessor(file.getAbsolutePath(), writer);
+		case EML:
+			return new EMLProcessor(file.getAbsolutePath(), writer);
+		case MSG:
+			return new MSGProcessor(file.getAbsolutePath(), writer);
+		case TEXT:
+			return new TextFileProcessor(file.getAbsolutePath(), writer);
+		default:
+			return null;
+		}
 	}
 
 }

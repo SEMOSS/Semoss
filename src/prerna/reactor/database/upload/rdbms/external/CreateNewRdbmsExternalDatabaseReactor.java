@@ -41,7 +41,7 @@ public class CreateNewRdbmsExternalDatabaseReactor extends CreateNewRdbmsDatabas
 		this.keysToGet = new String[] { ReactorKeysEnum.CONNECTION_DETAILS.getKey(), UploadInputUtility.DATABASE,
 				UploadInputUtility.METAMODEL_ADDITIONS };
 	}
-	
+
 	@Override
 	public NounMetadata execute() {
 		this.internal = false;
@@ -49,10 +49,9 @@ public class CreateNewRdbmsExternalDatabaseReactor extends CreateNewRdbmsDatabas
 	}
 
 	@Override
-	protected Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails, RdbmsTypeEnum driverEnum) {
+	protected Map<String, Object> editConnectionDetails(Map<String, Object> connectionDetails,
+			RdbmsTypeEnum driverEnum) {
 		return connectionDetails;
 	}
-	
-}
-	
 
+}

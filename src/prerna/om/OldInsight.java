@@ -105,26 +105,34 @@ public class OldInsight extends Insight {
 	private String engineName;
 
 	private transient IDatabaseEngine mainEngine;
-	private transient IProject mainProject; // the main engine where the insight is stored
-	private transient IDatabaseEngine makeupEngine; // the in-memory engine created to store the data maker components
-													// and transformations for the insight
-	private transient IPlaySheet playSheet; // the playsheet for the insight
-	private transient Map<String, String> dataTableAlign; // the data table align for the insight corresponding to the
-															// playsheet
+	// the main engine where the insight is stored
+	private transient IProject mainProject;
+	// the in-memory engine created to store the data maker components
+	// and transformations for the insight
+	private transient IDatabaseEngine makeupEngine;
+	// the playsheet for the insight
+	private transient IPlaySheet playSheet;
+	// the data table align for the insight corresponding to the playsheet
+	private transient Map<String, String> dataTableAlign;
 	private transient Gson gson = new Gson();
 
-	private transient Boolean append = false; // currently used to distinguish when performing overlay in gdm data maker
+	// currently used to distinguish when performing overlay in gdm data maker
+	private transient Boolean append = false;
 
-	private transient String dataMakerName; // the name of the data maker
-	private transient List<DataMakerComponent> dmComponents; // the list of data maker components in order for creation
-																// of insight
-	private transient Map<String, List<Object>> paramHash; // the parameters selected by user for filtering on insights
-	private transient List<SEMOSSParam> insightParameters; // the SEMOSSParam objects for the insight
+	// the name of the data maker
+	private transient String dataMakerName;
+	// the list of data maker components in order for creation of insight
+	private transient List<DataMakerComponent> dmComponents;
+	// the parameters selected by user for filtering on insights
+	private transient Map<String, List<Object>> paramHash;
+	// the SEMOSSParam objects for the insight
+	private transient List<SEMOSSParam> insightParameters;
 	private String uiOptions;
 	@Deprecated
 	protected String layout;
 
-	private transient IDataMaker dataMaker; // defines how to make the data for the insight
+	// defines how to make the data for the insight
+	private transient IDataMaker dataMaker;
 
 	@Deprecated
 	public OldInsight() {
@@ -335,13 +343,15 @@ public class OldInsight extends Insight {
 			rc = myRepository.getConnection();
 			rc.add(nTriples, "semoss.org", RDFFormat.NTRIPLES);
 		} catch (RuntimeException ignored) {
-			classLogger.error(Constants.STACKTRACE, ignored);
+			classLogger.error("Unexpected runtime error while loading N-Triples makeup into the in-memory engine",
+					ignored);
 		} catch (RDFParseException rpe) {
-			classLogger.error(Constants.STACKTRACE, rpe);
+			classLogger.error("Failed to parse N-Triples makeup while creating the in-memory engine", rpe);
 		} catch (RepositoryException re) {
-			classLogger.error(Constants.STACKTRACE, re);
+			classLogger.error("Failed to add N-Triples makeup to the in-memory repository", re);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the N-Triples makeup input stream while creating the in-memory engine",
+					e);
 		}
 
 		// set the rc in the in-memory engine
@@ -368,7 +378,7 @@ public class OldInsight extends Insight {
 		while (countss.hasNext()) {
 			ISelectStatement countst = countss.next();
 			total = (int) Double.parseDouble(countst.getVar("Count") + "");
-			classLogger.debug(" THERE ARE " + total + " COMPONENTS IN THIS INSIGHT  ");
+			classLogger.debug(" THERE ARE {} COMPONENTS IN THIS INSIGHT  ", total);
 		}
 		// TODO: need to make sure preTrans, postTrans, and actions are all ordered
 		String theQuery = "SELECT ?Component ?Engine ?Query ?Metamodel ?DataMakerType ?PreTrans ?PostTrans ?Actions WHERE { {?Component a <http://semoss.org/ontologies/Concept/Component>} {?EngineURI a <http://semoss.org/ontologies/Concept/Engine>} {?EngineURI <http://semoss.org/ontologies/Relation/Contains/Name> ?Engine } {?Component <Comp:Eng> ?EngineURI} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Query> ?Query} OPTIONAL {?Component <http://semoss.org/ontologies/Relation/Contains/Metamodel> ?Metamodel} {?Component <http://semoss.org/ontologies/Relation/Contains/Order> ?Order} OPTIONAL {?Component <Comp:PreTrans> ?PreTrans} OPTIONAL {?Component <Comp:PostTrans> ?PostTrans} OPTIONAL {?Component <Comp:Action> ?Actions} } ORDER BY ?Order";
@@ -391,8 +401,8 @@ public class OldInsight extends Insight {
 				engine = MasterDatabaseUtility.testDatabaseIdIfAlias(engine);
 				String query = st.getVar("Query") + "";
 				String metamodelString = st.getVar("Metamodel") + "";
-				classLogger.debug(
-						engine + " ::::::: " + component + " ::::::::: " + query + " :::::::::: " + metamodelString);
+				classLogger.debug("{} ::::::: {} ::::::::: {} :::::::::: {}", engine, component, query,
+						metamodelString);
 
 				DataMakerComponent dmc = null;
 				// old insights store information in a query string while new insights store the
@@ -461,12 +471,12 @@ public class OldInsight extends Insight {
 	 *                  has the correct id
 	 */
 	private void addPreTrans(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object preTrans, String compId) {
-		classLogger.info("adding pre trans :::: " + preTrans);
+		classLogger.info("adding pre trans :::: {}", preTrans);
 		Map<String, Object> props = getProperties(preTrans + "", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		classLogger.info("TRANS TYPE IS " + Utility.cleanLogString(type));
+		classLogger.info("TRANS TYPE IS {}", Utility.cleanLogString(type));
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		classLogger.info("pre trans properties :::: " + Utility.cleanLogString(props.toString()));
+		classLogger.info("pre trans properties :::: {}", Utility.cleanLogString(props.toString()));
 		trans.setProperties(props);
 		trans.setId(compId + ":" + PRE_TRANS + Utility.getInstanceName(preTrans + ""));
 		dmc.addPreTrans(trans);
@@ -483,12 +493,12 @@ public class OldInsight extends Insight {
 	 *                  postTransformation has the correct id
 	 */
 	private void addPostTrans(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object postTrans, String compId) {
-		classLogger.info("adding post trans :::: " + postTrans);
+		classLogger.info("adding post trans :::: {}", postTrans);
 		Map<String, Object> props = getProperties(postTrans + "", makeupEng);
 		String type = props.get(ISEMOSSTransformation.TYPE) + "";
-		classLogger.info("TRANS TYPE IS " + Utility.cleanLogString(type));
+		classLogger.info("TRANS TYPE IS {}", Utility.cleanLogString(type));
 		ISEMOSSTransformation trans = Utility.getTransformation(this.mainEngine, type);
-		classLogger.info("post trans properties :::: " + Utility.cleanLogString(props.toString()));
+		classLogger.info("post trans properties :::: {}", Utility.cleanLogString(props.toString()));
 		trans.setProperties(props);
 		trans.setId(compId + ":" + POST_TRANS + Utility.getInstanceName(postTrans + ""));
 		dmc.addPostTrans(trans);
@@ -505,12 +515,12 @@ public class OldInsight extends Insight {
 	 *                  correct id
 	 */
 	private void addAction(DataMakerComponent dmc, IDatabaseEngine makeupEng, Object action, String compId) {
-		classLogger.info("adding action :::: " + action);
+		classLogger.info("adding action :::: {}", action);
 		Map<String, Object> props = getProperties(action + "", makeupEng);
 		String type = props.get(ISEMOSSAction.TYPE) + "";
-		classLogger.info("TRANS TYPE IS " + type);
+		classLogger.info("TRANS TYPE IS {}", type);
 		ISEMOSSAction actionObj = Utility.getAction(this.mainEngine, type);
-		classLogger.info("action properties :::: " + Utility.cleanLogString(props.toString()));
+		classLogger.info("action properties :::: {}", Utility.cleanLogString(props.toString()));
 		actionObj.setProperties(props);
 		actionObj.setId(compId + ":" + ACTION + Utility.getInstanceName(action + ""));
 		dmc.addAction(actionObj);
@@ -528,7 +538,7 @@ public class OldInsight extends Insight {
 		String propQuery = "SELECT ?Value WHERE { BIND(<" + uri
 				+ "> AS ?obj) {?obj <http://semoss.org/ontologies/Relation/Contains/propMap> ?Value}}";
 
-		classLogger.info("Running query to get properties: " + Utility.cleanLogString(propQuery));
+		classLogger.info("Running query to get properties: {}", Utility.cleanLogString(propQuery));
 		ISelectWrapper wrap = WrapperManager.getInstance().getSWrapper(makeupEng, propQuery);
 		Map<String, Object> retMap = new HashMap<>();
 		if (wrap.hasNext()) { // there should only be one prop map associated with each transformation or
@@ -539,7 +549,7 @@ public class OldInsight extends Insight {
 			retMap = gson.fromJson(jsonPropMap, Map.class);
 		}
 		if (wrap.hasNext()) {
-			classLogger.error("More than one prop map has shown up for uri ::::: " + Utility.cleanLogString(uri));
+			classLogger.error("More than one prop map has shown up for uri ::::: {}", Utility.cleanLogString(uri));
 			classLogger.error("Need to find reason why/how it was stored this way...");
 		}
 		return retMap;
@@ -646,7 +656,7 @@ public class OldInsight extends Insight {
 	@Deprecated
 	public void setDataTableAlign(String dataTableAlignJSON) {
 		if (dataTableAlignJSON != null && !dataTableAlignJSON.isEmpty()) {
-			classLogger.info("Setting json dataTableAlign " + Utility.cleanLogString(dataTableAlignJSON));
+			classLogger.info("Setting json dataTableAlign {}", Utility.cleanLogString(dataTableAlignJSON));
 			this.dataTableAlign = gson.fromJson(dataTableAlignJSON, Map.class);
 		} else {
 			classLogger.info("data table align is empty");
@@ -670,7 +680,7 @@ public class OldInsight extends Insight {
 				this.playSheet.setQuestionID(this.insightId);
 				this.playSheet.setDataMaker(getDataMaker());
 			} else {
-				classLogger.error("Broken insight... cannot get playsheet :: " + Utility.cleanLogString(this.layout));
+				classLogger.error("Broken insight... cannot get playsheet :: {}", Utility.cleanLogString(this.layout));
 			}
 		}
 		return this.playSheet;
@@ -859,7 +869,7 @@ public class OldInsight extends Insight {
 	 *         signal whether the component still should be kept or not
 	 */
 	private boolean undoTransformations(List<ISEMOSSTransformation> trans, List<String> processes) {
-		classLogger.info("Undoing transformations :  " + processes);
+		classLogger.info("Undoing transformations :  {}", processes);
 		List<Integer> indicesToRemove = new ArrayList<>();
 		// loop through and get the indices corresponding to the trans list to undo
 		for (int i = trans.size() - 1; i >= 0; i--) {
@@ -883,7 +893,7 @@ public class OldInsight extends Insight {
 				removedJoin = true;
 			}
 		}
-		classLogger.info("Undo transformations complete. Join transformation undone : " + removedJoin);
+		classLogger.info("Undo transformations complete. Join transformation undone : {}", removedJoin);
 		return removedJoin;
 	}
 
@@ -1023,7 +1033,7 @@ public class OldInsight extends Insight {
 				String val = ss.getVar(names[2]).toString();
 				// need to escape single quotes for reloading
 				if (val.contains("\"")) {
-					val = "\"" + val.replaceAll("\"", "\\\\\"") + "\"";
+					val = "\"" + val.replace("\"", "\\\\\"") + "\"";
 				} else {
 					val = ss.getRawVar(names[2]).toString();
 				}
@@ -1056,13 +1066,15 @@ public class OldInsight extends Insight {
 					try {
 						insightDefinition = obj.getAsciiStream();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to read UI_DATA ascii stream for insight rdbms id {}", rdbmsId, e);
 					}
 
 					try {
 						uiOptions = IOUtils.toString(insightDefinition);
 					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error(
+								"Failed to convert UI_DATA stream to uiOptions string for insight rdbms id {}", rdbmsId,
+								e);
 					}
 				}
 			}

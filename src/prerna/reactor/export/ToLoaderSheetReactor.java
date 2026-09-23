@@ -96,6 +96,7 @@ public class ToLoaderSheetReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to specify the app to export");
 		}
 		String databaseId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
+		databaseId = testDatabaseId(databaseId, false);
 		IDatabaseEngine engine = Utility.getDatabase(databaseId);
 		if (engine == null) {
 			throw new IllegalArgumentException("Cannot find the specified engine");

@@ -37,13 +37,12 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -53,7 +52,6 @@ public class ReplayStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	private Map<String, Object> response = new HashMap<>();
 	private Path recordingsDir = null;
 	private String projectId = null;
@@ -84,6 +82,14 @@ public class ReplayStepReactor extends AbstractReactor {
 		String tabId = this.keyValue.get(this.keysToGet[4]);
 
 		projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
+		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Must input a project id");
+		}
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
+		}
 		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 
 		ScreenshotResponse screenshot = replayFromFile(inputs, name, tabId);
@@ -120,7 +126,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		String requestedTabId = (tabId != null && !tabId.isEmpty()) ? tabId : "tab-1";
 		List<List<PlaywrightStep>> allStepsList = allStepsMap.getOrDefault(requestedTabId, new ArrayList<>());
 
-		classLogger.info("Loaded steps: " + json.valueToTree(steps).toString());
+		classLogger.info("Loaded steps: {}", GSON.toJson(steps));
 
 		// Determine viewport/dpr from the first step if available
 		int width = 1280;
@@ -188,8 +194,8 @@ public class ReplayStepReactor extends AbstractReactor {
 			response.put("tabTitle", execResult.newTabTitle);
 			response.put("originalTabId", requestedTabId);
 			response.put("originalTabActions", execResult.originalTabActions);
-			classLogger.info("New tab opened: " + execResult.newTabId + ", original tab has "
-					+ execResult.originalTabActions.size() + " remaining actions");
+			classLogger.info("New tab opened: {}, original tab has {} remaining actions", execResult.newTabId,
+					execResult.originalTabActions.size());
 		}
 
 		// Get next actions for the response tab
@@ -201,7 +207,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		response.put("isLastPage", isLastPage);
 		playwrightSession.isLastPage = isLastPage;
 
-		classLogger.info("Returning " + nextActions.size() + " actions for tab: " + responseTabId);
+		classLogger.info("Returning {} actions for tab: {}", nextActions.size(), responseTabId);
 
 		return ScreenshotReactor.screenshot(playwrightSession, responseTabId);
 	}
@@ -235,7 +241,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			result.newTabTitle = (String) stepResult.get("tabTitle");
 			result.newTabId = tabId;
 			playwrightSession.incrementPageIndex(tabId);
-			classLogger.info("Executed initial NAVIGATE step for tab: " + tabId);
+			classLogger.info("Executed initial NAVIGATE step for tab: {}", tabId);
 			return result;
 		}
 
@@ -265,22 +271,22 @@ public class ReplayStepReactor extends AbstractReactor {
 		int stepIdx = playwrightSession.getCurrentStepIndex(tabId);
 
 		if (pageIdx >= tabSteps.size()) {
-			classLogger.warn("PageIndex out of bounds for tab " + tabId);
+			classLogger.warn("PageIndex out of bounds for tab {}", tabId);
 			return result;
 		}
 
 		List<PlaywrightStep> currentPage = tabSteps.get(pageIdx);
 		if (stepIdx >= currentPage.size()) {
-			classLogger.warn("StepIndex out of bounds for tab " + tabId);
+			classLogger.warn("StepIndex out of bounds for tab {}", tabId);
 			return result;
 		}
 
 		PlaywrightStep step = currentPage.get(stepIdx);
-		classLogger.info("Executing step: " + json.valueToTree(step).toString());
+		classLogger.info("Executing step: {}", GSON.toJson(step));
 
 		// Check if step should be executed
 		if (!step.shouldRun()) {
-			classLogger.info("Skipping step (shouldRun=false): " + step.id());
+			classLogger.info("Skipping step (shouldRun=false): {}", step.id());
 			playwrightSession.incrementStepIndex(tabId);
 
 			// Move to next page if needed
@@ -288,7 +294,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				if (pageIdx < tabSteps.size() - 1) {
 					playwrightSession.incrementPageIndex(tabId);
 					playwrightSession.setCurrentStepIndex(tabId, 0);
-					classLogger.info("Moving to next page for tab " + tabId);
+					classLogger.info("Moving to next page for tab {}", tabId);
 				}
 			}
 			return result;
@@ -310,7 +316,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			if (pageIdx < tabSteps.size() - 1) {
 				playwrightSession.incrementPageIndex(tabId);
 				playwrightSession.setCurrentStepIndex(tabId, 0);
-				classLogger.info("Moving to next page for tab " + tabId);
+				classLogger.info("Moving to next page for tab {}", tabId);
 			}
 		}
 
@@ -326,14 +332,14 @@ public class ReplayStepReactor extends AbstractReactor {
 			}
 
 			// Get title
-			Page newTabPage = playwrightSession.tabPages.get(newTabId);
+			Page newTabPage = playwrightSession.getPage(newTabId);
 			result.newTabTitle = (newTabPage != null && newTabPage.title() != null
 					&& !newTabPage.title().trim().isEmpty()) ? newTabPage.title() : newTabId;
 
 			// Capture remaining actions for original tab
 			result.originalTabActions = getNextActions(playwrightSession, allStepsMap, tabId);
 
-			classLogger.info("Step triggered new tab: " + newTabId);
+			classLogger.info("Step triggered new tab: {}", newTabId);
 		}
 
 		return result;
@@ -367,7 +373,7 @@ public class ReplayStepReactor extends AbstractReactor {
 
 			// Check if step should be executed
 			if (!step.shouldRun()) {
-				classLogger.info("Skipping step (shouldRun=false): " + step.id());
+				classLogger.info("Skipping step (shouldRun=false): {}", step.id());
 				playwrightSession.incrementStepIndex(tabId);
 				continue;
 			}
@@ -389,7 +395,7 @@ public class ReplayStepReactor extends AbstractReactor {
 					playwrightSession.setCurrentStepIndex(newTabId, 0);
 				}
 				result.newTabId = newTabId;
-				classLogger.info("Step triggered new tab during executeAll: " + newTabId);
+				classLogger.info("Step triggered new tab during executeAll: {}", newTabId);
 			}
 		}
 
@@ -422,7 +428,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		int stepIdx = playwrightSession.getCurrentStepIndex(tabId);
 
 		if (pageIdx >= tabSteps.size()) {
-			classLogger.info("No more pages for tab " + tabId);
+			classLogger.info("No more pages for tab {}", tabId);
 			return new ArrayList<>();
 		}
 
@@ -490,8 +496,8 @@ public class ReplayStepReactor extends AbstractReactor {
 		for (int i = currentStepIndex; i < steps.size(); i++) {
 			Map<String, Object> action = new HashMap<>();
 			PlaywrightStep current = steps.get(i);
-			classLogger.info("Processing step for actions: " + json.valueToTree(current).toString());
-			classLogger.info("coords: " + current.coords());
+			classLogger.info("Processing step for actions: {}", GSON.toJson(current));
+			classLogger.info("coords: {}", current.coords());
 			switch (current.type()) {
 			case TYPE:
 				Map<String, Object> typeAction = new HashMap<>();
@@ -504,7 +510,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
 					PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-					Page page = s.tabPages.get(tabId);
+					Page page = s.getPage(tabId);
 					page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(5_000));
 					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(s, current.coords(), tabId);
 					typeAction.put("probe", probeResult);

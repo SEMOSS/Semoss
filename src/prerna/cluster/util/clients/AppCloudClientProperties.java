@@ -28,56 +28,108 @@
 package prerna.cluster.util.clients;
 
 import java.util.Map;
+import java.util.UUID;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.util.Utility;
 
+/**
+ * Resolves cluster configuration values, checking environment variables first
+ * and falling back to DIHelper properties. Also owns the container's identity
+ * ({@link #getContainerIp()}), generating a stable per-process id when one is
+ * not supplied.
+ */
 public class AppCloudClientProperties {
 
-	private Map<String, String> env = null;
-	
-	public AppCloudClientProperties() {
-		this.env = System.getenv();
+	private static final Logger classLogger = LogManager.getLogger(AppCloudClientProperties.class);
+
+	private static volatile Map<String, String> variables = System.getenv();
+	private static volatile String generatedHostIp = null;
+
+	public static final String HOST_IP = "HOST_IP";
+
+	private AppCloudClientProperties() {
+
 	}
-	
+
 	/**
-	 * This method is used to first try and pull the value
-	 * from the env 
-	 * if it is not found or is empty then try to pull from DIHelper
-	 * else return null
+	 * @return a new {@link AppCloudClientProperties} accessor
+	 */
+	public static AppCloudClientProperties build() {
+		return new AppCloudClientProperties();
+	}
+
+	/**
+	 * Resolves a config value, checking DIHelper (RDF_Map) properties first and
+	 * falling back to environment variables if not found. Each source is checked
+	 * with the key as-is, upper-cased, then lower-cased. Returns {@code null} if
+	 * the value is absent or blank in both.
+	 *
 	 * @param key
 	 * @return
 	 */
 	public String get(String key) {
-		String val = this.env.get(key);
-		if(val != null && !(val=val.trim()).isEmpty()) {
-			return val;
-		}
-		// give benefit of the doubt..
-		val = this.env.get(key.toUpperCase());
-		if(val != null && !(val=val.trim()).isEmpty()) {
-			return val;
-		}
-		val = this.env.get(key.toLowerCase());
-		if(val != null && !(val=val.trim()).isEmpty()) {
-			return val;
-		}
-		
-		val = Utility.getDIHelperProperty(key);
-		if(val != null && !(val=val.trim()).isEmpty()) {
+		// DIHelper (RDF_Map) first
+		String val = Utility.getDIHelperProperty(key);
+		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}
 		// give benefit of the doubt..
 		val = Utility.getDIHelperProperty(key.toUpperCase());
-		if(val != null && !(val=val.trim()).isEmpty()) {
+		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}
 		val = Utility.getDIHelperProperty(key.toLowerCase());
-		if(val != null && !(val=val.trim()).isEmpty()) {
+		if (val != null && !(val = val.trim()).isEmpty()) {
 			return val;
 		}
-		
+
+		// fall back to environment variables
+		val = AppCloudClientProperties.variables.get(key);
+		if (val != null && !(val = val.trim()).isEmpty()) {
+			return val;
+		}
+		// give benefit of the doubt..
+		val = AppCloudClientProperties.variables.get(key.toUpperCase());
+		if (val != null && !(val = val.trim()).isEmpty()) {
+			return val;
+		}
+		val = AppCloudClientProperties.variables.get(key.toLowerCase());
+		if (val != null && !(val = val.trim()).isEmpty()) {
+			return val;
+		}
+
 		// no luck...
 		return null;
 	}
-	
+
+	/**
+	 * Get a unique container IP. This will default to the HOST_IP in env variables
+	 * or DIHelper. If the IP is not defined, it will generate a new one.
+	 * 
+	 * @return
+	 */
+	public String getContainerIp() {
+		String hostIp = get(HOST_IP);
+		if (hostIp != null) {
+			return hostIp;
+		}
+
+		// not found - reuse or create a new generated value
+		if (generatedHostIp != null) {
+			return generatedHostIp;
+		}
+
+		synchronized (AppCloudClientProperties.class) {
+			if (generatedHostIp == null) {
+				generatedHostIp = "host_" + UUID.randomUUID().toString();
+				classLogger.info("Host IP is not set. Setting new value {}", generatedHostIp);
+			}
+		}
+
+		return generatedHostIp;
+	}
+
 }

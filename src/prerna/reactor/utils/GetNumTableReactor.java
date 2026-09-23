@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.utils;
 
+import java.io.IOException;
 import java.util.HashMap;
 
 import prerna.engine.impl.web.WebScrapeEngine;
@@ -49,12 +50,12 @@ public class GetNumTableReactor extends AbstractReactor {
 		HashMap aliasMap = (HashMap)this.getNounStore().getGenRowStruct("aliasMap").get(0);
 
 		
-		WebScrapeEngine engine = new WebScrapeEngine();
-		
-		int numTables = engine.getNumTables(url, aliasMap);
-				
-		
-		return new NounMetadata(numTables, PixelDataType.CONST_STRING);
+		try (WebScrapeEngine engine = new WebScrapeEngine()) {
+			int numTables = engine.getNumTables(url, aliasMap);
+			return new NounMetadata(numTables, PixelDataType.CONST_STRING);
+		} catch (IOException e) {
+			throw new IllegalStateException("Unable to close web scrape engine", e);
+		}
 	}
 
 }

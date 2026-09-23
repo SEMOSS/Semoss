@@ -237,8 +237,7 @@ public class GraphDataModel implements IDataMaker {
 			RDFEngineHelper.genEdgePropertiesLocal(rc, containsRelation, this);
 
 			boolean isRDF = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-					|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA
-					|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
+					|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA);
 
 			String baseConceptSelectQuery = null;
 			// the queries below needs to be instrumented later to come from engine
@@ -380,10 +379,7 @@ public class GraphDataModel implements IDataMaker {
 
 				if (subjects.indexOf("(<" + st.getSubject() + ">)") < 0) {
 					if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-							|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE
-							|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) { // RDBMS because the
-																									// the in memory is
-																									// RDBMS
+							|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 						subjects.append("(<").append(st.getSubject()).append(">)");
 					} else if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA) {
 						subjects.append("<").append(st.getSubject()).append(">");
@@ -394,7 +390,6 @@ public class GraphDataModel implements IDataMaker {
 
 				if (predicates.indexOf("(<" + st.getPredicate() + ">)") < 0) {
 					if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-							|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE
 							|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 						predicates.append("(<").append(st.getPredicate()).append(">)");
 					} else if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA) {
@@ -406,7 +401,6 @@ public class GraphDataModel implements IDataMaker {
 				if (obj instanceof URI && !(obj instanceof org.apache.jena.rdf.model.Literal)) {
 					if (objects.indexOf("(<" + obj + ">)") < 0) {
 						if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-								|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE
 								|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.RDBMS) {
 							objects.append("(<" + obj + ">)");
 						} else if (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA) {
@@ -438,8 +432,7 @@ public class GraphDataModel implements IDataMaker {
 				// the concept linkages are a combination of the base relationships and what is
 				// on the file
 				boolean isRDF = (engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SESAME
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA
-						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE);
+						|| engine.getDatabaseType() == IDatabaseEngine.DATABASE_TYPE.JENA);
 				boolean loadHierarchy = !(subjects.length() == 0 && predicates.length() == 0 && objects.length() == 0)
 						&& isRDF; // Load Hierarchy if and only if this is a RDF Engine - else dont worry about it
 				if (loadHierarchy) {

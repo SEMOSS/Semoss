@@ -49,16 +49,29 @@ import prerna.reactor.frame.r.util.TCPRTranslator;
 import prerna.sablecc2.NotebookExecution;
 import prerna.tcp.client.SocketClient;
 
+/**
+ * Contract for SEMOSS project engines and their project-scoped resources.
+ *
+ * <p>
+ * A project owns its metadata, assets, insights, reactors, and optional
+ * Python/R execution context. Specialized project types may add stricter
+ * creation and lifecycle requirements.
+ */
 public interface IProject extends IEngine, IMCP {
 
 	String MCP_ENDPOINT = "MCP_ENDPOINT";
+	String MCP_AUTH_SCHEME = "MCP_AUTH_SCHEME";
+	String MCP_AUTH_TOKEN = "MCP_AUTH_TOKEN";
 
 	String DEPENDENCIES_FILE_SUFFIX = "_dependencies.json";
 	String BLOCK_FILE_NAME = "blocks.json";
 	String NOTEBOOK_FOLDER = ".notebooks";
 
+	/**
+	 * Project capabilities used to select the correct creation and lifecycle path.
+	 */
 	enum PROJECT_TYPE {
-		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS,
+		BLOCKS, CODE, WORKSPACE, SKILL, INSIGHTS, NOTEBOOK, AUTOMATION,
 	};
 
 	/**
@@ -99,20 +112,6 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	String getProjectName();
-
-	/**
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	boolean isHasPortal();
-
-	/**
-	 * 
-	 * @param hasPortal
-	 */
-	@IgnoreEngineLogging
-	void setHasPortal(boolean hasPortal);
 
 	// gets the perspectives for this engine
 	// REFAC: Not sure we need this anymore
@@ -270,6 +269,7 @@ public interface IProject extends IEngine, IMCP {
 	 * @return
 	 */
 	@IgnoreEngineLogging
+	@Deprecated
 	ProjectProperties getProjectProperties();
 
 	/**
@@ -295,14 +295,6 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	AuthProvider getGitProvider();
-
-	/**
-	 * Get the project's portal name
-	 * 
-	 * @return
-	 */
-	@IgnoreEngineLogging
-	String getPortalName();
 
 	/**
 	 * Clears the class cache
@@ -361,5 +353,37 @@ public interface IProject extends IEngine, IMCP {
 	 */
 	@IgnoreEngineLogging
 	String getCompileOutput();
+
+	/**
+	 * Drops any cached MCP handler so the next MCP call is rebuilt from the current
+	 * smss properties. Call this after changing {@link #MCP_ENDPOINT} or its auth
+	 * properties. No-op for implementations that do not cache a handler.
+	 */
+	@IgnoreEngineLogging
+	default void resetMCP() {
+		// no-op
+	}
+
+	/**
+	 * @return the url of the external MCP server this project delegates to, or null
+	 *         when the project serves its own generated tools
+	 */
+	@IgnoreEngineLogging
+	default String getRemoteMCPEndpoint() {
+		return null;
+	}
+
+	/**
+	 * There is deliberately no getter for the matching auth token. The credential
+	 * stays on the server, and callers that need to show it report
+	 * {@link prerna.util.Constants#SENSITIVE_INFO_MASK} instead.
+	 *
+	 * @return the authentication scheme sent to the external MCP server, such as
+	 *         Bearer or Basic, or null when none is configured
+	 */
+	@IgnoreEngineLogging
+	default String getRemoteMCPAuthScheme() {
+		return null;
+	}
 
 }

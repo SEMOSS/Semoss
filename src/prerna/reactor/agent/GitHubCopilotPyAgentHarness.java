@@ -37,17 +37,15 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.engine.api.IModelEngine;
-import prerna.engine.impl.model.GitHubCopilotManager;
 import prerna.engine.impl.model.GitHubCopilotPyManager;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.sandbox.AgentSandboxConfig;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 
 /**
- * Python-sidecar GitHub Copilot harness. Same behaviour and parameter shape as
- * {@link GitHubCopilotAgentHarness}, but routes through {@link GitHubCopilotPyManager}
- * (which spawns a Python sidecar that wraps the github-copilot-sdk) instead of
- * the in-Java copilot-sdk-java path.
+ * Python-sidecar GitHub Copilot harness. Routes through
+ * {@link GitHubCopilotPyManager}, which spawns a Python sidecar that wraps the
+ * github-copilot-sdk.
  *
  * <p>Registered under the harness name {@code "github_copilot_py"} so callers
  * can opt in via Pixel: {@code RunAgent(harnessType="github_copilot_py", ...)}.
@@ -86,6 +84,14 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		if (systemPrompt == null) {
 			systemPrompt = "";
 		}
+		// Selected-engines block resolved per run by AgentConfigLoader from the
+		// run's target project; keeps workbench engine selections prompt-visible.
+		String selectedEnginesPrompt = ctx.getAgentConfig().getSelectedEnginesPrompt();
+		if (selectedEnginesPrompt != null && !selectedEnginesPrompt.isEmpty()) {
+			systemPrompt = systemPrompt.isEmpty()
+					? selectedEnginesPrompt
+					: systemPrompt + "\n\n" + selectedEnginesPrompt;
+		}
 		User         user           = ctx.getInsight().getUser();
 		if (user == null) {
 			throw new IllegalArgumentException(NAME + ": insight has no user");
@@ -100,7 +106,7 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		}
 		int contextWindow = modelEngine.getContextWindow();
 
-		String targetBinary = GitHubCopilotManager.resolveCopilotBinary();
+		String targetBinary = GitHubCopilotPyManager.resolveCopilotBinary();
 		SandboxPolicy sandboxPolicy = AgentSandboxConfig.buildEffectivePolicy(
 				room.getRoomFolderPath(), cwd, targetBinary, ctx.getSandboxPolicy());
 

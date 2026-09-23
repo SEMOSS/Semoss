@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.function;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,8 +66,17 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 	}
 
 	/**
-	 * 
-	 * @return
+	 * Collect the parameters to call the function with.
+	 *
+	 * <p>
+	 * The parameters may be supplied three ways, in this order of precedence: as
+	 * the named {@code map} key, as an unnamed map argument, or as named arguments
+	 * alongside {@code engine}. The last form is what lets a generated MCP tool
+	 * call a function the way its own definition describes it -
+	 * {@code ExecuteFunctionEngine(engine="...", query="...")} - so a model reading
+	 * the tool schema does not also have to know to nest the arguments under a map.
+	 *
+	 * @return the parameters to pass to the function engine
 	 */
 	private Map<String, Object> getMap() {
 		Map<String, Object> parameterValues = new HashMap<>();
@@ -77,16 +87,81 @@ public class ExecuteFunctionEngineReactor extends AbstractReactor {
 				NounMetadata noun = mapGrs.getNoun(i);
 				parameterValues.putAll((Map<String, Object>) noun.getValue());
 			}
-		} else {
-			List<Object> mapValues = curRow.getValuesOfType(PixelDataType.MAP);
-			if (mapValues != null && !mapValues.isEmpty()) {
-				for (int i = 0; i < mapValues.size(); i++) {
-					parameterValues.putAll((Map<String, Object>) mapValues.get(i));
+			return parameterValues;
+		}
+
+		List<Object> mapValues = curRow.getValuesOfType(PixelDataType.MAP);
+		if (mapValues != null && !mapValues.isEmpty()) {
+			for (int i = 0; i < mapValues.size(); i++) {
+				parameterValues.putAll((Map<String, Object>) mapValues.get(i));
+			}
+			return parameterValues;
+		}
+
+		return getNamedArguments();
+	}
+
+	/**
+	 * Treat every named argument other than the reactor's own keys as a function
+	 * parameter. Only reached when no map was supplied, so a caller passing a map
+	 * keeps exactly the behavior it always had.
+	 *
+	 * @return the named arguments as a parameter map, empty when there were none
+	 */
+	private Map<String, Object> getNamedArguments() {
+		Map<String, Object> parameterValues = new HashMap<>();
+		if (this.store == null) {
+			return parameterValues;
+		}
+
+		for (String nounKey : this.store.getNounKeys()) {
+			// engine and map are this reactor's own inputs, and the positional
+			// bucket holds unnamed arguments that carry no parameter name to use
+			if (nounKey.equals(this.keysToGet[0]) || nounKey.equals(this.keysToGet[1])
+					|| nounKey.equals(ALL_NOUN_STORE)) {
+				continue;
+			}
+			GenRowStruct grs = this.store.getGenRowStruct(nounKey);
+			if (grs == null || grs.isEmpty()) {
+				continue;
+			}
+			// a parameter given more than once is a list to the function rather
+			// than a last-one-wins overwrite
+			if (grs.size() == 1) {
+				parameterValues.put(nounKey, grs.get(0));
+			} else {
+				List<Object> values = new ArrayList<>();
+				for (int i = 0; i < grs.size(); i++) {
+					values.add(grs.get(i));
 				}
+				parameterValues.put(nounKey, values);
 			}
 		}
 
 		return parameterValues;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return """
+				Runs a function engine - a server side tool an admin has registered on the platform, \
+				such as OCR or document extraction, audio transcription, image description, a wrapped \
+				enterprise REST API, a web search, or a registered python function. \
+				Call GetFunctionEngineDefinition first when the function's parameters are not already known.\
+				""";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(ReactorKeysEnum.ENGINE.getKey())) {
+			return "The id of the function engine to run";
+		} else if (key.equals(ReactorKeysEnum.MAP.getKey())) {
+			return """
+					The function's parameters, as a map of parameter name to value. The parameters a given \
+					function accepts come back from GetFunctionEngineDefinition\
+					""";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

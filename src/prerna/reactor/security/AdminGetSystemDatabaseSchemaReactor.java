@@ -60,7 +60,7 @@ public class AdminGetSystemDatabaseSchemaReactor extends AbstractReactor {
 		String databaseId = getDatabaseId();
 
 		// pulls the table/column/datatype from the system database's OWL creator;
-		// throws if the id is not one of the SystemDefaultDatabases
+		// throws if the id is not one of the SystemDefaultEngines
 		List<OwlColumn> columns = SystemDatabaseSchemaUtils.getSystemDatabaseSchema(databaseId);
 
 		List<Map<String, Object>> schema = new ArrayList<>(columns.size());

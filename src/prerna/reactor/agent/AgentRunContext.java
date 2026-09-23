@@ -68,12 +68,21 @@ public final class AgentRunContext {
     private final String        runId;
     private final List<String>  mediaInputPaths;
     private final List<String>  mediaUrls;
+    private final AgentRunTarget agentTarget;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
 
     // Resolved agent spec shared across harnesses.
     private final AgentConfig   agentConfig;
+
+    /**
+     * When {@code true}, the harness skips the initial model ask and picks up
+     * from the latest message in the room. Set when resuming a run that was
+     * paused on {@code SMSS_MCP_EXECUTION=ask} tools — the tool results have
+     * already been written to the room by {@code RunMCPToolReactor}.
+     */
+    private final boolean       resumeMode;
 
     private AgentRunContext(Builder b) {
         this.room          = b.room;
@@ -85,8 +94,10 @@ public final class AgentRunContext {
         this.runId         = b.runId;
         this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
         this.mediaUrls       = immutableStringList(b.mediaUrls);
+        this.agentTarget    = b.agentTarget;
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
+        this.resumeMode    = b.resumeMode;
     }
 
     // Live per-call state
@@ -131,6 +142,14 @@ public final class AgentRunContext {
     }
 
     /**
+     * Authorized filesystem target selected for this run. May be {@code null}
+     * for legacy direct callers that build a context without the runner.
+     */
+    public AgentRunTarget getAgentTarget() {
+        return agentTarget;
+    }
+
+    /**
      * Filesystem allowlist applied to agent binaries before they {@code execvp}.
      * {@code null} when the caller did not build a policy; harnesses may construct
      * a default or skip sandboxing.
@@ -153,6 +172,15 @@ public final class AgentRunContext {
     /** 0 = root run; checked against {@code agentConfig.getSpawnPolicy().getMaxSubagentDepth()}. */
     public int getSpawnDepth() {
         return spawnDepth;
+    }
+
+    /**
+     * @return {@code true} when this is a resumed run — the harness should
+     *         skip the initial model ask and continue from the room's latest
+     *         message.
+     */
+    public boolean isResumeMode() {
+        return resumeMode;
     }
 
     // Compatibility accessors (delegate to AgentConfig)
@@ -218,11 +246,14 @@ public final class AgentRunContext {
         private String        runId;
         private List<String>  mediaInputPaths;
         private List<String>  mediaUrls;
+        private AgentRunTarget agentTarget;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
         // Either supplied directly or assembled from the legacy setters below.
         private AgentConfig   agentConfig;
+
+        private boolean       resumeMode = false;
 
         // Legacy field holders (used only when agentConfig is not supplied directly)
         private String              legacyFilePath;
@@ -239,8 +270,11 @@ public final class AgentRunContext {
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
         public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
         public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
+        public Builder agentTarget(AgentRunTarget target)    { this.agentTarget = target;         return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
+
+        public Builder resumeMode(boolean resumeMode)        { this.resumeMode = resumeMode;       return this; }
 
         /** Sets the canonical agent spec. Preferred path. */
         public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }

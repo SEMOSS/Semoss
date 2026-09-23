@@ -66,6 +66,8 @@ import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
@@ -99,7 +101,6 @@ public class ModelInferenceLogsUtils {
 			.disableHtmlEscaping().create();
 
 	public static final String WORKSPACE_PROJECT_TAG = "Workspace_Project";
-	public static final String SKILL_PROJECT_TAG = "Skill_Project";
 
 	// Constants for Table
 	private static final String MESSAGE_TABLE_NAME = "MESSAGE__";
@@ -144,56 +145,11 @@ public class ModelInferenceLogsUtils {
 	 */
 	private static void executeInitModelInferenceDatabase(IRDBMSEngine engine, Connection conn,
 			List<Pair<String, List<Pair<String, String>>>> dbSchema) throws SQLException {
-
-		String database = engine.getDatabase();
-		String schema = engine.getSchema();
-
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-
 		boolean roomIdColumnWasAdded = false;
 		boolean modelIdColumnWasAdded = false;
 
-		for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			if (allowIfExistsTable) {
-				String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-				executeSql(conn, sql);
-			} else {
-				if (!queryUtil.tableExists(engine, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					executeSql(conn, sql);
-				}
-			}
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					executeSql(conn, addColumnSql);
-
-					// was room id just added? 2025-06-26 addition. if so update w/ insight id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("ROOM_ID")) {
-						roomIdColumnWasAdded = true;
-					}
-
-					// was model id just added? 2025-06-26 addition. if so update w/ agent id
-					if (tableName.equalsIgnoreCase("ROOM") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-					if (tableName.equalsIgnoreCase("MESSAGE") && col.equalsIgnoreCase("MODEL_ID")) {
-						modelIdColumnWasAdded = true;
-					}
-				}
-			}
-		}
+		// create the tables and columns from the OWL creator schema
+		AbstractOwlCreator.syncSchema(engine, conn, dbSchema);
 
 		// was roomId just added
 		if (roomIdColumnWasAdded) {
@@ -206,98 +162,25 @@ public class ModelInferenceLogsUtils {
 			migrateAgentAndModelIds(conn);
 		}
 
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-			executeSql(conn, sql);
-
-			sql = queryUtil.createIndexIfNotExists("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-			executeSql(conn, sql);
-		} else {
-			if (!queryUtil.indexExists(engine, "MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_ROOM_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_USER_ID_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "MESSAGE_DATE_CREATED_INDEX", "MESSAGE", database, schema)) {
-				String sql = queryUtil.createIndex("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_INSIGHT_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_ROOM_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_USER_ID_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_USER_ID_INDEX", "ROOM", "USER_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "ROOM_IS_ACTIVE_INDEX", "ROOM", database, schema)) {
-				String sql = queryUtil.createIndex("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "WORKSPACE_OWNER_INDEX", "WORKSPACE", database, schema)) {
-				String sql = queryUtil.createIndex("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID");
-				executeSql(conn, sql);
-			}
-
-			if (!queryUtil.indexExists(engine, "AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", database, schema)) {
-				String sql = queryUtil.createIndex("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID");
-				executeSql(conn, sql);
-			}
-		}
+		// create the indexes on the tables
+		AbstractOwlCreator.syncIndexes(engine, conn, List.of(
+				OwlIndex.of("MESSAGE_INSIGHT_ID_INDEX", "MESSAGE", "INSIGHT_ID"),
+				OwlIndex.of("MESSAGE_ROOM_ID_INDEX", "MESSAGE", "ROOM_ID"),
+				OwlIndex.of("MESSAGE_USER_ID_INDEX", "MESSAGE", "USER_ID"),
+				OwlIndex.of("MESSAGE_DATE_CREATED_INDEX", "MESSAGE", "DATE_CREATED"),
+				OwlIndex.of("ROOM_INSIGHT_ID_INDEX", "ROOM", "INSIGHT_ID"),
+				OwlIndex.of("ROOM_ROOM_ID_INDEX", "ROOM", "ROOM_ID"),
+				OwlIndex.of("ROOM_USER_ID_INDEX", "ROOM", "USER_ID"),
+				OwlIndex.of("ROOM_IS_ACTIVE_INDEX", "ROOM", "IS_ACTIVE"),
+				OwlIndex.of("ROOM_WORKSPACE_ID_INDEX", "ROOM", "WORKSPACE_ID"),
+				OwlIndex.of("WORKSPACE_OWNER_INDEX", "WORKSPACE", "OWNER"),
+				OwlIndex.of("AGENT_RUN_RUN_ID_INDEX", "AGENT_RUN", "RUN_ID"),
+				OwlIndex.of("AGENT_RUN_ROOM_ID_INDEX", "AGENT_RUN", "ROOM_ID"),
+				OwlIndex.of("AGENT_RUN_PARENT_RUN_ID_INDEX", "AGENT_RUN", "PARENT_RUN_ID"),
+				OwlIndex.of("AGENT_RUN_USER_WORKSPACE_DATE_INDEX", "AGENT_RUN", "USER_ID", "WORKSPACE_ID",
+						"DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_USER_ROOM_DATE_INDEX", "AGENT_RUN", "USER_ID", "ROOM_ID", "DATE_CREATED"),
+				OwlIndex.of("AGENT_RUN_ACTION_RUN_ID_INDEX", "AGENT_RUN_ACTION", "RUN_ID")));
 	}
 
 	/**
@@ -405,7 +288,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns true when the user submitted the given batch (batch_submit row exists).
+	 * Returns true when the user submitted the given batch (batch_submit row
+	 * exists).
 	 */
 	public static boolean userOwnsBatch(String userId, String providerBatchId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
@@ -432,8 +316,8 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Returns the user's batch submissions for an engine, most recent first.
-	 * Each map has: providerBatchId, submittedAt, engineId, requestCount.
+	 * Returns the user's batch submissions for an engine, most recent first. Each
+	 * map has: providerBatchId, submittedAt, engineId, requestCount.
 	 */
 	public static List<Map<String, Object>> getUserBatches(String userId, String engineId, int limit) {
 		List<Map<String, Object>> out = new ArrayList<>();
@@ -477,9 +361,9 @@ public class ModelInferenceLogsUtils {
 
 	/**
 	 * Returns the stored input prompts for a batch as customId -> command map.
-	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written
-	 * at submit time. TRANSACTION_ID has the form "batchId.customId", so customId
-	 * is extracted as the suffix after "batchId.".
+	 * Queries INPUT rows in the batch room (ROOM_ID = "mb_<batchId>") written at
+	 * submit time. TRANSACTION_ID has the form "batchId.customId", so customId is
+	 * extracted as the suffix after "batchId.".
 	 */
 	public static Map<String, String> getBatchInputs(String userId, String providerBatchId) {
 		Map<String, String> out = new HashMap<>();
@@ -514,10 +398,10 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
-	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch item.
-	 * The INPUT row is written at submit time before token counts are known; this
-	 * back-fills them at results time so usage analytics (which derive the input/
-	 * response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
+	 * Sets MESSAGE_TOKENS + INPUT_TOKENS on the submit-time INPUT row for a batch
+	 * item. The INPUT row is written at submit time before token counts are known;
+	 * this back-fills them at results time so usage analytics (which derive the
+	 * input/ response split from MESSAGE_TOKENS keyed on MESSAGE_TYPE) are correct.
 	 * Matched by the per-item TRANSACTION_ID ("batchId.customId").
 	 */
 	public static void updateBatchInputTokens(String transactionId, Integer inputTokens) {
@@ -1010,7 +894,6 @@ public class ModelInferenceLogsUtils {
 			ps = modelInferenceLogsDb.getPreparedStatement(query);
 			int index = 1;
 			ps.setString(index++, roomId);
-			ps.execute();
 			if (ps.execute()) {
 				ResultSet rs = ps.getResultSet();
 				if (rs.next()) {
@@ -1024,6 +907,102 @@ public class ModelInferenceLogsUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
+	}
+
+	/**
+	 * Checks whether a room exists and belongs to the given user.
+	 * <p>
+	 * This is the cheapest way to validate room access - it only touches the ROOM
+	 * table and never loads the room's messages, builds a {@link Room}, populates
+	 * the user's room hash, or takes the room mutation lock. Use this instead of
+	 * {@code RoomUtils.getOrLoadRoom} when the caller only needs an access check.
+	 * Inactive (closed) rooms are still considered accessible here, matching the
+	 * behavior of {@link #getRoomById(String, String)}.
+	 * </p>
+	 *
+	 * @param roomId room identifier
+	 * @param userId user identifier
+	 * @return {@code true} if the room exists for this user
+	 */
+	public static boolean doCheckRoomExistsForUser(String roomId, String userId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, roomId);
+			ps.setString(index++, userId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				if (rs.next()) {
+					int count = rs.getInt(1);
+					return count >= 1;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to check whether room exists for roomId '{}' and userId '{}'.", roomId, userId,
+					e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return false;
+	}
+
+	/**
+	 * Aggregates token and latency stats from the MESSAGE table for one room. Token
+	 * columns are split by row type (INPUT rows carry input/cache tokens, RESPONSE
+	 * rows carry output/thinking tokens) and RESPONSE_TIME is duplicated on both
+	 * rows of a call, so latency is read from RESPONSE rows only.
+	 * <p>
+	 * Callers must validate room ownership before calling - this aggregates by
+	 * ROOM_ID alone.
+	 * </p>
+	 *
+	 * @param roomId room identifier
+	 * @return stats map; {@code available=false} when no rows were found
+	 */
+	public static Map<String, Object> getRoomTokenAndLatencyStats(String roomId) {
+		Map<String, Object> stats = new HashMap<>();
+		stats.put("available", false);
+		if (roomId == null || roomId.isBlank()) {
+			return stats;
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT MESSAGE_TYPE, COUNT(MESSAGE_ID), SUM(INPUT_TOKENS), SUM(OUTPUT_TOKENS), "
+				+ "SUM(THINKING_TOKENS), SUM(CACHE_READ_TOKENS), SUM(CACHE_CREATION_TOKENS), "
+				+ "SUM(RESPONSE_TIME), AVG(RESPONSE_TIME), MAX(RESPONSE_TIME) "
+				+ "FROM MESSAGE WHERE ROOM_ID = ? GROUP BY MESSAGE_TYPE";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			ps.setString(1, roomId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				while (rs.next()) {
+					String messageType = rs.getString(1);
+					if ("RESPONSE".equalsIgnoreCase(messageType)) {
+						stats.put("available", true);
+						stats.put("llmCalls", rs.getLong(2));
+						stats.put("outputTokens", rs.getLong(4));
+						stats.put("thinkingTokens", rs.getLong(5));
+						stats.put("totalResponseTimeMs", rs.getDouble(8));
+						stats.put("avgResponseTimeMs", Math.round(rs.getDouble(9) * 100.0) / 100.0);
+						stats.put("maxResponseTimeMs", rs.getDouble(10));
+					} else if ("INPUT".equalsIgnoreCase(messageType)) {
+						stats.put("available", true);
+						stats.put("inputTokens", rs.getLong(3));
+						stats.put("cacheReadTokens", rs.getLong(6));
+						stats.put("cacheCreationTokens", rs.getLong(7));
+					}
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to aggregate inference stats for roomId '{}'.", roomId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return stats;
 	}
 
 	/**
@@ -1420,43 +1399,80 @@ public class ModelInferenceLogsUtils {
 	/**
 	 * Searches messages for a user and project by keyword. Handles message_data as
 	 * a binary field (bytea/blob/varbinary). Converts/casts as necessary for each
-	 * DB so text search via LIKE is possible.
+	 * DB so text search via LIKE is possible. Results are deduplicated to one row
+	 * per room in SQL before limit/offset are applied, so pagination operates on
+	 * rooms rather than raw message rows.
 	 *
 	 * @param userId    the user to search for
-	 * @param projectId the project to search within
+	 * @param projectId the project to search within, or null/blank to search all
+	 *                  projects for the user
 	 * @param keyword   the text keyword to find in message bodies
-	 * @return a list of matching messages (room_id, message_text, message_id)
+	 * @return a list of matching rooms, one row per room (room_id, room_name, and
+	 *         src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsUtils.java
+	 *         * the room's date_created)
 	 */
 	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword) {
+		return searchMessages(userId, projectId, keyword, -1, 0, false, false);
+	}
+
+	public static List<Map<String, Object>> searchMessages(String userId, String projectId, String keyword, long limit,
+			long offset, boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+
+		// Room-only subquery selecting just the room IDs in scope for this user/
+		// project. Used below as an indexed MESSAGE.ROOM_ID IN (...) filter so the
+		// (unindexable) blob-to-text LIKE match only has to run against messages in
+		// those rooms, instead of Postgres scanning every message row in the system
+		// before the ROOM-side filters ever get applied.
+		SelectQueryStruct roomScopeQs = new SelectQueryStruct();
+		roomScopeQs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
+		addRoomScopeFilters(roomScopeQs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+
 		SelectQueryStruct qs = new SelectQueryStruct();
-
-		// Always select room_id and message_id
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID", "room_id"));
-		qs.addSelector(new QueryColumnSelector("MESSAGE__MESSAGE_ID", "message_id"));
+		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "room_name"));
+		qs.addSelector(new QueryColumnSelector("ROOM__DATE_CREATED", "date_created"));
 
-		// Build a selector for message_text out of message_data, adapted to DB type
+		// Use the search-specific conversion so malformed searchable content cannot
+		// abort an otherwise unrelated room/project search.
 		QueryFunctionSelector messageTextSelector = modelInferenceLogsDb.getQueryUtil()
-				.getBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"), "message_text");
-		qs.addSelector(messageTextSelector);
+				.getSearchableBlobToStringFunctionSelector(new QueryColumnSelector("MESSAGE__MESSAGE_DATA"),
+						"message_text");
 
-		// JOIN, filters, and ordering
-		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "left.join");
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
-
-		// Add filter on decoded message text
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, // use the computed selector (the
-																						// decoded/casted field)
-				"?like", keyword.toLowerCase(), // (may want '?ilike' if framework supports, for case-insensitive)
+		// JOIN, filters, deduplication, and ordering
+		qs.addRelation("MESSAGE__ROOM_ID", "ROOM__ROOM_ID", "inner.join");
+		addRoomScopeFilters(qs, userId, projectId, includeUnnamedRooms, includeChildRooms);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("MESSAGE__ROOM_ID", "==", roomScopeQs));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(messageTextSelector, "?like", keyword,
 				PixelDataType.CONST_STRING));
 
-		qs.addOrderBy("ROOM__DATE_CREATED", "DESC");
-		qs.addOrderBy("MESSAGE__DATE_CREATED", "DESC");
-
+		qs.setDistinct(true);
+		qs.addOrderBy(new QueryColumnOrderBySelector("date_created", "DESC"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("room_id", "DESC"));
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
 		return QueryExecutionUtility.flushRsToMap(modelInferenceLogsDb, qs);
+	}
+
+	private static void addRoomScopeFilters(SelectQueryStruct qs, String userId, String projectId,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("ROOM__IS_ACTIVE", "==", true, PixelDataType.BOOLEAN));
+		if (projectId != null && !projectId.trim().isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__USER_ID", "==", userId));
+		if (!includeUnnamedRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
+		}
 	}
 
 	/**
@@ -1495,6 +1511,74 @@ public class ModelInferenceLogsUtils {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * Returns the current display name for a user's room.
+	 *
+	 * @param userId user identifier
+	 * @param roomId room identifier
+	 * @return current room name, or {@code null} when the room does not exist or
+	 *         has no name set
+	 */
+	public static String doGetRoomName(String userId, String roomId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT ROOM_NAME FROM ROOM WHERE USER_ID = ? AND ROOM_ID = ?";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+			if (ps.execute()) {
+				ResultSet rs = ps.getResultSet();
+				if (rs.next()) {
+					return rs.getString(1);
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to get room name for roomId '{}' and userId '{}'.", roomId, userId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
+		}
+		return null;
+	}
+
+	/**
+	 * Updates a room's display name only when the current name is still unset or
+	 * still equal to the auto-derived default (the truncated initial request set at
+	 * room creation). A custom name set by the user is never overwritten.
+	 *
+	 * @param userId      user identifier
+	 * @param roomId      room identifier
+	 * @param roomName    new room name
+	 * @param defaultName auto-derived name that is allowed to be replaced
+	 * @return {@code true} when a row was updated
+	 */
+	public static boolean doSetNameForRoomIfDefault(String userId, String roomId, String roomName, String defaultName) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=? "
+				+ "AND (ROOM_NAME IS NULL OR ROOM_NAME='' OR ROOM_NAME=?)";
+		PreparedStatement ps = null;
+		try {
+			ps = modelInferenceLogsDb.getPreparedStatement(query);
+			int index = 1;
+			ps.setString(index++, roomName);
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+			ps.setString(index++, defaultName);
+			int rows = ps.executeUpdate();
+			if (!ps.getConnection().getAutoCommit()) {
+				ps.getConnection().commit();
+			}
+			return rows > 0;
+		} catch (Exception e) {
+			classLogger.error("Failed to conditionally update room name for roomId '{}' and userId '{}'.", roomId,
+					userId, e);
+			return false;
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
+		}
 	}
 
 	/**
@@ -1645,11 +1729,18 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned) {
-		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null);
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, null, false, false);
 	}
 
 	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
 			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch) {
+		return getUserConversations(userId, projectId, limit, offset, sortDir, search, pinned, roomOptionsSearch, false,
+				false);
+	}
+
+	public static List<Map<String, Object>> getUserConversations(String userId, String projectId, long limit,
+			long offset, String sortDir, String search, Boolean pinned, String roomOptionsSearch,
+			boolean includeUnnamedRooms, boolean includeChildRooms) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("ROOM__ROOM_ID"));
@@ -1668,6 +1759,16 @@ public class ModelInferenceLogsUtils {
 		subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MESSAGE__MESSAGE_DATA", "!=", null));
 		if (projectId != null) {
 			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PROJECT_ID", "==", projectId));
+		}
+		if (!includeUnnamedRooms) {
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", null));
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__ROOM_NAME", "!=", ""));
+		}
+		if (!includeChildRooms) {
+			// Exclude subagent rooms -- these are real Room rows (their roomId is the
+			// subagent's runId) created purely as a spawned subagent's private
+			// workspace, not user-initiated conversations. See AgentSubAgentRegistry.
+			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ROOM__PARENT_ROOM_ID", "==", null));
 		}
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ROOM__ROOM_ID", "==", subQs));
 
@@ -2570,6 +2671,59 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * Updates only the core {@code WORKSPACE} display columns (NAME, DESCRIPTION,
+	 * SYSTEM_PROMPT) plus DATE_UPDATED. Leaves IS_ACTIVE, CONFIG_JSON, and the
+	 * WORKSPACE_RESOURCE rows untouched - unlike
+	 * {@link #updateWorkspaceEntry(String, String, String, String, boolean, List)},
+	 * which replaces the full resource set.
+	 *
+	 * <p>
+	 * Used by {@code SystemAgentSeeder} to self-heal the legacy display columns on
+	 * every boot the same way
+	 * {@link #updateWorkspaceConfigJson(String, JSONObject)} self-heals the config
+	 * mirror. The legacy SYSTEM_PROMPT column is what GetWorkspace/ListWorkspaces
+	 * surface to the FE, so it must track the seeded prompt or the UI shows a stale
+	 * value after the constant changes.
+	 *
+	 * @param workspaceId  workspace identifier
+	 * @param name         workspace display name
+	 * @param description  workspace description payload
+	 * @param systemPrompt workspace system prompt payload
+	 * @throws SQLException if the update fails
+	 */
+	public static void updateWorkspaceCoreFields(String workspaceId, String name, String description,
+			String systemPrompt) throws SQLException {
+		if (workspaceId == null || workspaceId.isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		Timestamp now = Utility.getCurrentSqlTimestampUTC();
+
+		Connection con = null;
+		try {
+			con = modelInferenceLogsDb.getConnection();
+			try (PreparedStatement ps = con.prepareStatement(
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
+				int index = 1;
+				ps.setString(index++, name);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
+				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
+				ps.setTimestamp(index++, now);
+				ps.setString(index++, workspaceId);
+				ps.execute();
+				if (!con.getAutoCommit()) {
+					con.commit();
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to update core fields for workspaceId '{}'.", workspaceId, e);
+			throw new SQLException("Failed to update workspace core fields: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+		}
+	}
+
+	/**
 	 * Adds a skill reference to {@code WORKSPACE.CONFIG_JSON.skills[]}, mirroring
 	 * the authoritative {@code WORKSPACE_RESOURCE} row so the two stores stay in
 	 * sync - the same dual-write pattern MCPs use
@@ -2662,88 +2816,6 @@ public class ModelInferenceLogsUtils {
 			return;
 		}
 		cfg.put("skills", kept);
-		updateWorkspaceConfigJson(workspaceId, cfg);
-	}
-
-	/**
-	 * Adds a platform-skill slug to {@code WORKSPACE.CONFIG_JSON.platform_skills[]}.
-	 * Platform skills are disk-backed folders (see
-	 * {@code prerna.reactor.agent.skill.PlatformSkills}) - they are not Projects,
-	 * have no ids, and carry no {@code WORKSPACE_RESOURCE} row, so CONFIG_JSON is
-	 * the sole store. The array holds plain slug strings. Idempotent: a slug
-	 * already present is left untouched and no write is issued.
-	 *
-	 * @param workspaceId workspace identifier
-	 * @param slug        platform skill slug (folder name) to add
-	 * @throws SQLException if the CONFIG_JSON write fails
-	 */
-	public static void addPlatformSkillToWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
-		if (workspaceId == null || workspaceId.isEmpty()) {
-			throw new IllegalArgumentException("workspaceId is required");
-		}
-		if (slug == null || slug.isEmpty()) {
-			throw new IllegalArgumentException("slug is required");
-		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			cfg = new JSONObject();
-			cfg.put("schema_version", 1);
-		}
-		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
-		if (platformSkills == null) {
-			platformSkills = new JSONArray();
-		}
-		for (int i = 0; i < platformSkills.length(); i++) {
-			if (slug.equals(platformSkills.optString(i, null))) {
-				return;
-			}
-		}
-		platformSkills.put(slug);
-		cfg.put("platform_skills", platformSkills);
-		updateWorkspaceConfigJson(workspaceId, cfg);
-	}
-
-	/**
-	 * Removes a platform-skill slug from
-	 * {@code WORKSPACE.CONFIG_JSON.platform_skills[]}. No-op (no write) when the
-	 * workspace has no CONFIG_JSON, no {@code platform_skills} array, or the slug
-	 * is not present.
-	 *
-	 * @param workspaceId workspace identifier
-	 * @param slug        platform skill slug to remove
-	 * @throws SQLException if the CONFIG_JSON write fails
-	 */
-	public static void removePlatformSkillFromWorkspaceConfigJson(String workspaceId, String slug) throws SQLException {
-		if (workspaceId == null || workspaceId.isEmpty()) {
-			throw new IllegalArgumentException("workspaceId is required");
-		}
-		if (slug == null || slug.isEmpty()) {
-			throw new IllegalArgumentException("slug is required");
-		}
-		JSONObject cfg = getWorkspaceConfigJson(workspaceId);
-		if (cfg == null) {
-			return;
-		}
-		JSONArray platformSkills = cfg.optJSONArray("platform_skills");
-		if (platformSkills == null || platformSkills.length() == 0) {
-			return;
-		}
-		JSONArray kept = new JSONArray();
-		boolean removed = false;
-		for (int i = 0; i < platformSkills.length(); i++) {
-			String existing = platformSkills.optString(i, null);
-			if (slug.equals(existing)) {
-				removed = true;
-				continue;
-			}
-			if (existing != null) {
-				kept.put(existing);
-			}
-		}
-		if (!removed) {
-			return;
-		}
-		cfg.put("platform_skills", kept);
 		updateWorkspaceConfigJson(workspaceId, cfg);
 	}
 
@@ -3706,151 +3778,37 @@ public class ModelInferenceLogsUtils {
 	}
 
 	// ============================================================
-	// SKILL registry
+	// Skills
 	//
-	// SKILL_ID == the underlying Project ID. The Project (type=SKILL, tagged
-	// Skill_Project in PROJECTMETA) owns content (under version/assets/skill/),
-	// versioning (git in version/), and permissions (PROJECTUSER/GROUPPROJECT...).
-	// SKILL__ only holds the skill-specific metadata used for fast listing and the
-	// platform-vs-user ORIGIN distinction. WORKSPACE_RESOURCE__ rows with
-	// RESOURCE_TYPE='SKILL' attach skills to workspaces.
+	// A skill is a Project of type SKILL; the Project owns content (SKILL.md
+	// under version/assets/skill/), versioning (git in version/), and
+	// permissions. WORKSPACE_RESOURCE__ rows with RESOURCE_TYPE='SKILL' attach
+	// skills to workspaces, mirrored into CONFIG_JSON.skills[].
 	// ============================================================
 
 	/**
-	 * Inserts a new skill row. The caller is responsible for having already created
-	 * the underlying Project (via {@code ProjectHelper.createSkillProject}) and for
-	 * writing the SKILL.md into {@code version/assets/skill/}.
+	 * Detaches a skill project from every workspace that references it: deletes the
+	 * WORKSPACE_RESOURCE__ rows (RESOURCE_TYPE='SKILL') and scrubs the matching
+	 * {@code CONFIG_JSON.skills[]} mirror entry in each affected workspace. Does
+	 * NOT delete the underlying Project - callers (typically the project-delete
+	 * path) own that.
 	 *
-	 * @param skillId     skill identifier - must equal the underlying project id
-	 * @param slug        stable slug (used as the staged directory name)
-	 * @param name        display name
-	 * @param description SKILL.md frontmatter description, mirrored for search
-	 * @param createdBy   authoring user id (null/system for platform skills)
-	 * @param origin      USER | PLATFORM | IMPORTED | GENERATED
-	 * @param configJson  optional forward-compat blob
-	 * @throws Exception if insert fails
+	 * <p>
+	 * Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
+	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping
+	 * the mirror leaves a dangling skill id that
+	 * {@code AgentConfigLoader.resolveSkills} still returns, so the run-time
+	 * {@code SkillStager} fails it every run. The referencing workspaces are
+	 * captured before the row deletes so the mirror can be scrubbed afterward.
+	 *
+	 * @param projectId skill project identifier
 	 */
-	public static void createNewSkill(String skillId, String slug, String name, String description, String createdBy,
-			String origin, JSONObject configJson) throws Exception {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-		String configJsonStr = configJson == null ? null : configJson.toString();
-
-		Connection con = null;
-		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con
-					.prepareStatement("INSERT INTO SKILL (SKILL_ID, SLUG, NAME, DESCRIPTION, CREATED_BY, ORIGIN, "
-							+ "CONFIG_JSON, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?,?)")) {
-				int index = 1;
-				ps.setString(index++, skillId);
-				ps.setString(index++, slug);
-				ps.setString(index++, name);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
-				ps.setString(index++, createdBy);
-				ps.setString(index++, origin);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, configJsonStr, index++, GSON);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index++, now);
-				ps.execute();
-			}
-
-			if (!con.getAutoCommit()) {
-				con.commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to create skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error creating skill: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
+	public static void detachSkillFromAllWorkspaces(String projectId) {
+		if (!SystemEngineRegistry.isModelInferenceLogsDbLoaded()) {
+			classLogger.warn("Model inference logs db is not loaded; skipping workspace scrub for skill '{}'",
+					projectId);
+			return;
 		}
-	}
-
-	/**
-	 * Updates metadata on a skill. Null arguments leave a field untouched.
-	 *
-	 * @param skillId     skill identifier
-	 * @param name        new display name, or null to skip
-	 * @param description new description, or null to skip
-	 * @param configJson  new CONFIG_JSON, or null to skip
-	 * @throws Exception if update fails
-	 */
-	public static void updateSkillMetadata(String skillId, String name, String description, JSONObject configJson)
-			throws Exception {
-		if (skillId == null || skillId.isEmpty()) {
-			throw new IllegalArgumentException("skillId is required");
-		}
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Timestamp now = Utility.getCurrentSqlTimestampUTC();
-
-		StringBuilder sql = new StringBuilder("UPDATE SKILL SET DATE_UPDATED = ?");
-		List<Object> params = new ArrayList<>();
-		List<Boolean> clobFlags = new ArrayList<>();
-		params.add(now);
-		clobFlags.add(false);
-		if (name != null) {
-			sql.append(", NAME = ?");
-			params.add(name);
-			clobFlags.add(false);
-		}
-		if (description != null) {
-			sql.append(", DESCRIPTION = ?");
-			params.add(description);
-			clobFlags.add(true);
-		}
-		if (configJson != null) {
-			sql.append(", CONFIG_JSON = ?");
-			params.add(configJson.toString());
-			clobFlags.add(true);
-		}
-		sql.append(" WHERE SKILL_ID = ?");
-		params.add(skillId);
-		clobFlags.add(false);
-
-		Connection con = null;
-		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
-				for (int i = 0; i < params.size(); i++) {
-					Object val = params.get(i);
-					int bindIdx = i + 1;
-					if (clobFlags.get(i)) {
-						modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, val, bindIdx, GSON);
-					} else if (val instanceof Timestamp) {
-						ps.setTimestamp(bindIdx, (Timestamp) val);
-					} else {
-						ps.setObject(bindIdx, val);
-					}
-				}
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update metadata for skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error updating skill metadata: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
-		}
-	}
-
-	/**
-	 * Removes the SKILL__ row, any WORKSPACE_RESOURCE__ rows pointing at this skill,
-	 * and the matching {@code CONFIG_JSON.skills[]} mirror entry in every workspace
-	 * that referenced it. Does NOT delete the underlying Project - callers (typically
-	 * the project-delete path) own that.
-	 *
-	 * <p>Attach writes the WORKSPACE_RESOURCE row AND the CONFIG_JSON.skills[] mirror
-	 * (see {@code AttachSkillToWorkspaceReactor}); delete must clear BOTH. Skipping the
-	 * mirror leaves a dangling skill id that {@code AgentConfigLoader.resolveSkills}
-	 * still returns, so the run-time {@code SkillStager} fails it every run with
-	 * "not found in SKILL__". The referencing workspaces are captured before the row
-	 * deletes so the mirror can be scrubbed afterward.
-	 *
-	 * @param skillId skill identifier
-	 */
-	public static void deleteSkillEntry(String skillId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Connection con = null;
 		List<String> affectedWorkspaceIds = new ArrayList<>();
@@ -3859,7 +3817,7 @@ public class ModelInferenceLogsUtils {
 			try (PreparedStatement sel = con.prepareStatement(
 					"SELECT DISTINCT WORKSPACE_ID FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
 				sel.setString(1, "SKILL");
-				sel.setString(2, skillId);
+				sel.setString(2, projectId);
 				try (ResultSet rs = sel.executeQuery()) {
 					while (rs.next()) {
 						String wsId = rs.getString(1);
@@ -3869,138 +3827,31 @@ public class ModelInferenceLogsUtils {
 					}
 				}
 			}
-			try (PreparedStatement ps1 = con
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?");
-					PreparedStatement ps2 = con.prepareStatement("DELETE FROM SKILL WHERE SKILL_ID = ?")) {
-				ps1.setString(1, "SKILL");
-				ps1.setString(2, skillId);
-				ps2.setString(1, skillId);
-				ps1.execute();
-				ps2.execute();
+			try (PreparedStatement ps = con
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE RESOURCE_TYPE = ? AND RESOURCE_ID = ?")) {
+				ps.setString(1, "SKILL");
+				ps.setString(2, projectId);
+				ps.execute();
 				if (!con.getAutoCommit()) {
 					con.commit();
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error("Failed to delete skill '{}'.", skillId, e);
-			throw new IllegalArgumentException("Error deleting skill: " + e.getMessage(), e);
+			classLogger.error("Failed to detach skill '{}' from workspaces.", projectId, e);
+			throw new IllegalArgumentException("Error detaching skill from workspaces: " + e.getMessage(), e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 
 		for (String workspaceId : affectedWorkspaceIds) {
 			try {
-				removeSkillFromWorkspaceConfigJson(workspaceId, skillId);
+				removeSkillFromWorkspaceConfigJson(workspaceId, projectId);
 			} catch (Exception e) {
 				classLogger.warn(
-						"Deleted skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
-						skillId, workspaceId, e.getMessage());
+						"Detached skill '{}' but failed to scrub it from CONFIG_JSON.skills[] for workspace '{}': {}",
+						projectId, workspaceId, e.getMessage());
 			}
 		}
 	}
 
-	/**
-	 * Fetches one skill row by id.
-	 *
-	 * @param skillId skill identifier
-	 * @return skill row map, or {@code null} when not found
-	 */
-	public static Map<String, Object> getSkillEntry(String skillId) {
-		return fetchSkillRow("SKILL__SKILL_ID", skillId);
-	}
-
-	/**
-	 * Fetches one skill row by its (case-sensitive) slug. Useful when staging
-	 * skills by the directory name on disk.
-	 *
-	 * @param slug slug column value
-	 * @return skill row map, or {@code null} when not found
-	 */
-	public static Map<String, Object> getSkillBySlug(String slug) {
-		return fetchSkillRow("SKILL__SLUG", slug);
-	}
-
-	/**
-	 * Lists skill rows matching the supplied filters, ordered newest update first.
-	 * All filters are AND-combined; pass {@code null} to skip a filter.
-	 *
-	 * @param origin    exact match on {@code ORIGIN}, or {@code null} for any
-	 * @param createdBy exact match on {@code CREATED_BY}, or {@code null} for any
-	 * @return list of skill rows, never null
-	 */
-	public static List<Map<String, Object>> listSkills(String origin, String createdBy) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = buildSkillSelect();
-
-		if (origin != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__ORIGIN", "==", origin));
-		}
-		if (createdBy != null) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SKILL__CREATED_BY", "==", createdBy));
-		}
-		qs.addOrderBy("SKILL__DATE_UPDATED", "desc");
-
-		List<Map<String, Object>> rows = new ArrayList<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			while (wrapper.hasNext()) {
-				rows.add(rowToMap(wrapper.next()));
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to list skills (origin='{}', createdBy='{}').", origin, createdBy, e);
-		}
-		return rows;
-	}
-
-	private static SelectQueryStruct buildSkillSelect() {
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("SKILL__SKILL_ID", "skill_id"));
-		qs.addSelector(new QueryColumnSelector("SKILL__SLUG", "slug"));
-		qs.addSelector(new QueryColumnSelector("SKILL__NAME", "name"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DESCRIPTION", "description"));
-		qs.addSelector(new QueryColumnSelector("SKILL__CREATED_BY", "created_by"));
-		qs.addSelector(new QueryColumnSelector("SKILL__ORIGIN", "origin"));
-		qs.addSelector(new QueryColumnSelector("SKILL__CONFIG_JSON", "config_json"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DATE_CREATED", "date_created"));
-		qs.addSelector(new QueryColumnSelector("SKILL__DATE_UPDATED", "date_updated"));
-		return qs;
-	}
-
-	private static Map<String, Object> fetchSkillRow(String filterColumn, String filterValue) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		SelectQueryStruct qs = buildSkillSelect();
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(filterColumn, "==", filterValue));
-		qs.setLimit(1L);
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(modelInferenceLogsDb, qs)) {
-			if (wrapper.hasNext()) {
-				return rowToMap(wrapper.next());
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to fetch skill row for {} = '{}'.", filterColumn, filterValue, e);
-		}
-		return null;
-	}
-
-	private static Map<String, Object> rowToMap(IHeadersDataRow headerRow) {
-		String[] headers = headerRow.getHeaders();
-		Object[] values = headerRow.getValues();
-		Map<String, Object> map = new HashMap<>();
-		for (int i = 0; i < headers.length; i++) {
-			if (values[i] instanceof java.sql.Clob) {
-				map.put(headers[i], AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) values[i]));
-			} else if (values[i] instanceof java.sql.Blob) {
-				try {
-					map.put(headers[i], AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) values[i]));
-				} catch (java.sql.SQLException | java.io.IOException e) {
-					classLogger.warn("rowToMap: failed to read BLOB for column '{}'", headers[i], e);
-					map.put(headers[i], null);
-				}
-			} else if (values[i] instanceof prerna.date.SemossDate) {
-				map.put(headers[i], ((prerna.date.SemossDate) values[i]).getFormatted("yyyy-MM-dd'T'HH:mm:ss'Z'"));
-			} else {
-				map.put(headers[i], values[i]);
-			}
-		}
-		return map;
-	}
 }

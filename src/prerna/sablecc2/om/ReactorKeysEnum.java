@@ -31,7 +31,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
-	// @formatter:off
+	// @formatter:off 
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
@@ -181,7 +181,8 @@ public enum ReactorKeysEnum {
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
-	MESSAGE("message", 											"Message to display for logging"),	
+	MEDIA("media", 												"The location of a media file of any type (image, pdf, document, spreadsheet, audio, video) or a base64 data uri of one."),
+	MESSAGE("message", 											"Message to display for logging"),
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
 	METADATA("metadata", 										"Additional metadata"),
@@ -207,7 +208,7 @@ public enum ReactorKeysEnum {
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
 	OFFSET("offset", 											"Offset to add for the query results"),
 	ONLY_FAVORITES("onlyFavorites", 							"Get engines/insights which are favorited by the user"),
-	ONLY_PORTALS("onlyPortals", 								"Get projects which contain a portal"),
+	ONLY_TEMPLATES("onlyTemplates", 							"Get projects which are enabled as templates"),
 	OPERATOR("operator", 										"The operator to use for identifying this filter such as > , < = != etc. "),
 	OPERATORU("operatoru", 										"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 											"Map of option values"),
@@ -243,8 +244,6 @@ public enum ReactorKeysEnum {
 	PLACE_HOLDER_DATA("placeHolderData",						"Updated place holder information of the template"),
 	PLANNER("planner", 											"The planner"),
 	PORT("port",												"The connection port."),
-	PORTAL("portal", 											"Boolean value if this project has a portal"),
-	PORTAL_NAME("portalName", 									"Name of the portal within a project"),
 	POSITION_MAP("positionMap", 								"Map containing positions for elements"),
 	PRAGMA("pragma",											"Directives that can be provided with the query like cache"),
 	PROMPT_ID("promptId",										"String Title of Prompt ID"),
@@ -319,6 +318,7 @@ public enum ReactorKeysEnum {
 	TASK("task", 												"Task object (can retrieve the object by using Task(taskId) where taskId is the unique id for the task)"),
 	TASK_ID("taskId", 											"Unique id of the task within the insight"),
 	TRAVERSAL("traversal", 										"The traversal path within the map"),
+	TEXT("text", 												"Text string value(s) used as input to an operation such as multi modal embeddings"),
 	TEMPLATE_NAME("template_name",              	            "Name of the template which has been uploaded "),
     TEMPLATE_FILE("template_file",								"File Name of the template to be used for export"),
     TEMPLATE("template",										"Template folder name"),
@@ -344,6 +344,7 @@ public enum ReactorKeysEnum {
 	VOTE("vote",												"Either upvote or downvote"),		
 	VARIABLE("variable", 										"Pixel variable consisting of only alphanumeric characters and underscores"),
 	VERSION("version", 											"The version"),
+	VIDEO("video", 												"The location of the video file or the encoding of the video used as input to an operation such as multi modal embeddings"),
 	WIDTH("width", 											    "The width to use for screenshot capture"),
 	WORKSPACE_ID("workspaceId", 								"The id used for an agent workspace"),
 	AUDIT_APIS_END_POINT("auditEndpoint", 						"Audit api end point"),

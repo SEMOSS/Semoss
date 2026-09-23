@@ -69,11 +69,6 @@ class VertexAiEmbedder(AbstractEmbedder):
 
         return model_engine_response
 
-    def image_embeddings_call(
-        self, images_to_embed: List[str], **kwargs
-    ) -> EmbeddingsModelEngineResponse:
-        raise NotImplementedError("This model does not support image embeddings.")
-
     def _encode_texts_to_embeddings(
         self, sentences: List[str]
     ) -> List[Optional[List[float]]]:

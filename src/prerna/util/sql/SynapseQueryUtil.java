@@ -33,53 +33,54 @@ public class SynapseQueryUtil extends MicrosoftSqlServerQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.SYNAPSE);
 	}
-	
+
 	SynapseQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
-		setDbType(RdbmsTypeEnum.SYNAPSE);	}
+		setDbType(RdbmsTypeEnum.SYNAPSE);
+	}
 
 	@Override
 	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset) {
-		
-		if(limit > 0) {
+
+		if (limit > 0) {
 			String strquery = query.toString();
-			if(strquery.startsWith("SELECT DISTINCT")){
-			strquery=strquery.replaceFirst("SELECT DISTINCT", "SELECT DISTINCT TOP " + limit + " ");
+			if (strquery.startsWith("SELECT DISTINCT")) {
+				strquery = strquery.replaceFirst("SELECT DISTINCT", "SELECT DISTINCT TOP " + limit + " ");
 			} else {
-				strquery=strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
+				strquery = strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
 			}
 			query = new StringBuilder();
 			query.append(strquery);
 		}
-		
-		//TODO there is no offset for now
+
+		// TODO there is no offset for now
 //		if(offset > 0) {
 //			query = query.append(" OFFSET "+offset);
 //		}
 		return query;
 	}
-	
+
 	@Override
 	public StringBuffer addLimitOffsetToQuery(StringBuffer query, long limit, long offset) {
 
-		if(limit > 0) {
+		if (limit > 0) {
 			String strquery = query.toString();
-			if(strquery.startsWith("SELECT DISTINCT")){
-				strquery=strquery.replaceFirst("SELECT DISTINCT", "SELECT DISTINCT TOP " + limit + " ");
-				} else {
-					strquery=strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
-							query = new StringBuffer();
-				}
+			if (strquery.startsWith("SELECT DISTINCT")) {
+				strquery = strquery.replaceFirst("SELECT DISTINCT", "SELECT DISTINCT TOP " + limit + " ");
+			} else {
+				strquery = strquery.replaceFirst("SELECT", "SELECT TOP " + limit + " ");
+				query = new StringBuffer();
+			}
 			query.append(strquery);
 		}
-		
-		//TODO there is no offset for now
+
+		// TODO there is no offset for now
 //		if(offset > 0) {
 //			query = query.append(" OFFSET "+offset);
 //		}
 		return query;
 	}
-	
+
 //	//this creates the temp table to select top from the entire list of distinct selectors. 
 //	//this is only used with distinct
 //	public StringBuilder addLimitOffsetToQuery(StringBuilder query, long limit, long offset, String tempTable) {

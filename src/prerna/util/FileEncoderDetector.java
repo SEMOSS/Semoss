@@ -30,7 +30,7 @@ package prerna.util;
 import java.io.IOException;
 import java.nio.charset.Charset;
 
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.FileItem;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -74,14 +74,15 @@ public class FileEncoderDetector {
 				classLogger.error(Constants.ERROR_MESSAGE, e);
 			}
 
-			if(mimeType != null) {
-				if(mimeType.equals("application/zip")) {
+			if (mimeType != null) {
+				if (mimeType.equals("application/zip")) {
 					// zip
 					return false;
-				} else if(mimeType.startsWith("image/")) {
+				} else if (mimeType.startsWith("image/")) {
 					// image
 					return false;
-				} else if (mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+				} else if (mimeType
+						.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 						|| ((mimeType.equalsIgnoreCase("application/x-tika-ooxml")
 								|| mimeType.equalsIgnoreCase("application/msword")
 								|| mimeType.equalsIgnoreCase("application/x-tika-msoffice"))
@@ -95,19 +96,16 @@ public class FileEncoderDetector {
 								&& (filetype.equals("ppt") || filetype.equals("pptx")))) {
 					// powerpoint
 					return false;
-				} else if(mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.macroenabled.12")
+				} else if (mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.macroenabled.12")
 						|| mimeType.equalsIgnoreCase("application/vnd.ms-excel.sheet.binary.macroenabled.12")
-						|| mimeType.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+						|| mimeType
+								.equalsIgnoreCase("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 						|| mimeType.equalsIgnoreCase("application/vnd.ms-excel")
-						|| ( mimeType.equalsIgnoreCase("application/x-tika-ooxml")
-								&& 
-								(filetype.equals("xls") || filetype.equals("xlsx") || filetype.equals("xlsm"))
-								)
-						) {
+						|| (mimeType.equalsIgnoreCase("application/x-tika-ooxml")
+								&& (filetype.equals("xls") || filetype.equals("xlsx") || filetype.equals("xlsm")))) {
 					// excel
 					return false;
-				}
-				else if (mimeType.equalsIgnoreCase("application/pdf")) {
+				} else if (mimeType.equalsIgnoreCase("application/pdf")) {
 					// pdf
 					return false;
 				}
@@ -116,20 +114,20 @@ public class FileEncoderDetector {
 
 		// use universal detector to determine the type
 		byte[] buf = new byte[8192];
-		try(java.io.InputStream fis = this.item.getInputStream()) {
+		try (java.io.InputStream fis = this.item.getInputStream()) {
 			UniversalDetector detector = new UniversalDetector();
 			int nread;
 			while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
 				detector.handleData(buf, 0, nread);
 			}
 			detector.dataEnd();
-	
+
 			String encoding = detector.getDetectedCharset();
 			if (encoding != null) {
 				// we got an encoding!
 				this.charset = Charset.forName(encoding);
 				return true;
-			} 
+			}
 		}
 
 		return false;

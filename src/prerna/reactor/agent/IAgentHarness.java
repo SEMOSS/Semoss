@@ -37,7 +37,7 @@ package prerna.reactor.agent;
 public interface IAgentHarness {
 
     /**
-     * Unique registry key for this harness (e.g. {@code "room_loop"}, {@code "claude_code"}).
+     * Unique registry key for this harness (e.g. {@code "semoss"}, {@code "claude_code"}).
      * Must be stable across JVM restarts.
      */
     String getName();

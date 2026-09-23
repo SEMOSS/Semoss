@@ -33,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -47,15 +48,18 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.mindrot.jbcrypt.BCrypt;
 
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.InsightEncryptionException;
-import prerna.util.Constants;
 
 public class SecretsUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(SecretsUtility.class);
+
+	private static final int SALT_BYTE_LENGTH = 16;
+	private static final int IV_BYTE_LENGTH = 16;
+
+	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private SecretsUtility() {
 
@@ -69,12 +73,16 @@ public class SecretsUtility {
 		}
 
 		String secret = UUID.randomUUID().toString();
-		String salt = BCrypt.gensalt();
-		byte[] iv = new byte[16];
+
+		byte[] saltBytes = new byte[SALT_BYTE_LENGTH];
+		RANDOM.nextBytes(saltBytes);
+		String salt = Base64.getEncoder().encodeToString(saltBytes);
+
+		byte[] iv = new byte[IV_BYTE_LENGTH];
+		RANDOM.nextBytes(iv);
+
 		Cipher cipher = null;
 		try {
-			SecureRandom randomSecureRandom = new SecureRandom();
-			randomSecureRandom.nextBytes(iv);
 			IvParameterSpec ivspec = new IvParameterSpec(iv);
 
 			SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
@@ -86,7 +94,8 @@ public class SecretsUtility {
 			cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Unable to build the encryption cipher for insight {} in project {}.", insightId,
+					projectId, e1);
 		}
 		if (cipher == null) {
 			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");
@@ -128,7 +137,8 @@ public class SecretsUtility {
 			cipher.init(Cipher.DECRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
-			classLogger.error(Constants.STACKTRACE, e1);
+			classLogger.error("Unable to build the decryption cipher for insight {} in project {}.", insightId,
+					projectId, e1);
 		}
 		if (cipher == null) {
 			throw new InsightEncryptionException("Unable to generate encryption details for the insight cache");

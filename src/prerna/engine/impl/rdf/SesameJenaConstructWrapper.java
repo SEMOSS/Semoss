@@ -29,7 +29,6 @@ package prerna.engine.impl.rdf;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Hashtable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -50,6 +49,9 @@ import prerna.util.Utility;
 public class SesameJenaConstructWrapper extends AbstractWrapper {
 
 	@Deprecated
+	private static final Logger classLogger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
+
+	@Deprecated
 	public transient GraphQueryResult gqr = null;
 
 	@Deprecated
@@ -60,17 +62,12 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 	transient org.apache.jena.rdf.model.Statement curSt = null;
 
 	@Deprecated
-	public transient IDatabaseEngine engine = null;
-	@Deprecated
 	transient DATABASE_TYPE databaseType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-	@Deprecated
-	transient String query = null;
 	@Deprecated
 	transient SesameJenaConstructStatement retSt = null;
 	@Deprecated
 	public transient boolean queryBoolean = true;
-	@Deprecated
-	static final Logger classLogger = LogManager.getLogger(SesameJenaConstructWrapper.class.getName());
+
 	@Deprecated
 	transient SesameJenaConstructWrapper remoteWrapperProxy = null;
 	@Deprecated
@@ -130,12 +127,6 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				model = (org.apache.jena.rdf.model.Model) engine.execQuery(query);
 				setModel(model);
-			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				// get the actual SesameJenaConstructWrapper from the engine
-				// this is json output
-				// System.out.println("Trying to get the wrapper remotely now");
-				// get the input stream directly here
-				remoteWrapperProxy = (SesameJenaConstructWrapper) engine.execQuery(query);
 			}
 		} catch (RuntimeException e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -175,68 +166,8 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 					si.close();
 				}
 			}
-			// need to include an engine type remote so that it can pull it through REST API
-			else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				if (retSt != null) { // they have not picked it up yet
-					return true;
-				}
-				retSt = new SesameJenaConstructStatement();
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				if (ris == null) {
-					Hashtable params = new Hashtable<String, String>();
-					params.put("id", remoteWrapperProxy.getRemoteId());
-					ris = new ObjectInputStream(Utility.getStream(remoteWrapperProxy.getRemoteAPI() + "/next", params));
-				}
-				try {
-					Object myObject = ris.readObject();
-
-					if (!myObject.toString().equalsIgnoreCase("null")) {
-						org.apache.jena.rdf.model.Statement stmt = (org.apache.jena.rdf.model.Statement) myObject;
-						retSt.setSubject(stmt.getSubject() + "");
-						retSt.setObject(stmt.getObject());
-						retSt.setPredicate(stmt.getPredicate() + "");
-						// System.out.println("Abile to get the object appropriately here " +
-						// retSt.getSubject());
-						retBool = true;
-					} else {
-						try {
-							if (ris != null) {
-								ris.close();
-							}
-						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-
-				} catch (RuntimeException e) {
-					// TODO Auto-generated catch block
-					classLogger.error(Constants.STACKTRACE, e);
-					retSt = null;
-					retBool = false;
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					classLogger.error(Constants.STACKTRACE, e);
-					retSt = null;
-					retBool = false;
-				}
-
-				/*
-				 * Hashtable params = new Hashtable<String,String>(); params.put("id",
-				 * remoteWrapperProxy.getRemoteID()); System.out.println("ID for remote is " +
-				 * remoteWrapperProxy.getRemoteID()); String output =
-				 * Utility.retrieveResult(remoteWrapperProxy.getRemoteAPI() + "/hasNext",
-				 * params); Gson gson = new Gson(); retBool = gson.fromJson(output,
-				 * Boolean.class); // cleans up automatically at the remote end
-				 */
-
-			}
-
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			classLogger.error(Constants.STACKTRACE, e);
 		} catch (QueryEvaluationException e) {
 			// TODO Auto-generated catch block
 			classLogger.error(Constants.STACKTRACE, e);
@@ -287,11 +218,7 @@ public class SesameJenaConstructWrapper extends AbstractWrapper {
 				} else {
 					thisSt.setObject(stmt.getObject());
 				}
-			} else if (databaseType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				thisSt = retSt;
-				retSt = null;
 			}
-
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		} catch (QueryEvaluationException e) {

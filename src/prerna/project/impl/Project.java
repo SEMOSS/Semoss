@@ -30,7 +30,6 @@ package prerna.project.impl;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -42,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,8 +64,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.json.JSONObject;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Element;
 import org.xml.sax.InputSource;
 
 import com.google.gson.Gson;
@@ -85,6 +83,7 @@ import prerna.engine.api.ISelectStatement;
 import prerna.engine.api.ISelectWrapper;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.RemoteMCP;
+import prerna.engine.impl.SkillMCP;
 import prerna.engine.impl.SmssUtilities;
 import prerna.io.connector.secrets.ISecrets;
 import prerna.io.connector.secrets.SecretsFactory;
@@ -169,13 +168,11 @@ public class Project implements IProject {
 	private ProjectReactorHelper reactorHelper = null;
 	private SemossDate lastReactorCompilationDate = null;
 
-	// publish portals
-	private static final String PORTAL_INDEX_SCRIPT_ID = "semoss-env";
-	private boolean hasPortal = false;
-	private String portalName = null;
-	private SemossDate lastPortalPublishDate = null;
-	private boolean publishedPortal = false;
-	private boolean republishPortal = false;
+	/**
+	 * Owns publishing the portal into public_home and deciding when the published
+	 * copy has fallen behind the project's content.
+	 */
+	private ProjectPortalsHelper portalsHelper = null;
 
 	// python server
 	protected String prefix = null;
@@ -242,22 +239,8 @@ public class Project implements IProject {
 			GitRepoUtils.init(this.projectVersionFolder);
 		}
 
-		this.hasPortal = Boolean.parseBoolean(this.smssProp.getOrDefault(Settings.PUBLIC_HOME_ENABLE, "false") + "");
-
-		// project type is new
-		// if has portal
-		// will assume code if not provided
-		// else will assume it is insight
-		// TODO: potentially remove hasportal entirely
 		String projectTypeStr = this.smssProp.getProperty(Constants.PROJECT_ENUM_TYPE);
-		// is portal enabled in SMSS?
-		if (this.hasPortal) {
-			if (projectTypeStr == null) {
-				this.projectType = IProject.PROJECT_TYPE.CODE;
-			} else {
-				this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
-			}
-		} else if (projectTypeStr != null) {
+		if (projectTypeStr != null) {
 			this.projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
 		} else {
 			this.projectType = IProject.PROJECT_TYPE.INSIGHTS;
@@ -271,12 +254,16 @@ public class Project implements IProject {
 
 		// load any assets that are already compiled
 		this.reactorHelper = new ProjectReactorHelper(this);
+		this.portalsHelper = new ProjectPortalsHelper(this, this.projectPortalFolder, this.smssProp);
 		try {
 			loadCompiledProjectReactors();
 		} catch (Exception e) {
 			classLogger.error("Unable to compile project reactors on project initialization for project '{}'",
 					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
 		}
+
+		// clear MCP cache
+		resetMCP();
 	}
 
 	@Override
@@ -373,21 +360,6 @@ public class Project implements IProject {
 	@Override
 	public AuthProvider getGitProvider() {
 		return this.gitProvider;
-	}
-
-	@Override
-	public String getPortalName() {
-		return this.portalName;
-	}
-
-	@Override
-	public boolean isHasPortal() {
-		return hasPortal;
-	}
-
-	@Override
-	public void setHasPortal(boolean hasPortal) {
-		this.hasPortal = hasPortal;
 	}
 
 	@Override
@@ -968,12 +940,8 @@ public class Project implements IProject {
 
 	@Override
 	public IReactor getReactor(String className) {
-		SemossDate lastCompiledDateInSecurity = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastCompiledDateInSecurity != null && this.lastReactorCompilationDate != null) {
-			outOfDate = lastCompiledDateInSecurity.getLocalDateTime()
-					.isAfter(this.lastReactorCompilationDate.getLocalDateTime());
-		}
+		LocalDateTime clusterTimestamp = SecurityProjectUtils.getReactorCompilationTimestamp(this.projectId);
+		boolean outOfDate = ProjectFreshness.isBehind(clusterTimestamp, this.lastReactorCompilationDate);
 		// just pull to make sure we have the latest in case project was loaded
 		// but not published
 		if (outOfDate || this.lastReactorCompilationDate == null) {
@@ -1147,98 +1115,12 @@ public class Project implements IProject {
 
 	@Override
 	public boolean requirePublish(boolean pullFromCloud) {
-		// check in security DB when we last published
-		SemossDate lastPublishedDateInSecurity = SecurityProjectUtils.getPortalPublishedTimestamp(this.projectId);
-		boolean outOfDate = false;
-		if (lastPublishedDateInSecurity != null && this.lastPortalPublishDate != null) {
-			outOfDate = lastPublishedDateInSecurity.getZonedDateTime()
-					.isAfter(this.lastPortalPublishDate.getZonedDateTime());
-		}
-		if (outOfDate || this.lastPortalPublishDate == null) {
-			// just pull to make sure we have the latest in case project was loaded
-			// but not published
-			if (pullFromCloud) {
-				classLogger.info(
-						"Pulling Portals folder for project {}. Current portal out of date = {}. Last portal publish date = {}",
-						this.projectId, outOfDate, this.lastPortalPublishDate);
-				ClusterUtil.pullProjectFolder(this, this.projectPortalFolder);
-			}
-		}
-
-		// if this are true we want to republish
-		// we just add the additional logic above if we have to pull from cloud
-		return this.republishPortal || outOfDate || (this.hasPortal && !this.publishedPortal);
+		return this.portalsHelper.requirePublish(pullFromCloud);
 	}
 
 	@Override
-	/**
-	 * Publish the portals folder to public_home
-	 */
-	// TODO: HAVE TO ADD SYNCHONIZED UNTIL DATES ARE RESOLVED
-	public synchronized boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
-		if (publicHomeFilePath == null) {
-			return false;
-		}
-
-		// find what is the final URL
-		// this is the base url plus manipulations
-		// find what the tomcat deploy directory is
-		// no easy way to find other than may be find the classpath ? - will instrument
-		// this through RDF Map
-		boolean requirePublish = requirePublish(pullFromCloud);
-		try {
-			if (requirePublish) {
-				Path sourcePortalsProjectPath = Paths.get(this.projectPortalFolder);
-				Path targetPublicHomeProjectPortalsPath = Paths.get(
-						publicHomeFilePath + DIR_SEPARATOR + this.projectId + DIR_SEPARATOR + Constants.PORTALS_FOLDER);
-
-				File targetPublicHomeProjectPortalsDir = targetPublicHomeProjectPortalsPath.toFile();
-				// if the target directory exists
-				// we have to delete it before
-				if (targetPublicHomeProjectPortalsDir.exists() && targetPublicHomeProjectPortalsDir.isDirectory()) {
-					FileUtils.deleteDirectory(targetPublicHomeProjectPortalsDir);
-				}
-
-				rewritePortalIndexHtml(this.projectPortalFolder + DIR_SEPARATOR + "index.html");
-
-				// do we physically copy of link?
-				// first smss file
-				// second rdf map
-				boolean copy = true;
-				if (smssProp != null && smssProp.getProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(smssProp.getProperty(Settings.COPY_PROJECT) + "");
-				} else if (Utility.getDIHelperProperty(Settings.COPY_PROJECT) != null) {
-					copy = Boolean.parseBoolean(Utility.getDIHelperProperty(Settings.COPY_PROJECT) + "");
-				}
-
-				// this is purely for testing purposes - this is because when eclipse publishes
-				// it wipes the directory and removes the actual db
-				if (copy) {
-					if (!targetPublicHomeProjectPortalsDir.exists()) {
-						targetPublicHomeProjectPortalsDir.mkdir();
-					}
-					FileUtils.copyDirectory(sourcePortalsProjectPath.toFile(), targetPublicHomeProjectPortalsDir);
-				}
-				// this is where we create symbolic link
-				else if (!targetPublicHomeProjectPortalsDir.exists()
-						&& !Files.isSymbolicLink(targetPublicHomeProjectPortalsPath)) {
-					Files.createSymbolicLink(targetPublicHomeProjectPortalsPath, sourcePortalsProjectPath);
-				}
-				targetPublicHomeProjectPortalsDir.deleteOnExit();
-				this.publishedPortal = true;
-				this.republishPortal = false;
-				this.lastPortalPublishDate = new SemossDate(Utility.getCurrentZonedDateTimeUTC());
-				classLogger.info("Project '{}' has new last portal published date {}",
-						SmssUtilities.getUniqueName(this.projectName, this.projectId), this.lastPortalPublishDate);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to publish portals for project '{}'",
-					SmssUtilities.getUniqueName(this.projectName, this.projectId), e);
-			this.publishedPortal = false;
-			this.lastPortalPublishDate = null;
-		}
-
-		return this.publishedPortal;
+	public boolean publish(String publicHomeFilePath, boolean pullFromCloud) {
+		return this.portalsHelper.publish(publicHomeFilePath, pullFromCloud);
 	}
 
 	@Override
@@ -1345,53 +1227,19 @@ public class Project implements IProject {
 		return blocksF;
 	}
 
-	private void rewritePortalIndexHtml(String indexHtmlPath) {
-		/*
-		 * <script> window.SEMOSS = { "APP": "<project_id>", "MODULE":
-		 * "/{route - optional}/{context - usually just Monolith}" } </script>
-		 */
-		// add the route if this is server deployment
-		File indexHtmlF = new File(indexHtmlPath);
-		if (!indexHtmlF.exists() || !indexHtmlF.isFile()) {
-			return;
-		}
-
-		String module = Utility.getApplicationRouteAndContextPath();
-		org.jsoup.nodes.Document document;
-		try {
-			document = Jsoup.parse(indexHtmlF, "UTF-8");
-			String scriptContent = "{\"APP\": \"" + projectId + "\",\"MODULE\": \"" + module + "\"}";
-			Element autoGenScript = document.getElementById(PORTAL_INDEX_SCRIPT_ID);
-			if (autoGenScript == null) {
-				document.selectFirst("head").child(0).before("<script id=\"" + PORTAL_INDEX_SCRIPT_ID
-						+ "\" type=\"application/json\">" + scriptContent + "</script>");
-			} else {
-				autoGenScript.html(scriptContent);
-			}
-
-			String newHtml = document.html();
-			try (FileWriter fw = new FileWriter(indexHtmlF, false)) {
-				fw.write(newHtml);
-				fw.flush();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to rewrite portal index html {}", indexHtmlF.getAbsolutePath(), e);
-		}
-	}
-
 	@Override
 	public void setRepublish(boolean republish) {
-		this.republishPortal = republish;
+		this.portalsHelper.setRepublish(republish);
 	}
 
 	@Override
 	public boolean isPublished() {
-		return this.publishedPortal;
+		return this.portalsHelper.isPublished();
 	}
 
 	@Override
 	public SemossDate getLastPublishDate() {
-		return this.lastPortalPublishDate;
+		return this.portalsHelper.getLastPublishDate();
 	}
 
 	@Override
@@ -1664,16 +1512,58 @@ public class Project implements IProject {
 		return true;
 	}
 
+	@Override
+	public void resetMCP() {
+		this.projectMCP = null;
+	}
+
+	@Override
+	public String getRemoteMCPEndpoint() {
+		String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
+		if (endpoint == null || endpoint.isBlank()) {
+			return null;
+		}
+		return endpoint.trim();
+	}
+
+	@Override
+	public String getRemoteMCPAuthScheme() {
+		String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
+		if (authScheme == null || authScheme.isBlank()) {
+			return null;
+		}
+		return authScheme.trim();
+	}
+
 	private IMCP getProjectMCP() {
 		if (this.projectMCP == null) {
+			IMCP mcp;
 			String endpoint = this.smssProp.getProperty(MCP_ENDPOINT);
 			if (endpoint != null && !endpoint.isBlank()) {
-				this.projectMCP = new RemoteMCP(endpoint);
+				String authToken = this.smssProp.getProperty(MCP_AUTH_TOKEN);
+				String authScheme = this.smssProp.getProperty(MCP_AUTH_SCHEME);
+				mcp = new RemoteMCP(this, endpoint, authScheme, authToken);
 			} else {
-				this.projectMCP = new InternalMCP(this);
+				mcp = InternalMCP.genFromEngine(this);
+			}
+			// a skill always serves its list/read tools on top of whatever it defines
+			if (isSkill()) {
+				this.projectMCP = new SkillMCP(this, mcp);
+			} else {
+				this.projectMCP = mcp;
 			}
 		}
 		return this.projectMCP;
+	}
+
+	/**
+	 * True when this is a skill project - content is a {@code SKILL.md} plus helper
+	 * files rather than an app. Read off this project's own
+	 * {@code PROJECT_ENUM_TYPE}, so it costs nothing; the id-only equivalent,
+	 * {@code SkillProjects.isSkillProject(projectId)}, queries securitydb instead.
+	 */
+	private boolean isSkill() {
+		return IProject.PROJECT_TYPE.SKILL == this.projectType;
 	}
 
 	@Override

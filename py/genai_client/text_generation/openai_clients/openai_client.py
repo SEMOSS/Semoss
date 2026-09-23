@@ -1,9 +1,6 @@
 from typing import Any, Dict, TYPE_CHECKING, Optional, Union
-import typing
 
 if TYPE_CHECKING:
-    from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-    from ...tokenizers.openai_tokenizer import OpenAiTokenizer
 
     def smss_stream(
         data: Any, stream_type: str = "content", interim: bool = True
@@ -13,6 +10,8 @@ if TYPE_CHECKING:
 import json
 from openai import OpenAI, AzureOpenAI, omit
 from openai.types import Batch, BatchRequestCounts
+from openai.types.completion_usage import CompletionUsage
+from openai.types.responses.response_usage import ResponseUsage
 from ..abstract_text_generation_client import AbstractTextGenerationClient
 from ...constants import AskModelEngineResponse2
 from ...message_builders.semoss_base.semoss_streaming_util import StreamUtil
@@ -69,7 +68,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         super().__init__(**parent_kwargs)
 
         self.chat_type = self.model_settings.chat_type
-        self.tokenizer = self._get_tokenizer(kwargs)
         self.client = self._get_client(is_azure, **client_kwargs)
         self.simplify_messages = string_to_bool(
             parent_kwargs.get("simplify_messages", False)
@@ -80,46 +78,6 @@ class OpenAiClient(AbstractTextGenerationClient):
         )
         self.image_client = OpenAiImageClient(client=self)
         self.audio_client = OpenAiAudioClient(client=self)
-
-    def _get_tokenizer(
-        self, init_args: Dict = {}
-    ) -> "Union[VLLMTokenizer, OpenAiTokenizer]":
-        if not self.is_azure and self.endpoint and self.endpoint.strip():
-            if self.deployment_type == "vllm":
-                from ...tokenizers.vllm_tokenizer import VLLMTokenizer
-
-                return VLLMTokenizer(
-                    model_name=self.model_settings.model_name,
-                    endpoint=self.endpoint,
-                    api_key=init_args.get("api_key", "EMPTY"),
-                )
-            elif self.deployment_type == "tgi":
-                from ...tokenizers.tgi_tokenizer import TGITokenizer
-
-                return TGITokenizer(
-                    endpoint=self.endpoint, api_key=init_args.get("api_key", "EMPTY")
-                )
-            else:
-                from ...tokenizers.huggingface_tokenizer import HuggingfaceTokenizer
-
-                return HuggingfaceTokenizer(
-                    encoder_name=init_args.get("tokenizer_name", None)
-                    or self.model_settings.model_name,
-                    max_tokens=self.model_settings.max_completion_tokens,
-                    max_input_tokens=self.model_settings.max_input_tokens,
-                    context_window=self.model_settings.context_window,
-                    max_completion_tokens=self.model_settings.max_completion_tokens,
-                )
-        from ...tokenizers.openai_tokenizer import OpenAiTokenizer
-
-        return OpenAiTokenizer(
-            encoder_name=init_args.get("tokenizer_name", None)
-            or self.model_settings.model_name,
-            max_tokens=self.model_settings.max_completion_tokens,
-            max_input_tokens=self.model_settings.max_input_tokens,
-            context_window=self.model_settings.context_window,
-            max_completion_tokens=self.model_settings.max_completion_tokens,
-        )
 
     def _get_client(self, is_azure: bool, **kwargs) -> Union[OpenAI, AzureOpenAI]:
         provider = (kwargs.pop("provider", None) or "").lower()
@@ -137,9 +95,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def _get_bedrock_client(self, **kwargs) -> OpenAI:
-        import boto3
-        import httpx
-        from .bedrock_sigv4_auth import BedrockSigV4Auth
+        from openai.providers import bedrock
 
         aws_access_key = kwargs.pop("aws_access_key", None) or kwargs.pop(
             "aws_access_key_id", None
@@ -147,47 +103,34 @@ class OpenAiClient(AbstractTextGenerationClient):
         aws_secret_key = kwargs.pop("aws_secret_key", None) or kwargs.pop(
             "aws_secret_access_key", None
         )
-        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
-
-        # Optional openai api key; no idea why you would use it here
-        api_key = kwargs.pop("api_key", None)
-
-        session = boto3.Session(
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=aws_region,
+        aws_session_token = kwargs.pop("aws_session_token", None) or kwargs.pop(
+            "session_token", None
         )
-        credentials = session.get_credentials()
-        if credentials is None:
-            raise ValueError(
-                "Could not resolve AWS credentials for provider='bedrock' "
-                "(pass aws_access_key/aws_secret_key or configure the default chain)"
-            )
-        region = aws_region or session.region_name
-        if not region:
+        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
+        kwargs.pop("api_key", None)
+
+        if not aws_region:
+            import boto3
+
+            aws_region = boto3.Session().region_name
+        if not aws_region:
             raise ValueError(
                 "provider='bedrock' requires a region "
                 "(pass aws_region, set AWS_REGION, or run on EC2 with a region)"
             )
 
-        base_url = (
-            kwargs.pop("base_url", None)
-            or kwargs.pop("endpoint", None)
-            or f"https://bedrock-mantle.{region}.api.aws/openai/v1"
-        )
+        base_url = kwargs.pop("base_url", None) or kwargs.pop("endpoint", None)
+        provider_kwargs = {"base_url": base_url} if base_url else {}
 
-        http_client = httpx.Client(
-            auth=BedrockSigV4Auth(
-                credentials=credentials,
-                service="bedrock-mantle",
-                region=region,
+        return OpenAI(
+            provider=bedrock(
+                region=aws_region,
+                access_key_id=aws_access_key,
+                secret_access_key=aws_secret_key,
+                session_token=aws_session_token,
+                **provider_kwargs,
             ),
             timeout=kwargs.pop("timeout", 300.0),
-        )
-        return OpenAI(
-            api_key=api_key or "unused-sigv4-signs-this",
-            base_url=base_url,
-            http_client=http_client,
         )
 
     def ask_call(
@@ -272,9 +215,14 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = 0
             input_tokens = 0
             cache_read_tokens = None
+            cache_creation_tokens = None
             thinking_tokens = None
 
             streamed_tools = {}
+            streamed_server_tools = {}
+            streamed_text_by_index: Dict[int, str] = {}
+            citation_url_to_number: Dict[str, int] = {}
+            next_citation_number = 1
             finish_reason = None
             aggregated_content = ""
             aggregated_thinking = ""
@@ -284,6 +232,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens = chunk.response.usage.output_tokens
                     input_tokens = chunk.response.usage.input_tokens
                     cache_read_tokens = self._extract_cached_tokens(
+                        chunk.response.usage, details_attr="input_tokens_details"
+                    )
+                    cache_creation_tokens = self._extract_cache_write_tokens(
                         chunk.response.usage, details_attr="input_tokens_details"
                     )
                     thinking_tokens = self._extract_thinking_tokens(
@@ -296,6 +247,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             input_tokens=input_tokens,
                             output_tokens=response_tokens,
                             cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
                             reasoning_tokens=thinking_tokens,
                         ),
                         stream_type="usage",
@@ -323,8 +275,19 @@ class OpenAiClient(AbstractTextGenerationClient):
                 if hasattr(chunk, "type") and chunk.type == "response.output_item.done":
                     # if "response.function_call_arguments.done" in chunk.type:
                     item = getattr(chunk, "item", None)
-                    if item and getattr(item, "type", None) == "function_call":
-                        idx = getattr(chunk, "output_index", 0)
+                    idx = getattr(chunk, "output_index", 0)
+                    if item and getattr(item, "type", None) == "message":
+                        next_citation_number, message_text = (
+                            self._extract_responses_message_text(
+                                item,
+                                citation_url_to_number,
+                                next_citation_number,
+                            )
+                        )
+                        if message_text:
+                            streamed_text_by_index[idx] = message_text
+
+                    elif item and getattr(item, "type", None) == "function_call":
                         if idx not in streamed_tools:
                             streamed_tools[idx] = {
                                 "id": None,
@@ -358,15 +321,51 @@ class OpenAiClient(AbstractTextGenerationClient):
                             smss_stream(data, stream_type="tool")
                             print(prefix + str(data), end="")
 
+                    elif item and self._is_responses_server_tool_call(
+                        getattr(item, "type", None)
+                    ):
+                        server_tool_entry = self._build_responses_server_tool_entry(
+                            item=item,
+                            fallback_id=f"server_tool_{idx}",
+                        )
+                        if server_tool_entry is not None:
+                            streamed_server_tools[idx] = server_tool_entry
+                            tool_call = server_tool_entry["tool_call"]
+
+                            if tool_call.get("id"):
+                                data = StreamUtil.create_tool_id_chunk(
+                                    idx, tool_call["id"]
+                                )
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                            data = StreamUtil.create_tool_type_chunk(idx, "function")
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
+                            if tool_call.get("name"):
+                                data = StreamUtil.create_function_name_chunk(
+                                    idx, tool_call["name"]
+                                )
+                                smss_stream(data, stream_type="tool")
+                                print(prefix + str(data), end="")
+
+                            arguments_json = json.dumps(
+                                tool_call.get("arguments") or {}, ensure_ascii=False
+                            )
+                            data = StreamUtil.create_function_arguments_chunk(
+                                idx, arguments_json
+                            )
+                            smss_stream(data, stream_type="tool")
+                            print(prefix + str(data), end="")
+
             if streamed_tools:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="tool", interim=False)
-                final_tool_calls = [
-                    streamed_tools[idx] for idx in sorted(streamed_tools.keys())
-                ]
-                # we flatten out the tool calls
                 tool_result = []
-                for tool_call in final_tool_calls:
+                tool_calls_by_index = {}
+                for idx in sorted(streamed_tools.keys()):
+                    tool_call = streamed_tools[idx]
                     try:
                         arguments = tool_call["arguments"]
                         # Return empty dict if arguments is empty string
@@ -377,20 +376,34 @@ class OpenAiClient(AbstractTextGenerationClient):
                     except json.decoder.JSONDecodeError:
                         arguments = tool_call["arguments"]
 
-                    tool_result.append(
-                        {
-                            "id": tool_call["id"],
-                            "type": tool_call["type"],
-                            "name": tool_call["name"],
-                            "arguments": arguments,
-                        }
-                    )
+                    parsed_tool_call = {
+                        "id": tool_call["id"],
+                        "type": tool_call["type"],
+                        "name": tool_call["name"],
+                        "arguments": arguments,
+                    }
+                    tool_result.append(parsed_tool_call)
+                    tool_calls_by_index[idx] = parsed_tool_call
+
+                ordered_parts = self._build_ordered_responses_parts(
+                    text_by_index=streamed_text_by_index,
+                    server_tool_entries_by_index=streamed_server_tools,
+                    client_tool_calls_by_index=tool_calls_by_index,
+                )
+                final_content = self._join_responses_text_by_index(
+                    text_by_index=streamed_text_by_index,
+                    fallback_text=aggregated_content,
+                )
+
+                if not ordered_parts and final_content:
+                    ordered_parts = [{"type": "TEXT", "text": final_content}]
 
                 return AskModelEngineResponse2(
                     response=tool_result,
                     prompt_tokens=input_tokens,
                     response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     messageType="TOOL",
                     schemaVersion=2,
@@ -404,21 +417,34 @@ class OpenAiClient(AbstractTextGenerationClient):
                         # preamble text the model emitted alongside the tool calls
                         + (
                             [{"type": "TEXT", "text": aggregated_content}]
-                            if aggregated_content
+                            if aggregated_content and not streamed_text_by_index
                             else []
                         )
-                        + [{"type": "TOOL_CALL", "tool_call": t} for t in tool_result]
+                        + ordered_parts
                     ),
                 )
             else:
                 data = StreamUtil.create_finish_reason_chunk(finish_reason)
                 smss_stream(data, stream_type="content", interim=False)
+                ordered_parts = self._build_ordered_responses_parts(
+                    text_by_index=streamed_text_by_index,
+                    server_tool_entries_by_index=streamed_server_tools,
+                    client_tool_calls_by_index={},
+                )
+                final_content = self._join_responses_text_by_index(
+                    text_by_index=streamed_text_by_index,
+                    fallback_text=aggregated_content,
+                )
+
+                if not ordered_parts and final_content:
+                    ordered_parts = [{"type": "TEXT", "text": final_content}]
 
                 return AskModelEngineResponse2(
-                    response=aggregated_content,
+                    response=final_content,
                     response_tokens=response_tokens,
                     prompt_tokens=input_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -430,9 +456,10 @@ class OpenAiClient(AbstractTextGenerationClient):
                         )
                         + (
                             [{"type": "TEXT", "text": aggregated_content}]
-                            if aggregated_content
+                            if aggregated_content and not streamed_text_by_index
                             else []
                         )
+                        + ordered_parts
                     ),
                 )
         else:
@@ -441,29 +468,35 @@ class OpenAiClient(AbstractTextGenerationClient):
             cache_read_tokens = self._extract_cached_tokens(
                 response.usage, details_attr="input_tokens_details"
             )
+            cache_creation_tokens = self._extract_cache_write_tokens(
+                response.usage, details_attr="input_tokens_details"
+            )
             thinking_tokens = self._extract_thinking_tokens(
                 response.usage, details_attr="output_tokens_details"
             )
-            final_content = response.output_text
+            output_items = getattr(response, "output", [])
+            (
+                final_content,
+                tool_result,
+                ordered_parts,
+            ) = self._build_non_stream_responses_output_parts(output_items)
 
-            # non-stream tool calls
-            for output in response.output:
-                if output.type == "function_call":
-                    return self._parse_tools_call_response(
-                        response=response,
-                        response_tokens=response_tokens,
-                        prompt_tokens=input_tokens,
-                        cache_read_tokens=cache_read_tokens,
-                        thinking_tokens=thinking_tokens,
-                    )
-            else:
-                reasoning = self._extract_reasoning_summary(response)
+            if not final_content:
+                final_content = response.output_text
+
+            if not ordered_parts and final_content:
+                ordered_parts = [{"type": "TEXT", "text": final_content}]
+
+            reasoning = self._extract_reasoning_summary(response)
+            if tool_result:
                 return AskModelEngineResponse2(
-                    response=final_content,
-                    response_tokens=response_tokens,
+                    response=tool_result,
                     prompt_tokens=input_tokens,
+                    response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
+                    messageType="TOOL",
                     schemaVersion=2,
                     io="OUTPUT",
                     parts=(
@@ -472,13 +505,24 @@ class OpenAiClient(AbstractTextGenerationClient):
                             if reasoning
                             else []
                         )
-                        + (
-                            [{"type": "TEXT", "text": final_content}]
-                            if final_content
-                            else []
-                        )
+                        + ordered_parts
                     ),
                 )
+
+            return AskModelEngineResponse2(
+                response=final_content,
+                response_tokens=response_tokens,
+                prompt_tokens=input_tokens,
+                cache_read_tokens=cache_read_tokens,
+                cache_creation_tokens=cache_creation_tokens,
+                thinking_tokens=thinking_tokens,
+                schemaVersion=2,
+                io="OUTPUT",
+                parts=(
+                    ([{"type": "THINKING", "thinking": reasoning}] if reasoning else [])
+                    + ordered_parts
+                ),
+            )
 
     def handle_chat_completion_response(
         self,
@@ -495,6 +539,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             response_tokens = 0
             prompt_tokens = 0
             cache_read_tokens = None
+            cache_creation_tokens = None
             thinking_tokens = None
 
             streamed_tools = {}
@@ -506,6 +551,9 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens = chunk.usage.completion_tokens
                     prompt_tokens = chunk.usage.prompt_tokens
                     cache_read_tokens = self._extract_cached_tokens(chunk.usage)
+                    cache_creation_tokens = self._extract_cache_write_tokens(
+                        chunk.usage
+                    )
                     thinking_tokens = self._extract_thinking_tokens(chunk.usage)
 
                     smss_stream(
@@ -513,6 +561,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                             input_tokens=prompt_tokens,
                             output_tokens=response_tokens,
                             cache_read_input_tokens=cache_read_tokens,
+                            cache_creation_input_tokens=cache_creation_tokens,
                             reasoning_tokens=thinking_tokens,
                         ),
                         stream_type="usage",
@@ -633,6 +682,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     prompt_tokens=prompt_tokens,
                     response_tokens=response_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     messageType="TOOL",
                     schemaVersion=2,
@@ -649,6 +699,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -670,11 +721,13 @@ class OpenAiClient(AbstractTextGenerationClient):
                 response_tokens = response.usage.completion_tokens
                 prompt_tokens = response.usage.prompt_tokens
                 cache_read_tokens = self._extract_cached_tokens(response.usage)
+                cache_creation_tokens = self._extract_cache_write_tokens(response.usage)
                 thinking_tokens = self._extract_thinking_tokens(response.usage)
             else:
                 response_tokens = 0
                 prompt_tokens = 0
                 cache_read_tokens = None
+                cache_creation_tokens = None
                 thinking_tokens = None
 
             final_content = response.choices[0].message.content
@@ -685,6 +738,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                 )
             else:
@@ -694,6 +748,7 @@ class OpenAiClient(AbstractTextGenerationClient):
                     response_tokens=response_tokens,
                     prompt_tokens=prompt_tokens,
                     cache_read_tokens=cache_read_tokens,
+                    cache_creation_tokens=cache_creation_tokens,
                     thinking_tokens=thinking_tokens,
                     schemaVersion=2,
                     io="OUTPUT",
@@ -717,7 +772,9 @@ class OpenAiClient(AbstractTextGenerationClient):
         response_tokens: int,
         prompt_tokens: int,
         cache_read_tokens: "int | None" = None,
+        cache_creation_tokens: "int | None" = None,
         thinking_tokens: "int | None" = None,
+        server_tool_parts: "list[dict[str, Any]] | None" = None,
     ) -> AskModelEngineResponse2:
         tools_result = []
 
@@ -766,45 +823,464 @@ class OpenAiClient(AbstractTextGenerationClient):
             preamble_text = getattr(response, "output_text", None)
 
         text_parts = [{"type": "TEXT", "text": preamble_text}] if preamble_text else []
+        if server_tool_parts is None:
+            server_tool_parts = []
 
         return AskModelEngineResponse2(
             response=tools_result,
             prompt_tokens=prompt_tokens,
             response_tokens=response_tokens,
             cache_read_tokens=cache_read_tokens,
+            cache_creation_tokens=cache_creation_tokens,
             thinking_tokens=thinking_tokens,
             messageType="TOOL",
             schemaVersion=2,
             io="OUTPUT",
             parts=text_parts
+            + server_tool_parts
             + [{"type": "TOOL_CALL", "tool_call": t} for t in tools_result],
         )
 
     @staticmethod
+    def _extract_openai_citation_url(annotation: Any) -> Optional[str]:
+        if annotation is None:
+            return None
+
+        if isinstance(annotation, dict):
+            nested = annotation.get("url_citation") or {}
+            return annotation.get("url") or nested.get("url")
+
+        nested = getattr(annotation, "url_citation", None)
+        return getattr(annotation, "url", None) or getattr(nested, "url", None)
+
+    @staticmethod
+    def _extract_openai_citation_end_index(annotation: Any) -> Optional[int]:
+        if annotation is None:
+            return None
+
+        if isinstance(annotation, dict):
+            if isinstance(annotation.get("end_index"), int):
+                return annotation.get("end_index")
+            nested = annotation.get("url_citation") or {}
+            if isinstance(nested.get("end_index"), int):
+                return nested.get("end_index")
+            return None
+
+        end_index = getattr(annotation, "end_index", None)
+        if isinstance(end_index, int):
+            return end_index
+
+        nested = getattr(annotation, "url_citation", None)
+        nested_end_index = getattr(nested, "end_index", None)
+        return nested_end_index if isinstance(nested_end_index, int) else None
+
+    def _inject_openai_inline_citations(
+        self,
+        text: str,
+        annotations: Any,
+        url_to_number: Dict[str, int],
+        next_number: int,
+    ) -> tuple[int, str]:
+        annotations = annotations or []
+        if not annotations:
+            return next_number, text
+
+        inserts_by_pos: Dict[int, list[str]] = {}
+        for annotation in annotations:
+            url = self._extract_openai_citation_url(annotation)
+            if not url:
+                continue
+
+            if url not in url_to_number:
+                url_to_number[url] = next_number
+                next_number += 1
+            citation_number = url_to_number[url]
+
+            pos = self._extract_openai_citation_end_index(annotation)
+            if pos is None:
+                pos = len(text)
+            pos = max(0, min(len(text), pos))
+            inserts_by_pos.setdefault(pos, []).append(
+                f"<sup>[{citation_number}]({url})</sup>"
+            )
+
+        if not inserts_by_pos:
+            return next_number, text
+
+        for pos in sorted(inserts_by_pos.keys(), reverse=True):
+            markers = inserts_by_pos[pos]
+            marker_str = (
+                markers[0] if len(markers) == 1 else "<sup>,</sup>".join(markers)
+            )
+            text = text[:pos] + marker_str + text[pos:]
+
+        return next_number, text
+
+    def _extract_responses_message_text(
+        self,
+        item: Any,
+        url_to_number: Dict[str, int],
+        next_number: int,
+    ) -> tuple[int, str]:
+        item_dict = self._output_item_to_dict(item)
+        if item_dict.get("type") != "message":
+            return next_number, ""
+
+        message_parts = []
+        for block in item_dict.get("content") or []:
+            block_dict = self._output_item_to_dict(block)
+            block_type = block_dict.get("type")
+            if block_type not in {"output_text", "text"}:
+                continue
+
+            text = block_dict.get("text") or ""
+            next_number, text = self._inject_openai_inline_citations(
+                text=text,
+                annotations=block_dict.get("annotations") or [],
+                url_to_number=url_to_number,
+                next_number=next_number,
+            )
+            message_parts.append(text)
+
+        return next_number, "".join(message_parts)
+
+    @staticmethod
+    def _join_responses_text_by_index(
+        text_by_index: Dict[int, str],
+        fallback_text: str = "",
+    ) -> str:
+        if not text_by_index:
+            return fallback_text or ""
+
+        return "".join(text_by_index[idx] for idx in sorted(text_by_index.keys()))
+
+    @staticmethod
+    def _build_ordered_responses_parts(
+        text_by_index: Dict[int, str],
+        server_tool_entries_by_index: Dict[int, Dict[str, Dict[str, Any]]],
+        client_tool_calls_by_index: Dict[int, Dict[str, Any]],
+    ) -> list[Dict[str, Any]]:
+        parts = []
+        all_indexes = sorted(
+            set(text_by_index.keys())
+            .union(server_tool_entries_by_index.keys())
+            .union(client_tool_calls_by_index.keys())
+        )
+
+        for output_index in all_indexes:
+            text = text_by_index.get(output_index)
+            if text:
+                parts.append({"type": "TEXT", "text": text})
+
+            server_tool_entry = server_tool_entries_by_index.get(output_index)
+            if server_tool_entry is not None:
+                parts.append(
+                    {
+                        "type": "TOOL_CALL",
+                        "tool_call": server_tool_entry["tool_call"],
+                    }
+                )
+                parts.append(
+                    {
+                        "type": "TOOL_RESULT",
+                        "tool_result": server_tool_entry["tool_result"],
+                    }
+                )
+
+            client_tool_call = client_tool_calls_by_index.get(output_index)
+            if client_tool_call is not None:
+                parts.append({"type": "TOOL_CALL", "tool_call": client_tool_call})
+
+        return parts
+
+    def _build_non_stream_responses_output_parts(
+        self,
+        output_items: Any,
+    ) -> tuple[str, list[Dict[str, Any]], list[Dict[str, Any]]]:
+        tools_result: list[Dict[str, Any]] = []
+        text_by_index: Dict[int, str] = {}
+        server_tool_entries_by_index: Dict[int, Dict[str, Dict[str, Any]]] = {}
+        client_tool_calls_by_index: Dict[int, Dict[str, Any]] = {}
+
+        citation_url_to_number: Dict[str, int] = {}
+        next_citation_number = 1
+
+        for idx, item in enumerate(output_items or []):
+            item_type = getattr(item, "type", None)
+            if item_type is None and isinstance(item, dict):
+                item_type = item.get("type")
+
+            if item_type == "message":
+                next_citation_number, message_text = (
+                    self._extract_responses_message_text(
+                        item,
+                        citation_url_to_number,
+                        next_citation_number,
+                    )
+                )
+                if message_text:
+                    text_by_index[idx] = message_text
+                continue
+
+            if item_type == "function_call":
+                item_dict = self._output_item_to_dict(item)
+                arguments = self._parse_json_like_value(item_dict.get("arguments"))
+
+                tool_call = {
+                    "id": item_dict.get("call_id") or item_dict.get("id"),
+                    "type": item_dict.get("type") or "function_call",
+                    "name": item_dict.get("name"),
+                    "arguments": arguments,
+                }
+                tools_result.append(tool_call)
+                client_tool_calls_by_index[idx] = tool_call
+                continue
+
+            server_tool_entry = self._build_responses_server_tool_entry(
+                item=item,
+                fallback_id=f"server_tool_{idx}",
+            )
+            if server_tool_entry is not None:
+                server_tool_entries_by_index[idx] = server_tool_entry
+
+        ordered_parts = self._build_ordered_responses_parts(
+            text_by_index=text_by_index,
+            server_tool_entries_by_index=server_tool_entries_by_index,
+            client_tool_calls_by_index=client_tool_calls_by_index,
+        )
+        final_text = self._join_responses_text_by_index(text_by_index=text_by_index)
+        return final_text, tools_result, ordered_parts
+
+    @staticmethod
+    def _output_item_to_dict(item: Any) -> Dict[str, Any]:
+        if isinstance(item, dict):
+            return item
+
+        if hasattr(item, "model_dump"):
+            try:
+                return item.model_dump(exclude_none=True)
+            except TypeError:
+                return item.model_dump()
+
+        if hasattr(item, "__dict__"):
+            return {
+                key: value
+                for key, value in vars(item).items()
+                if not key.startswith("_")
+            }
+
+        return {}
+
+    @staticmethod
+    def _is_responses_server_tool_call(item_type: Optional[str]) -> bool:
+        if not item_type:
+            return False
+
+        lowered_type = item_type.lower()
+        if lowered_type in {"function_call", "message", "reasoning"}:
+            return False
+
+        return lowered_type.endswith("_call")
+
+    @staticmethod
+    def _normalize_server_tool_name(
+        item_type: str, explicit_name: Optional[str]
+    ) -> str:
+        if explicit_name:
+            return explicit_name
+
+        if item_type.endswith("_call"):
+            return item_type[: -len("_call")]
+
+        return item_type
+
+    @staticmethod
+    def _parse_json_like_value(value: Any) -> Any:
+        if value == "":
+            return {}
+
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except json.decoder.JSONDecodeError:
+                return value
+
+        return value
+
+    def _extract_server_tool_arguments(self, item_dict: Dict[str, Any]) -> Any:
+        item_type = item_dict.get("type")
+
+        # For OpenAI web_search_call, keep TOOL_CALL arguments focused on the
+        # action request payload and exclude provider-returned sources.
+        # Sources are preserved in TOOL_RESULT output.
+        if item_type == "web_search_call":
+            action = item_dict.get("action")
+            if isinstance(action, dict):
+                action_type = action.get("type")
+                sanitized_action = dict(action)
+                sanitized_action.pop("sources", None)
+
+                if action_type == "search":
+                    sanitized_action = {
+                        key: value
+                        for key, value in sanitized_action.items()
+                        if key in {"type", "query", "queries"} and value is not None
+                    }
+                elif action_type == "open_page":
+                    sanitized_action = {
+                        key: value
+                        for key, value in sanitized_action.items()
+                        if key in {"type", "url"} and value is not None
+                    }
+                elif action_type == "find_in_page":
+                    sanitized_action = {
+                        key: value
+                        for key, value in sanitized_action.items()
+                        if key in {"type", "url", "pattern"} and value is not None
+                    }
+
+                return {"action": sanitized_action}
+
+        if "arguments" in item_dict:
+            return self._parse_json_like_value(item_dict.get("arguments"))
+
+        if "input" in item_dict:
+            return self._parse_json_like_value(item_dict.get("input"))
+
+        if item_dict.get("query") is not None:
+            return {"query": item_dict.get("query")}
+
+        excluded_fields = {
+            "id",
+            "call_id",
+            "type",
+            "name",
+            "status",
+            "results",
+            "result",
+            "content",
+        }
+        remaining_fields = {
+            key: value
+            for key, value in item_dict.items()
+            if key not in excluded_fields and value is not None
+        }
+        return remaining_fields or {}
+
+    @staticmethod
+    def _extract_server_tool_output_payload(item_dict: Dict[str, Any]) -> Any:
+        if item_dict.get("result") is not None:
+            return item_dict.get("result")
+
+        if item_dict.get("results") is not None:
+            return item_dict.get("results")
+
+        if item_dict.get("content") is not None:
+            return item_dict.get("content")
+
+        return item_dict
+
+    def _build_responses_server_tool_entry(
+        self,
+        item: Any,
+        fallback_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Dict[str, Any]]]:
+        item_type = getattr(item, "type", None)
+        if item_type is None and isinstance(item, dict):
+            item_type = item.get("type")
+
+        if not self._is_responses_server_tool_call(item_type):
+            return None
+
+        item_dict = self._output_item_to_dict(item)
+        tool_call_id = (
+            item_dict.get("id")
+            or item_dict.get("call_id")
+            or fallback_id
+            or f"server_tool_{item_type}"
+        )
+        tool_name = self._normalize_server_tool_name(
+            item_type=item_type,
+            explicit_name=item_dict.get("name"),
+        )
+
+        tool_call = {
+            "id": tool_call_id,
+            "type": "function",
+            "name": tool_name,
+            "arguments": self._extract_server_tool_arguments(item_dict),
+            "server_tool": True,
+        }
+
+        output_payload = self._extract_server_tool_output_payload(item_dict)
+        try:
+            output_json = json.dumps(output_payload, ensure_ascii=False)
+        except TypeError:
+            output_json = str(output_payload)
+
+        tool_result = {
+            "id": tool_call_id,
+            "tool_name": tool_name,
+            "server_tool": True,
+            "output": output_json,
+        }
+        return {
+            "tool_call": tool_call,
+            "tool_result": tool_result,
+        }
+
+    def _build_responses_server_tool_parts(
+        self, output_items: Any
+    ) -> list[Dict[str, Any]]:
+        parts: list[Dict[str, Any]] = []
+        for idx, item in enumerate(output_items or []):
+            entry = self._build_responses_server_tool_entry(
+                item=item,
+                fallback_id=f"server_tool_{idx}",
+            )
+            if entry is None:
+                continue
+
+            parts.append({"type": "TOOL_CALL", "tool_call": entry["tool_call"]})
+            parts.append({"type": "TOOL_RESULT", "tool_result": entry["tool_result"]})
+
+        return parts
+
+    @staticmethod
     def _extract_cached_tokens(
-        usage, details_attr: str = "prompt_tokens_details"
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "prompt_tokens_details",
     ) -> "int | None":
-        # usage.prompt_tokens_details.cached_tokens (Chat) / input_tokens_details (Responses); None if caching off
         if usage is None:
             return None
         details = getattr(usage, details_attr, None)
         if details is None:
             return None
-        cached = getattr(details, "cached_tokens", None)
-        return cached or None
+        return getattr(details, "cached_tokens", None)
+
+    @staticmethod
+    def _extract_cache_write_tokens(
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "prompt_tokens_details",
+    ) -> "int | None":
+        if usage is None:
+            return None
+        details = getattr(usage, details_attr, None)
+        if details is None:
+            return None
+        return getattr(details, "cache_write_tokens", None)
 
     @staticmethod
     def _extract_thinking_tokens(
-        usage, details_attr: str = "completion_tokens_details"
+        usage: "ResponseUsage | CompletionUsage | None",
+        details_attr: str = "completion_tokens_details",
     ) -> "int | None":
-        # usage.completion_tokens_details.reasoning_tokens (Chat) / output_tokens_details (Responses); None for non-reasoning models
         if usage is None:
             return None
         details = getattr(usage, details_attr, None)
         if details is None:
             return None
-        reasoning = getattr(details, "reasoning_tokens", None)
-        return reasoning or None
+        return getattr(details, "reasoning_tokens", None)
 
     def _extract_reasoning_summary(self, response) -> str:
         """Extract reasoning summary from Responses API response."""

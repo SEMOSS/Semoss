@@ -392,6 +392,48 @@ public abstract class AbstractSqlQueryUtil {
 		this.additionalProps = additionalProps;
 	}
 
+	/**
+	 * Separator placed between a generated connection url and the additional
+	 * properties. Most drivers take ;key=value pairs, which is the default. Drivers
+	 * that take a query string override this with "?" - the append will switch to
+	 * "&" on its own if the url already has a query string - and drivers with their
+	 * own convention (Teradata uses ",") return that instead.
+	 *
+	 * @return
+	 */
+	protected String getAdditionalPropsSeparator() {
+		return ";";
+	}
+
+	/**
+	 * Append the additional properties to a generated connection url using the
+	 * separator the driver expects. Any leading separator the user typed (; & ? or
+	 * ,) is normalized away so the correct one is always used.
+	 *
+	 * @param connectionUrl
+	 * @return
+	 */
+	protected String appendAdditionalProps(String connectionUrl) {
+		if (this.additionalProps == null || this.additionalProps.trim().isEmpty()) {
+			return connectionUrl;
+		}
+
+		String props = this.additionalProps.trim();
+		while (props.startsWith(";") || props.startsWith("&") || props.startsWith("?") || props.startsWith(",")) {
+			props = props.substring(1).trim();
+		}
+		if (props.isEmpty()) {
+			return connectionUrl;
+		}
+
+		String separator = getAdditionalPropsSeparator();
+		if ("?".equals(separator) && connectionUrl.contains("?")) {
+			separator = "&";
+		}
+
+		return connectionUrl + separator + props;
+	}
+
 	public String getConnectionUrl() {
 		return connectionUrl;
 	}
@@ -759,6 +801,14 @@ public abstract class AbstractSqlQueryUtil {
 	public abstract String buildDateDiffFunctionSyntax(String timeUnit, String dateTimeField1, String dateTimeField2);
 
 	public abstract QueryFunctionSelector getBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias);
+
+	// Blob-to-string conversion for search/filter comparisons only, where the
+	// result is never returned to the caller. Dialects may override this with a
+	// conversion that can't throw on invalid/legacy byte content, since it only
+	// needs to support substring matching, not faithful text round-tripping.
+	public QueryFunctionSelector getSearchableBlobToStringFunctionSelector(IQuerySelector innerSelector, String alias) {
+		return getBlobToStringFunctionSelector(innerSelector, alias);
+	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
 

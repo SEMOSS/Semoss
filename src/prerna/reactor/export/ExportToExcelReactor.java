@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
@@ -116,12 +117,12 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
-import prerna.util.ChromeDriverUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
 public class ExportToExcelReactor extends TableToXLSXReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(ExportToExcelReactor.class);
 
 	private static final String CLASS_NAME = ExportToExcelReactor.class.getName();
 
@@ -145,19 +146,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	private static final String TD_STYLE = "border: 1px solid #d9d9d9; padding: 8px;font-size: .875em;";
 
 	protected String fileLocation = null;
-	Map<String, List<String>> orderOfPanelsMap = null;
 
-	protected Logger logger;
+	private Logger logger;
 
-	Object driver = null;
+	private Object driver = null;
 	private Map<String, Map<String, Object>> chartPanelLayout = new HashMap<>();
-	int height = 10;
-	int width = 10;
-
-	ChromeDriverUtility util = null;
+	private int height = 10;
+	private int width = 10;
 
 	// sheet alias
-	Map<String, String> sheetAlias = new HashMap<>();
+	private Map<String, String> sheetAlias = new HashMap<>();
 
 	public ExportToExcelReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -176,7 +174,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	public NounMetadata execute() {
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
+		// throw error if user doesn't have rights to export data
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
@@ -224,7 +222,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			try {
 				numRowsToExport = Integer.parseInt(limit);
 			} catch (NumberFormatException e) {
-				logger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to parse the export row limit '{}' as an integer", limit, e);
 			}
 		}
 
@@ -233,15 +231,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PANEL_ORDER_IDS.getKey());
 
-		/**
-		 * If we need to send the map
-		 * //((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a") //
-		 * ((List)((HashMap)this.store.getNoun("panelOrderIds").get(0)).get("a")).get(0)
-		 * 
-		 * // ExportToExcel ( panelOrderIds = [ { "a" : [ '1' , '2' ] } ] ) ;
-		 * //this.store.getNoun("panelOrderIds").get(2) //orderOfPanelsMap =
-		 * (HashMap)this.store.getNoun("panelOrderIds").get(0);
-		 */
 		List<String> orderOfPanels = null;
 		// setting the order of panels for export
 		if (grs != null) {
@@ -275,7 +264,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 			// this is where the alias is being kept
 			sheetAlias.put(sheetId, sheetName);
-			HashMap<String, Object> sheetChartMap = new HashMap<>();
+			Map<String, Object> sheetChartMap = new HashMap<>();
 			sheetChartMap.put("colIndex", 0);
 			sheetChartMap.put("rowIndex", 0);
 			sheetChartMap.put("chartIndex", 1);
@@ -330,22 +319,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			processTask(user, workbook, task, panel);
 		}
 
-		// Insert Semoss Logo after the last chart on each sheet
-		// addLogo(workbook, sheetAlias);
-
-		// rename sheets
-		// not sure we need this
-		/*
-		 * for (String sheetId : sheetAlias.keySet()) { String sheetName =
-		 * sheetAlias.get(sheetId); int sheetIndex = workbook.getSheetIndex(sheetId);
-		 * if(sheetIndex >= 0) { workbook.setSheetName(sheetIndex, sheetName); } }
-		 */
-
-		// add the last row count
-		// put the export map back
-		// count is already added by the way of createBaseChart
-		// putMap();
-
 		// fill the headers
 		String para1 = null;
 		String para2 = null;
@@ -383,10 +356,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// close the driver
 		insight.getChromeDriver().quit(driver);
-		/*
-		 * if(driver != null && driver instanceof ChromeDriver) {
-		 * ((ChromeDriver)driver).quit(); }
-		 */
 
 		// write / encrypt file
 		String password = this.keyValue.get(ReactorKeysEnum.PASSWORD.getKey());
@@ -429,9 +398,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				try {
 					picture = IOUtils.toByteArray(new FileInputStream(semossLogoPath));
 				} catch (FileNotFoundException e) {
-					logger.error(Constants.STACKTRACE, e);
+					logger.error("Failed to find the SEMOSS logo file to load for export at {}", semossLogoPath, e);
 				} catch (IOException ioe) {
-					logger.error(Constants.STACKTRACE, ioe);
+					logger.error("Failed to read the SEMOSS logo file bytes for export from {}", semossLogoPath, ioe);
 				}
 
 				// Insert image into workbook
@@ -454,7 +423,7 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					// if we have a sheet that is empty
 					// it doesn't get created
 					// so that will return -1
-					// will also remove so we dont try to rename this
+					// remove from aliases so rename logic skips this missing sheet
 					// in the next step
 					if (sheetIndex == -1) {
 						sheetIdIterator.remove();
@@ -484,9 +453,9 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		Map<String, Object> alignmentMap = taskOptions.getAlignmentMap(panelId);
 		if (chartLayout.equals("Line") || chartLayout.equals("Area") || chartLayout.equals("Column")
 				|| chartLayout.equals("Pie") || chartLayout.equals("Radar")) {
-			List<String> label = (List) alignmentMap.get("label");
+			List<String> label = (List<String>) alignmentMap.get("label");
 			panelChartMap.put("x-axis", label);
-			List<String> yColumnNames = (List) alignmentMap.get("value");
+			List<String> yColumnNames = (List<String>) alignmentMap.get("value");
 			panelChartMap.put("y-axis", yColumnNames);
 			for (String column : label) {
 				panelChartMap.put(column, new HashMap<>());
@@ -495,23 +464,23 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				panelChartMap.put(column, new HashMap<>());
 			}
 		} else if (chartLayout.equals("Scatter")) {
-			List<String> label = (List) alignmentMap.get("label");
+			List<String> label = (List<String>) alignmentMap.get("label");
 			panelChartMap.put("label", label);
-			List<String> x = (List) alignmentMap.get("x");
+			List<String> x = (List<String>) alignmentMap.get("x");
 			panelChartMap.put("x-axis", x);
-			List<String> yColumnNames = (List) alignmentMap.get("y");
+			List<String> yColumnNames = (List<String>) alignmentMap.get("y");
 			panelChartMap.put("y-axis", yColumnNames);
 			for (String column : label) {
 				panelChartMap.put(column, new HashMap<>());
 			}
-		} // making accomodation for pivot
+		} // Pivot Table handling
 		else if (chartLayout.contentEquals("Pivot Table")) {
 			// rows
 			// columns
 			// calculations
-			List<String> rows = (List) alignmentMap.get("rows");
-			List<String> columns = (List) alignmentMap.get("columns");
-			List<String> calcs = (List) alignmentMap.get("calculations");
+			List<String> rows = (List<String>) alignmentMap.get("rows");
+			List<String> columns = (List<String>) alignmentMap.get("columns");
+			List<String> calcs = (List<String>) alignmentMap.get("calculations");
 		}
 	}
 
@@ -555,8 +524,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 					prerna.reactor.frame.py.CollectPivotReactor cpr = new prerna.reactor.frame.py.CollectPivotReactor();
 					cpr.setNounStore(tOptions.getCollectStore());
 					cpr.setInsight(insight);
-					List rowObject = tOptions.getCollectStore().getGenRowStruct(cpr.keysToGet[0]).getAllValues();
-					// cpr.
+					List<Object> rowObject = tOptions.getCollectStore().getGenRowStruct(cpr.keysToGet[0])
+							.getAllValues();
 					insertPivot2(sheet.getSheetName(), cpr, rowObject);
 				} else { // old routine
 					insertPivot(user, sheet.getSheetName(), panelId, sheetId);
@@ -564,19 +533,11 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			}
 
 		} catch (Exception ex) {
-			logger.error(Constants.STACKTRACE, ex);
+			logger.error("Error inserting chart for panel {} into the Excel export", panelId, ex);
 			insight.getChromeDriver().quit(driver);
-
-//			if(driver != null && driver instanceof ChromeDriver) {
-//				((ChromeDriver)driver).quit();
-//			}
 			driver = null;
 		} finally {
 			insight.getChromeDriver().quit(driver);
-//			if(driver != null && driver instanceof ChromeDriver) {
-//				((ChromeDriver)driver).quit();
-//			}
-//			driver = null;
 		}
 	}
 
@@ -597,11 +558,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
 		}
-		// since we write veriticlaly
-		// shouldn't be doing this anymore
-		// freeze the first row
-//		sheet.createFreezePane(0, 1);
-
 		int i = 0;
 		int size = 0;
 		// create typesArr as an array for faster searching
@@ -787,7 +743,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				if ("MultiLine".equals(optionData.get("layout"))) {
-					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value"))
+					leftAxis.setTitle(String
+							.join(", ", (List<String>) ((Map<String, Object>) optionData.get("alignment")).get("value"))
 							.replace("_", " "));
 				} else {
 					leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
@@ -869,7 +826,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				? panel.getMapInput(panel.getOrnaments(), X_AXIS_TITLE_NAME) + ""
 				: "";
 
-		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
 		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
 		AxisPosition leftAxisPosition = AxisPosition.LEFT;
 		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
@@ -889,7 +845,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		XSSFChart chart = createBaseChart(sheet, sheetMap, null);
 		XDDFValueAxis bottomAxis = chart.createValueAxis(bottomAxisPosition);
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
-		// leftAxis.setMinimum(0.4);
 		POIExportUtility.addGridLines(gridOnX, gridOnY, chart);
 		leftAxis.setCrosses(leftAxisCrosses);
 
@@ -992,7 +947,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 
 		// Build chart
 		XSSFChart chart = createBaseChart(sheet, sheetMap, legendPosition);
-		// chart.setTitleText("Title Test");
 		XDDFCategoryAxis bottomAxis = chart.createCategoryAxis(bottomAxisPosition);
 
 		XDDFValueAxis leftAxis = chart.createValueAxis(leftAxisPosition);
@@ -1006,7 +960,8 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				leftAxis.setTitle(yAxisTitleName);
 			} else {
 				if ("Stack".equals(optionData.get("layout"))) {
-					leftAxis.setTitle(String.join(", ", (List<String>) ((Map) optionData.get("alignment")).get("value"))
+					leftAxis.setTitle(String
+							.join(", ", (List<String>) ((Map<String, Object>) optionData.get("alignment")).get("value"))
 							.replace("_", " "));
 				} else {
 					leftAxis.setTitle(String.join(", ", yColumnNames).replace("_", " "));
@@ -1181,9 +1136,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 				"tools.shared.customizePieLabel.dimension");
 
 		LegendPosition legendPosition = LegendPosition.TOP_RIGHT;
-		AxisPosition bottomAxisPosition = AxisPosition.BOTTOM;
-		AxisPosition leftAxisPosition = AxisPosition.LEFT;
-		AxisCrosses leftAxisCrosses = AxisCrosses.AUTO_ZERO;
 		ChartTypes chartType = ChartTypes.PIE;
 
 		// Parse input data
@@ -1331,13 +1283,13 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		chart.plot(data);
 	}
 
-	// this is where the chart is being placed. Need to see this properly
+	// positions the chart to the right of the data columns
 	private XSSFChart createBaseChart(XSSFSheet sheet, Map<String, Object> sheetMap, LegendPosition legendPosition) {
 		XSSFDrawing drawing = sheet.createDrawingPatriarch();
 		// Put chart to the right of any data columns
 		int colIndex = (int) sheetMap.get("colIndex");
 		int chartIndex = (int) sheetMap.get("chartIndex");
-		// drawing can be at 0 ,0
+		// drawing anchor starts at the top-left offset
 		int drawingColIndex = startColumn + this.columnGutter;
 		int sheetLastRow = 0;
 		if (exportMap.containsKey(sheet.getSheetName() + "ROW_COUNT")) {
@@ -1360,14 +1312,12 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	}
 
 	private XDDFNumericalDataSource<Double> createXAxis(XSSFSheet sheet, Map<String, Object> xColumnMap) {
-
 		int xStartCol = (int) xColumnMap.get("startCol");
 		int xEndCol = (int) xColumnMap.get("endCol");
 		int xStartRow = (int) xColumnMap.get("startRow");
 		int xEndRow = (int) xColumnMap.get("endRow");
 		CellRangeAddress xsCellRange = new CellRangeAddress(xStartRow, xEndRow, xStartCol, xEndCol);
 		XDDFNumericalDataSource<Double> xs = XDDFDataSourcesFactory.fromNumericCellRange(sheet, xsCellRange);
-
 		return xs;
 	}
 
@@ -1378,22 +1328,16 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		int yEndRow = (int) yColumnMap.get("endRow");
 		CellRangeAddress ysCellRange = new CellRangeAddress(yStartRow, yEndRow, yStartCol, yEndCol);
 		XDDFNumericalDataSource<Double> ys = XDDFDataSourcesFactory.fromNumericCellRange(sheet, ysCellRange);
-
 		return ys;
 	}
 
 	private void insertPivot(User user, String excelSheetName, String panelId, String sheetId) {
-		// http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0
-		// http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0
-		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5
-		// - this worked
 		String baseUrl = this.insight.getBaseURL();
 		String sessionId = ThreadStore.getSessionId();
 		String htmlUrl = baseUrl + "html?insightId=" + insight.getInsightId() + "&sheet=" + sheetId + "&panel="
 				+ panelId;
 		logger.info("Generating pivot at " + htmlUrl);
 		if (driver == null) {
-			// driver = ChromeDriverUtility.makeChromeDriver(baseUrl, htmlUrl, 800, 600);
 			driver = insight.getChromeDriver().makeChromeDriver(baseUrl, htmlUrl, 800, 600);
 		}
 		logger.info("Generating pivot view");
@@ -1401,29 +1345,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String exportName = AbstractExportTxtReactor.getExportFileName(user, "ABCD", "png");
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
-		// this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl,
-		// htmlUrl, imageLocation, sessionId, 10_000);
-
 		String html2 = insight.getChromeDriver().captureDataPersistent(driver, baseUrl, htmlUrl, sessionId, 10_000);
 
 		insight.getChromeDriver().quit(driver);
 		driver = null;
-
-		// logger.info(" HTML from Capture " + html2);
-		// html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
-		// logger.info(" HTML from getHTML " + html2);
-		// WebElement we = driver.findElement(By.xpath("//html/body//table"));
-		// String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
-		// "";
-
-		// WebElement elem1 = new WebDriverWait(driver, 10)
-		// .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
-		// html = driver.executeScript("return document.documentElement.outerHTML;") +
-		// "";
-		// System.out.println(html);
-		// System.out.println(html2);
-		// driver.quit();
-		// driver = null;
 
 		TableToXLSXReactor txl = new TableToXLSXReactor();
 		txl.exportMap = exportMap;
@@ -1436,32 +1361,18 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 	}
 
 	private void insertPivot2(String excelSheetName, prerna.reactor.frame.py.CollectPivotReactor cpr, List rows) {
-		// http://localhost:9090/semoss/#!/html?engine=95079463-9643-474a-be55-cca8bf91b358&id=735f32dd-4ec0-46ce-b2fa-4194cc270c7a&panel=0
-		// http://localhost:9090/semoss/#!/html?insightId=95079463-9643-474a-be55-cca8bf91b358&panel=0
-		// http://localhost:8080/appui/#!/html?insightId=d08a5e71-af2f-43d8-89e1-f806ff0527ea&panel=5
-		// - this worked
-
-		// logger.info(" HTML from Capture " + html2);
-		// html2 = insight.getChromeDriver().getHTML(driver, "//html/body//table");
-		// logger.info(" HTML from getHTML " + html2);
-		// WebElement we = driver.findElement(By.xpath("//html/body//table"));
-		// String html2 = driver.executeScript("return arguments[0].outerHTML;", we) +
-		// "";
-
-		// WebElement elem1 = new WebDriverWait(driver, 10)
-		// .until(ExpectedConditions.elementToBeClickable(By.xpath("//html/body//table")));
-		// html = driver.executeScript("return document.documentElement.outerHTML;") +
-		// "";
-		// System.out.println(html);
-		// System.out.println(html2);
-		// driver.quit();
-		// driver = null;
 		NounMetadata retData = cpr.execute();
 
 		// you have what you need now..
 		ConstantDataTask cdt = (ConstantDataTask) retData.getValue();
 		// json is sitting in the cdt
-		String json = (String) ((Map) cdt.getOutputData()).get("values");
+		Object valuesObj = ((Map<String, Object>) cdt.getOutputData()).get("values");
+		// CollectPivotReactor now returns "values" as a String[] (matching the R
+		// sibling and the grid-pivot view's values[0] contract); keep a String fallback
+		// for safety.
+		String json = (valuesObj instanceof String[])
+				? (((String[]) valuesObj).length > 0 ? ((String[]) valuesObj)[0] : "")
+				: (String) valuesObj;
 
 		JSONArray array = new JSONArray(json);
 		StringBuffer html2 = new StringBuffer();
@@ -1535,30 +1446,22 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		String imageLocation = this.insight.getInsightFolder() + DIR_SEPARATOR + exportName;
 
 		if (driver == null) {
-			// driver = ChromeDriverUtility.makeChromeDriver(baseUrl, imageUrl +
-			// sheetAppender + panelAppender, 800, 600);
 			driver = this.insight.getChromeDriver().makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender,
 					800, 600);
 		}
 		// download this file
-		// ChromeDriverUtility.captureImagePersistent(driver, baseUrl, imageUrl +
-		// sheetAppender + panelAppender, imageLocation, sessionId);
 		this.insight.getChromeDriver().captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender,
 				imageLocation, sessionId, 10_000);
 
 		insight.getChromeDriver().quit(driver);
 		driver = null;
 
-		// download this file
-		// ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender +
-		// panelAppender, fileLocation, sessionId, 800, 600, true);
-		// write this to the sheet now
+		// add the captured image to the sheet
 		int sheetLastRow = 0;
 		if (exportMap.containsKey(targetSheet.getSheetName() + "ROW_COUNT")) {
 			sheetLastRow = Integer.parseInt(exportMap.get(targetSheet.getSheetName() + "ROW_COUNT") + "");
 		}
 
-		// 1920 x 936
 		// FileInputStream obtains input bytes from the image file
 		try {
 			InputStream inputStream = new FileInputStream(Utility.normalizePath(imageLocation));
@@ -1580,21 +1483,19 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			ClientAnchor anchor = helper.createClientAnchor();
 
 			// create an anchor with upper left cell _and_ bottom right cell
-			anchor.setCol1(startColumn); // Column B
-			anchor.setRow1(sheetLastRow); // Row 3
-			anchor.setCol2(startColumn + width); // Column C // doesnt matter
-			anchor.setRow2(sheetLastRow + height); // Row 4
+			anchor.setCol1(startColumn);
+			anchor.setRow1(sheetLastRow);
+			anchor.setCol2(startColumn + width);
+			anchor.setRow2(sheetLastRow + height);
 
 			// Creates a picture
 			Picture pict = drawing.createPicture(anchor, pictureIdx);
-			// pict.resize();
-
 			// Reset the image to the original size
-			// pict.resize(); //don't do that. Let the anchor resize the image!
+			// let the anchor size the image; do not call pict.resize()
 			// Create the Cell B3
 			Cell cell = targetSheet.createRow(2).createCell(1);
 		} catch (IOException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to insert image into the Excel sheet from {}", imageLocation, e);
 		}
 
 		sheetLastRow = sheetLastRow + height + rowGutter;
@@ -1696,8 +1597,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			html.append("</tbody>");
 			html.append("</table>");
 		}
-		// write html to your C drive for testing purpose
-		// WriteToFile(html.toString(), "test.html");
 		return html.toString();
 	}
 
@@ -1712,10 +1611,10 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		// Using LinkedHashMap - To Maintain insertion order
 		Map<ColorByValueRule, List<Object>> colorByValueMap = new LinkedHashMap<>();
 		for (ColorByValueRule cbv : panel.getColorByValue()) {
-			// you can grab the query struct
+			// get the query struct for this rule
 			SelectQueryStruct cbvQS = cbv.getQueryStruct();
 			// turn the query struct to a task
-			// you can iterator through to know which values to paint
+			// iterate task rows to collect values to color
 			ITask cbvTask = InsightUtility.constructTaskFromQs(this.insight, cbvQS);
 			cbvTask.setLogger(this.getLogger(ExportToExcelReactor.class.getName()));
 			List<Object> colorByValues = new ArrayList<>();
@@ -1746,11 +1645,6 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 			sheet = workbook.createSheet(sheetName + "_Data");
 			workbook.setSheetHidden(workbook.getSheetIndex(sheet), true);
 		}
-		// since we write veriticlaly
-		// shouldn't be doing this anymore
-		// freeze the first row
-		// sheet.createFreezePane(0, 1);
-
 		int size = 0;
 		// create typesArr as an array for faster searching
 		String[] headers = null;
@@ -1972,20 +1866,5 @@ public class ExportToExcelReactor extends TableToXLSXReactor {
 		}
 		return cell;
 	}
-
-	/*
-	 * write file to the local for testing purpose
-	 * 
-	 * public static void WriteToFile(String fileContent, String fileName) { try{
-	 * String projectPath = "C:\\workspace"; String tempFile = projectPath +
-	 * File.separator+fileName; File file = new File(tempFile); // if file does
-	 * exists, then delete and create a new file //write to file with
-	 * OutputStreamWriter OutputStream outputStream = new
-	 * FileOutputStream(file.getAbsoluteFile()); Writer writer=new
-	 * OutputStreamWriter(outputStream); writer.write(fileContent); writer.close();}
-	 * catch(Exception e){ System.out.println(e); }
-	 * 
-	 * }
-	 */
 
 }

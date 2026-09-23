@@ -35,10 +35,12 @@ import prerna.engine.impl.model.KServeImageEmbedEngine;
 import prerna.engine.impl.model.KServeImageEngine;
 import prerna.engine.impl.model.KServeTTSEngine;
 import prerna.engine.impl.model.KServeVisionEngine;
+import prerna.engine.impl.model.ModelRouterEngine;
 import prerna.engine.impl.model.NEREngine;
 import prerna.engine.impl.model.OpenAiEngine;
 import prerna.engine.impl.model.TextEmbeddingsEngine;
 import prerna.engine.impl.model.TextGenerationEngine;
+import prerna.engine.impl.model.TypeSafeEngine;
 import prerna.engine.impl.model.VertexEngine;
 import prerna.engine.impl.remotesemoss.RemoteModelEngine;
 
@@ -52,6 +54,7 @@ public enum ModelTypeEnum {
 	BEDROCK("BEDROCK", BedrockEngine.class.getName()),
 	OPEN_AI("OPEN_AI", OpenAiEngine.class.getName()),
 	VERTEX("VERTEX", VertexEngine.class.getName()),
+	TYPESAFE("TYPESAFE", TypeSafeEngine.class.getName()),
 
 	// these are secondary
 	EMBEDDED("EMBEDDED", EmbeddedModelEngine.class.getName()),
@@ -63,6 +66,9 @@ public enum ModelTypeEnum {
 	REMOTE("REMOTE", RemoteModelEngine.class.getName()),
 	TEXT_EMBEDDINGS("TEXT_EMBEDDINGS", TextEmbeddingsEngine.class.getName()),
 	TEXT_GENERATION("TEXT_GENERATION", TextGenerationEngine.class.getName()),
+
+	// routing engine - dispatches to backing engines per its assets/router.json config
+	MODEL_ROUTER("MODEL_ROUTER", ModelRouterEngine.class.getName()),
 	;
 	// @formatter:on
 

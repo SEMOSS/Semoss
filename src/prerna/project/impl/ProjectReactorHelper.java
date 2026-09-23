@@ -152,7 +152,7 @@ public class ProjectReactorHelper {
 
 			File file = new File(classesFolder);
 			if (file.exists()) {
-				classLogger.info("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from >> {}", classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -232,7 +232,7 @@ public class ProjectReactorHelper {
 			// change it to something else if we want
 			String classesFolder = folder + "/" + outputFolder;
 
-			classesFolder = classesFolder.replaceAll("\\\\", "/");
+			classesFolder = classesFolder.replace("\\\\", "/");
 			this.mvnClassLoader.add(classesFolder);
 
 			File file = new File(classesFolder);
@@ -240,7 +240,7 @@ public class ProjectReactorHelper {
 				// loads a class and tried to change the package of the class on the fly
 				// CtClass clazz = pool.get("prerna.test.CPTest");
 
-				classLogger.info("Loading reactors from >> " + classesFolder);
+				classLogger.info("Loading reactors from >> {}", classesFolder);
 
 				Map<String, List<String>> dirs = GitAssetUtils.browse(classesFolder, classesFolder);
 				List<String> dirList = dirs.get("DIR_LIST");
@@ -313,7 +313,7 @@ public class ProjectReactorHelper {
 				urlClassLoader.close();
 			} catch (IOException e) {
 				// can ignore
-				classLogger.error("Error closing existing jar class loader: " + e.getMessage(), e);
+				classLogger.error("Error closing existing jar class loader: {}", e.getMessage(), e);
 			}
 		}
 

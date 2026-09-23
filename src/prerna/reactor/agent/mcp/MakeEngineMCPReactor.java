@@ -50,6 +50,9 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRDFDatabase;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.IReactor;
 import prerna.reactor.ReactorFactory;
@@ -58,7 +61,8 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.function.ExecuteFunctionEngineReactor;
 import prerna.reactor.masterdatabase.GetDatabaseTableStructureReactor;
 import prerna.reactor.model.LLMReactor;
-import prerna.reactor.qs.SqlQueryBase64Reactor;
+import prerna.reactor.qs.SparqlQueryReactor;
+import prerna.reactor.qs.SqlQueryReactor;
 import prerna.reactor.storage.DeleteFromStorageReactor;
 import prerna.reactor.storage.ListStoragePathDetailsReactor;
 import prerna.reactor.storage.ListStoragePathReactor;
@@ -81,6 +85,11 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MakeEngineMCPReactor.class);
 
+	/**
+	 * Stamped into every generated tool as {@link MCPUtility#SMSS_MCP_GENERATOR}.
+	 */
+	private static final String GENERATOR_ID = "MakeEngineMCP";
+
 	// @formatter:off
 	private static final Map<IEngine.CATALOG_TYPE, List<Class<? extends IReactor>>> STANDARD_ENGINE_TOOLS = new HashMap<>() {
 		{
@@ -102,15 +111,14 @@ public class MakeEngineMCPReactor extends AbstractReactor {
             	VectorFileDownloadReactor.class
             )));
         put(IEngine.CATALOG_TYPE.DATABASE, new ArrayList<>(Arrays.asList(
-            	GetDatabaseTableStructureReactor.class,
-            	SqlQueryBase64Reactor.class
+            	GetDatabaseTableStructureReactor.class
             )));
         put(IEngine.CATALOG_TYPE.MODEL, new ArrayList<>(Arrays.asList(
             	LLMReactor.class
             )));
 		}
 	};
-    // @formatter:on 
+    // @formatter:on
 
 	public MakeEngineMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.REACTOR.getKey(),
@@ -157,7 +165,16 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		boolean useDefaultReactors = (reactorNames == null || reactorNames.isEmpty());
 		List<Class<? extends IReactor>> defaultReactors = STANDARD_ENGINE_TOOLS.getOrDefault(eType, new ArrayList<>());
-
+		if (eType == IEngine.CATALOG_TYPE.DATABASE) {
+			List<Class<? extends IReactor>> defaultDatabaseReactors = new ArrayList<>();
+			defaultDatabaseReactors.addAll(defaultReactors);
+			if (engine instanceof IRDBMSEngine) {
+				defaultDatabaseReactors.add(SqlQueryReactor.class);
+			} else if (engine instanceof IRDFDatabase) {
+				defaultDatabaseReactors.add(SparqlQueryReactor.class);
+			}
+			defaultReactors = defaultDatabaseReactors;
+		}
 		for (int i = 0; i < (useDefaultReactors ? defaultReactors.size() : reactorNames.size()); i++) {
 			IReactor thisReactor = null;
 			JSONObject reactorTool = null;
@@ -252,12 +269,30 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 
 			reactorTool.put("_meta", meta);
+
+			// a function engine already describes its own name, purpose, and
+			// parameters, so present the executor as that function rather than as a
+			// tool taking an opaque map. this runs after the meta is stamped so
+			// SMSS_FUNCTION_NAME keeps pointing at the reactor being run
+			if (thisReactor instanceof ExecuteFunctionEngineReactor && engine instanceof IFunctionEngine) {
+				MCPFunctionEngineUtility.applyFunctionEngineDefinition(reactorTool, (IFunctionEngine) engine);
+			}
+
 			toolsArray.put(reactorTool);
 		}
 
 		if (toolsArray == null || toolsArray.isEmpty()) {
 			throw new IllegalArgumentException("No tools were added to engine " + engine);
 		}
+
+		// Both the default set and the explicit-reactor path feed this array.
+		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
+
+		String outputFileLoc = engineAssetsFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
+
+		// The default tool set is a full rebuild; an explicit reactor list is a subset.
+		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
+				useDefaultReactors);
 
 		JSONObject _meta = new JSONObject();
 		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
@@ -266,7 +301,6 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 		mcpJson.put("_meta", _meta);
 		mcpJson.put("tools", toolsArray);
 
-		String outputFileLoc = engineAssetsFolder + "/mcp/pixel_mcp.json";
 		File outputFile = new File(outputFileLoc);
 		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
 			outputFile.getParentFile().mkdirs();
@@ -306,7 +340,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 
 		// add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + "/mcp/pixel_mcp.json");
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

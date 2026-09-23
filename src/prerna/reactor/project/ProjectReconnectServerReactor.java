@@ -42,40 +42,35 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ProjectReconnectServerReactor extends AbstractReactor {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(ProjectReconnectServerReactor.class);
-	
+
 	public ProjectReconnectServerReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.PROJECT.getKey()};
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey() };
 	}
-	
-	// reconnects the server
-	// execute method - GREEDY translation
+
+	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String projectId = this.keyValue.get(this.keysToGet[0]);
-		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
-			projectId = this.insight.getContextProjectId();
-		}
-		if(projectId == null || (projectId=projectId.trim()).isEmpty()) {
-			projectId = this.insight.getProjectId();
-		}
-		
+		String projectId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0]));
+
 		// make sure valid id for user
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
-		if(!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
+		if (!SecurityProjectUtils.userCanEditProject(this.insight.getUser(), projectId)) {
 			// you don't have access
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
 		IProject project = Utility.getProject(projectId);
 		// sadly, the logic right now requires we have a made cpw
-		// otherwise the reconnect method does nto 
+		// otherwise the reconnect method does not
 		project.getProjectTcpClient();
 		ClientProcessWrapper cpw = project.getClientProcessWrapper();
-		if(cpw == null || cpw.getSocketClient() == null) {
+		if (cpw == null || cpw.getSocketClient() == null) {
 			project.getProjectTcpClient(true);
-			return new NounMetadata("TCP Server was not initialized but is now started and connected for project '" + projectId + "'", PixelDataType.CONST_STRING);
+			return new NounMetadata(
+					"TCP Server was not initialized but is now started and connected for project '" + projectId + "'",
+					PixelDataType.CONST_STRING);
 		}
 		cpw.shutdown(false);
 		try {
@@ -85,11 +80,13 @@ public class ProjectReconnectServerReactor extends AbstractReactor {
 			return new NounMetadata("Unable to restart TCP Server", PixelDataType.CONST_STRING);
 		}
 		SocketClient client = project.getProjectTcpClient(false);
-		if(client == null || !client.isConnected()) {
-			return new NounMetadata("Unable to connect to project '" + projectId + "' TCP Server", PixelDataType.CONST_STRING);
+		if (client == null || !client.isConnected()) {
+			return new NounMetadata("Unable to connect to project '" + projectId + "' TCP Server",
+					PixelDataType.CONST_STRING);
 		}
-		
-		return new NounMetadata("Project '" + projectId + "' TCP Server available and connected", PixelDataType.CONST_STRING);
+
+		return new NounMetadata("Project '" + projectId + "' TCP Server available and connected",
+				PixelDataType.CONST_STRING);
 	}
-	
+
 }

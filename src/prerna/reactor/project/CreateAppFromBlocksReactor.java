@@ -29,9 +29,9 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Vector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -40,10 +40,10 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
+import prerna.project.impl.ProjectPortalsHelper;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -51,7 +51,6 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
-import prerna.util.Constants;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.git.GitRepoUtils;
@@ -70,8 +69,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 	 */
 	public CreateAppFromBlocksReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.GLOBAL.getKey(),
-				ReactorKeysEnum.PORTAL_NAME.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(),
-				ReactorKeysEnum.JSON.getKey() };
+				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey(), ReactorKeysEnum.JSON.getKey() };
 	}
 
 	@Override
@@ -90,7 +88,6 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		}
 
 		boolean global = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
-		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 
@@ -102,7 +99,7 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		User user = this.insight.getUser();
 		// Create new project
 		IProject newProject = ProjectHelper.generateNewProject(newProjectName, IProject.PROJECT_TYPE.BLOCKS, global,
-				true, portalName, gitProvider, gitCloneUrl, user, logger);
+				gitProvider, gitCloneUrl, user, logger);
 
 		String portalsFolder = AssetUtility.getProjectPortalsFolder(newProject.getProjectId());
 		File blocksJsonFile = new File(portalsFolder + "/" + IProject.BLOCK_FILE_NAME);
@@ -110,14 +107,15 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 			GsonUtility.writeObjectToJsonFile(blocksJsonFile,
 					new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create(), json);
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write the blocks json to {} for new project '{}'", blocksJsonFile,
+					newProject.getProjectId(), e);
 			throw new IllegalArgumentException(
 					"New project was created but could not write the blocks json to the project folder. Errror = "
 							+ e.getMessage());
 		}
 
 		// add file to git
-		List<String> files = new Vector<>();
+		List<String> files = new ArrayList<>();
 		files.add(blocksJsonFile.getAbsolutePath());
 		String projectVersionFolder = AssetUtility.getProjectVersionFolder(newProject.getProjectName(),
 				newProject.getProjectId());
@@ -128,8 +126,8 @@ public class CreateAppFromBlocksReactor extends AbstractReactor {
 		if (ClusterUtil.IS_CLUSTER) {
 			logger.info("Syncing project for cloud backup");
 			ClusterUtil.pushProjectFolder(newProject, projectVersionFolder);
-			SecurityProjectUtils.setPortalPublish(user, newProject.getProjectId());
 		}
+		ProjectPortalsHelper.notePortalChange(user, newProject.getProjectId());
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				newProject.getProjectId());

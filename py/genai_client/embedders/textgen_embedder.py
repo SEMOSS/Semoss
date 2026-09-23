@@ -21,7 +21,6 @@ class TextEmbeddingsInference(LocalEmbedder):
         self.tokenizer = HuggingfaceTokenizer(
             encoder_name=model_name,
             max_tokens=kwargs.pop(MAX_TOKENS, None),
-            max_input_tokens=kwargs.pop(MAX_INPUT_TOKENS, None),
         )
 
     def get_embedder(self, endpoint: str):

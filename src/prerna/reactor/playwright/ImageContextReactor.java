@@ -99,7 +99,7 @@ public class ImageContextReactor extends AbstractReactor {
 
 			result.put("response", modelOutput);
 		} catch (Exception e) {
-			classLogger.error("Error getting image context: " + e.getMessage(), e);
+			classLogger.error("Error getting image context", e);
 			result.put("response", "Error: " + e.getMessage());
 		}
 

@@ -39,6 +39,12 @@ public interface IEngine extends Closeable {
 
 	String METADATA_FILE_SUFFIX = "_metadata.json";
 
+	/**
+	 * Written into a model engine export so the MODELMETADATA values travel with
+	 * the zip. Consumed and deleted on upload.
+	 */
+	String MODEL_METADATA_FILE_SUFFIX = "_modelmetadata.json";
+
 	String PIPELINE = "PIPELINE";
 
 	enum CATALOG_TYPE {

@@ -57,6 +57,12 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 	}
 
 	@Override
+	public String getReactorDescription() {
+		return "Uploads a delimited file (CSV, TSV, etc.) to create a new database backed by an R native engine. "
+				+ "The data is loaded as a single flat table (one concept and its properties).";
+	}
+
+	@Override
 	public void generateNewDatabase(User user, String newDatabaseName, String filePath) throws Exception {
 		// grab inputs passed in
 		final String delimiter = UploadInputUtility.getDelimiter(this.store);
@@ -74,25 +80,25 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		}
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Create smss file for database...");
+		logger.info("{}. Create smss file for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId, newDatabaseName);
 		this.tempSmss = UploadUtilities.createTemporaryRSmss(this.databaseId, newDatabaseName, owlFile, fileName,
 				newHeaders, dataTypesMap, additionalDataTypeMap);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Parse data types...");
+		logger.info("{}. Parse data types...", stepCounter);
 		this.helper = UploadUtilities.getHelper(filePath, delimiter, dataTypesMap, newHeaders);
 		// parse the information
 		Object[] headerTypesArr = UploadUtilities.getHeadersAndTypes(this.helper, dataTypesMap, additionalDataTypeMap);
 		String[] headers = (String[]) headerTypesArr[0];
 		SemossDataType[] types = (SemossDataType[]) headerTypesArr[1];
 		String[] additionalTypes = (String[]) headerTypesArr[2];
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating database metadata");
+		logger.info("{}. Start generating database metadata", stepCounter);
 		WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL();
 
 		// table name is the file name
@@ -109,7 +115,7 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 		owlEngine.commit();
 		owlEngine.export();
 		owlEngine.close();
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// move file
@@ -117,10 +123,10 @@ public class RCsvUploadReactor extends AbstractDatabaseUploadFileReactor {
 				.getDataFile(Utility.loadProperties(Utility.normalizePath(this.tempSmss.getAbsolutePath())));
 		FileUtils.copyFile(uploadFile, dataFile);
 
-		logger.info(stepCounter + ". Create database store...");
+		logger.info("{}. Create database store...", stepCounter);
 		this.database = new RNativeEngine();
 		this.database.open(this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 	}
 

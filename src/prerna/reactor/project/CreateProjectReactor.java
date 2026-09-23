@@ -45,19 +45,21 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Creates a standard SEMOSS project after applying authentication, naming, and project-type
+ * policy checks.
+ *
+ * <p>
+ * Project types that require additional scaffolding are rejected and must be created through
+ * their dedicated reactors.
+ */
 public class CreateProjectReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
 
-	/*
-	 * This class is used to construct a new project This project only contains
-	 * insights
-	 */
-
 	public CreateProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
-				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PORTAL.getKey(), ReactorKeysEnum.PORTAL_NAME.getKey(),
-				ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
+				ReactorKeysEnum.GLOBAL.getKey(), ReactorKeysEnum.PROVIDER.getKey(), ReactorKeysEnum.URL.getKey() };
 	}
 
 	@Override
@@ -99,55 +101,50 @@ public class CreateProjectReactor extends AbstractReactor {
 			}
 		}
 
-		boolean hasPortal = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[index++]) + "");
-
-		// project type is new
-		// if has portal
-		// will assume code if not provided
-		// else will assume it is insight
-		// TODO: potentially remove hasportal entirely
-		//
 		// Allow-list: CreateProject can only create CODE, BLOCKS, or INSIGHTS
-		// projects. WORKSPACE and SKILL projects have additional persistence
+		// projects. WORKSPACE, SKILL, and NOTEBOOK projects have additional setup
 		// requirements (inference-tracking WORKSPACE row + WORKSPACE_RESOURCE
-		// links for workspaces; skill metadata wiring for skills) that this
-		// reactor does not perform — calling CreateProject for those types
-		// leaves the system in a half-created state where downstream readers
-		// (e.g. GetAgentHooks, ListWorkspaces) cannot see the new row. Reject
-		// up-front and direct the caller at the right reactor.
-		if (hasPortal) {
-			if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
-				projectType = IProject.PROJECT_TYPE.CODE;
-			} else {
-				try {
-					projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
-				} catch (IllegalArgumentException e) {
-					throw new IllegalArgumentException(
-							"Invalid projectType '" + projectTypeStr + "'. Allowed values: CODE, BLOCKS, INSIGHTS.");
-				}
-				if (projectType == IProject.PROJECT_TYPE.WORKSPACE) {
-					throw new IllegalArgumentException(
-							"CreateProject cannot create WORKSPACE-type projects. "
-									+ "Use AddWorkspace(name='...') instead — it performs the additional "
-									+ "inference-tracking WORKSPACE row + WORKSPACE_RESOURCE inserts that "
-									+ "CreateProject skips.");
-				}
-				if (projectType == IProject.PROJECT_TYPE.SKILL) {
-					throw new IllegalArgumentException(
-							"CreateProject cannot create SKILL-type projects. "
-									+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
-									+ "wiring that CreateProject skips.");
-				}
-			}
-		} else {
+		// links for workspaces; skill metadata wiring for skills; sample .ipynb
+		// scaffold for notebooks) that this reactor does not perform — calling
+		// CreateProject for those types leaves the system in a half-created state
+		// where downstream readers (e.g. GetAgentHooks, ListWorkspaces) cannot see
+		// the new row. Reject up-front and direct the caller at the right reactor.
+		if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
 			projectType = IProject.PROJECT_TYPE.INSIGHTS;
+		} else {
+			try {
+				projectType = IProject.PROJECT_TYPE.valueOf(projectTypeStr);
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException(
+						"Invalid projectType '" + projectTypeStr + "'. Allowed values: CODE, BLOCKS, INSIGHTS.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.WORKSPACE) {
+				throw new IllegalArgumentException("CreateProject cannot create WORKSPACE-type projects. "
+						+ "Use AddWorkspace(name='...') instead — it performs the additional "
+						+ "inference-tracking WORKSPACE row + WORKSPACE_RESOURCE inserts that "
+						+ "CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.SKILL) {
+				throw new IllegalArgumentException("CreateProject cannot create SKILL-type projects. "
+						+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
+						+ "wiring that CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.NOTEBOOK) {
+				throw new IllegalArgumentException("CreateProject cannot create NOTEBOOK-type projects. "
+						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
+						+ "file that CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
+				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
+						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
+						+ "definition, configuration, and MCP tool metadata.");
+			}
 		}
-		String portalName = this.keyValue.get(this.keysToGet[index++]);
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);
 		String gitCloneUrl = this.keyValue.get(this.keysToGet[index++]);
 
-		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, hasPortal, portalName,
-				gitProvider, gitCloneUrl, this.insight.getUser(), logger);
+		IProject project = ProjectHelper.generateNewProject(projectName, projectType, global, gitProvider, gitCloneUrl,
+				this.insight.getUser(), logger);
 
 		Map<String, Object> retMap = UploadUtilities.getProjectReturnData(this.insight.getUser(),
 				project.getProjectId());

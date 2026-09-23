@@ -36,8 +36,6 @@ public class Settings {
 	public static final String SMART_SYNC = "SMART_SYNC";
 	public static final String RESERVED_JAVA_MEM = "RESERVED_JAVA_MEM";
 	public static final String PUBLIC_HOME = "PUBLIC_HOME";
-	public static final String PUBLIC_HOME_ENABLE = "PUBLIC_HOME_ENABLE";
-	public static final String PORTAL_NAME = "PORTAL_NAME";
 	public static final String COPY_PROJECT = "COPY_PROJECT";
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String MVN_HOME = "MVN_HOME";
@@ -60,6 +58,19 @@ public class Settings {
 	public static final String PYTHONHOME_SITE_PACKAGES = "PYTHONHOME_SITE_PACKAGES";
 	public static final String NATIVE_PY_SERVER = "NATIVE_PY_SERVER";
 	public static final String PY_SERVER_USER = "PY_SERVER_USER";
+
+	// node.js agent execution environment
+	// install root of the node runtime; /bin/node (unix) or /node.exe (windows)
+	// is appended, mirroring PYTHONHOME resolution
+	public static final String NODE_HOME = "NODE_HOME";
+	// curated package environment folder (package.json + node_modules);
+	// defaults to <BaseFolder>/js/node_env when unset
+	public static final String NODE_ENV_DIR = "NODE_ENV_DIR";
+	// raw flags appended to the node command (e.g. the permission-model flags
+	// for the installed node version); empty when unset
+	public static final String NODE_PERMISSION_FLAGS = "NODE_PERMISSION_FLAGS";
+	// idle minutes before a user's node worker self-exits; defaults to 30
+	public static final String NODE_IDLE_TIMEOUT = "NODE_IDLE_TIMEOUT";
 
 	public static final String PROMPT_STOPPER = "PROMPT_STOPPER";
 	public static final String VAR_NAME = "VAR_NAME";
@@ -87,7 +98,7 @@ public class Settings {
 
 	// the port to force the connection on
 	public static final String FORCE_PORT = "FORCE_PORT";
-	// the python logger level — DEBUG, INFO, WARNING, or CRITICAL
+	// the python logger level ï¿½ DEBUG, INFO, WARNING, or CRITICAL
 	public static final String LOGGER_LEVEL = "LOGGER_LEVEL";
 
 }

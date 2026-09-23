@@ -38,9 +38,10 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 
 	public AuditLogsDbOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
@@ -71,11 +72,14 @@ public class AuditLogsDbOwlCreator extends AbstractOwlCreator {
 				Pair.with("ENGINE_SUBTYPE", VARCHAR_255),
 				Pair.with("INPUT_REACTOR_NAME", VARCHAR_255),
 				Pair.with("OUTPUT_REACTOR_NAME", VARCHAR_255),
+				Pair.with("GUARDRAIL_ACTION", VARCHAR_255),
 				Pair.with("MESSAGE", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST", CLOB_DATATYPE_NAME),
 				Pair.with("RESPONSE", CLOB_DATATYPE_NAME),
 				Pair.with("NUMBER_OF_TOKENS_IN_PROMPT", INTEGER_DATATYPE_NAME),
 				Pair.with("NUMBER_OF_TOKENS_IN_RESPONSE", INTEGER_DATATYPE_NAME),
+				Pair.with("NUMBER_OF_CACHE_READ_TOKENS", INTEGER_DATATYPE_NAME),
+				Pair.with("NUMBER_OF_CACHE_CREATION_TOKENS", INTEGER_DATATYPE_NAME),
 				Pair.with("REQUEST_START_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("RESPONSE_END_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("LOG_LEVEL", VARCHAR_255),

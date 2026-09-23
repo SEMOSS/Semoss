@@ -31,6 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.utils.SecurityInsightUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.om.Insight;
 import prerna.om.OldInsight;
 import prerna.project.api.IProject;
@@ -57,6 +59,10 @@ public class InsightRecipeReactor extends AbstractInsightReactor {
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String rdbmsId = this.keyValue.get(this.keysToGet[1]);
 		boolean vec = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[2]));
+		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
+		if (!SecurityInsightUtils.userCanViewInsight(this.insight.getUser(), projectId, rdbmsId)) {
+			throw new IllegalArgumentException("User does not have access to this insight");
+		}
 		// get the engine so i can get the new insight
 		IProject project = Utility.getProject(projectId);
 		if(project == null) {

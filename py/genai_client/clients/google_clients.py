@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Union
+from typing import Optional, Dict, Union, cast
 from google.genai import Client as GoogleGenAIClient
 from anthropic import AnthropicVertex
 from pydantic import BaseModel, Field
@@ -48,6 +48,25 @@ class GoogleClient:
             )
 
         self.client = self._get_client()
+
+    @property
+    def anthropic_client(self) -> AnthropicVertex:
+        """The underlying client narrowed to AnthropicVertex.
+
+        Use this when the config type is ANTHROPIC so callers get a precisely
+        typed client (with .messages/.beta) instead of the
+        GoogleGenAIClient | AnthropicVertex union stored on self.client.
+        """
+        return cast(AnthropicVertex, self.client)
+
+    @property
+    def genai_client(self) -> GoogleGenAIClient:
+        """The underlying client narrowed to GoogleGenAIClient.
+
+        Use this when the config type is GOOGLE so callers get a precisely
+        typed client instead of the union stored on self.client.
+        """
+        return cast(GoogleGenAIClient, self.client)
 
     def _load_credentials(self, service_account_credentials, service_account_key_file):
         """Load service account credentials with required scopes"""

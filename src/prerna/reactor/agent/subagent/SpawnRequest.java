@@ -28,6 +28,7 @@
 package prerna.reactor.agent.subagent;
 
 import prerna.om.Insight;
+import prerna.reactor.agent.AgentRunTarget;
 
 /**
  * Input to {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
@@ -47,7 +48,7 @@ public final class SpawnRequest {
     /** Room id of the caller; sets {@code PARENT_ROOM_ID} on the freshly created child room. */
     public String parentRoomId;
 
-    /** Configured alias from {@code CONFIG_JSON.subagents[]}; {@code null} for anonymous spawns. */
+    /** Alias generated from the target agent's name; {@code null} for anonymous spawns. */
     public String alias;
 
     /** Target child workspace id; {@code null} for anonymous (parent-clone) spawns. */
@@ -56,8 +57,20 @@ public final class SpawnRequest {
     /** User prompt sent into the child agent. Required. */
     public String prompt;
 
-    /** Optional override that becomes the child room's system prompt. {@code null} = inherit. */
+    /**
+     * Optional per-spawn system-prompt override. When absent, anonymous children
+     * inherit {@link #parentAuthoredSystemPrompt}; named children use their own workspace
+     * system prompt.
+     */
     public String additionalContext;
+
+    /**
+     * Parent's clean, user-authored system prompt, captured before the harness
+     * temporarily composes runtime instructions into {@code room.options.instructions}.
+     * Used only as the default for anonymous children; named children load their own
+     * workspace system prompt.
+     */
+    public String parentAuthoredSystemPrompt;
 
     /** Optional engine fallback when neither room nor workspace specifies a model. */
     public String engine;
@@ -68,13 +81,19 @@ public final class SpawnRequest {
     /**
      * Optional absolute working-directory override for the child agent. When set, the
      * child's {@code RunAgent} call receives this as {@code working_dir} and
-     * {@link prerna.reactor.agent.AgentRunner#resolveWorkingDir} honors it (with a
+     * {@link prerna.reactor.agent.AgentRunner#resolveWorkingTarget} honors it (with a
      * containment check against the SEMOSS base folder) instead of defaulting to the
      * child room's own folder. Used by {@code inherit_parent_workdir=true} so the
-     * child operates on the parent's room folder while still having its own roomId
+     * child operates on the parent's resolved working directory while still having its own roomId
      * for stream + history isolation. {@code null} = use the default child room folder.
      */
     public String workingDirOverride;
+
+    /**
+     * Resolved parent target for an inherited child working directory. The child
+     * re-authorizes this target from its own Insight before running.
+     */
+    public AgentRunTarget inheritedTarget;
 
     /** Caller's live insight - used for user, projectId, base URL inheritance. Required. */
     public Insight callerInsight;

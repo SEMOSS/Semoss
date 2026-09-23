@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -622,7 +623,7 @@ public final class FileSystemUtil {
 		}
 		File file = new File(assetFolder + "/" + filePath);
 		try {
-			FileUtils.writeStringToFile(file, "new file", StandardCharsets.UTF_8);
+			FileUtils.writeStringToFile(file, getDefaultAssetFileContent(filePath), StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			classLogger.error("Error creating new asset file {}", filePath, e);
 			NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + filePath);
@@ -630,6 +631,73 @@ public final class FileSystemUtil {
 			exception.setContinueThreadOfExecution(false);
 			throw exception;
 		}
+	}
+
+	private static String getDefaultAssetFileContent(String filePath) {
+		String normalizedPath = filePath == null ? "" : filePath.replace('\\', '/').toLowerCase();
+
+		if (normalizedPath.endsWith("/pipeline.json") || "pipeline.json".equals(normalizedPath)) {
+			return "{\n  \"pipelines\": {}\n}";
+		}
+
+		if (normalizedPath.endsWith("_mcp.json")) {
+			return """
+					{
+					  "tools": [],
+					  "resources": [],
+					  "resourceTemplates": [],
+					  "prompts": []
+					}""";
+		}
+
+		if (normalizedPath.endsWith(".json")) {
+			return "{}";
+		}
+
+		if (normalizedPath.endsWith(".ipynb")) {
+			return """
+					{
+					  "nbformat": 4,
+					  "nbformat_minor": 5,
+					  "metadata": {
+					    "kernelspec": {
+					      "display_name": "Python 3",
+					      "language": "python",
+					      "name": "python3"
+					    },
+					    "language_info": {
+					      "name": "python"
+					    }
+					  },
+					  "cells": [
+					    {
+					      "id": "%s",
+					      "cell_type": "markdown",
+					      "metadata": {},
+					      "source": [
+					        "# New Notebook"
+					      ]
+					    }
+					  ]
+					}""".formatted(newNotebookCellId());
+		}
+
+		return "new file";
+	}
+
+	/**
+	 * Id for the cell in a newly created notebook.
+	 *
+	 * nbformat 4.5 onward wants an id on every cell, unique within the notebook,
+	 * matching [a-zA-Z0-9-_] and no longer than 64 characters. A fixed value would
+	 * give every notebook the same one, which Jupyter tolerates but which makes
+	 * cells indistinguishable once notebooks are merged or diffed.
+	 *
+	 * @return a random id built from characters the format allows
+	 */
+	private static String newNotebookCellId() {
+		// getRandomString prefixes an "a" and adds this many more characters
+		return Utility.getRandomString(8);
 	}
 
 	/**
@@ -684,6 +752,53 @@ public final class FileSystemUtil {
 	}
 
 	/**
+	 * Copies a single file between two already-resolved absolute paths, typically in
+	 * different asset spaces. Directories are rejected, and an existing destination
+	 * is only replaced when {@code override} is true. Error messages only mention
+	 * file names, never absolute paths.
+	 *
+	 * @param sourceAbsolutePath the file to copy
+	 * @param targetAbsolutePath where to copy it
+	 * @param override           replace an existing destination file
+	 * @return the size of the copied file in bytes
+	 */
+	public static long copyResolvedFile(String sourceAbsolutePath, String targetAbsolutePath, boolean override) {
+		File source = new File(sourceAbsolutePath);
+		File target = new File(targetAbsolutePath);
+		if (!source.exists()) {
+			throw new IllegalArgumentException("Cannot find file to copy: " + source.getName());
+		}
+		if (source.isDirectory()) {
+			throw new IllegalArgumentException("Only files can be copied. '" + source.getName() + "' is a directory");
+		}
+		Path sourcePath = source.toPath().toAbsolutePath().normalize();
+		Path targetPath = target.toPath().toAbsolutePath().normalize();
+		if (sourcePath.equals(targetPath)) {
+			throw new IllegalArgumentException("Source and destination are the same file");
+		}
+		if (target.exists()) {
+			if (target.isDirectory()) {
+				throw new IllegalArgumentException("The destination '" + target.getName() + "' is an existing directory");
+			}
+			if (!override) {
+				throw new IllegalArgumentException(
+						"A file already exists at the destination: " + target.getName() + ". Pass override=true to replace it");
+			}
+		}
+		try {
+			FileUtils.forceMkdirParent(target);
+			FileUtils.copyFile(source, target);
+		} catch (IOException e) {
+			classLogger.error("Error copying file {} to {}", sourceAbsolutePath, targetAbsolutePath, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to copy " + source.getName()));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+		return target.length();
+	}
+
+	/**
 	 * Copies a file or directory within the asset folder.
 	 * 
 	 * @param assetFolder    The base folder for the assets.
@@ -692,6 +807,20 @@ public final class FileSystemUtil {
 	 * @param destFileName   The destination relative path for the copy.
 	 */
 	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName) {
+		copyAsset(assetFolder, sourceFileName, destFileName, false);
+	}
+
+	/**
+	 * Copies a file or directory within the asset folder, optionally replacing an
+	 * existing destination.
+	 *
+	 * @param assetFolder    The base folder for the assets.
+	 * @param sourceFileName The current relative path of the file/directory to
+	 *                       copy.
+	 * @param destFileName   The destination relative path for the copy.
+	 * @param override       If true, delete an existing destination before copying.
+	 */
+	public static void copyAsset(String assetFolder, String sourceFileName, String destFileName, boolean override) {
 		while (sourceFileName.startsWith("/")) {
 			sourceFileName = sourceFileName.substring(1);
 		}
@@ -706,9 +835,26 @@ public final class FileSystemUtil {
 		if (!sourceFile.exists()) {
 			throw new IllegalArgumentException("Cannot find file/folder to copy: " + sourceFileName);
 		}
+
+		Path sourcePath = sourceFile.toPath().toAbsolutePath().normalize();
+		Path destPath = destFile.toPath().toAbsolutePath().normalize();
+		if (sourcePath.equals(destPath) || sourcePath.startsWith(destPath)
+				|| (sourceFile.isDirectory() && destPath.startsWith(sourcePath))) {
+			throw new IllegalArgumentException("Source and destination paths cannot contain one another");
+		}
+
 		if (destFile.exists()) {
-			throw new IllegalArgumentException(
-					"A file or directory already exists at the destination: " + destFileName);
+			if (!override) {
+				throw new IllegalArgumentException(
+						"A file or directory already exists at the destination: " + destFileName);
+			}
+			try {
+				FileUtils.forceDelete(destFile);
+			} catch (IOException e) {
+				classLogger.error("Error deleting existing copy destination {}", destFileName, e);
+				throw new SemossPixelException(
+						NounMetadata.getErrorNounMessage("Unable to replace existing destination " + destFileName));
+			}
 		}
 
 		try {
@@ -814,9 +960,10 @@ public final class FileSystemUtil {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
+			byte[] decodedBytes = null;
 			if (decodeBase64) {
 				try {
-					content = new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+					decodedBytes = Base64.getDecoder().decode(content);
 				} catch (Exception e) {
 					throw new IllegalArgumentException(
 							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
@@ -825,7 +972,13 @@ public final class FileSystemUtil {
 
 			File file = new File(filePath);
 			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				if (decodedBytes != null) {
+					// write the decoded bytes directly - routing them through a
+					// String corrupts binary content (pptx, images, pdf, etc.)
+					FileUtils.writeByteArrayToFile(file, decodedBytes);
+				} else {
+					FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				}
 			} catch (IOException e) {
 				classLogger.error("Error saving asset file {}", fileName, e);
 				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);

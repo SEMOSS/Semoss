@@ -234,6 +234,87 @@ def fetch_and_encode_image(url: str) -> Tuple[str, str]:
     return image_data, media_type
 
 
+def sniff_image_mime(data: bytes) -> Optional[str]:
+    """Best-effort detection of an image mime type from magic bytes.
+
+    Useful for raw base64 strings or remotely fetched bytes that arrive with
+    no declared mime type. Returns None if the format is unrecognized.
+    """
+    if not data:
+        return None
+    if data.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "image/png"
+    if data.startswith(b"GIF87a") or data.startswith(b"GIF89a"):
+        return "image/gif"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data.startswith(b"BM"):
+        return "image/bmp"
+    if data[:4] in (b"II*\x00", b"MM\x00*"):
+        return "image/tiff"
+    header = data[:512].lstrip()
+    if header.startswith(b"<?xml") or header.startswith(b"<svg"):
+        return "image/svg+xml"
+    return None
+
+
+def sniff_video_mime(data: bytes) -> Optional[str]:
+    """Best-effort detection of a video mime type from magic bytes.
+
+    Useful for raw base64 strings or remotely fetched bytes that arrive with
+    no declared mime type. Returns None if the format is unrecognized. The
+    returned strings match the mime types Gemini documents for video input.
+    """
+    if not data or len(data) < 12:
+        return None
+    # ISO Base Media Format: 'ftyp' box at offset 4, major brand at 8..12
+    # (covers MP4/M4V, QuickTime/MOV, and 3GPP).
+    if data[4:8] == b"ftyp":
+        brand = data[8:12]
+        if brand[:2] == b"qt":
+            return "video/mov"
+        if brand[:3] in (b"3gp", b"3g2"):
+            return "video/3gpp"
+        return "video/mp4"
+    # Matroska / WebM (EBML header)
+    if data.startswith(b"\x1a\x45\xdf\xa3"):
+        return "video/webm"
+    # AVI (RIFF container with an 'AVI ' form type)
+    if data[:4] == b"RIFF" and data[8:12] == b"AVI ":
+        return "video/avi"
+    # MPEG program stream / video stream start codes
+    if data[:4] in (b"\x00\x00\x01\xba", b"\x00\x00\x01\xb3"):
+        return "video/mpeg"
+    # Flash Video
+    if data.startswith(b"FLV"):
+        return "video/x-flv"
+    # ASF / WMV
+    if data.startswith(b"\x30\x26\xb2\x75\x8e\x66\xcf\x11"):
+        return "video/wmv"
+    return None
+
+
+def fetch_and_encode_media(url: str) -> Tuple[str, Optional[str]]:
+    """Fetch arbitrary media from a URL and return (base64_data, content_type).
+
+    Unlike ``fetch_and_encode_image``, this does not assume an image mime type:
+    it returns the server-reported content-type (parameters like ``;charset``
+    stripped) or None, leaving format detection to the caller.
+    """
+    response = requests.get(url)
+    response.raise_for_status()
+
+    content_type = response.headers.get("content-type", "") or None
+    if content_type:
+        content_type = content_type.split(";")[0].strip() or None
+
+    media_data = base64.b64encode(response.content).decode("utf-8")
+
+    return media_data, content_type
+
+
 def image_to_base64(image_path: str):
     """
     Convert an image file to a base64 encoded string.

@@ -194,9 +194,9 @@ public class Me {
 			// PrintStream(System.out)));
 			String prefix = "";
 			if (System.getenv().containsKey("PYTHONHOME")) {
-				prefix += "\"%PYTHONHOME%/\";\"%PYTHONHOME%/Scripts/\";\"%PYTHONHOME%/Lib/site-packages/jep\";";
+				prefix += "\"%PYTHONHOME%/\";\"%PYTHONHOME%/Scripts/\";";
 			} else if (System.getenv().containsKey("PYTHON_HOME")) {
-				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";\"%PYTHON_HOME%/Lib/site-packages/jep\";";
+				prefix += "\"%PYTHON_HOME%/\";\"%PYTHON_HOME%/Scripts/\";";
 			}
 			String options = "-Djava.library.path=" + prefix + "\"" + rHome + "\";\"" + jriHome + "\"";
 			// should we also set the memory here ?

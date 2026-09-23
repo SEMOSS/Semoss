@@ -70,14 +70,13 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ChromeDriverUtility;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
-// export to excel non-native is the NN
 public class ExportToPPTNNReactor extends AbstractReactor {
 
-	public static final String exportTemplate = "PPT_EXPORT_TEMPLATE";
 	private static final Logger classLogger = LogManager.getLogger(ExportToPPTNNReactor.class);
+
+	private static final String EXPORT_TEMPLATE_KEY = "PPT_EXPORT_TEMPLATE";
 
 	public ExportToPPTNNReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
@@ -88,14 +87,9 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 
 	@Override
 	public NounMetadata execute() {
-		// get the number of sheets
-		// export each sheet using the insight definition
-		// Open excel
-		// embed each of the sheet
-		// need to introduce width and height
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
+		// throw error if user doesn't have rights to export data
 		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
@@ -144,7 +138,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			shapeIndex = Integer.parseInt(keyValue.get(ReactorKeysEnum.SHAPE_INDEX.getKey()));
 		}
 
-		String template = insight.getProperty(exportTemplate);
+		String template = insight.getProperty(EXPORT_TEMPLATE_KEY);
 		Map<String, InsightSheet> allSheets = insight.getInsightSheets();
 		Map<String, InsightPanel> allPanels = insight.getInsightPanels();
 
@@ -153,7 +147,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			keys = allPanels.keySet().iterator();
 		}
 
-		// open a workbook
+		// open a slide show
 		XMLSlideShow hslfSlideShow = null;
 		FileOutputStream fileOut = null;
 		Object driver = null;
@@ -171,7 +165,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 
 			XSLFSlide templateSlide = null;
 			if (template != null) {
-				// assumes 0th slide is the slide
+				// assumes the 0th slide is the template slide
 				templateSlide = hslfSlideShow.getSlides().get(0);
 			}
 
@@ -216,11 +210,6 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 				// download this file
 				util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation,
 						sessionId, 800);
-				// driver = ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender +
-				// panelAppender, fileLocation, sessionId, 800, 600, false);
-				// write this to the sheet now
-
-				// 1920 x 936
 				// FileInputStream obtains input bytes from the image file
 				InputStream inputStream = new FileInputStream(fileLocation);
 				// Get the contents of an InputStream as a byte[].
@@ -248,7 +237,7 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 					blankSlide.removeShape(pic);
 					picture.setAnchor(anchor2);
 
-					// may be fill in the title too
+					// fill in the slide title
 					// add title to the slide
 					String title = allSheets.get(thisKey).getSheetLabel();
 					XSLFShape titleShape = shapes.get(0);
@@ -284,14 +273,14 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the ppt file"));
 			return retNoun;
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error generating the ppt file", e);
 			throw new IllegalArgumentException("An error occurred generating the ppt file");
 		} finally {
 			if (fileOut != null) {
 				try {
 					fileOut.close();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Error closing the ppt file output stream", e);
 				}
 			}
 			if (driver != null && driver instanceof ChromeDriver) {
@@ -304,16 +293,11 @@ public class ExportToPPTNNReactor extends AbstractReactor {
 	public XSLFSlideLayout getLayout(XMLSlideShow ppt, String targetLayoutName) {
 		XSLFSlideLayout targetLayout = null;
 
-		// do the power point
 		List<XSLFSlideMaster> sm = ppt.getSlideMasters();
 		for (int slideMasterIndex = 0; slideMasterIndex < sm.size(); slideMasterIndex++) {
 			XSLFSlideMaster thisSM = sm.get(slideMasterIndex);
 			XSLFSlideLayout[] sl = thisSM.getSlideLayouts();
 			for (int layoutIndex = 0; layoutIndex < sl.length; layoutIndex++) {
-				// if(targetLayout == null)
-				// targetLayout = sl[layoutIndex]; // assign to the first one - need some layout
-				// if(targetLayoutName == null)
-				// break;
 				if (sl[layoutIndex].getName().equalsIgnoreCase(targetLayoutName)) {
 					targetLayout = sl[layoutIndex];
 					break;

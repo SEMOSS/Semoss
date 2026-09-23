@@ -40,6 +40,8 @@ import java.util.UUID;
 
 import javax.crypto.Cipher;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversal;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
@@ -84,6 +86,8 @@ import prerna.util.MyGraphIoMappingBuilder;
 import prerna.util.Utility;
 
 public class TinkerFrame extends AbstractTableDataFrame {
+
+	private static final Logger classLogger = LogManager.getLogger(TinkerFrame.class);
 
 	public static final String DATA_MAKER_NAME = "TinkerFrame";
 
@@ -670,14 +674,18 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			// add filters
 			qs.mergeImplicitFilters(this.grf);
 			interp.setQueryStruct(qs);
-			RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs);
-			it.execute();
-			List<Object> columnList = new ArrayList<>();
-			while (it.hasNext()) {
-				columnList.add(it.next().getValues()[0]);
-			}
+			try (RawGemlinSelectWrapper it = new RawGemlinSelectWrapper(interp, qs)) {
+				it.execute();
+				List<Object> columnList = new ArrayList<>();
+				while (it.hasNext()) {
+					columnList.add(it.next().getValues()[0]);
+				}
 
-			return columnList.toArray(new Double[columnList.size()]);
+				return columnList.toArray(new Double[columnList.size()]);
+			} catch (IOException e) {
+				logger.error("Failed to flush column {} as a double array", columnHeader);
+				classLogger.error("Error flushing column {} as a double array", columnHeader, e);
+			}
 		}
 		return null;
 	}
@@ -898,7 +906,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 		try {
 			writer.writeGraph(frameFileName);
 		} catch (IOException e) {
-			logger.error("Failed to write tinker graph frame to cache file {}", frameFileName, e);
+			logger.error("Failed to write tinker graph frame to cache file {}", frameFileName);
+			classLogger.error("Failed to write tinker graph frame to cache file {}", frameFileName, e);
 			throw new IOException("Error occurred attempting to cache graph frame");
 		}
 		cf.setFrameCacheLocation(frameFileName);
@@ -918,7 +927,8 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			GryoIo reader = builder.create();
 			reader.readGraph(cf.getFrameCacheLocation());
 		} catch (IOException e) {
-			logger.error("Failed to read tinker graph frame from cache file {}", cf.getFrameCacheLocation(), e);
+			logger.error("Failed to read tinker graph frame from cache file {}", cf.getFrameCacheLocation());
+			classLogger.error("Failed to read tinker graph frame from cache file {}", cf.getFrameCacheLocation(), e);
 		}
 
 		// open the meta details
@@ -1280,14 +1290,16 @@ public class TinkerFrame extends AbstractTableDataFrame {
 			try {
 				importer.insertData();
 			} catch (Exception e) {
-				logger.error("Failed to insert data into tinker frame for engine {}", component.getEngineName(), e);
+				logger.error("Failed to insert data into tinker frame for engine {}", component.getEngineName());
+				classLogger.error("Failed to insert data into tinker frame for engine {}", component.getEngineName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		} else {
 			try {
 				importer.mergeData(joins);
 			} catch (Exception e) {
-				logger.error("Failed to merge data into tinker frame for engine {}", component.getEngineName(), e);
+				logger.error("Failed to merge data into tinker frame for engine {}", component.getEngineName());
+				classLogger.error("Failed to merge data into tinker frame for engine {}", component.getEngineName(), e);
 				throw new SemossPixelException(e.getMessage());
 			}
 		}

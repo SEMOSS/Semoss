@@ -29,8 +29,11 @@ package prerna.sablecc2.comm;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.message.Message;
+import org.apache.logging.log4j.message.SimpleMessage;
 
 import prerna.util.Utility;
 
@@ -38,9 +41,6 @@ public class InMemoryConsole extends Logger {
 
 	private String jobID;
 	private boolean partial;
-
-	// Store the FQCN of this class to help Log4j identify the correct caller
-	private static final String FQCN = InMemoryConsole.class.getName();
 
 	public InMemoryConsole(String name, String jobId) {
 		super((LoggerContext) LogManager.getContext(false), name, null);
@@ -56,45 +56,45 @@ public class InMemoryConsole extends Logger {
 		this.jobID = jobID;
 	}
 
+	/**
+	 * Single interception point for all log output. Every public logging call on a
+	 * log4j2 core Logger - regardless of level, argument count, or whether it uses
+	 * parameterized ("{}") placeholders - is converted to a {@link Message} and
+	 * funneled through this method before being handed to the appenders. Overriding
+	 * it here (rather than the individual per-level, per-arity public methods)
+	 * guarantees that every log call, however it is written, is formatted and
+	 * mirrored to the in-memory job console.
+	 */
 	@Override
-	public void info(String message) {
-		if (isEnabled(Level.INFO)) {
-			String cleanedMessage = Utility.cleanLogString(message);
-			// Use the log method with FQCN to preserve caller information
-			logMessage(FQCN, Level.INFO, null, cleanedMessage);
+	protected void log(Level level, Marker marker, String fqcn, StackTraceElement location, Message message,
+			Throwable throwable) {
+		// resolve "{}" placeholders against their arguments once, here
+		String formatted = message == null ? "" : message.getFormattedMessage();
+
+		// route to the normal appenders with a sanitized message (log injection guard),
+		// preserving the caller location and any throwable for the stack trace.
+		// the local is typed as Message so the super call resolves unambiguously
+		Message cleaned = new SimpleMessage(Utility.cleanLogString(formatted));
+		super.log(level, marker, fqcn, location, cleaned, throwable);
+
+		// stream the formatted text to the in-memory job console
+		addToJobOutput(level, formatted);
+	}
+
+	/**
+	 * Push the formatted message to the job's output stream. INFO goes to standard
+	 * out (partial or full); everything else (WARN/ERROR/FATAL/DEBUG/TRACE) goes to
+	 * standard error.
+	 */
+	private void addToJobOutput(Level level, String message) {
+		if (Level.INFO.equals(level)) {
 			if (partial) {
-				PixelJobManager.getManager().addPartialOut(jobID, message + "");
+				PixelJobManager.getManager().addPartialOut(jobID, message);
 			} else {
-				PixelJobManager.getManager().addStdOut(jobID, message + "");
+				PixelJobManager.getManager().addStdOut(jobID, message);
 			}
-		}
-	}
-
-	@Override
-	public void debug(String message) {
-		if (isEnabled(Level.DEBUG)) {
-			String cleanedMessage = Utility.cleanLogString(message);
-			// Use the log method with FQCN to preserve caller information
-			logMessage(FQCN, Level.DEBUG, null, cleanedMessage);
-			PixelJobManager.getManager().addStdErr(jobID, message + "");
-		}
-	}
-
-	@Override
-	public void warn(String message) {
-		if (isEnabled(Level.WARN)) {
-			String cleanedMessage = Utility.cleanLogString(message);
-			logMessage(FQCN, Level.WARN, null, cleanedMessage);
-			PixelJobManager.getManager().addStdErr(jobID, message + "");
-		}
-	}
-
-	@Override
-	public void fatal(String message) {
-		if (isEnabled(Level.FATAL)) {
-			String cleanedMessage = Utility.cleanLogString(message);
-			logMessage(FQCN, Level.FATAL, null, cleanedMessage);
-			PixelJobManager.getManager().addStdErr(jobID, message + "");
+		} else {
+			PixelJobManager.getManager().addStdErr(jobID, message);
 		}
 	}
 }

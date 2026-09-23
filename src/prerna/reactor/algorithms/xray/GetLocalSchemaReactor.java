@@ -55,6 +55,7 @@ public class GetLocalSchemaReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Need to define the " + ReactorKeysEnum.DATABASE.getKey());
 		}
 		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
+		engineId = testDatabaseId(engineId, false);
 		IDatabaseEngine engine = Utility.getDatabase(engineId);
 		Set<String> concepts = MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(engineId);
 

@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -137,6 +138,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 
 	// string substitute vars
 	private Map<String, String> vars = new HashMap<>();
+	private final ReentrantLock startServerLock = new ReentrantLock();
 
 	private PGVectorQueryUtil pgVectorQueryUtil = new PGVectorQueryUtil();
 
@@ -364,13 +366,12 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 			} catch (Exception e) {
 				classLogger.error("Failed to add embeddings from CSV file: {}", vectorCsvFile.getAbsolutePath(), e);
 				// File failed completely
-				FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0);
 				String errorMessage = "Embedding failed for " + vectorCsvFile.getName();
 				if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 					errorMessage = errorMessage + ": " + e.getMessage();
 				}
-				failedStatus.setError(buildEmbeddingError(errorMessage, e));
-				fileStatusList.add(failedStatus);
+				fileStatusList.add(new FileEmbeddingStatus(vectorCsvFile.getName(), "FAILED", 0, 0, 0,
+						buildEmbeddingError(errorMessage, e)));
 			}
 		}
 		return fileStatusList;
@@ -433,6 +434,7 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 		PreparedStatement ps = null;
 		try {
 			conn = this.getConnection();
+			PGvector.addVectorType(conn);
 			ps = conn.prepareStatement(psString);
 
 //			if (parameters.containsKey(VectorDatabaseParamOptionsEnum.KEYWORD_SEARCH_PARAM.getKey())) {
@@ -926,102 +928,106 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 	 * 
 	 * @param port
 	 */
-	private synchronized void startServer(int port) {
-		// already created by another thread
-		if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
-			return;
-		}
-		if (!modelPropsLoaded) {
-			verifyModelProps();
-		}
-		if (!this.pyDirectoryBasePath.exists()) {
-			this.pyDirectoryBasePath.mkdirs();
-		}
+	private void startServer(int port) {
+		this.startServerLock.lock();
+		try {
+			// already created by another thread
+			if (this.cpw != null && this.cpw.getSocketClient() != null && this.cpw.getSocketClient().isConnected()) {
+				return;
+			}
+			if (!modelPropsLoaded) {
+				verifyModelProps();
+			}
+			if (!this.pyDirectoryBasePath.exists()) {
+				this.pyDirectoryBasePath.mkdirs();
+			}
 
-		// check if we have already created a process wrapper
-		ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
-		if (this.cpw != null) {
-			this.cpw.shutdown(false);
-		}
+			// check if we have already created a process wrapper
+			ClientProcessWrapper cpwToInit = new ClientProcessWrapper();
+			if (this.cpw != null) {
+				this.cpw.shutdown(false);
+			}
 
-		String timeout = "30";
-		if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
-			timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
-		}
+			String timeout = "30";
+			if (this.smssProp.containsKey(Constants.IDLE_TIMEOUT)) {
+				timeout = this.smssProp.getProperty(Constants.IDLE_TIMEOUT);
+			}
 
-		boolean debug = false;
+			boolean debug = false;
 
-		// pull the relevant values from the smss
-		String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
-		String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
-		String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
-		String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
-		String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
+			// pull the relevant values from the smss
+			String forcePort = this.smssProp.getProperty(Settings.FORCE_PORT);
+			String customClassPath = this.smssProp.getProperty("TCP_WORKER_CP");
+			String loggerLevel = this.smssProp.getProperty(Settings.LOGGER_LEVEL, "WARNING");
+			String venvEngineId = this.smssProp.getProperty(Constants.VIRTUAL_ENV_ENGINE, null);
+			String venvPath = venvEngineId != null ? Utility.getVenvEngine(venvEngineId).pathToExecutable() : null;
 
-		if (port < 0) {
-			// port has not been forced
-			if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
-				try {
-					port = Integer.parseInt(forcePort);
-					debug = true;
-				} catch (NumberFormatException e) {
-					// ignore
-					classLogger.warn("Vector Database {} has an invalid FORCE_PORT value", this.engineName);
+			if (port < 0) {
+				// port has not been forced
+				if (forcePort != null && !(forcePort = forcePort.trim()).isEmpty()) {
+					try {
+						port = Integer.parseInt(forcePort);
+						debug = true;
+					} catch (NumberFormatException e) {
+						// ignore
+						classLogger.warn("Vector Database {} has an invalid FORCE_PORT value", this.engineName);
+					}
 				}
 			}
-		}
 
-		// if we have a python specific user, make sure that user can access the schema
-		// folder
-		setVectorFolderPermissions();
+			// if we have a python specific user, make sure that user can access the schema
+			// folder
+			setVectorFolderPermissions();
 
-		String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
-		// it has to be -- don't change this unless you can send engine calls from
-		// python
-		boolean nativePyServer = true;
-		try {
-			cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
-					debug, timeout, loggerLevel);
-		} catch (Exception e) {
-			classLogger.error("Failed to create python process client for PGVector database: {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
-		}
-
-		// create the py translator
-		Insight processInsight = new Insight();
-		InsightStore.getInstance().put(processInsight);
-		this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
-
-		try {
-			String[] commands = getServerStartCommands();
-			// replace the vars
-			StringSubstitutor substitutor = new StringSubstitutor(this.vars);
-			for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
-				String resolvedString = substitutor.replace(commands[commandIndex]);
-				commands[commandIndex] = resolvedString;
+			String serverDirectory = this.pyDirectoryBasePath.getAbsolutePath();
+			boolean nativePyServer = true;
+			try {
+				cpwToInit.setEngineOwned(true);
+				cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory, customClassPath,
+						debug, timeout, loggerLevel);
+			} catch (Exception e) {
+				classLogger.error("Failed to create python process client for PGVector database: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				throw new IllegalArgumentException("Unable to connect to server for pgvector databse.");
 			}
-			pyTranslator.runEmptyPyNoCancelTrace(commands);
 
-			// for debugging...
-			classLogger.info("Initializing {} python process with commands >>> {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
+			// create the py translator
+			Insight processInsight = new Insight();
+			InsightStore.getInstance().put(processInsight);
+			this.pyTranslator = new PyTranslator(cpwToInit.getSocketClient(), processInsight);
 
-			// finally set the cpw in the class
-			this.cpw = cpwToInit;
-		} catch (Exception e) {
-			// set the model props to false
-			// incase those values were incorrect
-			modelPropsLoaded = false;
-			classLogger.error("Failed to initialize python start commands for PGVector database: {}",
-					SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
-			if (cpwToInit != null) {
-				classLogger.warn(
-						"Able to start the python process for the vector database {} but the start script failed.",
-						SmssUtilities.getUniqueName(this.engineName, this.engineId));
-				cpwToInit.shutdown(false);
+			try {
+				String[] commands = getServerStartCommands();
+				// replace the vars
+				StringSubstitutor substitutor = new StringSubstitutor(this.vars);
+				for (int commandIndex = 0; commandIndex < commands.length; commandIndex++) {
+					String resolvedString = substitutor.replace(commands[commandIndex]);
+					commands[commandIndex] = resolvedString;
+				}
+				pyTranslator.runEmptyPyNoCancelTrace(commands);
+
+				// for debugging...
+				classLogger.info("Initializing {} python process with commands >>> {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), String.join("\n", commands));
+
+				// finally set the cpw in the class
+				this.cpw = cpwToInit;
+			} catch (Exception e) {
+				// set the model props to false
+				// incase those values were incorrect
+				modelPropsLoaded = false;
+				classLogger.error("Failed to initialize python start commands for PGVector database: {}",
+						SmssUtilities.getUniqueName(this.engineName, this.engineId), e);
+				if (cpwToInit != null) {
+					classLogger.warn(
+							"Able to start the python process for the vector database {} but the start script failed.",
+							SmssUtilities.getUniqueName(this.engineName, this.engineId));
+					cpwToInit.shutdown(false);
+				}
+				throw e;
 			}
-			throw e;
+		} finally {
+			this.startServerLock.unlock();
 		}
 	}
 
@@ -1213,10 +1219,8 @@ public class PGVectorDatabaseEngine extends RDBMSNativeEngine implements IVector
 				} catch (Exception e) {
 					String errorMessage = "Unable to process document " + destinationFile.getName();
 					classLogger.error("Failed to process document: {}", destinationFile.getName(), e);
-					FileEmbeddingStatus failedStatus = new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0,
-							0, 0);
-					failedStatus.setError(buildEmbeddingError(errorMessage, e));
-					fileStatusList.add(failedStatus);
+					fileStatusList.add(new FileEmbeddingStatus(destinationFile.getName(), "FAILED", 0, 0, 0,
+							buildEmbeddingError(errorMessage, e)));
 					extractedFile.delete(); // delete the csv if it was created
 					destinationFile.delete(); // delete the input file e.g pdf
 				}

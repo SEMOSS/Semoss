@@ -29,8 +29,7 @@ package prerna.engine.impl.model;
 
 import java.util.Collections;
 
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.UnifiedJedis;
 import redis.clients.jedis.params.SetParams;
 
 /**
@@ -38,20 +37,17 @@ import redis.clients.jedis.params.SetParams;
  */
 public final class RoomMessageRedisClient {
 
-	private static final String UNLOCK_SCRIPT =
-			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
-	private static final String RENEW_SCRIPT =
-			"if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
+	private static final String UNLOCK_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end";
+	private static final String RENEW_SCRIPT = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('pexpire', KEYS[1], ARGV[2]) else return 0 end";
 
-	private final JedisPool pool;
+	private final UnifiedJedis client;
 
-	RoomMessageRedisClient(JedisPool pool) {
-		this.pool = pool;
+	RoomMessageRedisClient(UnifiedJedis client) {
+		this.client = client;
 	}
 
 	boolean tryAcquireLock(String roomId, String token, long ttlMs) {
-		return withJedis(jedis -> "OK".equals(jedis.set(lockKey(roomId), token,
-				SetParams.setParams().nx().px(ttlMs))));
+		return withJedis(jedis -> "OK".equals(jedis.set(lockKey(roomId), token, SetParams.setParams().nx().px(ttlMs))));
 	}
 
 	void releaseLock(String roomId, String token) {
@@ -81,8 +77,8 @@ public final class RoomMessageRedisClient {
 	}
 
 	public boolean tryClaimActiveRun(String roomId, String runId, String token, long ttlMs) {
-		return withJedis(jedis -> "OK".equals(jedis.set(activeRunKey(roomId), activeRunValue(runId, token),
-				SetParams.setParams().nx().px(ttlMs))));
+		return withJedis(jedis -> "OK".equals(
+				jedis.set(activeRunKey(roomId), activeRunValue(runId, token), SetParams.setParams().nx().px(ttlMs))));
 	}
 
 	public void releaseActiveRun(String roomId, String runId, String token) {
@@ -96,27 +92,32 @@ public final class RoomMessageRedisClient {
 	}
 
 	private <T> T withJedis(JedisCallback<T> callback) {
-		try (Jedis jedis = pool.getResource()) {
-			return callback.apply(jedis);
+		// UnifiedJedis is thread-safe and internally pooled; it is shared and must
+		// NOT be closed per call (that would tear down the whole client).
+		try {
+			return callback.apply(client);
 		} catch (Exception e) {
 			throw new IllegalStateException("Redis room-message command failed: " + e.getMessage(), e);
 		}
 	}
 
+	// The {roomId} hash tag co-locates all of a room's keys on a single Redis
+	// Cluster hash slot, so multi-key/EVAL operations stay within one slot and
+	// never trigger CROSSSLOT. It is inert on standalone/Sentinel deployments.
 	private static String messagesKey(String roomId) {
-		return "room:" + roomId + ":messages";
+		return "room:{" + roomId + "}:messages";
 	}
 
 	private static String versionKey(String roomId) {
-		return "room:" + roomId + ":version";
+		return "room:{" + roomId + "}:version";
 	}
 
 	private static String lockKey(String roomId) {
-		return "room:" + roomId + ":lock";
+		return "room:{" + roomId + "}:lock";
 	}
 
 	private static String activeRunKey(String roomId) {
-		return "room:" + roomId + ":active_run";
+		return "room:{" + roomId + "}:active_run";
 	}
 
 	private static String activeRunValue(String runId, String token) {
@@ -124,6 +125,6 @@ public final class RoomMessageRedisClient {
 	}
 
 	private interface JedisCallback<T> {
-		T apply(Jedis jedis);
+		T apply(UnifiedJedis jedis);
 	}
 }

@@ -40,6 +40,9 @@ import org.apache.logging.log4j.Logger;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
 import prerna.auth.AuthProvider;
+import prerna.engine.impl.function.mail.engine.IMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.POP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.util.ldap.ILdapAuthenticator;
 import prerna.util.ldap.LdapAuthenticationFactory;
 
@@ -252,17 +255,13 @@ public final class SocialPropertiesUtil {
 	}
 
 	/**
-	 * Handles the getEmailSession operation.
+	 * The connection to the instance wide mail server, for a caller that sends
+	 * through it rather than holding onto its {@link Session}.
+	 *
+	 * @return the smtp connection, or null when smtp is not enabled
 	 */
-	public Session getEmailSession() {
-		return SocialPropertiesUtil.processor.getSmtpEmailSession();
-	}
-
-	/**
-	 * Handles the isEmailSessionActive operation.
-	 */
-	public boolean isEmailSessionActive() {
-		return SocialPropertiesUtil.processor.getSmtpEmailSession() != null;
+	public SMTPFunctionEngine getSmtpEngine() {
+		return SocialPropertiesUtil.processor.getSmtpEngine();
 	}
 
 	/**
@@ -301,10 +300,13 @@ public final class SocialPropertiesUtil {
 	}
 
 	/**
-	 * Handles the getPop3EmailStore operation.
+	 * The connection to the instance wide POP3 mailbox, for a caller that reads
+	 * through it rather than working the {@link Store} itself.
+	 *
+	 * @return the pop3 connection, or null when pop3 is not enabled
 	 */
-	public Store getPop3EmailStore() {
-		return SocialPropertiesUtil.processor.getPop3EmailStore();
+	public POP3FunctionEngine getPop3Engine() {
+		return SocialPropertiesUtil.processor.getPop3Engine();
 	}
 
 	/**
@@ -336,10 +338,13 @@ public final class SocialPropertiesUtil {
 	}
 
 	/**
-	 * Handles the getImapStore operation.
+	 * The connection to the instance wide IMAP mailbox, for a caller that reads
+	 * through it rather than working the {@link Store} itself.
+	 *
+	 * @return the imap connection, or null when imap is not enabled
 	 */
-	public Store getImapStore() {
-		return SocialPropertiesUtil.processor.getImapEmailStore();
+	public IMAPFunctionEngine getImapEngine() {
+		return SocialPropertiesUtil.processor.getImapEngine();
 	}
 
 	/**

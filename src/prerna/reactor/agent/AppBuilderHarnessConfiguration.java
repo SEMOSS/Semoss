@@ -42,12 +42,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.project.api.IProject;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
 /**
- * App-builder helpers for {@code .agents/AGENT_CONFIG.json} and app-local skills.
+ * App-builder helpers for {@code .agents/AGENT_CONFIG.json} and the
+ * "Selected Engines" system prompt block.
  *
  * <p>This is a static utility used by the SemossWeb app-builder flow, not a
  * runtime harness class.
@@ -59,12 +61,6 @@ public class AppBuilderHarnessConfiguration {
     // Path constants
     /** Subdirectory of a project's assets folder where the agent operates. */
     public static final String CLIENT_DIR = "client";
-    /** {@code .claude/} directory under {@link #CLIENT_DIR}. */
-    public static final String CLAUDE_DIR = ".claude";
-    /** {@code skills/} subdirectory under {@link #CLAUDE_DIR}. */
-    public static final String SKILLS_DIR = "skills";
-    /** Filename inside each skill folder. */
-    public static final String SKILL_FILE = "SKILL.md";
 
     // AGENT_CONFIG.json constants
     public static final String AGENTS_DIR        = ".agents";
@@ -78,13 +74,6 @@ public class AppBuilderHarnessConfiguration {
 
     public static final String ENGINE_NAME = "name";
     public static final String ENGINE_ID   = "id";
-
-    private static final String SELECTED_ENGINES_SKILL_NAME = "selected-engines";
-    private static final String SELECTED_ENGINES_SKILL_DESCRIPTION =
-            "Consult this skill when introducing a new engine call or adding a new LLM() invocation, "
-          + "a new database query against a not-yet-used engine, or a new vector store integration. "
-          + "Do not consult it for edits to existing engine calls (the engine ID is already in the code; preserve it). "
-          + "Do not consult it for unrelated work (UI, styling, non-engine logic).";
 
     private static final List<String> ENGINE_TYPES = Arrays.asList(
             MODEL_ENGINES, VECTOR_ENGINES, STORAGE_ENGINES, DATABASE_ENGINES);
@@ -146,51 +135,42 @@ public class AppBuilderHarnessConfiguration {
     }
 
     /**
-     * Regenerates {@code .claude/skills/selected-engines/SKILL.md} from the
-     * project's current dependency list. Call this from any reactor that
-     * mutates project dependencies so the agent-facing skill file always
-     * reflects the canonical store.
+     * Builds the "Selected Engines" system prompt block for a project. Reads
+     * the dependency list fresh from the canonical store
+     * ({@link prerna.auth.utils.SecurityProjectUtils#getProjectDependencyDetails})
+     * so workbench selections are always current at run time, regardless of
+     * which reactor last mutated them.
      *
-     * <p>{@code dependencyList} entries are expected to carry at minimum
-     * {@code engine_id}, {@code engine_type}, and {@code engine_name} keys
-     * (the shape returned by
-     * {@link prerna.auth.utils.SecurityProjectUtils#getProjectDependencyDetails}).
-     * Non-engine dependency types (e.g. {@code PROJECT}) are ignored.
+     * <p>Non-engine dependency types (e.g. {@code PROJECT}) are ignored.
      *
-     * <p>Failures are logged, never thrown — a skill-write failure must not
-     * break the dependency-write transaction the caller is wrapping.
+     * @return prompt block, or {@code null} when {@code projectId} is blank or
+     *         the dependency lookup fails (logged, never thrown)
      */
-    public static void regenerateSelectedEnginesSkillFromDependencies(
-            String projectId,
-            List<Map<String, Object>> dependencyList) {
-        int depCount = dependencyList == null ? 0 : dependencyList.size();
-        logger.debug("regenerateSelectedEnginesSkillFromDependencies invoked: project={} depCount={}",
-                projectId, depCount);
-
+    public static String buildSelectedEnginesPrompt(String projectId) {
         if (projectId == null || projectId.trim().isEmpty()) {
-            logger.debug("  skipping: blank projectId");
-            return;
+            return null;
         }
-
-        Path clientPath;
+        List<Map<String, Object>> dependencyList;
         try {
-            clientPath = Paths.get(resolveProjectClientPath(projectId));
-        } catch (RuntimeException e) {
-            logger.error("  failed to resolve client path for project: {}", projectId, e);
-            return;
+            dependencyList = SecurityProjectUtils.getProjectDependencyDetails(projectId);
+        } catch (Exception e) {
+            logger.warn("Failed to load dependency details for selected-engines prompt, project: {}",
+                    projectId, e);
+            return null;
         }
-        Path claudePath = clientPath.resolve(CLAUDE_DIR);
-        if (!Files.isDirectory(claudePath)) {
-            logger.debug("  skipping: no .claude/ at {}", claudePath);
-            return;
-        }
-        logger.debug("  proceeding: clientPath={} claude exists", clientPath);
+        return buildSelectedEnginesPromptBody(bucketEnginesByType(dependencyList));
+    }
 
+    /**
+     * Buckets dependency rows into engineTypeKey -> [{name,id},...] for the
+     * four prompt-visible engine types.
+     */
+    private static Map<String, List<Map<String, String>>> bucketEnginesByType(
+            List<Map<String, Object>> dependencyList) {
         Map<String, List<Map<String, String>>> enginesByType = new LinkedHashMap<>();
         for (String type : ENGINE_TYPES) {
             enginesByType.put(type, new ArrayList<>());
         }
-
         if (dependencyList != null) {
             for (Map<String, Object> dep : dependencyList) {
                 if (dep == null) continue;
@@ -208,8 +188,7 @@ public class AppBuilderHarnessConfiguration {
                 enginesByType.get(typeKey).add(entry);
             }
         }
-
-        writeSelectedEnginesSkill(clientPath, enginesByType);
+        return enginesByType;
     }
 
     // Internals
@@ -217,43 +196,24 @@ public class AppBuilderHarnessConfiguration {
         Files.write(configFile, root.toString(4).getBytes(StandardCharsets.UTF_8));
     }
 
-    /**
-     * Writes (or overwrites) {@code .claude/skills/selected-engines/SKILL.md}
-     * from a map of engineType -> [{name,id},...]. Errors are logged, not thrown.
-     */
-    private static void writeSelectedEnginesSkill(
-            Path clientPath,
-            Map<String, List<Map<String, String>>> enginesByType) {
-        Path skillDir = clientPath
-                .resolve(CLAUDE_DIR)
-                .resolve(SKILLS_DIR)
-                .resolve(SELECTED_ENGINES_SKILL_NAME);
-        Path skillFile = skillDir.resolve(SKILL_FILE);
-        try {
-            Files.createDirectories(skillDir);
-            String content = buildSelectedEnginesSkill(enginesByType);
-            Files.write(skillFile, content.getBytes(StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            logger.error("Failed to write selected-engines skill at: {}", skillFile, e);
-        }
-    }
-
-    private static String buildSelectedEnginesSkill(
+    private static String buildSelectedEnginesPromptBody(
             Map<String, List<Map<String, String>>> enginesByType) {
         StringBuilder sb = new StringBuilder();
-        sb.append("---\n");
-        sb.append("name: ").append(SELECTED_ENGINES_SKILL_NAME).append('\n');
-        sb.append("description: '").append(SELECTED_ENGINES_SKILL_DESCRIPTION).append("'\n");
-        sb.append("---\n\n");
         sb.append("# Selected Engines\n\n");
-        sb.append("These are the engines currently selected for this project. ");
-        sb.append("When introducing a new engine call, choose one from the matching list ");
-        sb.append("and use its exact `id`.\n\n");
+        sb.append("The user pre-selected these engines for this project in the workbench ");
+        sb.append("Available Engines panel. When introducing a new engine call (LLM invocation, ");
+        sb.append("database query, vector store, storage), choose from the matching list below ");
+        sb.append("and use its exact `id`.\n");
+        sb.append("If exactly one engine is listed for the type you need, use it without asking. ");
+        sb.append("If several are listed, ask the user which of the listed engines to use. ");
+        sb.append("Only when the list for that type is empty should you ask the user to choose ");
+        sb.append("or attach an engine. Never use an unlisted engine merely because it is ");
+        sb.append("accessible to you.\n\n");
 
         for (String[] section : ENGINE_SECTIONS) {
             appendEngineSection(sb, section[1], enginesByType, section[0]);
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 
     private static void appendEngineSection(

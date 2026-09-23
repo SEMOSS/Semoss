@@ -34,8 +34,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,11 +54,12 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
+import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.NotificationConstants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
-import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class NotificationDbUtils {
 
@@ -82,58 +81,32 @@ public class NotificationDbUtils {
 		initialized = true;
 	}
 
+	/**
+	 * Determine if the notification db is present.
+	 * 
+	 * @return
+	 */
+	public static boolean isInitalized() {
+		return NotificationDbUtils.initialized;
+	}
+
 	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		String database = notificationDb.getDatabase();
-		String schema = notificationDb.getSchema();
 		Connection conn = notificationDb.getConnection();
 		try {
-			AbstractSqlQueryUtil queryUtil = notificationDb.getQueryUtil();
-			boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
-			boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+			// create the tables and columns from the OWL creator schema
+			AbstractOwlCreator.syncSchema(notificationDb, conn, dbSchema);
 
-			for (Pair<String, List<Pair<String, String>>> tableSchema : dbSchema) {
-				String tableName = tableSchema.getValue0();
-				String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-				String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-				if (allowIfExistsTable) {
-					String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-					classLogger.info("Running sql {}", sql);
-					notificationDb.insertData(sql);
-				} else if (!queryUtil.tableExists(conn, tableName, database, schema)) {
-					String sql = queryUtil.createTable(tableName, colNames, types);
-					classLogger.info("Running sql {}", sql);
-					notificationDb.insertData(sql);
-				}
-
-				List<String> allCols = queryUtil.getTableColumns(conn, tableName, database, schema);
-				for (int i = 0; i < colNames.length; i++) {
-					String col = colNames[i];
-					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-						classLogger.info("Column {} missing from {} table; adding it. Existing columns: {}", col,
-								tableName, allCols);
-						String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-						classLogger.info("Running sql {}", addColumnSql);
-						notificationDb.insertData(addColumnSql);
-					}
-				}
-			}
-
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_EVENT_NOTIFICATION_ID_INDEX", "NOTIFICATION_EVENT", "NOTIFICATION_ID");
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_EVENT_SCOPE_INDEX", "NOTIFICATION_EVENT", Arrays.asList("SCOPE_TYPE", "SCOPE_ID"));
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_EVENT_AUDIENCE_INDEX", "NOTIFICATION_EVENT",
-					Arrays.asList("AUDIENCE_TYPE", "AUDIENCE_ID"));
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_EVENT_TARGET_INDEX", "NOTIFICATION_EVENT", Arrays.asList("TARGET_TYPE", "TARGET_ID"));
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_USER_STATE_NOTIFICATION_USER_INDEX", "NOTIFICATION_USER_STATE",
-					Arrays.asList("NOTIFICATION_ID", "USER_ID", "USER_TYPE"));
-			createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema,
-					"NOTIFICATION_USER_STATE_USER_INDEX", "NOTIFICATION_USER_STATE",
-					Arrays.asList("USER_ID", "USER_TYPE"));
+			AbstractOwlCreator.syncIndexes(notificationDb, conn, List.of(
+					OwlIndex.of("NOTIFICATION_EVENT_NOTIFICATION_ID_INDEX", "NOTIFICATION_EVENT", "NOTIFICATION_ID"),
+					OwlIndex.of("NOTIFICATION_EVENT_SCOPE_INDEX", "NOTIFICATION_EVENT", "SCOPE_TYPE", "SCOPE_ID"),
+					OwlIndex.of("NOTIFICATION_EVENT_AUDIENCE_INDEX", "NOTIFICATION_EVENT", "AUDIENCE_TYPE",
+							"AUDIENCE_ID"),
+					OwlIndex.of("NOTIFICATION_EVENT_TARGET_INDEX", "NOTIFICATION_EVENT", "TARGET_TYPE", "TARGET_ID"),
+					OwlIndex.of("NOTIFICATION_USER_STATE_NOTIFICATION_USER_INDEX", "NOTIFICATION_USER_STATE",
+							"NOTIFICATION_ID", "USER_ID", "USER_TYPE"),
+					OwlIndex.of("NOTIFICATION_USER_STATE_USER_INDEX", "NOTIFICATION_USER_STATE", "USER_ID",
+							"USER_TYPE")));
 
 			if (!conn.getAutoCommit()) {
 				conn.commit();
@@ -143,36 +116,6 @@ public class NotificationDbUtils {
 				conn.close();
 			}
 		}
-	}
-
-	private static void createIndexIfMissing(IRDBMSEngine notificationDb, AbstractSqlQueryUtil queryUtil,
-			boolean allowIfExistsIndexs, String database, String schema, String indexName, String tableName,
-			String columnName) throws Exception {
-		createIndexIfMissing(notificationDb, queryUtil, allowIfExistsIndexs, database, schema, indexName, tableName,
-				Arrays.asList(columnName));
-	}
-
-	private static void createIndexIfMissing(IRDBMSEngine notificationDb, AbstractSqlQueryUtil queryUtil,
-			boolean allowIfExistsIndexs, String database, String schema, String indexName, String tableName,
-			Collection<String> columns) throws Exception {
-		if (allowIfExistsIndexs) {
-			String sql = queryUtil.createIndexIfNotExists(indexName, tableName, columns);
-			classLogger.info("Running sql {}", sql);
-			notificationDb.insertData(sql);
-		} else if (!queryUtil.indexExists(notificationDb, indexName, tableName, database, schema)) {
-			String sql = queryUtil.createIndex(indexName, tableName, columns);
-			classLogger.info("Running sql {}", sql);
-			notificationDb.insertData(sql);
-		}
-	}
-
-	/**
-	 * Determine if the notification db is present.
-	 * 
-	 * @return
-	 */
-	public static boolean isInitalized() {
-		return NotificationDbUtils.initialized;
 	}
 
 	/**
@@ -795,7 +738,7 @@ public class NotificationDbUtils {
 		if (user == null) {
 			return new ArrayList<>();
 		}
-		return SecurityProjectUtils.getUserProjectIdList(user, true, false, true).stream().distinct()
+		return SecurityProjectUtils.getUserProjectIdList(user, null, true, false, true).stream().distinct()
 				.collect(java.util.stream.Collectors.toList());
 	}
 

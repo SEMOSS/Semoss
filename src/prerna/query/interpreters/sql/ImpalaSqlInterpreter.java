@@ -30,11 +30,9 @@ package prerna.query.interpreters.sql;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.Vector;
 
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
@@ -64,7 +62,6 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.selectors.QueryOpaqueSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -73,17 +70,17 @@ import prerna.util.sql.SqlQueryUtilFactory;
 public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 	// this keeps the table aliases
-	private Hashtable<String, String> aliases = new Hashtable<String, String>();
+	private Map<String, String> aliases = new HashMap<String, String>();
 
 	// keep track of processed tables used to ensure we don't re-add tables into the
 	// from string
-	private Hashtable<String, String> tableProcessed = new Hashtable<String, String>();
+	private Map<String, String> tableProcessed = new HashMap<String, String>();
 
 	// we will keep track of the conceptual names to physical names so we don't
 	// re-query the owl multiple times
-	private transient Hashtable<String, String> conceptualConceptToPhysicalMap = new Hashtable<String, String>();
+	private transient Map<String, String> conceptualConceptToPhysicalMap = new HashMap<String, String>();
 	// need to also keep track of the properties
-	private transient Hashtable<String, String> conceptualPropertyToPhysicalMap = new Hashtable<String, String>();
+	private transient Map<String, String> conceptualPropertyToPhysicalMap = new HashMap<String, String>();
 	// need to keep track of the primary key for tables
 	private transient Map<String, String> primaryKeyCache = new HashMap<String, String>();
 
@@ -95,18 +92,18 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 	// where the wheres are all kept
 	// key is always a combination of concept and comparator
 	// and the values are values
-	private List<String> filterStatements = new Vector<String>();
+	private List<String> filterStatements = new ArrayList<String>();
 
 	private transient Map<String, String[]> relationshipConceptPropertiesMap = new HashMap<String, String[]>();
 
 	private String selectors = "";
 	private Set<String> selectorList = new HashSet<String>();
 	// keep selector alias
-	private List<String> selectorAliases = new Vector<String>();
+	private List<String> selectorAliases = new ArrayList<String>();
 	// keep list of columns for tables
 	private Map<String, List<String>> retTableToCols = new HashMap<String, List<String>>();
 	private int uniqueSelectorCount;
-	private List<String[]> froms = new Vector<String[]>();
+	private List<String[]> froms = new ArrayList<String[]>();
 	// store the joins in the object for easy use
 	private SqlJoinStructList joinStructList = new SqlJoinStructList();
 
@@ -244,9 +241,9 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		query = this.queryUtil.addLimitOffsetToQuery(query, limit, offset);
 
 		if (query.length() > 500) {
-			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.substring(0, 500)) + "...");
+			logger.info("SQL QUERY....  {}...", Utility.cleanLogString(query.substring(0, 500)));
 		} else {
-			logger.info("SQL QUERY....  " + Utility.cleanLogString(query.toString()));
+			logger.info("SQL QUERY....  {}", Utility.cleanLogString(query.toString()));
 		}
 
 		return query.toString();
@@ -312,7 +309,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		query1.append("(SELECT ").append(selectors).append(" FROM ").append(tableName);
 		query1 = appendGroupBy(query1);
 		query1.append(") t0 inner join ");
-		System.out.println(query1.toString());
+		logger.info("{}", query1);
 
 		StringBuilder queryWhere = new StringBuilder();
 		// for each unique selector, create a select statement that will inner join'ed
@@ -349,11 +346,11 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		query1 = this.queryUtil.addLimitOffsetToQuery(query1, limit, offset);
 
 		if (query1.length() > 500) {
-			logger.info("SQL QUERY....  " + Utility.cleanLogString(query1.substring(0, 500)) + "...");
+			logger.info("SQL QUERY....  {}...", Utility.cleanLogString(query1.substring(0, 500)));
 		} else {
-			logger.info("SQL QUERY....  " + Utility.cleanLogString(query1.toString()));
+			logger.info("SQL QUERY....  {}", Utility.cleanLogString(query1.toString()));
 		}
-		System.out.println(query1);
+		logger.info("{}", query1);
 		return query1.toString();
 	}
 
@@ -489,7 +486,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 
 		// keep track of all the processed columns
 		if (notEmbeddedColumn) {
-			this.retTableToCols.putIfAbsent(table, new Vector<String>());
+			this.retTableToCols.putIfAbsent(table, new ArrayList<String>());
 			this.retTableToCols.get(table).add(colName);
 		}
 
@@ -582,7 +579,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 //				}
 				addJoin(from, joinType, to);
 			} else {
-				logger.info("Cannot process relationship of type: " + relationship.getRelationType());
+				logger.info("Cannot process relationship of type: {}", relationship.getRelationType());
 			}
 		}
 //		Map<String, Map<String, List>> relationsData = qs.getRelations();
@@ -748,7 +745,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			}
 			return filterBuilder;
 		} catch (InstantiationException | IllegalAccessException e) {
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to instantiate inner SQL interpreter for subquery filter", e);
 		}
 
 		return null;
@@ -793,7 +790,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			}
 		}
 
-		List<Object> objects = new Vector<Object>();
+		List<Object> objects = new ArrayList<Object>();
 		// ugh... this is gross
 		if (rightComp.getValue() instanceof List) {
 			objects.addAll((List) rightComp.getValue());
@@ -807,14 +804,14 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			// cannot use same logic as IN :(
 			int i = 0;
 			int size = objects.size();
-			List<Object> newObjects = new Vector<Object>();
+			List<Object> newObjects = new ArrayList<Object>();
 			newObjects.add(objects.get(i));
 			String myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
 			filterBuilder.append("( LOWER(").append(leftSelectorExpression);
 			filterBuilder.append(") LIKE (").append(myFilterFormatted.toLowerCase()).append(")");
 			i++;
 			for (; i < size; i++) {
-				newObjects = new Vector<Object>();
+				newObjects = new ArrayList<Object>();
 				newObjects.add(objects.get(i));
 				myFilterFormatted = getFormatedObject(leftDataType, newObjects, thisComparator);
 				filterBuilder.append(" OR LOWER(").append(leftSelectorExpression);
@@ -871,7 +868,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		// ... what is the point of this... this is a dumb thing... you are dumb
 
 		PixelDataType lCompType = leftComp.getNounType();
-		List<Object> leftObjects = new Vector<Object>();
+		List<Object> leftObjects = new ArrayList<Object>();
 		// ugh... this is gross
 		if (leftComp.getValue() instanceof List) {
 			leftObjects.addAll((List) leftComp.getValue());
@@ -888,7 +885,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		String leftFilterFormatted = getFormatedObject(leftDataType, leftObjects, comparator);
 
 		PixelDataType rCompType = rightComp.getNounType();
-		List<Object> rightObjects = new Vector<Object>();
+		List<Object> rightObjects = new ArrayList<Object>();
 		// ugh... this is gross
 		if (rightComp.getValue() instanceof List) {
 			rightObjects.addAll((List) rightComp.getValue());
@@ -988,12 +985,12 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 				}
 
 				// get the first value
-				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				String val = objects.get(0).toString().replace("\"", "").replace("'", "''").trim();
 				// get the first value
 				myObj.append(leftWrapper).append(val).append(rightWrapper);
 				i++;
 				for (; i < size; i++) {
-					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					val = objects.get(i).toString().replace("\"", "").replace("'", "''").trim();
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 				}
@@ -1046,12 +1043,12 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 				}
 
 				// get the first value
-				String val = objects.get(0).toString().replace("\"", "").replaceAll("'", "''").trim();
+				String val = objects.get(0).toString().replace("\"", "").replace("'", "''").trim();
 				// get the first value
 				myObj.append(leftWrapper).append(val).append(rightWrapper);
 				i++;
 				for (; i < size; i++) {
-					val = objects.get(i).toString().replace("\"", "").replaceAll("'", "''").trim();
+					val = objects.get(i).toString().replace("\"", "").replace("'", "''").trim();
 					// get the first value
 					myObj.append(" , ").append(leftWrapper).append(val).append(rightWrapper);
 				}
@@ -1071,7 +1068,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 		// grab the order by and get the corresponding display name for that order by
 		// column
 		List<IQuerySort> orderByList = ((SelectQueryStruct) this.qs).getCombinedOrderBy();
-		List<StringBuilder> validOrderBys = new Vector<>();
+		List<StringBuilder> validOrderBys = new ArrayList<>();
 		for (IQuerySort orderBy : orderByList) {
 			if (orderBy.getQuerySortType() == IQuerySort.QUERY_SORT_TYPE.COLUMN) {
 				QueryColumnOrderBySelector orderBySelector = (QueryColumnOrderBySelector) orderBy;
@@ -1394,7 +1391,7 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 			// or backward
 			String query = "SELECT ?relationship WHERE {<" + fromURI + "> ?relationship <" + toURI
 					+ "> } ORDER BY DESC(?relationship)";
-			System.out.println(query);
+			logger.info("{}", query);
 			TupleQueryResult res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 			String predURI = " unable to get pred from owl for " + fromURI + " and " + toURI;
 			try {
@@ -1403,14 +1400,14 @@ public class ImpalaSqlInterpreter extends AbstractQueryInterpreter {
 				} else {
 					query = "SELECT ?relationship WHERE {<" + toURI + "> ?relationship <" + fromURI
 							+ "> } ORDER BY DESC(?relationship)";
-					System.out.println(query);
+					logger.info("{}", query);
 					res = (TupleQueryResult) this.engine.execOntoSelectQuery(query);
 					if (res.hasNext()) {
 						predURI = res.next().getBinding(res.getBindingNames().get(0)).getValue().toString();
 					}
 				}
 			} catch (QueryEvaluationException e) {
-				System.out.println(predURI);
+				logger.info("{}", predURI);
 			}
 			String[] predPieces = Utility.getInstanceName(predURI).split("[.]");
 			if (predPieces.length == 4) {

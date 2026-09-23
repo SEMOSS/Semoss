@@ -1,5 +1,4 @@
 from typing import List, Dict
-from genai_client.tokenizers.abstract_tokenizer import AbstractTokenizer
 from ..tokenizers.openai_tokenizer import OpenAiTokenizer
 from ..constants import MAX_TOKENS, EmbeddingsModelEngineResponse
 from .abstract_embedder import AbstractEmbedder
@@ -38,29 +37,11 @@ class OpenAiEmbedder(AbstractEmbedder):
             response=embedded_list, prompt_tokens=total_num_of_tokens, response_tokens=0
         )
 
-    def image_embeddings_call(
-        self, images_to_embed: List[str], **kwargs
-    ) -> EmbeddingsModelEngineResponse:
-        assert isinstance(images_to_embed, list)
-
-        if "base_url" in kwargs:
-            self.client.base_url = kwargs["base_url"]
-
-        response = self._make_openai_embedding_call(images_to_embed)
-
-        embedded_list = []
-        for data in response.data:
-            embedded_list.append(data.embedding)
-
-        return EmbeddingsModelEngineResponse(
-            response=embedded_list, prompt_tokens=0, response_tokens=0
-        )
-
     def _make_openai_embedding_call(self, list_of_text: List[str]):
         """Executes the embedding call via the OpenAI API"""
         return self.client.embeddings.create(model=self.model_name, input=list_of_text)
 
-    def _get_tokenizer(self, init_args: Dict) -> AbstractTokenizer:
+    def _get_tokenizer(self, init_args: Dict) -> OpenAiTokenizer:
         return OpenAiTokenizer(
             encoder_name=self.model_name, max_tokens=init_args.pop(MAX_TOKENS, None)
         )

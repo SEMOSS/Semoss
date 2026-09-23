@@ -34,7 +34,7 @@ public enum RdbmsTypeEnum {
 	ATHENA("ATHENA", "com.amazon.athena.jdbc.AthenaDriver", "jdbc:athena"),
 	BIG_QUERY("BIG_QUERY", "com.simba.googlebigquery.jdbc42.Driver", "jdbc:bigquery"),
 	CASSANDRA("CASSANDRA", "com.simba.cassandra.jdbc42.Driver", "jdbc:cassandra"),
-	CLICKHOUSE("CLICKHOUSE", "ru.yandex.clickhouse.ClickHouseDriver", "jdbc:clickhouse"),
+	CLICKHOUSE("CLICKHOUSE", "com.clickhouse.jdbc.ClickHouseDriver", "jdbc:clickhouse"),
 	DATABRICKS("DATABRICKS", "com.databricks.client.jdbc.Driver", "jdbc:databricks"),
 	DB2("DB2", "com.ibm.db2.jcc.DB2Driver", "jdbc:db2"),
 	DERBY("DERBY", "org.apache.derby.jdbc.EmbeddedDriver", "jdbc:derby"),

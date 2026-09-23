@@ -68,7 +68,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	}
 
 	//////////////////////////////////////////////////////////////////////
-	// Creating workspace and asset metadata
+	// Creating asset metadata
 	//////////////////////////////////////////////////////////////////////
 
 	/**
@@ -80,24 +80,22 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 * @throws Exception
 	 */
 	public static String createUserAssetProject(User user, AuthProvider provider) throws Exception {
-		String projectId = createEmptyProject(user, provider, ASSET_APP_NAME, true);
+		String projectId = createEmptyProject(ASSET_APP_NAME);
 		registerUserAssetProject(user.getAccessToken(provider), projectId);
 		return projectId;
 	}
 
 	/**
-	 * Generate empty project that is for asset/workspace
-	 * 
-	 * @param user
-	 * @param provider
+	 * Generate the empty asset project on disk and load it into DIHelper. Asset
+	 * projects are not added to the security database - they are tracked through
+	 * the ASSETENGINE table via
+	 * {@link #registerUserAssetProject(AccessToken, String)}
+	 *
 	 * @param projectName
-	 * @param isAsset
 	 * @return
 	 * @throws Exception
 	 */
-	private static String createEmptyProject(User user, AuthProvider provider, String projectName, boolean isAsset)
-			throws Exception {
-		AccessToken token = user.getAccessToken(provider);
+	private static String createEmptyProject(String projectName) throws Exception {
 		// Create a new project id
 		String projectId = UUID.randomUUID().toString();
 
@@ -107,14 +105,8 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 
 		// Add database into DIHelper so that the web watcher doesn't try to load as
 		// well
-		File tempSmss = SmssUtilities.createTemporaryAssetAndWorkspaceSmss(projectId, projectName, isAsset, null);
+		File tempSmss = SmssUtilities.createTemporaryAssetSmss(projectId, projectName, null);
 		DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-
-		// Add the project to security db
-		if (!isAsset) {
-			SecurityProjectUtils.addProject(projectId, false, user);
-			SecurityProjectUtils.addProjectOwner(user, projectId, token.getId());
-		}
 
 		// Create the project
 		Project project = new Project();
@@ -247,6 +239,7 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	//////////////////////////////////////////////////////////////////////
 	// Asset folder locations
 	//////////////////////////////////////////////////////////////////////
+
 	public static String getUserAssetRootDirectory(User user, AuthProvider provider) {
 		String assetProjectId = user.getAssetProjectId(provider);
 		if (assetProjectId != null) {

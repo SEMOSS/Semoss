@@ -35,8 +35,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
@@ -49,7 +49,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GeneratePlaywrightStepsReactor.class);
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+	private static final Gson PRETTY_GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
 	public GeneratePlaywrightStepsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), "sessionId", ReactorKeysEnum.ROOM_ID.getKey(),
@@ -125,7 +125,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			return result;
 
 		} catch (Exception e) {
-			classLogger.error("Error generating playwright steps: " + e.getMessage(), e);
+			classLogger.error("Error generating playwright steps", e);
 			Map<String, Object> errorResult = new HashMap<>();
 			errorResult.put("success", false);
 			errorResult.put("error", e.getMessage());
@@ -139,7 +139,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 			String userContext) {
 		try {
 			// Convert interactive elements to clean JSON
-			String elementsJson = json.writeValueAsString(interactiveElements);
+			String elementsJson = PRETTY_GSON.toJson(interactiveElements);
 
 			Map<String, Object> summary = (Map<String, Object>) extractionData.get("summary");
 
@@ -222,7 +222,7 @@ public class GeneratePlaywrightStepsReactor extends AbstractReactor {
 							""",
 					elementsJson, extractionData.get("elementCount"), summary.get("hasForm"), userContext);
 		} catch (Exception e) {
-			classLogger.error("Error building prompt for LLM: " + e.getMessage(), e);
+			classLogger.error("Error building prompt for LLM", e);
 			return "Error: Failed to build prompt for LLM. Details: " + e.getMessage();
 		}
 	}

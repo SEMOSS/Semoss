@@ -38,6 +38,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -61,6 +62,9 @@ public class PlaywrightSession {
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
 
+	/** Serializes commands and event processing on this Playwright connection. */
+	private final ReentrantLock operationLock = new ReentrantLock(true);
+
 	private Map<String, List<String>> parentChildMap = new HashMap<>();
 
 	private boolean closed = false;
@@ -69,7 +73,10 @@ public class PlaywrightSession {
 	private String sessionId;
 
 	StepsEnvelope history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
-	Map<String, Page> tabPages = new HashMap<>();
+	Map<String, Page> tabPages = new ConcurrentHashMap<>();
+	private final Map<String, Page> replayTabPages = new ConcurrentHashMap<>();
+	private final List<Page> replayCandidatePages = new ArrayList<>();
+	private volatile boolean replayTabBindingActive = false;
 	Map<String, Integer> tabCurrentPageIndex = new HashMap<>();
 	Map<String, Integer> tabCurrentStepIndex = new HashMap<>();
 
@@ -97,6 +104,10 @@ public class PlaywrightSession {
 	 *                      expire.
 	 */
 	PlaywrightSession(BrowserContext ctx, Page page, long expiryMinutes) {
+		this(ctx, page, expiryMinutes, true);
+	}
+
+	private PlaywrightSession(BrowserContext ctx, Page page, long expiryMinutes, boolean scheduleExpiry) {
 		this.CTX = ctx;
 		tabPages.put("tab-1", page);
 		history.steps().put("tab-1", new ArrayList<List<PlaywrightStep>>());
@@ -105,13 +116,103 @@ public class PlaywrightSession {
 		tabCurrentPageIndex.put("tab-1", 0);
 		tabCurrentStepIndex.put("tab-1", 0);
 
-		// Schedule automatic expiry
-		scheduleExpiry(expiryMinutes);
+		if (scheduleExpiry) {
+			scheduleExpiry(expiryMinutes);
+		}
+	}
+
+	/**
+	 * Creates a session for the remote browser viewer. The viewer transport manages
+	 * its own idle TTL via {@code RemoteBrowserSessionManager}; the browser context
+	 * is not closed by that TTL.
+	 *
+	 * @param ctx           The Playwright BrowserContext for this session.
+	 * @param page          The initial Page object for this session.
+	 * @param expiryMinutes The absolute number of minutes after which the session
+	 *                      is closed as a backstop.
+	 * @return A new PlaywrightSession.
+	 */
+	public static PlaywrightSession forRemoteViewer(BrowserContext ctx, Page page, long expiryMinutes) {
+		return new PlaywrightSession(ctx, page, expiryMinutes, false);
+	}
+
+	/**
+	 * Creates a user-owned session for the remote browser viewer and registers it
+	 * under the same user/session store used by the older Playwright reactors. This
+	 * lets socket viewing stop independently while the browser context/cache stays
+	 * alive until the user-owned PlaywrightSession is closed.
+	 *
+	 * @param user      The SEMOSS user that owns the browser session.
+	 * @param sessionId The session id to register under the user.
+	 * @param ctx       The Playwright BrowserContext for this session.
+	 * @param page      The initial Page object for this session.
+	 * @return A new user-owned PlaywrightSession.
+	 */
+	public static PlaywrightSession forRemoteViewer(User user, String sessionId, BrowserContext ctx, Page page) {
+		PlaywrightSession session = new PlaywrightSession(ctx, page, DEFAULT_EXPIRY_MINUTES, false);
+		session.setUserAndSessionId(user, sessionId);
+		user.setPlaywrightSession(sessionId, session);
+		return session;
+	}
+
+	/**
+	 * Returns the replay history envelope for this session.
+	 *
+	 * @return The current {@link StepsEnvelope}.
+	 */
+	public StepsEnvelope getHistory() {
+		return history;
+	}
+
+	/**
+	 * Appends a captured recorder step to the same history shape used by the
+	 * Playwright recorder/reactors.
+	 *
+	 * @param tabId        The tab where the action happened.
+	 * @param step         The captured replay step.
+	 * @param startNewPage Whether to start a new page group before appending.
+	 * @return The appended step with a session-scoped id assigned.
+	 */
+	public synchronized PlaywrightStep appendRemoteBrowserRecordedStep(String tabId, PlaywrightStep step,
+			boolean startNewPage) {
+		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
+		history.steps().computeIfAbsent(resolvedTabId, k -> new ArrayList<List<PlaywrightStep>>());
+
+		int stepId = ++lastStepId;
+		PlaywrightStep newStep = new PlaywrightStep(step, stepId);
+		List<List<PlaywrightStep>> pages = history.steps().get(resolvedTabId);
+		if (startNewPage || pages.isEmpty()) {
+			pages.add(new ArrayList<>(List.of(newStep)));
+		} else {
+			pages.get(pages.size() - 1).add(newStep);
+		}
+		return newStep;
+	}
+
+	/**
+	 * Replaces the most recently appended step in the given tab. Used by live
+	 * recording to aggregate character-by-character TYPE events into one replayable
+	 * TYPE step.
+	 *
+	 * @param tabId The tab where the action happened.
+	 * @param step  The replacement step.
+	 */
+	public synchronized void replaceLastRemoteBrowserRecordedStep(String tabId, PlaywrightStep step) {
+		String resolvedTabId = (tabId == null || tabId.isBlank()) ? "tab-1" : tabId;
+		List<List<PlaywrightStep>> pages = history.steps().get(resolvedTabId);
+		if (pages == null || pages.isEmpty()) {
+			return;
+		}
+		List<PlaywrightStep> currentPage = pages.get(pages.size() - 1);
+		if (currentPage.isEmpty()) {
+			return;
+		}
+		currentPage.set(currentPage.size() - 1, step);
 	}
 
 	/**
 	 * Retrieves the BrowserContext associated with this session.
-	 * 
+	 *
 	 * @return The BrowserContext.
 	 */
 	public BrowserContext getBrowserContext() {
@@ -124,6 +225,12 @@ public class PlaywrightSession {
 	 * @return The default Page.
 	 */
 	public Page getPage() {
+		if (replayTabBindingActive) {
+			Page replayRoot = replayTabPages.get("tab-1");
+			if (replayRoot != null && !replayRoot.isClosed()) {
+				return replayRoot;
+			}
+		}
 		return this.tabPages.get("tab-1");
 	}
 
@@ -134,7 +241,104 @@ public class PlaywrightSession {
 	 * @return The Page object associated with the given tab ID.
 	 */
 	public Page getPage(String tabId) {
+		if (replayTabBindingActive) {
+			Page replayPage = replayTabPages.get(tabId);
+			return replayPage == null || replayPage.isClosed() ? null : replayPage;
+		}
 		return this.tabPages.get(tabId);
+	}
+
+	/** Returns a physical browser tab without applying recording replay aliases. */
+	public Page getLivePage(String tabId) {
+		return this.tabPages.get(tabId);
+	}
+
+	/** Starts an isolated recorded-tab to live-page binding for a playback run. */
+	public synchronized void beginReplayTabBinding(Page rootPage) {
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+		replayTabBindingActive = true;
+		if (rootPage != null && !rootPage.isClosed()) {
+			replayTabPages.put("tab-1", rootPage);
+			replayCandidatePages.add(rootPage);
+		}
+	}
+
+	/** Clears the current playback tab aliases. */
+	public synchronized void endReplayTabBinding() {
+		replayTabBindingActive = false;
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+	}
+
+	/** Returns a page bound to a recorded tab ID during the current playback. */
+	public Page getReplayPage(String recordedTabId) {
+		if (!replayTabBindingActive) {
+			return null;
+		}
+		Page page = replayTabPages.get(recordedTabId);
+		return page == null || page.isClosed() ? null : page;
+	}
+
+	/** Binds a recorded tab ID to a live popup page during socket playback. */
+	public synchronized void bindReplayPage(String recordedTabId, Page page) {
+		if (!replayTabBindingActive || recordedTabId == null || recordedTabId.isBlank() || page == null
+				|| page.isClosed()) {
+			return;
+		}
+		replayTabPages.put(recordedTabId, page);
+		addReplayCandidate(page);
+	}
+
+	/**
+	 * Resolves an unbound recorded tab without relying on matching numeric live-tab
+	 * IDs. The active page is preferred when it is unassigned because the remote
+	 * viewer activates a newly opened popup. Remaining playback candidates are a
+	 * fallback for recordings that did not preserve popup-trigger metadata.
+	 */
+	public synchronized Page resolveReplayPage(String recordedTabId, Page activePage) {
+		Page existing = getReplayPage(recordedTabId);
+		if (existing != null) {
+			return existing;
+		}
+		if (isAvailableReplayCandidate(activePage)) {
+			addReplayCandidate(activePage);
+			replayTabPages.put(recordedTabId, activePage);
+			return activePage;
+		}
+		for (int index = replayCandidatePages.size() - 1; index >= 0; index--) {
+			Page candidate = replayCandidatePages.get(index);
+			if (isAvailableReplayCandidate(candidate)) {
+				replayTabPages.put(recordedTabId, candidate);
+				return candidate;
+			}
+		}
+		return null;
+	}
+
+	private boolean isAvailableReplayCandidate(Page page) {
+		return page != null && !page.isClosed()
+				&& replayTabPages.values().stream().noneMatch(boundPage -> boundPage == page);
+	}
+
+	private void addReplayCandidate(Page page) {
+		if (page != null && replayCandidatePages.stream().noneMatch(candidate -> candidate == page)) {
+			replayCandidatePages.add(page);
+		}
+	}
+
+	/** Removes any playback aliases that point at a closed live page. */
+	public synchronized void removeReplayBindings(Page page) {
+		replayTabPages.entrySet().removeIf(entry -> entry.getValue() == page);
+		replayCandidatePages.removeIf(candidate -> candidate == page);
+	}
+
+	/**
+	 * Returns the reentrant gate for operations against this session's Playwright
+	 * connection. Callers may hold it across an action and its screenshot.
+	 */
+	public ReentrantLock getOperationLock() {
+		return operationLock;
 	}
 
 	/**
@@ -148,12 +352,139 @@ public class PlaywrightSession {
 	}
 
 	/**
+	 * Registers a live Playwright page as a tab, reusing an existing mapping when
+	 * the same page has already been observed. This is shared by the classic
+	 * reactors and the remote viewer so a popup is never assigned two tab IDs.
+	 *
+	 * @param page           the newly observed Playwright page
+	 * @param preferredTabId optional tab ID from replay metadata
+	 * @return the stable tab ID assigned to the page
+	 */
+	public synchronized String registerPage(Page page, String preferredTabId) {
+		if (page == null) {
+			throw new IllegalArgumentException("Page is required");
+		}
+		String existingTabId = findTabId(page);
+		if (existingTabId != null) {
+			if (replayTabBindingActive) {
+				addReplayCandidate(page);
+			}
+			if (replayTabBindingActive && preferredTabId != null && !preferredTabId.isBlank()) {
+				replayTabPages.put(preferredTabId, page);
+				return preferredTabId;
+			}
+			if (preferredTabId == null || preferredTabId.isBlank() || preferredTabId.equals(existingTabId)
+					|| tabPages.containsKey(preferredTabId)) {
+				return existingTabId;
+			}
+			// A context listener may have provisionally named the popup before replay
+			// metadata is inspected. Rebind it to the recording's stable tab ID.
+			tabPages.remove(existingTabId);
+			tabPages.put(preferredTabId, page);
+			history.steps().computeIfAbsent(preferredTabId, key -> new ArrayList<List<PlaywrightStep>>());
+			tabCurrentPageIndex.putIfAbsent(preferredTabId, 0);
+			tabCurrentStepIndex.putIfAbsent(preferredTabId, 0);
+			return preferredTabId;
+		}
+		if (replayTabBindingActive && preferredTabId != null && !preferredTabId.isBlank()) {
+			String liveTabId = nextAvailableLiveTabId();
+			tabPages.put(liveTabId, page);
+			history.steps().computeIfAbsent(liveTabId, key -> new ArrayList<List<PlaywrightStep>>());
+			tabCurrentPageIndex.putIfAbsent(liveTabId, 0);
+			tabCurrentStepIndex.putIfAbsent(liveTabId, 0);
+			attachNetworkListeners(liveTabId, page);
+			replayTabPages.put(preferredTabId, page);
+			addReplayCandidate(page);
+			return preferredTabId;
+		}
+
+		String tabId = preferredTabId;
+		if (tabId == null || tabId.isBlank() || tabPages.containsKey(tabId)) {
+			tabId = nextAvailableLiveTabId();
+		}
+
+		tabPages.put(tabId, page);
+		if (replayTabBindingActive) {
+			addReplayCandidate(page);
+		}
+		history.steps().computeIfAbsent(tabId, key -> new ArrayList<List<PlaywrightStep>>());
+		tabCurrentPageIndex.putIfAbsent(tabId, 0);
+		tabCurrentStepIndex.putIfAbsent(tabId, 0);
+		attachNetworkListeners(tabId, page);
+		return tabId;
+	}
+
+	private String nextAvailableLiveTabId() {
+		int nextIndex = 1;
+		while (tabPages.containsKey("tab-" + nextIndex)) {
+			nextIndex++;
+		}
+		return "tab-" + nextIndex;
+	}
+
+	/** Returns the tab ID already associated with a page, or {@code null}. */
+	public synchronized String findTabId(Page page) {
+		for (Map.Entry<String, Page> entry : tabPages.entrySet()) {
+			if (entry.getValue() == page) {
+				return entry.getKey();
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Retrieves a map of all tab IDs to their respective Page objects.
 	 * 
 	 * @return A map of tab IDs to Page objects.
 	 */
 	public Map<String, Page> getTabPages() {
 		return this.tabPages;
+	}
+
+	/**
+	 * Replaces every tracked page with a fresh root page while retaining this
+	 * session's BrowserContext and user registration. Viewer completion uses this
+	 * to clear tabs without clearing cookies or context-level cache.
+	 *
+	 * @return the fresh root page registered as {@code tab-1}
+	 */
+	public synchronized Page resetPagesForNewViewer() {
+		if (closed) {
+			throw new IllegalStateException("Cannot reset a closed Playwright session");
+		}
+
+		Page replacementPage = CTX.newPage();
+		List<Page> pagesToClose = new ArrayList<>(tabPages.values());
+
+		tabPages.clear();
+		replayTabPages.clear();
+		replayCandidatePages.clear();
+		replayTabBindingActive = false;
+		tabNetworkTrackers.clear();
+		parentChildMap.clear();
+		tabCurrentPageIndex.clear();
+		tabCurrentStepIndex.clear();
+		history = new StepsEnvelope("1", newMeta(""), new HashMap<>());
+		isLastPage = false;
+		lastStepId = 0;
+
+		tabPages.put("tab-1", replacementPage);
+		history.steps().put("tab-1", new ArrayList<List<PlaywrightStep>>());
+		tabCurrentPageIndex.put("tab-1", 0);
+		tabCurrentStepIndex.put("tab-1", 0);
+		attachNetworkListeners("tab-1", replacementPage);
+
+		for (Page page : pagesToClose) {
+			try {
+				if (page != null && page != replacementPage && !page.isClosed()) {
+					page.close();
+				}
+			} catch (Exception e) {
+				classLogger.warn("Error closing page during viewer reset", e);
+			}
+		}
+
+		return replacementPage;
 	}
 
 	/**
@@ -187,8 +518,9 @@ public class PlaywrightSession {
 	}
 
 	/**
-	 * Closes the Playwright session, including all open pages and the browser
-	 * context. Also removes the session from the user's active sessions.
+	 * Closes the Playwright session and all of its pages, then removes it from the
+	 * user's active sessions. The shared BrowserContext remains user-owned and is
+	 * closed separately during logout or deliberate user cleanup.
 	 */
 	public void close() {
 		if (closed) {
@@ -212,7 +544,6 @@ public class PlaywrightSession {
 						classLogger.error("Error closing page", e);
 					}
 				}
-
 
 				closed = true;
 				classLogger.info("Session closed successfully");
@@ -430,7 +761,7 @@ public class PlaywrightSession {
 	 * @param tabId The ID of the tab.
 	 */
 	public void refreshTrackedUrl(String tabId) {
-		Page page = tabPages.get(tabId);
+		Page page = getPage(tabId);
 		if (page != null) {
 			try {
 				page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(1_000));

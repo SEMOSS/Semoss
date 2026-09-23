@@ -476,13 +476,30 @@ public class Constants {
 	public static final String QUESTION_MOD_PLAYSHEET_COMBOBOXLIST = "questionLayoutComboBox";
 	public static final String QUESTION_MOD_PLAYSHEET_COMBO_LABEL = "lblQuestionLayoutText";
 	public static final String QUESTION_XML_WARNING = "lblOldXMLWarning";
-
-	// Model Configurations
+	public static final String CATALOG_MODEL_KEY = "CATALOG_MODEL_KEY";
 	public static final String MAX_TOKENS = "MAX_TOKENS";
 	@Deprecated
 	public static final String MAX_INPUT_TOKENS = "MAX_INPUT_TOKENS";
 	public static final String CONTEXT_WINDOW = "CONTEXT_WINDOW";
 	public static final String MAX_COMPLETION_TOKENS = "MAX_COMPLETION_TOKENS";
+	public static final String MODEL_PROVIDER = "MODEL_PROVIDER";
+	public static final String SERVING_PROVIDER = "SERVING_PROVIDER";
+	public static final String MODEL_CAPABILITY = "CAPABILITY";
+	public static final String INPUT_MODALITIES = "INPUT_MODALITIES";
+	public static final String OUTPUT_MODALITIES = "OUTPUT_MODALITIES";
+	public static final String BUILTIN_TOOLS = "BUILTIN_TOOLS";
+	public static final String MODEL_FAMILY = "FAMILY";
+	public static final String ATTACHMENT = "ATTACHMENT";
+	public static final String REASONING = "REASONING";
+	public static final String TOOL_CALL = "TOOL_CALL";
+	public static final String STRUCTURED_OUTPUT = "STRUCTURED_OUTPUT";
+	public static final String TEMPERATURE = "TEMPERATURE";
+	public static final String KNOWLEDGE_CUTOFF = "KNOWLEDGE_CUTOFF";
+	public static final String RELEASE_DATE = "RELEASE_DATE";
+	public static final String SUPPORTED_PARAMETERS = "SUPPORTED_PARAMETERS";
+	public static final String REASONING_CONFIG = "REASONING_CONFIG";
+	public static final String BENCHMARKS = "BENCHMARKS";
+	public static final String PRICING = "PRICING";
 
 	// Compare Databases
 	public static final String NEW_DB_COMBOBOX = "newDBComboBox";
@@ -565,6 +582,7 @@ public class Constants {
 	@Deprecated
 	public static final String SESSION_USER_ID_LOG = "log_semoss_user_id";
 	public static final String IS_ASSET_APP = "IS_ASSET_APP";
+	public static final String IS_TEMPLATE = "IS_TEMPLATE";
 	public static final String USER_ASSET_IDS = "USER_ASSET_IDS";
 
 	// old values in web.xml
@@ -578,6 +596,16 @@ public class Constants {
 	public static final String ADMIN_ONLY_PROJECT_ADD_ACCESS = "ADMIN_ONLY_PROJECT_ADD_ACCESS";
 	public static final String ADMIN_ONLY_PROJECT_SET_PUBLIC = "ADMIN_ONLY_PROJECT_SET_PUBLIC";
 	public static final String ADMIN_ONLY_PROJECT_SET_DISCOVERABLE = "ADMIN_ONLY_PROJECT_SET_DISCOVERABLE";
+	public static final String ADMIN_ONLY_WORKSPACE_ADD = "ADMIN_ONLY_WORKSPACE_ADD";
+	public static final String ADMIN_ONLY_WORKSPACE_DELETE = "ADMIN_ONLY_WORKSPACE_DELETE";
+	public static final String ADMIN_ONLY_WORKSPACE_ADD_ACCESS = "ADMIN_ONLY_WORKSPACE_ADD_ACCESS";
+	public static final String ADMIN_ONLY_WORKSPACE_SET_PUBLIC = "ADMIN_ONLY_WORKSPACE_SET_PUBLIC";
+	public static final String ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE = "ADMIN_ONLY_WORKSPACE_SET_DISCOVERABLE";
+	public static final String ADMIN_ONLY_SKILL_ADD = "ADMIN_ONLY_SKILL_ADD";
+	public static final String ADMIN_ONLY_SKILL_DELETE = "ADMIN_ONLY_SKILL_DELETE";
+	public static final String ADMIN_ONLY_SKILL_ADD_ACCESS = "ADMIN_ONLY_SKILL_ADD_ACCESS";
+	public static final String ADMIN_ONLY_SKILL_SET_PUBLIC = "ADMIN_ONLY_SKILL_SET_PUBLIC";
+	public static final String ADMIN_ONLY_SKILL_SET_DISCOVERABLE = "ADMIN_ONLY_SKILL_SET_DISCOVERABLE";
 
 	public static final String ADMIN_ONLY_DB_ADD = "ADMIN_ONLY_DB_ADD";
 	public static final String ADMIN_ONLY_DB_DELETE = "ADMIN_ONLY_DB_DELETE";
@@ -741,6 +769,8 @@ public class Constants {
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
+	// Colon/semicolon-separated executable directories exposed inside sandboxes
+	public static final String SANDBOX_PATH = "SANDBOX_PATH";
 
 	// which type of R connection to use
 	public static final String USE_R = "USE_R";
@@ -892,6 +922,9 @@ public class Constants {
 	// python
 	public static final String PY_BASE_FOLDER = "py";
 
+	// node.js agent execution environment
+	public static final String JS_BASE_FOLDER = "js";
+
 	// fastchat
 	public static final String WORKER_ADDRESS = "WORKER_ADDRESS";
 	public static final String CONTROLLER_ADDRESS = "CONTROLLER_ADDRESS";
@@ -966,7 +999,7 @@ public class Constants {
 	// starting process for r/py
 	public static final String JAVA_HOME = "JAVA_HOME";
 	public static final String TCP_WORKER = "TCP_WORKER";
-	public static final String ULIMIT_R_MEM_LIMIT = "ULIMIT_R_MEM_LIMIT";
+	public static final String ULIMIT_PROCESS = "ULIMIT_PROCESS";
 
 	public static final String WHITE_LIST_DOMAINS = "WHITE_LIST_DOMAINS";
 
@@ -1051,4 +1084,45 @@ public class Constants {
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";
+
+	// system (platform) app names
+	public static final String APP_REACT_TEMPLATE = "react-template";
+
+	// system (platform) skill names
+	public static final String SKILL_AGENT_RUN = "agent-run";
+	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
+	public static final String SKILL_APP_DATA = "app-data";
+	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_DATABASE = "database";
+	public static final String SKILL_EXPORTS = "exports";
+	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
+	public static final String SKILL_FUNCTIONS = "functions";
+	public static final String SKILL_MCP = "mcp";
+	public static final String SKILL_MODEL = "model";
+	public static final String SKILL_PAGINATION = "pagination";
+	public static final String SKILL_PERMISSIONS = "permissions";
+	public static final String SKILL_PPTX = "pptx";
+	public static final String SKILL_PYTHON = "python";
+	public static final String SKILL_ROOM = "room";
+	public static final String SKILL_STORAGE = "storage";
+	public static final String SKILL_USER = "user";
+	public static final String SKILL_VECTOR = "vector";
+	public static final String SKILL_WORKFLOW_AUTOMATION = "workflow-automation";
+
+	// system (platform) mcp names
+	public static final String MCP_APP_FILESYSTEM = "app-filesystem";
+	public static final String MCP_BROWSER_AUTOMATION = "browser-automation";
+	public static final String MCP_DATABASE_MAKER = "database-maker";
+	public static final String MCP_NODE_BUILDER = "node-builder";
+	public static final String MCP_REACTOR_HELP = "reactor-help";
+	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
+
+	// system (platform) agent (workspace) names
+	public static final String AGENT_APP_BUILDER = "app-builder";
+	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
+	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
+	public static final String AGENT_PPTX = "pptx-agent";
+	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
+	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";
 }

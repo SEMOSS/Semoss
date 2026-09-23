@@ -37,7 +37,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.JSHandle;
 import com.microsoft.playwright.Locator;
@@ -62,53 +61,67 @@ public class PlaywrightSessionUtility {
 	 * @return true if page changed, false otherwise
 	 */
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
-		Map<String, Object> response = new HashMap<String, Object>();
-
-		Page page = session.tabPages.get(tabId);
-		long startTime = System.currentTimeMillis();
-		boolean pageChanged = false;
-		response.put("isNewTab", false);
-		response.put("tabTitle", page.title());
+		session.getOperationLock().lock();
 		try {
-			String urlBefore = page.url();
-			AtomicBoolean networkTriggered = new AtomicBoolean(false);
+			Map<String, Object> response = new HashMap<String, Object>();
 
-			JSHandle mutationPromise = createMutationObserver(page);
+			Page page = session.getPage(tabId);
+			long startTime = System.currentTimeMillis();
+			boolean pageChanged = false;
+			response.put("isNewTab", false);
+			if (page == null || page.isClosed()) {
+				response.put("status", "failed");
+				response.put("error", "Recorded tab " + tabId + " is not bound to an open browser page");
+				response.put("isPageChanged", false);
+				return response;
+			}
+			response.put("tabTitle", page.title());
+			try {
+				String urlBefore = page.url();
+				AtomicBoolean networkTriggered = new AtomicBoolean(false);
 
-			page.onRequest(req -> {
-				if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
-					networkTriggered.set(true);
+				JSHandle mutationPromise = createMutationObserver(page);
+
+				page.onRequest(req -> {
+					if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
+						networkTriggered.set(true);
+					}
+				});
+
+				if (step.type() == PlaywrightStepType.WAIT) {
+					response.put("shouldStop", true);
+				} else {
+					response.put("shouldStop", false);
+					executeStepAction(page, step, urlBefore, session, response);
 				}
-			});
 
-			if (step.type() == PlaywrightStepType.WAIT) {
-				response.put("shouldStop", true);
-			} else {
-				response.put("shouldStop", false);
-				executeStepAction(page, step, urlBefore, session, response);
+				if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
+					page.waitForTimeout(step.waitAfterMs());
+				}
+
+				boolean sameUrl = urlBefore.equals(page.url());
+				if (sameUrl && !networkTriggered.get()) {
+					waitForPageOrElement(page, step);
+					pageChanged = detectPageChange(mutationPromise);
+				} else {
+					pageChanged = true;
+				}
+
+				long elapsed = System.currentTimeMillis() - startTime;
+				classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
+				response.put("status", "success");
+				response.put("isPageChanged", pageChanged);
+				return response;
+
+			} catch (Exception e) {
+				classLogger.error("Failed to apply Playwright step {}", step.type(), e);
+				response.put("status", "failed");
+				response.put("error", e.getMessage());
+				response.put("isPageChanged", true);
+				return response;
 			}
-
-			if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
-				page.waitForTimeout(step.waitAfterMs());
-			}
-
-			boolean sameUrl = urlBefore.equals(page.url());
-			if (sameUrl && !networkTriggered.get()) {
-				waitForPageOrElement(page, step);
-				pageChanged = detectPageChange(mutationPromise);
-			} else {
-				pageChanged = true;
-			}
-
-			long elapsed = System.currentTimeMillis() - startTime;
-			classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
-			response.put("isPageChanged", pageChanged);
-			return response;
-
-		} catch (Exception e) {
-			classLogger.error("Failed to apply Playwright step {}", step.type(), e);
-			response.put("isPageChanged", true);
-			return response;
+		} finally {
+			session.getOperationLock().unlock();
 		}
 	}
 
@@ -163,7 +176,7 @@ public class PlaywrightSessionUtility {
 	 * @return The resolved Locator, or null if resolution fails.
 	 */
 	private static Locator resolveLocator(Page page, Selector sel) {
-		classLogger.info("Resolving this locator: " + sel);
+		classLogger.info("Resolving this locator: {}", sel);
 		if (sel == null || sel.value() == null) {
 			return null;
 		}
@@ -269,7 +282,34 @@ public class PlaywrightSessionUtility {
 	private static boolean typeWithFallback(Page page, PlaywrightStep step) {
 		// Try selector
 		Locator loc = resolveLocator(page, step.selector());
+		if ("select".equalsIgnoreCase(step.tag()) && selectWithFallback(loc, step.text())) {
+			return true;
+		}
 		boolean typed = focusAndType(loc, step.text());
+
+		// Try healed selector / coordinates when the recorded selector is stale.
+		if (!typed && step.coords() != null) {
+			Locator healed = null;
+			try {
+				healed = healSelector(page, step.coords().x(), step.coords().y(), step.selector());
+			} catch (Exception ignore) {
+			}
+			typed = focusAndType(healed, step.text());
+		}
+
+		if (!typed && step.coords() != null) {
+			try {
+				page.mouse().click(step.coords().x(), step.coords().y());
+				typed = typeFocusedTextControl(page, step.text());
+			} catch (Exception ignore) {
+			}
+		}
+
+		// Last resort for old recordings where TYPE has no coords: use the currently
+		// focused input/textarea/contentEditable that a prior CLICK likely focused.
+		if (!typed) {
+			typed = typeFocusedTextControl(page, step.text());
+		}
 
 		if (typed && Boolean.TRUE.equals(step.pressEnter())) {
 			try {
@@ -278,6 +318,72 @@ public class PlaywrightSessionUtility {
 			}
 		}
 		return typed;
+	}
+
+	private static boolean selectWithFallback(Locator locator, String value) {
+		if (!isActionable(locator)) {
+			return false;
+		}
+		try {
+			locator.selectOption(value);
+			return true;
+		} catch (Exception valueFailure) {
+			try {
+				locator.selectOption(new com.microsoft.playwright.options.SelectOption().setLabel(value));
+				return true;
+			} catch (Exception labelFailure) {
+				return false;
+			}
+		}
+	}
+
+	private static boolean typeFocusedTextControl(Page page, String text) {
+		try {
+			return Boolean.TRUE.equals(page.evaluate(
+					"""
+							(value) => {
+							  function active(win) {
+							    let el = win.document.activeElement;
+							    if (!el) return null;
+							    if (el.shadowRoot && el.shadowRoot.activeElement) {
+							      el = el.shadowRoot.activeElement;
+							    }
+							    if (el.tagName === "IFRAME") {
+							      try {
+							        return active(el.contentWindow);
+							      } catch (e) {
+							        return null;
+							      }
+							    }
+							    return el;
+							  }
+							  const el = active(window);
+							  if (!el) return false;
+							  const tag = (el.tagName || "").toLowerCase();
+							  const type = (el.type || "").toLowerCase();
+							  const isInput = tag === "textarea" ||
+							    (tag === "input" && ["text", "password", "email", "search", "tel", "url", "number"].includes(type));
+							  const nextValue = value == null ? "" : String(value);
+							  if (isInput) {
+							    el.focus();
+							    el.value = nextValue;
+							    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+							    el.dispatchEvent(new Event("change", { bubbles: true }));
+							    return true;
+							  }
+							  if (el.isContentEditable) {
+							    el.focus();
+							    el.textContent = nextValue;
+							    el.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText", data: nextValue }));
+							    return true;
+							  }
+							  return false;
+							}
+							""",
+					text));
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
@@ -308,9 +414,15 @@ public class PlaywrightSessionUtility {
 			}
 
 			// Main page check
-			Object raw = page.evaluate("({x,y})=>{ const el = document.elementFromPoint(x,y); "
-					+ "if(!el) return null; const cs=getComputedStyle(el); "
-					+ "return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents }; }",
+			Object raw = page.evaluate(
+					"""
+							({x,y})=>{
+							  const el = document.elementFromPoint(x,y);
+							  if(!el) return null;
+							  const cs=getComputedStyle(el);
+							  return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents };
+							}
+							""",
 					java.util.Map.of("x", x, "y", y));
 			if (raw == null) {
 				return false;
@@ -395,6 +507,8 @@ public class PlaywrightSessionUtility {
 		response.remove("newTabId");
 		response.remove("tabTitle");
 
+		List<Page> pagesBeforeClick = new ArrayList<>(session.CTX.pages());
+
 		// Just perform the click
 		boolean clicked = tryClick(page, step);
 
@@ -403,10 +517,13 @@ public class PlaywrightSessionUtility {
 		}
 
 		// heck if new tab appeared
-		Page newPage = waitForNewTab(session);
+		Page newPage = waitForNewTab(session, page, pagesBeforeClick);
 
 		if (newPage != null) {
-			handleNewTab(session, newPage, response);
+			String preferredTabId = step.isTriggerNewTab() != null && step.isTriggerNewTab().isTrue()
+					? step.isTriggerNewTab().tabId()
+					: null;
+			handleNewTab(session, newPage, preferredTabId, response);
 		}
 
 		return true;
@@ -472,13 +589,25 @@ public class PlaywrightSessionUtility {
 	 * @return The new Page object, or null if no new tab is created within the
 	 *         timeout.
 	 */
-	private static Page waitForNewTab(PlaywrightSession session) {
-		try {
-			return session.CTX.waitForPage(new BrowserContext.WaitForPageOptions().setTimeout(6000), () -> {
-			});
-		} catch (Exception e) {
-			return null; // No new tab - normal case
+	private static Page waitForNewTab(PlaywrightSession session, Page sourcePage, List<Page> pagesBeforeClick) {
+		Page newPage = findNewPage(session, pagesBeforeClick);
+		if (newPage != null) {
+			return newPage;
 		}
+		try {
+			sourcePage.waitForTimeout(750);
+		} catch (Exception ignored) {
+		}
+		return findNewPage(session, pagesBeforeClick);
+	}
+
+	private static Page findNewPage(PlaywrightSession session, List<Page> pagesBeforeClick) {
+		for (Page candidate : session.CTX.pages()) {
+			if (!pagesBeforeClick.contains(candidate)) {
+				return candidate;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -488,7 +617,8 @@ public class PlaywrightSessionUtility {
 	 * @param newPage  The new Page object.
 	 * @param response The response map to be populated with new tab details.
 	 */
-	private static void handleNewTab(PlaywrightSession session, Page newPage, Map<String, Object> response) {
+	private static void handleNewTab(PlaywrightSession session, Page newPage, String preferredTabId,
+			Map<String, Object> response) {
 		classLogger.info("New tab detected: " + newPage.url());
 
 		try {
@@ -504,7 +634,7 @@ public class PlaywrightSessionUtility {
 
 		response.put("isNewTab", true);
 		response.put("tabTitle", newPage.title());
-		createNewTabRecord(session, newPage, response);
+		createNewTabRecord(session, newPage, preferredTabId, response);
 	}
 
 	/**
@@ -568,15 +698,30 @@ public class PlaywrightSessionUtility {
 		}
 
 		// main page
-		String script = "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
-				+ " const id=el.id; if(id) return {strategy:'id',value:id};"
-				+ " const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id'); if(testId) return {strategy:'testId',value:testId};"
-				+ " const role=el.getAttribute('role'); if(role) return {strategy:'role',value:role};"
-				+ " function css(e){ if(!e||e===document.body) return 'body'; if(e.id) return '#'+CSS.escape(e.id);"
-				+ "   let s=e.localName; if(e.classList.length && e.classList.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');"
-				+ "   const p=e.parentElement; if(!p) return s; const sib=[...p.children].filter(c=>c.localName===e.localName);"
-				+ "   const idx=sib.indexOf(e)+1; return css(p)+' > '+s+`:nth-of-type(${idx})`; }"
-				+ " return {strategy:'css', value: css(el)}; }";
+		String script = """
+				({x,y})=>{
+				  const el=document.elementFromPoint(x,y);
+				  if(!el) return null;
+				  const id=el.id;
+				  if(id) return {strategy:'id',value:id};
+				  const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id');
+				  if(testId) return {strategy:'testId',value:testId};
+				  const role=el.getAttribute('role');
+				  if(role) return {strategy:'role',value:role};
+				  function css(e){
+				    if(!e||e===document.body) return 'body';
+				    if(e.id) return '#'+CSS.escape(e.id);
+				    let s=e.localName;
+				    if(e.classList.length && e.classList.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');
+				    const p=e.parentElement;
+				    if(!p) return s;
+				    const sib=[...p.children].filter(c=>c.localName===e.localName);
+				    const idx=sib.indexOf(e)+1;
+				    return css(p)+' > '+s+`:nth-of-type(${idx})`;
+				  }
+				  return {strategy:'css', value: css(el)};
+				}
+				""";
 
 		Map<String, String> sel = evaluateSelectorProbeSafely(page, script, java.util.Map.of("x", x, "y", y));
 
@@ -654,7 +799,7 @@ public class PlaywrightSessionUtility {
 		} finally {
 			response.put("tabTitle", page.title());
 		}
-		classLogger.info("Tab Title: " + response.get("tabTitle"));
+		classLogger.info("Tab Title: {}", response.get("tabTitle"));
 		classLogger.info("[ACTION] NAVIGATE took {} ms {}", System.currentTimeMillis() - start, step.url());
 	}
 
@@ -699,10 +844,9 @@ public class PlaywrightSessionUtility {
 		if (step.selector() != null) {
 			Locator loc = resolveLocator(page, step.selector());
 			if (loc == null) {
-				// No selector match - don't drop to coords; surface as SELECTOR_NOT_FOUND
-				throw new PlaywrightException("SELECTOR_NOT_FOUND: " + step.selector().value());
+				classLogger.warn("TYPE selector not found for step {}; falling back to coords/focused element: {}",
+						step.id(), step.selector().value());
 			}
-			// otherwise proceed with the clickable path above
 		}
 		boolean ok = typeWithFallback(page, step);
 		if (!ok) {
@@ -775,16 +919,26 @@ public class PlaywrightSessionUtility {
 	 * @return A JSHandle to a Promise that resolves when a mutation is detected.
 	 */
 	private static JSHandle createMutationObserver(Page page) {
-		return page.evaluateHandle("() => new Promise(resolve => {"
-				+ "  const observer = new MutationObserver(muts => {" + "    for (const m of muts) {"
-				+ "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }"
-				+ "      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }"
-				+ "      if (m.type === 'attributes' && m.attributeName !== 'value') {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }" + "    }" + "  });"
-				+ "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });"
-				+ "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" + "})");
+		return page.evaluateHandle(
+				"""
+						() => new Promise(resolve => {
+						  const observer = new MutationObserver(muts => {
+						    for (const m of muts) {
+						      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						      if (m.type === 'attributes' && m.attributeName !== 'value') {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						    }
+						  });
+						  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+						  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);
+						})
+						""");
 	}
 
 	/**
@@ -809,18 +963,9 @@ public class PlaywrightSessionUtility {
 	 * @param page     The new Page object.
 	 * @param response The response map to be populated with the new tab ID.
 	 */
-	private static void createNewTabRecord(PlaywrightSession session, Page page, Map<String, Object> response) {
-		// Get the steps map from session.history
-		Map<String, List<List<PlaywrightStep>>> stepsMap = session.history.steps();
-
-		// Generate next tab name
-		int nextTabIndex = stepsMap.size() + 1;
-		String tabId = "tab-" + nextTabIndex;
-
-		// Add new tab record with an empty list of steps
-		session.history.steps().put(tabId, new ArrayList<List<PlaywrightStep>>());
-		session.tabPages.put(tabId, page);
-		session.attachNetworkListeners(tabId, page);
+	private static void createNewTabRecord(PlaywrightSession session, Page page, String preferredTabId,
+			Map<String, Object> response) {
+		String tabId = session.registerPage(page, preferredTabId);
 		// Store the new tab ID in the response so it can be returned
 		response.put("newTabId", tabId);
 	}

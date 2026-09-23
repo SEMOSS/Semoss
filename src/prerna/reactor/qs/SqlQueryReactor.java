@@ -45,7 +45,8 @@ public class SqlQueryReactor extends AbstractSqlQueryReactor {
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
 			return """
-					The sql query to execute. \
+					One or more SQL statements to execute. Multiple statements are parsed, \
+					checked for database access, executed in order, and returned as an ordered result array. \
 					For convenience, instead of escaping quotes or backslashes you can wrap \
 					the input within "<encode>your_text</encode>" and the system will encode it for you.
 					""";
@@ -56,7 +57,8 @@ public class SqlQueryReactor extends AbstractSqlQueryReactor {
 	@Override
 	public JSONObject getMcpProperties() {
 		JSONObject properties = super.getMcpProperties();
-		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description", "The sql query to execute.");
+		properties.getJSONObject(ReactorKeysEnum.QUERY_KEY.getKey()).put("description",
+				"One or more SQL statements to parse, check for database access, and execute in order.");
 		return properties;
 	}
 

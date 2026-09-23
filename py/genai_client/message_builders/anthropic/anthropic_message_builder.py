@@ -24,9 +24,13 @@ from ..semoss_base.semoss_models import (
     SEMOSSMediaContent,
     SEMOSSMediaInputType,
     ModelSettings,
+    parse_multimodal_tool_response,
 )
-from ...text_generation.abstract_text_generation_client import ModelLimits
 from ...utils import string_to_bool
+from ..semoss_base.builtin_tools import (
+    built_in_tool_request_fields,
+    normalize_built_in_tools,
+)
 from ..semoss_base.reasoning import normalize_reasoning
 
 MODEL_MAX_OUTPUT_TOKENS = {
@@ -64,14 +68,12 @@ class AnthropicMessageBuilder:
         self,
         semoss_messages: List[SEMOSSMessage],
         model_settings: ModelSettings,
-        model_limits: ModelLimits,
         model_name: str,
-        use_beta_header: bool = False,
-        beta_feature_name: str = "extended_thinking",
+        use_beta_header: Optional[bool] = False,
+        beta_feature_name: Optional[str] = "extended_thinking",
         thinking_signature: Optional[str] = None,
     ) -> AnthropicMessageBuilderResponse:
         """Convert SEMOSS messages to Anthropic messages and return the param map from the latest message"""
-        self.model_limits = model_limits
         self.model_name = model_name
         self.model_settings = model_settings
         self.use_beta_header = use_beta_header
@@ -158,7 +160,9 @@ class AnthropicMessageBuilder:
                         else:
                             tool_result_part = AnthropicToolResultContentPart(
                                 tool_use_id=p.tool_result.id,
-                                content=p.tool_result.output,
+                                content=self._parse_tool_result_content(
+                                    p.tool_result.output
+                                ),
                             )
                             content_parts.append(tool_result_part)
 
@@ -453,17 +457,13 @@ class AnthropicMessageBuilder:
             has_structured_input=has_schema,
         )
 
-    def _build_built_in_tools(self, built_in_tools: List[str]) -> List[Dict[str, Any]]:
+    def _build_built_in_tools(self, built_in_tools: Any) -> List[Dict[str, Any]]:
         anthropic_built_in_tools: List[Dict[str, Any]] = []
-        for tool in built_in_tools:
-            if tool.lower() == "web_search":
-                anthropic_built_in_tools.append(
-                    {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
-                )
-            elif tool.lower() == "code_execution":
-                anthropic_built_in_tools.append(
-                    {"type": "code_execution_20250825", "name": "code_execution"}
-                )
+        for selection in normalize_built_in_tools(built_in_tools):
+            spec = built_in_tool_request_fields(selection)
+            spec.setdefault("type", selection["alias"])
+            spec.setdefault("name", selection["name"])
+            anthropic_built_in_tools.append(spec)
         return anthropic_built_in_tools
 
     def _build_tool_choice(
@@ -577,6 +577,66 @@ class AnthropicMessageBuilder:
             return AnthropicRoles.ASSISTANT
         else:
             raise ValueError(f"Unknown message type: {message_type}")
+
+    def _parse_tool_result_content(self, output: Optional[str]) -> Union[
+        str,
+        List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ],
+    ]:
+        """Convert a tool output string into Anthropic tool-result content.
+
+        Detects a SEMOSSMultimodalToolResponse envelope and translates the
+        blocks to Anthropic content parts. Plain text, or anything that fails
+        envelope validation, is returned as a string so the existing
+        single-string path is preserved.
+        """
+        if not output:
+            return "Tool executed successfully."
+
+        blocks = parse_multimodal_tool_response(output)
+        if blocks is None:
+            return output
+
+        parts: List[
+            Union[
+                AnthropicTextContentPart,
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ] = []
+        for block in blocks:
+            if block.type == "text":
+                parts.append(AnthropicTextContentPart(text=block.text))
+            elif not block.data:
+                # unresolved file ref - Java should have inlined this; skip
+                continue
+            elif block.type == "image":
+                mime = block.mime_type or "image/png"
+                if mime == "image/jpg":
+                    mime = "image/jpeg"
+                parts.append(
+                    AnthropicImageContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=mime, data=block.data
+                        )
+                    )
+                )
+            else:
+                parts.append(
+                    AnthropicDocumentContentPart(
+                        source=AnthropicMediaSourceBase64(
+                            media_type=block.mime_type or "application/pdf",
+                            data=block.data,
+                        )
+                    )
+                )
+
+        return parts if parts else output
 
     def _build_text_content_part(self, content: str) -> AnthropicTextContentPart:
         """Build Anthropic text content part"""
@@ -803,7 +863,8 @@ class AnthropicMessageBuilder:
         max_tokens = (
             kwargs.pop("max_tokens", None)
             or kwargs.pop("max_completion_tokens", None)
-            or self.model_limits.max_completion_tokens
+            or self.model_settings.max_tokens
+            or self._get_model_max_output_tokens(self.model_name)
         )
 
         # MAX TOKENS MUST BE STRICTLY GREATER THAN THINKING BUDGET (legacy only)
@@ -829,6 +890,14 @@ class AnthropicMessageBuilder:
             if temperature is not None:
                 temperature = 1
 
+        extra_body: Dict[str, Any] = {}
+        if temperature is not None:
+            extra_body["temperature"] = temperature
+        if top_p is not None:
+            extra_body["top_p"] = top_p
+        if top_k is not None:
+            extra_body["top_k"] = top_k
+
         if "use_history" in kwargs:
             use_history = kwargs.pop("use_history")
             if string_to_bool(use_history) is False:
@@ -845,9 +914,7 @@ class AnthropicMessageBuilder:
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
+            extra_body=extra_body or None,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,

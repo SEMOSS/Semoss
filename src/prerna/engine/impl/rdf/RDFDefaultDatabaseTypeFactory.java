@@ -33,7 +33,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.IRDFDatabase;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public final class RDFDefaultDatabaseTypeFactory {
@@ -41,48 +40,41 @@ public final class RDFDefaultDatabaseTypeFactory {
 	private static final Logger classLogger = LogManager.getLogger(RDFDefaultDatabaseTypeFactory.class);
 
 	public static final String DEFAULT_RDF_ENGINE = "DEFAULT_RDF_ENGINE";
-	
+
 	private RDFDefaultDatabaseTypeFactory() {
-		
+
 	}
-	
+
 	public static IRDFDatabase getDefaultRdfEngine() {
 		IRDFDatabase engine = null;
-		
+
 		String className = Utility.getDIHelperProperty(DEFAULT_RDF_ENGINE);
-		if(className != null && !(className=className.trim()).isEmpty()) {
+		if (className != null && !(className = className.trim()).isEmpty()) {
 			try {
-				engine = (IRDFDatabase) Class.forName(className).getConstructor(null).newInstance();
+				engine = (IRDFDatabase) Class.forName(className).getDeclaredConstructor().newInstance();
 			} catch (ClassNotFoundException cnfe) {
-				classLogger.error(Constants.STACKTRACE, cnfe);
-				classLogger.fatal("No such class: " + Utility.cleanLogString(className));
+				classLogger.error("No such class: {}", Utility.cleanLogString(className), cnfe);
 			} catch (InstantiationException ie) {
-				classLogger.error(Constants.STACKTRACE, ie);
-				classLogger.fatal("Failed instantiation: " + Utility.cleanLogString(className));
+				classLogger.error("Failed instantiation: {}", Utility.cleanLogString(className), ie);
 			} catch (IllegalAccessException iae) {
-				classLogger.error(Constants.STACKTRACE, iae);
-				classLogger.fatal("Illegal Access: " + Utility.cleanLogString(className));
+				classLogger.error("Illegal access: {}", Utility.cleanLogString(className), iae);
 			} catch (IllegalArgumentException iare) {
-				classLogger.error(Constants.STACKTRACE, iare);
-				classLogger.fatal("Illegal argument: " + Utility.cleanLogString(className));
+				classLogger.error("Illegal argument: {}", Utility.cleanLogString(className), iare);
 			} catch (InvocationTargetException ite) {
-				classLogger.error(Constants.STACKTRACE, ite);
-				classLogger.fatal("Invocation exception: " + Utility.cleanLogString(className));
+				classLogger.error("Invocation exception: {}", Utility.cleanLogString(className), ite);
 			} catch (NoSuchMethodException nsme) {
-				classLogger.error(Constants.STACKTRACE, nsme);
-				classLogger.fatal("No constructor: " + Utility.cleanLogString(className));
+				classLogger.error("No constructor: {}", Utility.cleanLogString(className), nsme);
 			} catch (SecurityException se) {
-				classLogger.error(Constants.STACKTRACE, se);
-				classLogger.fatal("Security exception: " + Utility.cleanLogString(className));
+				classLogger.error("Security exception: {}", Utility.cleanLogString(className), se);
 			}
 		}
-		
-		if(engine == null) {
+
+		if (engine == null) {
 //			engine = new EclipseRDF4JFileEngine();
 			engine = new RDFJenaTDBEngine();
 		}
-		
+
 		return engine;
 	}
-	
+
 }

@@ -54,6 +54,7 @@ public class GetDatabaseConceptsReactor extends AbstractReactor {
 		}
 		String engineId = eGrs.get(0).toString();
 		engineId = MasterDatabaseUtility.testDatabaseIdIfAlias(engineId);
+		engineId = testDatabaseId(engineId, false);
 
 		Set<String> conceptsWithinEngineList = MasterDatabaseUtility.getConceptsWithinDatabaseRDBMS(engineId);
 		return new NounMetadata(conceptsWithinEngineList, PixelDataType.CUSTOM_DATA_STRUCTURE,

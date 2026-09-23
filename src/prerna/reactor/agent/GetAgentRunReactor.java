@@ -25,9 +25,6 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *******************************************************************************/
 package prerna.reactor.agent;
 
 import java.util.Map;
@@ -35,30 +32,41 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Pixel entry point for reading one agent run.
+ *
+ * <p>
+ * Returns the durable {@code AGENT_RUN} snapshot: status, final output, message
+ * ids, error, and the pending actions a paused run is waiting on. Pass
+ * {@code includeMessages=true} to also return the run's room messages, which is
+ * what a client needs to render the conversation rather than just the run state.
+ */
 public class GetAgentRunReactor extends AbstractReactor {
 
 	private static final String RUN_ID_KEY = "runId";
+	private static final String INCLUDE_MESSAGES_KEY = "includeMessages";
 
 	public GetAgentRunReactor() {
-		this.keysToGet = new String[] { RUN_ID_KEY };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { RUN_ID_KEY, INCLUDE_MESSAGES_KEY };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
 		String runId = StringUtils.trimToNull(this.keyValue.get(RUN_ID_KEY));
-		Map<String, Object> result = AgentRuntimeManager.get().getRun(runId, this.insight);
+		boolean includeMessages = Boolean.parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY));
+		Map<String, Object> result = AgentRunService.get().getRun(runId, this.insight, includeMessages);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get durable AgentRun status, output, message ids, error, and pending actions.";
+		return "Get durable AgentRun status, output, message ids, error, and pending actions. Pass includeMessages=true to include this run's room messages.";
 	}
 }

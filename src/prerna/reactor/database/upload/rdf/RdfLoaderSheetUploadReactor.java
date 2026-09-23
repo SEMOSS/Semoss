@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.Vector;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.config.Configurator;
@@ -72,6 +71,12 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 	public RdfLoaderSheetUploadReactor() {
 		this.keysToGet = new String[] { UploadInputUtility.DATABASE, UploadInputUtility.FILE_PATH,
 				UploadInputUtility.ADD_TO_EXISTING, UploadInputUtility.CUSTOM_BASE_URI };
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Uploads an Excel file that follows the SEMOSS loader-sheet format to create an RDF (triplestore) database. "
+				+ "Supports node, relationship, matrix, and subclass sheets, generating the corresponding triples.";
 	}
 
 	@Override
@@ -298,7 +303,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		// initialize variables
 		String objectNode = "";
 		String relName = "";
-		Vector<String> propNames = new Vector<String>();
+		List<String> propNames = new ArrayList<>();
 
 		// determine if relationship or property sheet
 		String sheetType = row.getCell(0).getStringCellValue();
@@ -317,7 +322,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 		for (int colIndex = currentColumn + 1; colIndex < row.getLastCellNum(); colIndex++) {
 			// add property name to vector
 			if (row.getCell(colIndex) != null) {
-				propNames.addElement(row.getCell(colIndex).getStringCellValue());
+				propNames.add(row.getCell(colIndex).getStringCellValue());
 				lastColumn = colIndex;
 			}
 		}
@@ -389,7 +394,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 				if (propNames.size() <= (colIndex - offset)) {
 					continue;
 				}
-				String propName = propNames.elementAt(colIndex - offset).toString();
+				String propName = propNames.get(colIndex - offset).toString();
 				// ignore bad data
 				if (ExcelParsing.isEmptyCell(nextRow.getCell(colIndex))) {
 					continue;
@@ -508,7 +513,7 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 								propHash.put(propertyName, matrixContent.getDateCellValue());
 								mapExists = true;
 							} else {
-								propHash.put(propertyName, new Double(matrixContent.getNumericCellValue()));
+								propHash.put(propertyName, Double.valueOf(matrixContent.getNumericCellValue()));
 								mapExists = true;
 							}
 						} else {
@@ -537,7 +542,6 @@ public class RdfLoaderSheetUploadReactor extends AbstractDatabaseUploadFileReact
 					RdfUploadReactorUtility.addNodeProperties(owlEngine, baseUri, subjectNodeType, instanceSubjectName,
 							propHash, allInsertStatements);
 				}
-
 				if (allInsertStatements.size() > 1000) {
 					((IRDFDatabase) database).bulkInsert(allInsertStatements);
 					logger.info("Bulk inserted {} triples into the database", allInsertStatements.size());

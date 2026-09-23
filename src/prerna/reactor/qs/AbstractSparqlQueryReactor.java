@@ -53,7 +53,6 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 	private static final Logger classLogger = LogManager.getLogger(AbstractSparqlQueryReactor.class);
 
 	private static final int DEFAULT_LIMIT = 50;
-	private static final int MAX_LIMIT = 5_000;
 
 	public AbstractSparqlQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
@@ -156,13 +155,6 @@ public abstract class AbstractSparqlQueryReactor extends AbstractReactor {
 		if (limitStr != null && !limitStr.trim().isEmpty()) {
 			try {
 				limit = Integer.parseInt(limitStr.trim());
-				if (limit <= 0) {
-					classLogger.warn("Non-positive limit value: {}, using default {}", limit, DEFAULT_LIMIT);
-					limit = DEFAULT_LIMIT;
-				} else if (limit > MAX_LIMIT) {
-					classLogger.warn("Limit value {} exceeds maximum {}, using maximum", limit, MAX_LIMIT);
-					limit = MAX_LIMIT;
-				}
 			} catch (NumberFormatException e) {
 				classLogger.warn("Invalid limit value: {}, using default {}", limitStr, DEFAULT_LIMIT);
 			}

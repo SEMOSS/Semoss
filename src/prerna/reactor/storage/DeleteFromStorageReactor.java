@@ -39,7 +39,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class DeleteFromStorageReactor extends AbstractReactor {
@@ -68,8 +67,9 @@ public class DeleteFromStorageReactor extends AbstractReactor {
 			storage.deleteFromStorage(storagePath, leaveFolderStructure);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred delete file from storage");
+			classLogger.error("Failed to delete storagePath={} on storage engine={} with leaveFolderStructure={}",
+					storagePath, storage.getEngineId(), leaveFolderStructure, e);
+			throw new IllegalArgumentException("Error occurred deleting file from storage", e);
 		}
 	}
 

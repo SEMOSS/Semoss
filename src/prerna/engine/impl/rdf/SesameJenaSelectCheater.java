@@ -27,9 +27,6 @@
  *******************************************************************************/
 package prerna.engine.impl.rdf;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,7 +40,6 @@ import org.openrdf.query.TupleQueryResult;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IDatabaseEngine.DATABASE_TYPE;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
 /**
  * This takes a select query and turns it over into a Construct Statement it
@@ -54,22 +50,19 @@ import prerna.util.Utility;
 public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
 
 	@Deprecated
+	private static final Logger classLogger = LogManager.getLogger(SesameJenaSelectCheater.class);
+
+	@Deprecated
 	public transient TupleQueryResult tqr = null;
 
 	@Deprecated
 	transient org.apache.jena.query.ResultSet rs = null;
-	@Deprecated
-	transient org.apache.jena.query.QuerySolution curSt = null;
 
 	@Deprecated
 	transient DATABASE_TYPE engineType = IDatabaseEngine.DATABASE_TYPE.SESAME;
-	// IDatabase engine = null;
 	@Deprecated
 	transient BindingSet bs;
-	@Deprecated
-	transient String query = null;
-	@Deprecated
-	static final Logger classLogger = LogManager.getLogger(SesameJenaSelectCheater.class);
+
 	@Deprecated
 	transient int count = 0;
 	@Deprecated
@@ -165,10 +158,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
 					for (int colIndex = 0; colIndex < names.size(); var[colIndex] = names.get(colIndex), colIndex++) {
 						;
 					}
-				} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-					var = proxy.getVariables();
 				}
-
 			}
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -195,74 +185,9 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
 				}
 			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.JENA) {
 				retBool = rs.hasNext();
-			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				if (retSt != null) { // they have not taken the previous one yet
-					return true;
-				}
-				retSt = new SesameJenaConstructStatement();
-
-				// I need to pull from remote
-				// this is just so stupid to call its own
-				if (ris == null) {
-					Hashtable params = new Hashtable<String, String>();
-					params.put("id", proxy.getRemoteId());
-					ris = new ObjectInputStream(Utility.getStream(proxy.getRemoteAPI() + "/next", params));
-				}
-
-				if (count == 0) {
-					Object myObject = ris.readObject();
-					if (!myObject.toString().equalsIgnoreCase("null")) {
-						bs = (BindingSet) myObject;
-						retBool = true;
-					}
-					// tqrCount++;
-					// logger.info(tqrCount);
-				}
-				classLogger.debug("Adding a sesame statement ");
-
-				// there should only be three values
-
-				Object sub = null;
-				Object pred = null;
-				Object obj = null;
-				while (sub == null || pred == null || obj == null) {
-					if (count == triples) {
-						count = 0;
-						Object myObject = ris.readObject();
-						if (!myObject.toString().equalsIgnoreCase("null")) {
-							bs = (BindingSet) myObject;
-							tqrCount++;
-						} else {
-							try {
-								if (ris != null) {
-									ris.close();
-								}
-							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
-							}
-						}
-					}
-					sub = bs.getValue(queryVar[count * 3].substring(1));
-					pred = bs.getValue(queryVar[count * 3 + 1].substring(1));
-					obj = bs.getValue(queryVar[count * 3 + 2].substring(1));
-					count++;
-				}
-				retSt.setSubject(sub + "");
-				retSt.setPredicate(pred + "");
-				retSt.setObject(obj);
-				if (count == triples) {
-					count = 0;
-				}
-				retBool = true;
 			}
 		} catch (RuntimeException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
-			retBool = false;
-		} catch (ClassNotFoundException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			retBool = false;
-		} catch (IOException ioe) {
-			classLogger.error(Constants.STACKTRACE, ioe);
 			retBool = false;
 		} catch (QueryEvaluationException ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
@@ -323,11 +248,7 @@ public class SesameJenaSelectCheater extends SesameJenaConstructWrapper {
 				thisSt.setSubject(row.get(var[0]) + "");
 				thisSt.setPredicate(row.get(var[1]) + "");
 				thisSt.setObject(row.get(var[2]));
-			} else if (engineType == IDatabaseEngine.DATABASE_TYPE.SEMOSS_SESAME_REMOTE) {
-				thisSt = retSt;
-				retSt = null;
 			}
-
 		} catch (Exception ex) {
 			classLogger.error(Constants.STACKTRACE, ex);
 		}

@@ -153,7 +153,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 			}
 
 			JsonObject thisChunkJson = new JsonObject();
-			thisChunkJson.addProperty("id", row.getSource().replaceAll(" ", "_") + "-" + fileCounter++);
+			thisChunkJson.addProperty("id", row.getSource().replace(" ", "_") + "-" + fileCounter++);
 			JsonArray thisEmbeddingVector = new JsonArray();
 			for (Double d : vector) {
 				thisEmbeddingVector.add(d);
@@ -206,6 +206,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 			return fileStatusList;
 		} catch (Exception e) {
+			classLogger.error("Failed to upsert embeddings to Pinecone; marking all files as FAILED", e);
 			for (Map.Entry<String, Integer> entry : fileRecordCountMap.entrySet()) {
 				fileStatusList
 						.add(new FileEmbeddingStatus(entry.getKey(), "FAILED", 0, entry.getValue(), entry.getValue()));
@@ -249,7 +250,7 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				if (paginationToken != null) {
 					listVectorsUrl += PAGINATION_TOKEN + paginationToken;
 				} else {
-					listVectorsUrl += PREFIX + fileName.replaceAll(" ", "_") + HASH;
+					listVectorsUrl += PREFIX + fileName.replace(" ", "_") + HASH;
 				}
 
 				String idListResponse = HttpHelperUtility.getRequest(listVectorsUrl, headersMap, null, null, null);

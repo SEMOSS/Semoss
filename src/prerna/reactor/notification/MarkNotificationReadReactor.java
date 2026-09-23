@@ -29,6 +29,7 @@ package prerna.reactor.notification;
 
 import java.sql.Timestamp;
 
+import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
@@ -48,15 +49,15 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		if (!Utility.isNotificationDatabaseEnabled()) {
 			throw new IllegalArgumentException("Notifications are not enabled on this instance");
 		}
-		if (this.insight.getUser() == null
-				|| (AbstractSecurityUtils.anonymousUsersEnabled() && this.insight.getUser().isAnonymous())) {
+		User user = this.insight.getUser();
+		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
 			throwAnonymousUserError();
 		}
 
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		NotificationDbUtils.markNotificationRead(this.insight.getUser(), notificationId, readAt);
+		NotificationDbUtils.markNotificationRead(user, notificationId, readAt);
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}

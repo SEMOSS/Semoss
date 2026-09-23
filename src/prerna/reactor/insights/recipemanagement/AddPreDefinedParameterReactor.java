@@ -28,6 +28,7 @@
 package prerna.reactor.insights.recipemanagement;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,8 +36,6 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jasypt.encryption.pbe.StandardPBEByteEncryptor;
-import org.jasypt.exceptions.EncryptionOperationNotPossibleException;
 
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IDatabaseEngine;
@@ -50,6 +49,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.PBEncryptionUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -168,13 +168,13 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 							paramList.add(paramMap);
 						}
 					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to build pre-defined parameters for database {}", databaseId, e);
 					} finally {
 						if (wrapper != null) {
 							try {
 								wrapper.close();
 							} catch (IOException e) {
-								classLogger.error(Constants.STACKTRACE, e);
+								classLogger.error("Failed to close the query wrapper for database {}", databaseId, e);
 							}
 						}
 					}
@@ -208,14 +208,12 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	 * @return
 	 */
 	private String getDecryptedQuery(Map<String, Object> exportParam) {
-		StandardPBEByteEncryptor encryptor = new StandardPBEByteEncryptor();
-		encryptor.setPassword(getPassword());
 		byte[] encryptedQuery = getInputQuery(exportParam.get("list").toString());
 		if (encryptedQuery != null) {
 			try {
-				byte[] queryBytes = encryptor.decrypt(encryptedQuery);
+				byte[] queryBytes = PBEncryptionUtility.decrypt(encryptedQuery, getPassword());
 				return new String(queryBytes);
-			} catch (EncryptionOperationNotPossibleException e) {
+			} catch (GeneralSecurityException | IllegalArgumentException e) {
 				// ignore
 				// if the query is not encrypted
 				return exportParam.get("list").toString();
@@ -245,7 +243,6 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 	 */
 	private static String getPassword() {
 		if (AddPreDefinedParameterReactor.password != null) {
-//			logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
 			return AddPreDefinedParameterReactor.password;
 		}
 
@@ -258,7 +255,6 @@ public class AddPreDefinedParameterReactor extends AbstractInsightParameterReact
 					.getDIHelperProperty(Constants.PM_SEMOSS_EXECUTE_SQL_ENCRYPTION_PASSWORD);
 		}
 
-//		logger.debug("Decrypting with password >> " + AddPreDefinedParameterReactor.password);
 		return AddPreDefinedParameterReactor.password;
 	}
 

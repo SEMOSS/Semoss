@@ -50,13 +50,13 @@ public class VoteEngineReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		
+
 		if (Utility.isUserTrackingDisabled()) {
 			return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.USER_TRACKING_DISABLED);
 		}
-		
+
 		String engineId = this.keyValue.get(this.keysToGet[0]);
-		if (engineId == null || (engineId=engineId.trim()).isEmpty()) {
+		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Engine Id cannot be empty or null");
 		}
 
@@ -70,12 +70,17 @@ public class VoteEngineReactor extends AbstractReactor {
 		}
 
 		List<Pair<String, String>> creds = User.getUserIdAndType(this.insight.getUser());
-		
+
 		UserCatalogVoteUtils.vote(creds, engineId, vote);
 
 		NounMetadata noun = new NounMetadata(true, PixelDataType.BOOLEAN);
 		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully voted for engine " + engineId));
 		return noun;
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Records the current user's up or down vote on an engine, used for catalog usability scoring.";
 	}
 
 }

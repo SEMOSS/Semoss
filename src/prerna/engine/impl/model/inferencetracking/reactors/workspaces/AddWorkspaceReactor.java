@@ -55,7 +55,7 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public AddWorkspaceReactor() {
 		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
-				SKILLS, PLATFORM_SKILLS };
+				SKILLS, USE_DEFAULT_AGENT_TOOLS };
 		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -77,16 +77,24 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		String workspaceDescription = this.keyValue.get(DESCRIPTION);
 		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
+		boolean useDefaultToolsProvided = getGenRowStruct(USE_DEFAULT_AGENT_TOOLS) != null;
+		Boolean useDefaultTools = null;
+		if (useDefaultToolsProvided) {
+			String raw = this.keyValue.get(USE_DEFAULT_AGENT_TOOLS);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(USE_DEFAULT_AGENT_TOOLS + " must be true or false");
+			}
+			useDefaultTools = Boolean.valueOf(raw);
+		}
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
 		List<Map<String, Object>> dependencyList = new ArrayList<>();
 		List<Map<String, String>> workspaceResources = new ArrayList<>();
 		Set<String> skillIds = new LinkedHashSet<>();
-		Set<String> platformSkills = getGenRowStruct(PLATFORM_SKILLS) != null ? new LinkedHashSet<>() : null;
 		try {
 			validateWorkspaceInputs(user, workspaceId, null, null, engines, projectDependencies, dependencyList,
-					workspaceResources, skillIds, platformSkills);
+					workspaceResources, skillIds);
 		} catch (IllegalArgumentException e) {
 			return getError(e.getMessage());
 		}
@@ -94,13 +102,14 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 		IProject workspaceProject = null;
 		try {
 			workspaceProject = ProjectHelper.createWorkspaceProject(workspaceId, workspaceName,
-					IProject.PROJECT_TYPE.WORKSPACE, false, false, null, null, null, user, logger);
+					IProject.PROJECT_TYPE.WORKSPACE, false, null, null, user, logger);
 			SecurityProjectUtils.updateProjectDependencies(user, workspaceId, dependencyList);
 			ModelInferenceLogsUtils.createNewWorkspaceEntry(workspaceId, user.getPrimaryLoginToken().getId(),
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
 			try {
 				mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies,
-						skillIds, platformSkills);
+						skillIds, false, null, null, null, false, null, false, null,
+						useDefaultToolsProvided, useDefaultTools);
 			} catch (Exception mirrorEx) {
 				classLogger.warn(
 						"Created workspace '{}' but failed to mirror system_prompt/mcps/skills into CONFIG_JSON (legacy writes already succeeded)",

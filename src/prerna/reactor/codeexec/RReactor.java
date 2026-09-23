@@ -103,7 +103,7 @@ public final class RReactor extends AbstractRFrameReactor {
 
 		// set the code variable for the ICodeExecution interface
 		String code = this.curRow.get(0).toString();
-		logger.info("Execution r script: " + code);
+		logger.info("Execution r script: {}", code);
 		this.addExecutedCode(code);
 
 		// bifurcation for ggplot
@@ -138,7 +138,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		String panelId = "new_ggplot_panel";
 		String fileName = Utility.getRandomString(6);
 		String dir = insight.getUserFolder() + "/Temp";
-		dir = dir.replaceAll("\\\\", "/");
+		dir = dir.replace("\\\\", "/");
 		File tempDir = new File(dir);
 		if (!tempDir.exists()) {
 			tempDir.mkdir();
@@ -210,7 +210,7 @@ public final class RReactor extends AbstractRFrameReactor {
 		Logger logger = getLogger(CLASS_NAME);
 		AbstractRJavaTranslator rJavaTranslator = this.insight.getRJavaTranslator(logger);
 		// run the ggplotter command
-		System.err.println("Running ggplotter string.. " + ggplotter);
+		logger.debug("Running ggplotter string.. {}", ggplotter);
 		String fName = rJavaTranslator.runRAndReturnOutput(ggplotter.toString());
 
 		// get file name
@@ -295,14 +295,14 @@ public final class RReactor extends AbstractRFrameReactor {
 			sw.write("<img src='data:" + mimeType + ";base64," + encodedString + "'>");
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			logger.error(Constants.STACKTRACE, e);
+			logger.error("Failed to read and base64 encode ggplot output image '{}'", retFile, e);
 		}
 
 		if (animate) {
 			ggplotCommand = ggplotCommand + " + animate";
 		}
 
-		ggplotCommand = ggplotCommand.replaceAll("\"", "\\\\\"");
+		ggplotCommand = ggplotCommand.replace("\"", "\\\\\"");
 		// remove the variable
 		rJavaTranslator.runRAndReturnOutput(ggremove);
 

@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -52,11 +53,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String INTRODUCTION = "introduction";
 	private static final String PYTHON = "python";
 	private static final String JAVA = "java";
+	private static final String JAVASCRIPT = "javascript";
 	private static final String PIXEL = "pixel";
+	private static final String GUARDRAIL = "guardrail";
 	private static final String LANGCHAIN = "LANGCHAIN";
 	private static final String OPENAI = "OPENAI";
 	private static final String ANTHROPIC = "ANTHROPIC";
 	private static final String OLLAMA = "OLLAMA";
+
 	private static final String ENGINE_ID_PLACEHOLDER = "<engineid>";
 	private static final String API_ENDPOINT_PLACEHOLDER = "<apiendpoint>";
 	private static final String OPENAI_ENDPOINT_PLACEHOLDER = "<openaiendpoint>";
@@ -67,8 +71,10 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PIXEL_LABEL = "How to use in REST via Pixel";
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
+	private static final String JAVASCRIPT_LABEL = "How to use in JavaScript/TypeScript with the @semoss/sdk";
+	private static final String GUARDRAIL_LABEL = "How to configure the guardrail pipeline JSON";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
-	private static final String OPENAI_LABEL = "How to use externally with OpenAI API";
+	private static final String OPENAI_LABEL = "How to use with the OpenAI API";
 	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API";
 	private static final String OLLAMA_LABEL = "How to use externally with Ollama API";
 
@@ -77,21 +83,43 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	// Shared platform primer appended to every engine's Introduction section so the
 	// orientation text lives in one place instead of being repeated per channel.
 	private static final String PLATFORM_INTRODUCTION = """
-			**How to reach this engine**
-			<br/>
-			<br/>
+			## How to reach this engine
 
-			**REST via Pixel** - submit Pixel (the platform's server-side scripting language) to the `runPixel` REST endpoint. It returns a JSON envelope where each executed expression's result is at `pixelReturn[i].output`.
-			<br/>
-			**Python** - classes that generate the Pixel and unwraps the JSON response into a plain Python dict.
-			<br/>
-			<br/>
+			Every engine is addressed by its `engineId` and does the same work no matter which channel calls it. Pick the tab that matches where your code runs:
 
-			A note on `<encode>` in Pixel: wrapping a string argument in `<encode>...</encode>` (for example `command = "<encode>She said "hi" to O'Brien</encode>"`) URL-encodes that text before parsing, so inner quotes and special characters do not need escaping. It is entirely optional. If you are programmatically generating Pixel, it is usually simpler and less error-prone to skip `<encode>` and instead escape inner double quotes with `\\"` and reserve `<encode>` for cases where escaping by hand would be tedious.
-			<br/>
-			<br/>
+			| Tab | Where it runs | What it calls |
+			| --- | --- | --- |
+			| Pixel | anywhere that can make a REST call | the platform's server-side scripting language, submitted to the `runPixel` endpoint. Every other channel wraps it, so this tab is the reference for what each operation actually does |
+			| JavaScript/TypeScript | app front ends | `runPixel` from the `@semoss/sdk` package |
+			| Python | notebooks and server-side scripts | engine classes from the `ai_server` package, which build the Pixel and hand back a plain dict |
+			| Java | reactors and other server-side code | `Utility` helpers |
 
-			Each section lists the common operations and shows the return structure.
+			Some engine types add further tabs, for example LangChain adapters or an OpenAI-compatible endpoint for a Model engine.
+
+			## Reading a response
+
+			`runPixel` returns a JSON envelope rather than a bare result:
+
+			| Field | What it tells you |
+			| --- | --- |
+			| `pixelReturn[i].output` | the result of the i-th expression you submitted. This is the payload each tab documents |
+			| `pixelReturn[i].operationType` | `["ERROR"]` means that expression failed and its `output` is the error message |
+			| `pixelReturn[i].isMeta` | `true` marks a bookkeeping entry; skip them |
+			| `insightID` | identifies the session the Pixel ran under. Reuse it to keep server-side state across calls |
+
+			The SDKs unwrap most of that for you. The Python engine classes return `pixelReturn[0].output` directly, and `runPixel` from `@semoss/sdk` returns the parsed envelope alongside an `errors` array it pre-collects from every `ERROR` entry, so one check covers both transport and application failures.
+
+			## Escaping text inside Pixel
+
+			Wrapping a string argument in `<encode>...</encode>` URL-encodes that text before it is parsed, so inner quotes and special characters do not need escaping:
+
+			```
+			command = "<encode>She said "hi" to O'Brien</encode>"
+			```
+
+			It is entirely optional. When you generate Pixel programmatically it is usually simpler to escape inner double quotes with `\\"` and save `<encode>` for text that would be tedious to escape by hand.
+
+			The remaining tabs list the common operations for this engine, each with an example call and the shape it returns.
 			""";
 
 	private static class EngineSelection {
@@ -154,6 +182,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return getVectorUsage(engineId);
 		case FUNCTION:
 			return getFunctionUsage(engineId);
+		case GUARDRAIL:
+			return getGuardrailUsage(engineId);
 		default:
 			return getPendingUsage();
 		}
@@ -163,17 +193,25 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Model** engine wraps one specific LLM (chat + embeddings) behind a single, consistent interface, so provider differences (OpenAI, Anthropic, Ollama, and others) are abstracted away and you interact with all of them the same way.
-						<br/>
-						<br/>
+						A **Model** engine wraps one specific LLM behind a single, consistent interface, so provider differences (OpenAI, Anthropic, Ollama, and others) are abstracted away and every model is called the same way.
 
-						Model/chat calls are *stateful* by default: a **room** object is created with each call which holds the conversation history, so follow-up calls can build on earlier turns. Pass a `roomId` (Pixel) / `room_id` (Python) to keep a thread going, or omit it and the current insight id will be used as the room identifier.
-						<br/>
-						<br/>
+						## What you can do
 
-						Responses use schemaVersion 2: `response` is the convenience concatenated text, while `parts` is the full ordered content (text, tool_call, media, ...) that can mix modalities in a single turn. `messageType` (`CHAT`, `TOOL`, `IMAGE`) summarizes the turn.
-						<br/>
-						<br/>
+						| Capability | How |
+						| --- | --- |
+						| Generate text | send a prompt and get the model's answer back |
+						| Hold a conversation | chat calls are stateful by default; a *room* holds the history so follow-up turns build on earlier ones |
+						| Send media | pass a public URL or an uploaded file of any type (image, pdf, document, spreadsheet, audio, video); what the model can actually read depends on the model |
+						| Constrain the output | pass a JSON schema and get schema-valid JSON back |
+						| Create embeddings | turn text into vectors, usually to store in a Vector engine |
+
+						## Key concepts
+
+						| Concept | What to know |
+						| --- | --- |
+						| Rooms | pass a `roomId` (Pixel, JavaScript) or `room_id` (Python) to keep a thread going. Omit it and the current insight id is used as the room identifier |
+						| schemaVersion 2 responses | `response` is the concatenated text kept for convenience; `parts` is the full ordered content and can mix modalities in one turn (text, thinking, tool_call, tool_result, media). `messageType` (`CHAT`, `TOOL`, `IMAGE`) summarizes the turn |
+						| Token accounting | every response carries `numberOfTokensInPrompt` and `numberOfTokensInResponse`, plus cache and thinking counts when the provider reports them |
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -250,11 +288,13 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						]
 						```
 
-						Generation with Image
+						Generation with Media
+
+						`media` takes the name of a file already uploaded to the insight or room, or a base64 data uri. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model.
 
 						```
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", url = "https://your_image_url.com");
-						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Image</encode>", image = "myImage.png");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Media</encode>", url = "https://your_image_url.com");
+						LLM(engine = "<engineid>", roomId = "my_room_id", command = "<encode>Sample Question With Media</encode>", media = "myReport.pdf");
 						```
 
 						Example Output
@@ -319,14 +359,207 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						""",
 				engineId);
 
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
+				"""
+						Getting Started
+
+						`runPixel` from `@semoss/sdk` submits Pixel from an app front end and returns the parsed envelope, so the model answer is at `pixelReturn[0].output`.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const MODEL_ID = "<engineid>";
+						const prompt = "Sample Question";
+
+						const { errors, pixelReturn } = await runPixel(
+						  `LLM(engine="${MODEL_ID}", command=["${prompt}"], paramValues=[{"temperature":0.3, "max_completion_tokens":2000}]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const response = pixelReturn[0].output.response;
+						```
+
+						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `output` is the same schemaVersion 2 map documented in the Pixel section (`response`, `parts`, `messageType`, `messageId`, `roomId`, token counts).
+
+						The variations below show only the Pixel string, the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call, the `errors` check, and the response parsing are the same as above.
+
+						Insight Sessions
+
+						`runPixel(pixel, insightId)` takes an optional second argument. Pass `"new"` to start a fresh insight and reuse the returned `insightId` on every later call in that session; omit it to run on the app's current insight.
+
+						```typescript
+						const { insightId, pixelReturn } = await runPixel(
+						  `LLM(engine="${MODEL_ID}", command=["Sample Question"]);`,
+						  "new",
+						);
+						```
+
+						Generation with ChatML
+
+						Pass a `full_prompt` array inside `paramValues` to control the conversation history for that call. `command` is ignored when `full_prompt` is present, so pass `"ignore"` as a placeholder.
+
+						```
+						LLM(engine="${MODEL_ID}", command=["ignore"], paramValues=[{
+						    "full_prompt": [
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    "max_completion_tokens": 2000,
+						    "temperature": 0.3
+						}]);
+						```
+
+						Structured Outputs
+
+						Pass `schema` in `paramValues` for models that support schema-constrained generation. `response` comes back as a JSON string, so parse it with `JSON.parse`.
+
+						```
+						LLM(engine="${MODEL_ID}", command=["Sample Question"], paramValues=[{"schema": {"type":"object","properties":{"sample_property":{"type":"string"}},"required":["sample_property"]}}]);
+						```
+
+						Generation with Media
+
+						Pass either a public `url` or a server-accessible `media` filename as a top-level argument. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model. Use `roomId` to thread several media turns into one conversation.
+
+						```
+						LLM(engine="${MODEL_ID}", roomId="my_room_id", command=["What is in this image?"], url="https://your_image_url.com");
+						LLM(engine="${MODEL_ID}", roomId="my_room_id", command=["What is in this file?"], media="myReport.pdf");
+						```
+
+						Attaching Uploaded Files
+
+						Sending a file with a prompt is always two calls, in order: upload the bytes, then reference the returned `fileLocation`. The bytes are never re-sent.
+
+						```typescript
+						import { uploadInsight } from "@semoss/sdk";
+
+						// data is one { fileName, fileLocation } per input file, in input order
+						const { data: uploaded } = await uploadInsight(insightId, "", files);
+						```
+
+						The helper posts to `{MODULE}/api/uploadFile/baseUpload?insightId=...&path=...&userSpace=false` with every file under the same form field name, `file`. If you call that endpoint directly, do not set `Content-Type` by hand - the browser has to set it so the multipart boundary is added - and send the request with the session cookie.
+
+						Each uploaded file then travels as a `MEDIA` part alongside the user's `TEXT` part:
+
+						```typescript
+						const parts = [{ type: "TEXT", text: prompt, uiText: prompt }];
+						for (const f of uploaded) {
+						  parts.push({
+						    type: "MEDIA",
+						    mediaInfo: {
+						      fileName: f.fileName,
+						      fileLocation: f.fileLocation,
+						      mediaInputType: "FILE",
+						      base64Data: "",
+						      fileFormat: "",
+						      mimeType: "",
+						    },
+						  });
+						}
+						```
+
+						Threaded Chat with a Room
+
+						A room is a durable conversation that owns the history `roomId` threads into. Create it on a new insight, bind the insight to it once, then pass `roomId` on every turn.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const { errors, pixelReturn, insightId } = await runPixel<[{ roomId: string }]>(
+						  `CreatePlaygroundRoom();`,
+						  "new",
+						);
+						if (errors.length) throw new Error(errors[0]);
+
+						const roomId = pixelReturn[0].output.roomId;
+
+						// bind this insight to the room so later turns are recorded against it
+						await runPixel(`SetRoomForInsight(roomId="${roomId}");`, insightId);
+
+						await runPixel(
+						  `LLM(engine="${MODEL_ID}", roomId="${roomId}", command=["Hello"]);`,
+						  insightId,
+						);
+						```
+
+						Read the history back with `GetPlaygroundMessages(roomId=["${roomId}"]);`. It returns one object per turn carrying `io` (`INPUT` or `OUTPUT`), `messageId`, `parentMessageId`, and the same `parts` array documented in the Pixel section.
+
+						Streaming a Response
+
+						`runPixel` buffers the whole answer and returns only the final value. To render tokens as they arrive, submit the job with `runPixelAsync`, poll `getPixelJobStreaming` with the returned `jobId` until a chunk carries `finish_reason`, then collect the final envelope with `getPixelAsyncResult`.
+
+						```typescript
+						import {
+						  runPixelAsync,
+						  getPixelJobStreaming,
+						  getPixelAsyncResult,
+						} from "@semoss/sdk";
+
+						const { jobId } = await runPixelAsync(
+						  `LLM(engine="${MODEL_ID}", command=["Sample Question"]);`,
+						);
+
+						let done = false;
+						while (!done) {
+						  const { message, status } = await getPixelJobStreaming(jobId);
+						  for (const chunk of message) {
+						    if (chunk.stream_type === "content" && chunk.data.content) {
+						      appendToUi(chunk.data.content);
+						    }
+						    if (chunk.data.finish_reason) done = true;
+						  }
+						  if (status === "Complete" || status === "Error") done = true;
+						  if (!done) await new Promise((resolve) => setTimeout(resolve, 500));
+						}
+
+						const { errors, results } = await getPixelAsyncResult(jobId);
+						```
+
+						Chunks arrive with a `stream_type` of `content`, `thinking`, or `tool`, matching the `TEXT`, `THINKING`, and `TOOL_CALL` parts of the final message.
+
+						Embeddings
+
+						```
+						Embeddings(engine="${MODEL_ID}", values=["Sample String 1", "Sample String 2"], paramValues=[{}]);
+						```
+
+						`pixelReturn[0].output.response` holds one vector per input string.
+
+						Listing Available Models
+
+						Use `MyEngines` with `engineTypes=["MODEL"]` to show only the models the current user can reach, then feed the chosen `engine_id` into the calls above.
+
+						```typescript
+						const { errors, pixelReturn } = await runPixel(
+						  `MyEngines(engineTypes=["MODEL"], limit=[50], offset=[0]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const models = pixelReturn[0].output as Array<{
+						  engine_id: string;
+						  engine_name: string;
+						  engine_display_name: string;
+						  engine_subtype: string; // for example "CLAUDE", "OPEN_AI", "VERTEX"
+						  engine_favorite: 0 | 1;
+						}>;
+						```
+
+						`MyEngines` also accepts `filterWord=["claude"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
+						""",
+				engineId);
+
 		addUsage(usage, PYTHON, PYTHON_LABEL,
 				"""
 						Method Parameters<br/>
 						`command` (str): prompt sent to the model.<br/>
 						`room_id` (Optional[str]): conversation identifier.<br/>
 						`context` (Optional[str]): system prompt context.<br/>
-						`image` (Optional[List]): base64 image payload(s).<br/>
-						`url` (Optional[List]): image URL(s).<br/>
+						`media` (Optional[List]): file names already uploaded to the insight or room, or base64 payload(s). Any file type - image, pdf, document, spreadsheet, audio, video.<br/>
+						`url` (Optional[List]): media URL(s).<br/>
 						`use_history` (Optional[bool]): include history for this call.<br/>
 						`param_dict` (Optional[Dict]): model/provider parameters.<br/>
 						`insight_id` (Optional[str]): insight identifier.<br/>
@@ -388,14 +621,14 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						]
 						```
 
-						Generation with Image / Vision
+						Generation with Media
 
-						Use only for models that support image input.
+						`media` accepts file names already uploaded to the insight or room, or base64 data. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can read depends on the model, so use this only with a model that supports the type you are sending.
 
 						```python
-						prompt = 'Sample Command With Image'
+						prompt = 'Sample Command With Media'
 						output = model.ask(command = prompt, url=['https://your_image_url.com'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
-						output = model.ask(command = prompt, image=['base64_of_image'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
+						output = model.ask(command = prompt, media=['myReport.pdf'], param_dict={'max_completion_tokens':2000,'temperature':0.3})
 						```
 
 						Example Output
@@ -531,130 +764,200 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				```
 				""", engineId);
 
-		addUsage(usage, OPENAI, OPENAI_LABEL, """
-				Direct Client Setup (without sdk)
-				```python
-				from openai import OpenAI
+		addUsage(usage, OPENAI, OPENAI_LABEL,
+				"""
+						## In the platform
+						Client Setup
+						```python
+						# Python running in the platform is already authenticated, so there is no api key and no base url to set.
+						# Which models you can reach is decided based on the user's access, the same as everywhere else in the platform.
+						from openai import OpenAI
 
-				# access key + secret key format
-				client = OpenAI(
-				    api_key="<accesskey>:<secretkey>",
-				    base_url="<openaiendpoint>"
-				)
-				```
+						client = OpenAI()
+						```
 
-				Chat Completions (without sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"}
-				    ]
-				)
-				print(response.choices[0].message.content)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						response.choices[0].message.content
+						```
 
-				Responses API (without sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?"
-				)
-				print(response.output[0].text)
-				```
+						Streaming
+						```python
+						for chunk in client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Count from 1 to 5."}],
+						    stream=True
+						):
+						    if chunk.choices and chunk.choices[0].delta.content:
+						        print(chunk.choices[0].delta.content, end="")
+						```
 
-				Legacy Completions (Deprecated by OpenAI, without sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    extra_body={"insight_id":"<optional insight id>"}
-				)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						response.output_text
+						```
 
-				Embeddings (without sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"]
-				)
-				```
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
 
-				Client Setup (with sdk)
+						Continuing a conversation
+						```python
+						# Each call starts a new room unless you name one to carry the history.
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Where was it played?"}],
+						    extra_body={"room_id": "<your room id>"}
+						)
+						```
 
-				SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
-				```python
-				# Requires user access/secret, service account, or bearer token
-				import ai_server
-				server_connection=ai_server.ServerClient(
-				    base="<apiendpoint>",
-				    access_key="<your access key>",
-				    secret_key="<your secret key>"
-				)
+						Listing the models you can reach
+						```python
+						[model.id for model in client.models.list().data]
+						```
 
-				# Configure the OpenAI client to route through this Semoss instance
-				from openai import OpenAI
-				import httpx as httpx
-				http_client = httpx.Client()
-				http_client.cookies=server_connection.cookies
+						## External, direct OpenAI client
+						Client Setup
+						```python
+						from openai import OpenAI
 
-				client = OpenAI(
-				    api_key="EMPTY",
-				    base_url=server_connection.get_openai_endpoint(),
-				    default_headers=server_connection.get_auth_headers(),
-				    http_client=http_client
-				)
-				```
+						# access key + secret key format
+						client = OpenAI(
+						    api_key="<accesskey>:<secretkey>",
+						    base_url="<openaiendpoint>"
+						)
+						```
 
-				Chat Completions (with sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"},
-				        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-				        {"role": "user", "content": "Where was it played?"}
-				    ],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						print(response.choices[0].message.content)
+						```
 
-				Responses API (with sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?",
-					# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				print(response.output[0].text)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						print(response.output[0].text)
+						```
 
-				Legacy Completions (Deprecated by OpenAI, with sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    extra_body={"insight_id":"<optional insight id>"}
+						)
+						```
 
-				Embeddings (with sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
-				""", engineId);
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
+
+						## External, with the ai-server-sdk
+						Client Setup
+
+						SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
+						```python
+						# Requires user access/secret, service account, or bearer token
+						import ai_server
+						server_connection=ai_server.ServerClient(
+						    base="<apiendpoint>",
+						    access_key="<your access key>",
+						    secret_key="<your secret key>"
+						)
+
+						# Configure the OpenAI client to route through this Semoss instance
+						from openai import OpenAI
+						import httpx as httpx
+						http_client = httpx.Client()
+						http_client.cookies=server_connection.cookies
+
+						client = OpenAI(
+						    api_key="EMPTY",
+						    base_url=server_connection.get_openai_endpoint(),
+						    default_headers=server_connection.get_auth_headers(),
+						    http_client=http_client
+						)
+						```
+
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?",
+							# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						print(response.output[0].text)
+						```
+
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+						""",
+				engineId);
 
 		addUsage(usage, ANTHROPIC, ANTHROPIC_LABEL, """
 				Direct Client Setup
@@ -719,13 +1022,20 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Storage** engine is a file/object store (for example a cloud bucket or a mounted filesystem) exposed behind one consistent interface. You reference files by a `storagePath` inside the engine and move them to and from a local `filePath`.
-						<br/>
-						<br/>
+						A **Storage** engine is a file or object store, for example a cloud bucket or a mounted filesystem, exposed behind one consistent interface. You address content by a `storagePath` inside the engine and move it to and from a local `filePath`.
 
-						Common operations are: list paths, list path details (name, size, mime type, modified time, metadata), upload/download single files, sync a folder in either direction, and delete. Uploads can attach arbitrary key-value `metadata`.
-						<br/>
-						<br/>
+						## What you can do
+
+						- **List** - the names under a path, or full details for each entry (name, size, mime type, modified time, metadata).
+						- **Download** - pull a single file, or sync a whole folder down to local.
+						- **Upload** - push a single file, or sync a local folder up. Uploads can attach arbitrary key-value `metadata`.
+						- **Delete** - remove a path, optionally leaving the folder structure in place.
+
+						## Key concepts
+
+						- **Paths, not handles.** Every operation takes a `storagePath` relative to the engine root. There is nothing to open or close.
+						- **Metadata travels with the file.** Key-value pairs attached at upload come back on the detail listing.
+						- **Transfers report a boolean.** Upload, download, sync, and delete return `true` on success and surface failures as an error rather than a partial result.
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -835,7 +1145,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 
 						Example Output (transfer + delete operations)
 
-						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, `SyncLocalToStorage`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+						`PullFromStorage`, `PushToStorage`, `SyncStorageToLocal`, and `DeleteFromStorage` all return a boolean `true` in `output` on success (they throw an error, surfaced as `operationType` `["ERROR"]`, on failure).
+
+						`SyncLocalToStorage` instead returns the outcome of the sync, so a run where only some files made it can be told apart from a clean one:
+
+						```json
+						{
+						    "storagePath": "your/storage/path",
+						    "status": "SUCCESS",
+						    "uploadedFiles": ["your/storage/path/a.csv"],
+						    "skippedFiles": ["your/storage/path/b.csv"],
+						    "failedFiles": []
+						}
+						```
+
+						`status` is `SUCCESS` when nothing failed, `PARTIAL` when some files made it and others did not, and `FAILED` when none did. `skippedFiles` are files already in storage and unchanged, so they were not rewritten. Engines that hand the whole transfer off in a single call cannot name individual files and report `SUCCESS` with empty lists, so an empty `uploadedFiles` means "not reported", not "nothing uploaded".
 
 						```json
 						{
@@ -852,6 +1176,89 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						    ]
 						}
 						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
+				"""
+						Getting Started
+
+						`runPixel` from `@semoss/sdk` submits Pixel from an app front end and returns the parsed envelope. Storage pixels put their payload directly at `pixelReturn[0].output` rather than wrapping it in a tabular `data` object.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const STORAGE_ID = "<engineid>";
+
+						const { errors, pixelReturn } = await runPixel(
+						  `Storage(storage="${STORAGE_ID}") | ListStoragePath(storagePath="/your/storage/path");`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const paths = pixelReturn[0].output as string[];
+						```
+
+						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `runPixel(pixel, insightId)` takes an optional second argument: pass `"new"` to start a fresh insight and reuse the returned `insightId` for the rest of the session, or omit it to run on the app's current insight.
+
+						The variations below show only the Pixel string, the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call and the `errors` check are the same as above.
+
+						List Path Details
+
+						Returns one object per file/folder with `Path`, `Name`, `Size` (bytes), `MimeType`, `ModTime` (null for folders), `IsDir`, and `Metadata` (an empty map when none exists).
+
+						```
+						Storage(storage="${STORAGE_ID}") | ListStoragePathDetails(storagePath="/your/storage/path");
+						```
+
+						Download from Storage
+
+						```
+						Storage(storage="${STORAGE_ID}") | PullFromStorage(storagePath="/your/storage/path", filePath="/your/local/path");
+						```
+
+						Upload to Storage
+
+						```
+						Storage(storage="${STORAGE_ID}") | PushToStorage(storagePath="/your/storage/path", filePath="/your/local/path", metadata=[{"metaKey":"metaValue"}]);
+						```
+
+						Sync a Folder
+
+						```
+						Storage(storage="${STORAGE_ID}") | SyncStorageToLocal(storagePath="/your/storage/path", filePath="/your/local/path");
+						Storage(storage="${STORAGE_ID}") | SyncLocalToStorage(storagePath="/your/storage/path", filePath="/your/local/path", metadata=[{"metaKey":"metaValue"}]);
+						```
+
+						Delete from Storage
+
+						```
+						Storage(storage="${STORAGE_ID}") | DeleteFromStorage(storagePath="/your/storage/path", leaveFolderStructure=false);
+						```
+
+						The transfer and delete operations return a boolean `true` in `output` on success and surface failures through `errors`.
+
+						Listing Available Storage Engines
+
+						Use `MyEngines` with `engineTypes=["STORAGE"]` to show only the storage engines the current user can reach, then feed the chosen `engine_id` into the calls above.
+
+						```typescript
+						const { errors, pixelReturn } = await runPixel(
+						  `MyEngines(engineTypes=["STORAGE"], limit=[50], offset=[0]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const storageEngines = pixelReturn[0].output as Array<{
+						  engine_id: string;
+						  engine_name: string;
+						  engine_display_name: string;
+						  engine_subtype: string;
+						  engine_favorite: 0 | 1;
+						}>;
+						```
+
+						`MyEngines` also accepts `filterWord=["reports"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
 						""",
 				engineId);
 
@@ -994,17 +1401,21 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Database** engine is a connected data source (RDBMS, RDF, Graph, NoSQL, etc.) you query behind one consistent interface. For ease of documentation, we will assume a SQL database, but the query can be replaced with SPARQL, Gremlin, etc. query based on the database type.
-						<br/>
-						<br/>
+						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others).
+						Choose a supported query route for the actual engine: SqlQuery for relational engines, SparqlQuery for RDF SELECTs, and structured Database | Select | Collect pipelines for Tinker/JanusGraph/DataStax graph engines.
+						Those graph engines translate structured queries to Gremlin/Cypher internally
 
-						Run `SELECT` queries to read rows and `INSERT`/`UPDATE`/`DELETE` to modify data.
-						<br/>
-						<br/>
+						## What you can do
 
-						You can also fetch the database structure (logical and physical table/column or vertex/property names plus data types), which is useful for building queries or grounding an LLM. Select-style calls take a row `limit`; modification calls take a `commit` flag.
-						<br/>
-						<br/>
+						- **Read** - run a `SELECT` and get back rows plus per-column metadata. Select-style calls take a row `limit`.
+						- **Write** - run `INSERT`, `UPDATE`, or `DELETE`. Modification calls take a `commit` flag instead.
+						- **Inspect the schema** - fetch logical and physical table/column (or vertex/property) names with their data types. Useful both for building queries and for grounding an LLM.
+
+						## Key concepts
+
+						- **Results are tabular and positional.** `data.values` is an array of row arrays aligned to `data.headers`, and `headerInfo` describes each column's type.
+						- **Logical and physical names can differ.** The catalog can alias a table or column, so the structure call returns both and lets you map between what users see and what the database stores.
+						- **The statement type picks the path.** `SqlQuery` detects whether it was handed a read or a write and routes it accordingly, so the same command covers both.
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -1028,6 +1439,23 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 						SqlQuery(database = "<engineid>", query = "<encode> SELECT * FROM table_name </encode>", limit = 500);
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
+						```
+
+						Multiple SQL Statements<br/>
+						`SqlQuery` splits a multi-statement script, verifies database access for every
+						statement before execution, and executes the statements in order. It returns an ordered array in
+						`pixelReturn[0].output`. Each item includes `statement`, normalized `query`, `route`, `status`,
+						`type`, `timeToRun`, and either table `output` or a `message`. Execution stops on the first error;
+						later entries are marked `SKIPPED`.
+						A batch is not atomic: with `commit = true`, each successful write uses the normal committed write
+						path, so earlier writes remain committed if a later statement fails.
+						```
+						SqlQuery(
+						  database = "<engineid>",
+						  query = "<encode> SELECT COUNT(*) AS before_count FROM orders; INSERT INTO orders(id) VALUES (42); SELECT COUNT(*) AS after_count FROM orders; </encode>",
+						  limit = 500,
+						  commit = true
+						);
 						```
 
 						Example Output (select query)
@@ -1090,6 +1518,137 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 						SqlQueryBase64(database = "<engineid>", query = "U0VMRUNUICogRlJPTSB0YWJsZV9uYW1lOw==", limit = 500);
 						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
+				"""
+						Getting Started
+
+						`runPixel` from `@semoss/sdk` submits Pixel from an app front end and returns the parsed envelope, so the tabular result is at `pixelReturn[0].output.data`.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const DATABASE_ID = "<engineid>";
+						const sql = "SELECT ID, AGE, GENDER FROM DIABETES";
+
+						const { errors, pixelReturn } = await runPixel(
+						  `SqlQuery(database="${DATABASE_ID}", query="${sql}", limit=500);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const { headers, values } = pixelReturn[0].output.data;
+						// headers: ["ID", "AGE", "GENDER"]
+						// values:  [["1000", 59, "female"], ["1001", 68, "female"]]
+						```
+
+						For multiple statements, read the result array instead:
+
+						```typescript
+						const sql = `
+						  SELECT COUNT(*) AS before_count FROM orders;
+						  INSERT INTO orders(id) VALUES (42);
+						  SELECT COUNT(*) AS after_count FROM orders;
+						`;
+
+						const { errors, pixelReturn } = await runPixel(
+						  `SqlQuery(database="${DATABASE_ID}", query="<encode>${sql}</encode>", limit=500, commit=true);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						for (const result of pixelReturn[0].output) {
+						  if (result.type === "TABLE") {
+						    console.log(result.output.headers, result.output.values);
+						  } else {
+						    console.log(result.status, result.message);
+						  }
+						}
+						```
+
+						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `output` is the same map documented in the Pixel section (`data.values`, `data.headers`, `data.rawHeaders`, `headerInfo`, `sources`, `numCollected`).
+
+						`runPixel(pixel, insightId)` takes an optional second argument: pass `"new"` to start a fresh insight and reuse the returned `insightId` for the rest of the session, or omit it to run on the app's current insight.
+
+						The variations below show only the Pixel string, the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call and the `errors` check are the same as above.
+
+						Insert/Update/Delete Queries
+
+						Pass `commit=true` instead of `limit`. `SqlQuery` auto-detects the statement type, so the same pixel handles any modification.
+
+						```
+						SqlQuery(database="${DATABASE_ID}", query="UPDATE table_name SET column1 = value1 WHERE condition", commit=true);
+						```
+
+						Dynamic SQL
+
+						`SqlQueryBase64` takes the same arguments as `SqlQuery`; only the query format changes to a base64-encoded UTF-8 SQL string. Use it when the SQL carries quotes, newlines, or non-ASCII characters that are awkward to embed in a Pixel literal. Escape SQL string literals yourself - base64 protects the Pixel transport, not against SQL injection.
+
+						```typescript
+						function encodeUtf8Base64(value: string): string {
+						  const bytes = new TextEncoder().encode(value);
+						  let binary = "";
+						  for (const byte of bytes) binary += String.fromCharCode(byte);
+						  return btoa(binary);
+						}
+
+						function sqlString(value: string): string {
+						  return `'${value.replace(/'/g, "''")}'`;
+						}
+
+						const mutationSql = `INSERT INTO CUSTOMER_NOTES (CUSTOMER_NAME, NOTES) VALUES (${sqlString(customerName)}, ${sqlString(notes)});`;
+
+						const { errors } = await runPixel(
+						  `SqlQueryBase64(database="${DATABASE_ID}", query="${encodeUtf8Base64(mutationSql)}", commit=true);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+						```
+
+						When a write fails after it may have started, read the database state back before retrying - a blind retry can duplicate a partially completed mutation.
+
+						Get Database Structure
+
+						```
+						GetDatabaseTableStructure(database="${DATABASE_ID}");
+						```
+
+						Each row in `output.data.values` is a 6-tuple: logical table (RDBMS) or vertex (graph) name, logical column or property name, data type, whether the row is a graph vertex itself rather than a property on it, physical column/property name, and physical table/vertex name.
+
+						Mapping Rows to Objects
+
+						`data.values` is positional, so zip it against `data.headers` when you want records.
+
+						```typescript
+						const { headers, values } = pixelReturn[0].output.data;
+						const records = values.map((row) =>
+						  Object.fromEntries(headers.map((header, i) => [header, row[i]])),
+						);
+						```
+
+						Listing Available Databases
+
+						Use `MyEngines` with `engineTypes=["DATABASE"]` to show only the databases the current user can reach, then feed the chosen `engine_id` into the calls above.
+
+						```typescript
+						const { errors, pixelReturn } = await runPixel(
+						  `MyEngines(engineTypes=["DATABASE"], limit=[50], offset=[0]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const databases = pixelReturn[0].output as Array<{
+						  engine_id: string;
+						  engine_name: string;
+						  engine_display_name: string;
+						  engine_subtype: string; // for example "H2_DB", "POSTGRES", "MYSQL", "TINKER"
+						  engine_favorite: 0 | 1;
+						}>;
+						```
+
+						`MyEngines` also accepts `filterWord=["sales"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
 						""",
 				engineId);
 
@@ -1195,13 +1754,19 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Vector** engine indexes documents as embeddings so you can run semantic (nearest-neighbor) search - the backbone of retrieval-augmented generation (RAG). It handles chunking and embedding for you; you just add documents and query in natural language.
-						<br/>
-						<br/>
+						A **Vector** engine indexes documents as embeddings so you can search them by meaning rather than by keyword. It is the retrieval half of retrieval-augmented generation (RAG), and it handles the chunking and embedding for you.
 
-						Common operations are: list indexed documents (unique `Source` values), add documents (files or pre-chunked VectorCSV files, from the insight/room space or an app/user space), run a nearest-neighbor search with optional `filters`/`metaFilters`, and remove documents. Pair a Vector engine with a Model engine to answer questions grounded in your own content.
-						<br/>
-						<br/>
+						## What you can do
+
+						- **Add documents** - point at uploaded files and the engine chunks, embeds, and indexes them. Pre-chunked VectorCSV files skip the default splitter.
+						- **Search** - run a nearest-neighbor query in natural language, optionally scoped with `filters` (by source document) or `metaFilters` (by metadata attached at embed time).
+						- **List and remove** - see which documents are currently indexed, and drop the ones you no longer want.
+
+						## Key concepts
+
+						- **You get chunks, not documents.** A search returns the closest chunks, each carrying its `Content` plus provenance (`Source`, `Divider`, `Part`) so an answer can cite where it came from.
+						- **Files can live in several places.** Documents in the current insight or room are addressed by name; pass `space` to reach a project/app folder or the user space instead.
+						- **Pair it with a Model engine.** The usual flow is retrieve, then hand the chunk text to an LLM as grounding context. The Pixel and JavaScript tabs show the full chain.
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -1349,6 +1914,135 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						    ]
 						}
 						```
+						""",
+				engineId);
+
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
+				"""
+						Getting Started
+
+						`runPixel` from `@semoss/sdk` submits Pixel from an app front end and returns the parsed envelope. Vector pixels put their payload directly at `pixelReturn[0].output` rather than wrapping it in a tabular `data` object the way `SqlQuery` does.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const VECTOR_ID = "<engineid>";
+						const query = "Sample Search Statement";
+
+						const { errors, pixelReturn } = await runPixel(
+						  `VectorDatabaseQuery(engine="${VECTOR_ID}", command="${query}", limit=5, filters=[], metaFilters=[]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const hits = pixelReturn[0].output as Array<{
+						  Score: number;
+						  Content: string;
+						  Source: string;
+						  Modality: string;
+						  Divider: string;
+						  Part: string;
+						  Tokens: number;
+						}>;
+						```
+
+						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `runPixel(pixel, insightId)` takes an optional second argument: pass `"new"` to start a fresh insight and reuse the returned `insightId` for the rest of the session, or omit it to run on the app's current insight.
+
+						The variations below show only the Pixel string, the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call and the `errors` check are the same as above.
+
+						Filtering
+
+						`filters` matches the chunk's `Source`; `metaFilters` matches metadata keys attached at embed time. Both can be combined in the same call.
+
+						```
+						VectorDatabaseQuery(engine="${VECTOR_ID}", command="${query}", limit=5, filters=[Filter(Source == ["doc1.pdf", "doc2.pdf"])], metaFilters=[Filter(department == "finance")]);
+						```
+
+						List Indexed Documents
+
+						Returns one entry per unique `Source` currently indexed, each with `fileName`, `fileSize`, and `lastModified`.
+
+						```
+						ListDocumentsInVectorDatabase(engine="${VECTOR_ID}");
+						```
+
+						Add Documents
+
+						`space` is only needed when the files live outside the current insight: pass the project/app UUID, or `"user"` for the user space. `CreateEmbeddingsFromVectorCSVFile` takes csv (or zip-of-csv) files already chunked with the headers `Source`, `Modality`, `Divider`, `Part`, `Tokens`, `Content`.
+
+						```
+						CreateEmbeddingsFromDocuments(engine="${VECTOR_ID}", filePaths=["fileName1.pdf", "fileName2.pdf"]);
+						CreateEmbeddingsFromDocuments(engine="${VECTOR_ID}", filePaths=["docs/file1.pdf"], space="app_id");
+						CreateEmbeddingsFromVectorCSVFile(engine="${VECTOR_ID}", filePaths=["chunks.csv"]);
+						```
+
+						Embedding calls return a status string at `output` and a per-file breakdown at `pixelReturn[0].additionalOutput[0].output`, each entry carrying `fileName`, `status`, `insertedRecords`, `failedRecords`, and `totalRecords`.
+
+						```typescript
+						const perFile = pixelReturn[0].additionalOutput?.[0]?.output ?? [];
+						const failed = perFile.filter((f) => f.status !== "SUCCESS");
+						```
+
+						Remove Indexed Documents
+
+						Pass `fileNames`, the source identifiers listed by `ListDocumentsInVectorDatabase`, not file paths.
+
+						```
+						RemoveDocumentFromVectorDatabase(engine="${VECTOR_ID}", fileNames=["fileName1.pdf", "fileName2.pdf"]);
+						```
+
+						Retrieval-augmented Generation
+
+						The usual flow is two calls: retrieve the closest chunks, then hand them to a Model engine as grounding context.
+
+						```typescript
+						const MODEL_ID = "your_model_engine_id";
+
+						const { pixelReturn: retrieval } = await runPixel(
+						  `VectorDatabaseQuery(engine="${VECTOR_ID}", command="${question}", limit=3);`,
+						);
+
+						const context = retrieval[0].output
+						  .map((hit) => `* Document Name: ${hit.Source}, ${hit.Content}`)
+						  .join("\\n");
+
+						const prompt = `Answer the question using only the context below.
+
+						Question: ${question}
+
+						Context:
+						${context}`;
+
+						const { pixelReturn: answer } = await runPixel(
+						  `LLM(engine="${MODEL_ID}", command=["${prompt}"], paramValues=[{"temperature":0.1}]);`,
+						);
+
+						const text = answer[0].output.response;
+						```
+
+						Ask the model to cite `Source` and `Part`/`Divider` so the answer points back at the retrieved chunks.
+
+						Listing Available Vector Engines
+
+						Use `MyEngines` with `engineTypes=["VECTOR"]` to show only the vector engines the current user can reach, then feed the chosen `engine_id` into the calls above.
+
+						```typescript
+						const { errors, pixelReturn } = await runPixel(
+						  `MyEngines(engineTypes=["VECTOR"], limit=[50], offset=[0]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const vectorEngines = pixelReturn[0].output as Array<{
+						  engine_id: string;
+						  engine_name: string;
+						  engine_display_name: string;
+						  engine_subtype: string; // for example "FAISS", "CHROMA", "WEAVIATE"
+						  engine_favorite: 0 | 1;
+						}>;
+						```
+
+						`MyEngines` also accepts `filterWord=["policy"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
 						""",
 				engineId);
 
@@ -1544,12 +2238,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
 						A **Function** engine exposes a callable tool or API behind one consistent interface. You execute it with a map of named parameter values and it returns the tool's result.
-						<br/>
-						<br/>
 
-						Its parameter contract (each parameter's `name`, `type`, `description`, and whether it is `required`) is published alongside these snippets in the `parameters` field, and the example call below is pre-filled with this engine's actual parameters. Function engines are also what a Model engine calls when doing tool use.
-						<br/>
-						<br/>
+						## What you can do
+
+						- **Execute the tool** with a parameter map. The example calls in the other tabs come pre-filled with this engine's actual parameters.
+						- **Read the contract** - this engine's parameters are published alongside these snippets in the `parameters` field, each with its `name`, `type`, `description`, and whether it is `required`.
+
+						## Key concepts
+
+						- **This is what tool use calls.** When a Model engine performs tool use, the tools it invokes are Function engines. Calling one directly runs exactly what the model would have run, which makes it the fastest way to test a tool in isolation.
+						- **Parameters are named, not positional.** Pass a map keyed by parameter name; omit the optional ones.
 
 						"""
 						+ PLATFORM_INTRODUCTION,
@@ -1561,6 +2259,55 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				ExecuteFunctionEngine(engine = "<engineid>"<javastring>);
 				```
 				""".replace("<javastring>", pixelMapArg), engineId, paramInfo);
+
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
+				"""
+						Getting Started
+
+						`runPixel` from `@semoss/sdk` submits Pixel from an app front end and returns the parsed envelope, so the function result is at `pixelReturn[0].output`. The example call below is pre-filled with this engine's actual parameters.
+
+						```typescript
+						import { runPixel } from "@semoss/sdk";
+
+						const FUNCTION_ID = "<engineid>";
+
+						const { errors, pixelReturn } = await runPixel(
+						  `ExecuteFunctionEngine(engine="${FUNCTION_ID}"<jsstring>);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const output = pixelReturn[0].output;
+						```
+
+						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `runPixel(pixel, insightId)` takes an optional second argument: pass `"new"` to start a fresh insight and reuse the returned `insightId` for the rest of the session, or omit it to run on the app's current insight.
+
+						The engine's parameter contract is published alongside these snippets in the `parameters` field, where each entry carries `name`, `type`, `description`, and `required`.
+
+						Listing Available Function Engines
+
+						Use `MyEngines` with `engineTypes=["FUNCTION"]` to show only the function engines the current user can reach, then feed the chosen `engine_id` into the call above.
+
+						```typescript
+						const { errors, pixelReturn } = await runPixel(
+						  `MyEngines(engineTypes=["FUNCTION"], limit=[50], offset=[0]);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						const functionEngines = pixelReturn[0].output as Array<{
+						  engine_id: string;
+						  engine_name: string;
+						  engine_display_name: string;
+						  engine_subtype: string;
+						  engine_favorite: 0 | 1;
+						}>;
+						```
+
+						`MyEngines` also accepts `filterWord=["weather"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
+						"""
+						.replace("<jsstring>", pixelMapArg),
+				engineId, paramInfo);
 
 		addUsage(usage, PYTHON, PYTHON_LABEL, """
 				Getting Started
@@ -1584,20 +2331,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				IFunctionEngine function = Utility.getFunction("<engineid>");
 				```
 				""", engineId, paramInfo);
-		return usage;
-	}
-
-	private List<Map<String, Object>> getPendingUsage() {
-		List<Map<String, Object>> usage = new ArrayList<>();
-		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL, """
-				Detailed usage examples for this engine type are not available yet.
-				<br/>
-				<br/>
-
-				""" + PLATFORM_INTRODUCTION, null);
-		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
-		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
-		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
 		return usage;
 	}
 
@@ -1647,6 +2380,114 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return "\"string\"";
 		}
 		return type;
+	}
+
+	private List<Map<String, Object>> getGuardrailUsage(String engineId) {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		List<FunctionParameter> parameters;
+		List<String> requiredParameters;
+		String pipelineUsage;
+		if (SAMPLE_ENGINE_ID.equals(engineId)) {
+			parameters = List.of(new FunctionParameter("prompt", "String", "The text to evaluate"));
+			requiredParameters = List.of("prompt");
+			pipelineUsage = "Select a guardrail engine to view its default pipeline configuration.";
+		} else {
+			IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
+			parameters = getFunctionParameters(guardrailEngine);
+			requiredParameters = getRequiredFunctionParameters(guardrailEngine);
+			pipelineUsage = guardrailEngine.getDefaultMarkdown();
+			if (pipelineUsage == null || pipelineUsage.trim().isEmpty()) {
+				pipelineUsage = "This guardrail engine does not define a default pipeline configuration.";
+			}
+		}
+		List<Map<String, Object>> paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
+		String testArguments = buildGuardrailTestArguments(parameters, requiredParameters);
+
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Guardrail** engine evaluates selected input or output from another engine and returns a pass, block, mask, or replacement-response decision. Guardrails are normally referenced from another engine's `pipeline.json` rather than called directly.
+
+						## Pipeline placement
+
+						Save `pipeline.json` in the protected engine's assets folder and set `PIPELINE pipeline.json` in that engine's SMSS. The top-level `pipelines` map is keyed by intercepted Java method name, such as `askRoom` for model chat or `execute` for a function engine. Use `*` to apply a pipeline to every intercepted method.
+
+						## Execution order
+
+						- `input` guardrails run before the protected engine method. They can block, mask an argument, return a guardrail-provided response, or close a model room after a block.
+						- `output` guardrails run after the protected engine method. They can block the result or close a model room after a block.
+						- Entries run in list order. A failed blocking guardrail stops the remaining work.
+
+						## Tool-result continuations
+
+						`askRoom` carries both a user's turn and the agent loop's tool results, so a guardrail meant for user-typed text also screens every tool result. These optional `params` on an input guardrail let a mount skip the tool turns:
+
+						- `skipOnToolContinuationForAllTools` (boolean) skips every tool-result continuation and ignores the allowlist below.
+						- `skipOnToolContinuationForTools` (list) skips only when every tool result on the message names a listed tool. Names are the ones the model was given, so a tool served by another engine carries that engine's prefix, such as `a<engineid>_search`.
+						- `toolContinuationArg` (string, default `arg0`) names the argument holding the message, for an intercepted method that does not take it first.
+
+						A turn carrying user-written text is always screened, whatever these are set to. Skipping is not free: tool output is untrusted content, and a mount that skips it stops protecting the boundary where a web search or a file read can carry an injection. Prefer the allowlist, and keep a screening mount attached for the rest.
+						""",
+				engineId);
+
+		addUsage(usage, GUARDRAIL, GUARDRAIL_LABEL, pipelineUsage, engineId, paramInfo);
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						## Test the guardrail directly
+
+						`ExecuteGuardrailEngine` runs the guardrail by itself so you can test its decision and returned details before attaching it to another engine. This call does not exercise the input/output pipeline behavior such as blocking, masking, replacing a response, or closing a room.
+
+						```
+						ExecuteGuardrailEngine(engine = "<engineid>"<testarguments>);
+						```
+						"""
+						.replace("<testarguments>", testArguments),
+				engineId, paramInfo);
+		return usage;
+	}
+
+	private String buildGuardrailTestArguments(List<FunctionParameter> parameters, List<String> requiredParameters) {
+		List<FunctionParameter> testParameters = new ArrayList<>();
+		for (FunctionParameter parameter : parameters) {
+			if (requiredParameters.contains(parameter.getParameterName())) {
+				testParameters.add(parameter);
+			}
+		}
+		if (testParameters.isEmpty() && !parameters.isEmpty()) {
+			testParameters.add(parameters.get(0));
+		}
+
+		StringBuilder arguments = new StringBuilder();
+		for (FunctionParameter parameter : testParameters) {
+			arguments.append(", ").append(parameter.getParameterName()).append(" = ")
+					.append(getGuardrailTestValue(parameter));
+		}
+		return arguments.toString();
+	}
+
+	private String getGuardrailTestValue(FunctionParameter parameter) {
+		String type = parameter.getParameterType();
+		if ("string".equalsIgnoreCase(type)) {
+			if ("prompt".equalsIgnoreCase(parameter.getParameterName())) {
+				return "\"<encode>Sample text to evaluate</encode>\"";
+			}
+			return "\"sample value\"";
+		}
+		if ("boolean".equalsIgnoreCase(type)) {
+			return "true";
+		}
+		if ("double".equalsIgnoreCase(type) || "float".equalsIgnoreCase(type)) {
+			return "0.7";
+		}
+		if ("integer".equalsIgnoreCase(type) || "long".equalsIgnoreCase(type)) {
+			return "1";
+		}
+		if (type != null && type.toLowerCase().startsWith("list")) {
+			return "[\"sample value\"]";
+		}
+		if (type != null && type.toLowerCase().startsWith("map")) {
+			return "{}";
+		}
+		return "null";
 	}
 
 	/**
@@ -1704,18 +2545,35 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usageMap;
 	}
 
+	private List<Map<String, Object>> getPendingUsage() {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						Detailed usage examples for this engine type have not been written yet. The platform notes below still apply - every engine is reachable the same way, whichever type it is.
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				null);
+		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL, "Documentation pending", null);
+		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
+		return usage;
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return """
-				Builds tutorial-style usage snippets for a selected engine across Pixel, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, Guardrail pipeline JSON, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
 
-				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), and Function (callable tools) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `ai_server` Python SDK and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
+				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), Function (callable tools), and Guardrail (input/output policy checks) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
 
 				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
 				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
 				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
-				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does plus a shared "how to reach this engine" platform section. The remaining channels (`pixel`, `python`, `java`, ...) are per-integration.
+				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does. The remaining channels (`pixel`, `javascript`, `python`, `java`, `guardrail`, ...) are per-integration or configuration format.
 				- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
+				- The `javascript` channel covers the `@semoss/sdk` front-end package: `runPixel` (which returns the parsed envelope plus a pre-collected `errors` array), insight sessions, engine discovery via `MyEngines`, and, for Model engines, room-threaded chat, file uploads, and streaming through `runPixelAsync`/`getPixelJobStreaming`.
 				- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
 				- Function-engine responses also include `parameters`, where each item contains `name`, `type`, `description`, and `required`.
 				""";
@@ -1732,7 +2590,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
 			String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
 					IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
-					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString(),
+					IEngine.CATALOG_TYPE.GUARDRAIL.toString());
 			return """
 					Fallback engine catalog type used only when `engine` is not provided.
 

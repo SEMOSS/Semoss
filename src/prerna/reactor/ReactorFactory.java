@@ -66,16 +66,10 @@ import prerna.reactor.algorithms.CreateNLPVizReactor;
 import prerna.reactor.algorithms.NLPInstanceCacheReactor;
 import prerna.reactor.algorithms.NLSQueryHelperReactor;
 import prerna.reactor.algorithms.NaturalLanguageSearchReactor;
-import prerna.reactor.algorithms.RAlgReactor;
 import prerna.reactor.algorithms.RatioReactor;
 import prerna.reactor.algorithms.RunAnomalyReactor;
-import prerna.reactor.algorithms.RunClusteringReactor;
-import prerna.reactor.algorithms.RunLOFReactor;
 import prerna.reactor.algorithms.RunMatrixRegressionReactor;
-import prerna.reactor.algorithms.RunMultiClusteringReactor;
 import prerna.reactor.algorithms.RunNumericalCorrelationReactor;
-import prerna.reactor.algorithms.RunOutlierReactor;
-import prerna.reactor.algorithms.RunSimilarityReactor;
 import prerna.reactor.algorithms.UpdateNLPHistoryReactor;
 import prerna.reactor.algorithms.dataquality.GetDQRulesReactor;
 import prerna.reactor.algorithms.dataquality.RunDataQualityReactor;
@@ -149,7 +143,6 @@ import prerna.reactor.export.EmptyDataReactor;
 import prerna.reactor.export.GoogleUploaderReactor;
 import prerna.reactor.export.GrabScalarElementReactor;
 import prerna.reactor.export.IterateReactor;
-import prerna.reactor.export.OneDriveUploaderReactor;
 import prerna.reactor.export.ToCsvReactor;
 import prerna.reactor.export.ToDatabaseReactor;
 import prerna.reactor.export.ToExcelReactor;
@@ -343,13 +336,6 @@ import prerna.reactor.qs.source.FrameReactor;
 import prerna.reactor.qs.source.GoogleFileRetrieverReactor;
 import prerna.reactor.qs.source.GoogleListFilesReactor;
 import prerna.reactor.qs.source.JdbcSourceReactor;
-import prerna.reactor.qs.source.OneDriveFileRetrieverReactor;
-import prerna.reactor.qs.source.OneDriveListFilesReactor;
-import prerna.reactor.qs.source.SharePointDriveSelectorReactor;
-import prerna.reactor.qs.source.SharePointFileRetrieverReactor;
-import prerna.reactor.qs.source.SharePointListFilesReactor;
-import prerna.reactor.qs.source.SharePointSiteSelectorReactor;
-import prerna.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.reactor.qs.source.URLSourceReactor;
 import prerna.reactor.runtime.JavaReactor;
 import prerna.reactor.scheduler.ListAllJobsReactor;
@@ -400,11 +386,6 @@ import prerna.reactor.utils.VariableExistsReactor;
 import prerna.reactor.workflow.GetInsightDatasourcesReactor;
 import prerna.reactor.workflow.GetOptimizedRecipeReactor;
 import prerna.reactor.workflow.ModifyInsightDatasourceReactor;
-import prerna.reactor.workspace.DeleteUserAssetReactor;
-import prerna.reactor.workspace.MoveUserAssetReactor;
-import prerna.reactor.workspace.NewDirReactor;
-import prerna.reactor.workspace.UploadUserFileReactor;
-import prerna.reactor.workspace.UserDirReactor;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.usertracking.reactors.ExtractDatabaseMetaReactor;
@@ -480,7 +461,7 @@ public class ReactorFactory {
 		try {
 			additionalPackages = Utility.getDIHelperProperty(Constants.ADDITIONAL_REACTOR_PACKAGES);
 			if (additionalPackages != null && !(additionalPackages = additionalPackages.trim()).isEmpty()) {
-				classLogger.info("Loading additional reactors from packages [" + additionalPackages + "]");
+				classLogger.info("Loading additional reactors from packages [{}]", additionalPackages);
 				String[] packagesArr = additionalPackages.split(",");
 				for (String thisPackage : packagesArr) {
 					if (!(thisPackage = thisPackage.trim()).isEmpty()) {
@@ -497,6 +478,10 @@ public class ReactorFactory {
 		}
 
 		loadFromCP(packagesToLoad.toArray(new String[] {}));
+	}
+
+	public static void load() {
+		// do nothing, just so the load from CP happens on application startup
 	}
 
 	/**
@@ -564,11 +549,46 @@ public class ReactorFactory {
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error scanning classpath to load reactors", e);
 		}
 	}
 
-	// populates the frame agnostic reactors used by pixel
+	/**
+	 * Registers the frame agnostic reactors used by pixel.
+	 *
+	 * <p>
+	 * <b>DO NOT ADD NEW REACTORS HERE.</b> Reactors are discovered at runtime. The
+	 * static initializer calls this method first and then calls
+	 * {@link #loadFromCP(String...)}, which scans the classpath for every
+	 * {@link IReactor} implementation under "prerna" (plus anything listed in
+	 * ADDITIONAL_REACTOR_PACKAGES) and registers each one under its simple class
+	 * name with a trailing "Reactor" stripped. That scan runs last, so it
+	 * overwrites whatever this method put in the map.
+	 *
+	 * <p>
+	 * An entry added here therefore does nothing: the scan writes the identical
+	 * mapping a moment later. That is already true of 299 of the 316 active entries
+	 * below, which are pure duplicates kept only for historical reasons.
+	 *
+	 * <p>
+	 * To add a reactor, only write the class. Name it {@code <PixelName>Reactor},
+	 * put it in a package under "prerna", and {@code PixelName()} is callable on
+	 * the next startup with no change to this file. Renaming the class likewise
+	 * renames the pixel automatically.
+	 *
+	 * <p>
+	 * The 17 entries that do have an effect are aliases whose key cannot be derived
+	 * from any class name, such as "Mean" for AverageReactor or "GroupBy" for
+	 * GroupReactor. They exist to keep an already released pixel name working after
+	 * its class was renamed. Do not add more as a matter of style: name the class
+	 * after the pixel instead. An alias is only warranted when a pixel name that
+	 * already shipped has to keep resolving.
+	 *
+	 * <p>
+	 * Reactors in a {@code *.frame.*} package are routed by that same scan to the
+	 * frame specific maps (h2FrameHash, rFrameHash, pandasFrameHash,
+	 * tinkerFrameHash) rather than to this one.
+	 */
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
@@ -696,21 +716,11 @@ public class ReactorFactory {
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
 		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
-		// one drive
-		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
-		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
-		reactorHash.put("OneDriveFileRetriever", OneDriveFileRetrieverReactor.class);
 		// google
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
 
-		// share point
-		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
-		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
-		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
-		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
-		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 		// survey monkey
 		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
@@ -928,12 +938,6 @@ public class ReactorFactory {
 		reactorHash.put("FrameFilterModelNumericRange", FrameFilterModelNumericRangeReactor.class);
 
 		// Algorithm Reactors
-		reactorHash.put("rAlg", RAlgReactor.class);
-		reactorHash.put("RunClustering", RunClusteringReactor.class);
-		reactorHash.put("RunMultiClustering", RunMultiClusteringReactor.class);
-		reactorHash.put("RunLOF", RunLOFReactor.class);
-		reactorHash.put("RunSimilarity", RunSimilarityReactor.class);
-		reactorHash.put("RunOutlier", RunOutlierReactor.class);
 		reactorHash.put("Ratio", RatioReactor.class);
 		reactorHash.put("RunAnomaly", RunAnomalyReactor.class);
 
@@ -987,13 +991,6 @@ public class ReactorFactory {
 		// reactorHash.put("PullCloudApp", PullCloudAppReactor.class);
 		// reactorHash.put("SyncRedis", SyncRedisReactor.class);
 		// reactorHash.put("PullUserSpace", PullUserSpaceReactor.class);
-
-		// User Space
-		reactorHash.put("UploadUserFile", UploadUserFileReactor.class);
-		reactorHash.put("UserDir", UserDirReactor.class);
-		reactorHash.put("DeleteUserAsset", DeleteUserAssetReactor.class);
-		reactorHash.put("NewDir", NewDirReactor.class);
-		reactorHash.put("MoveUserAsset", MoveUserAssetReactor.class);
 
 		// Scheduler
 		reactorHash.put("ScheduleJob", ScheduleJobReactor.class);
@@ -1050,6 +1047,10 @@ public class ReactorFactory {
 		reactorHash.put("WEEK", WeekReactor.class);
 		reactorHash.put("MONTH", MonthReactor.class);
 		reactorHash.put("YEAR", YearReactor.class);
+
+		// Do not append new reactors below. See the javadoc on this method: the
+		// classpath scan in loadFromCP runs after this method and registers every
+		// reactor automatically, overwriting anything added here.
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {
@@ -1326,7 +1327,7 @@ public class ReactorFactory {
 				return reactor;
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Error instantiating reactor for {}", reactorId, e);
 		}
 
 		/*
@@ -1388,10 +1389,10 @@ public class ReactorFactory {
 								Class<? extends IReactor> reactorClass = (Class<? extends IReactor>) rawClass;
 								hash.put(reactorName, reactorClass);
 							} else {
-								classLogger.warn("Class " + classname + " does not implement IReactor interface!");
+								classLogger.warn("Class {} does not implement IReactor interface!", classname);
 							}
 						} catch (ClassNotFoundException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Could not find additional reactor class {}", classname, e);
 						}
 					}
 				}

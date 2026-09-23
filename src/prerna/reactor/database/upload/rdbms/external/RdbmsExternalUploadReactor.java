@@ -171,7 +171,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				updateExistingDatabase();
 				this.logger.info("Done updating existing database");
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to update existing database {}", Utility.cleanLogString(this.databaseId), e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -219,7 +219,8 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				 */
 				this.logger.info("Complete");
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to create new external database {}",
+						Utility.cleanLogString(this.databaseName), e);
 				this.error = true;
 				if (e instanceof SemossPixelException) {
 					throw (SemossPixelException) e;
@@ -293,10 +294,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		}
 
 		int stepCounter = 1;
-		logger.info(stepCounter + ". Create metadata for database...");
+		logger.info("{}. Create metadata for database...", stepCounter);
 		File owlFile = UploadUtilities.generateOwlFile(IEngine.CATALOG_TYPE.DATABASE, this.databaseId,
 				this.databaseName);
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
 		// the logical metamodel for the upload
@@ -308,7 +309,7 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				.get(ExternalJdbcSchemaReactor.TABLES_KEY);
 		List<Map<String, Object>> relationships = (List<Map<String, Object>>) newMetamodel
 				.get(ExternalJdbcSchemaReactor.RELATIONS_KEY);
-		logger.info(stepCounter + ". Create properties file for database...");
+		logger.info("{}. Create properties file for database...", stepCounter);
 		// Create default RDBMS database or Impala
 		String databaseClassName = RDBMSNativeEngine.class.getName();
 		this.database = new RDBMSNativeEngine();
@@ -318,10 +319,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		this.tempSmss = UploadUtilities.createTemporaryExternalRdbmsSmss(this.databaseId, this.databaseName, owlFile,
 				databaseClassName, driverEnum, connectionUrl, connectionDetails, jdbcPropertiesMap);
 		UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(this.databaseId, this.tempSmss.getAbsolutePath());
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Create database store...");
+		logger.info("{}. Create database store...", stepCounter);
 		database.setEngineId(this.databaseId);
 		database.setEngineName(this.databaseName);
 		Properties smssProps = Utility.loadProperties(tempSmss.getAbsolutePath());
@@ -329,10 +330,10 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 		if (!database.isConnected()) {
 			throw new IllegalArgumentException("Unable to connect to external database");
 		}
-		logger.info(stepCounter + ". Complete");
+		logger.info("{}. Complete", stepCounter);
 		stepCounter++;
 
-		logger.info(stepCounter + ". Start generating database metadata...");
+		logger.info("{}. Start generating database metadata...", stepCounter);
 		try (WriteOWLEngine owlEngine = this.database.getOWLEngineFactory().getWriteOWL()) {
 			// get the existing datatypes
 			// table names -> column name, column type
@@ -349,12 +350,12 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 			// commit and save the owl
 			owlEngine.commit();
 			owlEngine.export();
-			logger.info(stepCounter + ". Complete");
+			logger.info("{}. Complete", stepCounter);
 			stepCounter++;
 
-			logger.info(stepCounter + ". Process database metadata to allow for traversing across databases	");
+			logger.info("{}. Process database metadata to allow for traversing across databases", stepCounter);
 			UploadUtilities.updateMetadata(this.databaseId, user);
-			logger.info(stepCounter + ". Complete");
+			logger.info("{}. Complete", stepCounter);
 			stepCounter++;
 
 			if (originalFileLocation != null && originalFileLocation.exists()) {
@@ -362,9 +363,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 					FileUtils.forceDelete(originalFileLocation);
 				} catch (IOException e) {
 					// ignore but log
-					classLogger.error(Constants.STACKTRACE);
 					classLogger.warn(
-							"After successful upload, unable to delete sql database file uploaded into temp location");
+							"After successful upload, unable to delete sql database file uploaded into temp location {}",
+							originalFileLocation.getAbsolutePath(), e);
 				}
 			}
 		}
@@ -421,9 +422,9 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				// metamodel
 				existingMetamodel.forEach((existingTableName, columnsFromOld) -> {
 					boolean tableRemoved = false;
-					this.logger.info("Processing table " + Utility.cleanLogString(existingTableName) + " from owl");
+					this.logger.info("Processing table {} from owl", Utility.cleanLogString(existingTableName));
 					if (!newRDBMSStructure.containsKey(existingTableName)) {
-						this.logger.info("Removing table " + Utility.cleanLogString(existingTableName) + " from owl");
+						this.logger.info("Removing table {} from owl", Utility.cleanLogString(existingTableName));
 						owlEngine.removeConcept(existingTableName);
 						tableRemoved = true;
 					}
@@ -436,13 +437,14 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 											newColumnNames.get(existingColumnName)) != existingDataType) {
 								// track removed properties
 								removedProperties.put(existingTableName, existingColumnName);
-								this.logger.info("Removing column " + Utility.cleanLogString(existingColumnName)
-										+ " for table " + Utility.cleanLogString(existingTableName) + " from owl");
+								this.logger.info("Removing column {} for table {} from owl",
+										Utility.cleanLogString(existingColumnName),
+										Utility.cleanLogString(existingTableName));
 								owlEngine.removeProp(existingTableName, existingColumnName);
 							}
 						});
-						this.logger.info("Removing relationships associated with "
-								+ Utility.cleanLogString(existingTableName) + " from owl");
+						this.logger.info("Removing relationships associated with {} from owl",
+								Utility.cleanLogString(existingTableName));
 						removeRelationships(removedProperties, owlEngine);
 					}
 				});
@@ -452,17 +454,17 @@ public class RdbmsExternalUploadReactor extends AbstractReactor {
 				// metamodel
 				newRDBMSStructure.forEach((newTableName, columnsFromNew) -> {
 					if (!existingMetamodel.containsKey(newTableName)) {
-						this.logger.info("Adding table " + Utility.cleanLogString(newTableName) + "to owl");
+						this.logger.info("Adding table {} to owl", Utility.cleanLogString(newTableName));
 						owlEngine.addConcept(newTableName, null, null);
 					}
 
 					columnsFromNew.forEach((newColumnName, newDataType) -> {
-						this.logger.info("Adding column " + Utility.cleanLogString(newColumnName) + " to table "
-								+ Utility.cleanLogString(newTableName) + " from owl");
+						this.logger.info("Adding column {} to table {} from owl", Utility.cleanLogString(newColumnName),
+								Utility.cleanLogString(newTableName));
 						owlEngine.addProp(newTableName, newColumnName, newDataType, null, null);
 					});
 
-					this.logger.info("Adding relationships for new table " + Utility.cleanLogString(newTableName));
+					this.logger.info("Adding relationships for new table {}", Utility.cleanLogString(newTableName));
 					parseRelationships(owlEngine, relationships, newRDBMSStructure, nodesAndPrimKeys);
 				});
 

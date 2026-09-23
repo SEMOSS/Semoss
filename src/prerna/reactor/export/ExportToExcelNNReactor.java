@@ -31,12 +31,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Vector;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.SpreadsheetVersion;
@@ -83,27 +83,23 @@ import prerna.util.ChromeDriverUtility;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
-// export to excel non-native is the NN
 public class ExportToExcelNNReactor extends TableToXLSXReactor {
 
-	public static final String exportTemplate = "EXCEL_EXPORT_TEMPLATE";
+	private static final String EXPORT_TEMPLATE_KEY = "EXCEL_EXPORT_TEMPLATE";
 
 	public ExportToExcelNNReactor() {
-		this.keysToGet = new String[] {ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(), 
-				ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(), ReactorKeysEnum.EXPORT_AUDIT.getKey()};
-		this.keyRequired = new int[] {0,0,0,0,0};
+		this.keysToGet = new String[] { ReactorKeysEnum.FILE_NAME.getKey(), ReactorKeysEnum.FILE_PATH.getKey(),
+				ReactorKeysEnum.USE_PANEL.getKey(), ReactorKeysEnum.EXPORT_TEMPLATE.getKey(),
+				ReactorKeysEnum.EXPORT_AUDIT.getKey() };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		// get the number of sheets
-		// export each sheet using the insight definition
-		// Open excel
-		// embed each of the sheet
 		organizeKeys();
 		User user = this.insight.getUser();
-		// throw error is user doesn't have rights to export data
-		if(AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
+		// throw error if user doesn't have rights to export data
+		if (AbstractSecurityUtils.adminSetExporter() && !SecurityQueryUtils.userIsExporter(user)) {
 			AbstractReactor.throwUserNotExporterError();
 		}
 		String downloadKey = UUID.randomUUID().toString();
@@ -112,8 +108,8 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		insightFile.setDeleteOnInsightClose(true);
 
 		String insightFolder = this.insight.getInsightFolder();
-		if(keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
-			insightFolder =  Utility.normalizePath((String)keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
+		if (keyValue.containsKey(ReactorKeysEnum.FILE_PATH.getKey())) {
+			insightFolder = Utility.normalizePath(keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 			insightFile.setDeleteOnInsightClose(false);
 		}
 
@@ -122,63 +118,61 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		String imageUrl = this.insight.getLiveURL();
 		boolean panel = false;
 
-		if(keyValue.containsKey(ReactorKeysEnum.USE_PANEL.getKey())) {
-			String panelUse = (String) keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
+		if (keyValue.containsKey(ReactorKeysEnum.USE_PANEL.getKey())) {
+			String panelUse = keyValue.get(ReactorKeysEnum.USE_PANEL.getKey());
 			panel = panelUse.equalsIgnoreCase("yes") || panelUse.equalsIgnoreCase("true");
 		}
 
 		boolean exportAudit = false;
 		if (keyValue.containsKey(ReactorKeysEnum.EXPORT_AUDIT.getKey())) {
-			String auditParam = (String) keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
+			String auditParam = keyValue.get(ReactorKeysEnum.EXPORT_AUDIT.getKey());
 			exportAudit = auditParam.equalsIgnoreCase("yes") || auditParam.equalsIgnoreCase("true");
 		}
 
 		// see if someone has pushed a template file into insight
-		String template = insight.getProperty(exportTemplate);
-		// open a workbook
+		String template = insight.getProperty(EXPORT_TEMPLATE_KEY);
 
-		Map <String, InsightSheet> allSheets = insight.getInsightSheets();
-		Map <String, InsightPanel> allPanels = insight.getInsightPanels();
+		Map<String, InsightSheet> allSheets = insight.getInsightSheets();
+		Map<String, InsightPanel> allPanels = insight.getInsightPanels();
 
 		// sort out the panels by sheet
 		// only get the pivot panels
-		Map <String, InsightPanel> pivotPanelsBySheet = new HashMap<String, InsightPanel>();
-		Iterator <InsightPanel> allPanelsIterator = allPanels.values().iterator();
-		while(allPanelsIterator.hasNext()) {
+		Map<String, InsightPanel> pivotPanelsBySheet = new HashMap<String, InsightPanel>();
+		Iterator<InsightPanel> allPanelsIterator = allPanels.values().iterator();
+		while (allPanelsIterator.hasNext()) {
 			InsightPanel thisPanel = allPanelsIterator.next();
 			TaskOptions options = thisPanel.getLastTaskOptions();
 			// options can be null - example is text widget
-			if(options != null) {
+			if (options != null) {
 				String chartLayout = options.getLayout(thisPanel.getPanelId());
-				if(chartLayout.equalsIgnoreCase("PivotTable")) {
+				if (chartLayout.equalsIgnoreCase("PivotTable")) {
 					pivotPanelsBySheet.put(thisPanel.getSheetId(), thisPanel);
 				}
 			}
 		}
 
-		Iterator <String> keys = allSheets.keySet().iterator();
-		if(panel) {
+		Iterator<String> keys = allSheets.keySet().iterator();
+		if (panel) {
 			keys = allPanels.keySet().iterator();
 		}
 
 		XSSFWorkbook wb = null;
 		Object driver = null;
 		ChromeDriverUtility util = this.insight.getChromeDriver();
-		
 		try {
-			if(template != null) {
+			if (template != null) {
 				wb = new XSSFWorkbook(template);
 			} else {
 				wb = new XSSFWorkbook();
 			}
-			while(keys.hasNext()) {
+			while (keys.hasNext()) {
 				String thisKey = keys.next();
 				String sheetAppender = "";
 				String panelAppender = "";
 				String sheetLabel = "";
 				String sheetKey = "";
 
-				if(panel) {			   
+				if (panel) {
 					InsightPanel thisPanel = allPanels.get(thisKey);
 					panelAppender = "&panel=" + thisKey;
 
@@ -186,77 +180,73 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					sheetAppender = "&sheet=" + thisSheet.getSheetId();
 					sheetKey = thisSheet.getSheetId();
 					sheetLabel = thisSheet.getSheetLabel();
-					if(sheetLabel == null)
-						sheetLabel = "Sheet" + (Integer.parseInt(sheetKey) + 1); 
+					if (sheetLabel == null) {
+						sheetLabel = "Sheet" + (Integer.parseInt(sheetKey) + 1);
+					}
 					sheetLabel = sheetLabel + " Panel - " + thisKey;
 				} else {
 					InsightSheet thisSheet = allSheets.get(thisKey);
 
 					sheetAppender = "&sheet=" + thisKey;
-					sheetKey = thisKey;				   
+					sheetKey = thisKey;
 					sheetLabel = thisSheet.getSheetLabel();
-					if(sheetLabel == null) {
-						sheetLabel = "Sheet" + (Integer.parseInt(thisKey) + 1); 
+					if (sheetLabel == null) {
+						sheetLabel = "Sheet" + (Integer.parseInt(thisKey) + 1);
 					}
 				}
 
 				Sheet sheet = null;
-				if(template != null) {
+				if (template != null) {
 					sheet = wb.cloneSheet(wb.getSheetIndex("Template"));
 				} else {
 					sheet = wb.createSheet(sheetLabel);
 				}
 
-				if(!pivotPanelsBySheet.containsKey(thisKey)) {
+				if (!pivotPanelsBySheet.containsKey(thisKey)) {
 					// now capture the image and fill it
 					String prefixName = Utility.getRandomString(8);
 					String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "png");
 					String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
-					if(driver == null) {
+					if (driver == null) {
 						driver = util.makeChromeDriver(baseUrl, imageUrl + sheetAppender + panelAppender, 800, 600);
 					}
 					// download this file
-					util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 10_000);
+					util.captureImagePersistent(driver, baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation,
+							sessionId, 10_000);
 
-					// download this file
-					//ChromeDriverUtility.captureImage(baseUrl, imageUrl + sheetAppender + panelAppender, fileLocation, sessionId, 800, 600, true);
-					// write this to the sheet now
-
-					//1920 x 936
-					//FileInputStream obtains input bytes from the image file
+					// add the captured image to the sheet
+					// FileInputStream obtains input bytes from the image file
 					InputStream inputStream = new FileInputStream(fileLocation);
-					//Get the contents of an InputStream as a byte[].
+					// Get the contents of an InputStream as a byte[].
 					byte[] bytes = IOUtils.toByteArray(inputStream);
-					//Adds a picture to the workbook
+					// Adds a picture to the workbook
 					int pictureIdx = wb.addPicture(bytes, Workbook.PICTURE_TYPE_PNG);
-					//close the input stream
+					// close the input stream
 					inputStream.close();
 
 					FileUtils.forceDelete(new File(fileLocation));
 
-					//Returns an object that handles instantiating concrete classes
+					// Returns an object that handles instantiating concrete classes
 					CreationHelper helper = wb.getCreationHelper();
-					//Creates the top-level drawing patriarch.
+					// Creates the top-level drawing patriarch.
 					Drawing drawing = sheet.createDrawingPatriarch();
 
-					//Create an anchor that is attached to the worksheet
+					// Create an anchor that is attached to the worksheet
 					ClientAnchor anchor = helper.createClientAnchor();
 
-					//create an anchor with upper left cell _and_ bottom right cell
-					anchor.setCol1(1); //Column B
-					anchor.setRow1(2); //Row 3
-					anchor.setCol2(2); //Column C // doesnt matter
-					anchor.setRow2(4); //Row 4
+					// create an anchor with upper left cell _and_ bottom right cell
+					anchor.setCol1(1); // Column B
+					anchor.setRow1(2); // Row 3
+					anchor.setCol2(2); // Column C (col2/row2 are ignored after resize())
+					anchor.setRow2(4); // Row 4
 
-					//Creates a picture
+					// Creates a picture
 					Picture pict = drawing.createPicture(anchor, pictureIdx);
 					pict.resize();
 
-					//Reset the image to the original size
-					//pict.resize(); //don't do that. Let the anchor resize the image!
-					//Create the Cell B3
-					Cell cell = sheet.createRow(2).createCell(1);
+					// Create the Cell B3
+					sheet.createRow(2).createCell(1);
 				} else {
 					// this is the gen pivot logic
 					// need to write the data
@@ -266,54 +256,53 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					// make the frame
 					// call the genXLPivot
 					InsightPanel pivotPanel = pivotPanelsBySheet.get(thisKey);
-					TaskOptions taskOptions= pivotPanel.getLastTaskOptions();
+					TaskOptions taskOptions = pivotPanel.getLastTaskOptions();
 					ITask task = InsightUtility.constructTaskFromQs(this.insight, pivotPanel.getLastQs());
 					task.setLogger(this.getLogger(this.getClass().getName()));
 					task.setTaskOptions(taskOptions);
 
-					// I dont know if this can deal with older excel formats ?
-					Map <String, Object> columnMap = writeData((XSSFWorkbook)wb, (XSSFSheet)sheet, task, pivotPanel.getPanelFormatValues());
+					Map<String, Object> columnMap = writeData(wb, (XSSFSheet) sheet, task,
+							pivotPanel.getPanelFormatValues());
 
 					// get other data now
-					Map <String, Object> pivotMakerOptions = taskOptions.getAlignmentMap(pivotPanel.getPanelId());
+					Map<String, Object> pivotMakerOptions = taskOptions.getAlignmentMap(pivotPanel.getPanelId());
 					// get the rows
-					List <String> rows = (List <String>)pivotMakerOptions.get("rows");
-					List <String> columns = (List <String>)pivotMakerOptions.get("columns");
-					// calculations is being kept directly in task options so going to pick from there
-					List <String> values = (List <String>)taskOptions.getOptions().get("values");
+					List<String> rows = (List<String>) pivotMakerOptions.get("rows");
+					List<String> columns = (List<String>) pivotMakerOptions.get("columns");
+					// calculations is being kept directly in task options so going to pick from
+					// there
+					List<String> values = (List<String>) taskOptions.getOptions().get("values");
 
-					List <String> newValues = new Vector<String>();
-					List <String> functions = new Vector<String>();
+					List<String> newValues = new ArrayList<>();
+					List<String> functions = new ArrayList<>();
 					// now generate the pivot
 					// need to parse values and functions separately
-					for(int valIndex = 0;valIndex < values.size();valIndex++) {
-						Map<String, String> valueMap = new HashMap<String, String>();
+					for (int valIndex = 0; valIndex < values.size(); valIndex++) {
 						String curValue = values.get(valIndex);
 
 						// get the operator and selector
-						//String [] composite = curValue.split("(");
 						String operator = curValue.substring(0, curValue.indexOf("(")).trim();
-						String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length()-1).trim();
+						String operand = curValue.substring(curValue.indexOf("(") + 1, curValue.length() - 1).trim();
 						newValues.add(operand);
 						functions.add(operator);
 					}
 
-					genXLPivot((XSSFSheet)sheet, rows, columns, newValues, functions, columnMap);
+					genXLPivot((XSSFSheet) sheet, rows, columns, newValues, functions, columnMap);
 				}
 			}
 
 			// remove the template sheet when you finally save it
 			// it is no longer needed
-			if(template != null) {
+			if (template != null) {
 				wb.removeSheetAt(wb.getSheetIndex(wb.getSheet("Template")));
 			}
 
 			// process and apply the audit param sheet if the export Audit has been opted
 			// exportMap stores all the export related properties
 			if (exportAudit) {
-				makeParamSheet(wb, this.insight, false,exportMap);
+				makeParamSheet(wb, this.insight, false, exportMap);
 			}
-			String prefixName =  Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
+			String prefixName = Utility.normalizePath(this.keyValue.get(ReactorKeysEnum.FILE_NAME.getKey()));
 			String exportName = AbstractExportTxtReactor.getExportFileName(user, prefixName, "xlsx");
 			String fileLocation = insightFolder + DIR_SEPARATOR + exportName;
 
@@ -326,26 +315,23 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			}
 
 			insightFile.setFilePath(fileLocation);
-			// store the insight file 
-			// in the insight so the FE can download it
-			// only from the given insight
 			this.insight.addExportFile(downloadKey, insightFile);
 
-			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING, PixelOperationType.FILE_DOWNLOAD);
+			NounMetadata retNoun = new NounMetadata(downloadKey, PixelDataType.CONST_STRING,
+					PixelOperationType.FILE_DOWNLOAD);
 			retNoun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully generated the excel file"));
 			return retNoun;
 		} catch (IOException e) {
-			//classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("An error occurred generating the excel file");
+			throw new IllegalArgumentException("An error occurred generating the excel file", e);
 		} finally {
-			if(driver != null && driver instanceof ChromeDriver) {
-				((ChromeDriver)driver).quit();
+			if (driver != null && driver instanceof ChromeDriver) {
+				((ChromeDriver) driver).quit();
 			}
 		}
 	}
 
-
-	private Map<String, Object> writeData(XSSFWorkbook workbook, XSSFSheet sheet, ITask task, Map<String, Map<String, String>> panelFormatting) {
+	private Map<String, Object> writeData(XSSFWorkbook workbook, XSSFSheet sheet, ITask task,
+			Map<String, Map<String, String>> panelFormatting) {
 		CreationHelper createHelper = workbook.getCreationHelper();
 		// freeze the first row
 		sheet.createFreezePane(0, 1);
@@ -366,7 +352,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		timeStampCellStyle.setDataFormat(createHelper.createDataFormat().getFormat("dd-MM-yyyy HH:mm:ss"));
 
 		// the excel data row
-		// why is there an end row ?
+		// endRow > 0 only when writing into a pre-populated template sheet
 		Row excelRow = null;
 		int excelColStart = 0;
 		int curSheetCol = i + excelColStart;
@@ -411,21 +397,21 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 				typesArr[i] = SemossDataType.convertStringToDataType(headerInfo.get(i).get("type") + "");
 				additionalDataTypeArr[i] = headerInfo.get(i).get("additionalDataType") + "";
 				try {
-					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i], panelFormatting.get(headers[i]));
-				} catch(Exception e) {
+					stylingArr[i] = POIExportUtility.getCurrentStyle(workbook, additionalDataTypeArr[i],
+							panelFormatting.get(headers[i]));
+				} catch (Exception e) {
 					// ignore
 				}
-				if(stylingArr[i] == null) {
-					if(typesArr[i] == SemossDataType.DATE) {
+				if (stylingArr[i] == null) {
+					if (typesArr[i] == SemossDataType.DATE) {
 						stylingArr[i] = dateCellStyle;
-					} else if(typesArr[i] == SemossDataType.TIMESTAMP) {
+					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
 						stylingArr[i] = timeStampCellStyle;
 					}
 				}
 			}
 
 			// generate the data row
-			// ah it is creating the data row first time ok
 			if (excelRowCounter < endRow) {
 				excelRow = sheet.getRow(excelRowCounter++);
 			} else {
@@ -446,14 +432,14 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
@@ -463,7 +449,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 						cell.setCellValue(value + "");
 					}
 
-					if(stylingArr[i] != null) {
+					if (stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
 				}
@@ -492,14 +478,14 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 					} else if (typesArr[i] == SemossDataType.INT || typesArr[i] == SemossDataType.DOUBLE) {
 						cell.setCellValue(((Number) value).doubleValue());
 					} else if (typesArr[i] == SemossDataType.DATE) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
 					} else if (typesArr[i] == SemossDataType.TIMESTAMP) {
-						if(value instanceof SemossDate) {
-							cell.setCellValue( ((SemossDate) value).getDate() ) ;
+						if (value instanceof SemossDate) {
+							cell.setCellValue(((SemossDate) value).getDate());
 						} else {
 							cell.setCellValue(value + "");
 						}
@@ -509,7 +495,7 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 						cell.setCellValue(value + "");
 					}
 
-					if(stylingArr[i] != null) {
+					if (stylingArr[i] != null) {
 						cell.setCellStyle(stylingArr[i]);
 					}
 				}
@@ -535,32 +521,19 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		return columnMap;
 	}
 
-
 	// now generate the excel pivot
-	public void genXLPivot(XSSFSheet srcSheet, List <String> rows, List <String> columns, List <String> values, List <String> functions, Map <String, Object> columnMap)
-	{
-		// will never be the case
-		if(values.size() != functions.size())
-			return; // bye bye
-		// xl pivot method here
-		// assume data has been recorded on sheet1
-
-		//Workbook wb = new XSSFWorkbook();
+	public void genXLPivot(XSSFSheet srcSheet, List<String> rows, List<String> columns, List<String> values,
+			List<String> functions, Map<String, Object> columnMap) {
+		// values and functions must be paired 1:1
+		if (values.size() != functions.size()) {
+			return;
+		}
 
 		// find the upper limits and lower limits
-		/*
-		int firstRow = 	srcSheet.getFirstRowNum();
-		int firstCol = srcSheet.getRow(firstRow).getFirstCellNum();
-
-
-		int lastRow = srcSheet.getLastRowNum();
-		int lastCol = srcSheet.getRow(lastRow).getLastCellNum();
-		 */
-
-		int firstRow = (Integer)columnMap.get("startRow");
-		int firstCol = (Integer)columnMap.get("startCol");
-		int lastRow = (Integer)columnMap.get("endRow");
-		int lastCol = (Integer)columnMap.get("endCol");
+		int firstRow = (Integer) columnMap.get("startRow");
+		int firstCol = (Integer) columnMap.get("startCol");
+		int lastRow = (Integer) columnMap.get("endRow");
+		int lastCol = (Integer) columnMap.get("endCol");
 
 		// add an outline to the source sheet
 		// and collapse it
@@ -568,39 +541,38 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 		srcSheet.setColumnGroupCollapsed(firstCol, true);
 
 		// impute the headers
-		// I need to do this since everything uses cardinality
+		// build ordered header list so labels can be resolved to column indexes
 		Row headerRow = srcSheet.getRow(firstRow);
-		List <String> xlHeaders = new Vector<String>();
+		List<String> xlHeaders = new ArrayList<>();
 
-		for(int cellIndex = firstCol; cellIndex <= lastCol;cellIndex++)
+		for (int cellIndex = firstCol; cellIndex <= lastCol; cellIndex++) {
 			xlHeaders.add(headerRow.getCell(cellIndex).toString());
+		}
 
 		// compose the area to use
-		AreaReference pivSource = new AreaReference(new CellReference(firstRow,firstCol), new CellReference(lastRow, lastCol), SpreadsheetVersion.EXCEL2007);
-		//XSSFSheet pivSheet = (XSSFSheet) wb.createSheet();
+		AreaReference pivSource = new AreaReference(new CellReference(firstRow, firstCol),
+				new CellReference(lastRow, lastCol), SpreadsheetVersion.EXCEL2007);
 
-		String colName = CellReference.convertNumToColString(lastCol+2);
-
-		XSSFPivotTable pivotTable = srcSheet.createPivotTable(pivSource, new CellReference((firstRow+2),(lastCol+2)));
+		XSSFPivotTable pivotTable = srcSheet.createPivotTable(pivSource,
+				new CellReference((firstRow + 2), (lastCol + 2)));
 		pivotTable.getCTPivotTableDefinition().getPivotTableStyleInfo().setShowColHeaders(true);
 		pivotTable.getCTPivotTableDefinition().getPivotTableStyleInfo().setShowRowHeaders(true);
 
 		// and now we start adding the rows and columns
-		for(int rowIndex = 0;rowIndex < rows.size();rowIndex++)
-		{
+		for (int rowIndex = 0; rowIndex < rows.size(); rowIndex++) {
 			String rowHeader = rows.get(rowIndex);
 			int xlHeaderIndex = xlHeaders.indexOf(rowHeader);
 
 			// set the first header
-			if(rowIndex == 0)
+			if (rowIndex == 0) {
 				pivotTable.getCTPivotTableDefinition().setRowHeaderCaption(rowHeader);
+			}
 
 			pivotTable.addRowLabel(xlHeaderIndex);
 			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex).setOutline(false);
 		}
 
-
-		for(int valIndex = 0;valIndex < values.size();valIndex++) {
+		for (int valIndex = 0; valIndex < values.size(); valIndex++) {
 			String value = values.get(valIndex);
 			String function = functions.get(valIndex);
 
@@ -610,36 +582,17 @@ public class ExportToExcelNNReactor extends TableToXLSXReactor {
 			pivotTable.addColumnLabel(xlFun, xlHeaderIndex);
 		}
 
-		// adding columns 
-		for(int colIndex = 0;colIndex < columns.size();colIndex++)
-		{
+		// adding columns
+		for (int colIndex = 0; colIndex < columns.size(); colIndex++) {
 			String column = columns.get(colIndex);
-			int xlHeaderIndex = xlHeaders.indexOf(column);			
-			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex).setAxis(
-					org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis.AXIS_COL);
+			int xlHeaderIndex = xlHeaders.indexOf(column);
+			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex)
+					.setAxis(org.openxmlformats.schemas.spreadsheetml.x2006.main.STAxis.AXIS_COL);
 			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex).addNewItems();
-			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex).getItems().addNewItem().setT(
-					org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType.DEFAULT);
+			pivotTable.getCTPivotTableDefinition().getPivotFields().getPivotFieldArray(xlHeaderIndex).getItems()
+					.addNewItem().setT(org.openxmlformats.schemas.spreadsheetml.x2006.main.STItemType.DEFAULT);
 			pivotTable.getCTPivotTableDefinition().addNewColFields().addNewField().setX(xlHeaderIndex);
 		}
-
-		// use this for the section once the section comes in
-		// this adds a report filter
-		//pivotTable.addReportFilter(3);
-
-
-		//		try {
-		//		FileOutputStream fileOut = null;
-		//		   fileOut = new FileOutputStream("c:/users/pkapaleeswaran/workspacej3/temp/myTFile.xlsx");
-		//		   wb.write(fileOut);
-		//		   fileOut.close();
-		//	} catch (FileNotFoundException e) {
-		//		// TODO Auto-generated catch block
-		//		classLogger.error(Constants.STACKTRACE, e);
-		//	} catch (IOException e) {
-		//		// TODO Auto-generated catch block
-		//		classLogger.error(Constants.STACKTRACE, e);
-		//	}
 	}
 
 }

@@ -49,7 +49,6 @@ import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
-import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
 
@@ -167,7 +166,7 @@ public class RiGraph extends AbstractTableDataFrame {
 				bufferedWriter.write("\n");
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to write igraph relationship script to file {}", path, e);
 		} finally {
 			cleanUpWriters(writer, bufferedWriter);
 		}
@@ -190,14 +189,14 @@ public class RiGraph extends AbstractTableDataFrame {
 				bufferedWriter.close();
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close buffered writer for igraph import script", e);
 		}
 		try {
 			if (writer != null) {
 				writer.close();
 			}
 		} catch (IOException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close file writer for igraph import script", e);
 		}
 	}
 
