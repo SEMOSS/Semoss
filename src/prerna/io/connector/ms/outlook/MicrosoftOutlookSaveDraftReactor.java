@@ -78,7 +78,7 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractMicrosoftOutlookCo
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			// nothing is required, since a draft is meant to be finished by hand
 			ComposedMail composed = compose(false, "save a draft");

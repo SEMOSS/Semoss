@@ -55,6 +55,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
 	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
+	private static final String MS_GRAPH_SUBSCRIPTION_TABLE = "MS_GRAPH_SUBSCRIPTION";
 
 	/**
 	 * Retrieves the ID and alias for each configured Salesforce connection.
@@ -631,5 +632,241 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
 		}
 		return resultList.get(0);
+	}
+
+	/**
+	 * Records a Microsoft Graph change notification subscription, replacing
+	 * whatever was held for the same subscription id.
+	 *
+	 * <p>
+	 * The row is what lets any container answer a notification for this
+	 * subscription: the client state recognizes the delivery, and the tokens let
+	 * that container act as the user the subscription was made for without ever
+	 * having seen their session. Both are credentials at rest, kept the same way
+	 * the GitHub app's client secret and private key are kept in this database.
+	 * </p>
+	 *
+	 * @param subscriptionId  the id Microsoft Graph gave the subscription
+	 * @param userId          id of the user it was created for
+	 * @param userProvider    the login provider that id belongs to
+	 * @param userEmail       that user's address, for rebuilding their identity
+	 * @param clientState     the secret every notification echoes back
+	 * @param resource        what the subscription watches
+	 * @param changeType      which changes it hears about
+	 * @param notificationUrl where Graph posts them
+	 * @param expiration      when Graph stops sending, or null when unknown
+	 * @param accessToken     the user's Microsoft access token
+	 * @param refreshToken    the user's Microsoft refresh token, which is what
+	 *                        keeps the subscription usable once the access token
+	 *                        runs out
+	 * @param tokenExpiration when that access token runs out, or null when unknown
+	 */
+	public static void upsertMicrosoftGraphSubscription(String subscriptionId, String userId, String userProvider,
+			String userEmail, String clientState, String resource, String changeType, String notificationUrl,
+			Timestamp expiration, String accessToken, String refreshToken, Timestamp tokenExpiration) {
+		if (subscriptionId == null || (subscriptionId = subscriptionId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("A subscription id must not be empty.");
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			throw new IllegalArgumentException("A user id must not be empty.");
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Connection conn = null;
+		try {
+			conn = securityDb.getConnection();
+			Timestamp now = Utility.getCurrentSqlTimestampUTC();
+			// replacing rather than updating in place: a subscription id is Graph's to
+			// issue, so the same id arriving twice is the same subscription being
+			// recreated and the old row has nothing worth keeping
+			try (PreparedStatement ps = conn
+					.prepareStatement("DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?")) {
+				ps.setString(1, subscriptionId);
+				ps.executeUpdate();
+			}
+			String sql = "INSERT INTO " + MS_GRAPH_SUBSCRIPTION_TABLE + " (SUBSCRIPTION_ID, USER_ID, USER_PROVIDER, "
+					+ "USER_EMAIL, CLIENT_STATE, RESOURCE, CHANGE_TYPE, NOTIFICATION_URL, EXPIRATION, ACCESS_TOKEN, "
+					+ "REFRESH_TOKEN, TOKEN_EXPIRATION, CREATED_ON, UPDATED_ON) "
+					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				int i = 1;
+				ps.setString(i++, subscriptionId);
+				ps.setString(i++, userId);
+				ps.setString(i++, userProvider);
+				ps.setString(i++, userEmail);
+				ps.setString(i++, clientState);
+				ps.setString(i++, resource);
+				ps.setString(i++, changeType);
+				ps.setString(i++, notificationUrl);
+				ps.setTimestamp(i++, expiration);
+				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, accessToken, i++, securityGson);
+				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, refreshToken, i++, securityGson);
+				ps.setTimestamp(i++, tokenExpiration);
+				ps.setTimestamp(i++, now);
+				ps.setTimestamp(i++, now);
+				ps.execute();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to save the Microsoft Graph subscription.", e);
+			throw new SemossPixelException("Unable to save the Microsoft Graph subscription: " + e.getMessage(), e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
+		}
+	}
+
+	/**
+	 * Retrieves one Microsoft Graph subscription.
+	 *
+	 * @param subscriptionId the id a notification carried
+	 * @return a map of the subscription fields, or {@code null} when this
+	 *         deployment did not create it
+	 */
+	public static Map<String, Object> getMicrosoftGraphSubscription(String subscriptionId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildMicrosoftGraphSubscriptionSelect();
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("MS_GRAPH_SUBSCRIPTION__SUBSCRIPTION_ID", "==", subscriptionId));
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return resultList.isEmpty() ? null : resultList.get(0);
+	}
+
+	/**
+	 * Retrieves the Microsoft Graph subscriptions held for one user.
+	 *
+	 * @param userId the user to look for
+	 * @return their subscriptions, empty when they have none
+	 */
+	public static List<Map<String, Object>> getMicrosoftGraphSubscriptionsByUser(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildMicrosoftGraphSubscriptionSelect();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MS_GRAPH_SUBSCRIPTION__USER_ID", "==", userId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Builds the common selector list for {@code MS_GRAPH_SUBSCRIPTION} reads.
+	 *
+	 * @return a {@link SelectQueryStruct} selecting all subscription columns
+	 */
+	private static SelectQueryStruct buildMicrosoftGraphSubscriptionSelect() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__SUBSCRIPTION_ID", "subscriptionId"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_PROVIDER", "userProvider"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_EMAIL", "userEmail"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CLIENT_STATE", "clientState"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__RESOURCE", "resource"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CHANGE_TYPE", "changeType"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__NOTIFICATION_URL", "notificationUrl"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__EXPIRATION", "expiration"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__ACCESS_TOKEN", "accessToken"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__REFRESH_TOKEN", "refreshToken"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__TOKEN_EXPIRATION", "tokenExpiration"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CREATED_ON", "createdOn"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__UPDATED_ON", "updatedOn"));
+		qs.addOrderBy("MS_GRAPH_SUBSCRIPTION__CREATED_ON");
+		return qs;
+	}
+
+	/**
+	 * Pushes a subscription's recorded expiry back out, after Graph has agreed to
+	 * the same.
+	 *
+	 * @param subscriptionId the subscription that was renewed
+	 * @param expiration     when it now expires
+	 */
+	public static void updateMicrosoftGraphSubscriptionExpiration(String subscriptionId, Timestamp expiration) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Connection conn = null;
+		try {
+			conn = securityDb.getConnection();
+			String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE
+					+ " SET EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				ps.setTimestamp(1, expiration);
+				ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(3, subscriptionId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to record the renewal of Microsoft Graph subscription {}.", subscriptionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
+		}
+	}
+
+	/**
+	 * Writes back the token a container refreshed, so the next container to receive
+	 * a notification starts from the fresh one.
+	 *
+	 * <p>
+	 * A refresh token is single use in Microsoft Entra: the refresh that mints a
+	 * new access token mints a new refresh token with it and retires the old one.
+	 * Not writing the new pair back would leave every other container holding a
+	 * refresh token that has already been spent.
+	 * </p>
+	 *
+	 * @param subscriptionId  the subscription whose user was refreshed
+	 * @param accessToken     the new access token
+	 * @param refreshToken    the new refresh token
+	 * @param tokenExpiration when the new access token runs out
+	 */
+	public static void updateMicrosoftGraphSubscriptionToken(String subscriptionId, String accessToken,
+			String refreshToken, Timestamp tokenExpiration) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Connection conn = null;
+		try {
+			conn = securityDb.getConnection();
+			String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE + " SET ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, "
+					+ "TOKEN_EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
+			try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				int i = 1;
+				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, accessToken, i++, securityGson);
+				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, refreshToken, i++, securityGson);
+				ps.setTimestamp(i++, tokenExpiration);
+				ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(i++, subscriptionId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			classLogger.error("Failed to write back the refreshed token for Microsoft Graph subscription {}.",
+					subscriptionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
+		}
+	}
+
+	/**
+	 * Forgets a Microsoft Graph subscription. Only removes this deployment's record
+	 * of it; Graph keeps sending until the subscription itself is deleted.
+	 *
+	 * @param subscriptionId the subscription to forget
+	 * @throws SQLException if the delete cannot be run
+	 */
+	public static void deleteMicrosoftGraphSubscription(String subscriptionId) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		Connection conn = null;
+		try {
+			conn = securityDb.getConnection();
+			try (PreparedStatement ps = conn
+					.prepareStatement("DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?")) {
+				ps.setString(1, subscriptionId);
+				ps.executeUpdate();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
+		}
 	}
 }

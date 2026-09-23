@@ -80,7 +80,7 @@ public class MicrosoftOneDriveDeleteFileReactor extends AbstractMicrosoftOneDriv
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			MicrosoftOneDriveHelper.deleteItem(accessToken, driveId, itemId, path);
 
 			Map<String, Object> output = new LinkedHashMap<>();

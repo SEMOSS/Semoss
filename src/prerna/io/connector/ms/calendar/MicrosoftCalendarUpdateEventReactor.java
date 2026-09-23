@@ -87,7 +87,7 @@ public class MicrosoftCalendarUpdateEventReactor extends AbstractMicrosoftCalend
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> updated = MicrosoftCalendarHelper.updateEvent(accessToken, mailbox, calendarId, eventId,
 					changes, DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
 			return new NounMetadata(updated, PixelDataType.CUSTOM_DATA_STRUCTURE);

@@ -51,7 +51,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  *
  * <p>
  * What this means depends on whose event it is. An event the signed in user
- * organized is cancelled for everybody invited, and one they were only invited
+ * organized is canceled for everybody invited, and one they were only invited
  * to is removed from their own calendar and leaves everybody else's alone. To
  * turn down an invitation and say so, use
  * {@code MicrosoftCalendarRespondToEvent} instead.
@@ -79,7 +79,7 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			MicrosoftCalendarHelper.deleteEvent(accessToken, mailbox, calendarId, eventId);
 
 			Map<String, Object> output = new LinkedHashMap<>();
@@ -98,7 +98,7 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 
 	@Override
 	public String getReactorDescription() {
-		return "Delete an event from a Microsoft 365 calendar, the signed in user's own or one shared with them to write, cancelling it for the attendees when the calendar's owner organized it.";
+		return "Delete an event from a Microsoft 365 calendar, the signed in user's own or one shared with them to write, canceling it for the attendees when the calendar's owner organized it.";
 	}
 
 	@Override
