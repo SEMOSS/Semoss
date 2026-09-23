@@ -34,14 +34,14 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Filter;
+import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
 import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.filter.ThreadContextMapFilter;
+import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
-import org.apache.logging.log4j.core.util.KeyValuePair;
 
 import prerna.util.Constants;
 import prerna.util.Utility;
@@ -52,9 +52,10 @@ import prerna.util.Utility;
  * When an app is first loaded (via {@code Insight.setContext()}), this class
  * registers a {@link RollingFileAppender} for the project that is filtered by
  * the {@code projectId} MDC key set in {@link prerna.sablecc2.comm.PixelJobRunner}.
- * Only log events whose MDC {@code projectId} matches the project are written
- * to that project's log file - all other events are silently dropped by the
- * {@link ThreadContextMapFilter}.
+ * Only application-owned loggers and explicit {@code LogMessage} output whose
+ * MDC {@code projectId} matches the project are written. SEMOSS framework and
+ * engine telemetry are excluded so opening or searching the log does not log
+ * itself.
  * <p>
  * Log4j2's own {@link Configuration} is the single source of truth for whether
  * an appender has been registered. This means appenders are automatically
@@ -169,10 +170,7 @@ public final class AppLogManager {
 
 		Configuration config = ctx.getConfiguration();
 
-		// Filter: ACCEPT only events where MDC projectId == this project's ID
-		ThreadContextMapFilter filter = ThreadContextMapFilter.createFilter(
-				new KeyValuePair[] { new KeyValuePair("projectId", projectId) },
-				"and", Filter.Result.ACCEPT, Filter.Result.DENY);
+		Filter filter = new ProjectAppLogFilter(projectId);
 
 		PatternLayout layout = PatternLayout.newBuilder()
 				.withPattern(LOG_PATTERN)
@@ -242,6 +240,33 @@ public final class AppLogManager {
 			classLogger.warn("Invalid {} value '{}'; using {}", APP_LOG_MAX_FILES_PROPERTY, configured,
 					DEFAULT_MAX_FILES);
 			return DEFAULT_MAX_FILES;
+		}
+	}
+
+	static boolean isApplicationLogger(String loggerName) {
+		if ("prerna.reactor.LogMessage".equals(loggerName)) {
+			return true;
+		}
+		return loggerName == null
+				|| (!loggerName.startsWith("prerna.") && !"EngineLogger".equals(loggerName));
+	}
+
+	private static final class ProjectAppLogFilter extends AbstractFilter {
+
+		private final String projectId;
+
+		private ProjectAppLogFilter(String projectId) {
+			super(Result.ACCEPT, Result.DENY);
+			this.projectId = projectId;
+		}
+
+		@Override
+		public Result filter(LogEvent event) {
+			String eventProjectId = event.getContextData().getValue("projectId");
+			if (!projectId.equals(eventProjectId)) {
+				return Result.DENY;
+			}
+			return isApplicationLogger(event.getLoggerName()) ? Result.ACCEPT : Result.DENY;
 		}
 	}
 }

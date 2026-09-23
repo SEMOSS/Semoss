@@ -3,6 +3,11 @@
 SEMOSS can capture project-scoped application logs for project owners to view
 in the live Console or search from the Logs page.
 
+The per-project file captures loggers owned by project code, including custom
+reactors, plus messages emitted through the `LogMessage` Pixel reactor.
+SEMOSS `prerna.*` framework logs and `EngineLogger` telemetry are excluded so
+platform lifecycle activity and log searches do not flood the application log.
+
 Configure the feature in `RDF_Map.prop`:
 
 ```properties
