@@ -148,7 +148,8 @@ public final class AgentToolDecisionHandler {
 
 		// reject/respond record a manual result without executing the tool
 		if (!decisionExecutesTool(normalizedDecision)) {
-			String manualResult = resolveManualDecisionResult(normalizedDecision, passthroughResult);
+			String manualResult = resolveManualDecisionResult(normalizedDecision, passthroughResult,
+					stringValue(pendingAction.get("toolName")));
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, manualResult,
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
@@ -168,9 +169,10 @@ public final class AgentToolDecisionHandler {
 		}
 
 		String toolName = stringValue(pendingAction.get("toolName"));
-		// A delegation reply is a platform action, not an MCP tool, so it has no engine.
+		// Delegation tools are platform actions, not MCP tools, so they have no engine.
 		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
-		String engineId = delegationSubmit ? null
+		boolean delegationRequest = HumanDelegationService.TOOL_NAME.equals(toolName);
+		String engineId = delegationSubmit || delegationRequest ? null
 				: AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		Room executionRoom = null;
@@ -202,6 +204,7 @@ public final class AgentToolDecisionHandler {
 
 		ToolExecutionResult toolResult = delegationSubmit
 				? HumanDelegationService.submitFromTool(this.insight, executionRoom, paramMap)
+				: delegationRequest ? HumanDelegationService.delegateFromTool(this.insight, runId, paramMap)
 				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
 		String executedToolStatus = toolResult.getStatusValue();
@@ -588,14 +591,16 @@ public final class AgentToolDecisionHandler {
 		return DECISION_APPROVE.equals(normalized) || DECISION_EDIT.equals(normalized);
 	}
 
-	private static String resolveManualDecisionResult(String decision, String toolExecutionResult) {
+	private static String resolveManualDecisionResult(String decision, String toolExecutionResult,
+			String toolName) {
 		String result = stringValue(toolExecutionResult);
 		if (result != null) {
 			return result;
 		}
 		String normalized = normalizeDecision(decision);
 		if (DECISION_REJECT.equals(normalized)) {
-			return "Tool call rejected by user.";
+			String delegation = HumanDelegationService.rejectedResult(toolName);
+			return delegation != null ? delegation : "Tool call rejected by user.";
 		}
 		throw new IllegalArgumentException("mcpToolResult is required for HITL decision=" + normalized);
 	}

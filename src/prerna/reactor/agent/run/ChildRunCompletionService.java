@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 
+import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -27,7 +28,7 @@ public final class ChildRunCompletionService {
 
 	private static final Logger logger = LogManager.getLogger(ChildRunCompletionService.class);
 	private static final Gson GSON = new Gson();
-	private static final String MAX_CONTINUATION_DEPTH = "AGENT_RUN_MAX_CONTINUATION_DEPTH";
+	private static final String MAX_CONTINUATION_DEPTH = "AGENT_SUBAGENT_MAX_AUTO_CONTINUATIONS";
 	private static final int DEFAULT_MAX_CONTINUATION_DEPTH = 5;
 	private static final int MAX_ERROR_TEXT_LENGTH = 2000;
 	private static final int RECOVERY_SCAN_LIMIT = 1000;
@@ -119,10 +120,11 @@ public final class ChildRunCompletionService {
 		agentRun.setCompletionMode(delivery.mode().name());
 		agentRun.setChildStatus(delivery.status().name());
 
+		List<Map<String, Object>> files = returnedFiles(delivery);
 		boolean appended = RoomMessageStore.appendPlatformMessageIfAbsent(delivery.parentRoomId(), delivery.userId(),
 				deterministicMessageId(delivery.childRunId()),
-				messageText(delivery, depthExceeded), displayText(delivery, depthExceeded),
-				delegationOrnament(delivery), agentRun);
+				messageText(delivery, depthExceeded, files), displayText(delivery, depthExceeded, files),
+				delegationOrnament(delivery, files), agentRun);
 		if (appended) {
 			logger.info("Delivered child completion runId={} parentRunId={} mode={}", delivery.childRunId(),
 					delivery.parentRunId(), delivery.mode());
@@ -143,8 +145,13 @@ public final class ChildRunCompletionService {
 
 	private static void submitContinuation(Delivery delivery, AgentRunRequest parentRequest) {
 		String input = CONTINUATION_PREFIX + " Delegated task " + delivery.childRunId() + " is now "
-				+ delivery.status().name() + ". Continue the original task using the result delivered immediately "
-				+ "before this message. Do not wait for or repeat that delegated task.";
+				+ delivery.status().name() + ". " + (delivery.humanExecutorLabel() != null
+						// A person's answer is for the user; acting on it unasked rewrites their work.
+						? delivery.humanExecutorLabel() + " responded; their answer is delivered immediately before "
+								+ "this message. Tell the user briefly what came back. Act on it only if the user's "
+								+ "original request asked for that; otherwise ask before changing anything. "
+						: "Continue the original task using the result delivered immediately before this message. ")
+				+ "Do not wait for or repeat that delegated task.";
 		Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(delivery.userId(), parentRequest);
 		AgentRunRequest continuation = parentRequest.forContinuation(delivery.parentRoomId(), delivery.childRunId(),
 				input, continuationInsight);
@@ -203,8 +210,28 @@ public final class ChildRunCompletionService {
 			String parentRequestJson, String humanExecutorLabel, String childInput) {
 	}
 
-	private static String messageText(Delivery delivery, boolean depthExceeded) {
-		String text = delivery.humanExecutorLabel() != null ? humanMessageText(delivery)
+	// Only a person's answer carries files; pull first so this node sees what the submit pushed.
+	private static List<Map<String, Object>> returnedFiles(Delivery delivery) {
+		if (delivery.humanExecutorLabel() == null || delivery.status() != AgentRunStatus.COMPLETED) {
+			return List.of();
+		}
+		ClusterUtil.pullRoom(delivery.parentRoomId());
+		return HumanDelegationService.returnedFiles(delivery.parentRoomId(), delivery.childRunId());
+	}
+
+	private static String fileList(List<Map<String, Object>> files, boolean markdown) {
+		if (files.isEmpty()) {
+			return "";
+		}
+		StringBuilder text = new StringBuilder(markdown ? "\n\n**Files:**" : "\n\nFiles (paths in this room's folder):");
+		for (Map<String, Object> file : files) {
+			text.append("\n- ").append(markdown ? "`" + file.get("path") + "`" : file.get("path"));
+		}
+		return text.toString();
+	}
+
+	private static String messageText(Delivery delivery, boolean depthExceeded, List<Map<String, Object>> files) {
+		String text = delivery.humanExecutorLabel() != null ? humanMessageText(delivery) + fileList(files, false)
 				: agentMessageText(delivery.childRunId(), delivery.status(), delivery.finalText(),
 						delivery.errorMessage());
 		if (depthExceeded) {
@@ -232,7 +259,7 @@ public final class ChildRunCompletionService {
 	}
 
 	// Structured copy of a person's reply so clients can render it as a card.
-	private static Map<String, Object> delegationOrnament(Delivery delivery) {
+	private static Map<String, Object> delegationOrnament(Delivery delivery, List<Map<String, Object>> files) {
 		if (delivery.humanExecutorLabel() == null) {
 			return null;
 		}
@@ -243,17 +270,21 @@ public final class ChildRunCompletionService {
 		ornament.put("question", delivery.childInput());
 		ornament.put("text", "RESPONDED".equals(outcome) ? delivery.finalText()
 				: "DECLINED".equals(outcome) ? declineReason(delivery) : null);
+		if (!files.isEmpty()) {
+			ornament.put("files", files);
+		}
 		return Map.of(DELEGATION_ORNAMENT, ornament);
 	}
 
 	// What the owner sees; null keeps the model text. Only person answers need a friendlier form.
-	private static String displayText(Delivery delivery, boolean depthExceeded) {
+	private static String displayText(Delivery delivery, boolean depthExceeded, List<Map<String, Object>> files) {
 		if (delivery.humanExecutorLabel() == null) {
 			return null;
 		}
 		String who = defaultText(delivery.humanExecutorLabel(), "The assignee");
 		String text = switch (humanOutcome(delivery)) {
-			case "RESPONDED" -> "**" + who + " responded:**\n\n" + defaultText(delivery.finalText(), "(no response text)");
+			case "RESPONDED" -> "**" + who + " responded:**\n\n" + defaultText(delivery.finalText(), "(no response text)")
+					+ fileList(files, true);
 			case "CANCELLED" -> "Your request to **" + who + "** was cancelled.";
 			case "DECLINED" -> {
 				String reason = declineReason(delivery);

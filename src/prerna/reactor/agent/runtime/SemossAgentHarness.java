@@ -167,12 +167,14 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
 		}
-		if (HumanDelegationService.isEnabled() && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		// A delegation room answers its request; it cannot start new ones (no re-delegation yet).
+		String delegationActionId = HumanDelegationService.delegationActionId(ctx.getRoom());
+		if (delegationActionId != null) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool(
+					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
+		} else if (HumanDelegationService.isEnabled() && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
-		}
-		if (HumanDelegationService.delegationActionId(ctx.getRoom()) != null) {
-			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool());
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 

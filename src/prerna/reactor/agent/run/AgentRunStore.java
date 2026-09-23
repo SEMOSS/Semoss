@@ -478,6 +478,24 @@ public final class AgentRunStore {
 		}
 	}
 
+	// Unscoped: the assignee answering a delegation is not the owner of either run.
+	static String getParentRoomId(String childRunId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement("SELECT parent.ROOM_ID FROM AGENT_RUN child JOIN AGENT_RUN parent "
+					+ "ON child.PARENT_RUN_ID = parent.RUN_ID AND child.USER_ID = parent.USER_ID WHERE child.RUN_ID = ?");
+			ps.setString(1, childRunId);
+			rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load parent room for runId=" + childRunId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
 	static boolean runExists(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;

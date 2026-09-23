@@ -65,7 +65,7 @@ public final class SubAgentToolSynthesizer {
     /** Convenience set for {@code contains()} checks during dispatch. */
     public static final Set<String> BUILTIN_TOOL_NAMES = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(
-                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT, TOOL_DELEGATE_TO_PERSON)));
+                    TOOL_SPAWN_SUBAGENT, TOOL_CHECK_SUBAGENT, TOOL_WAIT_SUBAGENT)));
 
     private SubAgentToolSynthesizer() {}
 
@@ -219,10 +219,27 @@ public final class SubAgentToolSynthesizer {
                 "Everything they need to answer. They cannot see this conversation, your files, or your tools, "
                         + "so include a short summary of only what is relevant and safe to share."));
         properties.put("responseFormat", schemaString("Optional description of the answer you want back."));
-        properties.put("dueAt", schemaString("Optional due date shown to them."));
+        properties.put("dueAt", schemaString("Only when the user gave a deadline: the date as YYYY-MM-DD. "
+                + "Leave it out otherwise; do not make one up."));
         properties.put("completionMode", schemaString(
                 "POST_AND_CONTINUE (default): their response is posted to this room, then a new run starts to "
                         + "continue the task. POST: the response is only posted."));
+        Map<String, Object> files = new LinkedHashMap<>();
+        files.put("type", "array");
+        files.put("items", Map.of("type", "string"));
+        files.put("description", "Optional list of file paths in this room's folder to give them a copy of. "
+                + "Plain strings, files only. Example: [\"notes.md\", \"reports/q4.xlsx\"]");
+        properties.put("files", files);
+        Map<String, Object> linkItem = new LinkedHashMap<>();
+        linkItem.put("type", "object");
+        linkItem.put("properties", Map.of("url", Map.of("type", "string"), "title", Map.of("type", "string")));
+        linkItem.put("required", List.of("url"));
+        Map<String, Object> links = new LinkedHashMap<>();
+        links.put("type", "array");
+        links.put("items", linkItem);
+        links.put("description", "Optional links to documents that stay where they are, such as Microsoft 365 or "
+                + "SharePoint files. They are not copied; the person needs access at the source.");
+        properties.put("links", links);
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -233,26 +250,41 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", TOOL_DELEGATE_TO_PERSON);
         tool.put("description",
-                "Ask a person for input. They get their own room to work in and respond when ready, which may take "
-                        + "hours or days. Returns immediately with a runId; do not wait for or poll the response. "
-                        + "Their response arrives in this room as a new message.");
+                "Send a request to another person, by email address, for their input, review, opinion, or "
+                        + "approval. Use it whenever the user asks to send something to someone, share it with them, "
+                        + "or get their feedback; it is how you reach people, and there is no separate email tool. "
+                        + "Call it right away: the user reviews and can edit the request, files, and links in a card "
+                        + "before anything is sent, so do not ask them to confirm first. The person gets their own "
+                        + "room to work in and responds when ready, which may take hours or days. Returns once sent; "
+                        + "do not wait for or poll the response. Their response arrives in this room as a new "
+                        + "message.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("SMSS_TOOL_KIND", "semoss_delegate_to_person");
-        // See buildNamedTool's comment -- must be explicit or it defaults to "ask".
-        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
+        // The user confirms who, what, and which files before anything is shared.
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+        meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
+                Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue())));
         tool.put("_meta", meta);
         return tool;
     }
 
     /** Delegation-room tool; ask mode makes the person confirm exactly what is sent. */
-    public static Map<String, Object> buildSubmitDelegationTool() {
+    public static Map<String, Object> buildSubmitDelegationTool(String requesterName) {
+        String requester = requesterName == null ? "the person who asked" : requesterName;
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("response", schemaString(
-                "The final answer to send back to the requester, written for them. Required unless declining."));
+                "The final answer to send back to " + requester + ", written for them. Required unless declining."));
         properties.put("decline", schemaBool("Set true to decline the request instead of answering it."));
         properties.put("reason", schemaString("Optional reason sent back when declining."));
+        Map<String, Object> files = new LinkedHashMap<>();
+        files.put("type", "array");
+        files.put("items", Map.of("type", "string"));
+        files.put("description", "Optional list of file paths in this room's folder to send with the answer, "
+                + "including edited copies of files they sent. Plain strings, files only. "
+                + "Example: [\"notes.md\", \"from-requester/plan.md\"]");
+        properties.put("files", files);
 
         Map<String, Object> inputSchema = new LinkedHashMap<>();
         inputSchema.put("type", "object");
@@ -262,13 +294,19 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", HumanDelegationService.SUBMIT_TOOL_NAME);
         tool.put("description",
-                "Send the answer to the request at the top of this room back to the person who asked. Call it only "
-                        + "when the user says they are ready to send, with the full final text. The user reviews and "
-                        + "confirms it before anything is sent. Nothing else in this room is shared with the requester.");
+                "Answer the request at the top of this room from " + requester + ". Call it only when the user "
+                        + "asks to send, reply, or return work to " + requester + "; it is the only way to reach them "
+                        + "from this room. Doing the work is not a request to send it: when the user asks for changes, "
+                        + "a draft, or a file, do that here and stop. When they do ask to send, call it right away "
+                        + "with the full final text and files; the user confirms in the card, so do not ask them to "
+                        + "confirm first. Answering closes the request. Nothing else in this room is shared.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();
         meta.put("SMSS_TOOL_KIND", "semoss_submit_delegation");
+        if (requesterName != null) {
+            meta.put("SMSS_DELEGATION_REQUESTER", requesterName);
+        }
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
         // Confirm the send in the chat rather than the side dock.
         meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
