@@ -368,9 +368,8 @@ public final class AgentRunService {
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
 		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
 			notifyStreamCancelled(runId, "Agent run cancelled");
-			if (record.request() != null && record.request().isHumanExecutor()) {
-				AgentRunActionStore.cancelPendingForRun(runId);
-			}
+			// Approvals the stopped run was waiting on, or the person's open request.
+			AgentRunActionStore.cancelPendingForRun(runId);
 			// A child cancelled while idle has no executor to report it.
 			if (record.request() != null && record.request().getParentRunId() != null) {
 				queueChildCompletion(runId);
@@ -403,6 +402,7 @@ public final class AgentRunService {
 		String message = "Agent run cancelled by an Automation project editor";
 		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, message)) {
 			notifyStreamCancelled(runId, message);
+			AgentRunActionStore.cancelPendingForRun(runId);
 		}
 		return getRunForAutomation(runId, insight, false);
 	}
@@ -424,6 +424,7 @@ public final class AgentRunService {
 		boolean cancelled = AgentRunStore.markCancelledIfNotTerminal(runId, runId, message);
 		if (cancelled) {
 			notifyStreamCancelled(runId, message);
+			AgentRunActionStore.cancelPendingForRun(runId);
 		}
 		return cancelled;
 	}

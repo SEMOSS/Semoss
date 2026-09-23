@@ -183,6 +183,11 @@ public final class HumanDelegationService {
 		return out;
 	}
 
+	/** Decline from "Assigned to you" without opening the room; the reason goes back to the requester. */
+	public static Map<String, Object> decline(Insight insight, String actionId, String reason) {
+		return respond(insight, actionId, null, true, reason, null);
+	}
+
 	/** Record the assignee's one answer or decline, then complete the owner's child run. */
 	private static Map<String, Object> respond(Insight insight, String actionId, String response, boolean decline,
 			String reason, List<String> files) {
