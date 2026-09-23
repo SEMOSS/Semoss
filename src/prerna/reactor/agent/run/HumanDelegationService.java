@@ -552,6 +552,9 @@ public final class HumanDelegationService {
 				assignee.provider(), null);
 		Map<String, Object> options = new HashMap<>();
 		options.put(ROOM_OPTION_ACTION_ID, actionId);
+		// Appended to the agent's prompt so the task stays system-level, not only in history.
+		options.put("instructions", roomInstructions(assignee, requester, packet));
+		options.put("overrideSystemPrompt", false);
 		RoomUtils.createRoomIfNotExists(roomId, assigneeInsight, null,
 				"Request from " + requester.shortName() + ": " + packet.get("question"), null, options, null,
 				CollaborationUtils.COLLABORATION_PROJECT_ID, null);
@@ -608,6 +611,36 @@ public final class HumanDelegationService {
 				.append(". It does that with SubmitDelegationResponse, which answers this request; you confirm ")
 				.append("exactly what is sent, and nothing else in this room is shared. Files you want to return ")
 				.append("must be attached to that answer.").toString();
+	}
+
+	private static String roomInstructions(Person assignee, Person requester, Map<String, Object> packet) {
+		String from = requester.shortName();
+		StringBuilder text = new StringBuilder("## Delegated request\n\nThis room was created for one request from ")
+				.append(requester.label()).append(" to ").append(assignee.label())
+				.append(", who is the user you are working with. ").append(from)
+				.append(" cannot see this room; only the answer sent with ").append(SUBMIT_TOOL_NAME)
+				.append(" reaches them.\n\nRequest:\n").append(packet.get("question"));
+		appendSection(text, "Context from " + from, packet.get("context"));
+		appendSection(text, "Requested response format", packet.get("responseFormat"));
+		appendSection(text, "Due", packet.get("dueAt"));
+		if (packet.get("files") instanceof List<?> files && !files.isEmpty()) {
+			text.append("\n\nFiles ").append(from).append(" sent (copies in this room's folder):");
+			files.forEach(file -> text.append("\n- ").append(file));
+		}
+		if (packet.get("links") instanceof List<?> links && !links.isEmpty()) {
+			text.append("\n\nLinked documents (access is controlled at the source):");
+			for (Object item : links) {
+				Map<?, ?> link = (Map<?, ?>) item;
+				Object title = link.get("title");
+				text.append("\n- ").append(title == null ? "" : title + ": ").append(link.get("url"));
+			}
+		}
+		return text.append("\n\nHow to help:\n- Treat the user's messages as being about this request unless they ")
+				.append("say otherwise.\n- When a message answers the request, call ").append(SUBMIT_TOOL_NAME)
+				.append(" right away with that answer written for ").append(from)
+				.append(". The user confirms or edits it in the card, so do not ask follow-up questions first.")
+				.append("\n- When they ask for research, a draft, or file changes, do that work here and offer to send ")
+				.append("it when it is ready.\n- Do not contact anyone else about this request.").toString();
 	}
 
 	private static void appendSection(StringBuilder text, String title, Object value) {
