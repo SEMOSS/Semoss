@@ -208,8 +208,8 @@ public final class RoomUtils {
 			projectId = insight.getProjectId();
 		}
 		String projectName = null;
-		// ignore playground project id
-		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+		// ignore system chat project ids
+		if (projectId != null && !PlaygroundUtils.isSystemChatProject(projectId)) {
 			IProject project = Utility.getProject(projectId);
 			projectName = project != null ? project.getProjectName() : null;
 		}

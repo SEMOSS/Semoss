@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
@@ -174,7 +175,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (delegationActionId != null) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool(
 					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
-		} else if (HumanDelegationService.isEnabled() && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 		}

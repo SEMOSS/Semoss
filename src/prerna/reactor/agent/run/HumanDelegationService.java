@@ -30,10 +30,12 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.util.Utility;
@@ -53,8 +55,7 @@ public final class HumanDelegationService {
 	public static final String SUBMIT_TOOL_NAME = "SubmitDelegationResponse";
 	// Tool name on the assignee's action row; distinct from the owner's DelegateToPerson approval.
 	private static final String ASSIGNEE_ACTION = "DelegationRequest";
-	public static final String ROOM_OPTION_ACTION_ID = "delegation_action_id";
-	private static final String ENABLED_PROPERTY = "COLLAB_DELEGATION_ENABLED";
+	public static final String ROOM_OPTION_ACTION_ID = CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID;
 	private static final String STATUS_PENDING = "PENDING";
 	private static final String STATUS_CANCELLED = "CANCELLED";
 	private static final String STATUS_RESPONDED = "RESPONDED";
@@ -78,22 +79,19 @@ public final class HumanDelegationService {
 	private HumanDelegationService() {
 	}
 
-	public static boolean isEnabled() {
-		return Boolean.parseBoolean(Utility.getDIHelperProperty(ENABLED_PROPERTY));
-	}
-
 	public static boolean isDelegationAction(Map<String, Object> action) {
 		return action != null && ASSIGNEE_ACTION.equals(action.get("toolName"));
 	}
 
 	/** Create the assignee's room and action plus the owner's child run; returns immediately. */
 	public static Map<String, Object> delegate(Map<String, Object> args, String parentRunId, Insight ownerInsight) {
-		if (!isEnabled()) {
-			throw new IllegalStateException("Delegating to a person is not enabled");
-		}
 		AgentRunRecord parent = parentRunId == null ? null : AgentRunStore.getRun(parentRunId, ownerInsight);
 		if (parent == null) {
 			throw new IllegalArgumentException(TOOL_NAME + " must be called from an agent run");
+		}
+		if (!CollaborationUtils.isCollaborationRoom(
+				ModelInferenceLogsUtils.getRoomById(parent.roomId(), ownerInsight.getUserId()))) {
+			throw new IllegalStateException(TOOL_NAME + " is only available in collaboration rooms");
 		}
 		String question = bounded(args, "question", MAX_QUESTION_LENGTH, true);
 		String context = bounded(args, "context", MAX_CONTEXT_LENGTH, false);
@@ -489,7 +487,8 @@ public final class HumanDelegationService {
 		Map<String, Object> options = new HashMap<>();
 		options.put(ROOM_OPTION_ACTION_ID, actionId);
 		RoomUtils.createRoomIfNotExists(roomId, assigneeInsight, null,
-				"Request from " + requester.shortName() + ": " + packet.get("question"), null, options, null, null, null);
+				"Request from " + requester.shortName() + ": " + packet.get("question"), null, options, null,
+				CollaborationUtils.COLLABORATION_PROJECT_ID, null);
 		RoomMessageStore.appendPlatformMessageIfAbsent(roomId, assignee.userId(),
 				deterministicId("semoss:delegation-packet:" + actionId), packetText(requester, packet), null,
 				Map.of(REQUEST_ORNAMENT, requestOrnament(roomId, requester, packet)), null);
