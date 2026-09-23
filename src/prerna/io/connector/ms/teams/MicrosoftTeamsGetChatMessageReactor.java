@@ -79,7 +79,7 @@ public class MicrosoftTeamsGetChatMessageReactor extends AbstractMicrosoftTeamsM
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> message = MicrosoftTeamsMessageHelper.getChatMessage(accessToken, chatId, messageId,
 					maxBodyChars);
 			return new NounMetadata(message, PixelDataType.CUSTOM_DATA_STRUCTURE);

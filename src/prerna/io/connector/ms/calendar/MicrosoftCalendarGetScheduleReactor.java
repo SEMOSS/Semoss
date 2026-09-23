@@ -119,7 +119,7 @@ public class MicrosoftCalendarGetScheduleReactor extends AbstractMicrosoftCalend
 			}
 
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> entries = MicrosoftCalendarHelper.getSchedule(accessToken,
 					Arrays.asList(schedules), start, end, timeZone, interval);
 

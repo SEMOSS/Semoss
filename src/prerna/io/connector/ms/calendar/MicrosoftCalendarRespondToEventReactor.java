@@ -91,7 +91,7 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String replied = MicrosoftCalendarHelper.respondToEvent(accessToken, mailbox, eventId, response, comment,
 					tellOrganizer);
 

@@ -87,7 +87,7 @@ public class MicrosoftOneDriveListFilesReactor extends AbstractMicrosoftOneDrive
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> files = MicrosoftOneDriveHelper.listFiles(accessToken, driveId, itemId, path,
 					limit);
 

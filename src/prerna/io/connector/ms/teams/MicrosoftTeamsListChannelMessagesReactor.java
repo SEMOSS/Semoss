@@ -97,7 +97,7 @@ public class MicrosoftTeamsListChannelMessagesReactor extends AbstractMicrosoftT
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> messages = MicrosoftTeamsMessageHelper.listChannelMessages(accessToken, teamId,
 					channelId, includeReplies, maxBodyChars, limit);
 
