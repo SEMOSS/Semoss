@@ -48,12 +48,23 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * </p>
  * <ul>
  * <li>{@code Calendars.Read} for {@code GET /me/calendars}</li>
+ * <li>{@code Calendars.Read.Shared} as well, when a {@code mailbox} names
+ * somebody else, for {@code GET /users/{id}/calendars}</li>
  * </ul>
- * 
+ *
  * <p>
  * The id of a calendar here is what the other calendar reactors take as their
  * {@code calendarId}, and the one marked {@code isDefaultCalendar} is the one
  * they use when that key is left out.
+ * </p>
+ *
+ * <p>
+ * A calendar somebody else owns that the signed in user accepted a share of
+ * sits in this list alongside their own, marked {@code isSharedWithMe} and
+ * naming its {@code owner}. Its id is a local one, so it is passed back with no
+ * {@code mailbox}; the shared calendars that do <em>not</em> appear here are
+ * the primary ones, which are reached by naming the owner's mailbox instead.
+ * {@code MicrosoftCalendarListPermissions} says what the share allows.
  * </p>
  */
 public class MicrosoftCalendarListCalendarsReactor extends AbstractMicrosoftCalendarReactor {
@@ -61,19 +72,24 @@ public class MicrosoftCalendarListCalendarsReactor extends AbstractMicrosoftCale
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarListCalendarsReactor.class);
 
 	public MicrosoftCalendarListCalendarsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey() };
-		this.keyRequired = new int[] { 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), MAILBOX };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		this.organizeKeys();
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), 0, Integer.MAX_VALUE);
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			List<Map<String, Object>> calendars = MicrosoftCalendarHelper.listCalendars(accessToken, limit);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			// the signed in user's own address is what tells their calendars apart
+			// from the ones other people shared with them
+			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
+			List<Map<String, Object>> calendars = MicrosoftCalendarHelper.listCalendars(accessToken, mailbox, userEmail,
+					limit);
 			return new NounMetadata(calendars, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while listing the signed in user's Microsoft calendars", e);

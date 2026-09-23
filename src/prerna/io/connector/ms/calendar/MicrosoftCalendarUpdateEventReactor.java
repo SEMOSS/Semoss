@@ -83,12 +83,13 @@ public class MicrosoftCalendarUpdateEventReactor extends AbstractMicrosoftCalend
 		}
 		Map<String, Object> changes = composeEvent(false, "change on the calendar event");
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			Map<String, Object> updated = MicrosoftCalendarHelper.updateEvent(accessToken, calendarId, eventId, changes,
-					DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			Map<String, Object> updated = MicrosoftCalendarHelper.updateEvent(accessToken, mailbox, calendarId, eventId,
+					changes, DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
 			return new NounMetadata(updated, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
 			classLogger.error("Error while changing calendar event '{}'", eventId, e);
@@ -102,7 +103,7 @@ public class MicrosoftCalendarUpdateEventReactor extends AbstractMicrosoftCalend
 
 	@Override
 	public String getReactorDescription() {
-		return "Change an event on the signed in user's own Microsoft 365 calendar, leaving whatever is not passed as it was.";
+		return "Change an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, leaving whatever is not passed as it was.";
 	}
 
 	@Override

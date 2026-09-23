@@ -39,6 +39,11 @@ Below is a list of available guides. We will be expanding this section over time
     *   Use cases: parameter passing, chaining, intermediate results.
     *   Best practices for NounStore management.
 
+6.  **[Using TypeSafe / Jev Models](./using_typesafe_jev.md)**
+    *   Configuring a TypeSafe model engine.
+    *   Evaluating Choice, Score, and Noul questions from Pixel or Python.
+    *   Structured responses and model usage tracking.
+
 *(Note: Links to guides will become active as they are completed.)*
 
 We encourage you to explore these guides to deepen your understanding and enhance your productivity with SEMOSS. If you have suggestions for new how-to topics, please let the development team know.

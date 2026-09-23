@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +57,46 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.agent.config.AgentConfigLoader;
 
 class SystemAgentSeederUnitTests {
+
+	@Test
+	void analysisAgentsSeedNamedWorkspacesAndLoadTheirRuntimeSkills() throws Exception {
+		for (var agent : Map.of(Constants.AGENT_DATABASE_EXPLORER, "Database Explorer",
+				Constants.AGENT_NOTEBOOK_ANALYST, "Notebook Analyst").entrySet()) {
+			String id = agent.getKey();
+			try (var registry = mockStatic(SystemEngineRegistry.class);
+					var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+					var projects = mockStatic(SecurityProjectUtils.class)) {
+				registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+				projects.when(() -> SecurityProjectUtils.getProjectTypeForId(anyString())).thenReturn("CODE");
+				SystemAgentSeeder.seed(id);
+				var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+				workspaces.verify(
+						() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+				JSONObject config = configCaptor.getValue();
+				String prompt = config.getString("system_prompt");
+				workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
+						eq(agent.getValue()), anyString(), eq(prompt), argThat(resources -> resources.stream()
+								.anyMatch(resource -> "python".equals(resource.get("resource_id"))))));
+				assertTrue(prompt.contains("Load") && prompt.contains("python"));
+				if (Constants.AGENT_NOTEBOOK_ANALYST.equals(id)) {
+					assertTrue(prompt.contains("public/main.ipynb"));
+					assertTrue(prompt.contains("data-analysis"));
+				}
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+						.thenReturn(Map.of("name", agent.getValue(), "system_prompt", prompt));
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
+				var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-model", Map.of(), Map.of(), 30, 0,
+						id);
+				assertEquals(prompt, loaded.getAuthoredPrompt());
+				assertEquals("selected-model", loaded.getModelId());
+				assertTrue(loaded.useDefaultAgentTools());
+				assertEquals(SystemDefaultEngines.getSystemAgentSkills(id),
+						loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
+				assertFalse(loaded.hasPptxWorkflow());
+			}
+		}
+	}
 
 	@Test
 	void newPptxAuthorSeedsItsSkillAndResolvesTheSystemReviewer() throws Exception {
@@ -216,8 +283,11 @@ class SystemAgentSeederUnitTests {
 	}
 
 	@Test
-	void appBuilderRetainsItsPlatformResourcesAndUnrestrictedPolicy() throws Exception {
+	void appBuilderSeedsItsExplicitSkillsAndUnrestrictedPolicy() throws Exception {
 		String id = Constants.AGENT_APP_BUILDER;
+		List<String> expectedSkills = List.of("agent-run", "app-bootstrap", "app-data", "build-and-publish", "database",
+				"exports", "file-uploads", "functions", "mcp", "model", "pagination", "permissions", "python", "room",
+				"storage", "user", "vector");
 		try (var registry = mockStatic(SystemEngineRegistry.class);
 				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
 				var projects = mockStatic(SecurityProjectUtils.class)) {
@@ -232,10 +302,12 @@ class SystemAgentSeederUnitTests {
 			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
 					eq("App Building Agent"), anyString(), eq(config.getString("system_prompt")),
 					argThat(resources -> resources.size() == SystemDefaultEngines.getSystemAgentMCPs(id).size()
-							+ SystemDefaultEngines.getSystemAgentSkills(id).size())));
+							+ expectedSkills.size()
+							&& resources.stream()
+									.noneMatch(resource -> Constants.SKILL_PPTX.equals(resource.get("resource_id"))))));
 			assertEquals(SystemDefaultEngines.getSystemAgentMCPs(id),
 					config.getJSONArray("mcps").toList().stream().map(value -> ((Map<?, ?>) value).get("id")).toList());
-			assertEquals(SystemDefaultEngines.getSystemAgentSkills(id), config.getJSONArray("skills").toList().stream()
+			assertEquals(expectedSkills, config.getJSONArray("skills").toList().stream()
 					.map(value -> ((Map<?, ?>) value).get("skill_id")).toList());
 			assertFalse(config.has("tool_policy"));
 			assertFalse(config.has("spawn_policy"));
