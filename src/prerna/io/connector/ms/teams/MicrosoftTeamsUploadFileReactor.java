@@ -98,7 +98,7 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			File sourceFile = resolveInsightFile(path);
 			// default the name in the channel to whatever the source file is called

@@ -82,7 +82,7 @@ public class MicrosoftOneDriveCreateFolderReactor extends AbstractMicrosoftOneDr
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> folder = MicrosoftOneDriveHelper.createFolder(accessToken, driveId, itemId, path, name,
 					conflictBehavior);
 			return new NounMetadata(folder, PixelDataType.CUSTOM_DATA_STRUCTURE);
