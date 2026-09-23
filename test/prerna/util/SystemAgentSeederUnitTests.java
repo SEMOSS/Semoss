@@ -286,8 +286,8 @@ class SystemAgentSeederUnitTests {
 	void appBuilderSeedsItsExplicitSkillsAndUnrestrictedPolicy() throws Exception {
 		String id = Constants.AGENT_APP_BUILDER;
 		List<String> expectedSkills = List.of("agent-run", "app-bootstrap", "app-data", "build-and-publish", "database",
-				"exports", "file-uploads", "functions", "mcp", "model", "pagination", "permissions", "python", "room",
-				"storage", "user", "vector");
+				"exports", "file-uploads", "frontend-design", "functions", "mcp", "model", "pagination", "permissions",
+				"python", "room", "storage", "user", "vector");
 		try (var registry = mockStatic(SystemEngineRegistry.class);
 				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
 				var projects = mockStatic(SecurityProjectUtils.class)) {
