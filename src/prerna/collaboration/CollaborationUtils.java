@@ -25,42 +25,45 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground.reactors;
+package prerna.collaboration;
 
-import java.util.Arrays;
+import java.util.List;
 
-import prerna.collaboration.CollaborationUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.GetUserConversationRoomsReactor;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.engine.impl.model.Room;
+import prerna.playground.PlaygroundUtils;
 
-public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
+/**
+ * Collaboration rooms are playground-style rooms under their own system project
+ * id.
+ */
+public final class CollaborationUtils {
 
-	private static final String MODE = "mode";
+	public static final String COLLABORATION_PROJECT_ID = "SYSTEM__COLLABORATION";
+	public static final String MODE_COLLABORATION = "collaboration";
+	// Set on an assignee's room; links it to the request it answers.
+	public static final String ROOM_OPTION_DELEGATION_ACTION_ID = "delegation_action_id";
+	// Only the server sets these; client option writes cannot add, change, or drop
+	// them.
+	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
 
-	public GetPlaygroundRoomsReactor() {
-		super();
-		this.keysToGet = Arrays.copyOf(this.keysToGet, this.keysToGet.length + 1);
-		this.keysToGet[this.keysToGet.length - 1] = MODE;
-		this.keyRequired = Arrays.copyOf(this.keyRequired, this.keyRequired.length + 1);
+	private CollaborationUtils() {
 	}
 
-	@Override
-	public NounMetadata execute() {
-		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if (projectGRS != null) {
-			projectGRS.clear();
-		} else {
-			projectGRS = new GenRowStruct();
+	/**
+	 * System project id for a playground room mode; null or blank is a normal
+	 * playground room.
+	 */
+	public static String projectIdForMode(String mode) {
+		if (mode == null || mode.isBlank()) {
+			return PlaygroundUtils.PLAYGROUND_PROJECT_ID;
 		}
-		// mode picks the system project; null lists normal playground rooms
-		GenRowStruct modeGRS = this.store.getNoun(MODE);
-		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
-		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
-		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
-		return super.execute();
+		if (!MODE_COLLABORATION.equals(mode.trim().toLowerCase())) {
+			throw new IllegalArgumentException("Unknown room mode '" + mode + "'. Supported: " + MODE_COLLABORATION);
+		}
+		return COLLABORATION_PROJECT_ID;
 	}
 
+	public static boolean isCollaborationRoom(Room room) {
+		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
+	}
 }

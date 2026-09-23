@@ -25,42 +25,43 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground.reactors;
+package prerna.reactor.agent.run;
 
-import java.util.Arrays;
+import java.util.Locale;
 
-import prerna.collaboration.CollaborationUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.GetUserConversationRoomsReactor;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+/**
+ * Controls how a subagent run reports completion to its parent run.
+ *
+ * <p>
+ * {@link #WAIT}: the parent collects the result with WaitForSubAgent.
+ * {@link #POST}: the result is posted to the parent room.
+ * {@link #POST_AND_CONTINUE}: the result is posted and one new parent-room run
+ * starts.
+ */
+public enum SubAgentRunCompletionMode {
 
-public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
+	WAIT, POST, POST_AND_CONTINUE;
 
-	private static final String MODE = "mode";
-
-	public GetPlaygroundRoomsReactor() {
-		super();
-		this.keysToGet = Arrays.copyOf(this.keysToGet, this.keysToGet.length + 1);
-		this.keysToGet[this.keysToGet.length - 1] = MODE;
-		this.keyRequired = Arrays.copyOf(this.keyRequired, this.keyRequired.length + 1);
-	}
-
-	@Override
-	public NounMetadata execute() {
-		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if (projectGRS != null) {
-			projectGRS.clear();
-		} else {
-			projectGRS = new GenRowStruct();
+	public static SubAgentRunCompletionMode fromExternalValue(String value) {
+		if (value == null || value.trim().isEmpty()) {
+			return WAIT;
 		}
-		// mode picks the system project; null lists normal playground rooms
-		GenRowStruct modeGRS = this.store.getNoun(MODE);
-		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
-		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
-		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
-		return super.execute();
+		return valueOf(value.trim().toUpperCase(Locale.ROOT));
 	}
 
+	/**
+	 * Read the persisted value without allowing old or unknown data to opt into
+	 * asynchronous behavior. Requests written before this field existed therefore
+	 * retain the WAIT behavior.
+	 */
+	public static SubAgentRunCompletionMode fromPersistedValue(Object value) {
+		if (value == null) {
+			return WAIT;
+		}
+		try {
+			return fromExternalValue(String.valueOf(value));
+		} catch (IllegalArgumentException ignored) {
+			return WAIT;
+		}
+	}
 }

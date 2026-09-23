@@ -27,33 +27,29 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 
-import com.google.gson.Gson;
-
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Look up a single pending HITL action by its action id, scoped to the
- * logged-in user. A portal opened via {@code ?actionId=<id>} calls this on load
- * to get everything it needs to prefill the approve/decline form, so the URL
- * never has to carry runId/roomId/toolCallId/parentMessageId/args.
+ * Declines a delegation assigned to the logged-in user and closes it.
+ *
+ * <pre>{@code
+ * DeclineDelegation(actionId=["<actionId>"], reason=["Not my area"]);
+ * }</pre>
  */
-public class GetAgentRunActionReactor extends AbstractReactor {
+public class DeclineDelegationReactor extends AbstractReactor {
 
 	private static final String ACTION_ID_KEY = "actionId";
-	private static final Gson GSON = new Gson();
+	private static final String REASON_KEY = "reason";
 
-	public GetAgentRunActionReactor() {
-		this.keysToGet = new String[] { ACTION_ID_KEY };
-		this.keyRequired = new int[] { 1 };
+	public DeclineDelegationReactor() {
+		this.keysToGet = new String[] { ACTION_ID_KEY, REASON_KEY };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
@@ -63,41 +59,23 @@ public class GetAgentRunActionReactor extends AbstractReactor {
 		if (actionId == null) {
 			throw new IllegalArgumentException("actionId is required");
 		}
-		String userId = this.insight != null ? this.insight.getUserId() : null;
-		if (userId == null || userId.trim().isEmpty() || "-1".equals(userId)) {
-			throw new SecurityException("Must be logged in to look up an agent action");
-		}
-		Map<String, Object> action = AgentRunActionStore.getPendingActionById(actionId, userId);
-		if (action == null || HumanDelegationService.isDelegationAction(action)) {
-			throw new IllegalArgumentException("No pending agent action found for actionId=" + actionId);
-		}
-		// Parse the stored JSON strings into objects so the FE gets real maps.
-		action.put("toolArgs", parseJson(action.get("toolArgs")));
-		action.put("toolMeta", parseJson(action.get("toolMeta")));
-		action.put("editedArgs", parseJson(action.get("editedArgs")));
-		return new NounMetadata(action, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private Object parseJson(Object value) {
-		if (value instanceof String && !((String) value).trim().isEmpty()) {
-			try {
-				return GSON.fromJson((String) value, Object.class);
-			} catch (Exception e) {
-				return value;
-			}
-		}
-		return value;
+		String reason = StringUtils.trimToNull(this.keyValue.get(REASON_KEY));
+		return new NounMetadata(HumanDelegationService.decline(this.insight, actionId, reason), PixelDataType.MAP,
+				PixelOperationType.OPERATION);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Look up a single pending HITL agent action by actionId (scoped to the logged-in user) so a portal can prefill its approve/decline form.";
+		return "Decline a delegation assigned to the logged-in user. The optional reason is sent to the requester.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ACTION_ID_KEY)) {
-			return "The AGENT_RUN_ACTION id to look up.";
+			return "The delegation's action ID, as listed by GetAssignedDelegations.";
+		}
+		if (key.equals(REASON_KEY)) {
+			return "Optional reason sent back to the requester.";
 		}
 		return super.getDescriptionForKey(key);
 	}
