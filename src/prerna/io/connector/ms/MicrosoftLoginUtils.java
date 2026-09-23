@@ -30,9 +30,13 @@ package prerna.io.connector.ms;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.io.connector.IAccessTokenFiller;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -41,6 +45,8 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Shared login helpers for the Microsoft Graph connectors.
  */
 public final class MicrosoftLoginUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(MicrosoftLoginUtils.class);
 
 	private static final String HEADER_AUTHORIZATION = "Authorization";
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
@@ -54,25 +60,98 @@ public final class MicrosoftLoginUtils {
 	}
 
 	/**
-	 * Retrieves the Microsoft Graph access token for the given user.
+	 * Retrieves a valid Microsoft Graph access token for the given user. Retained
+	 * for callers using the original helper name.
 	 *
 	 * @param user user executing the pixel
 	 * @return the OAuth access token for the Microsoft provider
-	 * @throws Exception if the user is not logged in to Microsoft
+	 * @throws Exception if the user is not logged in to Microsoft, or their login
+	 *                   can no longer be refreshed
+	 * @see #getValidAccessToken(User)
 	 */
 	public static String getMicrosoftAccessToken(User user) throws Exception {
-		String accessToken = null;
-		try {
-			if (user == null) {
-				throwLoginError(getLoginErrorDetails());
-			} else {
-				AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
+		return getValidAccessToken(user);
+	}
+
+	/**
+	 * Retrieves a Microsoft Graph access token that is good to use now, refreshing
+	 * it first when it has run out.
+	 *
+	 * <p>
+	 * Reactors and background work should use this helper before calling Microsoft
+	 * Graph so an expired session token is refreshed before the request is sent.
+	 * </p>
+	 *
+	 * <p>
+	 * The refresh is the provider's own, so the refreshed token lands back on the
+	 * user object and whatever reads it next gets the new one.
+	 * </p>
+	 *
+	 * @param user the user to act for
+	 * @return an access token for the Microsoft provider
+	 * @throws Exception if the user is not logged in to Microsoft, or their login
+	 *                   can no longer be refreshed
+	 */
+	public static String getValidAccessToken(User user) throws Exception {
+		if (user == null) {
 			throwLoginError(getLoginErrorDetails());
 		}
-		return accessToken;
+		AccessToken msToken = user.getAccessToken(AuthProvider.MICROSOFT);
+		if (msToken == null) {
+			throwLoginError(getLoginErrorDetails());
+		}
+		if (!isExpired(msToken)) {
+			return msToken.getAccess_token();
+		}
+
+		IAccessTokenFiller filler = getTokenFiller(msToken);
+		if (filler == null) {
+			throwLoginError(getLoginErrorDetails());
+		}
+		AccessToken refreshed = filler.refreshAccessToken(msToken, new HashMap<>());
+		if (refreshed == null || refreshed.getAccess_token() == null) {
+			throwLoginError(getLoginErrorDetails());
+		}
+		// put it back where the next reader looks, so one refresh serves them all
+		user.setAccessToken(refreshed);
+		return refreshed.getAccess_token();
+	}
+
+	/**
+	 * Whether a token has run out, counted a minute early so it does not expire
+	 * between being read and being used.
+	 *
+	 * @param token the token to check
+	 * @return true when it should be refreshed before use
+	 */
+	private static boolean isExpired(AccessToken token) {
+		if (token.getExpires_in() <= 0 || token.getStartTime() <= 0) {
+			// nothing said when it runs out, so it is taken as it is rather than
+			// refreshed on every call
+			return false;
+		}
+		long expiresAt = token.getStartTime() + (token.getExpires_in() * 1000L);
+		return System.currentTimeMillis() >= expiresAt - 60_000L;
+	}
+
+	/**
+	 * The thing that knows how to refresh this provider's tokens.
+	 *
+	 * @param token the token to refresh
+	 * @return the filler, or null when the provider names none
+	 */
+	private static IAccessTokenFiller getTokenFiller(AccessToken token) {
+		AuthProvider provider = token.getProvider() == null ? AuthProvider.MICROSOFT : token.getProvider();
+		String fillerClass = provider.getTokenFillerClass();
+		if (fillerClass == null || fillerClass.trim().isEmpty()) {
+			return null;
+		}
+		try {
+			return (IAccessTokenFiller) Class.forName(fillerClass).getDeclaredConstructor().newInstance();
+		} catch (Exception e) {
+			classLogger.error("Unable to instantiate the token filler {} for provider {}", fillerClass, provider, e);
+			return null;
+		}
 	}
 
 	/**

@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.Room;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
@@ -82,7 +83,8 @@ final class AgentRunExecutor {
 	 * unregisters the run as it releases the room; the object outlives the registry
 	 * entry and is what still carries the cancel flag.
 	 */
-	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun) {
+	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun,
+			Room automationResumeRoom) {
 		String runId = record.runId();
 		String jobId = runId;
 		String parentRunId = record.request() != null ? record.request().getParentRunId() : null;
@@ -99,10 +101,16 @@ final class AgentRunExecutor {
 			// Detect resume: the persisted request always has resumeMode=false on initial
 			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
 			boolean resumeMode = request.isResumeMode() || AgentRunActionStore.hasAnyActions(runId);
-			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
-					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
-					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(), resumeMode);
+			AgentHarnessResult result = automationResumeRoom == null
+					? AgentRunner.run(request.getRoomId(), request.getInput(), request.getEngineIdFallback(),
+							request.getHarnessType(), request.getMaxTurns(), request.getMaxReflections(),
+							request.getParamMap(), request.getAgentParamMap(), request.getMediaInputPaths(),
+							request.getMediaUrls(), runId, insightHandle.insight(), resumeMode)
+					: AgentRunner.resumeAutomationRun(request.getRoomId(), request.getInput(),
+							request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
+							request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
+							request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(),
+							automationResumeRoom);
 			if (result != null) {
 				AgentRunStore.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -114,16 +122,26 @@ final class AgentRunExecutor {
 			if (Thread.currentThread().isInterrupted()) {
 				throw new AgentCancelledException();
 			}
-			AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			String completionError = result == null ? null : result.getCompletionError();
+            if (completionError == null) AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+            else AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
 			AgentRunStreamService.get().markTerminal(runId);
-			publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.COMPLETED,
-					result != null ? result.getFinalText() : null, null);
+			publishSubagentTerminal(parentRunId, record, runId, completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED,
+					result != null ? result.getFinalText() : null, completionError);
 		} catch (Exception e) {
+			// A cancel reaches this thread as an interrupt and the flag is still set.
+			// Clear it before the bookkeeping below, because this thread is virtual and
+			// an interrupted virtual thread closes whatever socket it blocks on -- which
+			// here would be the shared connection these status writes need, taking the
+			// engine down for every other caller too. The flag is not restored: the run
+			// is over, and the teardown that follows this method also does I/O.
+			boolean interrupted = Thread.interrupted();
 			jobId = firstNonBlank(ThreadStore.getJobId(), jobId);
-			if (isCancelled(e)) {
+			if (isCancelled(e, interrupted)) {
 				AgentRunStore.markCancelled(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null, boundedError(e));
+				logger.info("AgentRunExecutor: runId={} cancelled: {}", runId, e.getMessage());
 			} else if (e instanceof AgentInputRequiredException) {
 				// The harness already persisted the AGENT_RUN_ACTION rows; only
 				// transition the durable run status here.
@@ -134,8 +152,8 @@ final class AgentRunExecutor {
 				AgentRunStore.markFailed(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
+				logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 			}
-			logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 		} finally {
 			ThreadStore.remove();
 		}
@@ -178,11 +196,14 @@ final class AgentRunExecutor {
 
 	/**
 	 * Whether {@code t} represents a cancel rather than a failure, so the run
-	 * settles as {@code CANCELLED}. The interrupt flag counts because a cancel
-	 * interrupts the run's thread, and whatever that unblocks may surface as an
-	 * unrelated exception type.
+	 * settles as {@code CANCELLED}.
+	 *
+	 * @param interrupted whether the run's thread was interrupted, read and cleared
+	 *                    by the caller. It counts as a cancel because a cancel
+	 *                    interrupts the run's thread, and whatever that unblocks
+	 *                    may surface as an unrelated exception type
 	 */
-	private static boolean isCancelled(Throwable t) {
+	private static boolean isCancelled(Throwable t, boolean interrupted) {
 		Throwable cur = t;
 		while (cur != null) {
 			if (cur instanceof AgentCancelledException) {
@@ -190,7 +211,7 @@ final class AgentRunExecutor {
 			}
 			cur = cur.getCause();
 		}
-		return Thread.currentThread().isInterrupted();
+		return interrupted;
 	}
 
 	/**

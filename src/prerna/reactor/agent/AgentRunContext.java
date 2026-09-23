@@ -68,6 +68,7 @@ public final class AgentRunContext {
     private final String        runId;
     private final List<String>  mediaInputPaths;
     private final List<String>  mediaUrls;
+    private final AgentRunTarget agentTarget;
 
     // 0 for a root run, parent.spawnDepth+1 for a subagent run.
     private final int           spawnDepth;
@@ -93,6 +94,7 @@ public final class AgentRunContext {
         this.runId         = b.runId;
         this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
         this.mediaUrls       = immutableStringList(b.mediaUrls);
+        this.agentTarget    = b.agentTarget;
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
         this.resumeMode    = b.resumeMode;
@@ -137,6 +139,14 @@ public final class AgentRunContext {
     /** Direct media URLs to attach to the initial user turn. */
     public List<String> getMediaUrls() {
         return mediaUrls;
+    }
+
+    /**
+     * Authorized filesystem target selected for this run. May be {@code null}
+     * for legacy direct callers that build a context without the runner.
+     */
+    public AgentRunTarget getAgentTarget() {
+        return agentTarget;
     }
 
     /**
@@ -236,6 +246,7 @@ public final class AgentRunContext {
         private String        runId;
         private List<String>  mediaInputPaths;
         private List<String>  mediaUrls;
+        private AgentRunTarget agentTarget;
 
         private int           spawnDepth = ROOT_SPAWN_DEPTH;
 
@@ -259,6 +270,7 @@ public final class AgentRunContext {
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
         public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }
         public Builder mediaUrls(List<String> urls)          { this.mediaUrls = urls;              return this; }
+        public Builder agentTarget(AgentRunTarget target)    { this.agentTarget = target;         return this; }
 
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 

@@ -74,6 +74,7 @@ import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -556,6 +557,71 @@ public class Room implements Serializable {
 	 */
 	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, null);
+	}
+
+	/**
+	 * Continue with an explicit system prompt, preserving all tool-result parts.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				null);
+	}
+
+	/**
+	 * Append current harness status after the completed tool results, keeping the
+	 * system prompt stable.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResultsWithRuntimeContext(
+			Map<String, Object> paramValuesMap, String parentMessageId, IModelEngine modelEngine, Insight insight,
+			String systemPrompt, String runtimeContext) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				null, runtimeContext);
+	}
+
+	/**
+	 * Append an evidence-based harness result, retaining the model's preceding
+	 * message for audit.
+	 */
+	public ResponseMessage appendHarnessResponse(String text, String parentMessageId, IModelEngine modelEngine,
+			Insight insight) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				ResponseMessage response = ResponseMessage.text(text);
+				response.setRoom(this);
+				response.setModel(modelEngine);
+				response.setParentMessageId(parentMessageId);
+				response.setPlatformGenerated(true);
+				response.setTransactionId(GUID.v7().toUUID().toString());
+				messages.add(response);
+				RoomMessageStore.persist(this, userId);
+				return response;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * Persist a harness-owned completion after all tools finish, without another
+	 * model request.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt,
+			ResponseMessage prebuiltResponse) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				prebuiltResponse, null);
+	}
+
+	private AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt,
+			ResponseMessage prebuiltResponse, String runtimeContext) {
 		ReentrantLock lock = getMessageLock();
 		lock.lock();
 		try {
@@ -577,8 +643,25 @@ public class Room implements Serializable {
 					RoomMessageStore.persist(this, userId);
 					return null;
 				}
+				if (systemPrompt != null) {
+					var parts = new ArrayList<>(toolResultsMessage.getParts());
+					parts.removeIf(part -> part instanceof prerna.engine.impl.model.message.SystemMessagePart);
+					parts.addFirst(new prerna.engine.impl.model.message.SystemMessagePart(systemPrompt));
+					toolResultsMessage.setParts(parts);
+					toolResultsMessage.normalizeForWrite();
+				}
+				if (runtimeContext != null && !runtimeContext.isBlank()
+						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
+								&& runtimeContext.equals(text.getText()))) {
+					// TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing
+					// user content.
+					// Preserve earlier inputs and any status already sent; retries must not rewrite
+					// history.
+					toolResultsMessage.addPart(new TextMessagePart(runtimeContext));
+					toolResultsMessage.normalizeForWrite();
+				}
 				return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-						modelEngine, userId, false);
+						modelEngine, userId, false, prebuiltResponse, null, true, false);
 			}
 		} finally {
 			lock.unlock();
@@ -1454,7 +1537,9 @@ public class Room implements Serializable {
 
 	/**
 	 * Resolves the user-authored system prompt - the room/workspace layer, before
-	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
+	 * the enterprise template wrap or {@code {{VAR}}} expansion. By default,
+	 * nonempty room instructions replace the workspace prompt. With
+	 * {@code overrideSystemPrompt=false}, they append after it. Prompt sources:
 	 * <ol>
 	 * <li>{@code options.instructions}</li>
 	 * <li>{@code workspace.system_prompt} (looked up via
@@ -1471,6 +1556,11 @@ public class Room implements Serializable {
 	 *                                  active-state checks
 	 */
 	public String getRoomOrWorkspaceSystemPrompt() {
+		return RoomSystemPrompt.resolve(getOptions(), this::getWorkspaceSystemPrompt);
+	}
+
+	/** Load the linked workspace's authored prompt after validating access. */
+	private String getWorkspaceSystemPrompt() {
 		String opts = getOptions();
 		JsonObject optionsObj = null;
 		if (opts != null && !opts.trim().isEmpty()) {
@@ -1483,16 +1573,7 @@ public class Room implements Serializable {
 			return null;
 		}
 
-		// 1. options.instructions
-		JsonElement instructionsElem = optionsObj.get("instructions");
-		if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-			String fromInstructions = StringUtils.trimToNull(instructionsElem.getAsString());
-			if (fromInstructions != null) {
-				return fromInstructions;
-			}
-		}
-
-		// 2. workspace.system_prompt (by workspace_id in options)
+		// workspace.system_prompt (by workspace_id in options)
 		JsonElement workspaceElem = optionsObj.get("workspace");
 		String workspaceId = null;
 		if (workspaceElem != null) {

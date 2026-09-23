@@ -118,19 +118,65 @@ public class MicrosoftCalendarEventMapper {
 	/**
 	 * Describe one calendar.
 	 *
-	 * @param calendar the calendar as Graph returned it
+	 * <p>
+	 * A calendar in the signed in user's list that somebody else owns is one they
+	 * were shared, so {@code isSharedWithMe} is the owner's address not being
+	 * theirs. What they may do with it is already in {@code canEdit} and
+	 * {@code canViewPrivateItems}, which Outlook sets from the permission the owner
+	 * granted.
+	 * </p>
+	 *
+	 * @param calendar  the calendar as Graph returned it
+	 * @param userEmail optional address of the signed in user; without it the owner
+	 *                  is still reported and only {@code isSharedWithMe} is left
+	 *                  out
 	 * @return the calendar as a map
 	 */
-	public static Map<String, Object> toCalendar(Map<String, Object> calendar) {
+	public static Map<String, Object> toCalendar(Map<String, Object> calendar, String userEmail) {
 		Map<String, Object> output = new LinkedHashMap<>();
 		output.put("id", calendar.get("id"));
 		putIfPresent(output, "name", calendar.get("name"));
 		putIfPresent(output, "color", calendar.get("color"));
-		putIfPresent(output, "owner", addressOfEmail(calendar.get("owner")));
+		String owner = addressOfEmail(calendar.get("owner"));
+		putIfPresent(output, "owner", owner);
 		putIfPresent(output, "ownerName", nameOfEmail(calendar.get("owner")));
 		output.put("canEdit", Boolean.TRUE.equals(calendar.get("canEdit")));
 		output.put("canShare", Boolean.TRUE.equals(calendar.get("canShare")));
+		output.put("canViewPrivateItems", Boolean.TRUE.equals(calendar.get("canViewPrivateItems")));
 		output.put("isDefaultCalendar", Boolean.TRUE.equals(calendar.get("isDefaultCalendar")));
+		if (userEmail != null && !userEmail.trim().isEmpty() && owner != null) {
+			output.put("isSharedWithMe", !owner.equalsIgnoreCase(userEmail.trim()));
+		}
+		return output;
+	}
+
+	/**
+	 * Describe one permission on a calendar.
+	 *
+	 * <p>
+	 * The {@code role} is the part worth reading. A {@code freeBusyRead},
+	 * {@code limitedRead}, {@code read} or {@code write} role is a calendar that
+	 * was shared, while a {@code delegateWithoutPrivateEventAccess} or
+	 * {@code delegateWithPrivateEventAccess} role is a delegation: that person may
+	 * also answer meeting requests on the owner's behalf.
+	 * </p>
+	 *
+	 * @param permission the permission as Graph returned it
+	 * @return the permission as a map
+	 */
+	public static Map<String, Object> toCalendarPermission(Map<String, Object> permission) {
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put("id", permission.get("id"));
+		putIfPresent(output, "role", permission.get("role"));
+		putIfPresent(output, ADDRESS, addressOfEmail(permission.get("emailAddress")));
+		putIfPresent(output, NAME, nameOfEmail(permission.get("emailAddress")));
+		putIfPresent(output, "allowedRoles", permission.get("allowedRoles"));
+		output.put("isInsideOrganization", Boolean.TRUE.equals(permission.get("isInsideOrganization")));
+		output.put("isRemovable", Boolean.TRUE.equals(permission.get("isRemovable")));
+		// a delegate is a share plus the right to act for the owner, and the role is
+		// the only thing that says which of the two this is
+		Object role = permission.get("role");
+		output.put("isDelegate", role != null && role.toString().toLowerCase().startsWith("delegate"));
 		return output;
 	}
 

@@ -113,6 +113,9 @@ public final class PlatformAgentTools {
 	}
 
 	static String executeDefaultTool(String toolName, Map<String, Object> params, AgentRunContext ctx) throws Exception {
+        Map<String, Object> effective = new LinkedHashMap<>(ctx.getAgentConfig().getToolParameterDefaults(toolName));
+        if (params != null) effective.putAll(params);
+        params = effective;
 		String overrideMcpId = getDefaultToolsMcpId();
 		if (overrideMcpId != null) {
 			JSONObject tool = findMcpTool(overrideMcpId, toolName);
@@ -135,6 +138,10 @@ public final class PlatformAgentTools {
 			AgentRunContext ctx) throws Exception {
 		String output = executeDefaultTool(toolName, params, ctx);
 		if (getDefaultToolsMcpId() == null && output != null && output.startsWith("Error:")) {
+			return ToolExecutionResult.error(output, output);
+		}
+		if (getDefaultToolsMcpId() == null && "InspectPptx".equals(toolName) && output != null
+				&& "failed".equals(new JSONObject(output).optString("status"))) {
 			return ToolExecutionResult.error(output, output);
 		}
 		return ToolExecutionResult.success(output);

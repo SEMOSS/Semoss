@@ -46,13 +46,15 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 	static {
 		relationshipsRequired.add(
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
-		relationshipsRequired.add(new String[] { "ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID" });
+		relationshipsRequired.add(
+				new String[] { "SMSS_USER", "MS_GRAPH_SUBSCRIPTION", "SMSS_USER.ID.MS_GRAPH_SUBSCRIPTION.USER_ID" });
 	}
 
 	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
@@ -453,6 +455,22 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		addTable("MS_GRAPH_SUBSCRIPTION", Arrays.asList(
+				Pair.with("SUBSCRIPTION_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_PROVIDER", VARCHAR_255),
+				Pair.with("USER_EMAIL", VARCHAR_255),
+				Pair.with("CLIENT_STATE", VARCHAR_255),
+				Pair.with("RESOURCE", VARCHAR_500),
+				Pair.with("CHANGE_TYPE", VARCHAR_255),
+				Pair.with("NOTIFICATION_URL", VARCHAR_500),
+				Pair.with("EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ACCESS_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("REFRESH_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("TOKEN_EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		// all have the same columns and default values
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
@@ -519,6 +537,9 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		// github app integration joins
 		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
 		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
+
+		// microsoft graph subscription joins
+		owler.addRelation("SMSS_USER", "MS_GRAPH_SUBSCRIPTION", "SMSS_USER.ID.MS_GRAPH_SUBSCRIPTION.USER_ID");
 	}
 
 	@Override
