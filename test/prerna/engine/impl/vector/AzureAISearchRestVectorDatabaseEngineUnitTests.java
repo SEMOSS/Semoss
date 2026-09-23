@@ -100,6 +100,7 @@ public class AzureAISearchRestVectorDatabaseEngineUnitTests {
 			JsonObject request = JsonParser.parseString(requestBody.get()).getAsJsonObject();
 			assertEquals("all", request.get("searchMode").getAsString());
 			assertEquals("content,tokens", request.get("select").getAsString());
+			assertFalse(request.has("count"));
 			assertEquals("hello", results.get(0).get("content"));
 			assertEquals(7L, ((Number) results.get(0).get("tokens")).longValue());
 			assertEquals(1.5, results.get(0).get("Score"));
@@ -174,6 +175,7 @@ public class AzureAISearchRestVectorDatabaseEngineUnitTests {
 			JsonObject request = JsonParser.parseString(requestBody.get()).getAsJsonObject();
 			assertEquals("all", request.get("searchMode").getAsString());
 			assertEquals("content", request.get("select").getAsString());
+			assertFalse(request.has("count"));
 			assertTrue(request.has("vectorQueries"));
 			assertEquals("hello", results.get(0).get("content"));
 		}

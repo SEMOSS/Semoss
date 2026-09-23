@@ -576,7 +576,6 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		search.addProperty("searchFields", String.join(",", resolveSearchFields(requestedSearchFields, liveFields)));
 		search.addProperty("searchMode", resolveSearchMode(parameters));
 		search.addProperty("top", normalizeLimit(limit));
-		search.addProperty("count", true);
 		search.addProperty("select", selectFields == null ? "*" : String.join(",", selectFields));
 		return search;
 	}
