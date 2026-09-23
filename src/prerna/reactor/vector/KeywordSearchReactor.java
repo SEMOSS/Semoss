@@ -33,9 +33,8 @@ public class KeywordSearchReactor extends AbstractReactor {
 
 	public KeywordSearchReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
-				SEARCH_FIELDS_KEY, ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.PARAM_VALUES_MAP.getKey(),
-				ReactorKeysEnum.FILTERS.getKey(), ReactorKeysEnum.META_FILTERS.getKey() };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0 };
+				SEARCH_FIELDS_KEY, ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.FILTERS.getKey() };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -60,14 +59,10 @@ public class KeywordSearchReactor extends AbstractReactor {
 		}
 
 		int limit = getInt(ReactorKeysEnum.LIMIT.getKey(), 5);
-		Map<String, Object> parameters = getStringKeyedParameters();
+		Map<String, Object> parameters = new HashMap<>();
 		List<IQueryFilter> filters = getFilters(ReactorKeysEnum.FILTERS.getKey());
 		if (filters != null) {
 			parameters.put(AbstractVectorDatabaseEngine.FILTERS_KEY, filters);
-		}
-		List<IQueryFilter> metaFilters = getFilters(ReactorKeysEnum.META_FILTERS.getKey());
-		if (metaFilters != null) {
-			parameters.put(AbstractVectorDatabaseEngine.METADATA_FILTERS_KEY, metaFilters);
 		}
 
 		List<Map<String, Object>> output = engine.keywordSearch(this.insight, searchStatement, getSearchFields(), limit,
@@ -94,23 +89,6 @@ public class KeywordSearchReactor extends AbstractReactor {
 		return fields;
 	}
 
-	@SuppressWarnings("rawtypes")
-	private Map<String, Object> getStringKeyedParameters() {
-		Map rawParameters = getMap(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		Map<String, Object> parameters = new HashMap<>();
-		if (rawParameters == null) {
-			return parameters;
-		}
-		for (Object entryObject : rawParameters.entrySet()) {
-			Map.Entry entry = (Map.Entry) entryObject;
-			if (!(entry.getKey() instanceof String)) {
-				throw new IllegalArgumentException("Parameter map keys must be strings");
-			}
-			parameters.put((String) entry.getKey(), entry.getValue());
-		}
-		return parameters;
-	}
-
 	private List<IQueryFilter> getFilters(String key) {
 		GenRowStruct filterGrs = store.getGenRowStruct(key);
 		if (filterGrs != null && !filterGrs.isEmpty()) {
@@ -128,7 +106,7 @@ public class KeywordSearchReactor extends AbstractReactor {
 		if (SEARCH_FIELDS_KEY.equals(key)) {
 			return MCP_KEY_TYPE.ARRAY;
 		}
-		if (ReactorKeysEnum.FILTERS.getKey().equals(key) || ReactorKeysEnum.META_FILTERS.getKey().equals(key)) {
+		if (ReactorKeysEnum.FILTERS.getKey().equals(key)) {
 			return MCP_KEY_TYPE.OBJECT;
 		}
 		return super.getKeyTypeForMCP(key);
@@ -146,10 +124,6 @@ public class KeywordSearchReactor extends AbstractReactor {
 			return "The maximum number of documents to return. Defaults to 5";
 		} else if (ReactorKeysEnum.FILTERS.getKey().equals(key)) {
 			return "Optional filters to apply to indexed document fields";
-		} else if (ReactorKeysEnum.META_FILTERS.getKey().equals(key)) {
-			return "Optional metadata filters retained for compatibility; Azure AI Search does not apply them";
-		} else if (ReactorKeysEnum.PARAM_VALUES_MAP.getKey().equals(key)) {
-			return "Optional string-keyed parameter map";
 		}
 		return super.getDescriptionForKey(key);
 	}
