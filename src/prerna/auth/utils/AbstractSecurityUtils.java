@@ -1104,10 +1104,10 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(
 						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
 
-			   try (PreparedStatement ps = conn
-				  .prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
-				 ps.setBoolean(1, false);
-				 ps.executeUpdate();
+				try (PreparedStatement ps = conn
+						.prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
+					ps.setBoolean(1, false);
+					ps.executeUpdate();
 				}
 			}
 			if (allowIfExistsIndexs) {
@@ -2617,6 +2617,52 @@ public abstract class AbstractSecurityUtils {
 				}
 				if (!queryUtil.indexExists(securityDb, "IX_GHPL_INSTALL", "GITHUB_PROJECT_LINK", database, schema)) {
 					String sql = queryUtil.createIndex("IX_GHPL_INSTALL", "GITHUB_PROJECT_LINK", "INSTALLATION_ID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
+			// MS_GRAPH_SUBSCRIPTION
+			// the Microsoft Graph change notification subscriptions this deployment
+			// created. A notification carries a subscription id and nothing else, and any
+			// container behind the load balancer can be the one that receives it, so what
+			// is needed to recognize it and to act as the user it belongs to is held here
+			// rather than in the memory of whichever container created it
+			colNames = new String[] { "SUBSCRIPTION_ID", "USER_ID", "USER_PROVIDER", "USER_EMAIL", "CLIENT_STATE",
+					"RESOURCE", "CHANGE_TYPE", "NOTIFICATION_URL", "EXPIRATION", "ACCESS_TOKEN", "REFRESH_TOKEN",
+					"TOKEN_EXPIRATION", "CREATED_ON", "UPDATED_ON" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_500,
+					VARCHAR_255, VARCHAR_500, TIMESTAMP_DATATYPE_NAME, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MS_GRAPH_SUBSCRIPTION", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("MS_GRAPH_SUBSCRIPTION", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MS_GRAPH_SUBSCRIPTION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MS_GRAPH_SUBSCRIPTION", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// index for listing what one user is watching, which is the only read that
+			// is not already by subscription id
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					String sql = queryUtil.createIndex("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
 					classLogger.info("Running sql {}", sql);
 					securityDb.insertData(sql);
 				}

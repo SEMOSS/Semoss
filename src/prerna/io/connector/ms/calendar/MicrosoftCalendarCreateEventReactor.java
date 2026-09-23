@@ -81,7 +81,7 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, mailbox, calendarId, event,
 					DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
 			return new NounMetadata(created, PixelDataType.CUSTOM_DATA_STRUCTURE);

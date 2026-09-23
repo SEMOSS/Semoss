@@ -97,7 +97,7 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			File sourceFile = resolveInsightFile(filePath);
 			// default the name in the drive to whatever the source file is called

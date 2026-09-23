@@ -84,7 +84,7 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 			MicrosoftOutlookMailHelper mail = new MicrosoftOutlookMailHelper();
 

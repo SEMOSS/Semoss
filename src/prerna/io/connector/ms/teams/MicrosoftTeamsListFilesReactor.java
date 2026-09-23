@@ -96,7 +96,7 @@ public class MicrosoftTeamsListFilesReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> result = MicrosoftTeamsHelper.listChannelFiles(accessToken, teamId, channelId,
 					folderPath, limit);
 			return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);

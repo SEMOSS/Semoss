@@ -96,7 +96,7 @@ public class MicrosoftTeamsDeleteChannelMessageReactor extends AbstractMicrosoft
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			MicrosoftTeamsMessageHelper.deleteChannelMessage(accessToken, teamId, channelId, messageId, replyId);
 
 			Map<String, Object> output = new LinkedHashMap<>();

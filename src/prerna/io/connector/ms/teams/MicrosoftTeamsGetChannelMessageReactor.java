@@ -89,7 +89,7 @@ public class MicrosoftTeamsGetChannelMessageReactor extends AbstractMicrosoftTea
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> message = MicrosoftTeamsMessageHelper.getChannelMessage(accessToken, teamId, channelId,
 					messageId, replyId, includeReplies, maxBodyChars);
 			return new NounMetadata(message, PixelDataType.CUSTOM_DATA_STRUCTURE);
