@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "last_modified_date": "2026-08-12"
+    "last_modified_date": "2026-09-23"
   },
   "tools": [
     {
       "name": "list_database_skill_files",
       "title": "List Database Skill Files",
-      "description": "List the files in the platform 'database' skill, the platform's guidance for querying relational and graph databases from an app. Call this when the user asks about SQL, SELECT/INSERT/UPDATE/DELETE, table or schema structure, connecting to a database, or listing the databases they have access to, and when they name SqlQuery, SqlQueryBase64, GetDatabaseTableStructure, or MyEngines(engineTypes=[\"DATABASE\"]). Returns each file with its path, name, and description so you can read only what you need; start with SKILL.md. Not for LLM calls (see the model skill) or vector/semantic search (see the vector skill).",
+      "description": "List files in the platform 'database' skill for querying and analyzing SQL, RDF/SPARQL, and graph data. Start with SKILL.md for supported query APIs and SDK result handling. Read references/exploration.md for question framing, schema understanding, choosing database or Python operations, troubleshooting, and validating conclusions. Not for LLM calls or vector search.",
       "inputSchema": {
         "type": "object",
         "title": "list_database_skill_files_Arguments",
@@ -31,7 +31,7 @@
     {
       "name": "read_database_skill_file",
       "title": "Read Database Skill File",
-      "description": "Read one file from the platform 'database' skill in full, for writing code that queries a platform database through runPixel. Pass filePath exactly as list_database_skill_files reports it; SKILL.md is the main guide and covers when to use SqlQuery versus SqlQueryBase64 (dynamic SQL, quotes, Unicode, newlines), inserts/updates/deletes, reading table structure, the response shape, and listing databases with filtering and paging.",
+      "description": "Read a file from the platform 'database' skill. SKILL.md covers platform query APIs, SDK transport, result shapes, and database listing. references/exploration.md covers data analysis, engine-specific capabilities, schema interpretation, evidence-driven troubleshooting, and communicating findings. Pass filePath exactly as list_database_skill_files reports it.",
       "inputSchema": {
         "type": "object",
         "title": "read_database_skill_file_Arguments",
@@ -48,7 +48,7 @@
           "filePath": {
             "type": "string",
             "title": "filePath",
-            "description": "Path of the file to read, relative to the skill folder, as reported by list_database_skill_files. Use 'SKILL.md' for the main guide.",
+            "description": "Path relative to the skill folder, as reported by list_database_skill_files. Use SKILL.md for the API guide or references/exploration.md for data analysis and exploration.",
             "default": "SKILL.md"
           }
         },
