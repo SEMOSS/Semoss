@@ -27,8 +27,10 @@
  *******************************************************************************/
 package prerna.playground.reactors;
 
+import java.util.Arrays;
+
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.inferencetracking.reactors.CreateRoomReactor;
-import prerna.playground.PlaygroundUtils;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -36,20 +38,39 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 
+	private static final String MODE = "mode";
+
+	public CreatePlaygroundRoomReactor() {
+		super();
+		this.keysToGet = Arrays.copyOf(this.keysToGet, this.keysToGet.length + 1);
+		this.keysToGet[this.keysToGet.length - 1] = MODE;
+		this.keyRequired = Arrays.copyOf(this.keyRequired, this.keyRequired.length + 1);
+	}
+
 	@Override
 	public NounMetadata execute() {
-		// we are replacing any current project input with the default playground system
-		// project id
+		// we are replacing any current project input with the playground system project id
 		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
 		if (projectGRS != null) {
 			projectGRS.clear();
 		} else {
 			projectGRS = new GenRowStruct();
 		}
-		projectGRS.add(new NounMetadata(PlaygroundUtils.PLAYGROUND_PROJECT_ID, PixelDataType.CONST_STRING));
+		// mode picks the system project; null is a normal playground room
+		GenRowStruct modeGRS = this.store.getNoun(MODE);
+		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
+		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
 		// then we call the normal create room logic
 		return super.execute();
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (MODE.equals(key)) {
+			return "Optional room mode. Omit for a normal playground room; 'collaboration' turns on collaboration tools.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }

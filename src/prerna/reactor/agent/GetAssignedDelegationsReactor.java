@@ -25,42 +25,51 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.playground.reactors;
+package prerna.reactor.agent;
 
-import java.util.Arrays;
+import org.apache.commons.lang3.StringUtils;
 
-import prerna.collaboration.CollaborationUtils;
-import prerna.engine.impl.model.inferencetracking.reactors.GetUserConversationRoomsReactor;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GetPlaygroundRoomsReactor extends GetUserConversationRoomsReactor {
+/**
+ * Lists the delegations assigned to the logged-in user, newest first.
+ *
+ * <pre>{@code
+ * GetAssignedDelegations();
+ * GetAssignedDelegations(status=["PENDING"]);
+ * }</pre>
+ */
+public class GetAssignedDelegationsReactor extends AbstractReactor {
 
-	private static final String MODE = "mode";
+	private static final String STATUS_KEY = "status";
 
-	public GetPlaygroundRoomsReactor() {
-		super();
-		this.keysToGet = Arrays.copyOf(this.keysToGet, this.keysToGet.length + 1);
-		this.keysToGet[this.keysToGet.length - 1] = MODE;
-		this.keyRequired = Arrays.copyOf(this.keyRequired, this.keyRequired.length + 1);
+	public GetAssignedDelegationsReactor() {
+		this.keysToGet = new String[] { STATUS_KEY };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		GenRowStruct projectGRS = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if (projectGRS != null) {
-			projectGRS.clear();
-		} else {
-			projectGRS = new GenRowStruct();
-		}
-		// mode picks the system project; null lists normal playground rooms
-		GenRowStruct modeGRS = this.store.getNoun(MODE);
-		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
-		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
-		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
-		return super.execute();
+		organizeKeys();
+		String status = StringUtils.trimToNull(this.keyValue.get(STATUS_KEY));
+		return new NounMetadata(HumanDelegationService.listAssigned(this.insight, status), PixelDataType.VECTOR,
+				PixelOperationType.OPERATION);
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "List delegations assigned to the logged-in user, with each delegation's room, question, context, and status.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (key.equals(STATUS_KEY)) {
+			return "Optional status filter: PENDING, RESPONDED, DECLINED, or CANCELLED.";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }
