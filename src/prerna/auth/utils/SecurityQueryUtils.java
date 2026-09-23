@@ -410,6 +410,22 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
+	/** Unlocked accounts with exactly this email, as {id, type, name, email} rows. */
+	public static List<Object[]> getUnlockedUsersByEmail(String email) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", email));
+		List<Boolean> unlocked = new ArrayList<>();
+		unlocked.add(false);
+		unlocked.add(null);
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__LOCKED", "==", unlocked));
+		return QueryExecutionUtility.flushRsToListOfObjArray(securityDb, qs);
+	}
+
 	public static boolean checkUsernameExist(String username) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		SelectQueryStruct qs = new SelectQueryStruct();
