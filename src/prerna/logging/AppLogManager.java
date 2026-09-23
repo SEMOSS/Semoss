@@ -216,10 +216,10 @@ public final class AppLogManager {
 		if (configured != null && !configured.isBlank()) {
 			return Utility.normalizePath(configured.trim());
 		}
-		String logPath = System.getProperty("LOG_PATH");
-		String base = logPath == null || logPath.isBlank()
+		String catalinaBase = System.getProperty("catalina.base");
+		String base = catalinaBase == null || catalinaBase.isBlank()
 				? Utility.getBaseFolder() + File.separator + "logs"
-				: logPath.trim();
+				: catalinaBase.trim() + File.separator + "logs";
 		return Utility.normalizePath(base + File.separator + "apps");
 	}
 

@@ -19,8 +19,9 @@ Set `APP_LOGGING_ENABLED=false` and restart SEMOSS to disable appender creation,
 historical search, and live log watches. A restart is required because existing
 Log4j appenders remain active until the process is restarted.
 
-By default, logs are stored under `${LOG_PATH}/apps/<project-id>/app.log`, or
-under `<SEMOSS base>/logs/apps` when `LOG_PATH` is not configured. The default
-rotation retains the active 10 MB file and five rotated files, for approximately
-60 MB per project. Deployments should place this directory on an appropriately
-sized volume and monitor aggregate usage across all projects.
+By default, logs are stored under
+`${catalina.base}/logs/apps/<project-id>/app.log`, alongside the server's other
+runtime logs. Non-Tomcat processes fall back to `<SEMOSS base>/logs/apps`.
+The default rotation retains the active 10 MB file and five rotated files, for
+approximately 60 MB per project. Deployments should place this directory on an
+appropriately sized volume and monitor aggregate usage across all projects.
