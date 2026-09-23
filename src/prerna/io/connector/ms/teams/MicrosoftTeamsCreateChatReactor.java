@@ -91,7 +91,7 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
 			Map<String, Object> chat = MicrosoftTeamsMessageHelper.createChat(accessToken, chatType, members, topic,
 					userEmail);

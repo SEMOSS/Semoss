@@ -61,9 +61,11 @@ final class PptxWorkflow {
 			PPTX reviewer. ExecuteNodeCode and manual reviewer delegation are unavailable in this workflow.
 			For an existing presentation, FIRST call PreparePptxEdit with its exact filename and only the
 			requested slide numbers (editType=text for wording changes). It returns the original snapshot,
-			slide order and existing text. Load pptx/references/editing.md and use the packaged edit.js
-			helper with JSZip in build-deck.js. Never reconstruct an existing deck with PptxGenJS.
-			BuildPptx rejects changes outside the prepared scope and restores the previous file on failure.
+			slide order, object IDs, local styles and existing text. For text, text-color and background
+			changes optionally call ApplyPptxEdits alone with the COMPLETE operation list. For other
+			edits read pptx/references/editing.md and use JSZip in build-deck.js. Never reconstruct an existing deck with PptxGenJS.
+			BuildPptx discovers linked assets automatically and assesses requested and affected slides.
+			Unexpected or uncertain changes are saved as separate proposals; broken output restores the prior file.
 			Creation examples and PptxGenJS are for new presentations only. The program must save filePath.
 			If BuildPptx returns repair_required, apply the listed fixes in one batch and call BuildPptx again
 			within the stated repair budget. Prioritize saving over additional edits. SEMOSS delivers the
@@ -104,6 +106,7 @@ final class PptxWorkflow {
 	private String completionWarning;
 	private boolean artifactAvailable;
 	private boolean reviewVerified;
+	private boolean proposalDeliverySupported = true;
 	private String finalText;
 	private JSONObject validation;
 	private JSONObject savedValidation;
@@ -135,6 +138,7 @@ final class PptxWorkflow {
 		}
 		PptxWorkflow workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/" + runId),
 				((Number) config.getOrDefault("repair_turns", 6)).intValue(), new PptxWorkflowOperations(ctx));
+		workflow.configureDelivery(ctx.getParamMap());
 		if (ctx.isResumeMode()) {
 			workflow.restore();
 		} else {
@@ -143,12 +147,23 @@ final class PptxWorkflow {
 		return workflow;
 	}
 
+	/** Older Office pages import every COMPLETED run over its current library entry. */
+	void configureDelivery(Map<String, Object> params) {
+		proposalDeliverySupported = params == null || !params.containsKey(PptxEditContext.PARAM)
+				|| Boolean.TRUE.equals(params.get(PptxEditContext.PROPOSALS_PARAM));
+	}
+
 	void captureInputs() {
 		try {
 			edit.capture();
 		} catch (Exception e) {
 			throw new IllegalStateException("Cannot preserve original PowerPoint inputs", e);
 		}
+	}
+
+	boolean hasInput(String file) {
+		try { return edit.isInput(root.relativize(resolve(file, ".pptx")).toString()); }
+		catch (Exception e) { return false; }
 	}
 
 	static Map<String, Object> editToolDefinition() {
@@ -162,14 +177,14 @@ final class PptxWorkflow {
 						.put("minItems", 1).put("maxItems", 100).put("uniqueItems", true).put("description",
 								"Only slides the user requested to change. Do not broaden scope to fix unrelated warnings."))
 				.put("editType", property("string",
-						"text preserves all formatting and objects; slides permits requested layout/object changes on selected slides.")
+						"text describes wording changes; slides describes layout, object, chart, image or color changes.")
 						.put("enum", List.of("text", "slides")).put("default", "text"))
 				.put("additionalParts", new JSONObject().put("type", "array")
 						.put("items", property("string", "Existing package part")).put("description",
-								"For slides mode only: exact existing chart, workbook, media, notes or relationship parts required by the request. Shared parts require all affected slides in scope. Usually omit."));
+								"Optional legacy inspection hints. Linked chart, workbook, image and other parts are discovered automatically; usually omit."));
 		return new JSONObject().put("name", PptxEditSession.TOOL).put("title", "Prepare an existing PowerPoint edit")
 				.put("description",
-						"Call before editing an existing PPTX. Inspect the original slide text/order and lock the preservation scope. Returns a protected input snapshot and an editing recipe. Call alone; then save build-deck.js and call BuildPptx.")
+						"Inspect requested slide objects, styles, geometry and linked package parts before editing. Returns a protected input snapshot. Preparation can be corrected before the first build. Call alone. ApplyPptxEdits is optional for supported text or color changes.")
 				.put("inputSchema",
 						new JSONObject().put("type", "object").put("properties", props)
 								.put("required", List.of("filePath", "slides")).put("additionalProperties", false))
@@ -223,6 +238,26 @@ final class PptxWorkflow {
 				.toMap();
 	}
 
+	JSONObject applyEdits(Map<String, Object> args, int round) {
+		if (isTerminal()) return toolResult();
+		JSONArray plan = PptxStructuredEdits.validate(args.get("operations"), edit.contract());
+		try {
+			String script = "pptx-edit-" + stateDirectory.getFileName() + ".js";
+			String output = edit.contract().getString("filePath");
+			if (generator != null && !generator.equals(script))
+				throw new IllegalArgumentException("Continue the existing BuildPptx generator during this repair cycle");
+			if (file != null && args.get("engine") != null && !String.valueOf(args.get("engine")).equals(engine))
+				throw new IllegalArgumentException("Keep the original vision engine during a repair cycle");
+			Files.createDirectories(stateDirectory);
+			Files.writeString(resolve(script, ".js"), PptxStructuredEdits.generator(editSnapshot(), output, plan));
+			Map<String, Object> buildArgs = new LinkedHashMap<>(Map.of("generator", script, "filePath", output,
+					"expectedSlides", edit.contract().getInt("slideCount")));
+			for (String key : List.of("instructions", "engine")) if (args.containsKey(key)) buildArgs.put(key, args.get(key));
+			return build(buildArgs, round);
+		} catch (RuntimeException e) { throw e; }
+		catch (Exception e) { throw new IllegalArgumentException("Cannot apply slide edits: " + e.getMessage(), e); }
+	}
+
 	private void restore() {
 		Path saved = stateDirectory.resolve("state.json");
 		try {
@@ -253,6 +288,7 @@ final class PptxWorkflow {
 			completionError = value.optString("error", null);
 			finalText = value.optString("finalText", null);
 			completionWarning = value.optString("warning", null);
+			proposalDeliverySupported = value.optBoolean("proposalDeliverySupported", proposalDeliverySupported);
 			artifactAvailable = value.optJSONObject("artifact") != null
 					&& "available".equals(value.getJSONObject("artifact").optString("status"));
 			reviewVerified = value.optJSONObject("reviewOutcome") != null
@@ -310,11 +346,11 @@ final class PptxWorkflow {
 	String guidance(int rounds) {
 		if (repairStarted < 0) {
 			return "PPTX phase: " + phase
-					+ ". For an existing deck call PreparePptxEdit first, use its snapshot with the editing helper, then BuildPptx. For a new deck save your generator, then BuildPptx.";
+					+ ". For an existing deck call PreparePptxEdit first, use ApplyPptxEdits for supported operations or its snapshot with BuildPptx for other edits. For a new deck save your generator, then BuildPptx.";
 		}
 		return "PPTX phase: " + phase + ". Repair rounds remaining: "
 				+ Math.max(0, repairTurns - (rounds - repairStarted))
-				+ ". Apply only the requested repairs and call BuildPptx. At the limit SEMOSS will attempt one final build of changed generator code and deliver the latest validated deck.";
+				+ ". Apply only the requested repairs using the complete ApplyPptxEdits plan, or the existing generator with BuildPptx. At the limit SEMOSS will attempt one final build of changed generator code and deliver the latest validated deck.";
 	}
 
 	/** Must be called on the harness thread; BuildPptx is never a parallel tool. */
@@ -354,7 +390,7 @@ final class PptxWorkflow {
 			if (preservation != null) {
 				validation.put("preservation", preservation);
 			}
-			List<Integer> scope = edit.active() ? new ArrayList<>(slideSet(edit.contract().getJSONArray("slides")))
+			List<Integer> scope = preservation != null ? new ArrayList<>(slideSet(preservation.getJSONArray("reviewSlides")))
 					: reviews == 0 ? allSlides() : changedSlides(packageHashes, nextHashes);
 			sourceHash = actualHash;
 			generatorHash = actualGeneratorHash;
@@ -375,9 +411,9 @@ final class PptxWorkflow {
 			String brief = instructions + "\n\nStructural advisory findings (use visual judgment):\n"
 					+ validation.optJSONArray("warnings") + "\nReview original slide numbers " + scope + ".";
 			if (edit.active()) {
-				brief += "\nThis is a scoped edit of an existing presentation. Preservation checks passed: "
+				brief += "\nThis is an edit of an existing presentation. Package change assessment (not proof of request completion): "
 						+ preservation
-						+ ". Inspect only the requested edits. Do not request redesign or changes to unrelated slides/objects."
+						+ ". Check the requested result and affected slides for unintended changes. Do not request unrelated redesign."
 						+ "\nOriginal input advisory warnings (pre-existing, not caused by this edit): "
 						+ validation.optJSONArray("baselineWarnings");
 			}
@@ -477,9 +513,10 @@ final class PptxWorkflow {
 
 	void modelStopped(String text) {
 		if (!isTerminal()) {
-			finalizeDelivery(text != null && text.contains("<tool_call>")
+			finalizeDelivery(lastBuildError != null ? "The edited presentation could not be saved: " + lastBuildError
+					: text != null && text.contains("<tool_call>")
 					? "The model returned literal tool-call text before the workflow completed."
-					: "The author stopped before completing the required build and review workflow.", 0);
+					: "No completed build was submitted by the author.", 0);
 		}
 	}
 
@@ -645,6 +682,12 @@ final class PptxWorkflow {
 			}
 		}
 		artifactAvailable = available;
+		JSONObject assessment = savedValidation == null ? null : savedValidation.optJSONObject("preservation");
+		if (available && proposal()) {
+			reason = "Saved a separate proposed revision for inspection. The accepted presentation should remain unchanged. "
+					+ String.join(" ", assessment.getJSONArray("warnings").toList().stream().map(String::valueOf).toList())
+					+ (reason == null ? "" : " " + reason);
+		}
 		if (reason == null && !available) {
 			reason = "No validated saved presentation is available.";
 		}
@@ -656,14 +699,18 @@ final class PptxWorkflow {
 					+ (lastBuildError.length() > 700 ? lastBuildError.substring(0, 700) + "…" : lastBuildError);
 		}
 		completionError = available ? null : reason;
-		completionWarning = available ? reason : null;
+		if (available && proposal() && !proposalDeliverySupported) {
+			completionError = "A proposed revision was saved, but this Office page cannot import it separately. "
+					+ "Refresh the Microsoft Office app before retrying. Your accepted presentation has not been replaced.";
+		}
+		completionWarning = available && completionError == null ? reason : null;
 		phase = completionError != null ? "incomplete"
 				: completionWarning != null ? "delivered_with_warnings" : "delivered";
 		StringBuilder text = new StringBuilder(
 				available ? "Saved `" + file + "` (" + slides + " slides). Structural checks passed."
 						: "Unable to deliver a validated PowerPoint" + (file == null ? "." : ": `" + file + "`."));
 		if (available && edit.active()) {
-			text.append(" Requested edit scope preserved; unrelated package content is unchanged.");
+			text.append(" The original input is retained. A package change assessment is included in the workflow report.");
 		}
 		if (completionError != null) {
 			text.append("\n\nIncomplete: ").append(completionError);
@@ -780,9 +827,18 @@ final class PptxWorkflow {
 	}
 
 	private JSONObject artifact() {
+		JSONObject assessment = savedValidation == null ? null : savedValidation.optJSONObject("preservation");
 		return new JSONObject().put("status", artifactAvailable ? "available" : "unavailable").put("filePath", file)
 				.put("sourceHash", artifactAvailable ? sourceHash : null).put("slideCount", slides)
+				.put("disposition", proposal() ? "proposal" : "revision")
+				.put("editAssessment", assessment)
 				.put("structuralValidation", artifactAvailable ? "passed" : "not_verified");
+	}
+
+	private boolean proposal() {
+		JSONObject assessment = savedValidation == null ? null : savedValidation.optJSONObject("preservation");
+		return assessment != null && ("proposal".equals(assessment.optString("disposition"))
+				|| (reviewVerified && !significantSlides(report).isEmpty()));
 	}
 
 	private JSONObject reviewOutcome() {
@@ -811,7 +867,8 @@ final class PptxWorkflow {
 				.put("repairSlides", repairSlides).put("error", completionError).put("warning", completionWarning)
 				.put("finalText", finalText).put("artifact", artifact()).put("reviewOutcome", reviewOutcome())
 				.put("engine", engine).put("instructions", instructions).put("packageHashes", packageHashes)
-				.put("savedValidation", savedValidation).put("edit", edit.contract());
+				.put("savedValidation", savedValidation).put("edit", edit.contract())
+				.put("proposalDeliverySupported", proposalDeliverySupported);
 		return result;
 	}
 

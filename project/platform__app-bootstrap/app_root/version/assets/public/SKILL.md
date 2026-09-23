@@ -498,22 +498,12 @@ await insight.initialize({
 });
 ```
 
-When the app is opened as an MCP tool from the playground, the host posts a `SMSS_INIT_TOOL`
-message. The SDK installs that listener on import and stores the result on `Env.TOOL`:
-
-```ts
-import { Env } from "@semoss/sdk";
-
-if (Env.TOOL?.name === "my_tool") {
-  const result = await doWork(Env.TOOL.parameters);
-  insight.actions.sendMCPResponseToPlayground(JSON.stringify(result));
-}
-```
-
-React apps get the same object as `tool` from `useInsight()`. When `Env.TOOL.roomId` is present,
-`initialize()` also runs `SetRoomForInsight` so the insight writes into that room; pass
-`disableRoom: true` to opt out. `sendMCPResponseToPlayground` throws outside an embedded browser,
-so guard it on `Env.TOOL` being set.
+Load the `mcp` skill before implementing MCP tool calls or a page opened from Playground. It
+covers `actions.runMCPTool`, explicit `RunMCPTool` pixels, tool metadata, incoming parameters
+through `Env.TOOL` / `useInsight().tool`, and sending a result with
+`actions.sendMCPResponseToRoom`. Calling a tool, returning a page-computed result, and approving
+a paused agent action have different execution ownership; use the matching flow in that skill
+to avoid running the same operation twice. For Python runtime details, load `python`.
 
 ---
 

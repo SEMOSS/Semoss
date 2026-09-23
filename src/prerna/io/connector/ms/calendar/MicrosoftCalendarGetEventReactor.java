@@ -80,7 +80,7 @@ public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarR
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> event = MicrosoftCalendarHelper.getEvent(accessToken, mailbox, calendarId, eventId,
 					maxBodyChars, timeZone);
 			return new NounMetadata(event, PixelDataType.CUSTOM_DATA_STRUCTURE);
