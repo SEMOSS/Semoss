@@ -74,8 +74,8 @@ public final class AutomationSourceRenderer {
 		case MODEL_NER -> modelNerSource(config);
 		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
 		case STORAGE_READ -> storageReadSource(config);
-		case STORAGE_UPLOAD -> storageUploadSource(config);
-		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
+		case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
+		case STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
 		case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
 		case VECTOR_SEARCH -> vectorSearchSource(config);
 		case VECTOR_ADD -> vectorAddSource(config);
@@ -326,9 +326,9 @@ public final class AutomationSourceRenderer {
 				""".formatted(value(config, "engineId"), value(config, "path"));
 	}
 
-	private static String storageUploadSource(Map<String, Object> config) {
+	private static String storageTransferSource(Map<String, Object> config, String method) {
 		return """
-				# Upload an Insight-local file through the SEMOSS storage SDK.
+				# Transfer files with SEMOSS storage through the Python SDK.
 				from ai_server import StorageEngine
 
 				ENGINE_ID = %s
@@ -336,63 +336,9 @@ public final class AutomationSourceRenderer {
 				FILE_PATH = %s
 
 				def run(scope):
-				    storage_path = scope.resolve(STORAGE_PATH)
-				    local_path = scope.resolve(FILE_PATH)
 				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
-				    result = storage.copyToStorage(storagePath=storage_path, localPath=local_path)
-				    if result is True:
-				        metadata = {}
-				    elif isinstance(result, dict) and result.get("success") is True:
-				        metadata = dict(result)
-				    else:
-				        raise RuntimeError(str(result or "Storage upload failed."))
-				    metadata.update({
-				        "success": True,
-				        "storagePath": storage_path,
-				        "localPath": local_path,
-				        "space": "insight",
-				    })
-				    return metadata
-				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"));
-	}
-
-	private static String storageDownloadSource(Map<String, Object> config) {
-		return """
-				# Download a storage file into the current run's Insight workspace.
-				from ai_server import StorageEngine
-				import os
-
-				ENGINE_ID = %s
-				STORAGE_PATH = %s
-				WORKSPACE_FOLDER = %s
-
-				def run(scope):
-				    storage_path = scope.resolve(STORAGE_PATH)
-				    workspace_folder = scope.resolve(WORKSPACE_FOLDER)
-				    file_name = os.path.basename(str(storage_path).replace("\\\\", "/").rstrip("/"))
-				    if not file_name:
-				        raise ValueError("Storage path must identify a file or folder.")
-				    workspace_root = os.path.abspath(ROOT)
-				    local_path = os.path.abspath(
-				        os.path.join(workspace_root, str(workspace_folder), file_name)
-				    )
-				    if os.path.commonpath([workspace_root, local_path]) != workspace_root:
-				        raise ValueError("Storage download destination must stay inside the Insight workspace.")
-				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
-				    success = storage.copyToLocal(storagePath=storage_path, localPath=workspace_folder)
-				    if not success or not os.path.exists(local_path):
-				        raise FileNotFoundError(
-				            "Storage download did not create the expected local path: " + local_path
-				        )
-				    return {
-				        "success": bool(success),
-				        "storagePath": storage_path,
-				        "workspaceFolder": workspace_folder,
-				        "localPath": local_path,
-				        "fileName": file_name,
-				        "space": "insight",
-				    }
-				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"));
+				    return storage.%s(storagePath=scope.resolve(STORAGE_PATH), localPath=scope.resolve(FILE_PATH))
+				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"), method);
 	}
 
 	private static String vectorSearchSource(Map<String, Object> config) {

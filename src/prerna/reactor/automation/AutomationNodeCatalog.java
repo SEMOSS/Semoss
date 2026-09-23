@@ -143,8 +143,7 @@ public final class AutomationNodeCatalog {
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_UPLOAD, "Upload file",
 				"Upload a local file to connected storage.", true, true));
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DOWNLOAD, "Download file",
-				"Download a storage file into the current run's Insight workspace and return its local path.", true,
-				true));
+				"Download a storage file to a local destination.", true, true));
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DELETE, "Delete file",
 				"Delete a file from connected storage.", true, false));
 

@@ -591,8 +591,7 @@ final class AutomationRunExecutionService {
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, executionInsight.getInsightFolder()),
-					getProjectAssetsFolder(projectId),
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope), getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			value = awaitGeneratedAgentRun(executionInsight, runId, node, value, traceRoomId, scope);

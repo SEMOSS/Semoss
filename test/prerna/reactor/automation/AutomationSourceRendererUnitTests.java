@@ -60,14 +60,6 @@ public class AutomationSourceRendererUnitTests {
 		return config;
 	}
 
-	private static Map<String, Object> storageTransferConfig() {
-		Map<String, Object> config = new LinkedHashMap<>();
-		config.put("engineId", "storage-1");
-		config.put("path", "remote/report.pdf");
-		config.put("destination", "downloads");
-		return config;
-	}
-
 	@Test
 	void readsGoThroughExecQuery() {
 		String source = AutomationSourceRenderer.renderNode(
@@ -101,42 +93,6 @@ public class AutomationSourceRendererUnitTests {
 			assertFalse(AutomationSourceRenderer.renderNode(node(type, databaseConfig())).contains("execQuery"),
 					type + " must not render a read call");
 		}
-	}
-
-	@Test
-	void storageDownloadReturnsReusableInsightFileMetadata() {
-		String source = AutomationSourceRenderer.renderNode(
-				node(AutomationConstants.NODE_STORAGE_DOWNLOAD, storageTransferConfig()));
-
-		assertTrue(source.contains("success = storage.copyToLocal(storagePath=storage_path, localPath=workspace_folder)"));
-		assertTrue(source.contains("workspace_root = os.path.abspath(ROOT)"));
-		assertTrue(source.contains("os.path.join(workspace_root, str(workspace_folder), file_name)"));
-		assertTrue(source.contains("os.path.commonpath([workspace_root, local_path]) != workspace_root"));
-		assertTrue(source.contains("if not success or not os.path.exists(local_path):"));
-		assertTrue(source.contains("Storage download did not create the expected local path"));
-		assertTrue(source.contains("\"success\": bool(success)"));
-		assertTrue(source.contains("\"storagePath\": storage_path"));
-		assertTrue(source.contains("\"workspaceFolder\": workspace_folder"));
-		assertTrue(source.contains("\"localPath\": local_path"));
-		assertTrue(source.contains("\"fileName\": file_name"));
-		assertTrue(source.contains("\"space\": \"insight\""));
-	}
-
-	@Test
-	void storageUploadReturnsReusableMetadataAndRejectsSdkErrors() {
-		String source = AutomationSourceRenderer.renderNode(
-				node(AutomationConstants.NODE_STORAGE_UPLOAD, storageTransferConfig()));
-
-		assertTrue(source.contains("result = storage.copyToStorage(storagePath=storage_path, localPath=local_path)"));
-		assertTrue(source.contains("if result is True:"));
-		assertTrue(source.contains("isinstance(result, dict) and result.get(\"success\") is True"));
-		assertTrue(source.contains("raise RuntimeError(str(result or \"Storage upload failed.\"))"));
-		assertTrue(source.contains("metadata.update({"));
-		assertTrue(source.contains("return metadata"));
-		assertTrue(source.contains("\"success\": True"));
-		assertTrue(source.contains("\"storagePath\": storage_path"));
-		assertTrue(source.contains("\"localPath\": local_path"));
-		assertTrue(source.contains("\"space\": \"insight\""));
 	}
 
 	/**
