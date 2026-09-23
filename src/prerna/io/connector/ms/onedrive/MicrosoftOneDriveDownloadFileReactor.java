@@ -88,7 +88,7 @@ public class MicrosoftOneDriveDownloadFileReactor extends AbstractMicrosoftOneDr
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			// create it up front: for an unsaved insight the folder may not exist yet, and
 			// the download treats an existing directory as the destination rather than as

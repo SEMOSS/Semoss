@@ -80,7 +80,7 @@ public class MicrosoftOneDriveGetFileReactor extends AbstractMicrosoftOneDriveRe
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			Map<String, Object> item;
 			if (shareUrl != null) {

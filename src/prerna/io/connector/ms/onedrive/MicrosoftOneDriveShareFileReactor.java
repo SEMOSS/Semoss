@@ -97,7 +97,7 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			Map<String, Object> link = MicrosoftOneDriveHelper.createSharingLink(accessToken, driveId, itemId, path,
 					linkType, scope, recipients, password, expirationDateTime);
 			return new NounMetadata(link, PixelDataType.CUSTOM_DATA_STRUCTURE);

@@ -84,7 +84,7 @@ public class MicrosoftCalendarListPermissionsReactor extends AbstractMicrosoftCa
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> permissions = MicrosoftCalendarHelper.listCalendarPermissions(accessToken,
 					mailbox, calendarId);
 

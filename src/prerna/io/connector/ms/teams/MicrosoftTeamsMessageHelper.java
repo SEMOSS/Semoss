@@ -61,7 +61,7 @@ import prerna.security.HttpHelperUtility;
  * <p>
  * Everything here is delegated: the token says who the signed in user is, so a
  * message is posted as that person and the chats that can be listed are theirs.
- * This is the counterpart of {@link MicrosoftTeamsBotClient}, which posts as a
+ * This is the counterpart of {@code MicrosoftTeamsBotClient}, which posts as a
  * registered bot through the Bot Framework connector; that one answers a
  * conversation the bot was addressed in, and this one acts as the person using
  * the product.

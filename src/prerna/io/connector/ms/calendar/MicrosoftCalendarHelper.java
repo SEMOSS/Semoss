@@ -443,7 +443,7 @@ public class MicrosoftCalendarHelper {
 	 * Deletes an event.
 	 *
 	 * <p>
-	 * An event the user organized is cancelled for everybody invited, and one they
+	 * An event the user organized is canceled for everybody invited, and one they
 	 * were invited to is only removed from their own calendar.
 	 * </p>
 	 *
@@ -691,9 +691,9 @@ public class MicrosoftCalendarHelper {
 	 * Builds the object Graph reads a moment out of.
 	 *
 	 * <p>
-	 * A value carrying an offset is turned into UTC and labelled as such, because
+	 * A value carrying an offset is turned into UTC and labeled as such, because
 	 * Graph reads the zone off the label rather than off the value. A value without
-	 * one is left alone and labelled with the zone the caller named, which is the
+	 * one is left alone and labeled with the zone the caller named, which is the
 	 * shape somebody writing {@code 2026-09-01T13:00:00} in their own zone means.
 	 * </p>
 	 *

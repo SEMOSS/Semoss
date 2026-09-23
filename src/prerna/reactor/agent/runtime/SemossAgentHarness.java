@@ -150,12 +150,13 @@ public class SemossAgentHarness implements IAgentHarness {
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
 		if (agentConfig.hasPptxWorkflow()) {
-            defaultAndExplicitTools.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
-            defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
-            defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
-            defaultAndExplicitTools.add(PptxStructuredEdits.definition());
-        }
-        stripHarnessOnlyParams(paramMap);
+			defaultAndExplicitTools
+					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
+			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
+			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
+		}
+		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
 
@@ -192,6 +193,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
+		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
+		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
 		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
@@ -210,8 +213,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
-		if (agentConfig.hasPptxWorkflow()) composed.append("\n\n").append(PptxWorkflow.PROMPT);
-        opts.put("instructions", composed.toString());
+		if (agentConfig.hasPptxWorkflow()) {
+			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		}
+		opts.put("instructions", composed.toString());
+		// The agent and room layers are already composed; do not append them again.
+		opts.put("overrideSystemPrompt", true);
 		room.setOptionsMap(opts);
 
 		logger.info(
@@ -220,11 +227,11 @@ public class SemossAgentHarness implements IAgentHarness {
 				agentSidePrompt != null ? agentSidePrompt.length() : 0, lengthOrZero(agentConfig.getAgentAgentsMd()),
 				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()));
 
-        AgentLoopState state = new AgentLoopState();
-        String progressOutcome = "failed";
-        String inputMessageId = null;
-        String finalOutputMessageId = null;
-        state.initializeProgress(ctx);
+		AgentLoopState state = new AgentLoopState();
+		String progressOutcome = "failed";
+		String inputMessageId = null;
+		String finalOutputMessageId = null;
+		state.initializeProgress(ctx);
 		try {
 			String systemPrompt = state.systemPrompt();
 
@@ -252,16 +259,20 @@ public class SemossAgentHarness implements IAgentHarness {
 							room.getId(), last.getMessageId());
 					Map<String, Object> resumeParams = new HashMap<>(paramMap);
 					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
-                    state.incrementIterations();
-                    if (agentConfig.getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns())
-                        resumeParams.put("tool_choice", "none");
+					state.incrementIterations();
+					if (agentConfig.getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
+						resumeParams.put("tool_choice", "none");
+					}
 					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-                    Object resumeModelResponse;
-                    state.progress().beginModel();
-                    try {
-                        resumeModelResponse = room.continueAfterToolExecutionResultsWithRuntimeContext(resumeParams,
-                                last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight(), systemPrompt, state.runtimeContext());
-                    } finally { state.progress().endModel(); }
+					Object resumeModelResponse;
+					state.progress().beginModel();
+					try {
+						resumeModelResponse = room.continueAfterToolExecutionResultsWithRuntimeContext(resumeParams,
+								last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight(), systemPrompt,
+								state.runtimeContext());
+					} finally {
+						state.progress().endModel();
+					}
 					if (resumeModelResponse == null) {
 						throw new IllegalStateException("Cannot resume agent run because tool results are incomplete");
 					}
@@ -297,9 +308,9 @@ public class SemossAgentHarness implements IAgentHarness {
 
 				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput()).withMediaInputs(ctx.getMediaInputPaths(), room)
-						.withMediaUrls(ctx.getMediaUrls()).withModelType(ctx.getModelEngine().getModelType())
-						.withParamMap(paramMap).build();
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
+						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
 				if (focusedEdit) firstMsg.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
 				inputMessageId = firstMsg.getMessageId();
@@ -308,10 +319,13 @@ public class SemossAgentHarness implements IAgentHarness {
 						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
 				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-                state.progress().beginModel();
-                try {
-                    response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null), "during initial model call");
-                } finally { state.progress().endModel(); }
+				state.progress().beginModel();
+				try {
+					response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+							"during initial model call");
+				} finally {
+					state.progress().endModel();
+				}
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 				completeActiveItems(ctx.getRunId(), response);
 			}
@@ -373,15 +387,16 @@ public class SemossAgentHarness implements IAgentHarness {
 					completeActiveItems(ctx.getRunId(), response);
 
 				} else {
-                    if (state.pptxWorkflow() != null) {
-                        state.pptxWorkflow().modelStopped(response.getContent());
-                        response = room.appendHarnessResponse(state.pptxWorkflow().finalText(), response.getMessageId(), ctx.getModelEngine(), ctx.getInsight());
-                        state.setFinalText(response.getContent());
-                        finalOutputMessageId = response.getMessageId();
-                        tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
-                        state.setTerminal(true);
-                        completeActiveItems(ctx.getRunId(), response);
-                    } else if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
+					if (state.pptxWorkflow() != null) {
+						state.pptxWorkflow().modelStopped(response.getContent());
+						response = room.appendHarnessResponse(state.pptxWorkflow().finalText(), response.getMessageId(),
+								ctx.getModelEngine(), ctx.getInsight());
+						state.setFinalText(response.getContent());
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+						state.setTerminal(true);
+						completeActiveItems(ctx.getRunId(), response);
+					} else if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
 						AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx,
 								!autoCompactionContextWarningLogged);
 						if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
@@ -400,16 +415,19 @@ public class SemossAgentHarness implements IAgentHarness {
 						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
 						injectHarnessTools(reflectionParams, defaultAndExplicitTools, subAgentTools);
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-								.withText(SemossHarnessPrompts.REFLECTION_PROMPT + "\n\n" + state.runtimeContext(), SemossHarnessPrompts.REFLECTION_PROMPT)
+								.withText(SemossHarnessPrompts.REFLECTION_PROMPT + "\n\n" + state.runtimeContext(),
+										SemossHarnessPrompts.REFLECTION_PROMPT)
 								.withModelType(ctx.getModelEngine().getModelType()).withParamMap(reflectionParams)
 								.build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
 						AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-                        state.progress().beginModel();
-                        try {
-                            response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
-                                    "during reflection " + state.getReflectionsUsed());
-                        } finally { state.progress().endModel(); }
+						state.progress().beginModel();
+						try {
+							response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
+									"during reflection " + state.getReflectionsUsed());
+						} finally {
+							state.progress().endModel();
+						}
 						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 						completeActiveItems(ctx.getRunId(), response);
 
@@ -425,43 +443,55 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
-			if (state.getFinalText() != null && (state.pptxWorkflow() == null || state.pptxWorkflow().completionError() == null)) {
+			if (state.getFinalText() != null
+					&& (state.pptxWorkflow() == null || state.pptxWorkflow().completionError() == null)) {
 				AgentSubAgentRegistry.getManager().emitSubAgentCompleted(ThreadStore.getJobId(), state.getFinalText());
 			}
 
 			String completionError = state.pptxWorkflow() == null ? null : state.pptxWorkflow().completionError();
-            progressOutcome = completionError == null ? "completed" : "incomplete";
+			progressOutcome = completionError == null ? "completed" : "incomplete";
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
 					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
 					finalOutputMessageId, completionError);
-        } catch (AgentInputRequiredException e) {
-            progressOutcome = "input_required";
-            throw e;
-        } catch (AgentCancelledException e) {
-            progressOutcome = "cancelled";
-            throw e;
+		} catch (AgentInputRequiredException e) {
+			progressOutcome = "input_required";
+			throw e;
+		} catch (AgentCancelledException e) {
+			progressOutcome = "cancelled";
+			throw e;
 		} catch (Exception e) {
-            if (Thread.currentThread().isInterrupted()) throw new AgentCancelledException("Agent run cancelled");
-            if (state.pptxWorkflow() == null) throw e;
-            logger.warn("PPTX author stopped; preserving any validated saved artifact for run={}", ctx.getRunId(), e);
-            state.pptxWorkflow().executionFailed(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
-            var last = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
-            ResponseMessage delivery = room.appendHarnessResponse(state.pptxWorkflow().finalText(),
-                    last == null ? null : last.getMessageId(), ctx.getModelEngine(), ctx.getInsight());
-            tagAgentRun(delivery, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
-            persistAgentRunTags(room, ctx);
-            completeActiveItems(ctx.getRunId(), delivery);
-            String completionError = state.pptxWorkflow().completionError();
-            progressOutcome = completionError == null ? "completed" : "incomplete";
-            return new AgentHarnessResult(delivery.getContent(), state.getIterations(), state.getToolCallRecordsSnapshot(),
-                    state.getReflectionsUsed(), inputMessageId, delivery.getMessageId(), completionError);
+			if (Thread.currentThread().isInterrupted()) {
+				throw new AgentCancelledException("Agent run cancelled");
+			}
+			if (state.pptxWorkflow() == null) {
+				throw e;
+			}
+			logger.warn("PPTX author stopped; preserving any validated saved artifact for run={}", ctx.getRunId(), e);
+			state.pptxWorkflow()
+					.executionFailed(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+			var last = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			ResponseMessage delivery = room.appendHarnessResponse(state.pptxWorkflow().finalText(),
+					last == null ? null : last.getMessageId(), ctx.getModelEngine(), ctx.getInsight());
+			tagAgentRun(delivery, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+			persistAgentRunTags(room, ctx);
+			completeActiveItems(ctx.getRunId(), delivery);
+			String completionError = state.pptxWorkflow().completionError();
+			progressOutcome = completionError == null ? "completed" : "incomplete";
+			return new AgentHarnessResult(delivery.getContent(), state.getIterations(),
+					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
+					delivery.getMessageId(), completionError);
 		} finally {
-            state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
+			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
 			// Always restore -- we always mutated options.instructions above.
 			if (hadInstructions) {
 				opts.put("instructions", originalInstructions);
 			} else {
 				opts.remove("instructions");
+			}
+			if (hadPromptOverride) {
+				opts.put("overrideSystemPrompt", originalPromptOverride);
+			} else {
+				opts.remove("overrideSystemPrompt");
 			}
 			room.setOptionsMap(opts);
 			if (rootJobIdRegistered != null) {
@@ -962,20 +992,29 @@ public class SemossAgentHarness implements IAgentHarness {
 			sb.append("\n- Do not substitute the room id or another project id for the target project id.");
 		}
 		sb.append("\n\n## Tool environment");
-		sb.append("\n- BashCommand, when enabled, allows: ").append(PlatformAgentToolHandlers.describeAllowedCommands());
-		sb.append(". One command per call; no pipes, chaining, redirects, $(), backticks, absolute paths, ~ paths, or .. .");
+		sb.append("\n- BashCommand, when enabled, allows: ")
+				.append(PlatformAgentToolHandlers.describeAllowedCommands());
+		sb.append(
+				". One command per call; no pipes, chaining, redirects, $(), backticks, absolute paths, ~ paths, or .. .");
 		sb.append(" Use working-directory-relative paths and read output from the tool result.");
-        if (ctx.getAgentConfig().hasPptxWorkflow()) {
-            sb.append("\n- node, npm, npx and ExecuteNodeCode are unavailable to the author. Save a single async IIFE as build-deck.js and call BuildPptx.");
-            sb.append("\n- For existing decks, call PreparePptxEdit first. Use its protected inputSnapshot and the editing helper; do not reconstruct the deck.");
-            sb.append("\n- ROOT is the working directory inside BuildPptx. Put all declarations inside the IIFE and await all asynchronous work.");
-        } else {
-		sb.append("\n- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.");
-		sb.append("\n- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it.");
-		sb.append(" Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.");
-		sb.append("\n- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there.");
-		sb.append(" Write outputs with path.join(ROOT, \"<exact filename>\"). APP_ROOT and USER_ROOT identify project and user assets when available.");
-        }
+		if (ctx.getAgentConfig().hasPptxWorkflow()) {
+			sb.append(
+					"\n- node, npm, npx and ExecuteNodeCode are unavailable to the author. Save a single async IIFE as build-deck.js and call BuildPptx.");
+			sb.append(
+					"\n- For existing decks, call PreparePptxEdit first. Use its protected inputSnapshot and the editing helper; do not reconstruct the deck.");
+			sb.append(
+					"\n- ROOT is the working directory inside BuildPptx. Put all declarations inside the IIFE and await all asynchronous work.");
+		} else {
+			sb.append(
+					"\n- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.");
+			sb.append(
+					"\n- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it.");
+			sb.append(
+					" Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.");
+			sb.append("\n- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there.");
+			sb.append(
+					" Write outputs with path.join(ROOT, \"<exact filename>\"). APP_ROOT and USER_ROOT identify project and user assets when available.");
+		}
 		return sb.toString();
 	}
 
