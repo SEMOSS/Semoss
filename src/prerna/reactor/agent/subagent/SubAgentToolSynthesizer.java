@@ -323,12 +323,12 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", HumanDelegationService.SUBMIT_TOOL_NAME);
         tool.put("description",
-                "Answer the request at the top of this room from " + requester + ". Call it only when the user "
-                        + "asks to send, reply, or return work to " + requester + "; it is the only way to reach them "
-                        + "from this room. Doing the work is not a request to send it: when the user asks for changes, "
-                        + "a draft, or a file, do that here and stop. When they do ask to send, call it right away "
-                        + "with the full final text and files; the user confirms in the card, so do not ask them to "
-                        + "confirm first. Answering closes the request. Nothing else in this room is shared.");
+                "Answer the request in this room from " + requester + "; it is the only way to reach them from "
+                        + "this room. Call it right away when the user answers the request, or asks to send, reply, "
+                        + "or return work to " + requester + ", with the full final text and files. Asking for "
+                        + "changes, a draft, or a file is not an answer: do that here and stop. The user confirms in "
+                        + "the card, so do not ask them to confirm first. Answering closes the request. Nothing else "
+                        + "in this room is shared.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();
