@@ -213,7 +213,9 @@ public final class SubAgentToolSynthesizer {
     /** Root-run tool that hands a question to a person and returns without waiting. */
     public static Map<String, Object> buildDelegateTool() {
         Map<String, Object> properties = new LinkedHashMap<>();
-        properties.put("assignee", schemaString("Email address of the person to ask."));
+        properties.put("assignee", schemaString("Name or email of the person to ask, as the user gave it, "
+                + "for example \"John Smith\". The user picks the exact person in the card, so do not ask for "
+                + "an email first."));
         properties.put("question", schemaString("What you need from them, written so it stands on its own."));
         properties.put("context", schemaString(
                 "Everything they need to answer. They cannot see this conversation, your files, or your tools, "
@@ -250,7 +252,7 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", TOOL_DELEGATE_TO_PERSON);
         tool.put("description",
-                "Send a request to another person, by email address, for their input, review, opinion, or "
+                "Send a request to another person, by name or email, for their input, review, opinion, or "
                         + "approval. Use it whenever the user asks to send something to someone, share it with them, "
                         + "or get their feedback; it is how you reach people, and there is no separate email tool. "
                         + "Call it right away: the user reviews and can edit the request, files, and links in a card "
@@ -266,6 +268,33 @@ public final class SubAgentToolSynthesizer {
         meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
         meta.put(MCPUtility.SMSS_MCP_UI, new LinkedHashMap<>(
                 Map.of(MCPUtility.UI_DISPLAY_LOCATION, MCPUtility.MCPDisplayOption.INLINE.getValue())));
+        tool.put("_meta", meta);
+        return tool;
+    }
+
+    /** Directory lookup by name, email, or username; runs without confirmation. */
+    public static Map<String, Object> buildFindPersonTool() {
+        Map<String, Object> properties = new LinkedHashMap<>();
+        properties.put("query", schemaString("A name, email, or username, full or partial, such as \"John Smith\"."));
+
+        Map<String, Object> inputSchema = new LinkedHashMap<>();
+        inputSchema.put("type", "object");
+        inputSchema.put("title", HumanDelegationService.FIND_PERSON_TOOL_NAME + "_Arguments");
+        inputSchema.put("properties", properties);
+        inputSchema.put("required", Collections.singletonList("query"));
+
+        Map<String, Object> tool = new LinkedHashMap<>();
+        tool.put("name", HumanDelegationService.FIND_PERSON_TOOL_NAME);
+        tool.put("description",
+                "Look up people on this platform by name, email, or username. Returns up to 10 matches with name "
+                        + "and email. Use it when the user asks who someone is or to check a name. Before "
+                        + TOOL_DELEGATE_TO_PERSON + " it is optional: that tool accepts a name and the user picks the "
+                        + "exact person in its card.");
+        tool.put("inputSchema", inputSchema);
+
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("SMSS_TOOL_KIND", "semoss_find_person");
+        meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.AUTO.getValue());
         tool.put("_meta", meta);
         return tool;
     }
