@@ -53,6 +53,11 @@ public final class HumanDelegationService {
 
 	public static final String TOOL_NAME = "DelegateToPerson";
 	public static final String SUBMIT_TOOL_NAME = "SubmitDelegationResponse";
+	public static final String FIND_PERSON_TOOL_NAME = "FindPerson";
+	private static final int MAX_PEOPLE_RESULTS = 20;
+	private static final int FIND_PERSON_LIMIT = 10;
+	// Rows scanned per search before the every-word filter trims them.
+	private static final int PEOPLE_SCAN_LIMIT = 200;
 	// Tool name on the assignee's action row; distinct from the owner's DelegateToPerson approval.
 	private static final String ASSIGNEE_ACTION = "DelegationRequest";
 	public static final String ROOM_OPTION_ACTION_ID = CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID;
@@ -98,7 +103,7 @@ public final class HumanDelegationService {
 		String responseFormat = bounded(args, "responseFormat", MAX_QUESTION_LENGTH, false);
 		String dueAt = dueDate(bounded(args, "dueAt", 100, false));
 		SubAgentRunCompletionMode mode = completionMode(args);
-		Person assignee = resolveAssignee(bounded(args, "assignee", 320, true));
+		Person assignee = resolveAssignee(args == null ? null : args.get("assignee"));
 		Person requester = Person.of(ownerInsight.getUser().getPrimaryLoginToken());
 		List<Map<String, String>> links = links(args == null ? null : args.get("links"));
 		List<String> files = stringList(args == null ? null : args.get("files"));
@@ -589,14 +594,93 @@ public final class HumanDelegationService {
 		return out;
 	}
 
-	// Exactly one unlocked account must match; every miss reports the same error.
-	private static Person resolveAssignee(String email) {
-		List<Object[]> matches = SecurityQueryUtils.getUnlockedUsersByEmail(email.trim());
-		if (matches.size() != 1) {
-			throw new IllegalArgumentException("No single active user matches assignee " + email);
+	/** FindPerson tool: names and emails only, so the model can pass one to DelegateToPerson. */
+	public static ToolExecutionResult findPersonFromTool(Insight insight, Room room, Map<String, Object> params) {
+		try {
+			if (!CollaborationUtils.isCollaborationRoom(room) || delegationActionId(room) != null) {
+				throw new IllegalStateException(FIND_PERSON_TOOL_NAME + " is only available in collaboration rooms");
+			}
+			requireUser(insight);
+			String query = bounded(params, "query", 200, true);
+			List<Map<String, Object>> people = new ArrayList<>();
+			for (PersonMatch match : matchPeople(query, FIND_PERSON_LIMIT)) {
+				Map<String, Object> entry = new LinkedHashMap<>();
+				entry.put("name", match.person().name());
+				entry.put("email", match.person().email());
+				people.add(entry);
+			}
+			Map<String, Object> out = new LinkedHashMap<>();
+			out.put("query", query);
+			out.put("people", people);
+			out.put("note", people.isEmpty() ? "No active user matches. Ask the user who they mean."
+					: "Pass the name or email to " + TOOL_NAME + "; the user confirms the exact person in the card.");
+			return ToolExecutionResult.success(GSON.toJson(out));
+		} catch (RuntimeException e) {
+			return ToolExecutionResult.error(null, e.getMessage());
 		}
-		Object[] row = matches.getFirst();
-		return new Person(String.valueOf(row[0]), String.valueOf(row[1]), trimToNull(row[2]), trimToNull(row[3]));
+	}
+
+	// The card sends an exact {userId, provider}; a bare hint must match exactly one person.
+	private static Person resolveAssignee(Object value) {
+		if (value instanceof Map<?, ?> map) {
+			Person picked = Person.fromMap(map);
+			Map<String, Object> row = picked.userId() == null || picked.provider() == null ? null
+					: SecurityQueryUtils.getUnlockedUser(picked.userId(), picked.provider());
+			if (row == null) {
+				throw new IllegalArgumentException("The selected person does not have an active account");
+			}
+			return Person.fromRow(row);
+		}
+		String hint = trimToNull(value);
+		if (hint == null) {
+			throw new IllegalArgumentException("assignee is required for " + TOOL_NAME);
+		}
+		if (hint.length() > 320) {
+			throw new IllegalArgumentException("assignee exceeds 320 characters");
+		}
+		List<PersonMatch> matches = matchPeople(hint, MAX_PEOPLE_RESULTS);
+		List<PersonMatch> exact = matches.stream().filter(m -> m.rank() == 0).toList();
+		List<PersonMatch> pool = exact.isEmpty() ? matches : exact;
+		if (pool.size() == 1) {
+			return pool.getFirst().person();
+		}
+		throw new IllegalArgumentException(pool.isEmpty() ? "No active user matches assignee " + hint
+				: "Assignee " + hint + " matches " + pool.size() + " people; pick one in the request card");
+	}
+
+	// Every word must appear in the name, email, or username; rank 0 is an exact match.
+	private static List<PersonMatch> matchPeople(String query, int limit) {
+		String q = trimToNull(query);
+		if (q == null) {
+			return List.of();
+		}
+		String lower = q.toLowerCase(Locale.ROOT);
+		List<String> words = List.of(lower.split("[\\s,]+"));
+		String longest = words.stream().max(Comparator.comparingInt(String::length)).orElse(lower);
+		List<PersonMatch> out = new ArrayList<>();
+		for (Map<String, Object> row : SecurityQueryUtils.searchUnlockedUsers(longest, PEOPLE_SCAN_LIMIT)) {
+			String name = lowerOrEmpty(row.get("name"));
+			String email = lowerOrEmpty(row.get("email"));
+			String username = lowerOrEmpty(row.get("username"));
+			String id = lowerOrEmpty(row.get("id"));
+			String haystack = String.join(" ", name, email, username, id);
+			if (!words.stream().allMatch(haystack::contains)) {
+				continue;
+			}
+			int rank = lower.equals(email) || lower.equals(username) || lower.equals(id) || lower.equals(name) ? 0
+					: name.startsWith(lower) || email.startsWith(lower) ? 1 : 2;
+			out.add(new PersonMatch(Person.fromRow(row), rank));
+		}
+		out.sort(Comparator.comparingInt(PersonMatch::rank));
+		return out.size() > limit ? out.subList(0, limit) : out;
+	}
+
+	private static String lowerOrEmpty(Object value) {
+		String text = trimToNull(value);
+		return text == null ? "" : text.toLowerCase(Locale.ROOT);
+	}
+
+	private record PersonMatch(Person person, int rank) {
 	}
 
 	private static SubAgentRunCompletionMode completionMode(Map<String, Object> args) {
@@ -691,6 +775,11 @@ public final class HumanDelegationService {
 			}
 			return new Person(token.getId(), token.getProvider() == null ? null : token.getProvider().name(),
 					trimToNull(token.getName()), trimToNull(token.getEmail()));
+		}
+
+		static Person fromRow(Map<String, Object> row) {
+			return new Person(trimToNull(row.get("id")), trimToNull(row.get("type")), trimToNull(row.get("name")),
+					trimToNull(row.get("email")));
 		}
 
 		static Person fromMap(Map<?, ?> map) {

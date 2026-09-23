@@ -179,6 +179,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
