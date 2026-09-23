@@ -319,15 +319,11 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 	 */
 	public static List<Map<String, Object>> searchForUser(String searchTerm) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-//		String query = "SELECT DISTINCT SMSS_USER.ID AS ID, SMSS_USER.NAME AS NAME, SMSS_USER.EMAIL AS EMAIL FROM SMSS_USER "
-//				+ "WHERE UPPER(SMSS_USER.NAME) LIKE UPPER('%" + searchTerm + "%') "
-//				+ "OR UPPER(SMSS_USER.EMAIL) LIKE UPPER('%" + searchTerm + "%') "
-//				+ "OR UPPER(SMSS_USER.ID) LIKE UPPER('%" + searchTerm + "%');";
-//
-//		IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, query);
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID", "id"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__TYPE", "type"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
 
@@ -335,6 +331,7 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
 		qs.addExplicitFilter(orFilter);
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -410,7 +407,10 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return false;
 	}
 
-	/** Unlocked accounts whose name, email, username, or id contains the term (case-insensitive). */
+	/**
+	 * Unlocked accounts whose name, email, username, or id contains the term
+	 * (case-insensitive).
+	 */
 	public static List<Map<String, Object>> searchUnlockedUsers(String term, int limit) {
 		SelectQueryStruct qs = unlockedUserQuery();
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -423,7 +423,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		return QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(), qs);
 	}
 
-	/** The unlocked account with exactly this id and provider type; null when none. */
+	/**
+	 * The unlocked account with exactly this id and provider type; null when none.
+	 */
 	public static Map<String, Object> getUnlockedUser(String id, String type) {
 		SelectQueryStruct qs = unlockedUserQuery();
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", id));
