@@ -33,6 +33,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -70,5 +74,36 @@ class AppLogManagerTest {
 		assertFalse(AppLogManager.isApplicationLogger("prerna.om.Insight"));
 		assertFalse(AppLogManager.isApplicationLogger("prerna.logging.SearchAppLogsReactor"));
 		assertFalse(AppLogManager.isApplicationLogger("EngineLogger"));
+	}
+
+	@Test
+	void returnsDatedAndLegacyArchivesNewestFirst() throws Exception {
+		String previousCatalinaBase = System.getProperty("catalina.base");
+		try {
+			System.setProperty("catalina.base", tempDir.getAbsolutePath());
+			File active = writeLog("app.log", "active", Instant.parse("2026-09-24T12:03:00Z"));
+			File newest = writeLog("app.log.2026-09-24.1", "newest", Instant.parse("2026-09-24T12:02:00Z"));
+			File older = writeLog("app.log.2026-09-23.2", "older", Instant.parse("2026-09-23T12:00:00Z"));
+			File legacy = writeLog("app.log.1", "legacy", Instant.parse("2026-09-22T12:00:00Z"));
+			writeLog("app.log.pre-filter", "ignored", Instant.parse("2026-09-25T12:00:00Z"));
+
+			assertEquals(List.of(active, newest, older, legacy),
+					AppLogManager.getLogFiles("project-1", "Project One"));
+		} finally {
+			if (previousCatalinaBase == null) {
+				System.clearProperty("catalina.base");
+			} else {
+				System.setProperty("catalina.base", previousCatalinaBase);
+			}
+		}
+	}
+
+	private File writeLog(String name, String content, Instant modified) throws Exception {
+		File directory = tempDir.toPath().resolve("logs").resolve("apps").resolve("project-1").toFile();
+		assertTrue(directory.mkdirs() || directory.isDirectory());
+		File file = new File(directory, name);
+		Files.writeString(file.toPath(), content);
+		Files.setLastModifiedTime(file.toPath(), FileTime.from(modified));
+		return file;
 	}
 }

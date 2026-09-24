@@ -29,6 +29,9 @@ package prerna.logging;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -37,8 +40,16 @@ import org.apache.logging.log4j.core.Filter;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.RollingFileAppender;
+import org.apache.logging.log4j.core.appender.rolling.CompositeTriggeringPolicy;
 import org.apache.logging.log4j.core.appender.rolling.DefaultRolloverStrategy;
 import org.apache.logging.log4j.core.appender.rolling.SizeBasedTriggeringPolicy;
+import org.apache.logging.log4j.core.appender.rolling.TimeBasedTriggeringPolicy;
+import org.apache.logging.log4j.core.appender.rolling.action.Action;
+import org.apache.logging.log4j.core.appender.rolling.action.DeleteAction;
+import org.apache.logging.log4j.core.appender.rolling.action.IfAccumulatedFileCount;
+import org.apache.logging.log4j.core.appender.rolling.action.IfFileName;
+import org.apache.logging.log4j.core.appender.rolling.action.PathCondition;
+import org.apache.logging.log4j.core.appender.rolling.action.PathSortByModificationTime;
 import org.apache.logging.log4j.core.config.Configuration;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.apache.logging.log4j.core.layout.PatternLayout;
@@ -74,10 +85,15 @@ public final class AppLogManager {
 	private static final int DEFAULT_MAX_FILES = 5;
 	private static final int MAX_CONFIGURED_FILES = 20;
 	private static final Pattern FILE_SIZE_PATTERN = Pattern.compile("(?i)^\\d+\\s*(KB|MB|GB)$");
+	private static final Pattern ROTATED_LOG_FILE_PATTERN =
+			Pattern.compile("^app\\.log\\.(?:\\d+|\\d{4}-\\d{2}-\\d{2}\\.\\d+)$");
+	private static final String ROTATED_LOG_FILE_REGEX =
+			"app\\.log\\.(?:\\d+|\\d{4}-\\d{2}-\\d{2}\\.\\d+)";
 
 	/** Log pattern used for per-project appenders - mirrors the global file appender. */
 	private static final String LOG_PATTERN =
-			"[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] %maskMsg%n";
+			"[%-5level] %d{yyyy-MM-dd HH:mm:ss} %c{1.}:%L [user=%X{userId}] "
+					+ "%maxLen{%maskMsg}{65536}%n";
 
 	/**
 	 * Loggers that should write to per-project files (mirrors log4j2.xml
@@ -149,6 +165,35 @@ public final class AppLogManager {
 	}
 
 	/**
+	 * Returns the active file followed by retained archives, newest first.
+	 * Legacy numeric archives remain searchable during migration to dated names.
+	 */
+	static List<File> getLogFiles(String projectId, String projectName) {
+		String basePath = getLogFilePath(projectId, projectName);
+		File active = new File(basePath);
+		File directory = active.getParentFile();
+		List<File> files = new ArrayList<>();
+		if (active.exists()) {
+			files.add(active);
+		}
+		if (directory == null || !directory.isDirectory()) {
+			return files;
+		}
+
+		File[] archives = directory.listFiles(file ->
+				file.isFile() && ROTATED_LOG_FILE_PATTERN.matcher(file.getName()).matches());
+		if (archives == null) {
+			return files;
+		}
+		List<File> sortedArchives = new ArrayList<>(List.of(archives));
+		sortedArchives.sort(Comparator.comparingLong(File::lastModified)
+				.reversed()
+				.thenComparing(File::getName));
+		files.addAll(sortedArchives.subList(0, Math.min(sortedArchives.size(), getMaxFiles())));
+		return files;
+	}
+
+	/**
 	 * Global operational kill switch. The feature remains enabled when the
 	 * property is absent for backward compatibility.
 	 */
@@ -177,16 +222,34 @@ public final class AppLogManager {
 				.withConfiguration(config)
 				.build();
 
+		PathCondition archiveRetention = IfFileName.createNameCondition(null, ROTATED_LOG_FILE_REGEX,
+				IfAccumulatedFileCount.createFileCountCondition(getMaxFiles()));
+		Action deleteOldArchives = DeleteAction.createDeleteAction(
+				logDirFile.getAbsolutePath(),
+				false,
+				1,
+				false,
+				PathSortByModificationTime.createSorter(true),
+				new PathCondition[] { archiveRetention },
+				null,
+				config);
+
 		RollingFileAppender appender = RollingFileAppender.newBuilder()
 				.withName(appenderName)
 				.withFileName(logFile)
-				.withFilePattern(logFile + ".%i")
+				.withFilePattern(logFile + ".%d{yyyy-MM-dd}.%i")
 				.withAppend(true)
 				.withLayout(layout)
 				.withFilter(filter)
-				.withPolicy(SizeBasedTriggeringPolicy.createPolicy(getMaxFileSize()))
+				.withPolicy(CompositeTriggeringPolicy.createPolicy(
+						SizeBasedTriggeringPolicy.createPolicy(getMaxFileSize()),
+						TimeBasedTriggeringPolicy.newBuilder()
+								.withInterval(1)
+								.withModulate(true)
+								.build()))
 				.withStrategy(DefaultRolloverStrategy.newBuilder()
 						.withMax(Integer.toString(getMaxFiles()))
+						.withCustomActions(new Action[] { deleteOldArchives })
 						.withConfig(config)
 						.build())
 				.setConfiguration(config)

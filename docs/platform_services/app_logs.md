@@ -7,6 +7,8 @@ The per-project file captures loggers owned by project code, including custom
 reactors, plus messages emitted through the `LogMessage` Pixel reactor.
 SEMOSS `prerna.*` framework logs and `EngineLogger` telemetry are excluded so
 platform lifecycle activity and log searches do not flood the application log.
+Each formatted log event is capped at 65,536 characters so one oversized
+message cannot bypass the normal file-size bound by an arbitrary amount.
 
 Configure the feature in `RDF_Map.prop`:
 
@@ -27,6 +29,16 @@ Log4j appenders remain active until the process is restarted.
 By default, logs are stored under
 `${catalina.base}/logs/apps/<project-id>/app.log`, alongside the server's other
 runtime logs. Non-Tomcat processes fall back to `<SEMOSS base>/logs/apps`.
-The default rotation retains the active 10 MB file and five rotated files, for
-approximately 60 MB per project. Deployments should place this directory on an
-appropriately sized volume and monitor aggregate usage across all projects.
+Archives use dated names such as `app.log.2026-09-24.1`. Rotation occurs when
+the active file reaches its configured size and at the next log event after
+midnight. The default retention keeps the active 10 MB file and the five newest
+archives across all dates, for approximately 60 MB per project. Deployments
+should place this directory on an appropriately sized volume, set pod or
+container storage quotas, and monitor aggregate usage across all projects.
+
+This limit applies only to the project application-log feature. Native Python
+workers have their own `log.txt` files in their runtime directories. Those
+files now retain a 5 MB active file plus two backups, and production logging no
+longer serializes full request or response payloads. Individual Python log
+records are also capped at 65,536 characters before local or Java-side
+delivery. These files are not searched or streamed by the Application Logs UI.

@@ -168,19 +168,7 @@ public class SearchAppLogsReactor extends AbstractReactor {
 	 * strategy, and the highest configured suffix is the oldest retained.
 	 */
 	private List<File> resolveLogFiles(String projectId, String projectName) {
-		List<File> files = new ArrayList<>();
-		String basePath = AppLogManager.getLogFilePath(projectId, projectName);
-		File active = new File(basePath);
-		if (active.exists()) {
-			files.add(active);
-		}
-		for (int i = 1; i <= AppLogManager.getMaxFiles(); i++) {
-			File rotated = new File(basePath + "." + i);
-			if (rotated.exists()) {
-				files.add(rotated);
-			}
-		}
-		return files;
+		return AppLogManager.getLogFiles(projectId, projectName);
 	}
 
 	private static boolean matchesFilter(String line, String query, Set<String> levels) {
