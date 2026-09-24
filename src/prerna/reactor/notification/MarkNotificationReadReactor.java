@@ -29,6 +29,8 @@ package prerna.reactor.notification;
 
 import java.sql.Timestamp;
 
+import org.apache.commons.lang3.StringUtils;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
@@ -37,11 +39,23 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+/**
+ * Marks one notification read, or every unread notification in a scope when no
+ * notificationId is given.
+ *
+ * <pre>{@code
+ * MarkNotificationRead(notificationId=["<notificationId>"]);
+ * MarkNotificationRead(scopeType=["APP"], scopeId=["SYSTEM__COLLABORATION"]);
+ * }</pre>
+ */
 public class MarkNotificationReadReactor extends AbstractReactor {
 
+	private static final String SCOPE_TYPE = "scopeType";
+	private static final String SCOPE_ID = "scopeId";
+
 	public MarkNotificationReadReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey() };
-		this.keyRequired = new int[] { 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey(), SCOPE_TYPE, SCOPE_ID };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -55,16 +69,33 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String notificationId = this.keyValue.get(this.keysToGet[0]);
-		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		NotificationDbUtils.markNotificationRead(user, notificationId, readAt);
+		String notificationId = StringUtils.trimToNull(this.keyValue.get(this.keysToGet[0]));
+		if (notificationId != null) {
+			Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
+			NotificationDbUtils.markNotificationRead(user, notificationId, readAt);
+		} else {
+			String scopeId = this.keyValue.get(SCOPE_ID);
+			String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
+			NotificationDbUtils.markAllNotificationsRead(user, scopeType, scopeId);
+		}
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates the notification as read by the user";
+		return "Marks a notification as read by the user, or every notification in a scope when no id is given";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (SCOPE_TYPE.equals(key)) {
+			return "Scope to mark read when no notificationId is given: ALL (default), SYSTEM, or APP.";
+		}
+		if (SCOPE_ID.equals(key)) {
+			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 
 }
