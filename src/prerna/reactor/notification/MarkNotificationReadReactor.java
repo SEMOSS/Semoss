@@ -28,9 +28,6 @@
 package prerna.reactor.notification;
 
 import java.sql.Timestamp;
-import java.util.List;
-
-import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -60,14 +57,7 @@ public class MarkNotificationReadReactor extends AbstractReactor {
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
-		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
-		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
-			throw new IllegalArgumentException("Unable to determine notification recipient");
-		}
-		for (Pair<String, String> recipient : userIdAndTypeList) {
-			NotificationDbUtils.markNotificationRead(recipient.getValue0(), recipient.getValue1(), notificationId,
-					readAt);
-		}
+		NotificationDbUtils.markNotificationRead(user, notificationId, readAt);
 		NounMetadata retNoun = NounMetadata.getSuccessNounMessage("Success!");
 		return retNoun;
 	}

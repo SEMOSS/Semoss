@@ -6,8 +6,6 @@
  * 	you may not use this file except in compliance with the License.
  * 	You may obtain a copy of the License at
  *
- * 	  http://www.apache.org/licenses/LICENSE-2.0
- *
  * 	Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -27,22 +25,27 @@
  *******************************************************************************/
 package prerna.reactor.notification;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.NotificationConstants;
 import prerna.util.Utility;
 
-public class PollNotificationsReactor extends AbstractReactor {
-	private static final String SCOPE_TYPE = "scopeType";
-	private static final String SCOPE_ID = "scopeId";
+/** Fetches notifications scoped to the project bound to the current insight. */
+public class FetchAppNotificationsReactor extends AbstractReactor {
 
-	public PollNotificationsReactor() {
-		this.keysToGet = new String[] { SCOPE_TYPE, SCOPE_ID };
+	public FetchAppNotificationsReactor() {
+		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey() };
 		this.keyRequired = new int[] { 0, 0 };
 	}
 
@@ -57,32 +60,30 @@ public class PollNotificationsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String scopeType = normalizeScopeType(this.keyValue.get(SCOPE_TYPE));
-		String scopeId = this.keyValue.get(SCOPE_ID);
-		if (NotificationConstants.FetchScope.APP.equals(scopeType)
-				&& !SecurityProjectUtils.userCanViewProject(user, scopeId)) {
+		String projectId = getInsightProjectId();
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
 			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
 		}
 
-		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(user, scopeType, scopeId);
-		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
+		List<Map<String, Object>> notifications = NotificationDbUtils.fetchNotifications(user,
+				NotificationConstants.FetchScope.APP, projectId, this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()),
+				this.keyValue.get(ReactorKeysEnum.OFFSET.getKey()));
+		if (!notifications.isEmpty()) {
+			NotificationDbUtils.resetNotificationActionType(user, NotificationConstants.FetchScope.APP, projectId);
+		}
+		return new NounMetadata(notifications, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the number of new notifications for the user";
+		return "Fetch notifications for the project bound to the current insight";
 	}
 
-	private String normalizeScopeType(String scopeType) {
-		String normalized = scopeType == null || scopeType.trim().isEmpty() ? NotificationConstants.FetchScope.ALL
-				: scopeType.trim().toUpperCase();
-		if (!NotificationConstants.FetchScope.isValid(normalized)) {
-			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
+	private String getInsightProjectId() {
+		String projectId = this.insight.getContextProjectId();
+		if (StringUtils.isBlank(projectId)) {
+			throw new IllegalStateException("Current insight is not associated with an app project");
 		}
-		if (NotificationConstants.FetchScope.APP.equals(normalized)
-				&& (this.keyValue.get(SCOPE_ID) == null || this.keyValue.get(SCOPE_ID).trim().isEmpty())) {
-			throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
-		}
-		return normalized;
+		return projectId;
 	}
 }

@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -63,8 +64,11 @@ import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.notifications.NotificationDbUtils;
+import prerna.notifications.NotificationService;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.util.NotificationConstants;
 import prerna.util.Utility;
 
 /**
@@ -190,6 +194,7 @@ public final class HumanDelegationService {
 			throw e;
 		}
 		logger.info("Delegated childRunId={} parentRunId={} actionId={}", childRunId, parent.runId(), actionId);
+		notifyAssignee(actionId, assigneeRoomId, requester, assignee);
 
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("runId", childRunId);
@@ -241,6 +246,7 @@ public final class HumanDelegationService {
 		String runId = (String) action.get("runId");
 		String userId = (String) action.get("userId");
 		if (STATUS_CANCELLED.equals(action.get("status"))) {
+			dismissAssigneeNotification(action);
 			throw new IllegalStateException(
 					requesterLabel(parseJson(action.get("toolMeta"))) + " withdrew this request, so nothing was sent.");
 		}
@@ -272,7 +278,51 @@ public final class HumanDelegationService {
 					result == null ? DECLINED_PREFIX : DECLINED_PREFIX + ": " + result);
 		}
 		AgentRunService.get().queueChildCompletion(runId);
+		dismissAssigneeNotification(action);
 		return view(action);
+	}
+
+	/**
+	 * Bell notice for the assignee. The text is fixed and names only the requester;
+	 * the request itself stays in the assignee's room.
+	 */
+	private static void notifyAssignee(String actionId, String roomId, Person requester, Person assignee) {
+		if (!NotificationDbUtils.isInitalized()) {
+			return;
+		}
+		// Best effort: the delegation is already committed and still shows under "Assigned to you".
+		try {
+			Map<String, Object> metadata = new LinkedHashMap<>();
+			metadata.put("actionId", actionId);
+			metadata.put("roomId", roomId);
+			metadata.put("requester", requester.toMap());
+			NotificationService.createUserNotification(notificationId(actionId),
+					NotificationConstants.Type.DELEGATION_REQUEST, assignee.userId(), assignee.provider(),
+					StringUtils.abbreviate(requester.shortName() + " sent you a request", 255),
+					"Open the request to review it and respond.", NotificationConstants.Source.USER,
+					requester.userId(), NotificationConstants.Target.ROOM, roomId, GSON.toJson(metadata),
+					requester.userId());
+		} catch (RuntimeException e) {
+			logger.warn("Unable to notify the assignee of actionId={}", actionId, e);
+		}
+	}
+
+	private static void dismissAssigneeNotification(Map<String, Object> action) {
+		if (!NotificationDbUtils.isInitalized()
+				|| !(parseJson(action.get("toolMeta")).get("assignee") instanceof Map<?, ?> person)) {
+			return;
+		}
+		try {
+			Person assignee = Person.fromMap(person);
+			NotificationService.dismissUserNotification(notificationId((String) action.get("actionId")),
+					assignee.userId(), assignee.provider());
+		} catch (RuntimeException e) {
+			logger.warn("Unable to clear the delegation notification for actionId={}", action.get("actionId"), e);
+		}
+	}
+
+	private static String notificationId(String actionId) {
+		return deterministicId("semoss:delegation-notification:" + actionId);
 	}
 
 	/** The delegation a room was created for, or null for ordinary rooms. */
