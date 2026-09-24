@@ -36,9 +36,6 @@ archives across all dates, for approximately 60 MB per project. Deployments
 should place this directory on an appropriately sized volume, set pod or
 container storage quotas, and monitor aggregate usage across all projects.
 
-This limit applies only to the project application-log feature. Native Python
-workers have their own `log.txt` files in their runtime directories. Those
-files now retain a 5 MB active file plus two backups, and production logging no
-longer serializes full request or response payloads. Individual Python log
-records are also capped at 65,536 characters before local or Java-side
-delivery. These files are not searched or streamed by the Application Logs UI.
+This limit applies only to the project application-log feature. Other platform
+or worker logs have independent retention policies and are not searched or
+streamed by the Application Logs UI.

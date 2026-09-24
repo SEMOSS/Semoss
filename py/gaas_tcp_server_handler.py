@@ -22,7 +22,6 @@ import string
 import random
 import datetime
 import logging
-from logging.handlers import RotatingFileHandler
 import smssutil
 import json as json
 import math
@@ -37,10 +36,6 @@ import smss_inline_display
 # Same treatment for every other library that can pop a window or block on a
 # human. Dormant until one of those packages is actually imported.
 import smss_headless_guards
-
-PY_LOG_MAX_BYTES = 5 * 1024 * 1024
-PY_LOG_BACKUP_COUNT = 2
-PY_LOG_MAX_MESSAGE_CHARS = 64 * 1024
 
 # input() has to be replaced before any insight globals exist, since those take
 # a copy of the builtins dict and would keep the real one.
@@ -198,16 +193,6 @@ class ExecutionCancelled(Exception):
     """Raised when a running python execution is cancelled by a remote request."""
 
 
-class BoundedLogFormatter(logging.Formatter):
-    """Caps one formatted record so a single message cannot exhaust disk or IPC."""
-
-    def format(self, record: logging.LogRecord) -> str:
-        message = super().format(record)
-        if len(message) <= PY_LOG_MAX_MESSAGE_CHARS:
-            return message
-        return message[:PY_LOG_MAX_MESSAGE_CHARS] + "... [truncated]"
-
-
 class SemossLogHandler(logging.Handler):
     """Routes Python log records back to Java via the LOG operation.
     LOG payloads are forwarded to the py.native Log4j2 logger only.
@@ -277,23 +262,17 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         try:
             log_level_name = os.getenv("LOG_LEVEL", "INFO").upper()  # (default: INFO)
             log_level = self.log_level_mapper(log_level_name)
-            fmt = BoundedLogFormatter("%(asctime)s - %(levelname)s - %(message)s")
+            fmt = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
             self.logger = logging.getLogger("TCPServerHandler")
             self.logger.setLevel(log_level)
-            for handler in self.logger.handlers:
-                handler.close()
             self.logger.handlers.clear()
             self.logger.propagate = False
 
             # File handler writes only the exact
             # configured level to log.txt (not >= level, only ==).
-            file_handler = RotatingFileHandler(
-                f"{self.insight_folder}/log.txt",
-                mode="a",
-                maxBytes=PY_LOG_MAX_BYTES,
-                backupCount=PY_LOG_BACKUP_COUNT,
-                encoding="utf-8",
+            file_handler = logging.FileHandler(
+                f"{self.insight_folder}/log.txt", mode="a"
             )
             file_handler.setFormatter(fmt)
             file_handler.addFilter(lambda record: record.levelno == log_level)
@@ -306,8 +285,9 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             self.logger.addHandler(socket_handler)
 
             self.logger.info("Logging Setup Completed")
-        except Exception:
-            print("ERROR - Unexpected Error While Logging Setup.", file=sys.stderr)
+        except Exception as e:
+            self.log_file.write("\n ERROR - Unexpected Error While Logging Setup.")
+            self.log_file.flush()
 
     def setup(self):
         """
@@ -356,6 +336,12 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
         else:
             # this may not be needed but
             self.request.settimeout(None)
+
+        if self.insight_folder is not None:
+            # print(f"starting to log in location {self.insight_folder}/log.txt")
+            self.log_file = open(
+                f"{self.insight_folder}/log.txt", "a", encoding="utf-8"
+            )
 
         print("Ready to start server")
         print(f"Server is {self.server}")
@@ -504,10 +490,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
 
     def log_data(self, data: Union[bytes, dict, None]):
         """
-        Log request metadata only when development logging is enabled.
-
-        Payload contents can be large and sensitive, so production logging does
-        not serialize them to disk.
+        Log the data to the log file. This is useful for debugging purposes.
+        Trimming the payload to 50 characters to avoid log file bloat.
 
         Args:
             data (Union[bytes, dict, None]): The data to log.
@@ -519,14 +503,19 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
                 data = {}
 
             payload = data.get("payload", [])
+
             log = {
                 "epoc": data.get("epoc", "N/A"),
-                "payload_items": len(payload) if isinstance(payload, (list, tuple)) else 1,
+                "payload": payload,
                 "operation": data.get("operation", "N/A"),
             }
-            self.custom_dev_logger(
-                f"Final Output: {json.dumps(log, ensure_ascii=False)}"
+
+            log_message = (
+                f"Final Output: {json.dumps(log, ensure_ascii=False, indent=4)}"
             )
+            self.prod_logger("------------- OUTPUT LOG - START ----------------\n")
+            self.prod_logger(log_message)
+            self.prod_logger("------------- OUTPUT LOG - END ----------------\n")
         except Exception as e:
             self.logger.warning(f"Error in get_final_output: {str(e)}")
 
@@ -1372,9 +1361,8 @@ class TCPServerHandler(socketserver.BaseRequestHandler):
             f"handle_response() -- Handling response which is going to check the monitors for epoc {epoc}. Here are the monitors: {self.monitors}"
         )
         if epoc in self.monitors:
-            self.custom_dev_logger(
-                "handle_response() -- Payload Response: "
-                f"epoc={epoc}, operation={payload.get('operation', 'N/A')}"
+            self.prod_logger(
+                f"\nhandle_response() -- Payload Response: {json.dumps(payload, ensure_ascii=False, indent=4)}"
             )
             condition = self.monitors.get(epoc)
             if isinstance(condition, threading.Condition):
