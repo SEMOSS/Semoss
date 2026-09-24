@@ -171,6 +171,12 @@ public final class ChildRunCompletionService {
 			logger.info("Delivered child completion runId={} parentRunId={} mode={}", delivery.childRunId(),
 					delivery.parentRunId(), delivery.mode());
 		}
+		if (delivery.humanExecutorLabel() != null) {
+			// After the append, so a requester's notice opens a room that already shows
+			// the answer. Never throws; retries reuse the same notification ids.
+			HumanDelegationService.notifySettled(delivery.childRunId(), delivery.parentRoomId(),
+					humanOutcome(delivery));
+		}
 		if (!continueRun) {
 			return;
 		}

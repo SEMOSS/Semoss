@@ -283,27 +283,89 @@ public final class HumanDelegationService {
 	}
 
 	/**
-	 * Bell notice for the assignee. The text is fixed and names only the requester;
-	 * the request itself stays in the assignee's room.
+	 * Inbox notice for the assignee. The text is fixed and names only the
+	 * requester; the request itself stays in the assignee's room.
 	 */
 	private static void notifyAssignee(String actionId, String roomId, Person requester, Person assignee) {
+		notifyPerson(NotificationConstants.Type.DELEGATION_REQUEST, notificationId(actionId), actionId, roomId,
+				requester, assignee, requester.shortName() + " sent you a request",
+				"Open the request to review it and respond.");
+	}
+
+	/**
+	 * Tells the other person how a delegation ended, once the requester's room has
+	 * the result: the requester hears about an answer or a decline, the assignee
+	 * about a withdrawal. The assignee's request notice is cleared either way.
+	 * Delivery retries call this again; the notification ids keep it to one each.
+	 *
+	 * @param outcome RESPONDED, DECLINED, CANCELLED, or UNANSWERED, as posted to
+	 *                the requester's room
+	 */
+	static void notifySettled(String childRunId, String requesterRoomId, String outcome) {
 		if (!NotificationDbUtils.isInitalized()) {
 			return;
 		}
-		// Best effort: the delegation is already committed and still shows under "Assigned to you".
+		try {
+			Map<String, Object> action = AgentRunActionStore.getActionsForRun(childRunId).stream()
+					.filter(HumanDelegationService::isDelegationAction).findFirst().orElse(null);
+			if (action == null) {
+				return;
+			}
+			dismissAssigneeNotification(action);
+			Map<String, Object> meta = parseJson(action.get("toolMeta"));
+			// Rows from before the Person meta cannot be addressed.
+			if (!(meta.get("requester") instanceof Map<?, ?> from) || !(meta.get("assignee") instanceof Map<?, ?> to)) {
+				return;
+			}
+			Person requester = Person.fromMap(from);
+			Person assignee = Person.fromMap(to);
+			String actionId = (String) action.get("actionId");
+			switch (outcome) {
+			case STATUS_RESPONDED -> notifyPerson(NotificationConstants.Type.DELEGATION_RESPONSE,
+					outcomeNotificationId(actionId, outcome), actionId, requesterRoomId, requester, assignee,
+					assignee.shortName() + " responded to your request",
+					"Open the conversation to read their response.");
+			case STATUS_DECLINED -> notifyPerson(NotificationConstants.Type.DELEGATION_DECLINED,
+					outcomeNotificationId(actionId, outcome), actionId, requesterRoomId, requester, assignee,
+					assignee.shortName() + " declined your request", "Open the conversation for details.");
+			case STATUS_CANCELLED -> notifyPerson(NotificationConstants.Type.DELEGATION_WITHDRAWN,
+					outcomeNotificationId(actionId, outcome), actionId, (String) action.get("roomId"), requester,
+					assignee, requester.shortName() + " withdrew their request",
+					"You no longer need to respond to it.");
+			default -> {
+				// Nothing reached either person, so there is nothing to tell them.
+			}
+			}
+		} catch (RuntimeException e) {
+			logger.warn("Unable to send delegation notifications for childRunId={}", childRunId, e);
+		}
+	}
+
+	/**
+	 * One Collaboration inbox notice about a delegation. It goes to the assignee for
+	 * a request or a withdrawal, and to the requester for an answer or a decline.
+	 * Best effort: the delegation is already committed either way.
+	 */
+	private static void notifyPerson(String type, String notificationId, String actionId, String roomId,
+			Person requester, Person assignee, String title, String message) {
+		if (!NotificationDbUtils.isInitalized()) {
+			return;
+		}
+		boolean toRequester = NotificationConstants.Type.DELEGATION_RESPONSE.equals(type)
+				|| NotificationConstants.Type.DELEGATION_DECLINED.equals(type);
+		Person recipient = toRequester ? requester : assignee;
+		Person sender = toRequester ? assignee : requester;
 		try {
 			Map<String, Object> metadata = new LinkedHashMap<>();
 			metadata.put("actionId", actionId);
 			metadata.put("roomId", roomId);
 			metadata.put("requester", requester.toMap());
-			NotificationService.createUserNotification(notificationId(actionId),
-					NotificationConstants.Type.DELEGATION_REQUEST, assignee.userId(), assignee.provider(),
-					StringUtils.abbreviate(requester.shortName() + " sent you a request", 255),
-					"Open the request to review it and respond.", NotificationConstants.Source.USER,
-					requester.userId(), NotificationConstants.Target.ROOM, roomId, GSON.toJson(metadata),
-					requester.userId());
+			metadata.put("assignee", assignee.toMap());
+			NotificationService.createCollaborationNotification(notificationId, type, recipient.userId(),
+					recipient.provider(), StringUtils.abbreviate(title, 255), message, sender.userId(), roomId,
+					GSON.toJson(metadata));
 		} catch (RuntimeException e) {
-			logger.warn("Unable to notify the assignee of actionId={}", actionId, e);
+			logger.warn("Unable to send the {} notification for actionId={}", type, actionId, e);
 		}
 	}
 
@@ -323,6 +385,10 @@ public final class HumanDelegationService {
 
 	private static String notificationId(String actionId) {
 		return deterministicId("semoss:delegation-notification:" + actionId);
+	}
+
+	private static String outcomeNotificationId(String actionId, String outcome) {
+		return deterministicId("semoss:delegation-notification:" + outcome + ":" + actionId);
 	}
 
 	/** The delegation a room was created for, or null for ordinary rooms. */

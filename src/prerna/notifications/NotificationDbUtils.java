@@ -33,6 +33,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,11 +42,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import com.github.f4b6a3.uuid.alt.GUID;
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -53,6 +57,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityUserUtils;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
@@ -64,6 +69,12 @@ import prerna.util.Utility;
 public class NotificationDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(NotificationDbUtils.class);
+
+	private static final Gson GSON = new Gson();
+
+	// App scopes with no project row behind them. Every signed-in user can read
+	// their notifications, so they count as accessible apps for everyone.
+	private static final List<String> SYSTEM_APP_SCOPE_IDS = List.of(CollaborationUtils.COLLABORATION_PROJECT_ID);
 
 	static boolean initialized = false;
 
@@ -88,6 +99,41 @@ public class NotificationDbUtils {
 	 */
 	public static boolean isInitalized() {
 		return NotificationDbUtils.initialized;
+	}
+
+	/**
+	 * Whether the user can read notifications scoped to an app: any signed-in user
+	 * for a system app such as Collaboration, otherwise viewers of the project.
+	 */
+	public static boolean canViewAppScope(User user, String projectId) {
+		if (StringUtils.isBlank(projectId)) {
+			return false;
+		}
+		String id = projectId.trim();
+		return SYSTEM_APP_SCOPE_IDS.contains(id) || SecurityProjectUtils.userCanViewProject(user, id);
+	}
+
+	/**
+	 * Normalizes a read-scope selector (blank means ALL) and checks that the user
+	 * may read it.
+	 *
+	 * @return ALL, SYSTEM, or APP
+	 */
+	public static String resolveReadScope(User user, String scopeType, String scopeId) {
+		String normalized = StringUtils.isBlank(scopeType) ? NotificationConstants.FetchScope.ALL
+				: scopeType.trim().toUpperCase();
+		if (!NotificationConstants.FetchScope.isValid(normalized)) {
+			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
+		}
+		if (NotificationConstants.FetchScope.APP.equals(normalized)) {
+			if (StringUtils.isBlank(scopeId)) {
+				throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
+			}
+			if (!canViewAppScope(user, scopeId)) {
+				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+			}
+		}
+		return normalized;
 	}
 
 	private static void initialize(List<Pair<String, List<Pair<String, String>>>> dbSchema) throws Exception {
@@ -208,16 +254,48 @@ public class NotificationDbUtils {
 			String audienceType, String audienceId, String audienceUserType, String title, String message,
 			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
 			String targetId, String metadataJson, String createdBy) {
-		return insertNotificationEvent(GUID.v7().toUUID().toString(), type, scopeType, scopeId, audienceType,
+		return insertNotificationEventRow(GUID.v7().toUUID().toString(), type, scopeType, scopeId, audienceType,
 				audienceId, audienceUserType, title, message, priority, displaySurface, sourceType, sourceId,
 				targetType, targetId, metadataJson, createdBy);
 	}
 
-	// Caller-chosen id so a producer can find (and dismiss) its own notification later.
-	static String insertNotificationEvent(String notificationId, String type, String scopeType, String scopeId,
-			String audienceType, String audienceId, String audienceUserType, String title, String message,
-			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
-			String targetId, String metadataJson, String createdBy) {
+	/**
+	 * Inserts under a caller-chosen id so a producer can find (and dismiss) its own
+	 * notification later. The id is also the idempotency key: a retried producer
+	 * gets the existing notification back instead of a duplicate.
+	 */
+	static String insertNotificationEventIfAbsent(String notificationId, String type, String scopeType,
+			String scopeId, String audienceType, String audienceId, String audienceUserType, String title,
+			String message, String priority, String displaySurface, String sourceType, String sourceId,
+			String targetType, String targetId, String metadataJson, String createdBy) {
+		if (notificationExists(notificationId)) {
+			return notificationId;
+		}
+		return insertNotificationEventRow(notificationId, type, scopeType, scopeId, audienceType, audienceId,
+				audienceUserType, title, message, priority, displaySurface, sourceType, sourceId, targetType, targetId,
+				metadataJson, createdBy);
+	}
+
+	private static boolean notificationExists(String notificationId) {
+		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
+		PreparedStatement ps = null;
+		try {
+			ps = notificationDb.getPreparedStatement("SELECT 1 FROM NOTIFICATION_EVENT WHERE NOTIFICATION_ID = ?");
+			ps.setString(1, notificationId);
+			try (ResultSet rs = ps.executeQuery()) {
+				return rs.next();
+			}
+		} catch (SQLException e) {
+			throw new IllegalStateException("Unable to check for notification " + notificationId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
+		}
+	}
+
+	private static String insertNotificationEventRow(String notificationId, String type, String scopeType,
+			String scopeId, String audienceType, String audienceId, String audienceUserType, String title,
+			String message, String priority, String displaySurface, String sourceType, String sourceId,
+			String targetType, String targetId, String metadataJson, String createdBy) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		PreparedStatement ps = null;
@@ -320,15 +398,25 @@ public class NotificationDbUtils {
 	}
 
 	public static int deleteNotification(User user, String notificationId) {
-		return deleteNotification(User.getUserIdAndType(user), getAccessibleProjectIds(user), notificationId);
+		return deleteNotification(user, notificationId, NotificationConstants.FetchScope.ALL, null);
+	}
+
+	/**
+	 * Dismisses one notification, or every visible notification in the scope when
+	 * notificationId is null.
+	 */
+	public static int deleteNotification(User user, String notificationId, String scopeType, String scopeId) {
+		return deleteNotification(User.getUserIdAndType(user), getAccessibleProjectIds(user), notificationId,
+				scopeType, scopeId);
 	}
 
 	public static int deleteNotification(List<Pair<String, String>> recipientPairs, String notificationId) {
-		return deleteNotification(recipientPairs, new ArrayList<>(), notificationId);
+		return deleteNotification(recipientPairs, new ArrayList<>(), notificationId,
+				NotificationConstants.FetchScope.ALL, null);
 	}
 
 	private static int deleteNotification(List<Pair<String, String>> recipientPairs, List<String> accessibleProjectIds,
-			String notificationId) {
+			String notificationId, String scopeType, String scopeId) {
 		if (recipientPairs == null || recipientPairs.isEmpty()) {
 			return 0;
 		}
@@ -338,8 +426,8 @@ public class NotificationDbUtils {
 				notificationIds.add(notificationId);
 			}
 		} else {
-			notificationIds.addAll(fetchVisibleNotificationIds(recipientPairs, accessibleProjectIds,
-					NotificationConstants.FetchScope.ALL, null));
+			notificationIds.addAll(
+					fetchVisibleNotificationIds(recipientPairs, accessibleProjectIds, scopeType, scopeId, false));
 		}
 		int count = 0;
 		Timestamp dismissedAt = Utility.getCurrentSqlTimestampUTC();
@@ -354,23 +442,32 @@ public class NotificationDbUtils {
 	}
 
 	public static void resetNotificationActionType(User user) {
-		resetNotificationActionType(user, NotificationConstants.FetchScope.ALL, null);
+		markAllNotificationsRead(user, NotificationConstants.FetchScope.ALL, null);
 	}
 
 	public static void resetNotificationActionType(User user, String scopeType, String scopeId) {
+		markAllNotificationsRead(user, scopeType, scopeId);
+	}
+
+	/**
+	 * Marks every unread notification the user can see in the scope as read.
+	 * Already-read notifications keep their original read time.
+	 *
+	 * @return the number of notifications marked
+	 */
+	public static int markAllNotificationsRead(User user, String scopeType, String scopeId) {
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
-		if (userIdAndTypeList.isEmpty()) {
-			return;
-		}
 		Pair<String, String> statePair = firstValidPair(userIdAndTypeList);
 		if (statePair == null) {
-			return;
+			return 0;
 		}
 		Timestamp readAt = Utility.getCurrentSqlTimestampUTC();
+		int count = 0;
 		for (String notificationId : fetchVisibleNotificationIds(userIdAndTypeList, getAccessibleProjectIds(user),
-				scopeType, scopeId)) {
-			upsertNotificationState(notificationId, statePair, true, readAt, null, null);
+				scopeType, scopeId, true)) {
+			count += upsertNotificationState(notificationId, statePair, true, readAt, null, null);
 		}
+		return count;
 	}
 
 	public static void markNotificationRead(String notificationId, Timestamp readDate) {
@@ -489,6 +586,7 @@ public class NotificationDbUtils {
 		String sourceId = getString(rs, "SOURCE_ID");
 		String targetId = getString(rs, "TARGET_ID");
 		String catalogId = targetId != null ? targetId : sourceId;
+		Timestamp createdAt = rs.getTimestamp("CREATED_AT");
 
 		row.put("notification_id", getString(rs, "NOTIFICATION_ID"));
 		row.put("recipient_id", getString(rs, "AUDIENCE_ID"));
@@ -502,7 +600,7 @@ public class NotificationDbUtils {
 		row.put("display_surface", normalizeDisplaySurface(getString(rs, "DISPLAY_SURFACE")));
 		row.put("notification_type", legacyType == null ? getString(rs, "TYPE") : legacyType);
 		row.put("catalog_id", catalogId);
-		row.put("notification_createddate", rs.getTimestamp("CREATED_AT"));
+		row.put("notification_createddate", createdAt);
 		row.put("notification_readdate", null);
 		row.put("notification_source", deriveLegacyNotificationSource(sourceType, getString(rs, "SCOPE_TYPE")));
 		row.put("recipient_user_id", getMetadataString(metadata, "affectedUserId"));
@@ -515,7 +613,17 @@ public class NotificationDbUtils {
 		row.put("scope_id", getString(rs, "SCOPE_ID"));
 		row.put("target_type", getString(rs, "TARGET_TYPE"));
 		row.put("target_id", targetId);
+		// For clients that route by type: an unambiguous timestamp and the producer's
+		// metadata (e.g. the delegation a Collaboration notification is about).
+		row.put("created_at", toIsoUtc(createdAt));
+		row.put("metadata", GSON.fromJson(metadata, Map.class));
 		return row;
+	}
+
+	// CREATED_AT holds UTC wall-clock time; see Utility.getCurrentSqlTimestampUTC.
+	private static String toIsoUtc(Timestamp timestamp) {
+		return timestamp == null ? null
+				: timestamp.toLocalDateTime().atOffset(ZoneOffset.UTC).format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
 	}
 
 	private static void hydrateLegacyDisplayFields(List<Map<String, Object>> notificationList) {
@@ -558,10 +666,11 @@ public class NotificationDbUtils {
 	}
 
 	private static List<String> fetchVisibleNotificationIds(List<Pair<String, String>> recipientPairs,
-			List<String> accessibleProjectIds, String scopeType, String scopeId) {
+			List<String> accessibleProjectIds, String scopeType, String scopeId, boolean unreadOnly) {
 		List<Object> audienceParameters = new ArrayList<>();
 		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
+		List<Object> readParameters = new ArrayList<>();
 		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
 				audienceParameters);
 		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
@@ -575,6 +684,13 @@ public class NotificationDbUtils {
 				+ "AND (" + scopeCondition + ") "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
+		if (unreadOnly) {
+			String readCondition = buildStateExistsSqlCondition("urs", recipientPairs, readParameters,
+					"urs.IS_READ = TRUE");
+			parameters.addAll(readParameters);
+			query += " AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
+					+ readCondition + ")";
+		}
 		List<String> ids = new ArrayList<>();
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		PreparedStatement ps = null;
@@ -702,13 +818,12 @@ public class NotificationDbUtils {
 			parameters.add(pair.getValue0());
 			parameters.add(pair.getValue1());
 		}
-		if (accessibleProjectIds != null && !accessibleProjectIds.isEmpty()) {
-			conditions.add("(n.AUDIENCE_TYPE = ? AND n.SCOPE_TYPE = ? AND n.SCOPE_ID IN ("
-					+ String.join(",", java.util.Collections.nCopies(accessibleProjectIds.size(), "?")) + "))");
-			parameters.add(NotificationConstants.Audience.APP_MEMBERS);
-			parameters.add(NotificationConstants.Scope.APP);
-			parameters.addAll(accessibleProjectIds);
-		}
+		List<String> projectIds = withSystemAppScopes(accessibleProjectIds);
+		conditions.add("(n.AUDIENCE_TYPE = ? AND n.SCOPE_TYPE = ? AND n.SCOPE_ID IN ("
+				+ String.join(",", java.util.Collections.nCopies(projectIds.size(), "?")) + "))");
+		parameters.add(NotificationConstants.Audience.APP_MEMBERS);
+		parameters.add(NotificationConstants.Scope.APP);
+		parameters.addAll(projectIds);
 		conditions.add("(n.AUDIENCE_TYPE = ?)");
 		parameters.add(NotificationConstants.Audience.GLOBAL);
 		return String.join(" OR ", conditions);
@@ -732,15 +847,25 @@ public class NotificationDbUtils {
 			parameters.add(scopeId.trim());
 			return "n.SCOPE_TYPE = ? AND n.SCOPE_ID = ?";
 		}
-		if (accessibleProjectIds == null || accessibleProjectIds.isEmpty()) {
-			parameters.add(NotificationConstants.Scope.SYSTEM);
-			return "n.SCOPE_TYPE = ?";
-		}
+		List<String> projectIds = withSystemAppScopes(accessibleProjectIds);
 		parameters.add(NotificationConstants.Scope.SYSTEM);
 		parameters.add(NotificationConstants.Scope.APP);
-		parameters.addAll(accessibleProjectIds);
+		parameters.addAll(projectIds);
 		return "n.SCOPE_TYPE = ? OR (n.SCOPE_TYPE = ? AND n.SCOPE_ID IN ("
-				+ String.join(",", java.util.Collections.nCopies(accessibleProjectIds.size(), "?")) + "))";
+				+ String.join(",", java.util.Collections.nCopies(projectIds.size(), "?")) + "))";
+	}
+
+	// Every recipient can read system app notifications, including server-side
+	// callers that only know the recipient's id.
+	private static List<String> withSystemAppScopes(List<String> accessibleProjectIds) {
+		List<String> projectIds = accessibleProjectIds == null ? new ArrayList<>()
+				: new ArrayList<>(accessibleProjectIds);
+		for (String id : SYSTEM_APP_SCOPE_IDS) {
+			if (!projectIds.contains(id)) {
+				projectIds.add(id);
+			}
+		}
+		return projectIds;
 	}
 
 	private static List<String> getAccessibleProjectIds(User user) {
