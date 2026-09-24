@@ -57,6 +57,7 @@ import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -73,9 +74,9 @@ import prerna.util.insight.InsightUtility;
  * submitted run history before entering this boundary. This class claims that
  * individual run, creates a run-local {@link Insight}, traverses the validated
  * control path, executes the immutable source snapshot one node at a time,
- * persists each transition, and always tears down the run-local Insight. Python
- * receives only the selected node source and a read-only scope; it does not own
- * graph traversal or persistence.
+ * persists each transition, and binds interactive run Insights to the caller's
+ * session lifecycle. Python receives only the selected node source and a
+ * read-only scope; it does not own graph traversal or persistence.
  *
  * <p>
  * Keeping this lifecycle independent from the Pixel reactor allows the same
@@ -88,6 +89,7 @@ final class AutomationRunExecutionService {
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
 	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
+	private static final String EXECUTION_INSIGHT_PREFIX = "automation-run-";
 	private static final long AGENT_RUN_POLL_INTERVAL_MS = 500L;
 	private static final String AGENT_RUN_WAIT_TIMEOUT_PROPERTY = "AGENT_RUN_WAIT_TIMEOUT_MS";
 	private static final long DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS = 3600000L;
@@ -131,9 +133,11 @@ final class AutomationRunExecutionService {
 		streamRunStarted(runId, definition);
 
 		Map<String, Object> result;
+		ExecutionInsightLease executionInsightLease = null;
 		Insight executionInsight = null;
 		try {
-			executionInsight = createExecutionInsight(projectId);
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
 			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
@@ -153,9 +157,10 @@ final class AutomationRunExecutionService {
 			finishFailedRun(runId, projectId, e);
 			result = Map.of("error", safeMessage(e));
 		} finally {
-			Insight completedInsight = executionInsight;
-			AutomationPythonRunRegistry.retainInsightForInspection(runId,
-					() -> cleanupExecutionInsight(completedInsight));
+			AutomationPythonRunRegistry.unregister(runId);
+			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
+				cleanupExecutionInsight(executionInsight);
+			}
 		}
 		return buildResult(runId, projectId, result);
 	}
@@ -175,6 +180,10 @@ final class AutomationRunExecutionService {
 		Map<String, Object> result = new LinkedHashMap<>(persisted);
 		result.put(AutomationConstants.RESULT_NODE_RESULTS,
 				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
+		String executionInsightId = getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null) {
+			result.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
 		if (wait != null) {
 			result.put("wait", wait);
@@ -911,12 +920,25 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Creates the run-local Insight that owns this run's Python session, carrying
-	 * the caller's user, base URL, and scheduler mode and scoped to the automation
-	 * project.
+	 * Opens the deterministic run-local Insight that owns this run's Python session.
+	 * Interactive runs are registered with the current session so the standard
+	 * session cleanup owns their lifetime. Scheduler and other sessionless runs are
+	 * returned with completion cleanup enabled.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param runId     durable run identifier
+	 * @return execution Insight and whether this service must clean it on completion
 	 */
-	private Insight createExecutionInsight(String projectId) {
+	private ExecutionInsightLease openExecutionInsight(String projectId, String runId) {
+		InsightStore insightStore = InsightStore.getInstance();
+		String executionInsightId = executionInsightId(runId);
+		Insight existing = insightStore.get(executionInsightId);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
 		Insight executionInsight = new Insight();
+		executionInsight.setInsightId(executionInsightId);
 		executionInsight.setUser(requestInsight.getUser());
 		executionInsight.setBaseURL(requestInsight.getBaseURL());
 		executionInsight.setSchedulerMode(requestInsight.isSchedulerMode());
@@ -925,14 +947,46 @@ final class AutomationRunExecutionService {
 		if (project != null) {
 			executionInsight.setProjectName(project.getProjectName());
 		}
-		InsightStore.getInstance().put(executionInsight);
-		return executionInsight;
+		existing = insightStore.putIfAbsent(executionInsightId, executionInsight);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
+		String sessionId = ThreadStore.getSessionId();
+		boolean sessionOwned = !requestInsight.isSchedulerMode() && sessionId != null && !sessionId.isBlank();
+		if (sessionOwned) {
+			insightStore.addToSessionHash(sessionId, executionInsightId);
+		}
+		return new ExecutionInsightLease(executionInsight, !sessionOwned);
+	}
+
+	private static ExecutionInsightLease existingExecutionInsight(Insight executionInsight, String projectId) {
+		if (!projectId.equals(executionInsight.getProjectId())) {
+			throw new IllegalStateException("Automation run Insight belongs to a different project.");
+		}
+		return new ExecutionInsightLease(executionInsight, false);
 	}
 
 	/**
-	 * Drops the run-local Insight and its Python session. When normal teardown
-	 * fails the Insight is still removed from the store so a failed run cannot leak
-	 * a session.
+	 * Returns the execution Insight identifier only while that exact run workspace
+	 * remains live in the platform Insight store.
+	 *
+	 * @param runId durable run identifier
+	 * @return live execution Insight identifier, or {@code null} when unavailable
+	 */
+	static String getAvailableExecutionInsightId(String runId) {
+		String executionInsightId = executionInsightId(runId);
+		return InsightStore.getInstance().containsKey(executionInsightId) ? executionInsightId : null;
+	}
+
+	private static String executionInsightId(String runId) {
+		return EXECUTION_INSIGHT_PREFIX + runId;
+	}
+
+	/**
+	 * Drops a sessionless run-local Insight and its Python session. Session-owned
+	 * Insights are instead released by the platform's standard session cleanup.
+	 * When normal teardown fails the Insight is still removed from the store.
 	 */
 	private static void cleanupExecutionInsight(Insight executionInsight) {
 		if (executionInsight == null) {
@@ -1162,6 +1216,7 @@ final class AutomationRunExecutionService {
 			return finishTerminalAgentWait(runId, projectId, waitingNodeId, agentRunId, agentStatus, agent, waitId);
 		}
 
+		ExecutionInsightLease executionInsightLease = null;
 		Insight executionInsight = null;
 		Map<String, Object> continuation = new LinkedHashMap<>();
 		try {
@@ -1183,7 +1238,8 @@ final class AutomationRunExecutionService {
 					AutomationRuntimeUtils.generatePreview(output), null, agentRunId);
 			AutomationDatabaseUtility.resolveWait(runId, waitId, currentUserId());
 
-			executionInsight = createExecutionInsight(projectId);
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
 			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
@@ -1210,9 +1266,10 @@ final class AutomationRunExecutionService {
 			finishFailedRun(runId, projectId, e);
 			continuation = Map.of("error", safeMessage(e));
 		} finally {
-			Insight completedInsight = executionInsight;
-			AutomationPythonRunRegistry.retainInsightForInspection(runId,
-					() -> cleanupExecutionInsight(completedInsight));
+			AutomationPythonRunRegistry.unregister(runId);
+			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
+				cleanupExecutionInsight(executionInsight);
+			}
 		}
 		return buildResult(runId, projectId, continuation);
 	}
@@ -1702,7 +1759,7 @@ final class AutomationRunExecutionService {
 		detail.put(AutomationConstants.RESULT_GLOBALS,
 				normalizeScope(pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
 		detail.put("pythonResult", pythonResult);
-		String executionInsightId = AutomationPythonRunRegistry.getInsightId(runId);
+		String executionInsightId = getAvailableExecutionInsightId(runId);
 		if (executionInsightId != null && !executionInsightId.isBlank()) {
 			detail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
 		}
@@ -1716,6 +1773,10 @@ final class AutomationRunExecutionService {
 		detail.put(AutomationConstants.RESULT_SUMMARY, summary);
 		AutomationDatabaseUtility.updateRunSummary(runId, summary);
 		return detail;
+	}
+
+	/** Couples a run Insight with the component that owns its teardown. */
+	private record ExecutionInsightLease(Insight insight, boolean cleanupOnCompletion) {
 	}
 
 	/**
