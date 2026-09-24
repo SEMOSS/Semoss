@@ -526,9 +526,17 @@ public final class CentralCloudStorage implements ICloudClient {
 		ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
 		lock.lock();
 		classLogger.info("Engine {} is locked", aliasAndEngineId);
+		// Database engines can own local mutable state through their per-engine
+		// audit database, even when the primary database is remote and therefore
+		// reports that it does not hold file locks. Uploading that live audit file can
+		// race with H2 MVStore compaction and leave a storage client reading beyond the
+		// new end of the file. Evaluate this once because the engine is closed below.
+		boolean closeEngineForSync = engineType == IEngine.CATALOG_TYPE.DATABASE || engine.holdsFileLocks();
+		boolean engineRemovedForSync = false;
 		try {
-			if (engine.holdsFileLocks()) {
+			if (closeEngineForSync) {
 				UploadUtilities.removeEngineExcludingSMSSFromDIHelper(engineId);
+				engineRemovedForSync = true;
 				engine.close();
 			}
 
@@ -536,8 +544,8 @@ public final class CentralCloudStorage implements ICloudClient {
 			storageCopyToStorage(localSmssFilePath, cloudSmssFolder);
 		} finally {
 			try {
-				// Re-open the engine
-				if (engine.holdsFileLocks()) {
+				// Re-open an engine that was removed, including when close or transfer failed.
+				if (engineRemovedForSync) {
 					Utility.getEngine(engineId, false);
 				}
 			} catch (Exception e) {
