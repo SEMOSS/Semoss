@@ -28,10 +28,12 @@
 package prerna.sablecc2.comm;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.logging.log4j.CloseableThreadContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.ThreadContext;
@@ -82,7 +84,18 @@ public class PixelJobRunner implements Runnable {
 	@Override
 	public void run() {
 		this.executingThread = Thread.currentThread();
-		try (var ctx = org.apache.logging.log4j.CloseableThreadContext.putAll(this.log4jContextMap)) {
+		// Enrich the captured MDC context with this insight's *context* projectId so
+		// every log line written during pixel execution carries [project=<id>] for
+		// log streaming. getProjectId() means something else entirely - "the project
+		// this insight is saved in" - and stays null for a transient REPL insight
+		// (Terminal, Console) that was only ever scoped via SetContext(...), which
+		// sets contextProjectId, not projectId.
+		Map<String, String> enrichedContextMap = new HashMap<>(this.log4jContextMap);
+		String projectId = insight.getContextProjectId();
+		if (projectId != null && !projectId.isBlank()) {
+			enrichedContextMap.put("projectId", projectId);
+		}
+		try (var ctx = CloseableThreadContext.putAll(enrichedContextMap)) {
 			// set ThreadStore
 			ThreadStore.setInsightId(insight.getInsightId());
 			ThreadStore.setSessionId(sessionId);
