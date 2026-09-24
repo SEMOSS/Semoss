@@ -37,14 +37,48 @@ import java.nio.file.Files;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.List;
+import java.util.Properties;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import prerna.util.Constants;
+import prerna.util.DIHelper;
 
 class AppLogManagerTest {
 
 	@TempDir
 	File tempDir;
+
+	@Test
+	void applicationLoggingIsOptIn() {
+		Properties properties = DIHelper.getInstance().getCoreProp();
+		String previous = properties.getProperty(Constants.APP_LOGGING_ENABLED);
+		try {
+			properties.remove(Constants.APP_LOGGING_ENABLED);
+			assertFalse(AppLogManager.isEnabled());
+			assertFalse(AppLogManager.shouldCaptureEvent(
+					"project-1", "project-1", "reactors.GenerateReport"));
+
+			properties.setProperty(Constants.APP_LOGGING_ENABLED, "false");
+			assertFalse(AppLogManager.isEnabled());
+			assertFalse(AppLogManager.shouldCaptureEvent(
+					"project-1", "project-1", "reactors.GenerateReport"));
+
+			properties.setProperty(Constants.APP_LOGGING_ENABLED, "true");
+			assertTrue(AppLogManager.isEnabled());
+			assertTrue(AppLogManager.shouldCaptureEvent(
+					"project-1", "project-1", "reactors.GenerateReport"));
+			assertFalse(AppLogManager.shouldCaptureEvent(
+					"project-1", "project-2", "reactors.GenerateReport"));
+		} finally {
+			if (previous == null) {
+				properties.remove(Constants.APP_LOGGING_ENABLED);
+			} else {
+				properties.setProperty(Constants.APP_LOGGING_ENABLED, previous);
+			}
+		}
+	}
 
 	@Test
 	void defaultsToTomcatRuntimeLogDirectory() {

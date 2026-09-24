@@ -194,12 +194,12 @@ public final class AppLogManager {
 	}
 
 	/**
-	 * Global operational kill switch. The feature remains enabled when the
-	 * property is absent for backward compatibility.
+	 * Global operational gate. Application logging is opt-in so a missing or
+	 * invalid property never creates or writes project log files.
 	 */
 	public static boolean isEnabled() {
 		String configured = Utility.getDIHelperProperty(Constants.APP_LOGGING_ENABLED);
-		return configured == null || configured.isBlank() || Boolean.parseBoolean(configured);
+		return Boolean.parseBoolean(configured);
 	}
 
 	// -- private --------------------------------------------------------------
@@ -314,6 +314,12 @@ public final class AppLogManager {
 				|| (!loggerName.startsWith("prerna.") && !"EngineLogger".equals(loggerName));
 	}
 
+	static boolean shouldCaptureEvent(String projectId, String eventProjectId, String loggerName) {
+		return isEnabled()
+				&& projectId.equals(eventProjectId)
+				&& isApplicationLogger(loggerName);
+	}
+
 	private static final class ProjectAppLogFilter extends AbstractFilter {
 
 		private final String projectId;
@@ -326,10 +332,9 @@ public final class AppLogManager {
 		@Override
 		public Result filter(LogEvent event) {
 			String eventProjectId = event.getContextData().getValue("projectId");
-			if (!projectId.equals(eventProjectId)) {
-				return Result.DENY;
-			}
-			return isApplicationLogger(event.getLoggerName()) ? Result.ACCEPT : Result.DENY;
+			return shouldCaptureEvent(projectId, eventProjectId, event.getLoggerName())
+					? Result.ACCEPT
+					: Result.DENY;
 		}
 	}
 }

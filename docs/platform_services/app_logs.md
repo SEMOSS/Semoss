@@ -13,8 +13,8 @@ message cannot bypass the normal file-size bound by an arbitrary amount.
 Configure the feature in `RDF_Map.prop`:
 
 ```properties
-# Operational kill switch. Defaults to true when omitted.
-APP_LOGGING_ENABLED=true
+# Explicit opt-in. Missing, blank, invalid, and false values disable logging.
+APP_LOGGING_ENABLED=false
 
 # Optional deployment overrides.
 APP_LOG_DIRECTORY=/var/log/semoss/apps
@@ -22,9 +22,10 @@ APP_LOG_MAX_FILE_SIZE=10MB
 APP_LOG_MAX_FILES=5
 ```
 
-Set `APP_LOGGING_ENABLED=false` and restart SEMOSS to disable appender creation,
-historical search, and live log watches. A restart is required because existing
-Log4j appenders remain active until the process is restarted.
+Set `APP_LOGGING_ENABLED=true` and restart SEMOSS to enable appender creation,
+historical search, and live log watches. When disabled, the appender's event
+filter also rejects writes if an appender remains registered from an earlier
+enabled state.
 
 By default, logs are stored under
 `${catalina.base}/logs/apps/<project-id>/app.log`, alongside the server's other
