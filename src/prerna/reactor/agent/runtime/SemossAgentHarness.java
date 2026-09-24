@@ -38,9 +38,11 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -62,6 +64,8 @@ import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.ChildRunCompletionService;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.stream.AgentRunStreamService;
@@ -114,10 +118,6 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_SUBDIR = "subdir";
 	private static final String PARAM_WORKSPACE_ID = "workspace_id";
 	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
-	/** Ornament key tagging every room message produced by a given agent run. */
-	public static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
-	/** Ornament key tagging the role each message played within the run. */
-	public static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
 	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
 	private static final String RUN_ROLE_ASSISTANT = "assistant";
@@ -169,6 +169,17 @@ public class SemossAgentHarness implements IAgentHarness {
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
+		}
+		// A delegation room answers its request; it cannot start new ones (no re-delegation yet).
+		String delegationActionId = HumanDelegationService.delegationActionId(ctx.getRoom());
+		if (delegationActionId != null) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool(
+					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
+		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -312,6 +323,10 @@ public class SemossAgentHarness implements IAgentHarness {
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				// A continuation prompt is platform-authored model context, not something the user said.
+				if (ctx.getInput() != null && ctx.getInput().startsWith(ChildRunCompletionService.CONTINUATION_PREFIX)) {
+					firstMsg.setVisible(false);
+				}
 				if (focusedEdit) firstMsg.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
 				inputMessageId = firstMsg.getMessageId();
 
@@ -747,10 +762,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (message == null || runId == null || runId.trim().isEmpty()) {
 			return;
 		}
-		message.setOrnament(ORNAMENT_AGENT_RUN_ID, runId);
-		if (role != null && !role.trim().isEmpty()) {
-			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
-		}
+		message.setAgentRun(new AgentRunMessageContext(runId, role));
 	}
 
 	private static void tagAgentRunMessagesFrom(Room room, int startIndex, String runId) {
@@ -764,8 +776,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (message == null) {
 				continue;
 			}
-			Object existingRole = message.getOrnament(ORNAMENT_AGENT_RUN_ROLE);
-			String role = existingRole == null ? roleForMessage(message) : String.valueOf(existingRole);
+			AgentRunMessageContext existingAgentRun = message.getAgentRun();
+			String role = existingAgentRun == null || existingAgentRun.getRole() == null ? roleForMessage(message)
+					: existingAgentRun.getRole();
 			tagAgentRun(message, runId, role);
 		}
 	}
@@ -1139,7 +1152,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		sb.append("User waits until you're done. Simple, but ties up the conversation.\n\n");
 		sb.append("**Pattern B -- deferred (use when subagents are expected to be slow, ");
 		sb.append("the user might want to keep talking, or you've spawned 3+ children):**\n");
-		sb.append("  spawn -> spawn -> reply to the user IMMEDIATELY with the jobIds and a note ");
+		sb.append("  spawn with completionMode=POST -> reply to the user IMMEDIATELY with the jobIds and a note ");
 		sb.append("that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.\n");
 		sb.append("  Subagents continue running in the background between your turns -- they don't ");
 		sb.append("pause when you end your turn.\n\n");

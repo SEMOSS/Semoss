@@ -120,6 +120,11 @@ final class AgentRunRegistry {
 		return Optional.of(candidate);
 	}
 
+	/** Whether this node currently holds a claim for {@code runId}. */
+	boolean isRegistered(String runId) {
+		return runId != null && byRun.containsKey(runId);
+	}
+
 	/**
 	 * Marks the run cancelled, interrupts its thread, and releases its room.
 	 *

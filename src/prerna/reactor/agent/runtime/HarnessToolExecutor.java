@@ -66,6 +66,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -504,6 +505,12 @@ final class HarnessToolExecutor {
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
+			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),
+					tc.toolParams);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
 		if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
 			try {
 				String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,

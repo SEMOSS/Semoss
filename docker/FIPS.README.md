@@ -272,12 +272,17 @@ hash. The same floor applies to MinIO/S3 keys and to
 on a non-FIPS deployment, and that ciphertext cannot be decrypted on a FIPS one.
 Use 14+ characters everywhere.
 
-**SFTP is reduced under FIPS.** The `fips` profile strips sshj's non-FIPS
-BouncyCastle, so sshj falls back to its JCE-only algorithm set: it loses
-`curve25519-sha256` KEX and `ssh-ed25519` host keys, and keeps
-`ecdh-sha2-nistp256`, `diffie-hellman-group14/16-sha256`, `aes-ctr`, `aes-gcm`
-and `hmac-sha2-*`. Those are the approved ones. `SFTPStorageEngine` authenticates
-with a password and never loads a key, so no key-parsing path is affected.
+**SFTP uses an explicit algorithm policy under FIPS.** Excluding SSHJ's ordinary
+Bouncy Castle dependencies controls packaging; it does not automatically filter
+SSHJ's advertised algorithms. `SFTPStorageEngine.createSshConfig()` selects the
+restricted configuration when `org.bouncycastle.fips.approved_only=true` or
+`SEMOSS_FIPS=true`, and requires BCFIPS to be the first provider and actually in
+approved-only mode. Standard mode retains SSHJ defaults.
+
+See [SSHJ algorithm inventory and FIPS policy](SSHJ-FIPS.md) for every reviewed
+SSHJ 0.41.0 algorithm, the enabled list, exclusion reasons, and verification
+limits. Password authentication still processes the server's public host key.
+This negotiation policy does not by itself establish full FIPS conformity.
 
 
 ## 11. Local development
