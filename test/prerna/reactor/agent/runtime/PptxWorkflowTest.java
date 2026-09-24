@@ -219,16 +219,60 @@ class PptxWorkflowTest {
 	}
 
 	@Test
-	void structuralErrorsGetOneBoundedAttemptAndNoReviewUntilValid() {
+	void structuralErrorsKeepRepairingWithinTheBudgetAndNoReviewUntilValid() {
 		operations.valid = false;
 		workflow.build(args, 4);
-		assertFalse(workflow.isTerminal());
-		assertEquals(0, operations.reviewCalls);
 		workflow.build(args, 6);
-		assertTrue(workflow.isTerminal());
+		assertFalse(workflow.isTerminal(), "Without a validated deck a second failure does not end the run");
+		assertEquals("structural_repair", workflow.phase());
+		workflow.afterRound(9, 40);
+		assertFalse(workflow.isTerminal());
+		workflow.afterRound(10, 40);
+		assertTrue(workflow.isTerminal(), "The repair budget counts from the first failure");
 		assertNotNull(workflow.completionError());
 		assertEquals("unavailable", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		assertEquals(2, operations.buildCalls);
 		assertEquals(0, operations.reviewCalls);
+	}
+
+	@Test
+	void aValidBuildAfterRepeatedStructuralFailuresIsDelivered() {
+		operations.valid = false;
+		workflow.build(args, 4);
+		workflow.build(args, 5);
+		operations.valid = true;
+		workflow.build(args, 6);
+		assertTrue(workflow.isTerminal());
+		assertNull(workflow.completionError());
+		assertEquals("available", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		assertEquals(3, operations.buildCalls);
+		assertEquals(1, operations.reviewCalls);
+	}
+
+	@Test
+	void anEditIsNotBlockedByStructuralErrorsItsInputAlreadyHad() {
+		String inherited = "xml: customXml/item1.xml: text outside XML root";
+		operations.valid = false;
+		operations.errors = List.of(inherited);
+		operations.baselineErrors = List.of(inherited);
+		workflow.build(args, 4);
+		assertTrue(workflow.isTerminal());
+		assertNull(workflow.completionError());
+		assertEquals("available", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		assertEquals(1, operations.reviewCalls);
+	}
+
+	@Test
+	void anEditStillFailsOnStructuralErrorsItIntroduced() {
+		String inherited = "colors: ppt/slides/slide2.xml: invalid color \"#FFFFFF\"; use 6 hex digits, no # or alpha.";
+		operations.valid = false;
+		operations.errors = List.of(inherited, inherited, "xml: ppt/slides/slide1.xml: mismatched XML closing tag");
+		operations.baselineErrors = List.of(inherited);
+		String error = workflow.build(args, 4).getString("buildError");
+		assertFalse(workflow.isTerminal());
+		assertEquals(0, operations.reviewCalls);
+		assertTrue(error.contains("mismatched XML closing tag"));
+		assertEquals(1, error.split("invalid color", -1).length - 1, "A second copy of an inherited error is new");
 	}
 
 	@Test
@@ -535,6 +579,7 @@ class PptxWorkflowTest {
 		boolean valid = true, cancelBuild;
 		String severity, corruption, instructions, engine;
 		String slide1 = "slide1", slide2 = "slide2", theme = "theme";
+		List<String> errors, baselineErrors;
 		int buildCalls, reviewCalls;
 		List<List<Integer>> scopes = new ArrayList<>();
 
@@ -556,10 +601,11 @@ class PptxWorkflowTest {
 			for (int i = 0; i < 11; i++) {
 				warnings.put("warning " + i);
 			}
-			return new JSONObject().put("ok", valid).put("slides", 2)
-					.put("errors", new JSONArray(valid ? List.of() : List.of("bad XML"))).put("warnings", warnings)
-					.put("sourceHash", PptxWorkflow.hash(root.resolve("deck.pptx")))
+			JSONObject report = new JSONObject().put("ok", valid).put("slides", 2)
+					.put("errors", new JSONArray(errors != null ? errors : valid ? List.of() : List.of("bad XML")))
+					.put("warnings", warnings).put("sourceHash", PptxWorkflow.hash(root.resolve("deck.pptx")))
 					.put("generatorHash", PptxWorkflow.hash(root.resolve("build-deck.js")));
+			return baselineErrors == null ? report : report.put("baselineErrors", new JSONArray(baselineErrors));
 		}
 
 		@Override

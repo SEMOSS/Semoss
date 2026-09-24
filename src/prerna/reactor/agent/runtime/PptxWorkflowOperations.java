@@ -76,7 +76,7 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 				  if (!fs.existsSync(filename) || stamp() === before) throw new Error('Generator did not save the requested PPTX file');
 				  const validation = deck.validate(filename, {slides: args.expectedSlides, strictCanvas: false});
 				  const hash = value => crypto.createHash('sha256').update(value).digest('hex');
-				  fs.writeFileSync(path.join(ROOT, %s), JSON.stringify({...validation, ...(baseline ? {baselineWarnings: baseline.warnings} : {}), sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)}));
+				  fs.writeFileSync(path.join(ROOT, %s), JSON.stringify({...validation, ...(baseline ? {baselineWarnings: baseline.warnings, baselineErrors: baseline.errors} : {}), sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)}));
 				  return 'Structural validation saved';
 				})()
 				"""

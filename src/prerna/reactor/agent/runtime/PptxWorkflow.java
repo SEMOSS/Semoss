@@ -372,8 +372,10 @@ final class PptxWorkflow {
 			}
 			validation = operations.build(buildArgs);
 			phase = "validating";
-			if (!validation.optBoolean("ok") || validation.optInt("slides") != slides) {
-				return structuralFailure("Structural validation failed: " + validation.optJSONArray("errors"), round);
+			JSONArray introduced = introducedErrors(validation);
+			if (!introduced.isEmpty() || validation.optInt("slides") != slides) {
+				return structuralFailure("Structural validation failed: " + (introduced.isEmpty()
+						? "expected " + slides + " slides but found " + validation.optInt("slides") : introduced), round);
 			}
 			Path source = resolve(file, ".pptx");
 			String actualHash = hash(source);
@@ -494,15 +496,38 @@ final class PptxWorkflow {
 		} catch (Exception e) {
 			error += "; recovery failed: " + e.getMessage();
 		}
-		if (finalizing || structuralFailures > 1 || reviews > 0) {
+		if (finalizing || reviews > 0) {
 			finish("Build/validation failed: " + error);
 		} else {
+			// Nothing validated yet: keep repairing until the budget, counted from the
+			// first failure, runs out in afterRound.
 			phase = "structural_repair";
-			repairStarted = round;
+			if (repairStarted < 0) {
+				repairStarted = round;
+			}
 		}
 		JSONObject result = toolResult().put("buildError", String.valueOf(error));
 		persist();
 		return result;
+	}
+
+	/**
+	 * Errors this build introduced. An edit's report also lists its input's errors;
+	 * problems the original already had are not the edit's to fix.
+	 */
+	private static JSONArray introducedErrors(JSONObject validation) {
+		JSONArray errors = validation.optJSONArray("errors");
+		List<Object> introduced = new ArrayList<>(errors == null ? List.of() : errors.toList());
+		JSONArray baseline = validation.optJSONArray("baselineErrors");
+		if (baseline != null) {
+			for (Object known : baseline) {
+				introduced.remove(known);
+			}
+		}
+		if (errors == null && !validation.optBoolean("ok")) {
+			introduced.add("the validation report lists no errors but did not pass");
+		}
+		return new JSONArray(introduced);
 	}
 
 	void afterRound(int rounds, int maxTurns) {
