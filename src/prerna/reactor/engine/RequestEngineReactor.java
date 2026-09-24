@@ -106,8 +106,9 @@ public class RequestEngineReactor extends AbstractReactor {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String priority = AccessPermissionEnum.isOwner(requestPermission) ? NotificationConstants.Priority.HIGH
 						: NotificationConstants.Priority.MEDIUM;
-				NotificationDbUtils.createNotification(user, userId, userType, engineId,
-						NotificationConstants.Type.USER_REQUEST, engineType, priority, null, permission);
+					NotificationDbUtils.createNotification(user, userId, userType, engineId,
+							NotificationConstants.Type.USER_REQUEST, engineType, priority, null, permission,
+							NotificationConstants.DisplaySurface.BELL);
 
 				EmailUtility.sendAccessRequestEmailNotification(user, engineId, permission, requestComment,
 						EmailUtility.RESOURCE_TYPE.ENGINE);

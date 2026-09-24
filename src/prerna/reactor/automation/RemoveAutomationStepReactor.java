@@ -27,13 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.automation;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
-import com.google.re2j.Pattern;
+import java.util.Set;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -47,17 +47,18 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Removes one non-trigger node from the canonical Automation aggregate.
  *
  * <p>
- * The mutation reconnects compatible control edges, rejects unresolved output
- * references, and persists the graph and remaining node sources under the
- * project lock.
+ * The mutation detaches the remaining flow and persists the graph and remaining
+ * node sources under the project lock. Execution validation remains responsible
+ * for rejecting a draft with detached nodes.
  */
 public class RemoveAutomationStepReactor extends AbstractReactor {
 
 	private static final String NODE_ID_KEY = "nodeId";
+	private static final String REMOVE_DOWNSTREAM_KEY = "removeDownstream";
 
 	public RemoveAutomationStepReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY };
-		this.keyRequired = new int[] { 1, 1 };
+		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), NODE_ID_KEY, REMOVE_DOWNSTREAM_KEY };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
@@ -67,11 +68,13 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 				.getEditableAutomationProject(this.insight.getUser(), required(ReactorKeysEnum.PROJECT.getKey()))
 				.getProjectId();
 		String nodeId = required(NODE_ID_KEY);
-		return AutomationProjectUtils.withLockedDefinition(projectId, files -> removeStep(projectId, files, nodeId));
+		boolean removeDownstream = optionalBoolean(REMOVE_DOWNSTREAM_KEY, false);
+		return AutomationProjectUtils.withLockedDefinition(projectId,
+				files -> removeStep(projectId, files, nodeId, removeDownstream));
 	}
 
 	private NounMetadata removeStep(String projectId, AutomationDefinitionService.DefinitionFiles files,
-			String nodeId) {
+			String nodeId, boolean removeDownstream) {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		Map<String, Object> removedNode = findNode(validated.nodes(), nodeId);
@@ -79,38 +82,20 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 			throw new IllegalArgumentException("The trigger node cannot be removed.");
 		}
 
-		String outputVar = removedNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR) instanceof String value ? value
-				: null;
-		validateNoOutputReferences(validated.nodes(), files.nodeSources(), nodeId, outputVar);
-
-		List<Map<String, Object>> incoming = controlEdges(validated.edges(), nodeId, true);
-		List<Map<String, Object>> outgoing = controlEdges(validated.edges(), nodeId, false);
-		if (incoming.size() != 1 || outgoing.size() > 1) {
-			throw new IllegalArgumentException("Node '" + nodeId
-					+ "' does not have a unique sequential predecessor/successor and cannot be safely removed.");
-		}
+		Set<String> removedNodeIds = removeDownstream ? downstreamNodeIds(validated.edges(), nodeId) : Set.of(nodeId);
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>();
 		for (Map<String, Object> node : validated.nodes()) {
-			if (!nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
+			if (!removedNodeIds.contains(node.get(AutomationConstants.NODE_FIELD_ID))) {
 				updatedNodes.add(node);
 			}
 		}
 		List<Map<String, Object>> updatedEdges = new ArrayList<>();
 		for (Map<String, Object> edge : validated.edges()) {
-			if (!nodeId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))
-					&& !nodeId.equals(edge.get(AutomationConstants.EDGE_FIELD_TARGET))) {
+			if (!removedNodeIds.contains(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))
+					&& !removedNodeIds.contains(edge.get(AutomationConstants.EDGE_FIELD_TARGET))) {
 				updatedEdges.add(edge);
 			}
-		}
-		if (!outgoing.isEmpty()) {
-			String predecessor = incoming.get(0).get(AutomationConstants.EDGE_FIELD_SOURCE).toString();
-			String successor = outgoing.get(0).get(AutomationConstants.EDGE_FIELD_TARGET).toString();
-			if (predecessor.equals(successor)) {
-				throw new IllegalArgumentException("Removing node '" + nodeId + "' would create a control self-loop.");
-			}
-			updatedEdges.add(controlEdge(predecessor, successor,
-					incoming.get(0).get(AutomationConstants.EDGE_FIELD_SOURCE_PORT).toString()));
 		}
 
 		@SuppressWarnings("unchecked")
@@ -121,13 +106,14 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		Map<String, Object> updatedDefinition = new LinkedHashMap<>(validated.definition());
 		updatedDefinition.put(AutomationConstants.DOC_GRAPH, updatedGraph);
 		Map<String, String> updatedSources = new LinkedHashMap<>(files.nodeSources());
-		updatedSources.remove(nodeId);
+		removedNodeIds.forEach(updatedSources::remove);
 
 		AutomationDefinitionService.DefinitionFiles saved = AutomationProjectUtils.saveDefinition(projectId,
 				AutomationRuntimeUtils.GSON.toJson(updatedDefinition), updatedSources, this.insight.getUser());
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("removed", true);
 		result.put("nodeId", nodeId);
+		result.put("removedNodeIds", removedNodeIds);
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(saved.definition(), saved.nodeSources()));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
@@ -141,6 +127,17 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		return value;
 	}
 
+	private boolean optionalBoolean(String key, boolean defaultValue) {
+		String value = this.keyValue.get(key);
+		if (value == null || value.isBlank()) {
+			return defaultValue;
+		}
+		if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+			throw new IllegalArgumentException(key + " must be true or false.");
+		}
+		return Boolean.parseBoolean(value);
+	}
+
 	private static Map<String, Object> findNode(List<Map<String, Object>> nodes, String nodeId) {
 		for (Map<String, Object> node : nodes) {
 			if (nodeId.equals(node.get(AutomationConstants.NODE_FIELD_ID))) {
@@ -150,80 +147,27 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 		throw new IllegalArgumentException("Automation does not contain node: " + nodeId);
 	}
 
-	private static List<Map<String, Object>> controlEdges(List<Map<String, Object>> edges, String nodeId,
-			boolean incoming) {
-		List<Map<String, Object>> result = new ArrayList<>();
-		String endpoint = incoming ? AutomationConstants.EDGE_FIELD_TARGET : AutomationConstants.EDGE_FIELD_SOURCE;
+	/** Returns the selected node and every node reachable after it. */
+	static Set<String> downstreamNodeIds(List<Map<String, Object>> edges, String nodeId) {
+		Map<String, List<String>> outgoing = new LinkedHashMap<>();
 		for (Map<String, Object> edge : edges) {
-			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))
-					&& nodeId.equals(edge.get(endpoint))) {
-				result.add(edge);
+			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				continue;
+			}
+			String source = edge.get(AutomationConstants.EDGE_FIELD_SOURCE).toString();
+			String target = edge.get(AutomationConstants.EDGE_FIELD_TARGET).toString();
+			outgoing.computeIfAbsent(source, ignored -> new ArrayList<>()).add(target);
+		}
+		Set<String> result = new LinkedHashSet<>();
+		ArrayDeque<String> pending = new ArrayDeque<>();
+		pending.add(nodeId);
+		while (!pending.isEmpty()) {
+			String current = pending.removeFirst();
+			if (result.add(current)) {
+				pending.addAll(outgoing.getOrDefault(current, List.of()));
 			}
 		}
 		return result;
-	}
-
-	private static void validateNoOutputReferences(List<Map<String, Object>> nodes, Map<String, String> sources,
-			String removedNodeId, String outputVar) {
-		if (outputVar == null || outputVar.isBlank()) {
-			return;
-		}
-		List<String> references = new ArrayList<>();
-		for (Map<String, Object> node : nodes) {
-			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
-			if (removedNodeId.equals(nodeId)) {
-				continue;
-			}
-			if (referencesOutput(node.get(AutomationConstants.NODE_FIELD_CONFIG), outputVar)
-					|| referencesOutput(sources.get(nodeId), outputVar)) {
-				references.add(nodeId);
-			}
-		}
-		if (!references.isEmpty()) {
-			throw new IllegalArgumentException("Cannot remove node '" + removedNodeId + "' because output variable '"
-					+ outputVar + "' is referenced by nodes " + references + ". Update those nodes first.");
-		}
-	}
-
-	/**
-	 * Reports whether a configuration value or node source still reads the removed
-	 * node's output.
-	 *
-	 * <p>
-	 * The node name is escaped and embedded in a scan pattern, so the expression is
-	 * compiled with RE2/J: it evaluates in linear time over node source that may be
-	 * up to {@link AutomationConstants#NODE_SOURCE_MAX_BYTES} bytes. RE2 has no
-	 * backreferences, so the matching-quote case is an explicit alternation rather
-	 * than a captured opening quote reused later in the pattern.
-	 */
-	private static boolean referencesOutput(Object value, String outputVar) {
-		if (value instanceof String string) {
-			if (string.contains("${" + outputVar + "}")) {
-				return true;
-			}
-			String key = "(?:'" + Pattern.quote(outputVar) + "'|\"" + Pattern.quote(outputVar) + "\"|"
-					+ Pattern.quote(outputVar) + ")";
-			return Pattern.compile("\\bscope\\s*\\[\\s*" + key + "\\s*\\]").matcher(string).find() || Pattern
-					.compile("\\bscope\\s*\\.\\s*get\\s*\\(\\s*" + key + "\\s*(?:,|\\))").matcher(string).find();
-		}
-		if (value instanceof Map<?, ?> map) {
-			return map.values().stream().anyMatch(item -> referencesOutput(item, outputVar));
-		}
-		if (value instanceof Iterable<?> iterable) {
-			for (Object item : iterable) {
-				if (referencesOutput(item, outputVar)) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	private static Map<String, Object> controlEdge(String source, String target, String sourcePort) {
-		return Map.of("id", "control-" + UUID.randomUUID(), AutomationConstants.EDGE_FIELD_KIND,
-				AutomationConstants.EDGE_KIND_CONTROL, AutomationConstants.EDGE_FIELD_SOURCE, source,
-				AutomationConstants.EDGE_FIELD_SOURCE_PORT, sourcePort, AutomationConstants.EDGE_FIELD_TARGET, target,
-				AutomationConstants.EDGE_FIELD_TARGET_PORT, "in");
 	}
 
 	@Override
@@ -233,13 +177,16 @@ public class RemoveAutomationStepReactor extends AbstractReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Removes one non-trigger automation node after validating dependencies and reconnecting its sequence.";
+		return "Removes and detaches one Automation step, or removes the step and its downstream flow.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (NODE_ID_KEY.equals(key)) {
 			return "Existing non-trigger node ID to remove.";
+		}
+		if (REMOVE_DOWNSTREAM_KEY.equals(key)) {
+			return "When true, also removes every step reachable after the selected node; defaults to false.";
 		}
 		return super.getDescriptionForKey(key);
 	}

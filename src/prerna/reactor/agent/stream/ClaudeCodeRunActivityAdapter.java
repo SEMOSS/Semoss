@@ -48,7 +48,6 @@ import org.json.JSONObject;
 
 import prerna.reactor.agent.ClaudeCodeTranscriptLocator;
 import prerna.reactor.agent.ClaudeCodeTranscriptParser;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
 
 /**
  * Projects Claude Code's provider-specific live envelopes and JSONL transcript
@@ -402,23 +401,28 @@ public final class ClaudeCodeRunActivityAdapter {
 
 	private static Map<String, Object> message(String runId, String role, String messageId, String io, String type,
 			boolean visible, String timestamp, Map<String, Object> part) {
-		Map<String, Object> ornaments = new LinkedHashMap<>();
-		ornaments.put(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, runId);
-		ornaments.put(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, role);
+		Map<String, Object> agentRun = new LinkedHashMap<>();
+		agentRun.put("runId", runId);
+		agentRun.put("role", role);
 		Map<String, Object> message = new LinkedHashMap<>();
 		message.put("messageId", messageId);
 		message.put("io", io);
 		message.put("type", type);
 		message.put("visible", visible);
 		message.put("dateCreated", timestamp);
-		message.put("ornaments", ornaments);
+		message.put("agentRun", agentRun);
 		message.put("parts", List.of(part));
 		return message;
 	}
 
 	private static String agentRunRole(Map<String, Object> message) {
+		Map<String, Object> agentRun = asMap(message.get("agentRun"));
+		String role = agentRun == null ? null : stringValue(agentRun.get("role"));
+		if (role != null) {
+			return role;
+		}
 		Map<String, Object> ornaments = asMap(message.get("ornaments"));
-		return ornaments == null ? null : stringValue(ornaments.get(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE));
+		return ornaments == null ? null : stringValue(ornaments.get("agentRunRole"));
 	}
 
 	private static long eventTimestamp(Map<String, Object> envelope) {

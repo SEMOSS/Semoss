@@ -9,12 +9,13 @@ in the authenticated user's Python insight.
 | Pixel | Request | Response / behavior |
 | --- | --- | --- |
 | `CreateAutomation` | `projectName` | Creates a project with a starter graph. |
-| `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, plus `nodeSources: { nodeId: source }`. |
+| `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, `nodeSources: { nodeId: source }`, and server-derived `scopeVariables` by node ID. |
 | `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. `nodeSources` holds one entry per Python-backed node; trigger setup source belongs in `trigger.start.config.pythonSource`. |
 | `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
 | `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
+| `RemoveAutomationStep` | `project`, `nodeId`, optional `removeDownstream` | Removes one step and its attached edges; when `removeDownstream=true`, removes the selected step and every downstream step. Detached drafts can be saved but cannot run. |
 
 ## MCP authoring
 
@@ -24,9 +25,16 @@ generated node, reconfigure a generated node, or update an explicitly custom nod
 optimistic source-hash check. MCP tools never receive the whole graph or bypass Java-owned
 control-flow validation.
 
-The workbench runs the immutable `automation-builder` system agent and supplies the active
+`scopeVariables` is keyed by node ID. Each descriptor includes `name`, `source`, `availability`,
+the recommended `pythonExpression`, explicit `requiredPythonExpression` and
+`optionalPythonExpression` forms, and `templateExpression`. Custom Python may choose required
+`scope["name"]` or optional `scope.get("name")` access; generated configuration forms should insert
+`templateExpression`. A conditional branch output is reported with `availability: "conditional"`
+and recommends the safe optional expression.
+
+The workbench runs the immutable `workflow-automation-builder` system agent and supplies the active
 automation project's MCP through room options. That agent owns the authoring prompt and the
-`automation` system skill; the skill owns reusable graph and node-selection guidance. The
+`workflow-automation` system skill; the skill owns reusable graph and node-selection guidance. The
 project MCP remains project-scoped so its fixed project ID, authenticated Insight, approval
 policy, and refresh events stay bound to the automation being edited.
 
@@ -56,21 +64,26 @@ TriggerAutomation (virtual thread)
   -> persists the terminal status for that run
 ```
 
-Java accepts one connected, acyclic control graph rooted at `trigger.start`; each run follows one
-deterministic path through its `control.if` nodes.
+Authoring may persist an acyclic draft with detached or incomplete control paths. Execution accepts
+only a connected graph rooted at `trigger.start`; each run follows one deterministic path through
+its routing nodes.
 Supported native-Python runtime types are:
 
-- `database.query`, `database.insert`, `database.update`
+- `database.query`, `database.insert`, `database.update`, `database.delete`
 - `model.chat`, `model.embeddings`, `model.vision`, `model.ner`
 - `storage.list`, `storage.read`, `storage.upload`,
   `storage.download`, `storage.delete`
 - `vector.search`, `vector.add`, `vector.delete`
-- `function.execute`, `app.pixel`, `control.wait`, `control.if`
+- `function.execute`, `app.pixel`, `control.wait`, `control.if`, `control.jev`
 - `agent.run`
 
 `control.if` stores ordered `{ id, condition }` clauses evaluated only by the bounded Java
 expression evaluator. The first match selects its `case:<clause-id>` edge; otherwise the final
-`else` edge is selected. Arbitrary fan-out from one port, loops, and parallel execution are
+`else` edge is selected. `control.jev` delegates a typed routing question to a TYPESAFE model.
+`questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
+model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
+Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
+below the configured threshold. Arbitrary fan-out from one port, loops, and parallel execution are
 rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional
