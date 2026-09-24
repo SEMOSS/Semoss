@@ -35,6 +35,7 @@ import com.google.gson.Gson;
 
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -67,7 +68,7 @@ public class GetAgentRunActionReactor extends AbstractReactor {
 			throw new SecurityException("Must be logged in to look up an agent action");
 		}
 		Map<String, Object> action = AgentRunActionStore.getPendingActionById(actionId, userId);
-		if (action == null) {
+		if (action == null || HumanDelegationService.isDelegationAction(action)) {
 			throw new IllegalArgumentException("No pending agent action found for actionId=" + actionId);
 		}
 		// Parse the stored JSON strings into objects so the FE gets real maps.

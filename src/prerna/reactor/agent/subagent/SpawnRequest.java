@@ -29,6 +29,7 @@ package prerna.reactor.agent.subagent;
 
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunTarget;
+import prerna.reactor.agent.run.SubAgentRunCompletionMode;
 
 /**
  * Input to {@link AgentSubAgentRegistry#spawn(SpawnRequest)}.
@@ -41,6 +42,9 @@ import prerna.reactor.agent.AgentRunTarget;
  * {@link AgentSubAgentRegistry#spawn(SpawnRequest)} it should not be modified.
  */
 public final class SpawnRequest {
+
+	/** How the child reports a terminal result to its parent. */
+	public SubAgentRunCompletionMode completionMode = SubAgentRunCompletionMode.WAIT;
 
     /** Async pixel job id of the caller; used to address {@code subagent-spawned} stream events. May be {@code null}. */
     public String parentJobId;

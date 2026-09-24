@@ -262,6 +262,13 @@ public final class AutomationProjectUtils {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' requires a " + expectedType
 						+ " engine, but engineId '" + engineId + "' is a " + actualType + " engine.");
 			}
+			if (typedNode == AutomationNodeType.CONTROL_JEV) {
+				Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
+				if (typeAndSubtype.length < 2 || !"TYPESAFE".equalsIgnoreCase(String.valueOf(typeAndSubtype[1]))) {
+					throw new IllegalArgumentException("Automation Jev decision node '" + nodeId
+							+ "' requires a TYPESAFE model engine.");
+				}
+			}
 			if (typedNode.getPermission() == AutomationNodeType.Permission.EDIT
 					&& !SecurityEngineUtils.userCanEditEngine(user, engineId)) {
 				throw new IllegalArgumentException("Automation node '" + nodeId + "' of type '" + nodeType

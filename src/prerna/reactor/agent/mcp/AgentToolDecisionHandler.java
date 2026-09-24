@@ -45,6 +45,7 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
@@ -52,11 +53,11 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
-import prerna.reactor.agent.runtime.SemossAgentHarness;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
@@ -148,7 +149,8 @@ public final class AgentToolDecisionHandler {
 
 		// reject/respond record a manual result without executing the tool
 		if (!decisionExecutesTool(normalizedDecision)) {
-			String manualResult = resolveManualDecisionResult(normalizedDecision, passthroughResult);
+			String manualResult = resolveManualDecisionResult(normalizedDecision, passthroughResult,
+					stringValue(pendingAction.get("toolName")));
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, manualResult,
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
@@ -167,13 +169,19 @@ public final class AgentToolDecisionHandler {
 					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
-		String engineId = AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction),
-				this.insight);
-		engineId = requireSafeEngineId(engineId);
 		String toolName = stringValue(pendingAction.get("toolName"));
+		// Delegation tools are platform actions, not MCP tools, so they have no engine.
+		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
+		boolean delegationRequest = HumanDelegationService.TOOL_NAME.equals(toolName);
+		String engineId = delegationSubmit || delegationRequest ? null
+				: AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
+		if (engineId != null) {
+			engineId = requireSafeEngineId(engineId);
+		}
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
+		Room executionRoom = null;
 		if (roomId != null && !roomId.isBlank()) {
-			Room executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
+			executionRoom = loadRoom(roomId, actionOwnerUserId, automationAuthorized);
 			if (executionRoom == null) {
 				throw new IllegalStateException(
 						"Cannot execute the agent tool call because room was not found roomId=" + roomId);
@@ -198,7 +206,10 @@ public final class AgentToolDecisionHandler {
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
 
-		ToolExecutionResult toolResult = MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
+		ToolExecutionResult toolResult = delegationSubmit
+				? HumanDelegationService.submitFromTool(this.insight, executionRoom, paramMap)
+				: delegationRequest ? HumanDelegationService.delegateFromTool(this.insight, runId, paramMap)
+				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
 		String executedToolStatus = toolResult.getStatusValue();
 		try {
@@ -346,8 +357,7 @@ public final class AgentToolDecisionHandler {
 		}
 		InputMessage toolResultMessage = findToolResultMessage(room, parentMessageId, toolCallId);
 		if (toolResultMessage != null) {
-			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID, runId);
-			toolResultMessage.setOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ROLE, "tool_result");
+			toolResultMessage.setAgentRun(new AgentRunMessageContext(runId, "tool_result"));
 			RoomMessageStore.persist(room, userId);
 		}
 
@@ -401,7 +411,8 @@ public final class AgentToolDecisionHandler {
 		Map<String, Object> action = automationAuthorized
 				? AgentRunActionStore.getActionByIdForAutomation(actionId.trim())
 				: AgentRunActionStore.getActionById(actionId.trim(), userId.trim());
-		if (action == null) {
+		// Delegations are answered only through SubmitDelegationResponse.
+		if (action == null || HumanDelegationService.isDelegationAction(action)) {
 			throw new SecurityException("No agent action found for actionId=" + actionId);
 		}
 		if (expectedRunId != null) {
@@ -598,14 +609,16 @@ public final class AgentToolDecisionHandler {
 		return DECISION_APPROVE.equals(normalized) || DECISION_EDIT.equals(normalized);
 	}
 
-	private static String resolveManualDecisionResult(String decision, String toolExecutionResult) {
+	private static String resolveManualDecisionResult(String decision, String toolExecutionResult,
+			String toolName) {
 		String result = stringValue(toolExecutionResult);
 		if (result != null) {
 			return result;
 		}
 		String normalized = normalizeDecision(decision);
 		if (DECISION_REJECT.equals(normalized)) {
-			return "Tool call rejected by user.";
+			String delegation = HumanDelegationService.rejectedResult(toolName);
+			return delegation != null ? delegation : "Tool call rejected by user.";
 		}
 		throw new IllegalArgumentException("mcpToolResult is required for HITL decision=" + normalized);
 	}

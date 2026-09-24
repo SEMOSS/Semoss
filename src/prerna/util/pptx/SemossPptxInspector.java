@@ -79,14 +79,7 @@ public final class SemossPptxInspector {
         String filePath = string(parameters, "filePath", true);
         String instructions = string(parameters, "instructions", true);
         String context = string(parameters, "context", false);
-        String engineId = string(parameters, "engine", false);
-        if (engineId == null) engineId = property(DEFAULT_MODEL_PROPERTY);
-        if (engineId == null) engineId = fallbackModelId;
-        if (engineId == null || engineId.isBlank()) throw new IllegalArgumentException("Set engine or configure " + DEFAULT_MODEL_PROPERTY);
-        if (!SecurityEngineUtils.userCanViewEngine(insight.getUser(), engineId)
-                || SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL)
-            throw new IllegalArgumentException("Vision model does not exist or is not accessible");
-        validateVisionMetadata(SecurityModelMetadataUtils.getModelMetadata(engineId));
+        String engineId = preflight(string(parameters, "engine", false), fallbackModelId, insight);
         IModelEngine model = Utility.getModel(engineId);
         List<Integer> selection = null;
         if (parameters.containsKey("slides")) {
@@ -145,6 +138,19 @@ public final class SemossPptxInspector {
         JSONObject artifacts = report.getJSONObject("artifacts");
         if (artifacts.has("report")) Files.writeString(root.resolve(artifacts.getString("report")), report.toString(2));
         return report;
+    }
+
+    /** Uses the same selection and permission checks as inspection, without model calls or rendering. */
+    public static String preflight(String explicitEngine, String fallbackModelId, Insight insight) {
+        if (insight == null || insight.getUser() == null) throw new IllegalArgumentException("An authenticated insight is required");
+        String engineId = explicitEngine == null || explicitEngine.isBlank() ? property(DEFAULT_MODEL_PROPERTY) : explicitEngine.trim();
+        if (engineId == null) engineId = fallbackModelId;
+        if (engineId == null || engineId.isBlank()) throw new IllegalArgumentException("Set engine or configure " + DEFAULT_MODEL_PROPERTY);
+        if (!SecurityEngineUtils.userCanViewEngine(insight.getUser(), engineId)
+                || SecurityEngineUtils.getEngineType(engineId) != IEngine.CATALOG_TYPE.MODEL)
+            throw new IllegalArgumentException("Vision model does not exist or is not accessible");
+        validateVisionMetadata(SecurityModelMetadataUtils.getModelMetadata(engineId));
+        return engineId;
     }
 
     static void validateVisionMetadata(Map<String, Object> metadata) {
