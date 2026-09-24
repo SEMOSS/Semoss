@@ -153,8 +153,9 @@ final class AutomationRunExecutionService {
 			finishFailedRun(runId, projectId, e);
 			result = Map.of("error", safeMessage(e));
 		} finally {
-			AutomationPythonRunRegistry.unregister(runId);
-			cleanupExecutionInsight(executionInsight);
+			Insight completedInsight = executionInsight;
+			AutomationPythonRunRegistry.retainInsightForInspection(runId,
+					() -> cleanupExecutionInsight(completedInsight));
 		}
 		return buildResult(runId, projectId, result);
 	}
@@ -1209,8 +1210,9 @@ final class AutomationRunExecutionService {
 			finishFailedRun(runId, projectId, e);
 			continuation = Map.of("error", safeMessage(e));
 		} finally {
-			AutomationPythonRunRegistry.unregister(runId);
-			cleanupExecutionInsight(executionInsight);
+			Insight completedInsight = executionInsight;
+			AutomationPythonRunRegistry.retainInsightForInspection(runId,
+					() -> cleanupExecutionInsight(completedInsight));
 		}
 		return buildResult(runId, projectId, continuation);
 	}
@@ -1700,6 +1702,10 @@ final class AutomationRunExecutionService {
 		detail.put(AutomationConstants.RESULT_GLOBALS,
 				normalizeScope(pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
 		detail.put("pythonResult", pythonResult);
+		String executionInsightId = AutomationPythonRunRegistry.getInsightId(runId);
+		if (executionInsightId != null && !executionInsightId.isBlank()) {
+			detail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
 				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
 				: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))

@@ -45,16 +45,18 @@ import prerna.engine.api.IEngine;
  * @param defaultCodeMode generated or custom source mode used for new nodes
  * @param defaultConfig   server-owned initial configuration
  * @param configFields    ordered configuration contract
+ * @param outputFields    ordered structured result contract
  * @param inputs          ordered input ports
  * @param outputs         ordered output ports
  */
 public record AutomationNodeDefinition(AutomationNodeType nodeType, String label, String description,
-		String defaultCodeMode, Map<String, Object> defaultConfig, List<ConfigField> configFields, List<Port> inputs,
-		List<Port> outputs) {
+		String defaultCodeMode, Map<String, Object> defaultConfig, List<ConfigField> configFields,
+		List<OutputField> outputFields, List<Port> inputs, List<Port> outputs) {
 
 	public AutomationNodeDefinition {
 		defaultConfig = Collections.unmodifiableMap(new LinkedHashMap<>(defaultConfig));
 		configFields = List.copyOf(configFields);
+		outputFields = List.copyOf(outputFields);
 		inputs = List.copyOf(inputs);
 		outputs = List.copyOf(outputs);
 	}
@@ -67,6 +69,21 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 		private final String value;
 
 		ConfigFieldType(String value) {
+			this.value = value;
+		}
+
+		String getValue() {
+			return this.value;
+		}
+	}
+
+	/** Supported structured result value shapes exposed to authoring clients. */
+	public enum OutputFieldType {
+		BOOLEAN("boolean"), NUMBER("number"), OBJECT("object"), STRING("string"), STRING_LIST("string[]");
+
+		private final String value;
+
+		OutputFieldType(String value) {
 			this.value = value;
 		}
 
@@ -122,6 +139,27 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 	}
 
 	/**
+	 * One named field in a node's structured result.
+	 *
+	 * @param key         result object key
+	 * @param type        result value shape
+	 * @param label       user-facing label
+	 * @param description concise authoring description
+	 * @param required    whether successful execution always returns the field
+	 */
+	public record OutputField(String key, OutputFieldType type, String label, String description, boolean required) {
+
+		Map<String, Object> toMap() {
+			Map<String, Object> field = new LinkedHashMap<>();
+			field.put("type", this.type.getValue());
+			field.put("label", this.label);
+			field.put("description", this.description);
+			field.put("required", this.required);
+			return field;
+		}
+	}
+
+	/**
 	 * One graph port advertised to authoring clients.
 	 *
 	 * @param id        persisted port id or id template
@@ -165,9 +203,18 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 		}
 		definition.put("defaultConfig", new LinkedHashMap<>(this.defaultConfig));
 		definition.put("configSchema", configSchema(this.configFields));
+		definition.put("outputSchema", outputSchema(this.outputFields));
 		definition.put("inputs", portMaps(this.inputs));
 		definition.put("outputs", portMaps(this.outputs));
 		return definition;
+	}
+
+	private static Map<String, Object> outputSchema(List<OutputField> fields) {
+		Map<String, Object> schema = new LinkedHashMap<>();
+		for (OutputField field : fields) {
+			schema.put(field.key(), field.toMap());
+		}
+		return schema;
 	}
 
 	private static Map<String, Object> configSchema(List<ConfigField> fields) {

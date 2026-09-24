@@ -79,6 +79,19 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void storageDownloadAdvertisesItsStructuredResult() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_DOWNLOAD);
+		assertNotNull(definition);
+		Map<String, Map<String, Object>> fieldsByKey = definition.outputFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.OutputField::key,
+						AutomationNodeDefinition.OutputField::toMap));
+		assertEquals("string[]", fieldsByKey.get("files").get("type"));
+		assertEquals(true, fieldsByKey.get("files").get("required"));
+		assertEquals("string", fieldsByKey.get("filePath").get("type"));
+		assertEquals(false, fieldsByKey.get("filePath").get("required"));
+	}
+
+	@Test
 	void jevDecisionAdvertisesTypeSafeRoutingConfiguration() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_JEV);
 		assertNotNull(definition);

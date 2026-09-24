@@ -44,7 +44,10 @@ class AutomationScope(dict[str, Any]):
         if not isinstance(value, str):
             return value
 
-        exact = _PLACEHOLDER_PATTERN.fullmatch(value)
+        # A single-line authoring control can leave a trailing DOM line break after
+        # inserting a variable pill. Treat that as the same exact binding while
+        # preserving intentional spaces in ordinary prompt text.
+        exact = _PLACEHOLDER_PATTERN.fullmatch(value.rstrip("\r\n"))
         if exact:
             return self._required(exact.group(1))
 
@@ -61,12 +64,31 @@ class AutomationScope(dict[str, Any]):
         return _PLACEHOLDER_PATTERN.sub(replace, value)
 
     def _required(self, name: str) -> Any:
-        if name not in self:
+        if name in self:
+            return self[name]
+
+        parts = name.split(".")
+        if not parts or parts[0] not in self:
             raise KeyError(
                 f"Generated automation configuration references unavailable "
                 f"scope value '{name}'."
             )
-        return self[name]
+
+        value: Any = self[parts[0]]
+        for part in parts[1:]:
+            if isinstance(value, dict) and part in value:
+                value = value[part]
+                continue
+            if isinstance(value, list) and part.isdigit():
+                index = int(part)
+                if index < len(value):
+                    value = value[index]
+                    continue
+            raise KeyError(
+                f"Generated automation configuration references unavailable "
+                f"scope value '{name}'."
+            )
+        return value
 
     def resolve_config(self, value: Any) -> Any:
         """Resolve a generated-node configuration while preserving native types."""

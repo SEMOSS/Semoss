@@ -38,6 +38,8 @@ import java.util.Set;
 import prerna.engine.api.IEngine;
 import prerna.reactor.automation.AutomationNodeDefinition.ConfigField;
 import prerna.reactor.automation.AutomationNodeDefinition.ConfigFieldType;
+import prerna.reactor.automation.AutomationNodeDefinition.OutputField;
+import prerna.reactor.automation.AutomationNodeDefinition.OutputFieldType;
 import prerna.reactor.automation.AutomationNodeDefinition.Port;
 import prerna.reactor.automation.AutomationNodeDefinition.PortDirection;
 import prerna.reactor.automation.AutomationNodeDefinition.PortKind;
@@ -143,7 +145,7 @@ public final class AutomationNodeCatalog {
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_UPLOAD, "Upload file",
 				"Upload a local file to connected storage.", true, true));
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DOWNLOAD, "Download file",
-				"Download a storage file to a local destination.", true, true));
+				"Download a storage file to this run's workspace.", true, true));
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DELETE, "Delete file",
 				"Delete a file from connected storage.", true, false));
 
@@ -205,7 +207,7 @@ public final class AutomationNodeCatalog {
 						port("else", "Fallback", PortKind.CONTROL, PortDirection.OUTPUT, null))));
 		definitions.add(new AutomationNodeDefinition(AutomationNodeType.DEVELOPER_PYTHON, "Python",
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
-				List.of(), controlInputs(), controlAndResultOutputs()));
+				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
 		return Collections.unmodifiableList(definitions);
 	}
 
@@ -219,16 +221,33 @@ public final class AutomationNodeCatalog {
 
 	private static AutomationNodeDefinition storageDefinition(AutomationNodeType nodeType, String label,
 			String description, boolean pathRequired, boolean destinationRequired) {
+		String destinationDefault = nodeType == AutomationNodeType.STORAGE_DOWNLOAD ? "/" : "";
+		boolean requireDestination = destinationRequired && nodeType != AutomationNodeType.STORAGE_DOWNLOAD;
 		Map<String, Object> defaultConfig = destinationRequired
-				? orderedConfig("engineId", "", "path", "", "destination", "")
+				? orderedConfig("engineId", "", "path", "", "destination", destinationDefault)
 				: orderedConfig("engineId", "", "path", "");
 		List<ConfigField> fields = new ArrayList<>();
 		fields.add(engineField(IEngine.CATALOG_TYPE.STORAGE));
 		fields.add(field("path", ConfigFieldType.STRING, "Storage path", pathRequired, ""));
 		if (destinationRequired) {
-			fields.add(field("destination", ConfigFieldType.STRING, "Destination", true, ""));
+			fields.add(field("destination", ConfigFieldType.STRING, "Destination", requireDestination,
+					destinationDefault));
 		}
-		return definition(nodeType, label, description, defaultConfig, fields, controlInputs(),
+		List<OutputField> outputFields = nodeType == AutomationNodeType.STORAGE_DOWNLOAD
+				? List.of(outputField("success", OutputFieldType.BOOLEAN, "Succeeded",
+						"Whether the storage transfer completed.", true),
+						outputField("storagePath", OutputFieldType.STRING, "Storage path",
+								"Source path in the storage engine.", true),
+						outputField("destination", OutputFieldType.STRING, "Destination",
+								"Destination directory in the run workspace.", true),
+						outputField("space", OutputFieldType.STRING, "Space",
+								"SEMOSS asset space containing the downloaded files.", true),
+						outputField("files", OutputFieldType.STRING_LIST, "Files",
+								"File paths present under the destination after the transfer.", true),
+						outputField("filePath", OutputFieldType.STRING, "Single file path",
+								"The file path when the destination contains exactly one file.", false))
+				: List.of();
+		return definition(nodeType, label, description, defaultConfig, fields, outputFields, controlInputs(),
 				controlAndResultOutputs());
 	}
 
@@ -250,8 +269,14 @@ public final class AutomationNodeCatalog {
 
 	private static AutomationNodeDefinition definition(AutomationNodeType nodeType, String label, String description,
 			Map<String, Object> defaultConfig, List<ConfigField> fields, List<Port> inputs, List<Port> outputs) {
+		return definition(nodeType, label, description, defaultConfig, fields, List.of(), inputs, outputs);
+	}
+
+	private static AutomationNodeDefinition definition(AutomationNodeType nodeType, String label, String description,
+			Map<String, Object> defaultConfig, List<ConfigField> fields, List<OutputField> outputFields, List<Port> inputs,
+			List<Port> outputs) {
 		return new AutomationNodeDefinition(nodeType, label, description, AutomationConstants.NODE_CODE_MODE_GENERATED,
-				defaultConfig, fields, inputs, outputs);
+				defaultConfig, fields, outputFields, inputs, outputs);
 	}
 
 	private static ConfigField engineField(IEngine.CATALOG_TYPE engineType) {
@@ -261,6 +286,11 @@ public final class AutomationNodeCatalog {
 	private static ConfigField field(String key, ConfigFieldType type, String label, boolean required,
 			Object defaultValue) {
 		return new ConfigField(key, type, label, required, defaultValue, null, null, null);
+	}
+
+	private static OutputField outputField(String key, OutputFieldType type, String label, String description,
+			boolean required) {
+		return new OutputField(key, type, label, description, required);
 	}
 
 	private static ConfigField boundedIntegerField(String key, String label, int defaultValue, Integer minimum,
