@@ -83,6 +83,8 @@ public enum AutomationNodeType {
 			true),
 	CONTROL_WAIT(AutomationConstants.NODE_CONTROL_WAIT, Category.CONTROL, null, Permission.NONE, true, true),
 	CONTROL_IF(AutomationConstants.NODE_CONTROL_IF, Category.CONTROL, null, Permission.NONE, false, false),
+	CONTROL_JEV(AutomationConstants.NODE_CONTROL_JEV, Category.CONTROL, IEngine.CATALOG_TYPE.MODEL, Permission.VIEW,
+			false, false),
 	DEVELOPER_PYTHON(AutomationConstants.NODE_DEVELOPER_PYTHON, Category.DEVELOPER, null, Permission.NONE, true, true);
 
 	/**

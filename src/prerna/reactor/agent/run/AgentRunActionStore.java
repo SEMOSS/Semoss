@@ -165,7 +165,8 @@ public final class AgentRunActionStore {
 		List<Map<String, Object>> all = getActionsForRun(runId);
 		List<Map<String, Object>> pending = new ArrayList<>();
 		for (Map<String, Object> a : all) {
-			if ("PENDING".equals(a.get("status"))) {
+			// A delegation belongs to its assignee, not the run owner's approval UI.
+			if ("PENDING".equals(a.get("status")) && !HumanDelegationService.isDelegationAction(a)) {
 				pending.add(a);
 			}
 		}
@@ -333,6 +334,61 @@ public final class AgentRunActionStore {
 			return updated > 0;
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to update AGENT_RUN_ACTION for actionId=" + actionId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
+	/** Actions of one tool type assigned to a user, newest first; status is optional. */
+	static List<Map<String, Object>> getAssignedActions(String userId, String toolName, String status, int limit) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder("SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, "
+					+ "TOOL_CALL_ID, TOOL_NAME, TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE USER_ID = ? AND TOOL_NAME = ?");
+			if (status != null) {
+				query.append(" AND STATUS = ?");
+			}
+			query.append(" ORDER BY DATE_CREATED DESC");
+			db.getQueryUtil().addLimitOffsetToQuery(query, limit, 0);
+			ps = db.getPreparedStatement(query.toString());
+			int idx = 1;
+			ps.setString(idx++, userId);
+			ps.setString(idx++, toolName);
+			if (status != null) {
+				ps.setString(idx++, status);
+			}
+			rs = ps.executeQuery();
+			List<Map<String, Object>> results = new ArrayList<>();
+			while (rs.next()) {
+				results.add(rowToMap(rs));
+			}
+			return results;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load assigned AGENT_RUN_ACTION rows", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/** Cancel every still-pending action on a run, whoever it is assigned to. */
+	static void cancelPendingForRun(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement("UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECIDED_AT = ? "
+					+ "WHERE RUN_ID = ? AND STATUS = ?");
+			ps.setString(1, "CANCELLED");
+			ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(3, runId);
+			ps.setString(4, "PENDING");
+			ps.executeUpdate();
+			commitIfNeeded(ps);
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to cancel AGENT_RUN_ACTION rows for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
 		}

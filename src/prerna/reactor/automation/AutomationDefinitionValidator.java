@@ -78,7 +78,8 @@ public final class AutomationDefinitionValidator {
 	}
 
 	/**
-	 * Parses and validates a definition while allowing incomplete control.if paths.
+	 * Parses and validates a definition while allowing incomplete or detached
+	 * control paths.
 	 *
 	 * <p>
 	 * Authoring tools persist drafts incrementally; execution must continue to use
@@ -91,14 +92,14 @@ public final class AutomationDefinitionValidator {
 		return parseAndValidate(json, false);
 	}
 
-	private static ValidatedDefinition parseAndValidate(String json, boolean requireCompleteIfBranches) {
+	private static ValidatedDefinition parseAndValidate(String json, boolean requireExecutableGraph) {
 		if (json == null || json.isBlank()) {
 			throw new IllegalArgumentException("Python automation definition must be a nonblank JSON object.");
 		}
 		try {
 			Map<String, Object> definition = AutomationRuntimeUtils.GSON.fromJson(json,
 					AutomationRuntimeUtils.MAP_TYPE);
-			return validate(definition, requireCompleteIfBranches);
+			return validate(definition, requireExecutableGraph);
 		} catch (JsonParseException e) {
 			throw new IllegalArgumentException("Python automation definition must be valid JSON.", e);
 		}
@@ -115,7 +116,7 @@ public final class AutomationDefinitionValidator {
 		return validate(definition, true);
 	}
 
-	private static ValidatedDefinition validate(Map<String, Object> definition, boolean requireCompleteIfBranches) {
+	private static ValidatedDefinition validate(Map<String, Object> definition, boolean requireExecutableGraph) {
 		if (definition == null) {
 			throw new IllegalArgumentException("Python automation definition must be a JSON object.");
 		}
@@ -127,7 +128,7 @@ public final class AutomationDefinitionValidator {
 		Map<String, String> nodeTypes = validateNodes(nodes);
 		Map<String, Set<String>> branchPorts = branchPorts(nodes);
 		validateEdges(edges, nodeTypes, branchPorts);
-		validateControlPath(edges, nodeTypes, branchPorts, requireCompleteIfBranches);
+		validateControlPath(edges, nodeTypes, branchPorts, requireExecutableGraph);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -162,6 +163,10 @@ public final class AutomationDefinitionValidator {
 			}
 			if (typedNode == AutomationNodeType.TRIGGER_START) {
 				startCount++;
+			} else if (isRoutingNode(typedNode)
+					&& node.containsKey(AutomationConstants.NODE_FIELD_OUTPUT_VAR)) {
+				throw new IllegalArgumentException(
+						"Routing node '" + nodeId + "' cannot declare an outputVar.");
 			} else if (node.containsKey(AutomationConstants.NODE_FIELD_OUTPUT_VAR)) {
 				String outputVar = requireNonblankString(node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR),
 						"graph.nodes[" + index + "].outputVar");
@@ -190,10 +195,10 @@ public final class AutomationDefinitionValidator {
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
-			if (typedNode == AutomationNodeType.CONTROL_IF
+			if (isRoutingNode(typedNode)
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException(
-						"If node '" + nodeId + "' must use generated mode; conditions are evaluated by Java.");
+						"Routing node '" + nodeId + "' must use generated mode; routing is evaluated by Java.");
 			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -262,10 +267,15 @@ public final class AutomationDefinitionValidator {
 		}
 		case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
 		case CONTROL_IF -> validateBranchConfig(nodeId, config);
+		case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
 		case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
 		}
+	}
+
+	private static boolean isRoutingNode(AutomationNodeType nodeType) {
+		return nodeType == AutomationNodeType.CONTROL_IF || nodeType == AutomationNodeType.CONTROL_JEV;
 	}
 
 	/**
@@ -375,6 +385,77 @@ public final class AutomationDefinitionValidator {
 			String condition = requireNonblankString(clause.get(AutomationConstants.CONFIG_CONDITION),
 					"If node '" + nodeId + "' config.clauses[" + index + "].condition");
 			AutomationConditionEvaluator.validate(condition);
+		}
+	}
+
+	private static void validateJevBranchConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, AutomationConstants.CONFIG_ENGINE_ID);
+		requireConfigString(nodeId, config, AutomationConstants.CONFIG_STATE);
+		requireConfigString(nodeId, config, AutomationConstants.CONFIG_QUESTION);
+		validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+		String questionType = jevQuestionType(nodeId, config);
+
+		Object thresholdValue = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD);
+		if (thresholdValue != null) {
+			double minimum = AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType) ? 0.5 : 0.0;
+			if (!(thresholdValue instanceof Number threshold) || !Double.isFinite(threshold.doubleValue())
+					|| threshold.doubleValue() < minimum || threshold.doubleValue() > 1) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId
+						+ "' config.confidenceThreshold must be a number from " + minimum + " through 1.");
+			}
+		}
+
+		Object value = config.get(AutomationConstants.CONFIG_CLAUSES);
+		if (!(value instanceof List<?> clauses) || clauses.isEmpty()) {
+			throw new IllegalArgumentException(
+					"Jev decision node '" + nodeId + "' config.clauses must be a non-empty array.");
+		}
+		Set<String> clauseIds = new HashSet<>();
+		for (int index = 0; index < clauses.size(); index++) {
+			Map<String, Object> clause = requireMap(clauses.get(index),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "]");
+			String clauseId = requireNonblankString(clause.get(AutomationConstants.CONFIG_CLAUSE_ID),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "].id");
+			if (!clauseIds.add(clauseId)) {
+				throw new IllegalArgumentException(
+						"Jev decision node '" + nodeId + "' has duplicate route id: " + clauseId + ".");
+			}
+			requireNonblankString(clause.get(AutomationConstants.CONFIG_DESCRIPTION),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "].description");
+		}
+		if (AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)) {
+			validateJevNoulRoutes(nodeId, clauses);
+		}
+	}
+
+	/** Returns the supported Jev question type, defaulting older definitions to choice. */
+	private static String jevQuestionType(String nodeId, Map<String, Object> config) {
+		Object value = config.getOrDefault(AutomationConstants.CONFIG_QUESTION_TYPE,
+				AutomationConstants.JEV_QUESTION_TYPE_CHOICE);
+		if (!(value instanceof String questionType)
+				|| (!AutomationConstants.JEV_QUESTION_TYPE_CHOICE.equals(questionType)
+						&& !AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType))) {
+			throw new IllegalArgumentException("Jev decision node '" + nodeId
+					+ "' config.questionType must be 'choice' or 'noul'.");
+		}
+		return questionType;
+	}
+
+	/** A Noul decision has one explicit Yes route and one explicit No route. */
+	private static void validateJevNoulRoutes(String nodeId, List<?> clauses) {
+		if (clauses.size() != 2) {
+			throw new IllegalArgumentException(
+					"Jev Noul decision node '" + nodeId + "' must define exactly two routes.");
+		}
+		Set<Boolean> answers = new HashSet<>();
+		for (int index = 0; index < clauses.size(); index++) {
+			Map<String, Object> clause = requireMap(clauses.get(index),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "]");
+			Object answer = clause.get(AutomationConstants.CONFIG_ANSWER);
+			if (!(answer instanceof Boolean booleanAnswer) || !answers.add(booleanAnswer)) {
+				throw new IllegalArgumentException("Jev Noul decision node '" + nodeId
+						+ "' must define one route with answer=true and one route with answer=false.");
+			}
 		}
 	}
 
@@ -500,7 +581,9 @@ public final class AutomationDefinitionValidator {
 	private static Map<String, Set<String>> branchPorts(List<Map<String, Object>> nodes) {
 		Map<String, Set<String>> portsByNode = new HashMap<>();
 		for (Map<String, Object> node : nodes) {
-			if (!AutomationConstants.NODE_CONTROL_IF.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
+			if (!AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+					&& !AutomationConstants.NODE_CONTROL_JEV.equals(nodeType)) {
 				continue;
 			}
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -557,12 +640,13 @@ public final class AutomationDefinitionValidator {
 				if (!AutomationConstants.CONTROL_PORT_IN.equals(targetPort)) {
 					throw new IllegalArgumentException("Control edge '" + edgeId + "' targetPort must be 'in'.");
 				}
-				boolean condition = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source));
-				if (condition && !branchPorts.getOrDefault(source, Set.of()).contains(sourcePort)) {
-					throw new IllegalArgumentException("Control edge '" + edgeId + "' from if node '" + source
+				boolean routingNode = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
+						|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeTypes.get(source));
+				if (routingNode && !branchPorts.getOrDefault(source, Set.of()).contains(sourcePort)) {
+					throw new IllegalArgumentException("Control edge '" + edgeId + "' from routing node '" + source
 							+ "' must use a configured 'case:<clause-id>' port or 'else'.");
 				}
-				if (!condition && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
+				if (!routingNode && !AutomationConstants.CONTROL_PORT_OUT.equals(sourcePort)) {
 					throw new IllegalArgumentException(
 							"Control edge '" + edgeId + "' from node '" + source + "' must use sourcePort 'out'.");
 				}
@@ -571,7 +655,7 @@ public final class AutomationDefinitionValidator {
 	}
 
 	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes,
-			Map<String, Set<String>> branchPorts, boolean requireCompleteIfBranches) {
+			Map<String, Set<String>> branchPorts, boolean requireExecutableGraph) {
 		String start = null;
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			if (AutomationConstants.NODE_START.equals(node.getValue())) {
@@ -595,7 +679,8 @@ public final class AutomationDefinitionValidator {
 			Map<String, String> targetsByPort = outgoing.computeIfAbsent(source, ignored -> new HashMap<>());
 			if (targetsByPort.putIfAbsent(sourcePort, target) != null) {
 				String guidance = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
-						? "If nodes allow one edge for each configured case and one else edge."
+						|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeTypes.get(source))
+						? "Routing nodes allow one edge for each configured case and one else edge."
 						: "Use a control.if node for branching.";
 				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '" + sourcePort
 						+ "' control edge. " + guidance);
@@ -608,9 +693,11 @@ public final class AutomationDefinitionValidator {
 		}
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			Map<String, String> targets = outgoing.getOrDefault(node.getKey(), Map.of());
-			if (requireCompleteIfBranches && AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
+			if (requireExecutableGraph
+					&& (AutomationConstants.NODE_CONTROL_IF.equals(node.getValue())
+							|| AutomationConstants.NODE_CONTROL_JEV.equals(node.getValue()))
 					&& !targets.keySet().containsAll(branchPorts.getOrDefault(node.getKey(), Set.of()))) {
-				throw new IllegalArgumentException("If node '" + node.getKey()
+				throw new IllegalArgumentException("Routing node '" + node.getKey()
 						+ "' requires one control edge for every configured case and one else edge.");
 			}
 		}
@@ -624,7 +711,7 @@ public final class AutomationDefinitionValidator {
 				pending.addAll(outgoing.getOrDefault(current, Map.of()).values());
 			}
 		}
-		if (reachable.size() != nodeTypes.size()) {
+		if (requireExecutableGraph && reachable.size() != nodeTypes.size()) {
 			throw new IllegalArgumentException(
 					"Every automation node must be connected to trigger.start by control edges.");
 		}

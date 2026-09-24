@@ -1097,6 +1097,7 @@ public class Constants {
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
+	public static final String SKILL_FRONTEND_DESIGN = "frontend-design";
 	public static final String SKILL_FUNCTIONS = "functions";
 	public static final String SKILL_MCP = "mcp";
 	public static final String SKILL_MODEL = "model";
