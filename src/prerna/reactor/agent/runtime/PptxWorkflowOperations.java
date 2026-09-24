@@ -27,8 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.agent.runtime;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -53,6 +56,11 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 
 	@Override
 	public JSONObject build(Map<String, Object> args) throws Exception {
+		// The report is handed back in a file: ExecuteNodeCode caps its output at 40,000
+		// characters, and a long deck's advisory warnings alone exceed that.
+		String report = ".semoss/pptx-workflow/" + ctx.getRunId() + "/build-report-" + UUID.randomUUID() + ".json";
+		Path reportPath = Path.of(ctx.getAgentConfig().getWorkingDir()).resolve(report);
+		Files.createDirectories(reportPath.getParent());
 		String code = """
 				(async () => {
 				  const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -68,23 +76,28 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 				  if (!fs.existsSync(filename) || stamp() === before) throw new Error('Generator did not save the requested PPTX file');
 				  const validation = deck.validate(filename, {slides: args.expectedSlides, strictCanvas: false});
 				  const hash = value => crypto.createHash('sha256').update(value).digest('hex');
-				  return {...validation, ...(baseline ? {baselineWarnings: baseline.warnings} : {}), sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)};
+				  fs.writeFileSync(path.join(ROOT, %s), JSON.stringify({...validation, ...(baseline ? {baselineWarnings: baseline.warnings} : {}), sourceHash: hash(fs.readFileSync(filename)), generatorHash: hash(source)}));
+				  return 'Structural validation saved';
 				})()
 				"""
-				.formatted(new JSONObject(args).toString());
+				.formatted(new JSONObject(args).toString(), JSONObject.quote(report));
 		String output = PlatformAgentTools.executeDefaultTool("ExecuteNodeCode",
 				Map.of("code", code, "timeout_seconds", 120), ctx);
 		if (Thread.currentThread().isInterrupted()) {
 			throw new AgentCancelledException();
 		}
+		// A fresh report means the script finished, whatever the generator printed.
+		if (Files.isRegularFile(reportPath)) {
+			try {
+				return new JSONObject(Files.readString(reportPath));
+			} finally {
+				Files.deleteIfExists(reportPath);
+			}
+		}
 		if (output.startsWith("Error:")) {
 			throw new IllegalStateException(output);
 		}
-		int marker = output.lastIndexOf("=> ");
-		if (marker < 0) {
-			throw new IllegalStateException("Generator execution did not return structural validation");
-		}
-		return new JSONObject(output.substring(marker + 3).trim());
+		throw new IllegalStateException("Generator execution did not return structural validation");
 	}
 
 	@Override

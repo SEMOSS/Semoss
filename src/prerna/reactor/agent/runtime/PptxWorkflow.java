@@ -408,13 +408,17 @@ final class PptxWorkflow {
 			phase = "visual_review";
 			reviews++;
 			persist();
-			String brief = instructions + "\n\nStructural advisory findings (use visual judgment):\n"
-					+ validation.optJSONArray("warnings") + "\nReview original slide numbers " + scope + ".";
+			String brief = instructions + "\nReview original slide numbers " + scope + ".";
 			if (edit.active()) {
 				brief += "\nThis is an edit of an existing presentation. Package change assessment (not proof of request completion): "
 						+ preservation
-						+ ". Check the requested result and affected slides for unintended changes. Do not request unrelated redesign."
-						+ "\nOriginal input advisory warnings (pre-existing, not caused by this edit): "
+						+ ". Check the requested result and affected slides for unintended changes. Do not request unrelated redesign.";
+			}
+			// Advisory lists go last: the reviewer brief is bounded, and a long deck's
+			// warnings must not cut off the instructions above.
+			brief += "\n\nStructural advisory findings (use visual judgment):\n" + validation.optJSONArray("warnings");
+			if (edit.active()) {
+				brief += "\nOriginal input advisory warnings (pre-existing, not caused by this edit): "
 						+ validation.optJSONArray("baselineWarnings");
 			}
 			report = operations.review(file, scope, brief, engine);
