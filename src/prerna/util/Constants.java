@@ -1117,6 +1117,7 @@ public class Constants {
 	public static final String MCP_NODE_BUILDER = "node-builder";
 	public static final String MCP_REACTOR_HELP = "reactor-help";
 	public static final String MCP_ROOM_FILESYSTEM = "room-filesystem";
+	public static final String MCP_MEMORY = "memory";
 
 	// system (platform) agent (workspace) names
 	public static final String AGENT_APP_BUILDER = "app-builder";

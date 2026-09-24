@@ -124,6 +124,12 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 		concepts.add("FEEDBACK");
 		concepts.add("WORKSPACE");
 		concepts.add("WORKSPACE_RESOURCE");
+		concepts.add("AGENT_RUN");
+		concepts.add("AGENT_RUN_ACTION");
+		concepts.add("MEMORY");
+		concepts.add("MEMORY_ACTION_ITEM");
+		concepts.add("MEMORY_AUDIT");
+		concepts.add("MEMORY_RELATIONSHIP");
 
 		List<String> props = new ArrayList<>();
 		props.add("http://semoss.org/ontologies/Relation/Contains/AGENT_ID/AGENT");
@@ -192,6 +198,87 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 		props.add("http://semoss.org/ontologies/Relation/Contains/RESOURCE_TYPE/WORKSPACE_RESOURCE");
 		props.add("http://semoss.org/ontologies/Relation/Contains/RESOURCE_SUBTYPE/WORKSPACE_RESOURCE");
 
+		props.add("http://semoss.org/ontologies/Relation/Contains/RUN_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PARENT_RUN_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/MODEL_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/HARNESS_TYPE/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/JOB_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/STATUS/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/INPUT/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/REQUEST_JSON/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/INPUT_MESSAGE_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/FINAL_OUTPUT/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/FINAL_OUTPUT_MESSAGE_ID/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ERROR_MESSAGE/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/STARTED_AT/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/COMPLETED_AT/AGENT_RUN");
+		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/AGENT_RUN");
+
+		props.add("http://semoss.org/ontologies/Relation/Contains/ACTION_ID/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/RUN_ID/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PARENT_MESSAGE_ID/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TOOL_CALL_ID/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TOOL_NAME/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TOOL_ARGS/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/EDITED_ARGS/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TOOL_META/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/HAS_UI/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/UI_URL/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/STATUS/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/RESULT/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TOOL_STATUS/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DECIDED_AT/AGENT_RUN_ACTION");
+		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/AGENT_RUN_ACTION");
+
+		props.add("http://semoss.org/ontologies/Relation/Contains/MEMORY_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PROJECT_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/EVENT_TYPE/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/CONTENT/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/METADATA/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/EMBEDDING/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PARENT_MEMORY_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/SUPERSEDES_MEMORY_ID/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DELETED/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_UPDATED/MEMORY");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DELETED_AT/MEMORY");
+
+		props.add("http://semoss.org/ontologies/Relation/Contains/ACTION_ITEM_ID/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/MEMORY_ID/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/CONTENT/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/OWNER/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/STATUS/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DUE_DATE/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ROOM_ID/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/WORKSPACE_ID/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/METADATA/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MEMORY_ACTION_ITEM");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_UPDATED/MEMORY_ACTION_ITEM");
+
+		props.add("http://semoss.org/ontologies/Relation/Contains/AUDIT_ID/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/MEMORY_ID/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/ACTION/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PREVIOUS_CONTENT/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/PREVIOUS_METADATA/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/USER_ID/MEMORY_AUDIT");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MEMORY_AUDIT");
+
+		props.add("http://semoss.org/ontologies/Relation/Contains/RELATIONSHIP_ID/MEMORY_RELATIONSHIP");
+		props.add("http://semoss.org/ontologies/Relation/Contains/SOURCE_MEMORY_ID/MEMORY_RELATIONSHIP");
+		props.add("http://semoss.org/ontologies/Relation/Contains/TARGET_MEMORY_ID/MEMORY_RELATIONSHIP");
+		props.add("http://semoss.org/ontologies/Relation/Contains/RELATIONSHIP_TYPE/MEMORY_RELATIONSHIP");
+		props.add("http://semoss.org/ontologies/Relation/Contains/WEIGHT/MEMORY_RELATIONSHIP");
+		props.add("http://semoss.org/ontologies/Relation/Contains/DATE_CREATED/MEMORY_RELATIONSHIP");
+
 		when(engine.getPhysicalConcepts()).thenReturn(concepts);
 
 		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
@@ -201,6 +288,12 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 			util.when(() -> Utility.getInstanceName("FEEDBACK")).thenReturn("FEEDBACK");
 			util.when(() -> Utility.getInstanceName("WORKSPACE")).thenReturn("WORKSPACE");
 			util.when(() -> Utility.getInstanceName("WORKSPACE_RESOURCE")).thenReturn("WORKSPACE_RESOURCE");
+			util.when(() -> Utility.getInstanceName("AGENT_RUN")).thenReturn("AGENT_RUN");
+			util.when(() -> Utility.getInstanceName("AGENT_RUN_ACTION")).thenReturn("AGENT_RUN_ACTION");
+			util.when(() -> Utility.getInstanceName("MEMORY")).thenReturn("MEMORY");
+			util.when(() -> Utility.getInstanceName("MEMORY_ACTION_ITEM")).thenReturn("MEMORY_ACTION_ITEM");
+			util.when(() -> Utility.getInstanceName("MEMORY_AUDIT")).thenReturn("MEMORY_AUDIT");
+			util.when(() -> Utility.getInstanceName("MEMORY_RELATIONSHIP")).thenReturn("MEMORY_RELATIONSHIP");
 
 			when(engine.getPropertyUris4PhysicalUri(anyString())).thenReturn(props);
 
@@ -216,8 +309,8 @@ public class ModelInferenceLogsOwlCreatorUnitTests {
 		reactor.remakeOwl(engine);
 
 		verify(owlEngine).createEmptyOWLFile();
-		verify(owlEngine, times(6)).addConcept(anyString(), eq(null), eq(null));
-		verify(owlEngine, times(40)).addProp(anyString(), anyString(), anyString());
+		verify(owlEngine, times(12)).addConcept(anyString(), eq(null), eq(null));
+		verify(owlEngine, times(142)).addProp(anyString(), anyString(), anyString());
 		verify(owlEngine).commit();
 		verify(owlEngine).export();
 	}

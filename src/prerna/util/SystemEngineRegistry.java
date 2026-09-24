@@ -81,7 +81,8 @@ public final class SystemEngineRegistry {
 	 */
 
 	private static final Set<String> SECURITY_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.security",
-			"prerna.semoss.web.services.config", "prerna.util", "prerna.web.conf");
+			"prerna.semoss.web.services.config", "prerna.util", "prerna.web.conf",
+			"prerna.engine.impl.model.inferencetracking");
 
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
@@ -244,7 +245,7 @@ public final class SystemEngineRegistry {
 	 * Returns true if the given engine ID belongs to one of the known system
 	 * engines. Used by Utility.loadEngine() to block the normal load path for these
 	 * engines.
-	 * 
+	 *
 	 * @param engineId
 	 * @return
 	 */
@@ -280,7 +281,7 @@ public final class SystemEngineRegistry {
 	/**
 	 * Internal registration switch, maps a system engine ID (via Constants) to the
 	 * correct volatile field. Called only from loadSystemEngine.
-	 * 
+	 *
 	 * @param engineId
 	 * @param engine
 	 */
@@ -355,7 +356,7 @@ public final class SystemEngineRegistry {
 
 	/**
 	 * Get a system engine id via its id
-	 * 
+	 *
 	 * @param engineId
 	 * @return
 	 */
@@ -528,7 +529,7 @@ public final class SystemEngineRegistry {
 	 * future custom loader, without needing to enumerate them by type.
 	 *
 	 * Bootstrap-loaded classes have a null classloader and are always trusted.
-	 * 
+	 *
 	 * @param clazz
 	 * @return
 	 */

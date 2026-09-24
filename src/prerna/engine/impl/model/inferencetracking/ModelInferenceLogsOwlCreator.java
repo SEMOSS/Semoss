@@ -178,6 +178,86 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("DECIDED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("USER_ID", VARCHAR_255)));
+
+		// MEMORY tables back the memory MCP capabilities (add/list/edit/delete,
+		// action items, audit trail, and compaction relationships). Scoping mirrors
+		// ROOM/WORKSPACE: USER_ID is always set, ROOM_ID/WORKSPACE_ID are nullable
+		// and widen visibility per MemoryUtils' access checks. AGENT_ID mirrors
+		// ROOM.AGENT_ID - the model/agent that was active when the memory was
+		// captured, auto-populated from the room rather than left to the LLM to
+		// supply. MEMORY_META/MEMORY_METAKEYS mirror PROMPTMETA/PROMPTMETAKEYS -
+		// a flat, filterable key/value dimension apps can define on top of the
+		// free-form METADATA JSON blob (see MemoryUtils#ensureMemoryMetaKeyExists).
+		addTable("MEMORY", Arrays.asList(
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("PROJECT_ID", VARCHAR_50),
+				Pair.with("AGENT_ID", VARCHAR_50),
+				Pair.with("EVENT_TYPE", VARCHAR_50),
+				Pair.with("CONTENT", CLOB_DATATYPE_NAME),
+				Pair.with("METADATA", CLOB_DATATYPE_NAME),
+				Pair.with("EMBEDDING", CLOB_DATATYPE_NAME),
+				Pair.with("PARENT_MEMORY_ID", VARCHAR_50),
+				Pair.with("SUPERSEDES_MEMORY_ID", VARCHAR_50),
+				Pair.with("DELETED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DELETED_AT", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("MEMORY_META", Arrays.asList(
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("METAVALUE", CLOB_DATATYPE_NAME),
+				Pair.with("METAORDER", INTEGER_DATATYPE_NAME)));
+
+		addTable("MEMORY_METAKEYS", Arrays.asList(
+				Pair.with("METAKEY", VARCHAR_255),
+				Pair.with("SINGLEMULTI", VARCHAR_255),
+				Pair.with("DISPLAYORDER", INTEGER_DATATYPE_NAME),
+				Pair.with("DISPLAYOPTIONS", VARCHAR_255),
+				Pair.with("DEFAULTVALUES", "VARCHAR(500)")));
+
+		// Per-user overrides for memory-system defaults (e.g. which vector engine
+		// to use for dedup/embedding) - one row per user, all columns nullable so
+		// a user with no preference set simply falls back to the platform default
+		// (see MemoryUtils#resolveVectorEngineId), never an error.
+		addTable("MEMORY_USER_SETTINGS", Arrays.asList(
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("VECTOR_ENGINE_ID", VARCHAR_50),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("MEMORY_ACTION_ITEM", Arrays.asList(
+				Pair.with("ACTION_ITEM_ID", VARCHAR_50),
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("CONTENT", CLOB_DATATYPE_NAME),
+				Pair.with("OWNER", VARCHAR_255),
+				Pair.with("STATUS", VARCHAR_50),
+				Pair.with("DUE_DATE", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("WORKSPACE_ID", VARCHAR_255),
+				Pair.with("METADATA", CLOB_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("DATE_UPDATED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("MEMORY_AUDIT", Arrays.asList(
+				Pair.with("AUDIT_ID", VARCHAR_50),
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("ACTION", VARCHAR_50),
+				Pair.with("PREVIOUS_CONTENT", CLOB_DATATYPE_NAME),
+				Pair.with("PREVIOUS_METADATA", CLOB_DATATYPE_NAME),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)));
+
+		addTable("MEMORY_RELATIONSHIP", Arrays.asList(
+				Pair.with("RELATIONSHIP_ID", VARCHAR_50),
+				Pair.with("SOURCE_MEMORY_ID", VARCHAR_50),
+				Pair.with("TARGET_MEMORY_ID", VARCHAR_50),
+				Pair.with("RELATIONSHIP_TYPE", VARCHAR_50),
+				Pair.with("WEIGHT", DOUBLE_DATATYPE_NAME),
+				Pair.with("DATE_CREATED", TIMESTAMP_DATATYPE_NAME)));
 		// @formatter:on
 	}
 
