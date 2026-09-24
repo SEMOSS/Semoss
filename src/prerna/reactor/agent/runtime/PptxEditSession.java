@@ -154,24 +154,17 @@ final class PptxEditSession {
 		if (!(extra instanceof List<?> extras)) {
 			throw new IllegalArgumentException("additionalParts must be an array");
 		}
-		if (mode.equals("text") && !extras.isEmpty()) {
-			throw new IllegalArgumentException("Text edits may only change text in selected slides");
-		}
 		Map<String, Set<Integer>> owners = owners(parts, ordered);
 		for (Object item : extras) {
-			if (!(item instanceof String name) || !parts.containsKey(name) || !owners.containsKey(name)
-					|| !selected.containsAll(owners.get(name))) {
-				throw new IllegalArgumentException(
-						"Additional part must already belong exclusively to the selected slides: " + item);
-			}
-			allowed.add((String) item);
+			if (!(item instanceof String)) throw new IllegalArgumentException("additionalParts must contain strings");
 		}
 		JSONObject next = new JSONObject().put("sourceFilePath", source).put("filePath", output).put("editType", mode)
 				.put("slides", new JSONArray(selected)).put("allowedParts", new JSONArray(allowed))
 				.put("slideCount", ordered.size()).put("sourceHash", inputs.getString(source));
-		if (contract != null && !contract.similar(next)) {
+		if (contract != null && (!source.equals(contract.getString("sourceFilePath"))
+				|| !output.equals(contract.getString("filePath")))) {
 			throw new IllegalArgumentException(
-					"Keep the original edit source, output and scope; do not broaden scope during repairs");
+					"Keep the original edit source and output filename");
 		}
 		if (inputs.has(output) && !source.equals(output)
 				&& !inputs.getString(output).equals(inputs.getString(source))) {
@@ -182,7 +175,8 @@ final class PptxEditSession {
 		int remaining = 16000;
 		for (int number : selected) {
 			String name = ordered.get(number - 1);
-			var nodes = xml(parts.get(name)).getElementsByTagNameNS(A, "t");
+			Document document = xml(parts.get(name));
+			var nodes = document.getElementsByTagNameNS(A, "t");
 			JSONArray texts = new JSONArray();
 			for (int i = 0; i < nodes.getLength(); i++) {
 				String text = nodes.item(i).getTextContent();
@@ -193,28 +187,32 @@ final class PptxEditSession {
 				remaining -= text.length();
 				texts.put(new JSONObject().put("index", i).put("text", text));
 			}
-			inspected.put(new JSONObject().put("slide", number).put("part", name).put("texts", texts));
+			JSONArray linked = new JSONArray();
+			for (var entry : new TreeMap<>(owners).entrySet()) {
+				if (entry.getValue().contains(number) && !entry.getKey().equals(name)) {
+					linked.put(new JSONObject().put("part", entry.getKey()).put("usedBySlides", entry.getValue()));
+				}
+			}
+			inspected.put(PptxSlideInspector.inspect(document, texts)
+					.put("slide", number).put("part", name).put("texts", texts).put("linkedParts", linked));
 		}
 		contract = next;
 		return new JSONObject().put("status", "prepared").put("edit", next)
 				.put("inputSnapshot", root.relativize(original(source)).toString()).put("slides", inspected)
 				.put("instructions",
-						"Read pptx/references/editing.md. Use the returned inputSnapshot with scripts/edit.js; save the editing IIFE as build-deck.js, then call BuildPptx. Never reconstruct this deck with PptxGenJS. Unlisted package parts and text-mode formatting must remain identical to the original.");
+						"Edit the protected inputSnapshot and preserve unrelated content. ApplyPptxEdits is an optional helper for text and colors; other edits use BuildPptx. Linked parts are discovered automatically, not a whitelist. Check usedBySlides before changing a shared resource. Changes outside the requested slides or uncertain changes are saved as a separate proposal. Consider foreground readability when changing backgrounds. Preparation may be corrected before the first build.");
 	}
 
-	void requirePrepared(String output, int slides) {
+	void requirePrepared(String output, int slides) throws Exception {
 		if (contract == null) {
 			if (inputs.has(output)) {
-				try {
-					recover(output, output);
-				} catch (Exception e) {
-					throw new IllegalStateException("Could not restore unprepared input", e);
-				}
-				throw new IllegalArgumentException(
-						"Existing presentation: call PreparePptxEdit before BuildPptx. Rebuilding the deck would discard existing edits.");
+				contract = new JSONObject().put("sourceFilePath", output).put("filePath", output)
+						.put("sourceHash", inputs.getString(output)).put("slideCount", orderedSlides(parts(original(output))).size())
+						.put("slides", new JSONArray()).put("allowedParts", new JSONArray())
+						.put("editType", "slides").put("scopeUnspecified", true);
 			}
-		} else if (!output.equals(contract.getString("filePath")) || slides != contract.getInt("slideCount")) {
-			throw new IllegalArgumentException("Keep the prepared output filename and original slide count");
+		} else if (!output.equals(contract.getString("filePath"))) {
+			throw new IllegalArgumentException("Keep the prepared output filename");
 		}
 	}
 
@@ -228,32 +226,55 @@ final class PptxEditSession {
 			throw new IllegalArgumentException("Edit preservation failed: separate source presentation was modified");
 		}
 		Map<String, byte[]> before = parts(original(contract.getString("sourceFilePath"))), after = parts(output);
-		if (!before.keySet().equals(after.keySet())) {
-			throw new IllegalArgumentException("Edit preservation failed: package parts were added or removed");
-		}
-		Set<String> allowed = new TreeSet<>();
-		contract.getJSONArray("allowedParts").forEach(value -> allowed.add((String) value));
-		List<String> changed = new ArrayList<>();
-		for (String part : before.keySet()) {
-			if (Arrays.equals(before.get(part), after.get(part))) {
-				continue;
-			}
-			if (!allowed.contains(part)) {
-				throw new IllegalArgumentException("Edit preservation failed: unrelated part changed: " + part);
-			}
-			if (contract.getString("editType").equals("text") && !sameExceptText(before.get(part), after.get(part))) {
-				throw new IllegalArgumentException("Edit preservation failed: formatting, objects or layout changed in "
-						+ part + "; text edits may change only existing text nodes");
-			}
+		Set<String> broken = missingTargets(after);
+		broken.removeAll(missingTargets(before));
+		if (!broken.isEmpty()) throw new IllegalArgumentException("Edited package has missing linked files: " + broken);
+		List<String> beforeSlides = orderedSlides(before), afterSlides = orderedSlides(after);
+		Map<String, Set<Integer>> beforeOwners = owners(before, beforeSlides), afterOwners = owners(after, afterSlides);
+		Set<Integer> selected = new TreeSet<>(), affected = new TreeSet<>();
+		contract.getJSONArray("slides").forEach(value -> selected.add(((Number) value).intValue()));
+		Set<String> names = new TreeSet<>(before.keySet()); names.addAll(after.keySet());
+		List<String> changed = new ArrayList<>(), meaningful = new ArrayList<>(), unassigned = new ArrayList<>();
+		List<String> added = new ArrayList<>(), removed = new ArrayList<>(), formatting = new ArrayList<>();
+		for (String part : names) {
+			byte[] a = before.get(part), b = after.get(part);
+			if (Arrays.equals(a, b)) continue;
 			changed.add(part);
+			if (a == null) added.add(part);
+			if (b == null) removed.add(part);
+			boolean isXml = part.endsWith(".xml") || part.endsWith(".rels");
+			if (a != null && b != null && isXml && canonical(xml(a)).equals(canonical(xml(b)))) continue;
+			meaningful.add(part);
+			Set<Integer> users = new TreeSet<>(beforeOwners.getOrDefault(part, Set.of()));
+			users.addAll(afterOwners.getOrDefault(part, Set.of()));
+			affected.addAll(users);
+			if (users.isEmpty()) unassigned.add(part);
+			if ("text".equals(contract.getString("editType")) && beforeSlides.contains(part)
+					&& a != null && b != null && !sameExceptText(a, b)) formatting.add(part);
 		}
-		if (changed.isEmpty()) {
-			throw new IllegalArgumentException(
-					"No requested edit was saved; presentation is identical to the original");
+		if (meaningful.isEmpty()) {
+			throw new IllegalArgumentException("No requested edit was saved; presentation content is unchanged");
 		}
-		return new JSONObject().put("status", "passed").put("sourceHash", contract.getString("sourceHash"))
+		Set<Integer> outside = new TreeSet<>(affected); outside.removeAll(selected);
+		boolean orderChanged = !beforeSlides.equals(afterSlides);
+		List<String> warnings = new ArrayList<>();
+		if (contract.optBoolean("scopeUnspecified")) warnings.add("The requested slide scope was not recorded.");
+		else if (!outside.isEmpty()) warnings.add("Changes also affect slides outside the requested scope: " + outside + ".");
+		if (orderChanged) warnings.add("Slide order or slide count changed.");
+		if (!unassigned.isEmpty()) warnings.add("Some changed package parts could not be attributed to individual slides: " + unassigned + ".");
+		if (!formatting.isEmpty()) warnings.add("A wording edit also changed formatting or objects: " + formatting + ".");
+		Set<Integer> review = new TreeSet<>(selected); review.addAll(affected);
+		if (orderChanged || !unassigned.isEmpty() || contract.optBoolean("scopeUnspecified")) {
+			review.clear(); for (int i = 1; i <= afterSlides.size(); i++) review.add(i);
+		}
+		boolean proposal = !warnings.isEmpty();
+		return new JSONObject().put("status", proposal ? "attention_required" : "passed")
+				.put("disposition", proposal ? "proposal" : "revision").put("sourceHash", contract.getString("sourceHash"))
 				.put("editType", contract.getString("editType")).put("slides", contract.getJSONArray("slides"))
-				.put("changedParts", changed).put("unchangedParts", before.size() - changed.size());
+				.put("affectedSlides", affected).put("outsideRequestedSlides", outside).put("reviewSlides", review)
+				.put("changedParts", changed).put("contentChangedParts", meaningful).put("unassignedParts", unassigned)
+				.put("addedParts", added).put("removedParts", removed).put("warnings", warnings)
+				.put("unchangedParts", before.size() - changed.size() + added.size());
 	}
 
 	void recoverOriginal() throws Exception {
@@ -342,6 +363,12 @@ final class PptxEditSession {
 				continue;
 			}
 			String target = link.getAttribute("Target");
+			java.net.URI uri = java.net.URI.create(target.replace(" ", "%20"));
+			if (uri.isAbsolute() || uri.getRawAuthority() != null) {
+				throw new IllegalArgumentException("Internal package relationship must target a package part");
+			}
+			target = uri.getPath();
+			if (target == null || target.isEmpty()) target = "/" + part;
 			Path parent = Path.of(part).getParent();
 			Path resolved = (target.startsWith("/") ? Path.of(target.substring(1))
 					: (parent == null ? Path.of("") : parent).resolve(target)).normalize();
@@ -373,6 +400,20 @@ final class PptxEditSession {
 		return owners;
 	}
 
+	private static Set<String> missingTargets(Map<String, byte[]> parts) throws Exception {
+		Set<String> missing = new TreeSet<>();
+		for (String name : parts.keySet()) {
+			if (!name.endsWith(".rels")) continue;
+			int marker = name.lastIndexOf("_rels/");
+			if (marker < 0) continue;
+			String source = name.substring(0, marker) + name.substring(marker + 6, name.length() - 5);
+			for (var link : relationships(parts, source).entrySet()) {
+				if (!parts.containsKey(link.getValue())) missing.add(name + "#" + link.getKey() + " -> " + link.getValue());
+			}
+		}
+		return missing;
+	}
+
 	private static Document xml(byte[] bytes) throws Exception {
 		if (bytes == null) {
 			throw new IllegalArgumentException("Required PPTX XML part is missing");
@@ -401,6 +442,44 @@ final class PptxEditSession {
 				node.setTextContent("TEXT");
 			}
 		}
-		return a.isEqualNode(b);
+		return canonical(a).equals(canonical(b));
 	}
+	/** Compare XML content without treating namespace prefixes, attribute order or indentation as edits. */
+	private static String canonical(Node node) {
+		StringBuilder result = new StringBuilder();
+		canonical(node, result, false);
+		return result.toString();
+	}
+
+	private static void token(StringBuilder out, String value) {
+		String text = value == null ? "" : value;
+		out.append(text.length()).append(':').append(text);
+	}
+
+	private static void canonical(Node node, StringBuilder out, boolean preserveSpace) {
+		if (node instanceof Element element) {
+			out.append('<'); token(out, element.getNamespaceURI()); token(out, element.getLocalName());
+			Map<String, String> attributes = new TreeMap<>();
+			var attrs = element.getAttributes();
+			for (int i = 0; i < attrs.getLength(); i++) {
+				Node attr = attrs.item(i);
+				if (!XMLConstants.XMLNS_ATTRIBUTE_NS_URI.equals(attr.getNamespaceURI()))
+					attributes.put(String.valueOf(attr.getNamespaceURI()) + "|" + attr.getLocalName(), attr.getNodeValue());
+			}
+			attributes.forEach((key, value) -> { token(out, key); token(out, value); });
+			out.append('>');
+			String space = element.getAttributeNS(XMLConstants.XML_NS_URI, "space");
+			if (!space.isEmpty()) preserveSpace = space.equals("preserve");
+		}
+		boolean elements = false;
+		for (Node child = node.getFirstChild(); child != null; child = child.getNextSibling())
+			if (child instanceof Element) elements = true;
+		for (Node child = node.getFirstChild(); child != null; child = child.getNextSibling()) {
+			if (child.getNodeType() == Node.TEXT_NODE || child.getNodeType() == Node.CDATA_SECTION_NODE) {
+				if (!elements || preserveSpace || !child.getNodeValue().isBlank()) { out.append('T'); token(out, child.getNodeValue()); }
+			} else if (child instanceof Element) canonical(child, out, preserveSpace);
+		}
+		if (node instanceof Element) out.append('/');
+	}
+
 }

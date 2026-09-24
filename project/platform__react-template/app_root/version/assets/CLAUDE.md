@@ -39,6 +39,11 @@ agent operating on a cloned app.
 - Report the build/publish result. Success proves that assets were built and
   published; do not claim the UI behavior was verified unless it was actually
   opened and tested.
+- The template builds cleanly as shipped. The build runs `tsc -b` on
+  TypeScript 6, so leave `client/tsconfig*.json`, `client/index.html`, and
+  `client/vite.config.ts` unchanged unless the task is about them. Do not add
+  `baseUrl` (TypeScript 6 rejects it); `import.meta.env`, CSS, and image
+  imports are already typed through `"types": ["vite/client"]`.
 
 ## Safe implementation defaults
 

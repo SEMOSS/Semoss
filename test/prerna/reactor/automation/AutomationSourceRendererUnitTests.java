@@ -112,6 +112,18 @@ public class AutomationSourceRendererUnitTests {
 		assertEquals(expected, AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_START, Map.of())));
 	}
 
+	@Test
+	void customPythonStartsWithAnEditableRunScopeTemplate() {
+		String source = AutomationSourceRenderer.defaultDeveloperSource();
+
+		assertTrue(source.contains("def run(scope):"));
+		assertTrue(source.contains("scope[\"outputVar\"]"));
+		assertTrue(AutomationDefinitionService.definesRunEntryPoint(source));
+		assertEquals(source,
+				AddAutomationStepReactor.customSource(AutomationConstants.NODE_DEVELOPER_PYTHON,
+						new LinkedHashMap<>()));
+	}
+
 	/**
 	 * resolve is a method on the scope mapping the runtime passes in, not a builtin.
 	 * A module-level resolve(...) call raises NameError the moment the node runs, so
@@ -120,7 +132,7 @@ public class AutomationSourceRendererUnitTests {
 	@Test
 	void everyNodeSourceResolvesThroughScope() {
 		for (AutomationNodeType type : AutomationNodeType.values()) {
-			if (type == AutomationNodeType.CONTROL_IF) {
+			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV) {
 				continue;
 			}
 			String source = AutomationSourceRenderer.renderNode(node(type.getType(), databaseConfig()));
@@ -141,5 +153,7 @@ public class AutomationSourceRendererUnitTests {
 	void decisionNodesHaveNoPythonSource() {
 		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
 				.renderNode(node(AutomationConstants.NODE_CONTROL_IF, Map.of())));
+		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_CONTROL_JEV, Map.of())));
 	}
 }

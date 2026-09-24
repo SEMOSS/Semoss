@@ -40,9 +40,8 @@ import org.junit.jupiter.api.Test;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 
 /**
- * Covers the save-time contract for an Automation graph. The validator is the
- * last gate before a definition reaches disk, so anything it lets through has to
- * be something the runtime can execute.
+ * Covers the authoring and execution contracts for an Automation graph. Drafts
+ * may be incomplete, while anything accepted for execution must be runnable.
  */
 public class AutomationDefinitionValidatorUnitTests {
 
@@ -126,6 +125,33 @@ public class AutomationDefinitionValidatorUnitTests {
 		return config;
 	}
 
+	private static Map<String, Object> jevConfig() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_ENGINE_ID, "typesafe-engine");
+		config.put(AutomationConstants.CONFIG_STATE, "${request}");
+		config.put(AutomationConstants.CONFIG_QUESTION, "Which route best matches this request?");
+		config.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "research",
+						AutomationConstants.CONFIG_DESCRIPTION, "Research and summarize information")));
+		config.put(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.6);
+		config.put(AutomationConstants.CONFIG_PARAM_VALUES, Map.of());
+		return config;
+	}
+
+	private static Map<String, Object> jevNoulConfig() {
+		Map<String, Object> config = jevConfig();
+		config.put(AutomationConstants.CONFIG_QUESTION_TYPE, AutomationConstants.JEV_QUESTION_TYPE_NOUL);
+		config.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "yes-route",
+								AutomationConstants.CONFIG_DESCRIPTION, "Continue automatically",
+								AutomationConstants.CONFIG_ANSWER, true),
+						Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "no-route",
+								AutomationConstants.CONFIG_DESCRIPTION, "Send for review",
+								AutomationConstants.CONFIG_ANSWER, false)));
+		return config;
+	}
+
 	/** The statement a generated node of this type is required to carry. */
 	private static String statementFor(String type) {
 		if (AutomationConstants.NODE_DATABASE_INSERT.equals(type)) {
@@ -153,6 +179,72 @@ public class AutomationDefinitionValidatorUnitTests {
 							definition(Map.of(), workNode(type, databaseConfig(statementFor(type)))));
 			assertEquals(2, validated.nodes().size(), type + " should validate");
 		}
+	}
+
+	@Test
+	void acceptsAJevDecisionDraft() {
+		Map<String, Object> node = workNode(AutomationConstants.NODE_CONTROL_JEV, jevConfig());
+		node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(), node));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
+	void acceptsAJevNoulDecisionWithExplicitYesAndNoRoutes() {
+		Map<String, Object> node = workNode(AutomationConstants.NODE_CONTROL_JEV, jevNoulConfig());
+		node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(), node));
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
+	void jevDecisionRequiresDescribedRoutesAndBoundedConfidence() {
+		Map<String, Object> missingDescription = jevConfig();
+		missingDescription.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "research",
+						AutomationConstants.CONFIG_DESCRIPTION, "")));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_CONTROL_JEV, missingDescription))));
+
+		Map<String, Object> invalidConfidence = jevConfig();
+		invalidConfidence.put(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 1.1);
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_CONTROL_JEV, invalidConfidence))));
+	}
+
+	@Test
+	void jevNoulDecisionRequiresOneYesRouteOneNoRouteAndMajorityConfidence() {
+		Map<String, Object> duplicateAnswers = jevNoulConfig();
+		duplicateAnswers.put(AutomationConstants.CONFIG_CLAUSES,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "first",
+								AutomationConstants.CONFIG_DESCRIPTION, "First path",
+								AutomationConstants.CONFIG_ANSWER, true),
+						Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "second",
+								AutomationConstants.CONFIG_DESCRIPTION, "Second path",
+								AutomationConstants.CONFIG_ANSWER, true)));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_CONTROL_JEV, duplicateAnswers))));
+
+		Map<String, Object> lowThreshold = jevNoulConfig();
+		lowThreshold.put(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.49);
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_CONTROL_JEV, lowThreshold))));
+	}
+
+	@Test
+	void jevDecisionRejectsUnknownQuestionType() {
+		Map<String, Object> config = jevConfig();
+		config.put(AutomationConstants.CONFIG_QUESTION_TYPE, "score");
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
+						definition(Map.of(), workNode(AutomationConstants.NODE_CONTROL_JEV, config))));
 	}
 
 	/** A write with no statement would render a call against Python None. */
@@ -218,15 +310,16 @@ public class AutomationDefinitionValidatorUnitTests {
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(config)));
 	}
 
-	/** An orphaned node would never run, so it is rejected rather than ignored. */
+	/** Editors may persist a detached draft, but the runtime cannot execute it. */
 	@Test
-	void everyNodeMustReachTheTrigger() {
+	void detachedNodesAreDraftOnly() {
 		String json = document(Map.of(),
 				workNode(AutomationConstants.NODE_DATABASE_DELETE,
 						databaseConfig(statementFor(AutomationConstants.NODE_DATABASE_DELETE))),
 				AutomationConstants.PYTHON_DOC_CURRENT_VERSION, false);
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(json));
+
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
 	}
 
 	@Test

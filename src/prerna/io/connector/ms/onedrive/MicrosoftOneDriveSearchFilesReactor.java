@@ -114,7 +114,7 @@ public class MicrosoftOneDriveSearchFilesReactor extends AbstractMicrosoftOneDri
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			List<Map<String, Object>> files;
 			if (SCOPE_DRIVE.equals(scope)) {

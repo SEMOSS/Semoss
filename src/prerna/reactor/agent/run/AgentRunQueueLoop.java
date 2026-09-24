@@ -27,10 +27,14 @@
  *******************************************************************************/
 package prerna.reactor.agent.run;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.CloseableThreadContext;
@@ -39,6 +43,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.reactor.agent.stream.AgentRunStreamService;
 
 /**
  * Decides which submitted agent runs start on this node, and when.
@@ -62,21 +67,28 @@ import prerna.om.Insight;
  * atomic step that settles who executes the run.</li>
  * </ol>
  *
- * <h3>Node affinity</h3> The loop skips runs it has no remembered
- * {@link InsightHandle} for, so a run executes on the node that received it.
- * That snapshot is taken at submission because the request thread is gone by
- * the time the run starts.
+ * <h3>Execution identity</h3> Runs reuse the submitting node's remembered
+ * {@link InsightHandle}. A deterministic continuation may recreate the same
+ * server-owned background Insight after restart; ordinary user submissions
+ * remain node-affine because their live tokens are not persisted.
  */
 final class AgentRunQueueLoop {
 
 	private static final Logger logger = LogManager.getLogger(AgentRunQueueLoop.class);
 	private static final int SCAN_LIMIT = 0;
 	private static final long IDLE_WAIT_MS = 1000L;
+	private static final long DELIVERY_RETRY_BASE_MS = 1000L;
+	private static final long DELIVERY_RETRY_MAX_MS = 60000L;
 
 	private final AtomicBoolean started = new AtomicBoolean(false);
 	private final Object monitor = new Object();
 	private final Map<String, InsightHandle> insightsByRun = new ConcurrentHashMap<>();
 	private final Map<String, Room> automationResumeRoomsByRun = new ConcurrentHashMap<>();
+	private final Queue<String> childCompletions = new ConcurrentLinkedQueue<>();
+	private final Set<String> queuedChildCompletions = ConcurrentHashMap.newKeySet();
+	// Failed deliveries wait here until their backoff expires.
+	private final Map<String, DeliveryRetry> deliveryRetries = new ConcurrentHashMap<>();
+	private final AtomicBoolean recoveryScanStarted = new AtomicBoolean(false);
 	/** Owns the room lock, the run threads, and the turn leases for this node. */
 	private final AgentRunRegistry activeRuns = new AgentRunRegistry();
 
@@ -85,10 +97,14 @@ final class AgentRunQueueLoop {
 	 * Call this on the request thread, before {@link #signal}.
 	 */
 	void rememberInsight(String runId, Insight insight) {
+		rememberInsight(runId, insight, false);
+	}
+
+	void rememberInsight(String runId, Insight insight, boolean ownsUser) {
 		if (runId == null || insight == null) {
 			return;
 		}
-		insightsByRun.put(runId, InsightHandle.capture(runId, insight));
+		insightsByRun.put(runId, InsightHandle.capture(runId, insight, ownsUser));
 	}
 
 	/**
@@ -109,6 +125,18 @@ final class AgentRunQueueLoop {
 		synchronized (monitor) {
 			monitor.notifyAll();
 		}
+	}
+
+	/** Queue one idempotent platform-message append without starting a model run. */
+	void enqueueChildCompletion(String childRunId) {
+		if (childRunId == null || childRunId.isBlank()) {
+			return;
+		}
+		String normalized = childRunId.trim();
+		if (queuedChildCompletions.add(normalized)) {
+			childCompletions.offer(normalized);
+		}
+		signal();
 	}
 
 	/**
@@ -132,12 +160,38 @@ final class AgentRunQueueLoop {
 	}
 
 	private void loop() {
+		startRecoveryScan();
 		while (true) {
 			boolean didWork = false;
 			try {
+				didWork = tryExecuteChildCompletions();
+				// Snapshot before the scan so a handle remembered mid-scan is never swept.
+				Set<String> rebuiltBeforeScan = rebuiltHandleRunIds();
 				List<AgentRunRecord> records = AgentRunStore.getSubmittedRuns(SCAN_LIMIT, null);
+				Set<String> submittedRunIds = new HashSet<>();
+				for (AgentRunRecord record : records) {
+					submittedRunIds.add(record.runId());
+				}
+				releaseStaleRebuiltHandles(rebuiltBeforeScan, submittedRunIds);
 				for (AgentRunRecord record : records) {
 					InsightHandle insightHandle = insightsByRun.get(record.runId());
+					if (insightHandle == null && record.request().getContinuationChildRunId() != null) {
+						try {
+							Insight continuationInsight = AgentRunService.createBackgroundExecutionInsight(record.userId(),
+									record.request());
+							rememberInsight(record.runId(), continuationInsight, true);
+							insightHandle = insightsByRun.get(record.runId());
+						} catch (SecurityException e) {
+							String error = "Background agent authorization failed: " + e.getMessage();
+							if (AgentRunStore.markFailedIfSubmitted(record.runId(), record.runId(), error)) {
+								AgentRunStreamService.get().markTerminal(record.runId());
+							}
+							logger.warn("AgentRunQueueLoop: rejected continuation runId={}: {}", record.runId(),
+									e.getMessage());
+							didWork = true;
+							continue;
+						}
+					}
 					if (insightHandle == null) {
 						continue;
 					}
@@ -151,6 +205,144 @@ final class AgentRunQueueLoop {
 			if (!didWork) {
 				waitForSignal();
 			}
+		}
+	}
+
+	// Lost in-memory queue items are rebuilt once per JVM from recent durable child rows.
+	private void startRecoveryScan() {
+		if (!recoveryScanStarted.compareAndSet(false, true)) {
+			return;
+		}
+		Thread.ofVirtual().name("child-completion-recovery").start(() -> {
+			try {
+				List<String> childRunIds = ChildRunCompletionService.findRecentUndeliveredChildIds();
+				for (String childRunId : childRunIds) {
+					enqueueChildCompletion(childRunId);
+				}
+				if (!childRunIds.isEmpty()) {
+					logger.info("AgentRunQueueLoop: recovered {} undelivered child completions", childRunIds.size());
+				}
+			} catch (Exception e) {
+				logger.warn("AgentRunQueueLoop: child completion recovery scan failed: {}", e.getMessage(), e);
+			}
+		});
+	}
+
+	private Set<String> rebuiltHandleRunIds() {
+		Set<String> runIds = new HashSet<>();
+		for (Map.Entry<String, InsightHandle> entry : insightsByRun.entrySet()) {
+			if (entry.getValue().ownsUser()) {
+				runIds.add(entry.getKey());
+			}
+		}
+		return runIds;
+	}
+
+	// A rebuilt context whose run started on another node would otherwise stay in memory forever.
+	private void releaseStaleRebuiltHandles(Set<String> rebuiltBeforeScan, Set<String> submittedRunIds) {
+		for (String runId : rebuiltBeforeScan) {
+			if (!submittedRunIds.contains(runId) && !activeRuns.isRegistered(runId)) {
+				InsightHandle removed = insightsByRun.remove(runId);
+				if (removed != null) {
+					removed.release();
+				}
+			}
+		}
+	}
+
+	/**
+	 * Give ready child results the parent room turn before a later submitted run so
+	 * that run receives the result in its model context.
+	 */
+	private boolean tryExecuteChildCompletions() {
+		boolean didWork = false;
+		int pending = childCompletions.size();
+		for (int i = 0; i < pending; i++) {
+			String childRunId = childCompletions.poll();
+			if (childRunId == null) {
+				break;
+			}
+			DeliveryRetry retry = deliveryRetries.get(childRunId);
+			if (retry != null && retry.nextAttemptAtMs() > System.currentTimeMillis()) {
+				childCompletions.offer(childRunId);
+				continue;
+			}
+			try {
+				ChildRunCompletionService.Delivery delivery = ChildRunCompletionService.load(childRunId);
+				if (delivery == null) {
+					// Terminal child or its same-owner parent no longer exists; nothing to deliver.
+					deliveryRetries.remove(childRunId);
+					queuedChildCompletions.remove(childRunId);
+					continue;
+				}
+				if (delivery.mode() == SubAgentRunCompletionMode.WAIT) {
+					queuedChildCompletions.remove(childRunId);
+					continue;
+				}
+				if (tryExecuteChildCompletion(delivery)) {
+					didWork = true;
+				} else {
+					childCompletions.offer(childRunId);
+				}
+			} catch (Exception e) {
+				retryDelivery(childRunId, e);
+			}
+		}
+		return didWork;
+	}
+
+	// Durable work never gives up; capped backoff keeps a stuck item cheap.
+	private void retryDelivery(String childRunId, Exception e) {
+		DeliveryRetry previous = deliveryRetries.get(childRunId);
+		int attempts = previous == null ? 1 : previous.attempts() + 1;
+		long delayMs = Math.min(DELIVERY_RETRY_MAX_MS, DELIVERY_RETRY_BASE_MS << Math.min(attempts - 1, 16));
+		deliveryRetries.put(childRunId, new DeliveryRetry(attempts, System.currentTimeMillis() + delayMs));
+		childCompletions.offer(childRunId);
+		// Log on attempts 1, 2, 4, 8, ... so a permanently stuck item does not flood the log.
+		if (Integer.bitCount(attempts) == 1) {
+			logger.warn("AgentRunQueueLoop: child completion delivery failed runId={} attempt={} retryInMs={}: {}",
+					childRunId, attempts, delayMs, e.getMessage(), e);
+		}
+	}
+
+	private record DeliveryRetry(int attempts, long nextAttemptAtMs) {
+	}
+
+	private boolean tryExecuteChildCompletion(ChildRunCompletionService.Delivery delivery) {
+		String childRunId = delivery.childRunId();
+		String workId = "child-completion:" + childRunId;
+		Optional<AgentRunRegistry.ActiveRun> claim = activeRuns.claimRoom(workId, delivery.parentRoomId());
+		if (claim.isEmpty()) {
+			return false;
+		}
+		AgentRunRegistry.ActiveRun activeRun = claim.get();
+		try {
+			ClusterRoomTurnLock.RoomTurnLease lease = ClusterRoomTurnLock.tryClaim(workId,
+					delivery.parentRoomId());
+			if (lease == null) {
+				activeRun.close();
+				return false;
+			}
+			activeRun.attachLease(lease);
+
+			Thread thread = Thread.ofVirtual().name("child-completion-" + childRunId).unstarted(() -> {
+				try {
+					ChildRunCompletionService.deliver(delivery);
+					deliveryRetries.remove(childRunId);
+					queuedChildCompletions.remove(childRunId);
+				} catch (Exception e) {
+					retryDelivery(childRunId, e);
+				} finally {
+					activeRun.close();
+					signal();
+				}
+			});
+			activeRun.attachThread(thread);
+			thread.start();
+			return true;
+		} catch (RuntimeException e) {
+			activeRun.close();
+			throw e;
 		}
 	}
 

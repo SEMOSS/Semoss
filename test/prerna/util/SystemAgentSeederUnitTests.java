@@ -59,6 +59,46 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 class SystemAgentSeederUnitTests {
 
 	@Test
+	void analysisAgentsSeedNamedWorkspacesAndLoadTheirRuntimeSkills() throws Exception {
+		for (var agent : Map.of(Constants.AGENT_DATABASE_EXPLORER, "Database Explorer",
+				Constants.AGENT_NOTEBOOK_ANALYST, "Notebook Analyst").entrySet()) {
+			String id = agent.getKey();
+			try (var registry = mockStatic(SystemEngineRegistry.class);
+					var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+					var projects = mockStatic(SecurityProjectUtils.class)) {
+				registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+				projects.when(() -> SecurityProjectUtils.getProjectTypeForId(anyString())).thenReturn("CODE");
+				SystemAgentSeeder.seed(id);
+				var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+				workspaces.verify(
+						() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+				JSONObject config = configCaptor.getValue();
+				String prompt = config.getString("system_prompt");
+				workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
+						eq(agent.getValue()), anyString(), eq(prompt), argThat(resources -> resources.stream()
+								.anyMatch(resource -> "python".equals(resource.get("resource_id"))))));
+				assertTrue(prompt.contains("Load") && prompt.contains("python"));
+				if (Constants.AGENT_NOTEBOOK_ANALYST.equals(id)) {
+					assertTrue(prompt.contains("public/main.ipynb"));
+					assertTrue(prompt.contains("data-analysis"));
+				}
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+						.thenReturn(Map.of("name", agent.getValue(), "system_prompt", prompt));
+				workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(config);
+				var loaded = AgentConfigLoader.load(mock(Room.class), null, "selected-model", Map.of(), Map.of(), 30, 0,
+						id);
+				assertEquals(prompt, loaded.getAuthoredPrompt());
+				assertEquals("selected-model", loaded.getModelId());
+				assertTrue(loaded.useDefaultAgentTools());
+				assertEquals(SystemDefaultEngines.getSystemAgentSkills(id),
+						loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
+				assertFalse(loaded.hasPptxWorkflow());
+			}
+		}
+	}
+
+	@Test
 	void newPptxAuthorSeedsItsSkillAndResolvesTheSystemReviewer() throws Exception {
 		String id = Constants.AGENT_PPTX;
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(id));
@@ -245,9 +285,9 @@ class SystemAgentSeederUnitTests {
 	@Test
 	void appBuilderSeedsItsExplicitSkillsAndUnrestrictedPolicy() throws Exception {
 		String id = Constants.AGENT_APP_BUILDER;
-		List<String> expectedSkills = List.of("agent-run", "app-bootstrap", "app-data", "build-and-publish",
-				"database", "exports", "file-uploads", "functions", "model", "pagination", "permissions", "python",
-				"room", "storage", "user", "vector");
+		List<String> expectedSkills = List.of("agent-run", "app-bootstrap", "app-data", "build-and-publish", "database",
+				"exports", "file-uploads", "frontend-design", "functions", "mcp", "model", "pagination", "permissions",
+				"python", "room", "storage", "user", "vector");
 		try (var registry = mockStatic(SystemEngineRegistry.class);
 				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
 				var projects = mockStatic(SecurityProjectUtils.class)) {
@@ -263,8 +303,8 @@ class SystemAgentSeederUnitTests {
 					eq("App Building Agent"), anyString(), eq(config.getString("system_prompt")),
 					argThat(resources -> resources.size() == SystemDefaultEngines.getSystemAgentMCPs(id).size()
 							+ expectedSkills.size()
-							&& resources.stream().noneMatch(
-									resource -> Constants.SKILL_PPTX.equals(resource.get("resource_id"))))));
+							&& resources.stream()
+									.noneMatch(resource -> Constants.SKILL_PPTX.equals(resource.get("resource_id"))))));
 			assertEquals(SystemDefaultEngines.getSystemAgentMCPs(id),
 					config.getJSONArray("mcps").toList().stream().map(value -> ((Map<?, ?>) value).get("id")).toList());
 			assertEquals(expectedSkills, config.getJSONArray("skills").toList().stream()

@@ -45,6 +45,20 @@ import org.junit.jupiter.api.Test;
 class SystemDefaultEnginesUnitTests {
 
 	@Test
+	void dataWorkbenchAgentsReceiveAnalysisSkillsAndReactorHelp() {
+		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_DATABASE_EXPLORER));
+		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_NOTEBOOK_ANALYST));
+		assertEquals(List.of("database", "python", "pagination", "exports"),
+				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_DATABASE_EXPLORER));
+		assertEquals(List.of("python", "database", "file-uploads", "storage", "exports"),
+				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_NOTEBOOK_ANALYST));
+		assertEquals(List.of("reactor-help"),
+				SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_DATABASE_EXPLORER));
+		assertEquals(List.of("reactor-help"),
+				SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_NOTEBOOK_ANALYST));
+	}
+
+	@Test
 	void workflowAutomationBuilderUsesOnlyItsOwnSkillAndNoMcps() {
 		assertTrue(SystemDefaultEngines.getSystemSkills().contains(Constants.SKILL_WORKFLOW_AUTOMATION));
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER));
@@ -62,9 +76,10 @@ class SystemDefaultEnginesUnitTests {
 	void appBuilderReceivesExactlyItsOwnSkills() {
 		assertEquals(List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA,
 				Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS,
-				Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FUNCTIONS, Constants.SKILL_MODEL,
-				Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON,
-				Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR),
+				Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS,
+				Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS,
+				Constants.SKILL_PYTHON, Constants.SKILL_ROOM, Constants.SKILL_STORAGE, Constants.SKILL_USER,
+				Constants.SKILL_VECTOR),
 				SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_APP_BUILDER));
 	}
 

@@ -51,9 +51,10 @@
 		<bc.fips.version>2.1.3</bc.fips.version>
 		<bcpkix.fips.version>2.1.12</bcpkix.fips.version>
 		<bcutil.fips.version>2.1.7</bcutil.fips.version>
-		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Separate
+		<!-- Non-FIPS BouncyCastle, pinned via dependencyManagement only. Version 1.85
+		     addresses the vulnerabilities inherited through SSHJ; keep this separate
 		     from the FIPS artifact line above. -->
-		<bc.jdk18on.version>1.80.2</bc.jdk18on.version>
+		<bc.jdk18on.version>1.85</bc.jdk18on.version>
 		<log4j2.version>2.26.1</log4j2.version>
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
@@ -2091,7 +2092,7 @@
 		<dependency>
 			<groupId>org.freemarker</groupId>
 			<artifactId>freemarker</artifactId>
-			<version>2.3.34</version>
+			<version>2.3.35</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.azure/azure-json -->
 		<dependency>
@@ -2796,12 +2797,13 @@
 			<version>2.7.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/com.hierynomus/sshj -->
-		<!-- This is synced with Monolith/pom.xml which removes non-FIPS 
-			 bcprov/bcpkix/bcutil-jdk18on at runtime in fips profile. -->
+		<!-- Version 0.41.0 updates SSHJ's cryptography baseline. Keep this synchronized
+			 with Monolith/pom.xml, which removes non-FIPS bcprov/bcpkix/bcutil-jdk18on
+			 at runtime in the fips profile. -->
 		<dependency>
 			<groupId>com.hierynomus</groupId>
 			<artifactId>sshj</artifactId>
-			<version>0.40.0</version>
+			<version>0.41.0</version>
 			<exclusions>
 				<exclusion>
 					<groupId>org.slf4j</groupId>

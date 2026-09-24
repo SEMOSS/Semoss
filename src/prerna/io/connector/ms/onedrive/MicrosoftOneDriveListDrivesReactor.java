@@ -76,7 +76,7 @@ public class MicrosoftOneDriveListDrivesReactor extends AbstractMicrosoftOneDriv
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			List<Map<String, Object>> drives = MicrosoftOneDriveHelper.listDrives(accessToken, limit);
 			return new NounMetadata(drives, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
