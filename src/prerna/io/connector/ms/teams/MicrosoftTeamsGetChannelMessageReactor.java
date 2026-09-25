@@ -66,7 +66,7 @@ public class MicrosoftTeamsGetChannelMessageReactor extends AbstractMicrosoftTea
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
 		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));

@@ -72,7 +72,7 @@ public class MicrosoftOutlookGetMailReactor extends AbstractMicrosoftOutlookMess
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("read a message");
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);

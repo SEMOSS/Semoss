@@ -74,7 +74,7 @@ public class MicrosoftOutlookListMailFoldersReactor extends AbstractMicrosoftOut
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		try {
