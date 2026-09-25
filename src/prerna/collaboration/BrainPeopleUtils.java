@@ -274,6 +274,14 @@ public final class BrainPeopleUtils {
 		}
 	}
 
+	// a personId from the caller must be one of the owner's people; null is allowed
+	static void requirePerson(String ownerId, String ownerType, String personId) {
+		if (personId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND PERSON_ID = ?", ownerId, ownerType, personId)) {
+			throw new IllegalArgumentException("Person not found");
+		}
+	}
+
 	// rule-derived flags, message counts per channel, calendar threads as meetings, and member topics, one query
 	// each for the page
 	private static void addCountsAndTopics(String ownerId, String ownerType, List<Map<String, Object>> people) {

@@ -294,7 +294,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("DETAIL_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("STATUS", VARCHAR_20),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("RESOLVED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("RESOLVED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("RESOLVED_BY", VARCHAR_20),
+				Pair.with("RESOLUTION_JSON", CLOB_DATATYPE_NAME)));
 		addTable("BRAIN_CHANGE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("CHANGE_ID", VARCHAR_50),
@@ -342,7 +344,10 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("LINK_TOPIC_ID", VARCHAR_50),
 				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
 				Pair.with("DEDUPE_KEY", VARCHAR_255),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("SUGGESTED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("CLOSED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("WORK_ITEM_HISTORY", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("HISTORY_ID", VARCHAR_50),
@@ -352,7 +357,10 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("FIELD", VARCHAR_50),
 				Pair.with("OLD_VALUE", VARCHAR_255),
 				Pair.with("NEW_VALUE", VARCHAR_255),
-				Pair.with("REASON", CLOB_DATATYPE_NAME)));
+				Pair.with("REASON", CLOB_DATATYPE_NAME),
+				// rows written by one update share a CHANGE_ID; an undo row names the change it reverts
+				Pair.with("CHANGE_ID", VARCHAR_50),
+				Pair.with("UNDO_OF", VARCHAR_50)));
 		// one row per open workspace tab (assumption: not detailed in the wiki beyond
 		// WorkListOpenRooms/WorkCloseRoom; minimal set to list and close tabs)
 		addTable("WORK_OPEN_ROOM", Arrays.asList(

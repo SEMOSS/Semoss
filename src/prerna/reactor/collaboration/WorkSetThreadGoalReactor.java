@@ -28,54 +28,41 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainThreadUtils;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.WorkRoomUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListThreads(filter=["muted"], topicId=["..."], channel=["email"], limit=[30], offset=[0], detail=[true]);
-public class BrainListThreadsReactor extends AbstractCollaborationReactor {
+// WorkSetThreadGoal(threadId=["..."], goal=["..."]);
+public class WorkSetThreadGoalReactor extends AbstractCollaborationReactor {
 
-	private static final String FILTER = "filter";
-	private static final String TOPIC_ID = "topicId";
-	private static final String CHANNEL = "channel";
-	private static final String LIMIT = "limit";
-	private static final String OFFSET = "offset";
-	private static final String DETAIL = "detail";
+	private static final String THREAD_ID = "threadId";
+	private static final String GOAL = "goal";
 
-	public BrainListThreadsReactor() {
-		this.keysToGet = new String[] { FILTER, TOPIC_ID, CHANNEL, LIMIT, OFFSET, DETAIL };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+	public WorkSetThreadGoalReactor() {
+		this.keysToGet = new String[] { THREAD_ID, GOAL };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		Integer limit = getIntFromKeyOrCurRow(LIMIT);
-		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainThreadUtils.listThreads(user, getString(FILTER), getString(TOPIC_ID),
-				getString(CHANNEL), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset,
-				Boolean.TRUE.equals(getBoolean(DETAIL))));
+		String threadId = getString(THREAD_ID);
+		if (threadId == null) {
+			throw new IllegalArgumentException("Must pass a threadId");
+		}
+		return mapResult(WorkRoomUtils.setThreadGoal(user, threadId, getString(GOAL)));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain threads as { items, total }, newest first";
+		return "Sets the goal for a thread's workspace";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (FILTER.equals(key)) {
-			return "muted or needs_topic_choice";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Only threads linked to this topic";
-		} else if (CHANNEL.equals(key)) {
-			return "email, teams, or calendar";
-		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
-		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
-		} else if (DETAIL.equals(key)) {
-			return "true adds participants and summary to each thread";
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (GOAL.equals(key)) {
+			return "The goal; blank clears it";
 		}
 		return super.getDescriptionForKey(key);
 	}

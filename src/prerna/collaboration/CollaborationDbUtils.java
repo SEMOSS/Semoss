@@ -34,12 +34,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,6 +69,10 @@ public class CollaborationDbUtils {
 	private static final Gson GSON = new Gson();
 
 	static boolean initialized = false;
+
+	// the tables have no unique constraints, so insert-if-absent runs under one lock per owner and area.
+	// Covers one server only.
+	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 
 	private CollaborationDbUtils() {
 
@@ -90,6 +100,10 @@ public class CollaborationDbUtils {
 			throw new IllegalArgumentException("A signed-in user is required");
 		}
 		return User.getPrimaryUserIdAndTypePair(user);
+	}
+
+	static Object ownerLock(String area, String ownerId, String ownerType) {
+		return OWNER_LOCKS.computeIfAbsent(area + ":" + ownerType + ":" + ownerId, k -> new Object());
 	}
 
 	// name-UUID of owner plus logical key, so retries land on the same id
@@ -238,7 +252,32 @@ public class CollaborationDbUtils {
 
 	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC), returned as ISO-8601
 	static String getTimestamp(ResultSet rs, String column) throws SQLException {
-		Timestamp value = rs.getTimestamp(column);
+		return toIso(rs.getTimestamp(column));
+	}
+
+	// ISO-8601 instant, offset time, or a plain date (midnight UTC) to UTC wall time; null stays null
+	static Timestamp toTimestamp(Object value, String name) {
+		String text = asString(value);
+		if (text == null || text.isBlank()) {
+			return null;
+		}
+		text = text.trim();
+		try {
+			Instant instant;
+			if (text.length() == 10) {
+				instant = LocalDate.parse(text).atStartOfDay(ZoneOffset.UTC).toInstant();
+			} else if (text.endsWith("Z")) {
+				instant = Instant.parse(text);
+			} else {
+				instant = OffsetDateTime.parse(text).toInstant();
+			}
+			return Timestamp.valueOf(LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
+		} catch (DateTimeParseException e) {
+			throw new IllegalArgumentException(name + " must be an ISO-8601 time: " + text);
+		}
+	}
+
+	static String toIso(Timestamp value) {
 		return value == null ? null : value.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant().toString();
 	}
 

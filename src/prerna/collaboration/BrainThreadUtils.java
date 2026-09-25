@@ -73,6 +73,12 @@ public final class BrainThreadUtils {
 
 	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel,
 			int limit, int offset) {
+		return listThreads(user, filter, topicId, channel, limit, offset, false);
+	}
+
+	// detail adds each thread's participants and summary, one query each for the page
+	public static Map<String, Object> listThreads(User user, String filter, String topicId, String channel,
+			int limit, int offset, boolean detail) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -100,11 +106,20 @@ public final class BrainThreadUtils {
 		}
 
 		List<Map<String, Object>> items = CollaborationDbUtils.query(
-				CollaborationDbUtils.page("SELECT " + THREAD_COLUMNS + ", " + OPEN_TOPIC_CHOICE
+				CollaborationDbUtils.page("SELECT " + THREAD_COLUMNS + ", t.SUMMARY, " + OPEN_TOPIC_CHOICE
 						+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t" + where
 						+ " ORDER BY COALESCE(t.LAST_MESSAGE_AT, t.CREATED_AT) DESC, t.THREAD_ID", limit, offset),
-				BrainThreadUtils::mapThread, params.toArray());
+				rs -> {
+					Map<String, Object> row = mapThread(rs);
+					if (detail) {
+						row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
+					}
+					return row;
+				}, params.toArray());
 		addLinks(ownerId, ownerType, items);
+		if (detail) {
+			addParticipants(ownerId, ownerType, items);
+		}
 
 		Map<String, Object> page = new LinkedHashMap<>();
 		page.put("items", items);
@@ -305,6 +320,31 @@ public final class BrainThreadUtils {
 				if (thread.containsKey(key)) {
 					thread.put(key, thread.remove(key));
 				}
+			}
+		}
+	}
+
+	private static void addParticipants(String ownerId, String ownerType, List<Map<String, Object>> threads) {
+		if (threads.isEmpty()) {
+			return;
+		}
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		for (Map<String, Object> thread : threads) {
+			params.add(thread.get("id"));
+			thread.put("participants", new ArrayList<Map<String, Object>>());
+		}
+		Map<String, List<Map<String, Object>>> byThread = new HashMap<>();
+		for (Pair<String, Map<String, Object>> row : CollaborationDbUtils.query(
+				"SELECT THREAD_ID, PERSON_ID, ROLES_JSON, INCLUDED, EXCLUDED_BY, EXCLUDED_AT, HIDDEN_COUNT "
+						+ "FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN ("
+						+ CollaborationDbUtils.placeholders(threads.size()) + ") ORDER BY FIRST_SEEN_AT, PERSON_ID",
+				rs -> Pair.with(rs.getString("THREAD_ID"), mapParticipant(rs)), params.toArray())) {
+			byThread.computeIfAbsent(row.getValue0(), k -> new ArrayList<>()).add(row.getValue1());
+		}
+		for (Map<String, Object> thread : threads) {
+			thread.put("participants", byThread.getOrDefault(thread.get("id"), new ArrayList<>()));
+			if (thread.containsKey("summary")) {
+				thread.put("summary", thread.remove("summary"));
 			}
 		}
 	}

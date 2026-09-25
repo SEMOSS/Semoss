@@ -28,22 +28,21 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainThreadUtils;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.WorkItemUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListThreads(filter=["muted"], topicId=["..."], channel=["email"], limit=[30], offset=[0], detail=[true]);
-public class BrainListThreadsReactor extends AbstractCollaborationReactor {
+// WorkListItems(view=["needs_me"], topicId=["..."], channel=["email"], sort=["priority"], limit=[30], offset=[0]);
+public class WorkListItemsReactor extends AbstractCollaborationReactor {
 
-	private static final String FILTER = "filter";
+	private static final String VIEW = "view";
 	private static final String TOPIC_ID = "topicId";
 	private static final String CHANNEL = "channel";
+	private static final String SORT = "sort";
 	private static final String LIMIT = "limit";
 	private static final String OFFSET = "offset";
-	private static final String DETAIL = "detail";
 
-	public BrainListThreadsReactor() {
-		this.keysToGet = new String[] { FILTER, TOPIC_ID, CHANNEL, LIMIT, OFFSET, DETAIL };
+	public WorkListItemsReactor() {
+		this.keysToGet = new String[] { VIEW, TOPIC_ID, CHANNEL, SORT, LIMIT, OFFSET };
 		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -52,30 +51,29 @@ public class BrainListThreadsReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainThreadUtils.listThreads(user, getString(FILTER), getString(TOPIC_ID),
-				getString(CHANNEL), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset,
-				Boolean.TRUE.equals(getBoolean(DETAIL))));
+		return mapResult(WorkItemUtils.listView(user, getString(VIEW), getString(TOPIC_ID), getString(CHANNEL),
+				getString(SORT), limit == null ? 30 : limit, offset == null ? 0 : offset));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain threads as { items, total }, newest first";
+		return "Lists the signed-in user's Work items for one queue view as { items, total, fyiCount, automatedSkippedCount }";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (FILTER.equals(key)) {
-			return "muted or needs_topic_choice";
+		if (VIEW.equals(key)) {
+			return "needs_me (default), waiting, suggested, done_today, or all";
 		} else if (TOPIC_ID.equals(key)) {
-			return "Only threads linked to this topic";
+			return "Only items on this topic";
 		} else if (CHANNEL.equals(key)) {
-			return "email, teams, or calendar";
+			return "email, teams, calendar, room, or task";
+		} else if (SORT.equals(key)) {
+			return "priority (default), received, or closed";
 		} else if (LIMIT.equals(key)) {
 			return "Page size, default 30";
 		} else if (OFFSET.equals(key)) {
 			return "Rows to skip, default 0";
-		} else if (DETAIL.equals(key)) {
-			return "true adds participants and summary to each thread";
 		}
 		return super.getDescriptionForKey(key);
 	}

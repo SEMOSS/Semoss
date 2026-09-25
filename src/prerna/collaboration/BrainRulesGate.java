@@ -37,11 +37,10 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 // GATE-01: decides from headers and owner rules alone, before any body fetch or model call.
-// Never reads or logs the subject. One owner's messages go through one at a time (see OWNER_LOCKS).
+// Never reads or logs the subject. One owner's messages go through one at a time (see lockFor).
 public final class BrainRulesGate {
 
 	public static final String INGESTED = "ingested";
@@ -57,10 +56,6 @@ public final class BrainRulesGate {
 
 	record Rule(String id, String kind, String value, String topicId, String personId, String channel) {
 	}
-
-	// webhook, delta sync, and backfill can deliver the same message at once and the tables have no unique
-	// constraints, so the replay check and the write run under one lock per owner. Covers one server only.
-	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 
 	private BrainRulesGate() {
 
@@ -272,8 +267,10 @@ public final class BrainRulesGate {
 		}
 	}
 
+	// webhook, delta sync, and backfill can deliver the same message at once, so the replay check and the
+	// write run under one lock per owner. Covers one server only.
 	private static Object lockFor(String ownerId, String ownerType) {
-		return OWNER_LOCKS.computeIfAbsent(ownerType + ":" + ownerId, k -> new Object());
+		return CollaborationDbUtils.ownerLock("gate", ownerId, ownerType);
 	}
 
 	// active rules, oldest first; the gate and the thread read share them
