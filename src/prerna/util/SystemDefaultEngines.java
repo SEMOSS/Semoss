@@ -37,7 +37,8 @@ public class SystemDefaultEngines {
 
 	private static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
-			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+			Constants.NOTIFICATION_DB, Constants.COLLABORATION_DB, Constants.AUDIT_LOGS_DB,
+			Constants.MODEL_INFERENCE_LOGS_DB);
 
 	private static final List<String> IGNORE_DATABASE_OWL = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));

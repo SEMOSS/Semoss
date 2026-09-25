@@ -1081,6 +1081,10 @@ public class Constants {
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
 
+	// collaboration db (Brain and Work)
+	public static final String COLLABORATION_DATABASE_ENABLED = "COLLABORATION_DATABASE_ENABLED";
+	public static final String COLLABORATION_DB = "Collaboration";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";

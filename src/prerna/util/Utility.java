@@ -4706,6 +4706,21 @@ public final class Utility {
 		return Boolean.parseBoolean(notificationDb);
 	}
 
+	/**
+	 * Determine if collaboration db is enabled
+	 * 
+	 * @return
+	 */
+	public static boolean isCollaborationDatabaseEnabled() {
+		String collaborationDb = Utility.getDIHelperProperty(Constants.COLLABORATION_DATABASE_ENABLED);
+		if (collaborationDb == null) {
+			// default configuration is false
+			return false;
+		}
+
+		return Boolean.parseBoolean(collaborationDb);
+	}
+
 	public static DocumentBuilderFactory getDocumentBuilderFactory() {
 		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 		try {

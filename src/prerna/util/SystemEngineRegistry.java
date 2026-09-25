@@ -101,6 +101,9 @@ public final class SystemEngineRegistry {
 	private static final Set<String> NOTIFICATION_DB_ALLOWED = Set.of("prerna.auth", "prerna.notifications",
 			"prerna.util", "prerna.web.conf");
 
+	private static final Set<String> COLLABORATION_DB_ALLOWED = Set.of("prerna.auth", "prerna.collaboration",
+			"prerna.util", "prerna.web.conf");
+
 	private static final Set<String> AUDIT_LOGS_DB_ALLOWED = Set.of("prerna.auth", "prerna.engine.logging",
 			"prerna.logging", "prerna.util", "prerna.web.conf");
 
@@ -119,7 +122,8 @@ public final class SystemEngineRegistry {
 	 */
 	static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
-			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+			Constants.NOTIFICATION_DB, Constants.COLLABORATION_DB, Constants.AUDIT_LOGS_DB,
+			Constants.MODEL_INFERENCE_LOGS_DB);
 
 	/**
 	 * Cache of proxy-verified callers. The classloader check result is stable for
@@ -135,6 +139,7 @@ public final class SystemEngineRegistry {
 	private static volatile Supplier<IRDBMSEngine> userTrackingDbHolder;
 	private static volatile Supplier<IRDBMSEngine> promptDbHolder;
 	private static volatile Supplier<IRDBMSEngine> notificationDbHolder;
+	private static volatile Supplier<IRDBMSEngine> collaborationDbHolder;
 	private static volatile Supplier<IRDBMSEngine> auditLogsDbHolder;
 	private static volatile Supplier<IRDBMSEngine> modelInferenceLogsDbHolder;
 
@@ -179,6 +184,11 @@ public final class SystemEngineRegistry {
 	public static IRDBMSEngine getNotificationDb() {
 		checkAccess(NOTIFICATION_DB_ALLOWED, "NotificationDb");
 		return notificationDbHolder != null ? notificationDbHolder.get() : null;
+	}
+
+	public static IRDBMSEngine getCollaborationDb() {
+		checkAccess(COLLABORATION_DB_ALLOWED, "CollaborationDb");
+		return collaborationDbHolder != null ? collaborationDbHolder.get() : null;
 	}
 
 	public static IRDBMSEngine getAuditLogsDb() {
@@ -228,6 +238,11 @@ public final class SystemEngineRegistry {
 	/** Returns true if the NotificationDb has been loaded and registered. */
 	public static boolean isNotificationDbLoaded() {
 		return notificationDbHolder != null;
+	}
+
+	/** Returns true if the CollaborationDb has been loaded and registered. */
+	public static boolean isCollaborationDbLoaded() {
+		return collaborationDbHolder != null;
 	}
 
 	/** Returns true if the AuditLogsDb has been loaded and registered. */
@@ -335,6 +350,13 @@ public final class SystemEngineRegistry {
 			IRDBMSEngine guardedNotificationDb = wrapWithGuard(engine, "NotificationDb");
 			notificationDbHolder = () -> guardedNotificationDb;
 		}
+		case Constants.COLLABORATION_DB -> {
+			if (collaborationDbHolder != null) {
+				throw new IllegalStateException("CollaborationDb is already registered");
+			}
+			IRDBMSEngine guardedCollaborationDb = wrapWithGuard(engine, "CollaborationDb");
+			collaborationDbHolder = () -> guardedCollaborationDb;
+		}
 		case Constants.AUDIT_LOGS_DB -> {
 			if (auditLogsDbHolder != null) {
 				throw new IllegalStateException("AuditLogsDb is already registered");
@@ -381,6 +403,9 @@ public final class SystemEngineRegistry {
 		}
 		case Constants.NOTIFICATION_DB -> {
 			return getNotificationDb();
+		}
+		case Constants.COLLABORATION_DB -> {
+			return getCollaborationDb();
 		}
 		case Constants.AUDIT_LOGS_DB -> {
 			return getAuditLogsDb();
