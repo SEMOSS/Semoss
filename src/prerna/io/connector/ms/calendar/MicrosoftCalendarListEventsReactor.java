@@ -92,7 +92,7 @@ public class MicrosoftCalendarListEventsReactor extends AbstractMicrosoftCalenda
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String timeZone = trimToNull(this.keyValue.get(TIME_ZONE));

@@ -85,7 +85,7 @@ public class MicrosoftOutlookDownloadAttachmentReactor extends AbstractMicrosoft
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("download an attachment");
 		String attachmentId = trimToNull(this.keyValue.get(ATTACHMENT_ID));

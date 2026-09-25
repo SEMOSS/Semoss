@@ -33,7 +33,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.reactor.AbstractReactor;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
@@ -54,7 +54,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
  * takes a mailbox, because the token is what says whose mail this is.
  * </p>
  */
-public abstract class AbstractMicrosoftOutlookMessageReactor extends AbstractReactor {
+public abstract class AbstractMicrosoftOutlookMessageReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractMicrosoftOutlookMessageReactor.class);
 

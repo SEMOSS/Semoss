@@ -66,7 +66,7 @@ public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarR
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String eventId = trimToNull(this.keyValue.get(EVENT_ID));

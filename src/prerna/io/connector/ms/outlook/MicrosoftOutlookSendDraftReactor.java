@@ -34,13 +34,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.EmailUtility;
 
 /**
  * Sends a draft the signed in user already has, once they have decided it
@@ -61,7 +61,7 @@ import prerna.util.EmailUtility.EmailMetadata;
  * recorded as having been sent</li>
  * </ul>
  */
-public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
+public class MicrosoftOutlookSendDraftReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookSendDraftReactor.class);
 
@@ -73,7 +73,7 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String requestedDraftId = this.keyValue.get(DRAFT_ID);
