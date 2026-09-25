@@ -29,12 +29,10 @@ package prerna.reactor.notification;
 
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.auth.utils.SecurityProjectUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.NotificationConstants;
 import prerna.util.Utility;
 
 public class PollNotificationsReactor extends AbstractReactor {
@@ -57,12 +55,8 @@ public class PollNotificationsReactor extends AbstractReactor {
 			throwAnonymousUserError();
 		}
 
-		String scopeType = normalizeScopeType(this.keyValue.get(SCOPE_TYPE));
 		String scopeId = this.keyValue.get(SCOPE_ID);
-		if (NotificationConstants.FetchScope.APP.equals(scopeType)
-				&& !SecurityProjectUtils.userCanViewProject(user, scopeId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
-		}
+		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
 
 		int newNotificationCount = NotificationDbUtils.fetchNewNotificationCount(user, scopeType, scopeId);
 		return new NounMetadata(newNotificationCount, PixelDataType.CONST_INT);
@@ -71,18 +65,5 @@ public class PollNotificationsReactor extends AbstractReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Get the number of new notifications for the user";
-	}
-
-	private String normalizeScopeType(String scopeType) {
-		String normalized = scopeType == null || scopeType.trim().isEmpty() ? NotificationConstants.FetchScope.ALL
-				: scopeType.trim().toUpperCase();
-		if (!NotificationConstants.FetchScope.isValid(normalized)) {
-			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
-		}
-		if (NotificationConstants.FetchScope.APP.equals(normalized)
-				&& (this.keyValue.get(SCOPE_ID) == null || this.keyValue.get(SCOPE_ID).trim().isEmpty())) {
-			throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
-		}
-		return normalized;
 	}
 }

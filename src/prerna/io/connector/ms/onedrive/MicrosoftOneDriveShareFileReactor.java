@@ -80,7 +80,7 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
 		String itemId = trimToNull(this.keyValue.get(ITEM_ID));

@@ -6,6 +6,8 @@
  * 	you may not use this file except in compliance with the License.
  * 	You may obtain a copy of the License at
  *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
  * 	Unless required by applicable law or agreed to in writing, software
  * 	distributed under the License is distributed on an "AS IS" BASIS,
  * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -31,6 +33,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationUtils;
 import prerna.om.Insight;
 import prerna.util.NotificationConstants;
 
@@ -79,22 +82,36 @@ public final class NotificationService {
 	}
 
 	/**
-	 * Notifies one user of a platform action that concerns them, e.g. a delegation.
-	 * Server-side only: never expose this through a reactor, or callers could message arbitrary users.
+	 * Notifies one user of a Collaboration event that concerns them, e.g. a
+	 * teammate's request or its answer. It lands in the Collaboration inbox (app
+	 * scope {@link CollaborationUtils#COLLABORATION_PROJECT_ID}), which every
+	 * signed-in user can read, and opens the given room.
+	 *
+	 * <p>
+	 * The id doubles as an idempotency key: calling again with the same id returns
+	 * the existing notification, so producers can safely retry. Title, message,
+	 * and metadata are shown to the recipient.
+	 *
+	 * <p>
+	 * Server-side only: never expose this through a reactor, or callers could
+	 * message arbitrary users.
 	 */
-	public static String createUserNotification(String notificationId, String type, String recipientId,
-			String recipientType, String title, String message, String sourceType, String sourceId,
-			String targetType, String targetId, String metadataJson, String createdBy) {
+	public static String createCollaborationNotification(String notificationId, String type, String recipientId,
+			String recipientType, String title, String message, String senderId, String roomId,
+			String metadataJson) {
 		String normalizedTitle = requireValue(title, "title");
 		if (normalizedTitle.length() > 255) {
 			throw new IllegalArgumentException("Notification title cannot exceed 255 characters");
 		}
-		return NotificationDbUtils.insertNotificationEvent(requireValue(notificationId, "id"),
-				requireValue(type, "type"), NotificationConstants.Scope.SYSTEM, null,
-				NotificationConstants.Audience.USER, requireValue(recipientId, "recipient id"),
-				requireValue(recipientType, "recipient type"), normalizedTitle, requireValue(message, "message"),
-				NotificationConstants.Priority.NORMAL, NotificationConstants.DisplaySurface.BELL, sourceType,
-				sourceId, targetType, targetId, metadataJson, createdBy);
+		String targetId = StringUtils.trimToNull(roomId);
+		return NotificationDbUtils.insertNotificationEventIfAbsent(requireValue(notificationId, "id"),
+				requireValue(type, "type"), NotificationConstants.Scope.APP,
+				CollaborationUtils.COLLABORATION_PROJECT_ID, NotificationConstants.Audience.USER,
+				requireValue(recipientId, "recipient id"), requireValue(recipientType, "recipient type"),
+				normalizedTitle, requireValue(message, "message"), NotificationConstants.Priority.NORMAL,
+				NotificationConstants.DisplaySurface.BELL, NotificationConstants.Source.USER, senderId,
+				targetId == null ? NotificationConstants.Target.NONE : NotificationConstants.Target.ROOM, targetId,
+				metadataJson, senderId);
 	}
 
 	/** Clears a notification from one recipient's inbox once it no longer needs attention. */

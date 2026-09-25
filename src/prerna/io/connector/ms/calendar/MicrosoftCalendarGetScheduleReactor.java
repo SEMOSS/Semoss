@@ -91,7 +91,7 @@ public class MicrosoftCalendarGetScheduleReactor extends AbstractMicrosoftCalend
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String[] schedules = values(SCHEDULES);

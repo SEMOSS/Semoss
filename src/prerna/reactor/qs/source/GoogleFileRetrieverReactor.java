@@ -38,9 +38,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
-import prerna.auth.User;
 import prerna.poi.main.helper.CSVFileHelper;
 import prerna.poi.main.helper.FileHelperUtil;
 import prerna.query.querystruct.CsvQueryStruct;
@@ -60,7 +58,14 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 	}
 
 	@Override
+	protected void init() {
+		requireLogin(AuthProvider.GOOGLE);
+		super.init();
+	}
+
+	@Override
 	protected SelectQueryStruct createQueryStruct() {
+		String accessToken = requireLogin(AuthProvider.GOOGLE).getAccess_token();
 		// get keys
 		Logger logger = getLogger(CLASS_NAME);
 		organizeKeys();
@@ -71,26 +76,6 @@ public class GoogleFileRetrieverReactor extends AbstractQueryStructReactor {
 		String type = this.keyValue.get(this.keysToGet[1]);
 		if (type == null || type.length() <= 0) {
 			throw new IllegalArgumentException("Need to specify file type");
-		}
-
-		// get access token
-		String accessToken = null;
-		User user = this.insight.getUser();
-		try {
-			if (user == null) {
-				Map<String, Object> retMap = new HashMap<String, Object>();
-				retMap.put("type", "google");
-				retMap.put("message", "Please login to your Google account");
-				throwLoginError(retMap);
-			} else if (user != null) {
-				AccessToken msToken = user.getAccessToken(AuthProvider.GOOGLE);
-				accessToken = msToken.getAccess_token();
-			}
-		} catch (Exception e) {
-			Map<String, Object> retMap = new HashMap<String, Object>();
-			retMap.put("type", "google");
-			retMap.put("message", "Please login to your Google account");
-			throwLoginError(retMap);
 		}
 
 		// Initialize variables

@@ -53,6 +53,8 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -1067,11 +1069,31 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Requires an OAuth login for the requested provider before reactor work
+	 * starts. Token refresh, when supported, remains the provider connector's
+	 * responsibility.
+	 *
+	 * @param provider the provider required by the reactor
+	 * @return the user's provider token
+	 */
+	protected AccessToken requireLogin(AuthProvider provider) {
+		User user = this.insight == null ? null : this.insight.getUser();
+		AccessToken token = user == null ? null : user.getAccessToken(provider);
+		if (token == null || token.getAccess_token() == null || token.getAccess_token().isBlank()) {
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("type", provider.getLabel());
+			retMap.put("message", "Please login to your " + provider.getDisplayName() + " account");
+			throwLoginError(retMap);
+		}
+		return token;
+	}
+
+	/**
 	 * Throw login required error
 	 * 
 	 * @param details
 	 */
-	public static void throwLoginError(Map details) {
+	public static void throwLoginError(Map<?, ?> details) {
 		SemossPixelException exception = new SemossPixelException(
 				NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);

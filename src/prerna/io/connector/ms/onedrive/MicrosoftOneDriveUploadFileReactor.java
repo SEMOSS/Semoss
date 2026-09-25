@@ -82,7 +82,7 @@ public class MicrosoftOneDriveUploadFileReactor extends AbstractMicrosoftOneDriv
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String filePath = trimToNull(this.keyValue.get(ReactorKeysEnum.FILE_PATH.getKey()));
 		String name = trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
