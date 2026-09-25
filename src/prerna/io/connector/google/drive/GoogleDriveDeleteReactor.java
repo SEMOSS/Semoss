@@ -33,14 +33,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GoogleDriveDeleteReactor extends AbstractReactor {
+public class GoogleDriveDeleteReactor extends AbstractGoogleReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleDriveDeleteReactor.class);
 
@@ -50,7 +50,7 @@ public class GoogleDriveDeleteReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String fileId = this.keyValue.get(this.keysToGet[0]);
 		if (fileId == null || fileId.trim().isEmpty()) {

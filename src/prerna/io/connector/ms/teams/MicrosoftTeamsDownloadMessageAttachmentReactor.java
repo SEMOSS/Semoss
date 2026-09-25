@@ -83,7 +83,7 @@ public class MicrosoftTeamsDownloadMessageAttachmentReactor extends AbstractMicr
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
 		String teamId = trimToNull(this.keyValue.get(TEAM_ID));

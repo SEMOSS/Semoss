@@ -68,7 +68,7 @@ public class MicrosoftOneDriveCreateFolderReactor extends AbstractMicrosoftOneDr
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String name = trimToNull(this.keyValue.get(ReactorKeysEnum.NAME.getKey()));
 		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));

@@ -75,7 +75,11 @@ public final class NotificationConstants {
 		public static final String ACCESS_REQUEST = "ACCESS_REQUEST";
 		public static final String ANNOUNCEMENT = "ANNOUNCEMENT";
 		public static final String APP_TASK_COMPLETE = "APP_TASK_COMPLETE";
+		// Collaboration: a teammate's request, and how it ended for the other person.
 		public static final String DELEGATION_REQUEST = "DELEGATION_REQUEST";
+		public static final String DELEGATION_RESPONSE = "DELEGATION_RESPONSE";
+		public static final String DELEGATION_DECLINED = "DELEGATION_DECLINED";
+		public static final String DELEGATION_WITHDRAWN = "DELEGATION_WITHDRAWN";
 	}
 
 	public static final class Scope {

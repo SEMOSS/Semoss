@@ -74,7 +74,7 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String[] members = values(MEMBERS);
 		String chatType = trimToNull(this.keyValue.get(CHAT_TYPE));

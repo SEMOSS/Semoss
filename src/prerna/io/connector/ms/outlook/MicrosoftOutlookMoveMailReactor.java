@@ -75,7 +75,7 @@ public class MicrosoftOutlookMoveMailReactor extends AbstractMicrosoftOutlookMes
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("move a message");
 		String folder = trimToNull(this.keyValue.get(FOLDER));
