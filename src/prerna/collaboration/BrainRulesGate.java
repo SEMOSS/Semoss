@@ -52,7 +52,7 @@ public final class BrainRulesGate {
 	private static final List<String> NEVER_KINDS = List.of("never_sender", "exclude_everywhere", "never_domain",
 			"never_folder");
 
-	private record Rule(String id, String kind, String value, String topicId, String personId, String channel) {
+	record Rule(String id, String kind, String value, String topicId, String personId, String channel) {
 	}
 
 	private BrainRulesGate() {
@@ -97,21 +97,12 @@ public final class BrainRulesGate {
 								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) },
 						ownerId, ownerType, source + ":" + conversationId);
 		String threadId = thread == null ? null : thread[0];
-		List<Rule> rules = CollaborationDbUtils.query(
-				"SELECT RULE_ID, KIND, VALUE, TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
-				rs -> new Rule(rs.getString("RULE_ID"), rs.getString("KIND"), rs.getString("VALUE"),
-						rs.getString("TOPIC_ID"), rs.getString("PERSON_ID"), rs.getString("CHANNEL")),
-				ownerId, ownerType);
+		List<Rule> rules = activeRules(ownerId, ownerType);
 
 		// never-ingest: counted, not listed, so no thread on the row
-		for (String kind : NEVER_KINDS) {
-			for (Rule rule : rules) {
-				if (kind.equals(rule.kind()) && matchesNever(rule, from, personId, folderId)) {
-					return record(ownerId, ownerType, messageKey, headers, null, personId, receivedAt, NEVER, rule.id(),
-							null);
-				}
-			}
+		Rule never = neverRule(rules, from, personId, folderId);
+		if (never != null) {
+			return record(ownerId, ownerType, messageKey, headers, null, personId, receivedAt, NEVER, never.id(), null);
 		}
 
 		// excluded on this thread, a linked topic, or this channel
@@ -138,13 +129,10 @@ public final class BrainRulesGate {
 				return record(ownerId, ownerType, messageKey, headers, threadId, personId, receivedAt, EXCLUDED,
 						excludedRuleId, included);
 			}
-			for (Rule rule : rules) {
-				boolean onTopic = "exclude_topic".equals(rule.kind()) && topicIds.contains(rule.topicId());
-				boolean onChannel = "exclude_channel".equals(rule.kind()) && source.equals(rule.channel());
-				if ((onTopic || onChannel) && personId.equals(rule.personId())) {
-					return record(ownerId, ownerType, messageKey, headers, threadId, personId, receivedAt, EXCLUDED,
-							rule.id(), included);
-				}
+			Rule exclusion = exclusionRule(rules, topicIds, source, personId);
+			if (exclusion != null) {
+				return record(ownerId, ownerType, messageKey, headers, threadId, personId, receivedAt, EXCLUDED,
+						exclusion.id(), included);
 			}
 		}
 
@@ -204,6 +192,40 @@ public final class BrainRulesGate {
 		}
 	}
 
+	// active rules, oldest first; the gate and the thread read share them
+	static List<Rule> activeRules(String ownerId, String ownerType) {
+		return CollaborationDbUtils.query(
+				"SELECT RULE_ID, KIND, VALUE, TOPIC_ID, PERSON_ID, CHANNEL FROM BRAIN_RULE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
+				rs -> new Rule(rs.getString("RULE_ID"), rs.getString("KIND"), rs.getString("VALUE"),
+						rs.getString("TOPIC_ID"), rs.getString("PERSON_ID"), rs.getString("CHANNEL")),
+				ownerId, ownerType);
+	}
+
+	// the first never-ingest rule for this sender or folder, in NEVER_KINDS order; from is normalized
+	static Rule neverRule(List<Rule> rules, String from, String personId, String folderId) {
+		for (String kind : NEVER_KINDS) {
+			for (Rule rule : rules) {
+				if (kind.equals(rule.kind()) && matchesNever(rule, from, personId, folderId)) {
+					return rule;
+				}
+			}
+		}
+		return null;
+	}
+
+	// an exclude_topic or exclude_channel rule covering this person on a thread
+	static Rule exclusionRule(List<Rule> rules, List<String> topicIds, String source, String personId) {
+		for (Rule rule : rules) {
+			boolean onTopic = "exclude_topic".equals(rule.kind()) && topicIds.contains(rule.topicId());
+			boolean onChannel = "exclude_channel".equals(rule.kind()) && source.equals(rule.channel());
+			if ((onTopic || onChannel) && personId != null && personId.equals(rule.personId())) {
+				return rule;
+			}
+		}
+		return null;
+	}
+
 	private static boolean matchesNever(Rule rule, String from, String personId, String folderId) {
 		switch (rule.kind()) {
 		case "never_sender":
@@ -260,7 +282,7 @@ public final class BrainRulesGate {
 		return value;
 	}
 
-	private static String norm(String value) {
+	static String norm(String value) {
 		return value == null ? null : value.trim().toLowerCase();
 	}
 
