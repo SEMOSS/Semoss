@@ -28,36 +28,39 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.collaboration.BrainRuleUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainDeleteRule(ruleId=["..."]);
+public class BrainDeleteRuleReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String RULE_ID = "ruleId";
+
+	public BrainDeleteRuleReactor() {
+		this.keysToGet = new String[] { RULE_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String ruleId = getString(RULE_ID);
+		if (ruleId == null) {
+			throw new IllegalArgumentException("Must pass a ruleId");
+		}
+		return mapResult(BrainRuleUtils.deleteRule(user, ruleId));
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Turns off a Brain rule; people it excluded on threads are included again; owner only";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (RULE_ID.equals(key)) {
+			return "Rule id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

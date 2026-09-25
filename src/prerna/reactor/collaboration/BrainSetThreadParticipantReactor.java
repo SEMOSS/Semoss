@@ -28,36 +28,47 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.collaboration.BrainThreadUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainSetThreadParticipant(threadId=["..."], personId=["..."], included=[false]);
+public class BrainSetThreadParticipantReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String THREAD_ID = "threadId";
+	private static final String PERSON_ID = "personId";
+	private static final String INCLUDED = "included";
+
+	public BrainSetThreadParticipantReactor() {
+		this.keysToGet = new String[] { THREAD_ID, PERSON_ID, INCLUDED };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String threadId = getString(THREAD_ID);
+		String personId = getString(PERSON_ID);
+		Boolean included = getBoolean(INCLUDED);
+		if (threadId == null || personId == null || included == null) {
+			throw new IllegalArgumentException("Must pass a threadId, personId, and included");
+		}
+		return mapResult(BrainThreadUtils.setThreadParticipant(user, threadId, personId, included));
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Excludes or includes a person on one Brain thread; an excluded person's messages make no items or alerts";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (PERSON_ID.equals(key)) {
+			return "Person id of a participant on the thread";
+		} else if (INCLUDED.equals(key)) {
+			return "false excludes the person on this thread, true includes them again";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

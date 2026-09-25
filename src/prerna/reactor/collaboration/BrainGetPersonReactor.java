@@ -28,36 +28,39 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.collaboration.BrainPeopleUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainGetPerson(personId=["..."]);
+public class BrainGetPersonReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String PERSON_ID = "personId";
+
+	public BrainGetPersonReactor() {
+		this.keysToGet = new String[] { PERSON_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String personId = getString(PERSON_ID);
+		if (personId == null) {
+			throw new IllegalArgumentException("Must pass a personId");
+		}
+		return mapResult(BrainPeopleUtils.getPerson(user, personId));
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Gets one Brain person with topic membership and per-thread inclusion";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (PERSON_ID.equals(key)) {
+			return "Person id";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

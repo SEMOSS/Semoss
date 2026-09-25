@@ -28,36 +28,43 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.collaboration.BrainThreadUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainSetThreadMuted(threadId=["..."], muted=[true]);
+public class BrainSetThreadMutedReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String THREAD_ID = "threadId";
+	private static final String MUTED = "muted";
+
+	public BrainSetThreadMutedReactor() {
+		this.keysToGet = new String[] { THREAD_ID, MUTED };
+		this.keyRequired = new int[] { 1, 1 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String threadId = getString(THREAD_ID);
+		Boolean muted = getBoolean(MUTED);
+		if (threadId == null || muted == null) {
+			throw new IllegalArgumentException("Must pass a threadId and muted");
+		}
+		return mapResult(BrainThreadUtils.setThreadMuted(user, threadId, muted));
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Mutes or unmutes a Brain thread";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (MUTED.equals(key)) {
+			return "true mutes the thread, false unmutes it";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

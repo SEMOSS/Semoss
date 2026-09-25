@@ -28,36 +28,53 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
+import prerna.collaboration.BrainThreadUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainLinkThreadTopic(threadId=["..."], topicId=["..."], primary=[true], remove=[false]);
+public class BrainLinkThreadTopicReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String THREAD_ID = "threadId";
+	private static final String TOPIC_ID = "topicId";
+	private static final String PRIMARY = "primary";
+	private static final String REMOVE = "remove";
+
+	public BrainLinkThreadTopicReactor() {
+		this.keysToGet = new String[] { THREAD_ID, TOPIC_ID, PRIMARY, REMOVE };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String threadId = getString(THREAD_ID);
+		String topicId = getString(TOPIC_ID);
+		if (threadId == null || topicId == null) {
+			throw new IllegalArgumentException("Must pass a threadId and topicId");
+		}
+		return new NounMetadata(BrainThreadUtils.linkThreadTopic(user, threadId, topicId,
+				Boolean.TRUE.equals(getBoolean(PRIMARY)), Boolean.TRUE.equals(getBoolean(REMOVE))),
+				PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Links or unlinks a topic on a Brain thread; keeps exactly one primary link";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (TOPIC_ID.equals(key)) {
+			return "Topic id";
+		} else if (PRIMARY.equals(key)) {
+			return "true makes this the thread's one primary topic";
+		} else if (REMOVE.equals(key)) {
+			return "true unlinks the topic instead";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

@@ -27,37 +27,42 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.Map;
+
 import prerna.auth.User;
-import prerna.auth.utils.AbstractSecurityUtils;
-import prerna.collaboration.CollaborationDbUtils;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
+import prerna.collaboration.BrainRuleUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-// Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
-public abstract class AbstractCollaborationReactor extends AbstractReactor {
+// BrainSaveRule(rule=[{"kind": "never_domain", "value": "spam.example", "note": "..."}]);
+public class BrainSaveRuleReactor extends AbstractCollaborationReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
-	protected User getUser() {
-		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
-			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
-		}
-		User user = this.insight.getUser();
-		if (user == null || (AbstractSecurityUtils.anonymousUsersEnabled() && user.isAnonymous())) {
-			throwAnonymousUserError();
-		}
-		return user;
+	private static final String KEY = "rule";
+
+	public BrainSaveRuleReactor() {
+		this.keysToGet = new String[] { KEY };
+		this.keyRequired = new int[] { 1 };
 	}
 
-	// true or false param, or null when absent
-	protected Boolean getBoolean(String key) {
-		String value = getString(key);
-		return value == null ? null : Boolean.parseBoolean(value.trim());
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		Map<String, Object> changes = getMapFromKeyOrCurRow(KEY);
+		if (changes == null) {
+			throw new IllegalArgumentException("Must pass a rule map");
+		}
+		return mapResult(BrainRuleUtils.saveRule(user, changes));
 	}
 
-	protected NounMetadata mapResult(Object value) {
-		return new NounMetadata(value, PixelDataType.MAP, PixelOperationType.OPERATION);
+	@Override
+	public String getReactorDescription() {
+		return "Adds a Brain rule, or edits an existing rule's value or note; owner only";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (KEY.equals(key)) {
+			return "Partial rule: id (omit to create), kind, value, topicId, personId, channel, note";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }
