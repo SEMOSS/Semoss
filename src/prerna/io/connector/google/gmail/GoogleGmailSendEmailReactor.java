@@ -35,15 +35,15 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.EmailUtility;
 
-public class GoogleGmailSendEmailReactor extends AbstractReactor {
+public class GoogleGmailSendEmailReactor extends AbstractGoogleReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailSendEmailReactor.class);
 
@@ -57,7 +57,7 @@ public class GoogleGmailSendEmailReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String subject = this.keyValue.get(EMAIL_SUBJECT);
 		String to = this.keyValue.get(EMAIL_TO_RECEIVER);

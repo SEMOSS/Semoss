@@ -88,7 +88,7 @@ public class MicrosoftTeamsListChatsReactor extends AbstractMicrosoftTeamsMessag
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);
 		boolean unreadOnly = Boolean.parseBoolean(this.keyValue.get(UNREAD_ONLY));

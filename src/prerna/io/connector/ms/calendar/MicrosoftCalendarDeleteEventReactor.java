@@ -67,7 +67,7 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String eventId = trimToNull(this.keyValue.get(EVENT_ID));
