@@ -36,12 +36,16 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
+
+import com.google.gson.Gson;
 
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
@@ -55,6 +59,8 @@ import prerna.util.Utility;
 public class CollaborationDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(CollaborationDbUtils.class);
+
+	private static final Gson GSON = new Gson();
 
 	static boolean initialized = false;
 
@@ -128,6 +134,16 @@ public class CollaborationDbUtils {
 
 	static boolean exists(String sql, Object... params) {
 		return queryOne(sql, rs -> Boolean.TRUE, params) != null;
+	}
+
+	// dialect-specific LIMIT/OFFSET from the engine's query util
+	static String page(String sql, int limit, int offset) {
+		return db().getQueryUtil().addLimitOffsetToQuery(new StringBuilder(sql), limit, offset).toString();
+	}
+
+	// "?, ?, ?" for an IN list
+	static String placeholders(int count) {
+		return String.join(", ", Collections.nCopies(count, "?"));
 	}
 
 	// single insert/update/delete; rolls back on failure so a pooled connection goes back clean
@@ -224,6 +240,60 @@ public class CollaborationDbUtils {
 	static String getTimestamp(ResultSet rs, String column) throws SQLException {
 		Timestamp value = rs.getTimestamp(column);
 		return value == null ? null : value.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant().toString();
+	}
+
+	// ---- partial-save helpers: build "COL = ?" lists from the keys a caller passed ----
+
+	static void setIfPresent(Map<String, Object> changes, String key, String column, List<String> sets,
+			List<Object> params) {
+		if (changes.containsKey(key)) {
+			addSet(sets, params, column, asString(changes.get(key)));
+		}
+	}
+
+	static void addSet(List<String> sets, List<Object> params, String column, Object value) {
+		sets.add(column + " = ?");
+		params.add(value);
+	}
+
+	static String asString(Object value) {
+		return value == null ? null : String.valueOf(value);
+	}
+
+	// pixel numbers arrive as Integer or Double
+	static int toInt(Object value, String name) {
+		if (value instanceof Number number) {
+			return number.intValue();
+		}
+		try {
+			return Integer.parseInt(String.valueOf(value).trim());
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException(name + " must be a number");
+		}
+	}
+
+	static List<String> toStringList(List<Object> values) {
+		List<String> strings = new ArrayList<>();
+		for (Object value : values) {
+			if (value != null) {
+				strings.add(String.valueOf(value));
+			}
+		}
+		return strings;
+	}
+
+	static String toJson(Object value) {
+		return value == null ? null : GSON.toJson(value);
+	}
+
+	@SuppressWarnings("unchecked")
+	static List<Object> parseList(String json) {
+		return json == null ? new ArrayList<>() : GSON.fromJson(json, List.class);
+	}
+
+	@SuppressWarnings("unchecked")
+	static Map<String, Object> parseMap(String json) {
+		return json == null ? null : GSON.fromJson(json, Map.class);
 	}
 
 	private static void bind(PreparedStatement ps, Object... params) throws SQLException {

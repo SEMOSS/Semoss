@@ -37,8 +37,6 @@ import java.util.Map;
 
 import org.javatuples.Pair;
 
-import com.google.gson.Gson;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 
@@ -52,8 +50,6 @@ public final class BrainProfileUtils {
 	public static final String LEARNED = "learned";
 	public static final String CONFIRMED = "confirmed";
 	public static final String YOU = "you";
-
-	private static final Gson GSON = new Gson();
 
 	private BrainProfileUtils() {
 
@@ -90,37 +86,37 @@ public final class BrainProfileUtils {
 
 		List<String> sets = new ArrayList<>();
 		List<Object> params = new ArrayList<>();
-		setIfPresent(changes, "name", "DISPLAY_NAME", sets, params);
-		setIfPresent(changes, "email", "EMAIL", sets, params);
-		setIfPresent(changes, "org", "ORG", sets, params);
-		setIfPresent(changes, "timezone", "TIMEZONE", sets, params);
-		setIfPresent(changes, "workingHours", "WORKING_HOURS_JSON", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "name", "DISPLAY_NAME", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "email", "EMAIL", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "org", "ORG", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "timezone", "TIMEZONE", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "workingHours", "WORKING_HOURS_JSON", sets, params);
 		if (changes.get("role") instanceof Map) {
 			Map<String, Object> role = (Map<String, Object>) changes.get("role");
 			if (role.containsKey("value")) {
-				addSet(sets, params, "ROLE", asString(role.get("value")));
-				addSet(sets, params, "ROLE_STATE", YOU);
+				CollaborationDbUtils.addSet(sets, params, "ROLE", CollaborationDbUtils.asString(role.get("value")));
+				CollaborationDbUtils.addSet(sets, params, "ROLE_STATE", YOU);
 			}
-			setIfPresent(role, "note", "ROLE_NOTE", sets, params);
+			CollaborationDbUtils.setIfPresent(role, "note", "ROLE_NOTE", sets, params);
 		}
 		if (changes.get("style") instanceof Map) {
 			Map<String, Object> style = (Map<String, Object>) changes.get("style");
 			if (style.containsKey("summary")) {
-				addSet(sets, params, "STYLE_SUMMARY", asString(style.get("summary")));
-				addSet(sets, params, "STYLE_STATE", YOU);
+				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY", CollaborationDbUtils.asString(style.get("summary")));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
 			} else if (style.containsKey("confirmed")) {
-				addSet(sets, params, "STYLE_STATE", Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
 			}
 			if (style.containsKey("examples")) {
-				addSet(sets, params, "STYLE_EXAMPLES_JSON", GSON.toJson(style.get("examples")));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON", CollaborationDbUtils.toJson(style.get("examples")));
 			}
 		}
-		List<String> vips = changes.get("vips") instanceof List ? toStringList((List<Object>) changes.get("vips"))
+		List<String> vips = changes.get("vips") instanceof List ? CollaborationDbUtils.toStringList((List<Object>) changes.get("vips"))
 				: null;
 
 		CollaborationDbUtils.inTransaction(conn -> {
 			if (!sets.isEmpty()) {
-				addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
+				CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 				params.add(ownerId);
 				params.add(ownerType);
 				CollaborationDbUtils.update(conn, "UPDATE BRAIN_PROFILE SET " + String.join(", ", sets)
@@ -146,11 +142,13 @@ public final class BrainProfileUtils {
 			return;
 		}
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		// time zone comes from the browser (runPixel tz), so no MailboxSettings.Read is needed
 		CollaborationDbUtils.update(
-				"INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, DISPLAY_NAME, EMAIL, ROLE_STATE, STYLE_STATE, "
-						+ "UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
+				"INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, DISPLAY_NAME, EMAIL, TIMEZONE, ROLE_STATE, "
+						+ "STYLE_STATE, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
 				ownerId, ownerType, token == null ? null : token.getName(), token == null ? null : token.getEmail(),
-				LEARNED, LEARNED, CollaborationDbUtils.now());
+				user.getZoneId() == null ? null : user.getZoneId().getId(), LEARNED, LEARNED,
+				CollaborationDbUtils.now());
 	}
 
 	private static Map<String, Object> mapProfile(ResultSet rs) throws SQLException {
@@ -169,7 +167,7 @@ public final class BrainProfileUtils {
 		style.put("summary", CollaborationDbUtils.getString(rs, "STYLE_SUMMARY"));
 		style.put("source", YOU.equals(styleState) ? YOU : LEARNED);
 		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
-		style.put("examples", parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+		style.put("examples", CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
 
 		Map<String, Object> profile = new LinkedHashMap<>();
 		profile.put("id", "me");
@@ -209,7 +207,7 @@ public final class BrainProfileUtils {
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
 					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
 					row.put("sourcesJson", null);
-					row.put("weightsJson", parseMap(CollaborationDbUtils.getString(rs, "WEIGHTS_JSON")));
+					row.put("weightsJson", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "WEIGHTS_JSON")));
 					row.put("version", CollaborationDbUtils.getInteger(rs, "VERSION"));
 					return row;
 				}, ownerId, ownerType);
@@ -225,13 +223,13 @@ public final class BrainProfileUtils {
 		String ownerType = owner.getValue1();
 		Map<String, Object> current = getSettings(ownerId, ownerType);
 		int currentVersion = (Integer) current.get("version");
-		if (changes.containsKey("version") && toInt(changes.get("version"), "version") != currentVersion) {
+		if (changes.containsKey("version") && CollaborationDbUtils.toInt(changes.get("version"), "version") != currentVersion) {
 			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
 		}
 
-		int fileAt = changes.containsKey("fileAt") ? toInt(changes.get("fileAt"), "fileAt")
+		int fileAt = changes.containsKey("fileAt") ? CollaborationDbUtils.toInt(changes.get("fileAt"), "fileAt")
 				: (Integer) current.get("fileAt");
-		int askAt = changes.containsKey("askAt") ? toInt(changes.get("askAt"), "askAt")
+		int askAt = changes.containsKey("askAt") ? CollaborationDbUtils.toInt(changes.get("askAt"), "askAt")
 				: (Integer) current.get("askAt");
 		if (askAt < 0 || fileAt > 100 || askAt >= fileAt) {
 			throw new IllegalArgumentException("Bands must satisfy 0 <= askAt < fileAt <= 100");
@@ -247,15 +245,15 @@ public final class BrainProfileUtils {
 
 		List<String> sets = new ArrayList<>();
 		List<Object> params = new ArrayList<>();
-		addSet(sets, params, "FILE_AT", fileAt);
-		addSet(sets, params, "ASK_AT", askAt);
-		setIfPresent(changes, "classifierEngineId", "CLASSIFIER_ENGINE_ID", sets, params);
+		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
+		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
+		CollaborationDbUtils.setIfPresent(changes, "classifierEngineId", "CLASSIFIER_ENGINE_ID", sets, params);
 		if (changes.containsKey("weightsJson")) {
 			Object weights = changes.get("weightsJson");
-			addSet(sets, params, "WEIGHTS_JSON", weights == null ? null : GSON.toJson(weights));
+			CollaborationDbUtils.addSet(sets, params, "WEIGHTS_JSON", CollaborationDbUtils.toJson(weights));
 		}
-		addSet(sets, params, "VERSION", currentVersion + 1);
-		addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
+		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
+		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
 		params.add(ownerType);
 		params.add(currentVersion);
@@ -311,55 +309,5 @@ public final class BrainProfileUtils {
 				"SELECT COUNT(*) FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ?", ownerId,
 				ownerType, "open"));
 		return overview;
-	}
-
-	// ---- helpers ----
-
-	private static void setIfPresent(Map<String, Object> changes, String key, String column, List<String> sets,
-			List<Object> params) {
-		if (changes.containsKey(key)) {
-			addSet(sets, params, column, asString(changes.get(key)));
-		}
-	}
-
-	private static void addSet(List<String> sets, List<Object> params, String column, Object value) {
-		sets.add(column + " = ?");
-		params.add(value);
-	}
-
-	private static String asString(Object value) {
-		return value == null ? null : String.valueOf(value);
-	}
-
-	// pixel numbers arrive as Integer or Double
-	private static int toInt(Object value, String name) {
-		if (value instanceof Number number) {
-			return number.intValue();
-		}
-		try {
-			return Integer.parseInt(String.valueOf(value).trim());
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(name + " must be a number");
-		}
-	}
-
-	private static List<String> toStringList(List<Object> values) {
-		List<String> strings = new ArrayList<>();
-		for (Object value : values) {
-			if (value != null) {
-				strings.add(String.valueOf(value));
-			}
-		}
-		return strings;
-	}
-
-	@SuppressWarnings("unchecked")
-	private static List<Object> parseList(String json) {
-		return json == null ? new ArrayList<>() : GSON.fromJson(json, List.class);
-	}
-
-	@SuppressWarnings("unchecked")
-	private static Map<String, Object> parseMap(String json) {
-		return json == null ? null : GSON.fromJson(json, Map.class);
 	}
 }
