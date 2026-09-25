@@ -119,6 +119,7 @@ public final class BrainThreadUtils {
 		addLinks(ownerId, ownerType, items);
 		if (detail) {
 			addParticipants(ownerId, ownerType, items);
+			addLatestMessage(ownerId, ownerType, items);
 		}
 
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -343,6 +344,28 @@ public final class BrainThreadUtils {
 		}
 		for (Map<String, Object> thread : threads) {
 			thread.put("participants", byThread.getOrDefault(thread.get("id"), new ArrayList<>()));
+			if (thread.containsKey("summary")) {
+				thread.put("summary", thread.remove("summary"));
+			}
+		}
+	}
+
+	// the newest message's Graph id, so the UI can reply to it; never-ingest messages have no thread
+	private static void addLatestMessage(String ownerId, String ownerType, List<Map<String, Object>> threads) {
+		if (threads.isEmpty()) {
+			return;
+		}
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		for (Map<String, Object> thread : threads) {
+			params.add(thread.get("id"));
+		}
+		Map<String, String> latest = new HashMap<>();
+		CollaborationDbUtils.query("SELECT THREAD_ID, GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND GRAPH_ID IS NOT NULL AND THREAD_ID IN (" + CollaborationDbUtils.placeholders(threads.size())
+				+ ") ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+				rs -> latest.putIfAbsent(rs.getString("THREAD_ID"), rs.getString("GRAPH_ID")), params.toArray());
+		for (Map<String, Object> thread : threads) {
+			thread.put("latestMessageId", latest.get(thread.get("id")));
 			if (thread.containsKey("summary")) {
 				thread.put("summary", thread.remove("summary"));
 			}
