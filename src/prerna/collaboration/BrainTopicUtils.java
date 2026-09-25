@@ -192,6 +192,7 @@ public final class BrainTopicUtils {
 		if (changes.containsKey("status")) {
 			checkStatus(CollaborationDbUtils.asString(changes.get("status")));
 		}
+		BrainPeopleUtils.requireAccount(ownerId, ownerType, CollaborationDbUtils.asString(changes.get("accountId")));
 
 		List<String> sets = new ArrayList<>();
 		List<Object> params = new ArrayList<>();

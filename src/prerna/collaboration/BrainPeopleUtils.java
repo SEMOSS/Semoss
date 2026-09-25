@@ -145,11 +145,7 @@ public final class BrainPeopleUtils {
 			throw new IllegalArgumentException("Person id is required");
 		}
 		Map<String, Object> current = getPerson(ownerId, ownerType, personId);
-		String accountId = CollaborationDbUtils.asString(changes.get("accountId"));
-		if (accountId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", ownerId, ownerType, accountId)) {
-			throw new IllegalArgumentException("Account not found");
-		}
+		requireAccount(ownerId, ownerType, CollaborationDbUtils.asString(changes.get("accountId")));
 		Map<String, Object> scope = new LinkedHashMap<>((Map<String, Object>) current.get("channelScope"));
 		if (changes.get("channelScope") instanceof Map<?, ?> wanted) {
 			for (String channel : BrainRuleUtils.RULE_CHANNELS) {
@@ -269,6 +265,14 @@ public final class BrainPeopleUtils {
 	}
 
 	// ---- helpers ----
+
+	// an accountId from the caller must be one of the owner's accounts; null is allowed
+	static void requireAccount(String ownerId, String ownerType, String accountId) {
+		if (accountId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND ACCOUNT_ID = ?", ownerId, ownerType, accountId)) {
+			throw new IllegalArgumentException("Account not found");
+		}
+	}
 
 	// rule-derived flags, message counts per channel, calendar threads as meetings, and member topics, one query
 	// each for the page
