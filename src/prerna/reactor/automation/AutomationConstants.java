@@ -277,6 +277,8 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
+	/** Ephemeral Insight workspace for an active or recently completed local run. */
+	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";

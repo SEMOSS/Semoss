@@ -133,4 +133,5 @@ final class AutomationPythonRunRegistry {
 			this.completedNodes = new AtomicInteger(Math.max(0, completedNodes));
 		}
 	}
+
 }

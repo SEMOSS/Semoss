@@ -28,6 +28,7 @@
 package prerna.reactor.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import java.util.Map;
@@ -35,8 +36,10 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.om.Insight;
+import prerna.om.InsightStore;
 
-/** Covers deterministic mapping from typed Jev answers to graph ports. */
+/** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
 
 	private static final List<Map<String, Object>> NOUL_ROUTES = List.of(
@@ -90,5 +93,22 @@ public class AutomationRunExecutionServiceUnitTests {
 				response(Map.of("type", "choice", "choice", "research", "confidence", 0.9)), routes,
 				Map.of(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.6));
 		assertEquals("case:research", decision.get("branch"));
+	}
+
+	@Test
+	void exposesRunInsightOnlyWhileItRemainsInTheInsightStore() {
+		String runId = "run-insight-lifecycle-test";
+		String insightId = "automation-run-" + runId;
+		Insight insight = new Insight();
+		insight.setInsightId(insightId);
+
+		try {
+			InsightStore.getInstance().put(insight);
+			assertEquals(insightId, AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+		} finally {
+			InsightStore.getInstance().remove(insightId);
+		}
+
+		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
 	}
 }
