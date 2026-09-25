@@ -69,7 +69,6 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("SOURCE_CONNECTION", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
-				Pair.with("SOURCE_ID", VARCHAR_50),
 				Pair.with("SOURCE", VARCHAR_50),
 				Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("LAST_EVENT_AT", TIMESTAMP_DATATYPE_NAME),
@@ -90,7 +89,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("PROVIDER", VARCHAR_50),
 				Pair.with("EVENT_KEY", VARCHAR_255),
 				Pair.with("SOURCE", VARCHAR_50),
-				Pair.with("RESOURCE_LOCATOR", VARCHAR_255),
+				Pair.with("RESOURCE_LOCATOR", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGE_TYPE", VARCHAR_50),
 				Pair.with("STATUS", VARCHAR_20),
 				Pair.with("ATTEMPT_COUNT", INTEGER_DATATYPE_NAME),
@@ -106,11 +105,13 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("EMAIL", VARCHAR_255),
 				Pair.with("ROLE", VARCHAR_255),
 				Pair.with("ROLE_STATE", VARCHAR_20),
+				Pair.with("ROLE_NOTE", VARCHAR_255),
 				Pair.with("ORG", VARCHAR_255),
 				Pair.with("TIMEZONE", VARCHAR_50),
 				Pair.with("WORKING_HOURS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("STYLE_SUMMARY", CLOB_DATATYPE_NAME),
 				Pair.with("STYLE_STATE", VARCHAR_20),
+				Pair.with("STYLE_EXAMPLES_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// no topic cap; FILE_AT 85 and ASK_AT 40 defaults are set by the service
 		addTable("BRAIN_SETTINGS", Arrays.asList(

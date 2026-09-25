@@ -27,23 +27,222 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.nio.charset.StandardCharsets;
+import java.sql.Clob;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
+import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
+import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
+import prerna.util.Utility;
 
-// Loads the Collaboration database: schema sync and indexes, like NotificationDbUtils
+// Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
 public class CollaborationDbUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(CollaborationDbUtils.class);
 
 	static boolean initialized = false;
 
 	private CollaborationDbUtils() {
 
+	}
+
+	interface RowMapper<T> {
+		T map(ResultSet rs) throws SQLException;
+	}
+
+	interface TransactionWork {
+		void run(Connection conn) throws SQLException;
+	}
+
+	static IRDBMSEngine db() {
+		return SystemEngineRegistry.getCollaborationDb();
+	}
+
+	static Timestamp now() {
+		return Utility.getCurrentSqlTimestampUTC();
+	}
+
+	// owner id and type for a signed-in user
+	static Pair<String, String> ownerOf(User user) {
+		if (user == null) {
+			throw new IllegalArgumentException("A signed-in user is required");
+		}
+		return User.getPrimaryUserIdAndTypePair(user);
+	}
+
+	// name-UUID of owner plus logical key, so retries land on the same id
+	static String deterministicId(String ownerId, String ownerType, String... keyParts) {
+		StringBuilder seed = new StringBuilder(ownerId).append('|').append(ownerType);
+		for (String part : keyParts) {
+			seed.append('|').append(part == null ? "" : part);
+		}
+		return UUID.nameUUIDFromBytes(seed.toString().getBytes(StandardCharsets.UTF_8)).toString();
+	}
+
+	static <T> List<T> query(String sql, RowMapper<T> mapper, Object... params) {
+		IRDBMSEngine engine = db();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		List<T> rows = new ArrayList<>();
+		try {
+			ps = engine.getPreparedStatement(sql);
+			bind(ps, params);
+			rs = ps.executeQuery();
+			while (rs.next()) {
+				rows.add(mapper.map(rs));
+			}
+		} catch (SQLException e) {
+			classLogger.error("Collaboration query failed [{}]", sql, e);
+			throw new IllegalStateException("Collaboration query failed", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps, rs);
+		}
+		return rows;
+	}
+
+	static <T> T queryOne(String sql, RowMapper<T> mapper, Object... params) {
+		List<T> rows = query(sql, mapper, params);
+		return rows.isEmpty() ? null : rows.get(0);
+	}
+
+	static int count(String sql, Object... params) {
+		Integer value = queryOne(sql, rs -> rs.getInt(1), params);
+		return value == null ? 0 : value;
+	}
+
+	static boolean exists(String sql, Object... params) {
+		return queryOne(sql, rs -> Boolean.TRUE, params) != null;
+	}
+
+	// single insert/update/delete; rolls back on failure so a pooled connection goes back clean
+	static int update(String sql, Object... params) {
+		IRDBMSEngine engine = db();
+		PreparedStatement ps = null;
+		Connection conn = null;
+		try {
+			ps = engine.getPreparedStatement(sql);
+			conn = ps.getConnection();
+			bind(ps, params);
+			int count = ps.executeUpdate();
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return count;
+		} catch (SQLException e) {
+			rollback(conn);
+			classLogger.error("Collaboration update failed [{}]", sql, e);
+			throw new IllegalStateException("Collaboration update failed", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps);
+		}
+	}
+
+	// several statements on one connection, one commit; needs pooling so the connection is not shared
+	static void inTransaction(TransactionWork work) {
+		IRDBMSEngine engine = db();
+		if (!engine.isConnectionPooling()) {
+			classLogger.warn("Collaboration transaction without connection pooling shares the engine connection");
+		}
+		Connection conn = null;
+		boolean autoCommit = true;
+		try {
+			conn = engine.getConnection();
+			autoCommit = conn.getAutoCommit();
+			conn.setAutoCommit(false);
+			work.run(conn);
+			conn.commit();
+		} catch (SQLException e) {
+			rollback(conn);
+			classLogger.error("Collaboration transaction failed", e);
+			throw new IllegalStateException("Collaboration transaction failed", e);
+		} finally {
+			if (conn != null) {
+				try {
+					conn.setAutoCommit(autoCommit);
+				} catch (SQLException e) {
+					classLogger.error("Failed to restore auto-commit", e);
+				}
+			}
+			if (conn != null && engine.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error("Failed to close connection", e);
+				}
+			}
+		}
+	}
+
+	// for use inside inTransaction
+	static int update(Connection conn, String sql, Object... params) throws SQLException {
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			bind(ps, params);
+			return ps.executeUpdate();
+		}
+	}
+
+	// clob-safe string read, same as NotificationDbUtils
+	static String getString(ResultSet rs, String column) throws SQLException {
+		Object value = rs.getObject(column);
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof Clob clob) {
+			return clob.getSubString(1L, (int) clob.length());
+		}
+		return String.valueOf(value);
+	}
+
+	// null when the column is null, unlike rs.getBoolean
+	static Boolean getBoolean(ResultSet rs, String column) throws SQLException {
+		boolean value = rs.getBoolean(column);
+		return rs.wasNull() ? null : value;
+	}
+
+	static Integer getInteger(ResultSet rs, String column) throws SQLException {
+		int value = rs.getInt(column);
+		return rs.wasNull() ? null : value;
+	}
+
+	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC), returned as ISO-8601
+	static String getTimestamp(ResultSet rs, String column) throws SQLException {
+		Timestamp value = rs.getTimestamp(column);
+		return value == null ? null : value.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant().toString();
+	}
+
+	private static void bind(PreparedStatement ps, Object... params) throws SQLException {
+		for (int i = 0; i < params.length; i++) {
+			ps.setObject(i + 1, params[i]);
+		}
+	}
+
+	private static void rollback(Connection conn) {
+		if (conn == null) {
+			return;
+		}
+		try {
+			if (!conn.getAutoCommit()) {
+				conn.rollback();
+			}
+		} catch (SQLException e) {
+			classLogger.error("Collaboration rollback failed", e);
+		}
 	}
 
 	public static void loadCollaborationDatabase() throws Exception {
