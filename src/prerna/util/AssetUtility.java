@@ -275,6 +275,10 @@ public class AssetUtility {
 	 * @return
 	 */
 	public static String getProjectAppRootFolder(String projectName, String projectId) {
+		projectId = PathSecurityUtils.requireSinglePathSegment(projectId, "Project ID");
+		if (projectName != null && !projectName.isEmpty()) {
+			projectName = PathSecurityUtils.requireSinglePathSegment(projectName, "Project name");
+		}
 		String baseFolder = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER);
 		if (!(baseFolder.endsWith("/") || baseFolder.endsWith("\\"))) {
 			baseFolder += DIR_SEPARATOR;
@@ -283,7 +287,20 @@ public class AssetUtility {
 		String baseProjectFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.APP_ROOT_FOLDER);
 
-		File baseProjectFolderFile = new File(baseProjectFolder);
+		File baseProjectFolderFile;
+		try {
+			File projectsFolder = new File(baseFolder + Constants.PROJECT_FOLDER).getCanonicalFile();
+			File projectFolder = PathSecurityUtils.requireDirectChild(projectsFolder,
+					new File(projectsFolder, SmssUtilities.getUniqueName(projectName, projectId)));
+			baseProjectFolderFile = new File(baseProjectFolder).getCanonicalFile();
+			if (!baseProjectFolderFile.toPath().startsWith(projectsFolder.toPath())
+					|| !projectFolder.equals(baseProjectFolderFile.getParentFile())) {
+				throw new IllegalArgumentException("App root must remain within its project directory");
+			}
+			baseProjectFolder = baseProjectFolderFile.getPath();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the project path", e);
+		}
 		if (!baseProjectFolderFile.exists()) {
 			baseProjectFolderFile.mkdir();
 			// if you are creating this.. there is a possibility we need to fix this project
@@ -308,19 +325,28 @@ public class AssetUtility {
 		String oldBaseAppFolder = Utility.normalizePath(baseFolder + Constants.PROJECT_FOLDER + DIR_SEPARATOR
 				+ SmssUtilities.getUniqueName(projectName, projectId) + DIR_SEPARATOR + Constants.VERSION_FOLDER);
 
-		File oldBaseAppFolderFile = new File(oldBaseAppFolder);
+		try {
+			File projectsFolder = new File(baseFolder + Constants.PROJECT_FOLDER).getCanonicalFile();
+			File projectFolder = PathSecurityUtils.requireDirectChild(projectsFolder,
+					new File(projectsFolder, SmssUtilities.getUniqueName(projectName, projectId)));
+			File oldBaseAppFolderFile = new File(oldBaseAppFolder).getCanonicalFile();
+			File newRootFile = new File(newRoot).getCanonicalFile();
+			if (!oldBaseAppFolderFile.toPath().startsWith(projectsFolder.toPath())
+					|| !newRootFile.toPath().startsWith(projectsFolder.toPath())
+					|| !projectFolder.equals(oldBaseAppFolderFile.getParentFile())
+					|| !projectFolder.equals(newRootFile.getParentFile())) {
+				throw new IllegalArgumentException("Project paths must remain within their project directory");
+			}
 
-		if (oldBaseAppFolderFile.exists()) {
-			try {
+			if (oldBaseAppFolderFile.exists()) {
 				classLogger.info("Rehoming project catalog {} - moving {} under {}",
 						SmssUtilities.getUniqueName(projectName, projectId), oldBaseAppFolder, newRoot);
 				Files.move(oldBaseAppFolderFile.toPath(),
-						new File(newRoot + DIR_SEPARATOR + Constants.VERSION_FOLDER).toPath(),
+						new File(newRootFile, Constants.VERSION_FOLDER).toPath(),
 						StandardCopyOption.REPLACE_EXISTING);
-			} catch (IOException e) {
-				classLogger.error("Failed to rehome the project version folder {} under {}", oldBaseAppFolder, newRoot,
-						e);
 			}
+		} catch (IOException e) {
+			classLogger.error("Failed to rehome the project version folder {} under {}", oldBaseAppFolder, newRoot, e);
 		}
 	}
 

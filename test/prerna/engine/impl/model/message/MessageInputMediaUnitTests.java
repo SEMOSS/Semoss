@@ -25,16 +25,12 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.om;
+package prerna.engine.impl.model.message;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.CALLS_REAL_METHODS;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -42,59 +38,48 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
-import prerna.engine.impl.model.Room;
+import prerna.cluster.util.ClusterUtil;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
-class InsightPathTest {
-
+class MessageInputMediaUnitTests {
 	@TempDir
 	Path directory;
 
 	@Test
-	void expandsOnlyLeadingTokenAndPreservesSpecialCharacters() {
-		Insight insight = insightWithFolder("C:\\data\\$1\\insight");
-		for (String suffix : new String[] { "", "/file.csv", "\\file.csv", "/INSIGHT_FOLDER/file.csv", "_suffix" }) {
-			assertEquals("C:\\data\\$1\\insight" + suffix,
-					insight.getAbsoluteInsightFolderPath("INSIGHT_FOLDER" + suffix));
+	void readsMediaOnlyFromValidatedRoomFolder() throws Exception {
+		Path roomRoot = Files.createDirectory(directory.resolve(Constants.ROOM_FOLDER));
+		Path roomFolder = Files.createDirectory(roomRoot.resolve("room-123"));
+		Path nestedFolder = Files.createDirectory(roomFolder.resolve("nested"));
+		Files.write(nestedFolder.resolve("media.png"), new byte[] { 1, 2, 3 });
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class);
+				MockedStatic<ClusterUtil> cluster = mockStatic(ClusterUtil.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(directory.toString());
+			MessageInputMedia media = MessageInputMedia.fromFile("nested/media.png", "room-123", null,
+					roomFolder.toString());
+			assertEquals("AQID", media.getBase64Data());
+
+			assertThrows(IllegalArgumentException.class,
+					() -> MessageInputMedia.fromFile("../outside.png", "room-123", null, roomFolder.toString()));
+			assertThrows(IllegalArgumentException.class, () -> MessageInputMedia.fromFile(
+					directory.resolve("outside.png").toString(), "room-123", null, roomFolder.toString()));
+			assertThrows(IllegalArgumentException.class, () -> MessageInputMedia.fromFile("media.png", "room-123",
+					null, directory.resolve("outside").toString()));
 		}
 	}
 
 	@Test
-	void preservesExistingPaths() throws Exception {
-		Path file = Files.createFile(directory.resolve("existing.csv"));
-		assertEquals(file.toString(),
-				insightWithFolder(directory.toString()).getAbsoluteInsightFolderPath(file.toString()));
-	}
-
-	@Test
-	void prefixesRelativePathsWithoutExpandingEmbeddedToken() {
-		String relative = "missing-" + directory.getFileName() + "/INSIGHT_FOLDER/file.csv";
-		assertEquals(directory + File.separator + relative,
-				insightWithFolder(directory.toString()).getAbsoluteInsightFolderPath(relative));
-	}
-
-	@Test
-	void roomFolderMustBeDirectlyUnderRoomRoot() throws Exception {
-		Path roomRoot = Files.createDirectory(directory.resolve("room"));
-		Path validRoomFolder = Files.createDirectory(roomRoot.resolve("room-123"));
-		Room room = mock(Room.class);
-		doReturn("room-123").when(room).getId();
-		doReturn(directory.resolve("outside").toString()).when(room).getRoomFolderPath();
-		Insight insight = mock(Insight.class, CALLS_REAL_METHODS);
+	void rejectsMediaSymlinkOutsideRoomFolder() throws Exception {
+		Path roomRoot = Files.createDirectory(directory.resolve(Constants.ROOM_FOLDER));
+		Path roomFolder = Files.createDirectory(roomRoot.resolve("room-123"));
+		Path outsideFile = Files.write(directory.resolve("outside.png"), new byte[] { 1, 2, 3 });
+		Files.createSymbolicLink(roomFolder.resolve("media.png"), outsideFile);
 
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
 			utility.when(Utility::getBaseFolder).thenReturn(directory.toString());
-			insight.setRoomForInsight(room);
-
-			doReturn("../outside").when(room).getId();
-			assertThrows(IllegalArgumentException.class, () -> insight.setRoomForInsight(room));
+			assertThrows(IllegalArgumentException.class,
+					() -> MessageInputMedia.fromFile("media.png", "room-123", null, roomFolder.toString()));
 		}
-		assertEquals(validRoomFolder.toFile().getCanonicalPath(), insight.getInsightFolder());
-	}
-
-	private static Insight insightWithFolder(String folder) {
-		Insight insight = mock(Insight.class, CALLS_REAL_METHODS);
-		doReturn(folder).when(insight).getInsightFolder();
-		return insight;
 	}
 }

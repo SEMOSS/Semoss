@@ -27,19 +27,25 @@
  *******************************************************************************/
 package prerna.engine.impl.model;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.MockedStatic;
 
 import prerna.auth.AccessToken;
@@ -50,6 +56,46 @@ import prerna.util.Constants;
 import prerna.util.Utility;
 
 class RoomUtilsTest {
+	@TempDir
+	Path directory;
+
+	@Test
+	void roomFolderPathRejectsPathTraversal() {
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn("/base");
+
+			assertEquals(new java.io.File("/base/room/room-123").getAbsolutePath(),
+					Room.roomFolderPath("room-123"));
+			for (String roomId : new String[] { "..", "../outside", "nested/room", "nested\\room" }) {
+				assertThrows(IllegalArgumentException.class, () -> Room.roomFolderPath(roomId), roomId);
+			}
+		}
+	}
+
+	@Test
+	void copyFilesRebuildsDestinationFromValidatedRoomId() throws Exception {
+		Path insightFolder = Files.createDirectory(directory.resolve("insight"));
+		Room room = mock(Room.class);
+		when(room.getId()).thenReturn("room-123");
+		when(room.getRoomFolderPath()).thenReturn(directory.resolve("outside").toString());
+		Insight insight = mock(Insight.class);
+		when(insight.getInsightFolder()).thenReturn(insightFolder.toString());
+
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(directory.toString());
+			List<String> copiedFiles = RoomUtils.copyFilesToRoomFolder(List.of("data:image/png;base64,AQID"),
+					room, insight);
+
+			assertEquals(1, copiedFiles.size());
+			assertTrue(Files.exists(directory.resolve(Constants.ROOM_FOLDER).resolve("room-123")
+					.resolve(copiedFiles.get(0))));
+			assertFalse(Files.exists(directory.resolve("outside")));
+
+			when(room.getId()).thenReturn("../outside");
+			assertThrows(IllegalArgumentException.class,
+					() -> RoomUtils.copyFilesToRoomFolder(List.of("data:image/png;base64,AQID"), room, insight));
+		}
+	}
 
 	@Test
 	void cachedRoomRefreshHoldsMutationLock() {
