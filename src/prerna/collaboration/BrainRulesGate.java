@@ -37,10 +37,11 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 // GATE-01: decides from headers and owner rules alone, before any body fetch or model call.
-// Never reads or logs the subject. Callers process one owner's messages serially.
+// Never reads or logs the subject. One owner's messages go through one at a time (see OWNER_LOCKS).
 public final class BrainRulesGate {
 
 	public static final String INGESTED = "ingested";
@@ -57,12 +58,22 @@ public final class BrainRulesGate {
 	record Rule(String id, String kind, String value, String topicId, String personId, String channel) {
 	}
 
+	// webhook, delta sync, and backfill can deliver the same message at once and the tables have no unique
+	// constraints, so the replay check and the write run under one lock per owner. Covers one server only.
+	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
+
 	private BrainRulesGate() {
 
 	}
 
 	// headers: source, messageId, graphId, conversationId, folderId, from, receivedAt (ISO-8601 UTC)
 	public static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers) {
+		synchronized (lockFor(ownerId, ownerType)) {
+			return checkLocked(ownerId, ownerType, headers);
+		}
+	}
+
+	private static Map<String, Object> checkLocked(String ownerId, String ownerType, Map<String, String> headers) {
 		String source = required(headers, "source");
 		String messageId = required(headers, "messageId");
 		String from = norm(required(headers, "from"));
@@ -156,6 +167,13 @@ public final class BrainRulesGate {
 	// still stops it. The text is matched in memory, never stored or logged.
 	public static Map<String, Object> checkText(String ownerId, String ownerType, String source, String messageId,
 			String subject, String body) {
+		synchronized (lockFor(ownerId, ownerType)) {
+			return checkTextLocked(ownerId, ownerType, source, messageId, subject, body);
+		}
+	}
+
+	private static Map<String, Object> checkTextLocked(String ownerId, String ownerType, String source,
+			String messageId, String subject, String body) {
 		String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 		String[] row = CollaborationDbUtils.queryOne("SELECT DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID "
 				+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
@@ -252,6 +270,10 @@ public final class BrainRulesGate {
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
 					receivedAt, ownerId, ownerType, threadId, personId);
 		}
+	}
+
+	private static Object lockFor(String ownerId, String ownerType) {
+		return OWNER_LOCKS.computeIfAbsent(ownerType + ":" + ownerId, k -> new Object());
 	}
 
 	// active rules, oldest first; the gate and the thread read share them
