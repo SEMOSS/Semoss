@@ -36,7 +36,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -58,6 +57,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.PathSecurityUtils;
 
 /**
  * The OneDrive operations of Microsoft Graph, as plain calls.
@@ -884,13 +884,25 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static File write(byte[] fileBytes, String destination, String fileName, String itemName) throws Exception {
 		String normalizedFileName = fileName == null ? null : fileName.trim();
-		if (isBlank(normalizedFileName) && new File(destination).isDirectory() && itemName != null) {
+		File destinationFile = new File(destination);
+		if (isBlank(normalizedFileName) && destinationFile.isDirectory() && itemName != null) {
 			normalizedFileName = itemName;
 		}
-		String targetPath = isBlank(normalizedFileName) ? destination
-				: Paths.get(destination, normalizedFileName).toString();
-
-		File file = new File(targetPath);
+		Path destinationDirectory = destinationFile.getCanonicalFile().toPath();
+		File file;
+		if (isBlank(normalizedFileName)) {
+			file = destinationDirectory.toFile();
+		} else {
+			normalizedFileName = PathSecurityUtils.requireSinglePathSegment(normalizedFileName,
+					"Downloaded file name");
+			Path target = destinationDirectory.resolve(normalizedFileName).normalize().toFile().getCanonicalFile()
+					.toPath();
+			if (target.equals(destinationDirectory) || !target.startsWith(destinationDirectory)
+					|| !destinationDirectory.equals(target.getParent())) {
+				throw new IllegalArgumentException("Downloaded file must be a direct child of the destination directory");
+			}
+			file = PathSecurityUtils.requireDirectChild(destinationDirectory.toFile(), target.toFile());
+		}
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());

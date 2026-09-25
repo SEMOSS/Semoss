@@ -29,6 +29,7 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -444,11 +445,16 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> fileList = new ArrayList<>();
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
+		Path documentsRoot = documentsDir.toPath().toAbsolutePath().normalize();
 		if (documentsDir.exists() && documentsDir.isDirectory()) {
 			for (String fileName : sources) {
+				Path documentPath = documentsRoot.resolve(fileName).normalize();
+				if (documentPath.equals(documentsRoot) || !documentPath.startsWith(documentsRoot)) {
+					continue;
+				}
 				Map<String, Object> fileInfo = new HashMap<>();
 				fileInfo.put("fileName", fileName);
-				File thisF = new File(documentsDir, fileName);
+				File thisF = documentPath.toFile();
 				if (thisF.exists() && thisF.isFile()) {
 					long fileSizeInBytes = thisF.length();
 					double fileSizeInMB = (double) fileSizeInBytes / (1024);

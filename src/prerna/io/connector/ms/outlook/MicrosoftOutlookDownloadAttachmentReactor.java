@@ -29,7 +29,7 @@ package prerna.io.connector.ms.outlook;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,6 +44,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.PathSecurityUtils;
 
 /**
  * Downloads a file attached to a message into the insight folder.
@@ -125,7 +126,14 @@ public class MicrosoftOutlookDownloadAttachmentReactor extends AbstractMicrosoft
 			if (name == null) {
 				name = "attachment";
 			}
-			File file = new File(Paths.get(insightFolder, name).toString());
+			name = PathSecurityUtils.requireSinglePathSegment(name, "Downloaded attachment name");
+			Path canonicalInsightFolder = insightFolderFile.getCanonicalFile().toPath();
+			Path target = canonicalInsightFolder.resolve(name).normalize().toFile().getCanonicalFile().toPath();
+			if (target.equals(canonicalInsightFolder) || !target.startsWith(canonicalInsightFolder)
+					|| !canonicalInsightFolder.equals(target.getParent())) {
+				throw new IllegalArgumentException("Attachment must be a direct child of the insight folder");
+			}
+			File file = PathSecurityUtils.requireDirectChild(canonicalInsightFolder.toFile(), target.toFile());
 			try (FileOutputStream fos = new FileOutputStream(file)) {
 				fos.write(bytes);
 				fos.flush();

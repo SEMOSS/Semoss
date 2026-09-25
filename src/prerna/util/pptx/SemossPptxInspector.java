@@ -45,9 +45,12 @@ import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
+import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
+import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 import prerna.util.unoserver.Unoserver;
 
@@ -76,6 +79,7 @@ public final class SemossPptxInspector {
     public static JSONObject inspect(Path root, Map<String, Object> parameters, Insight insight,
             String parentRoomId, String fallbackModelId) throws Exception {
         if (insight == null || insight.getUser() == null) throw new IllegalArgumentException("An authenticated insight is required");
+        Path inspectionRoot = root.toRealPath();
         String filePath = string(parameters, "filePath", true);
         String instructions = string(parameters, "instructions", true);
         String context = string(parameters, "context", false);
@@ -103,15 +107,27 @@ public final class SemossPptxInspector {
         List<String> modelRooms = new ArrayList<>();
         PptxInspectionService.VisionClient vision = (system, task, images, schema) -> {
             checkActive.run();
-            Room room = RoomUtils.createRoomForStatelessAsk(UUID.randomUUID().toString(), insight, model,
+            String modelRoomId = UUID.randomUUID().toString();
+            Room room = RoomUtils.createRoomForStatelessAsk(modelRoomId, insight, model,
                     "PPTX visual inspection", null, null, null, null, parentRoomId);
+            if (!modelRoomId.equals(room.getId())) throw new IllegalStateException("Vision room ID changed during creation");
             modelRooms.add(room.getId());
             List<String> media = new ArrayList<>();
-            Path roomPath = Path.of(room.getRoomFolderPath());
+            Path roomsRoot = Path.of(Utility.getBaseFolder(), Constants.ROOM_FOLDER).toFile().getCanonicalFile().toPath();
+            Path roomPath = roomsRoot.resolve(modelRoomId).normalize().toFile().getCanonicalFile().toPath();
+            if (roomPath.equals(roomsRoot) || !roomPath.startsWith(roomsRoot)
+                    || !roomsRoot.equals(roomPath.getParent()))
+                throw new IllegalArgumentException("Vision room must be a direct child of the room directory");
             Files.createDirectories(roomPath);
             for (Path image : images) {
+                Path source = image.toRealPath();
+                if (source.equals(inspectionRoot) || !source.startsWith(inspectionRoot))
+                    throw new IllegalArgumentException("Rendered image must remain inside the inspection directory");
                 String name = "pptx-" + UUID.randomUUID() + ".png";
-                Files.copy(image, roomPath.resolve(name));
+                Path target = roomPath.resolve(name).normalize().toFile().getCanonicalFile().toPath();
+                if (target.equals(roomPath) || !target.startsWith(roomPath) || !roomPath.equals(target.getParent()))
+                    throw new IllegalArgumentException("Vision media must be a direct child of the room directory");
+                Files.copy(source, target);
                 media.add(name);
             }
             Map<String, Object> params = new HashMap<>();
@@ -121,8 +137,10 @@ public final class SemossPptxInspector {
             // The SEMOSS OpenAI message builder maps schema to strict response_format JSON Schema.
             // Unsupported deployments fail explicitly; never silently fall back to unconstrained prose.
             params.put("schema", schema.toMap());
+            List<MessageInputMedia> mediaInputs = media.stream()
+                    .map(name -> MessageInputMedia.fromFile(name, modelRoomId, null, roomPath.toString())).toList();
             InputMessage input = InputMessage.builder(room).withSystemPrompt(system).withText(task)
-                    .withModelType(model.getModelType()).withParamMap(params).withMediaInputs(media, room).build();
+                    .withModelType(model.getModelType()).withParamMap(params).withMediaInputs(mediaInputs).build();
             ResponseMessage response = room.ask(input, model);
             checkActive.run();
             var result = response.getModelEngineResponse();
@@ -132,11 +150,18 @@ public final class SemossPptxInspector {
                     result.getNumberOfTokensInPrompt() == null ? 0 : result.getNumberOfTokensInPrompt(),
                     result.getNumberOfTokensInResponse() == null ? 0 : result.getNumberOfTokensInResponse());
         };
-        JSONObject report = new PptxInspectionService(renderer, vision).inspect(root, filePath, selection,
+        JSONObject report = new PptxInspectionService(renderer, vision).inspect(inspectionRoot, filePath, selection,
                 instructions, context, (Boolean) consistency, checkActive);
         report.put("engine", engineId).put("modelRooms", new JSONArray(modelRooms));
         JSONObject artifacts = report.getJSONObject("artifacts");
-        if (artifacts.has("report")) Files.writeString(root.resolve(artifacts.getString("report")), report.toString(2));
+        if (artifacts.has("report")) {
+            Path reportPath = inspectionRoot.resolve(artifacts.getString("report")).normalize().toFile()
+                    .getCanonicalFile().toPath();
+            if (reportPath.equals(inspectionRoot) || !reportPath.startsWith(inspectionRoot))
+                throw new IllegalArgumentException("Inspection report must remain inside the inspection directory");
+            reportPath = PathSecurityUtils.requireDescendant(inspectionRoot.toFile(), reportPath.toFile()).toPath();
+            Files.writeString(reportPath, report.toString(2));
+        }
         return report;
     }
 

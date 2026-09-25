@@ -33,7 +33,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -54,6 +53,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
+import prerna.util.PathSecurityUtils;
 
 /**
  * The Teams messaging operations of Microsoft Graph, as plain calls.
@@ -964,7 +964,14 @@ public class MicrosoftTeamsMessageHelper {
 	 * Writes downloaded bytes into a directory.
 	 */
 	private static File write(byte[] bytes, String destination, String fileName) throws Exception {
-		File file = new File(Paths.get(destination, fileName).toString());
+		fileName = PathSecurityUtils.requireSinglePathSegment(fileName, "Downloaded attachment name");
+		Path destinationDirectory = new File(destination).getCanonicalFile().toPath();
+		Path target = destinationDirectory.resolve(fileName).normalize().toFile().getCanonicalFile().toPath();
+		if (target.equals(destinationDirectory) || !target.startsWith(destinationDirectory)
+				|| !destinationDirectory.equals(target.getParent())) {
+			throw new IllegalArgumentException("Attachment must be a direct child of the destination directory");
+		}
+		File file = PathSecurityUtils.requireDirectChild(destinationDirectory.toFile(), target.toFile());
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());

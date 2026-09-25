@@ -29,6 +29,7 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -852,11 +853,16 @@ public class OpenSearchRestVectorDatabaseEngine extends AbstractVectorDatabaseEn
 
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ DOCUMENTS_FOLDER_NAME);
+		Path documentsRoot = documentsDir.toPath().toAbsolutePath().normalize();
 		List<Map<String, Object>> returnSources = new ArrayList<>();
 		for (String source : sources) {
+			Path documentPath = documentsRoot.resolve(source).normalize();
+			if (documentPath.equals(documentsRoot) || !documentPath.startsWith(documentsRoot)) {
+				continue;
+			}
 			Map<String, Object> fileInfo = new HashMap<>();
 			fileInfo.put("fileName", source);
-			File thisF = new File(documentsDir, source);
+			File thisF = documentPath.toFile();
 			if (thisF.exists() && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);

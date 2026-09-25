@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.zip.ZipFile;
 
 import javax.imageio.ImageIO;
@@ -297,15 +298,14 @@ class PptxInspectionUnitTests {
     @org.junit.jupiter.params.provider.ValueSource(strings = {"vision-model", "55c1dbb1-64ef-429c-8c7c-ace959dd3547"})
     void semossAdapterAttachesImageBytesToTheSelectedModelInAnIsolatedRoom(String engineId) throws Exception {
         deck(1, -1);
-        Path mediaRoot = Files.createDirectory(root.resolve("model-room"));
+        AtomicReference<Path> mediaRoot = new AtomicReference<>();
+        AtomicReference<String> modelRoomId = new AtomicReference<>();
         var user = mock(prerna.auth.User.class);
         var insight = mock(prerna.om.Insight.class);
         when(insight.getUser()).thenReturn(user);
         var model = mock(prerna.engine.api.IModelEngine.class);
         when(model.getModelType()).thenReturn(prerna.engine.api.ModelTypeEnum.OPEN_AI);
         var room = mock(prerna.engine.impl.model.Room.class);
-        when(room.getId()).thenReturn("vision-room");
-        when(room.getRoomFolderPath()).thenReturn(mediaRoot.toString());
         var response = mock(prerna.engine.impl.model.message.ResponseMessage.class);
         when(response.getContent()).thenReturn(reply(List.of(1)));
         var modelResponse = mock(prerna.engine.impl.model.responses.AskModelEngineResponse.class);
@@ -324,7 +324,7 @@ class PptxInspectionUnitTests {
             assertFalse(schema.getJSONObject("properties").getJSONObject("issues").getJSONObject("items").getJSONObject("properties").has("slide"));
             byte[] bytes = java.util.Base64.getDecoder().decode(input.getMediaInputs().getFirst().getBase64Data());
             assertNotNull(ImageIO.read(new java.io.ByteArrayInputStream(bytes)));
-            assertTrue(Files.isRegularFile(mediaRoot.resolve(input.getMediaInputs().getFirst().getFileName())));
+            assertTrue(Files.isRegularFile(mediaRoot.get().resolve(input.getMediaInputs().getFirst().getFileName())));
             return response;
         });
         byte[] converted = pdf(1);
@@ -342,15 +342,24 @@ class PptxInspectionUnitTests {
             metadata.when(() -> prerna.auth.utils.SecurityModelMetadataUtils.getModelMetadata(engineId))
                     .thenReturn(Map.of("inputModalities", List.of("TEXT", "IMAGE")));
             utility.when(() -> prerna.util.Utility.getModel(engineId)).thenReturn(model);
+            utility.when(() -> prerna.util.Utility.getBaseFolder()).thenReturn(root.toString());
             utility.when(() -> prerna.util.Utility.getDIHelperProperty(SemossPptxInspector.DEFAULT_MODEL_PROPERTY)).thenReturn("deployment-default");
             rooms.when(() -> prerna.engine.impl.model.RoomUtils.createRoomForStatelessAsk(anyString(), eq(insight), eq(model),
-                    anyString(), isNull(), isNull(), isNull(), isNull(), eq("parent-room"))).thenReturn(room);
+                    anyString(), isNull(), isNull(), isNull(), isNull(), eq("parent-room"))).thenAnswer(call -> {
+                        String id = call.getArgument(0, String.class);
+                        Path path = Files.createDirectories(root.resolve(prerna.util.Constants.ROOM_FOLDER).resolve(id));
+                        modelRoomId.set(id);
+                        mediaRoot.set(path);
+                        when(room.getId()).thenReturn(id);
+                        when(room.getRoomFolderPath()).thenReturn(path.toString());
+                        return room;
+                    });
             JSONObject result = SemossPptxInspector.inspect(root,
                     Map.of("filePath", "deck.pptx", "instructions", "Check the chart legend", "engine", engineId),
                     insight, "parent-room", "text-author-model");
             assertEquals("pass", result.getString("verdict"));
             assertEquals(engineId, result.getString("engine"));
-            assertEquals(List.of("vision-room"), result.getJSONArray("modelRooms").toList());
+            assertEquals(List.of(modelRoomId.get()), result.getJSONArray("modelRooms").toList());
             verify(room).ask(any(), eq(model));
             utility.verify(() -> prerna.util.Utility.getModel("deployment-default"), never());
             utility.verify(() -> prerna.util.Utility.getModel("text-author-model"), never());
