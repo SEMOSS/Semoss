@@ -243,7 +243,8 @@ public final class BrainRulesGate {
 
 	private static Map<String, Object> result(String decision, String ruleId, String threadId, String personId) {
 		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("pass", INGESTED.equals(decision));
+		// excluded still flows to ingest: read and classified, but no items or alerts
+		result.put("pass", INGESTED.equals(decision) || EXCLUDED.equals(decision));
 		result.put("decision", decision);
 		result.put("ruleId", ruleId);
 		result.put("threadId", threadId);
