@@ -106,7 +106,7 @@ public final class BrainThreadMessages {
 			}
 		}
 
-		// pass 2: fetch newest first until the limit, re-checking the sender address the source reports
+		// pass 2: fetch newest first until the limit, re-checking the sender address and keyword rules
 		List<Map<String, Object>> out = new ArrayList<>();
 		int unavailable = 0;
 		int next = 0;
@@ -137,7 +137,12 @@ public final class BrainThreadMessages {
 				hidden++;
 				continue;
 			}
-			out.add(entry(row, message, sender, rules, topicIds, source, included));
+			Map<String, Object> clean = clean(message);
+			if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
+				hidden++;
+				continue;
+			}
+			out.add(entry(row, clean, sender, rules, topicIds, source, included));
 		}
 		// every fetch failed: surface why (for example no Microsoft login) instead of an empty thread
 		if (out.isEmpty() && firstError != null) {
@@ -167,13 +172,16 @@ public final class BrainThreadMessages {
 		return false;
 	}
 
-	private static Map<String, Object> entry(Row row, Map<String, Object> message, Map<String, Object> sender,
-			List<BrainRulesGate.Rule> rules, List<String> topicIds, String source, Map<String, Boolean> included) {
+	private static Map<String, Object> clean(Map<String, Object> message) {
 		Map<String, Object> unique = content(message.get("uniqueBody"));
 		Map<String, Object> body = content(message.get("body"));
-		Map<String, Object> clean = BrainMessageText.extract(CollaborationDbUtils.asString(message.get("subject")),
+		return BrainMessageText.extract(CollaborationDbUtils.asString(message.get("subject")),
 				(String) unique.get("content"), (String) unique.get("contentType"), (String) body.get("content"),
 				(String) body.get("contentType"));
+	}
+
+	private static Map<String, Object> entry(Row row, Map<String, Object> clean, Map<String, Object> sender,
+			List<BrainRulesGate.Rule> rules, List<String> topicIds, String source, Map<String, Boolean> included) {
 		// excluded and muted people are still read, only flagged: exclusion is about attention, not privacy
 		boolean excluded = BrainRulesGate.EXCLUDED.equals(row.decision())
 				|| Boolean.FALSE.equals(included.get(row.personId()))

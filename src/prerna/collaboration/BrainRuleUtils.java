@@ -210,6 +210,10 @@ public final class BrainRuleUtils {
 		if (needsValue && (value == null || value.isBlank())) {
 			throw new IllegalArgumentException(kind + " needs a value");
 		}
+		// a very short keyword would stop most mail
+		if (NEVER_KEYWORD.equals(kind) && value != null && value.trim().length() < 3) {
+			throw new IllegalArgumentException("never_keyword needs at least 3 characters");
+		}
 		if (needsPerson && personId == null) {
 			throw new IllegalArgumentException(kind + " needs a personId");
 		}
