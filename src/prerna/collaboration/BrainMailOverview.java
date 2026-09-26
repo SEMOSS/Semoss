@@ -51,10 +51,17 @@ public final class BrainMailOverview {
 	private static final int DOMAIN_SENDERS = 2;
 	// automated local parts, as a whole word anywhere: noreply1, weekly-digest, calendar-notifications, buildbot
 	private static final Pattern AUTOMATED = Pattern.compile("(^|[-_.])(no-?reply|do-?not-?reply|notifications?|"
-			+ "newsletters?|digest|mailer-daemon|bounces?|alerts?|updates|news|marketing|info|support|\\w*bot)"
+			+ "newsletters?|digest|mailer-daemon|bounces?|alerts?|updates|news|marketing|info|support|promos?|"
+			+ "promotions|offers|deals|blast|campaigns?|\\w*bot)"
 			+ "\\d*([-_.+]|$)", Pattern.CASE_INSENSITIVE);
 
 	private BrainMailOverview() {
+	}
+
+	// an automated sender by its local part (noreply1@, weekly-digest@, buildbot@)
+	static boolean isAutomated(String address) {
+		int at = address == null ? -1 : address.indexOf('@');
+		return at > 0 && AUTOMATED.matcher(address.substring(0, at)).find();
 	}
 
 	public static Map<String, Object> overview(User user, int days) throws Exception {
@@ -127,7 +134,7 @@ public final class BrainMailOverview {
 		Map<String, Integer> automatedByDomain = new HashMap<>();
 		for (Map<String, Object> s : ranked) {
 			String a = (String) s.get("address");
-			boolean automated = AUTOMATED.matcher(a.substring(0, Math.max(0, a.indexOf('@')))).find();
+			boolean automated = isAutomated(a);
 			boolean ignored = !automated && (Integer) s.get("count") >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
 					&& !a.endsWith("@" + myDomain);
 			if (!automated && !ignored) {
