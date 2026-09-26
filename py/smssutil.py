@@ -7,7 +7,7 @@ import os
 from typing import List, Optional
 
 # this is here so users only need to know to import smssutil and not worry about the internal structure of the code
-from gaas_tcp_server_thread_local import smss_get_runtime_var
+from gaas_tcp_server_thread_local import smss_clear_app_imports, smss_get_runtime_var
 
 logger = logging.getLogger("SocketServer")
 
