@@ -27,47 +27,36 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import java.util.List;
+import java.util.HashMap;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainThreadClassifier;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.collaboration.CollaborationJobUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], engine=["..."], dryRun=[true]);
-public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
+// BrainGetJob(); or BrainGetJob(kind=["import"]);
+public class BrainGetJobReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_IDS = "threadIds";
-	private static final String ENGINE = "engine";
-	private static final String DRY_RUN = "dryRun";
+	private static final String KIND = "kind";
 
-	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN };
-		this.keyRequired = new int[] { 0, 0, 0 };
+	public BrainGetJobReactor() {
+		this.keysToGet = new String[] { KIND };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		GenRowStruct ids = this.store.getNoun(THREAD_IDS);
-		List<String> threadIds = ids == null ? null : ids.getAllStrValues();
-		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE),
-				Boolean.TRUE.equals(getBoolean(DRY_RUN))));
+		var job = CollaborationJobUtils.latest(getUser(), getString(KIND));
+		return mapResult(job == null ? new HashMap<>() : job);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Files threads under topics and creates work items with the Brain classifier (v0, pluggable model)";
+		return "The newest background job (import, classify): status, step, progress, counts, error";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_IDS.equals(key)) {
-			return "Threads to classify; omit for every unmuted thread with no work item yet";
-		} else if (ENGINE.equals(key)) {
-			return "Model engine id (a Jev/TypeSafe model or any chat model); omit to use the platform classifier (COLLAB_CLASSIFIER_ENGINE_ID)";
-		} else if (DRY_RUN.equals(key)) {
-			return "true to return scores for every unmuted thread without writing anything";
+		if (KIND.equals(key)) {
+			return "Job kind, for example import; omit for the newest of any kind";
 		}
 		return super.getDescriptionForKey(key);
 	}

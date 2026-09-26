@@ -98,6 +98,20 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("RECEIVED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PROCESSED_AT", TIMESTAMP_DATATYPE_NAME)));
 
+		// background work (onboarding import, classify) so the page can poll and a restart is visible
+		addTable("COLLAB_JOB", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("JOB_ID", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("STATUS", VARCHAR_20),
+				Pair.with("STEP", VARCHAR_50),
+				Pair.with("PROGRESS", INTEGER_DATATYPE_NAME),
+				Pair.with("PARAMS_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("COUNTS_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("ERROR", CLOB_DATATYPE_NAME),
+				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
+
 		// --- Brain: you ---
 		addTable("BRAIN_PROFILE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

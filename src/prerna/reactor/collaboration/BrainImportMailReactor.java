@@ -27,47 +27,35 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import java.util.List;
-
-import prerna.auth.User;
-import prerna.collaboration.BrainThreadClassifier;
-import prerna.sablecc2.om.GenRowStruct;
+import prerna.collaboration.BrainMailImport;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], engine=["..."], dryRun=[true]);
-public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
+// BrainImportMail(); or BrainImportMail(days=[30]);
+public class BrainImportMailReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_IDS = "threadIds";
-	private static final String ENGINE = "engine";
-	private static final String DRY_RUN = "dryRun";
+	private static final String DAYS = "days";
 
-	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN };
-		this.keyRequired = new int[] { 0, 0, 0 };
+	public BrainImportMailReactor() {
+		this.keysToGet = new String[] { DAYS };
+		this.keyRequired = new int[] { 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		GenRowStruct ids = this.store.getNoun(THREAD_IDS);
-		List<String> threadIds = ids == null ? null : ids.getAllStrValues();
-		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE),
-				Boolean.TRUE.equals(getBoolean(DRY_RUN))));
+		Integer days = getIntFromKeyOrCurRow(DAYS);
+		return mapResult(BrainMailImport.start(getUser(), days == null ? 30 : days));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Files threads under topics and creates work items with the Brain classifier (v0, pluggable model)";
+		return "Starts a background import of Inbox and Sent headers (people, threads, participants) through the rules "
+				+ "gate; returns the job to poll with BrainGetJob. Re-runnable (Refresh)";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_IDS.equals(key)) {
-			return "Threads to classify; omit for every unmuted thread with no work item yet";
-		} else if (ENGINE.equals(key)) {
-			return "Model engine id (a Jev/TypeSafe model or any chat model); omit to use the platform classifier (COLLAB_CLASSIFIER_ENGINE_ID)";
-		} else if (DRY_RUN.equals(key)) {
-			return "true to return scores for every unmuted thread without writing anything";
+		if (DAYS.equals(key)) {
+			return "How many days back to import (default 30, at most 180)";
 		}
 		return super.getDescriptionForKey(key);
 	}
