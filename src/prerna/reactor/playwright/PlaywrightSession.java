@@ -62,6 +62,9 @@ public class PlaywrightSession {
 
 	private final Map<String, NetworkTracker> tabNetworkTrackers = new ConcurrentHashMap<>();
 
+	/** Native browser downloads captured for this session and its replay runs. */
+	private final PlaywrightDownloadRegistry downloadRegistry = new PlaywrightDownloadRegistry();
+
 	/** Serializes commands and event processing on this Playwright connection. */
 	private final ReentrantLock operationLock = new ReentrantLock(true);
 
@@ -111,6 +114,11 @@ public class PlaywrightSession {
 		this.CTX = ctx;
 		tabPages.put("tab-1", page);
 		history.steps().put("tab-1", new ArrayList<List<PlaywrightStep>>());
+		downloadRegistry.addRecordListener(record -> {
+			if (record != null && record.getTriggerStepId() != null && "ready".equals(record.getStatus())) {
+				markDownloadExpected(record.getTriggerStepId());
+			}
+		});
 		attachNetworkListeners("tab-1", page);
 
 		tabCurrentPageIndex.put("tab-1", 0);
@@ -217,6 +225,40 @@ public class PlaywrightSession {
 	 */
 	public BrowserContext getBrowserContext() {
 		return this.CTX;
+	}
+
+	/**
+	 * Returns the session-scoped native browser download registry.
+	 *
+	 * @return download registry
+	 */
+	public PlaywrightDownloadRegistry getDownloadRegistry() {
+		return downloadRegistry;
+	}
+
+	/** Marks a recorded step after a native download has been observed for it. */
+	public synchronized void markDownloadExpected(Integer stepId) {
+		if (stepId == null || history == null || history.steps() == null) {
+			return;
+		}
+		for (List<List<PlaywrightStep>> pages : history.steps().values()) {
+			if (pages == null) {
+				continue;
+			}
+			for (List<PlaywrightStep> pageSteps : pages) {
+				if (pageSteps == null) {
+					continue;
+				}
+				for (int index = 0; index < pageSteps.size(); index++) {
+					PlaywrightStep step = pageSteps.get(index);
+					if (step != null && step.id() == stepId.intValue() && step.type() == PlaywrightStepType.CLICK
+							&& !Boolean.TRUE.equals(step.downloadExpected())) {
+						pageSteps.set(index, step.withDownloadExpected(true));
+						return;
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -546,6 +588,7 @@ public class PlaywrightSession {
 				}
 
 				closed = true;
+				downloadRegistry.cleanup();
 				classLogger.info("Session closed successfully");
 
 				// Remove from user's session map
@@ -676,7 +719,11 @@ public class PlaywrightSession {
 	 * @param page  The Playwright Page to attach listeners to.
 	 */
 	void attachNetworkListeners(String tabId, Page page) {
+		if (page == null) {
+			return;
+		}
 		NetworkTracker tracker = trackerForTab(tabId);
+		downloadRegistry.attach(page, tabId);
 		tracker.updateUrl(currentPageUrl(page));
 		page.onRequest(request -> tracker.markRequestStart());
 		page.onRequestFinished(request -> tracker.markRequestFinished());

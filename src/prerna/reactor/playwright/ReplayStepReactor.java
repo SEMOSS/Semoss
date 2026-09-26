@@ -43,6 +43,7 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.options.LoadState;
 
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -120,6 +121,7 @@ public class ReplayStepReactor extends AbstractReactor {
 	 * @return A {@link ScreenshotResponse} captured after the replay.
 	 */
 	public ScreenshotResponse replay(StepsEnvelope steps, Map<String, Object> inputs, String tabId) {
+		response.clear();
 		boolean executeAll = Boolean.parseBoolean(this.keyValue.get(this.keysToGet[3]));
 
 		Map<String, List<List<PlaywrightStep>>> allStepsMap = steps.steps();
@@ -142,7 +144,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		// Reuse global Browser and per-user shared BrowserContext
 		Browser browser = PlaywrightBrowserProvider.getBrowser();
 		Browser.NewContextOptions ctxOps = new Browser.NewContextOptions().setViewportSize(width, height)
-				.setDeviceScaleFactor(dpr);
+				.setDeviceScaleFactor(dpr).setAcceptDownloads(true);
 
 		// Thread-safe get-or-create on the user object
 		BrowserContext ctx = this.insight.getUser().getOrCreateSharedPlaywrightContext(browser, ctxOps);
@@ -184,7 +186,51 @@ public class ReplayStepReactor extends AbstractReactor {
 				classLogger.debug("Viewport update on existing page skipped/failed: {}", e.getMessage());
 			}
 		}
+		PlaywrightDownloadRegistry downloadRegistry = playwrightSession.getDownloadRegistry();
+		downloadRegistry.beginRun();
 		ExecutionResult execResult = executeSteps(playwrightSession, allStepsMap, requestedTabId, executeAll, inputs);
+		downloadRegistry.awaitIdle(5_000);
+		List<Map<String, Object>> savedDownloads = new ArrayList<>();
+		List<Map<String, Object>> downloadErrors = new ArrayList<>();
+		for (PlaywrightDownloadRegistry.DownloadRecord record : downloadRegistry.getActiveRunRecords()) {
+			if ("ready".equals(record.getStatus())) {
+				try {
+					savedDownloads.add(downloadRegistry.persistRecord(record, this.insight));
+				} catch (Exception e) {
+					downloadRegistry.markSaveFailed(record.getDownloadId(), e.getMessage());
+				}
+			}
+			if ("failed".equals(record.getStatus()) || "save-failed".equals(record.getStatus())) {
+				Map<String, Object> error = new HashMap<>();
+				error.put("downloadId", record.getDownloadId());
+				error.put("runId", record.getRunId());
+				error.put("stepId", record.getTriggerStepId());
+				error.put("fileName", record.getFileName());
+				error.put("status", record.getStatus());
+				error.put("error", record.getError());
+				downloadErrors.add(error);
+			}
+		}
+		for (Integer stepId : execResult.downloadWaitTimedOutSteps) {
+			Map<String, Object> error = new HashMap<>();
+			error.put("status", "capture-timeout");
+			error.put("stepId", stepId);
+			error.put("error", "No browser download was observed for replay step " + stepId + " within "
+					+ PlaywrightDownloadRegistry.replayWaitTimeoutMs() + " ms");
+			downloadErrors.add(error);
+		}
+		if (!savedDownloads.isEmpty() && this.insight.getRoomId() != null) {
+			ClusterUtil.pushRoomAsync(this.insight.getRoomId());
+		}
+		response.put("downloadSummary", savedDownloads.isEmpty()
+				? "No browser downloads were saved to the current insight"
+				: "Downloaded " + savedDownloads.size() + " file"
+						+ (savedDownloads.size() == 1 ? "" : "s")
+						+ " and saved them to the current insight under /browser-downloads/"
+						+ downloadRegistry.getActiveRunId() + "/");
+		response.put("downloadCount", savedDownloads.size());
+		response.put("downloads", savedDownloads);
+		response.put("downloadErrors", downloadErrors);
 
 		String responseTabId = execResult.newTabId != null ? execResult.newTabId : requestedTabId;
 
@@ -237,7 +283,10 @@ public class ReplayStepReactor extends AbstractReactor {
 
 		if (playwrightSession.getCurrentPageIndex(tabId) == 0 && playwrightSession.getCurrentStepIndex(tabId) == 0) {
 			PlaywrightStep navigateStep = tabSteps.get(0).get(0);
-			Map<String, Object> stepResult = PlaywrightSessionUtility.applyStep(playwrightSession, navigateStep, tabId);
+			Map<String, Object> stepResult = applyStepWithDownloadTrigger(playwrightSession, navigateStep, tabId);
+			if (Boolean.TRUE.equals(stepResult.get("downloadWaitTimedOut"))) {
+				result.downloadWaitTimedOutSteps.add(navigateStep.id());
+			}
 			result.newTabTitle = (String) stepResult.get("tabTitle");
 			result.newTabId = tabId;
 			playwrightSession.incrementPageIndex(tabId);
@@ -301,11 +350,15 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
 
 		// Apply the step
+		Map<String, Object> stepResult;
 		if (step.type() == PlaywrightStepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 			PlaywrightStep newStep = new PlaywrightStep(step, inputs.get(step.label()).toString());
-			PlaywrightSessionUtility.applyStep(playwrightSession, newStep, tabId);
+			stepResult = applyStepWithDownloadTrigger(playwrightSession, newStep, tabId);
 		} else {
-			PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
+			stepResult = applyStepWithDownloadTrigger(playwrightSession, step, tabId);
+		}
+		if (Boolean.TRUE.equals(stepResult.get("downloadWaitTimedOut"))) {
+			result.downloadWaitTimedOutSteps.add(step.id());
 		}
 
 		// Increment step index
@@ -345,6 +398,27 @@ public class ReplayStepReactor extends AbstractReactor {
 		return result;
 	}
 
+	private static Map<String, Object> applyStepWithDownloadTrigger(PlaywrightSession session, PlaywrightStep step,
+			String tabId) {
+		PlaywrightDownloadRegistry registry = session.getDownloadRegistry();
+		String runId = registry.getActiveRunId();
+		PlaywrightDownloadRegistry.DownloadTrigger trigger = new PlaywrightDownloadRegistry.DownloadTrigger(null,
+				step == null ? null : step.id());
+		registry.setActiveTrigger(trigger);
+		try {
+			Map<String, Object> result = PlaywrightSessionUtility.applyStep(session, step, tabId);
+			if (step != null && Boolean.TRUE.equals(step.downloadExpected())
+					&& result != null && !"failed".equals(result.get("status"))) {
+				boolean observed = registry.awaitDownload(session.getPage(tabId), runId, trigger,
+						PlaywrightDownloadRegistry.replayWaitTimeoutMs());
+				result.put("downloadWaitTimedOut", !observed);
+			}
+			return result;
+		} finally {
+			registry.clearActiveTrigger();
+		}
+	}
+
 	/**
 	 * Executes all remaining Playwright steps for a given tab.
 	 *
@@ -378,11 +452,15 @@ public class ReplayStepReactor extends AbstractReactor {
 				continue;
 			}
 
+			Map<String, Object> stepResult;
 			if (step.type() == PlaywrightStepType.TYPE && inputs != null && inputs.containsKey(step.label())) {
 				PlaywrightStep newStep = new PlaywrightStep(step, inputs.get(step.label()).toString());
-				PlaywrightSessionUtility.applyStep(playwrightSession, newStep, tabId);
+				stepResult = applyStepWithDownloadTrigger(playwrightSession, newStep, tabId);
 			} else {
-				PlaywrightSessionUtility.applyStep(playwrightSession, step, tabId);
+				stepResult = applyStepWithDownloadTrigger(playwrightSession, step, tabId);
+			}
+			if (Boolean.TRUE.equals(stepResult.get("downloadWaitTimedOut"))) {
+				result.downloadWaitTimedOutSteps.add(step.id());
 			}
 
 			playwrightSession.incrementStepIndex(tabId);
@@ -553,6 +631,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		String newTabId;
 		String newTabTitle;
 		List<Map<String, Object>> originalTabActions = new ArrayList<>();
+		List<Integer> downloadWaitTimedOutSteps = new ArrayList<>();
 	}
 
 	@Override

@@ -75,12 +75,14 @@ import java.util.List;
  *                         steps).
  * @param tag              An optional tag associated with the step, the element
  *                         tag from ProbeElement response.
+ * @param downloadExpected Whether this step is expected to produce a native
+ *                         browser download during replay.
  */
 public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords coords, List<Coords> multiCoords,
 		String prompt, String text, Boolean pressEnter, Integer deltaY, String waitUntil, Integer waitAfterMs,
 		Viewport viewport, Long timestamp, String label, String description, boolean isPassword, boolean storeValue,
 		Selector selector, TriggerNewTab isTriggerNewTab, Boolean shouldRun, Boolean required, Boolean sendToPlayground,
-		String tag) {
+		String tag, Boolean downloadExpected) {
 
 	/**
 	 * Convenience constructor to create a new PlaywrightStep by copying an existing
@@ -92,7 +94,7 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 	PlaywrightStep(PlaywrightStep s, String text) {
 		this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector,
-				s.isTriggerNewTab, s.shouldRun, s.required, s.sendToPlayground, s.tag);
+				s.isTriggerNewTab, s.shouldRun, s.required, s.sendToPlayground, s.tag, s.downloadExpected);
 	}
 
 	/**
@@ -105,7 +107,7 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 	PlaywrightStep(PlaywrightStep s, int id) {
 		this(id, s.type, s.url, s.coords, s.multiCoords, s.prompt, s.text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, s.label, s.description, s.isPassword, s.storeValue, s.selector,
-				s.isTriggerNewTab, s.shouldRun, s.required, s.sendToPlayground, s.tag);
+				s.isTriggerNewTab, s.shouldRun, s.required, s.sendToPlayground, s.tag, s.downloadExpected);
 	}
 
 	/**
@@ -125,6 +127,13 @@ public record PlaywrightStep(int id, PlaywrightStepType type, String url, Coords
 			boolean shouldRun, boolean required) {
 		this(s.id, s.type, s.url, s.coords, s.multiCoords, s.prompt, text, s.pressEnter, s.deltaY, s.waitUntil,
 				s.waitAfterMs, s.viewport, s.timestamp, label, description, s.isPassword, storeValue, s.selector,
-				s.isTriggerNewTab, shouldRun, required, s.sendToPlayground, s.tag);
+				s.isTriggerNewTab, shouldRun, required, s.sendToPlayground, s.tag, s.downloadExpected);
+	}
+
+	/** Returns a copy marked as producing a native browser download. */
+	public PlaywrightStep withDownloadExpected(boolean expected) {
+		return new PlaywrightStep(id, type, url, coords, multiCoords, prompt, text, pressEnter, deltaY, waitUntil,
+				waitAfterMs, viewport, timestamp, label, description, isPassword, storeValue, selector, isTriggerNewTab,
+				shouldRun, required, sendToPlayground, tag, expected);
 	}
 }

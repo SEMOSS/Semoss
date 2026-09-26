@@ -33,15 +33,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.microsoft.playwright.Frame;
 import com.microsoft.playwright.FrameLocator;
 import com.microsoft.playwright.JSHandle;
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.PlaywrightException;
+import com.microsoft.playwright.Request;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 
@@ -79,39 +82,72 @@ public class PlaywrightSessionUtility {
 			try {
 				String urlBefore = page.url();
 				AtomicBoolean networkTriggered = new AtomicBoolean(false);
+				AtomicBoolean navigationTriggered = new AtomicBoolean(false);
 
-				JSHandle mutationPromise = createMutationObserver(page);
-
-				page.onRequest(req -> {
+				JSHandle mutationPromise = null;
+				Consumer<Request> requestListener = req -> {
 					if ("xhr".equals(req.resourceType()) || "fetch".equals(req.resourceType())) {
 						networkTriggered.set(true);
 					}
-				});
+				};
+				Consumer<Frame> navigationListener = frame -> {
+					if (frame == page.mainFrame()) {
+						navigationTriggered.set(true);
+					}
+				};
 
-				if (step.type() == PlaywrightStepType.WAIT) {
-					response.put("shouldStop", true);
-				} else {
-					response.put("shouldStop", false);
-					executeStepAction(page, step, urlBefore, session, response);
+				try {
+					page.onRequest(requestListener);
+					page.onFrameNavigated(navigationListener);
+					// This observer belongs to the current document. It is useful for SPA DOM
+					// changes, but must never be evaluated after that document navigates.
+					mutationPromise = createMutationObserver(page);
+
+					if (step.type() == PlaywrightStepType.WAIT) {
+						response.put("shouldStop", true);
+					} else {
+						response.put("shouldStop", false);
+						executeStepAction(page, step, urlBefore, session, response);
+					}
+
+					if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
+						page.waitForTimeout(step.waitAfterMs());
+					}
+
+					boolean sameUrl = urlBefore.equals(page.url());
+					if (sameUrl && !networkTriggered.get() && !navigationTriggered.get()) {
+						boolean contextDestroyed = waitForPageOrElement(page, step);
+						pageChanged = contextDestroyed || detectPageChange(mutationPromise);
+					} else {
+						// A main-frame navigation is a page change even when the URL is unchanged
+						// (for example, a form submit or SPA route transition).
+						pageChanged = true;
+					}
+
+					long elapsed = System.currentTimeMillis() - startTime;
+					classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
+					response.put("status", "success");
+					response.put("isPageChanged", pageChanged);
+					return response;
+				} finally {
+					if (mutationPromise != null) {
+						try {
+							mutationPromise.dispose();
+						} catch (Exception disposeException) {
+							classLogger.debug("Unable to dispose DOM mutation observer handle", disposeException);
+						}
+					}
+					try {
+						page.offRequest(requestListener);
+					} catch (Exception listenerException) {
+						classLogger.debug("Unable to remove replay request listener", listenerException);
+					}
+					try {
+						page.offFrameNavigated(navigationListener);
+					} catch (Exception listenerException) {
+						classLogger.debug("Unable to remove replay navigation listener", listenerException);
+					}
 				}
-
-				if (step.waitAfterMs() != null && step.waitAfterMs() > 0 && (step.type() != PlaywrightStepType.WAIT)) {
-					page.waitForTimeout(step.waitAfterMs());
-				}
-
-				boolean sameUrl = urlBefore.equals(page.url());
-				if (sameUrl && !networkTriggered.get()) {
-					waitForPageOrElement(page, step);
-					pageChanged = detectPageChange(mutationPromise);
-				} else {
-					pageChanged = true;
-				}
-
-				long elapsed = System.currentTimeMillis() - startTime;
-				classLogger.info("[STEP] {} took {} ms (pageChanged={})", step.type(), elapsed, pageChanged);
-				response.put("status", "success");
-				response.put("isPageChanged", pageChanged);
-				return response;
 
 			} catch (Exception e) {
 				classLogger.error("Failed to apply Playwright step {}", step.type(), e);
@@ -131,16 +167,23 @@ public class PlaywrightSessionUtility {
 	 *
 	 * @param page The Playwright Page object.
 	 * @param step The PlaywrightStep containing selector information.
+	 * @return true when navigation destroys the page execution context while waiting
 	 */
-	private static void waitForPageOrElement(Page page, PlaywrightStep step) {
+	private static boolean waitForPageOrElement(Page page, PlaywrightStep step) {
 		try {
 			Selector selector = step.selector();
 			String selectorValue = selector != null ? selector.value() : null;
 
 			page.waitForFunction("sel => document.readyState === 'complete' || !!document.querySelector(sel)",
 					selectorValue, new Page.WaitForFunctionOptions().setTimeout(800));
+			return false;
 		} catch (PlaywrightException e) {
+			if (isExecutionContextDestroyed(e)) {
+				classLogger.debug("Page navigated while checking replay page readiness", e);
+				return true;
+			}
 			classLogger.warn("Non-blocking wait timed out while checking page readiness", e);
+			return false;
 		}
 	}
 
@@ -620,6 +663,9 @@ public class PlaywrightSessionUtility {
 	private static void handleNewTab(PlaywrightSession session, Page newPage, String preferredTabId,
 			Map<String, Object> response) {
 		classLogger.info("New tab detected: " + newPage.url());
+		// Register before waiting for load so the page's native download listener is
+		// active during popup initialization and redirect chains.
+		createNewTabRecord(session, newPage, preferredTabId, response);
 
 		try {
 			newPage.waitForLoadState(LoadState.LOAD, new Page.WaitForLoadStateOptions().setTimeout(500));
@@ -634,7 +680,6 @@ public class PlaywrightSessionUtility {
 
 		response.put("isNewTab", true);
 		response.put("tabTitle", newPage.title());
-		createNewTabRecord(session, newPage, preferredTabId, response);
 	}
 
 	/**
@@ -952,8 +997,26 @@ public class PlaywrightSessionUtility {
 			boolean domChanged = (boolean) mutationPromise.evaluate("value => value");
 			return domChanged;
 		} catch (Exception e) {
+			if (isExecutionContextDestroyed(e)) {
+				// The observer was created in the old document. Navigation destroys that
+				// execution context, which is itself evidence that the page changed.
+				classLogger.debug("Page navigated before DOM change detection completed", e);
+				return true;
+			}
 			throw new RuntimeException("Failed to evaluate DOM changes: " + e);
 		}
+	}
+
+	private static boolean isExecutionContextDestroyed(Throwable error) {
+		Throwable current = error;
+		while (current != null) {
+			String message = current.getMessage();
+			if (message != null && message.toLowerCase().contains("execution context was destroyed")) {
+				return true;
+			}
+			current = current.getCause();
+		}
+		return false;
 	}
 
 	/**
