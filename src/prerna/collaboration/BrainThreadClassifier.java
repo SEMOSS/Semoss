@@ -70,9 +70,52 @@ public final class BrainThreadClassifier {
 			String priority, Map<String, Object> scores, String error) {
 	}
 
+	public static final String JOB_KIND = "classify";
+
 	// the given threads, or every unmuted thread with no work item yet; dryRun scores without writing
 	public static Map<String, Object> classify(User user, Insight insight, List<String> threadIds, String engineId,
 			boolean dryRun) {
+		return classify(user, insight, threadIds, engineId, dryRun, null);
+	}
+
+	// same as classify, as a background job polled with BrainGetJob(kind=classify); results stay out of the job row
+	public static Map<String, Object> start(User user, List<String> threadIds, String engineId) {
+		// fail here, not inside the job, when no model is set
+		if (engineId == null && platformEngine() == null) {
+			throw new IllegalArgumentException("No classifier model is set; an admin sets "
+					+ Constants.COLLAB_CLASSIFIER_ENGINE_ID + " in RDF_Map.prop");
+		}
+		var owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> params = new LinkedHashMap<>();
+		if (threadIds != null && !threadIds.isEmpty()) {
+			params.put("threads", threadIds.size());
+		}
+		if (engineId != null) {
+			params.put("engine", engineId);
+		}
+		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), JOB_KIND, params, job -> {
+			// own insight so the run does not depend on the page that started it
+			Insight insight = new Insight();
+			insight.setUser(user);
+			job.step("classifying", 1);
+			Map<String, Object> summary = classify(user, insight, threadIds, engineId, false, (done, total) -> {
+				job.count("done", done);
+				job.count("total", total);
+				job.step("classifying", total == 0 ? 99 : Math.max(1, 99 * done / total));
+			});
+			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors" }) {
+				job.count(key, summary.get(key));
+			}
+		});
+	}
+
+	@FunctionalInterface
+	public interface Progress {
+		void report(int done, int total);
+	}
+
+	private static Map<String, Object> classify(User user, Insight insight, List<String> threadIds, String engineId,
+			boolean dryRun, Progress progress) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -103,12 +146,18 @@ public final class BrainThreadClassifier {
 			for (String threadId : ids) {
 				futures.add(pool.submit(() -> classifyOne(ctx, threadId)));
 			}
+			if (progress != null) {
+				progress.report(0, futures.size());
+			}
 			for (int i = 0; i < futures.size(); i++) {
 				try {
 					results.add(futures.get(i).get());
 				} catch (Exception e) {
 					classLogger.warn("Classifier failed on thread {}", ids.get(i), e);
 					results.add(new Result(ids.get(i), null, null, null, null, null, null, rootMessage(e)));
+				}
+				if (progress != null && ((i + 1) % 10 == 0 || i + 1 == futures.size())) {
+					progress.report(i + 1, futures.size());
 				}
 			}
 		} finally {

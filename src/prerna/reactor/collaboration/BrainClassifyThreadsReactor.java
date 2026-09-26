@@ -40,10 +40,11 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 	private static final String THREAD_IDS = "threadIds";
 	private static final String ENGINE = "engine";
 	private static final String DRY_RUN = "dryRun";
+	private static final String ASYNC = "async";
 
 	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN, ASYNC };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -51,8 +52,14 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		GenRowStruct ids = this.store.getNoun(THREAD_IDS);
 		List<String> threadIds = ids == null ? null : ids.getAllStrValues();
-		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE),
-				Boolean.TRUE.equals(getBoolean(DRY_RUN))));
+		boolean dryRun = Boolean.TRUE.equals(getBoolean(DRY_RUN));
+		if (Boolean.TRUE.equals(getBoolean(ASYNC))) {
+			if (dryRun) {
+				throw new IllegalArgumentException("A dry run returns its scores and cannot run in the background");
+			}
+			return mapResult(BrainThreadClassifier.start(user, threadIds, getString(ENGINE)));
+		}
+		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE), dryRun));
 	}
 
 	@Override
@@ -68,6 +75,8 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 			return "Model engine id (a Jev/TypeSafe model or any chat model); omit to use the platform classifier (COLLAB_CLASSIFIER_ENGINE_ID)";
 		} else if (DRY_RUN.equals(key)) {
 			return "true to return scores for every unmuted thread without writing anything";
+		} else if (ASYNC.equals(key)) {
+			return "true to run as a background job and return it; poll with BrainGetJob(kind=classify)";
 		}
 		return super.getDescriptionForKey(key);
 	}
