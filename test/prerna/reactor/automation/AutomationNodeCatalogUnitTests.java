@@ -108,6 +108,20 @@ public class AutomationNodeCatalogUnitTests {
 				definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTION_TYPE));
 	}
 
+	@Test
+	void loopAdvertisesBoundedSequentialConfiguration() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_LOOP);
+		assertNotNull(definition);
+		assertEquals(AutomationConstants.LOOP_MODE_FOR_EACH,
+				definition.defaultConfig().get(AutomationConstants.CONFIG_LOOP_MODE));
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals(AutomationConstants.LOOP_MAX_ITERATIONS,
+				fieldsByKey.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS).get("maximum"));
+		assertEquals(1, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE).get("minimum"));
+	}
+
 	/** Writes need edit rights on the engine; a read only needs view. */
 	@Test
 	void writeNodesRequireEditPermission() {

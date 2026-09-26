@@ -62,8 +62,8 @@ public final class AutomationSourceRenderer {
 				: Map.of();
 		String source = switch (nodeType) {
 		case TRIGGER_START -> triggerSource();
-		case CONTROL_IF, CONTROL_JEV ->
-			throw new IllegalArgumentException("Routing nodes are evaluated by Java and do not have Python source.");
+		case CONTROL_IF, CONTROL_JEV, CONTROL_LOOP ->
+			throw new IllegalArgumentException("Java-owned control nodes do not have Python source.");
 		case DATABASE_QUERY -> databaseQuerySource(config);
 		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");

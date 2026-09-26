@@ -102,6 +102,12 @@ public final class AutomationConstants {
 	public static final String WORKSPACE_ID = "WORKSPACE_ID";
 	public static final String MODEL_MESSAGE_ID = "MODEL_MESSAGE_ID";
 	public static final String AGENT_RUN_ID = "AGENT_RUN_ID";
+	/** Owning loop node for a dynamically materialized loop-body execution row. */
+	public static final String PARENT_NODE_ID = "PARENT_NODE_ID";
+	/** Zero-based loop iteration for a dynamically materialized body execution row. */
+	public static final String ITERATION_INDEX = "ITERATION_INDEX";
+	/** Canonical graph node represented by a dynamic execution row. */
+	public static final String SOURCE_NODE_ID = "SOURCE_NODE_ID";
 
 	// -- AUTOMATION_RUN_WAITS columns ---------------------------------------------
 
@@ -170,6 +176,7 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
+	public static final String NODE_CONTROL_LOOP = "control.loop";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors)
@@ -200,6 +207,11 @@ public final class AutomationConstants {
 	public static final String CONFIG_MAX_TURNS = "maxTurns";
 	public static final String CONFIG_MAX_REFLECTIONS = "maxReflections";
 	public static final String CONFIG_WAIT = "wait";
+	public static final String CONFIG_LOOP_MODE = "mode";
+	public static final String CONFIG_LOOP_ITEMS = "items";
+	public static final String CONFIG_LOOP_BATCH_SIZE = "batchSize";
+	public static final String CONFIG_LOOP_MAX_ITERATIONS = "maxIterations";
+	public static final String LOOP_MODE_FOR_EACH = "forEach";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
 
@@ -215,6 +227,11 @@ public final class AutomationConstants {
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
 	public static final int WAIT_MAX_SECONDS = 3600;
+	public static final int LOOP_MIN_BATCH_SIZE = 1;
+	public static final int LOOP_MAX_BATCH_SIZE = 1_000;
+	public static final int LOOP_DEFAULT_MAX_ITERATIONS = 1_000;
+	public static final int LOOP_MAX_ITERATIONS = 10_000;
+	public static final int LOOP_MAX_BODY_NODES = 1_000;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
@@ -245,6 +262,8 @@ public final class AutomationConstants {
 	public static final String NODE_FIELD_TYPE = "type";
 	public static final String NODE_FIELD_LABEL = "label";
 	public static final String NODE_FIELD_CONFIG = "config";
+	/** Nested acyclic graph owned by a container node such as {@code control.loop}. */
+	public static final String NODE_FIELD_BODY = "body";
 	public static final String NODE_FIELD_OUTPUT_VAR = "outputVar";
 	public static final String EDGE_FIELD_SOURCE = "source";
 	public static final String EDGE_FIELD_TARGET = "target";

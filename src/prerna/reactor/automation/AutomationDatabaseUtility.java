@@ -139,6 +139,8 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public final class AutomationDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationDatabaseUtility.class);
+	/** Keeps dynamically materialized body rows after the stable parent graph rows. */
+	private static final int LOOP_EXECUTION_ORDER_OFFSET = 1_000_000;
 
 	/** Prefix identifying the automation tables inside the scheduler OWL schema. */
 	private static final String AUTOMATION_TABLE_PREFIX = "AUTOMATION_";
@@ -233,6 +235,19 @@ public final class AutomationDatabaseUtility {
 			INSERT INTO AUTOMATION_NODE_OUTPUTS \
 			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID, WORKSPACE_ID) \
 			VALUES (?, ?, ?, ?, ?, ?, ?)""";
+
+	private static final String INSERT_LOOP_NODE_OUTPUT = """
+			INSERT INTO AUTOMATION_NODE_OUTPUTS \
+			(RUN_ID, NODE_ID, NODE_LABEL, EXECUTION_ORDER, STATUS, ROOM_ID, WORKSPACE_ID, \
+			PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID) \
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
+
+	private static final String INCREMENT_RUN_TOTAL_NODES =
+			"UPDATE AUTOMATION_RUNS SET TOTAL_NODES = TOTAL_NODES + ? WHERE RUN_ID = ?";
+
+	private static final String SKIP_PENDING_NODE_OUTPUT = """
+			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, ERROR_MESSAGE = ? \
+			WHERE RUN_ID = ? AND NODE_ID = ? AND STATUS = ?""";
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
@@ -772,6 +787,64 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
+	 * Materializes one loop iteration into the existing node-history table. The
+	 * runtime row receives its own ID while SOURCE_NODE_ID keeps the stable graph
+	 * identity, so repeated executions never overwrite each other and clients do
+	 * not have to parse synthetic identifiers.
+	 *
+	 * @param runId         owning run
+	 * @param loopNodeId    canonical parent loop node
+	 * @param iterationIndex zero-based iteration
+	 * @param orderedNodes  body nodes in deterministic execution-history order
+	 * @param traceRoomIds  optional conversational room IDs keyed by source node
+	 * @return runtime node IDs keyed by canonical body node ID
+	 */
+	public static Map<String, String> insertLoopIterationNodes(String runId, String loopNodeId, int iterationIndex,
+			List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds) {
+		IRDBMSEngine schedulerDb = requireSchedulerDb("initialize an automation loop iteration");
+		Map<String, String> executionNodeIds = new LinkedHashMap<>();
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement total = conn.prepareStatement(INCREMENT_RUN_TOTAL_NODES);
+					PreparedStatement output = conn.prepareStatement(INSERT_LOOP_NODE_OUTPUT)) {
+				total.setInt(1, orderedNodes.size());
+				total.setString(2, runId);
+				requireSingleRow(total.executeUpdate(), "extend the loop run node count", runId, loopNodeId);
+				for (int index = 0; index < orderedNodes.size(); index++) {
+					Map<String, Object> node = orderedNodes.get(index);
+					String sourceNodeId = (String) node.get(NODE_FIELD_ID);
+					String executionNodeId = UUID.randomUUID().toString();
+					executionNodeIds.put(sourceNodeId, executionNodeId);
+					int parameter = 1;
+					output.setString(parameter++, runId);
+					output.setString(parameter++, executionNodeId);
+					output.setString(parameter++, (String) node.get(NODE_FIELD_LABEL));
+					output.setInt(parameter++, LOOP_EXECUTION_ORDER_OFFSET
+							+ iterationIndex * Math.max(1, orderedNodes.size()) + index);
+					output.setString(parameter++, NODE_STATUS_PENDING);
+					setNullableString(output, parameter++, traceRoomIds == null ? null : traceRoomIds.get(sourceNodeId));
+					setNullableString(output, parameter++, AutomationRuntime.configuredAgentWorkspaceId(node));
+					output.setString(parameter++, loopNodeId);
+					output.setInt(parameter++, iterationIndex);
+					output.setString(parameter++, sourceNodeId);
+					output.addBatch();
+				}
+				output.executeBatch();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+			return executionNodeIds;
+		} catch (Exception e) {
+			rollback(conn, e);
+			throw new IllegalStateException("Unable to initialize the automation loop iteration.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
 	 * Sets the cluster-safe cancellation flag on a run. Called by
 	 * {@code CancelAutomationRunReactor} regardless of which pod receives the
 	 * cancel request. Unlike the in-memory run registry, this flag is visible to
@@ -1167,6 +1240,43 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
+	 * Marks only the unselected nodes in one materialized loop iteration skipped.
+	 *
+	 * @param runId  owning run
+	 * @param nodeIds runtime node IDs that remain pending
+	 * @param reason persisted skip explanation
+	 */
+	public static void skipPendingNodes(String runId, List<String> nodeIds, String reason) {
+		if (nodeIds == null || nodeIds.isEmpty()) {
+			return;
+		}
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persist skipped automation loop nodes");
+		Connection conn = null;
+		try {
+			conn = schedulerDb.getConnection();
+			try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUT)) {
+				for (String nodeId : nodeIds) {
+					ps.setString(1, NODE_STATUS_SKIPPED);
+					setNullableString(ps, 2, reason);
+					ps.setString(3, runId);
+					ps.setString(4, nodeId);
+					ps.setString(5, NODE_STATUS_PENDING);
+					ps.addBatch();
+				}
+				ps.executeBatch();
+			}
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			rollback(conn, e);
+			throw new IllegalStateException("Unable to persist skipped automation loop nodes.", e);
+		} finally {
+			closeConnection(schedulerDb, conn);
+		}
+	}
+
+	/**
 	 * Updates a node output after successful execution.
 	 */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
@@ -1333,6 +1443,12 @@ public final class AutomationDatabaseUtility {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + WORKSPACE_ID, WORKSPACE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + MODEL_MESSAGE_ID, MODEL_MESSAGE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AGENT_RUN_ID, AGENT_RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.PARENT_NODE_ID,
+				AutomationConstants.PARENT_NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.ITERATION_INDEX,
+				AutomationConstants.ITERATION_INDEX));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + AutomationConstants.SOURCE_NODE_ID,
+				AutomationConstants.SOURCE_NODE_ID));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ERROR_MESSAGE, ERROR_MESSAGE));
 
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId,
@@ -1402,12 +1518,17 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs) {
 		List<Map<String, Object>> nodeResults = new ArrayList<>();
+		Map<String, Map<String, Object>> parentResults = new LinkedHashMap<>();
+		Map<String, Map<Integer, List<Map<String, Object>>>> loopIterations = new LinkedHashMap<>();
 		if (nodeOutputs == null) {
 			return nodeResults;
 		}
 		for (Map<String, Object> output : nodeOutputs) {
-			Map<String, Object> nodeResult = new HashMap<>();
-			nodeResult.put(AutomationConstants.NODE_ID, output.get(AutomationConstants.NODE_ID));
+			Map<String, Object> nodeResult = new LinkedHashMap<>();
+			Object parentNodeId = output.get(AutomationConstants.PARENT_NODE_ID);
+			Object sourceNodeId = output.get(AutomationConstants.SOURCE_NODE_ID);
+			nodeResult.put(AutomationConstants.NODE_ID,
+					sourceNodeId == null ? output.get(AutomationConstants.NODE_ID) : sourceNodeId);
 			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
 			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
 			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
@@ -1432,7 +1553,27 @@ public final class AutomationDatabaseUtility {
 			if (!trace.isEmpty()) {
 				nodeResult.put(AutomationConstants.RESULT_TRACE, trace);
 			}
-			nodeResults.add(nodeResult);
+			if (parentNodeId == null) {
+				nodeResults.add(nodeResult);
+				parentResults.put(String.valueOf(output.get(AutomationConstants.NODE_ID)), nodeResult);
+			} else {
+				Object iterationValue = output.get(AutomationConstants.ITERATION_INDEX);
+				int iteration = iterationValue instanceof Number number ? number.intValue()
+						: Integer.parseInt(String.valueOf(iterationValue));
+				loopIterations.computeIfAbsent(String.valueOf(parentNodeId), ignored -> new LinkedHashMap<>())
+						.computeIfAbsent(iteration, ignored -> new ArrayList<>()).add(nodeResult);
+			}
+		}
+		for (Map.Entry<String, Map<Integer, List<Map<String, Object>>>> parent : loopIterations.entrySet()) {
+			Map<String, Object> parentResult = parentResults.get(parent.getKey());
+			if (parentResult == null) {
+				continue;
+			}
+			List<Map<String, Object>> iterations = new ArrayList<>();
+			for (Map.Entry<Integer, List<Map<String, Object>>> iteration : parent.getValue().entrySet()) {
+				iterations.add(Map.of("index", iteration.getKey(), "nodeResults", iteration.getValue()));
+			}
+			parentResult.put("iterations", iterations);
 		}
 		return nodeResults;
 	}

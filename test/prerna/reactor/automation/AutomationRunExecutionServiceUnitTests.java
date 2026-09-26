@@ -29,7 +29,9 @@ package prerna.reactor.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -110,5 +112,46 @@ public class AutomationRunExecutionServiceUnitTests {
 		}
 
 		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+	}
+
+	@Test
+	void resolvesLoopItemsWithoutCoercingNativeValues() {
+		List<Object> items = List.of(Map.of("id", 1), Map.of("id", 2));
+		assertEquals(items, AutomationRunExecutionService.loopItems("${records}", Map.of("records", items), "loop"));
+		assertEquals(List.of("a", "b"),
+				AutomationRunExecutionService.loopItems(new String[] { "a", "b" }, Map.of(), "loop"));
+	}
+
+	@Test
+	void rejectsMissingOrNonCollectionLoopItems() {
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.loopItems("${missing}", Map.of(), "loop"));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.loopItems(42, Map.of(), "loop"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void groupsMaterializedLoopHistoryUnderItsParentNode() {
+		Map<String, Object> parent = new LinkedHashMap<>();
+		parent.put(AutomationConstants.RUN_ID, "run");
+		parent.put(AutomationConstants.NODE_ID, "loop");
+		parent.put(AutomationConstants.NODE_LABEL, "Loop");
+		parent.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		Map<String, Object> child = new LinkedHashMap<>();
+		child.put(AutomationConstants.RUN_ID, "run");
+		child.put(AutomationConstants.NODE_ID, "execution-id");
+		child.put(AutomationConstants.SOURCE_NODE_ID, "body-python");
+		child.put(AutomationConstants.PARENT_NODE_ID, "loop");
+		child.put(AutomationConstants.ITERATION_INDEX, 0);
+		child.put(AutomationConstants.NODE_LABEL, "Python");
+		child.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+
+		List<Map<String, Object>> results = AutomationDatabaseUtility.buildNodeResults(List.of(parent, child));
+
+		assertEquals(1, results.size());
+		List<Map<String, Object>> iterations = (List<Map<String, Object>>) results.get(0).get("iterations");
+		List<Map<String, Object>> nodes = (List<Map<String, Object>>) iterations.get(0).get("nodeResults");
+		assertEquals("body-python", nodes.get(0).get(AutomationConstants.NODE_ID));
 	}
 }

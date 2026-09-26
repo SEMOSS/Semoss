@@ -28,11 +28,14 @@
 package prerna.reactor.automation;
 
 import java.io.File;
+import java.lang.reflect.Array;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -238,6 +241,8 @@ final class AutomationRunExecutionService {
 				nodeResult = executeConditionNode(runId, node, scope);
 			} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
 				nodeResult = executeJevDecisionNode(executionInsight, runId, node, scope);
+			} else if (AutomationConstants.NODE_CONTROL_LOOP.equals(type)) {
+				nodeResult = executeLoopNode(executionInsight, projectId, runId, node, nodeSources, scope);
 			} else {
 				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
 						traceRoomIds.get(nodeId),
@@ -274,6 +279,174 @@ final class AutomationRunExecutionService {
 		}
 		result.put("scope", scope);
 		return result;
+	}
+
+	/**
+	 * Executes a bounded, sequential foreach container. The parent graph remains
+	 * acyclic; each iteration materializes independent child history rows and runs
+	 * the loop body's own validated acyclic control path against an isolated scope.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeLoopNode(Insight executionInsight, String projectId, String runId,
+			Map<String, Object> loopNode, Map<String, String> nodeSources, Map<String, Object> parentScope) {
+		String loopNodeId = (String) loopNode.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationDatabaseUtility.markNodeRunning(runId, loopNodeId);
+		streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) loopNode.get(AutomationConstants.NODE_FIELD_CONFIG);
+			List<Object> items = loopItems(config.get(AutomationConstants.CONFIG_LOOP_ITEMS), parentScope, loopNodeId);
+			int batchSize = ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue();
+			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+			int iterationCount = items.isEmpty() ? 0 : (items.size() + batchSize - 1) / batchSize;
+			if (iterationCount > maximumIterations) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires " + iterationCount
+						+ " iterations, exceeding its maxIterations value of " + maximumIterations + ".");
+			}
+
+			List<Map<String, Object>> bodyNodes = AutomationRuntime.nodesForGraph(
+					AutomationRuntime.loopBodyNodes(loopNode), AutomationRuntime.loopBodyEdges(loopNode));
+			List<Map<String, Object>> bodyEdges = AutomationRuntime.loopBodyEdges(loopNode);
+			Map<String, Map<String, String>> bodyTargets = AutomationRuntime.controlTargets(bodyEdges);
+			String bodyEntry = AutomationRuntime.graphEntryNodeId(bodyNodes, bodyEdges);
+			String loopOutputVar = (String) loopNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			List<Map<String, Object>> iterationResults = new ArrayList<>();
+
+			for (int iteration = 0; iteration < iterationCount; iteration++) {
+				if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
+					throw new IllegalStateException("Run cancelled by user");
+				}
+				int from = iteration * batchSize;
+				int to = Math.min(items.size(), from + batchSize);
+				List<Object> batch = new ArrayList<>(items.subList(from, to));
+				Map<String, Object> loopContext = new LinkedHashMap<>();
+				loopContext.put("index", iteration);
+				loopContext.put("batch", batch);
+				loopContext.put("total", iterationCount);
+				loopContext.put("isFirst", iteration == 0);
+				loopContext.put("isLast", iteration == iterationCount - 1);
+				if (batch.size() == 1) {
+					loopContext.put("item", batch.get(0));
+				}
+
+				Map<String, Object> iterationScope = new LinkedHashMap<>(parentScope);
+				iterationScope.put(loopOutputVar, loopContext);
+				Map<String, String> bodyTraceRoomIds = allocateTraceRoomIds(bodyNodes);
+				Map<String, String> executionNodeIds = AutomationDatabaseUtility.insertLoopIterationNodes(runId,
+						loopNodeId, iteration, bodyNodes, bodyTraceRoomIds);
+				Map<String, Map<String, Object>> bodyNodesById = new LinkedHashMap<>();
+				for (Map<String, Object> bodyNode : bodyNodes) {
+					bodyNodesById.put((String) bodyNode.get(AutomationConstants.NODE_FIELD_ID), bodyNode);
+				}
+
+				Set<String> visited = new HashSet<>();
+				Map<String, Object> outputs = new LinkedHashMap<>();
+				String current = bodyEntry;
+				while (current != null) {
+					if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
+						throw new IllegalStateException("Run cancelled by user");
+					}
+					if (!visited.add(current)) {
+						throw new IllegalStateException("Loop body revisited node '" + current + "'.");
+					}
+					Map<String, Object> canonicalNode = bodyNodesById.get(current);
+					Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
+					executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
+					executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
+					executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
+					executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
+					String type = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_TYPE);
+					Map<String, Object> nodeResult;
+					if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
+						nodeResult = executeConditionNode(runId, executionNode, iterationScope);
+					} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
+						nodeResult = executeJevDecisionNode(executionInsight, runId, executionNode, iterationScope);
+					} else {
+						nodeResult = executeNodeSource(executionInsight, projectId, runId, executionNode,
+								nodeSources.get(current), iterationScope, bodyTraceRoomIds.get(current), null);
+					}
+					if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
+						throw new IllegalStateException("Loop body node '" + current + "' did not complete successfully.");
+					}
+					String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+					if (outputVar != null) {
+						Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+						iterationScope.put(outputVar, value);
+						outputs.put(outputVar, value);
+					}
+					String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+					if (AutomationConstants.NODE_CONTROL_IF.equals(type)
+							|| AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
+						Map<String, Object> decision = (Map<String, Object>) nodeResult
+								.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+						selectedPort = (String) decision.get("branch");
+					}
+					current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
+				}
+				List<String> skipped = bodyNodesById.keySet().stream().filter(nodeId -> !visited.contains(nodeId))
+						.map(executionNodeIds::get).toList();
+				AutomationDatabaseUtility.skipPendingNodes(runId, skipped, "Loop branch was not selected");
+				Map<String, Object> iterationResult = new LinkedHashMap<>();
+				iterationResult.put("index", iteration);
+				iterationResult.put("outputs", outputs);
+				iterationResults.add(iterationResult);
+				AutomationRuntimeUtils.toBoundedRuntimeJson(iterationResults,
+						AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+						"Automation loop '" + loopNodeId + "' collected results");
+			}
+
+			Map<String, Object> value = new LinkedHashMap<>();
+			value.put("processed", items.size());
+			value.put("iterations", iterationCount);
+			value.put("results", iterationResults);
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(value,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation loop '" + loopNodeId + "' output");
+			Map<String, Object> prospectiveScope = new LinkedHashMap<>(parentScope);
+			prospectiveScope.put(loopOutputVar, value);
+			AutomationRuntimeUtils.toBoundedRuntimeJson(prospectiveScope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
+					"Automation run scope");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output,
+					preview, null, null);
+			AutomationPythonRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(loopNodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationDatabaseUtility.updateNodeFailed(runId, loopNodeId, started, duration, message);
+			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/** Resolves a loop's literal list or exact scope reference without string coercion. */
+	static List<Object> loopItems(Object configuredItems, Map<String, Object> scope, String loopNodeId) {
+		Object resolved = configuredItems;
+		if (configuredItems instanceof String value) {
+			Matcher reference = EXACT_SCOPE_REFERENCE.matcher(value.trim());
+			if (reference.matches()) {
+				String name = reference.group(1);
+				if (!scope.containsKey(name)) {
+					throw new IllegalArgumentException(
+							"Loop node '" + loopNodeId + "' references unavailable scope value: " + name);
+				}
+				resolved = scope.get(name);
+			}
+		}
+		if (resolved instanceof Collection<?> collection) {
+			return new ArrayList<>(collection);
+		}
+		if (resolved != null && resolved.getClass().isArray()) {
+			List<Object> items = new ArrayList<>(Array.getLength(resolved));
+			for (int index = 0; index < Array.getLength(resolved); index++) {
+				items.add(Array.get(resolved, index));
+			}
+			return items;
+		}
+		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
 	}
 
 	/**
@@ -1585,6 +1758,12 @@ final class AutomationRunExecutionService {
 		data.put(AutomationConstants.NODE_ID, node.get(AutomationConstants.NODE_FIELD_ID));
 		data.put(AutomationConstants.NODE_LABEL, node.get(AutomationConstants.NODE_FIELD_LABEL));
 		data.put(AutomationConstants.STATUS, status);
+		for (String field : List.of(AutomationConstants.SOURCE_NODE_ID, AutomationConstants.PARENT_NODE_ID,
+				AutomationConstants.ITERATION_INDEX)) {
+			if (node.get(field) != null) {
+				data.put(field, node.get(field));
+			}
+		}
 		if (durationMs != null) {
 			data.put(AutomationConstants.DURATION_MS, durationMs);
 		}

@@ -221,7 +221,7 @@ public final class AutomationProjectUtils {
 	@SuppressWarnings("unchecked")
 	public static void validateDefinitionReferences(AutomationDefinitionValidator.ValidatedDefinition definition,
 			User user) {
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : AutomationRuntime.allNodes(definition)) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
 			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);

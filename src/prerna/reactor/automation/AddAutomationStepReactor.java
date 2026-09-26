@@ -117,6 +117,10 @@ public class AddAutomationStepReactor extends AbstractReactor {
 				customSource == null ? AutomationConstants.NODE_CODE_MODE_GENERATED
 						: AutomationConstants.NODE_CODE_MODE_CUSTOM);
 		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
+		if (AutomationConstants.NODE_CONTROL_LOOP.equals(nodeType)) {
+			node.put(AutomationConstants.NODE_FIELD_BODY,
+					Map.of(AutomationConstants.DOC_NODES, List.of(), AutomationConstants.DOC_EDGES, List.of()));
+		}
 		node.put("position", Map.of("x", 240, "y", 80 + nodes.size() * 180));
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);

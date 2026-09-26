@@ -115,4 +115,24 @@ public class AutomationRuntimeUnitTests {
 				.definesRunEntryPoint("class Job:\n    def run(self, scope):\n        return {}\n"));
 		assertFalse(AutomationDefinitionService.definesRunEntryPoint("def outer():\n    run = 1\n    return run\n"));
 	}
+
+	@Test
+	void includesLoopBodyNodesWhenCollectingSourceOwners() {
+		Map<String, Object> loop = new LinkedHashMap<>();
+		loop.put(AutomationConstants.NODE_FIELD_ID, "loop");
+		loop.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_CONTROL_LOOP);
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES,
+						List.of(Map.of(AutomationConstants.NODE_FIELD_ID, "body-node",
+								AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DEVELOPER_PYTHON)),
+						AutomationConstants.DOC_EDGES, List.of()));
+		Map<String, Object> document = Map.of(AutomationConstants.DOC_GRAPH,
+				Map.of(AutomationConstants.DOC_NODES, List.of(triggerNode(Map.of()), loop),
+						AutomationConstants.DOC_EDGES, List.of()));
+		AutomationDefinitionValidator.ValidatedDefinition definition = new AutomationDefinitionValidator.ValidatedDefinition(
+				document, List.of(triggerNode(Map.of()), loop), List.of(), "", "");
+
+		assertEquals(List.of("start", "loop", "body-node"), AutomationRuntime.allNodes(definition).stream()
+				.map(node -> String.valueOf(node.get(AutomationConstants.NODE_FIELD_ID))).toList());
+	}
 }
