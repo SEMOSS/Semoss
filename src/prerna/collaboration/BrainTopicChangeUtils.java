@@ -37,7 +37,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -69,6 +68,9 @@ public final class BrainTopicChangeUtils {
 		TOPIC_TABLES.put("BRAIN_RULE", "RULE_ID");
 	}
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
+	// rows outside the topic that point at it by LINK_TOPIC_ID -> their id column
+	private static final Map<String, String> LINK_TABLES = Map.of("WORK_ITEM", "ITEM_ID", "WORK_THREAD_STEP",
+			"STEP_ID");
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
 
 	private BrainTopicChangeUtils() {
@@ -81,7 +83,8 @@ public final class BrainTopicChangeUtils {
 		final List<String> topicIds;
 		final List<String> threadIds;
 		final String before;
-		final List<List<String>> workItems = new ArrayList<>();
+		// [table, row id] of rows whose LINK_TOPIC_ID was the removed topic
+		final List<List<String>> links = new ArrayList<>();
 		final List<String> mergeCandidates;
 		final List<String> reviews;
 
@@ -116,9 +119,11 @@ public final class BrainTopicChangeUtils {
 		Snapshot snapshot = new Snapshot(ownerId, ownerType, topicIds, threadIds,
 				CollaborationDbUtils.toJson(scopeRows(conn, ownerId, ownerType, topicIds, threadIds)),
 				mergeCandidates, reviews);
-		for (Map<String, Object> row : readRows(conn, "SELECT ITEM_ID, LINK_TOPIC_ID FROM WORK_ITEM" + OWNED
-				+ " AND LINK_TOPIC_ID = ? ORDER BY ITEM_ID", ownerId, ownerType, removedTopicId)) {
-			snapshot.workItems.add(List.of((String) row.get("ITEM_ID"), removedTopicId));
+		for (Map.Entry<String, String> table : LINK_TABLES.entrySet()) {
+			for (Map<String, Object> row : readRows(conn, "SELECT " + table.getValue() + " FROM " + table.getKey()
+					+ OWNED + " AND LINK_TOPIC_ID = ?", ownerId, ownerType, removedTopicId)) {
+				snapshot.links.add(List.of(table.getKey(), (String) row.get(table.getValue())));
+			}
 		}
 		return snapshot;
 	}
@@ -132,12 +137,8 @@ public final class BrainTopicChangeUtils {
 		saved.put("before", snapshot.before);
 		saved.put("after", CollaborationDbUtils.toJson(
 				scopeRows(conn, snapshot.ownerId, snapshot.ownerType, snapshot.topicIds, snapshot.threadIds)));
-		// [itemId, link before, link after]
-		List<List<String>> workItems = new ArrayList<>();
-		for (List<String> item : snapshot.workItems) {
-			workItems.add(Arrays.asList(item.get(0), item.get(1), targetTopicId));
-		}
-		saved.put("workItems", workItems);
+		saved.put("links", snapshot.links);
+		saved.put("linkAfter", targetTopicId);
 		saved.put("mergeCandidates", snapshot.mergeCandidates);
 		saved.put("removedTopicId", removedTopicId);
 		saved.put("reviews", snapshot.reviews);
@@ -200,13 +201,18 @@ public final class BrainTopicChangeUtils {
 				insertRows(conn, table.getKey(), (List<Map<String, Object>>) table.getValue());
 			}
 			// links on other rows go back only where nothing else changed them
-			for (Object entry : (List<Object>) saved.get("workItems")) {
-				List<Object> item = (List<Object>) entry;
-				Object after = item.get(2);
-				CollaborationDbUtils.update(conn, "UPDATE WORK_ITEM SET LINK_TOPIC_ID = ?" + OWNED
-						+ " AND ITEM_ID = ? AND " + (after == null ? "LINK_TOPIC_ID IS NULL" : "LINK_TOPIC_ID = ?"),
-						after == null ? new Object[] { item.get(1), ownerId, ownerType, item.get(0) }
-								: new Object[] { item.get(1), ownerId, ownerType, item.get(0), after });
+			Object after = saved.get("linkAfter");
+			for (Object entry : (List<Object>) saved.get("links")) {
+				List<Object> link = (List<Object>) entry;
+				String table = (String) link.get(0);
+				String idColumn = LINK_TABLES.get(table);
+				if (idColumn == null) {
+					continue;
+				}
+				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET LINK_TOPIC_ID = ?" + OWNED + " AND "
+						+ idColumn + " = ? AND " + (after == null ? "LINK_TOPIC_ID IS NULL" : "LINK_TOPIC_ID = ?"),
+						after == null ? new Object[] { saved.get("removedTopicId"), ownerId, ownerType, link.get(1) }
+								: new Object[] { saved.get("removedTopicId"), ownerId, ownerType, link.get(1), after });
 			}
 			for (Object topicId : (List<Object>) saved.get("mergeCandidates")) {
 				CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = ?" + OWNED

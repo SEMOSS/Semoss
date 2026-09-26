@@ -372,6 +372,30 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("OPENED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("LAST_ACTIVE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("PINNED", BOOLEAN_DATATYPE_NAME)));
+		// a thread workspace's checklist and "what we know" lines
+		addTable("WORK_THREAD_STEP", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("STEP_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("STATUS", VARCHAR_20),
+				Pair.with("STEP_OWNER_ID", VARCHAR_50),
+				Pair.with("DUE_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ITEM_ID", VARCHAR_50),
+				Pair.with("LINK_TOPIC_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		addTable("WORK_THREAD_FACT", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("FACT_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("FROM_LABEL", VARCHAR_255),
+				Pair.with("STATUS", VARCHAR_20),
+				Pair.with("SOURCE_PERSON_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// @formatter:on
 	}
 }

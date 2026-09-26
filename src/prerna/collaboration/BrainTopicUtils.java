@@ -431,9 +431,11 @@ public final class BrainTopicUtils {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
 			}
-			CollaborationDbUtils.update(conn, "UPDATE WORK_ITEM SET LINK_TOPIC_ID = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", targetTopicId, ownerId, ownerType,
-					sourceTopicId);
+			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
+				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET LINK_TOPIC_ID = ? "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", targetTopicId, ownerId,
+						ownerType, sourceTopicId);
+			}
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
 					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?", ownerId, ownerType,
 					sourceTopicId);
@@ -497,8 +499,10 @@ public final class BrainTopicUtils {
 					"BRAIN_RULE", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
-			CollaborationDbUtils.update(conn, "UPDATE WORK_ITEM SET LINK_TOPIC_ID = NULL "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", ownerId, ownerType, topicId);
+			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
+				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET LINK_TOPIC_ID = NULL "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", ownerId, ownerType, topicId);
+			}
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
 					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?", ownerId, ownerType, topicId);
 			// an open review about this topic (e.g. a new-topic suggestion) no longer applies
