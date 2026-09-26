@@ -1,5 +1,7 @@
 # Workbench default agents
 
+These defaults are reusable WORKSPACE agents executed through `RunAgent`. See the [agent overview](README.md), [configuration guide](agent_configuration.md), and [SEMOSS harness](semoss_harness.md) for the backend concepts. Skills listed here are project attachments; their staging and loading are documented in the [skill guide](skills/skills_doc.md).
+
 Workbench assistants use these platform WORKSPACE projects by default:
 
 | Workbench | Agent ID | Display name | Skills |
@@ -46,3 +48,7 @@ Workbench `configure({ systemPrompt })` appends that text after the selected age
 The workbench sends these values as room `instructions` and `overrideSystemPrompt` on every submission, including resumed rooms. The workbench flag defaults to `false`; legacy room clients that omit the flag retain their existing replacement behavior. Deploy the backend prompt-composition change with the frontend so the flag is honored.
 
 Room options store the effective `workspace` and `workbenchAgentMode` (`default` or `custom`) on submission. Resuming a default-mode conversation uses the current workbench default; custom selections are restored. Older conversations with a saved workspace and no mode retain that workspace as a custom selection. A selection that has not been used for a message is not yet persisted to the server.
+
+## Other platform agents
+
+The platform catalog also includes presentation authoring/review agents. They are specialized workspace configurations rather than an additional harness. See the [presentation workflow](pptx-visual-inspection.md) and [SystemAgentSeeder](../../src/prerna/util/SystemAgentSeeder.java) for their tools, skills, limits, and delegation configuration. [SystemDefaultEngines](../../src/prerna/util/SystemDefaultEngines.java) is the authoritative list of system agents and skills.

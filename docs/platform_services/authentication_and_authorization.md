@@ -1,44 +1,45 @@
-# Authentication and Authorization in SEMOSS
+# Authentication and Authorization
 
-The `src/prerna/auth/` package and its sub-packages are responsible for managing user identity, authentication, and access control throughout the SEMOSS platform.
+SEMOSS authenticates requests through the configured Monolith web layer and enforces access to engines, projects, insights, rooms, and runs in the corresponding services. The two concerns are related but separate: a signed-in user still needs permission to use a resource.
 
-## Core Security Objects
+## Identity and resource access
 
-*   **`User.java`**: Represents an authenticated user within SEMOSS. It typically stores user identifiers (from various authentication providers), profile information, and potentially a collection of their permissions or roles.
-*   **`AccessToken.java`**: Represents a security token (e.g., a JWT or an opaque token) issued to a user upon successful authentication. This token is then used to authenticate subsequent API requests and manage user sessions. `ReadOnlyAccessToken` might be a specialized version for read-only operations.
-*   **`AuthProvider.java`**: An enumeration that defines the different methods by which a user can be authenticated (e.g., `NATIVE` for users stored in SEMOSS's own database, `LDAP`, `SAML`, `OIDC` for integration with external identity providers).
-*   **`AccessPermissionEnum.java`**: Defines the various levels of access rights a user can have on a resource (e.g., `READ_ONLY`, `EDIT`, `OWNER`).
+| Component | Role |
+| --- | --- |
+| [User](../../src/prerna/auth/User.java) | Current user and associated login identities |
+| [AccessToken](../../src/prerna/auth/AccessToken.java) | Provider identity/token information used by authentication integrations; not a claim that every request uses a JWT |
+| [AuthProvider](../../src/prerna/auth/AuthProvider.java) | Supported provider identifiers |
+| [AccessPermissionEnum](../../src/prerna/auth/AccessPermissionEnum.java) | Resource levels `OWNER`, `EDIT`, and `READ_ONLY` |
+| [SecurityEngineUtils](../../src/prerna/auth/utils/SecurityEngineUtils.java) | Engine access and metadata |
+| [SecurityProjectUtils](../../src/prerna/auth/utils/SecurityProjectUtils.java) | Project access and metadata, including WORKSPACE and SKILL projects |
+| [SecurityInsightUtils](../../src/prerna/auth/utils/SecurityInsightUtils.java) | Saved-insight access |
 
-## Authentication Process (High-Level)
+The enabled providers and filters depend on `social.properties`, Monolith configuration, and deployment settings. See [configuration](../development_guides/configuration_and_environment.md) and [Monolith integration](../integrations/monolith_interaction.md).
 
-1.  **Login Request**: A user initiates a login request, typically providing credentials or being redirected from an external Identity Provider (IdP).
-2.  **Provider Determination**: SEMOSS identifies the `AuthProvider` being used for the login attempt.
-3.  **Credential Validation**:
-    *   For `NATIVE` users, `prerna.auth.utils.SecurityNativeUserUtils` likely handles the validation of credentials against a user store within SEMOSS's security database.
-    *   For external providers (LDAP, SAML, OIDC), SEMOSS would interact with the respective IdP according to the protocol's specifications. This might involve validating assertions or tokens provided by the IdP.
-4.  **User Object Creation**: Upon successful authentication, a `User` object is created or retrieved, populating it with identity information.
-5.  **Token Issuance**: `prerna.auth.utils.SecurityTokenUtils` is responsible for generating an `AccessToken` for the authenticated `User`. This token encapsulates the user's authenticated state.
-6.  **Session Management**: The `AccessToken` is used to manage the user's session, typically sent with each subsequent request to the backend.
+## Request handling
 
-## Authorization Process (High-Level)
+Monolith establishes the configured session or integration identity. REST resources resolve the user's execution context. Reactors and service methods then validate the specific operation, such as viewing an engine, editing a target project, or changing ownership settings.
 
-SEMOSS employs a role-based or permission-based access control model, primarily managed through its security database.
+Custom reactors should check access before loading and operating on a user-selected resource. A resource identifier supplied by a client or model is not proof of permission. Use the platform's security utilities and existing authorized operations instead of introducing a parallel permission model.
 
-1.  **Resource Access Request**: A user, identified by their `AccessToken` and associated `User` object, attempts to access or modify a resource (e.g., an Engine, Project, Insight, or perform a specific action).
-2.  **Permission Check**:
-    *   Utility classes within `prerna.auth.utils/` are invoked to check permissions. For example:
-        *   `SecurityEngineUtils.userCanViewEngine(User user, String engineId)`
-        *   `SecurityProjectUtils.userCanEditProject(User user, String projectId)`
-    *   These methods query the security database, which stores relationships between users (or groups they belong to) and resources, along with the `AccessPermissionEnum` level granted.
-3.  **Decision**: Based on the permissions found in the security database, the system either grants or denies access to the resource or action. Both direct user permissions and permissions derived from group memberships are typically considered.
-4.  **External Authorization**: The `prerna.auth.external.ExternalAuthorizationHelper` class suggests that SEMOSS can also integrate with external systems for making authorization decisions, potentially augmenting or overriding its internal permission model.
+## Agents, skills, and approvals
 
-## Key Utility Packages/Classes
+Agent execution has several access boundaries:
 
-*   **`prerna.auth.utils`**: This package is central to security operations.
-    *   `AbstractSecurityUtils`: Provides base functionality and access to the security database (often an H2 database instance).
-    *   `SecurityEngineUtils`, `SecurityProjectUtils`, `SecurityInsightUtils`: Manage permissions and metadata for Engines, Projects, and Insights, respectively. They handle storing and retrieving these entities along with their associated user/group permissions from the security database.
-    *   `SecurityAdminUtils`: Provides functions for administrative security tasks.
-    *   `SecurityGroup*Utils`: A set of classes for managing security groups and their permissions on various resources.
+- The selected model must be accessible and appropriate for the requested model operation.
+- A reusable workspace agent is governed by project access; editing its configuration needs edit access.
+- Editing files in a project target needs the target's edit permission, independently of the agent workspace.
+- Skill attachment needs workspace edit access and access to the skill project. Reading skill content follows project asset access rules.
+- Tool calls enforce access to the engines or projects they operate on.
+- Ordinary run reads, streaming, cancellation, and pending-action decisions use the run's owner identity. Specialized automation paths have their own explicit authorization logic.
 
-The authentication and authorization mechanisms are designed to be comprehensive, supporting both native user management and integration with enterprise identity systems, while providing granular control over access to SEMOSS resources.
+A tool approval is permission to perform the recorded action within the caller's existing authority; it does not grant new engine or project privileges. Decisions are validated against persisted `AGENT_RUN_ACTION` records. Skills, prompts, and working-directory instruction files describe behavior and do not grant permissions.
+
+Filesystem containment, restricted built-in commands, and optional process sandboxing are additional runtime controls. Their scope depends on the selected tool and deployment configuration; do not equate them with resource authorization or assume universal process isolation.
+
+## Related guides
+
+- [Agent configuration](../agents/agent_configuration.md)
+- [Approval and input pauses](../agents/agent_runs.md#approval-and-input-pauses)
+- [Skill content and access](../agents/skills/skills_doc.md)
+- [Internal databases](internal_databases.md)
