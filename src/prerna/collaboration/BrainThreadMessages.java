@@ -142,7 +142,10 @@ public final class BrainThreadMessages {
 				hidden++;
 				continue;
 			}
-			out.add(entry(row, clean, sender, rules, topicIds, source, included));
+			Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
+			entry.put("to", recipients(message.get("toRecipients")));
+			entry.put("cc", recipients(message.get("ccRecipients")));
+			out.add(entry);
 		}
 		// every fetch failed: surface why (for example no Microsoft login) instead of an empty thread
 		if (out.isEmpty() && firstError != null) {
@@ -234,6 +237,23 @@ public final class BrainThreadMessages {
 		Object from = message.get("from");
 		Object address = from instanceof Map<?, ?> f ? f.get("emailAddress") : null;
 		return address instanceof Map<?, ?> a ? (Map<String, Object>) a : Map.of();
+	}
+
+	// Graph recipients as name and address; the classifier marks the owner's own address
+	private static List<Map<String, Object>> recipients(Object value) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		if (value instanceof List<?> list) {
+			for (Object item : list) {
+				Object address = item instanceof Map<?, ?> r ? r.get("emailAddress") : null;
+				if (address instanceof Map<?, ?> a) {
+					Map<String, Object> recipient = new LinkedHashMap<>();
+					recipient.put("name", a.get("name"));
+					recipient.put("address", a.get("address"));
+					out.add(recipient);
+				}
+			}
+		}
+		return out;
 	}
 
 	@SuppressWarnings("unchecked")

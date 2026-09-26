@@ -41,7 +41,8 @@ import prerna.security.HttpHelperUtility;
 final class BrainGraphMessageSource implements BrainMessageSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
-	private static final String MAIL_SELECT = "subject,from,body,uniqueBody,receivedDateTime,conversationId";
+	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
+			+ "conversationId";
 
 	@Override
 	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId)

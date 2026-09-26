@@ -34,15 +34,16 @@ import prerna.collaboration.BrainThreadClassifier;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], engine=["..."]);
+// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], engine=["..."], dryRun=[true]);
 public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 
 	private static final String THREAD_IDS = "threadIds";
 	private static final String ENGINE = "engine";
+	private static final String DRY_RUN = "dryRun";
 
 	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, ENGINE };
-		this.keyRequired = new int[] { 0, 0 };
+		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -50,12 +51,13 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 		User user = getUser();
 		GenRowStruct ids = this.store.getNoun(THREAD_IDS);
 		List<String> threadIds = ids == null ? null : ids.getAllStrValues();
-		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE)));
+		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE),
+				Boolean.TRUE.equals(getBoolean(DRY_RUN))));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Files threads under topics and creates work items with the Jev classifier (v0)";
+		return "Files threads under topics and creates work items with the Brain classifier (v0, pluggable model)";
 	}
 
 	@Override
@@ -63,7 +65,9 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 		if (THREAD_IDS.equals(key)) {
 			return "Threads to classify; omit for every unmuted thread with no work item yet";
 		} else if (ENGINE.equals(key)) {
-			return "TypeSafe engine id; omit to use Brain settings";
+			return "Model engine id (a Jev/TypeSafe model or any chat model); omit to use Brain settings";
+		} else if (DRY_RUN.equals(key)) {
+			return "true to return scores for every unmuted thread without writing anything";
 		}
 		return super.getDescriptionForKey(key);
 	}

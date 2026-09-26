@@ -345,6 +345,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ASSIGNEE_PERSON_ID", VARCHAR_50),
 				Pair.with("LINK_TOPIC_ID", VARCHAR_50),
 				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
+				// the classifier's raw scores, kept so its cutoffs can be re-tuned from owner corrections
+				Pair.with("SIGNALS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("DEDUPE_KEY", VARCHAR_255),
 				Pair.with("SUGGESTED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("CLOSED_AT", TIMESTAMP_DATATYPE_NAME),
