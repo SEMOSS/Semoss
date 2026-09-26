@@ -47,6 +47,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -68,6 +69,7 @@ import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.scheduler.AgentScheduleService;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
@@ -123,6 +125,10 @@ final class PlatformAgentToolHandlers {
 		JSONObject asToolDefinition();
 
 		String execute(Map<String, Object> params, AgentRunContext ctx) throws Exception;
+
+		default boolean isAvailable(AgentRunContext ctx) {
+			return true;
+		}
 	}
 
 	static Map<String, ToolHandler> handlersByName() {
@@ -278,6 +284,52 @@ final class PlatformAgentToolHandlers {
 										prop("max_bytes", integerProp("Maximum bytes to return. Defaults to 8192."))),
 								List.of("skill_name")),
 						PlatformAgentToolHandlers::loadSkill));
+		add(tools, playgroundHandler("CreateAgentSchedule",
+				"Create a scheduled RunAgent task in Playground. taskPrompt is the exact user-visible instruction replayed when the schedule fires; timing belongs only in scheduleType, runAt, cronExpression, and timezone. Rewrite the request as the action to perform now. Incorrect taskPrompt: 'Send trivia every morning.' Correct taskPrompt: 'Post one trivia question with four choices and mark the correct answer.' A selected agent uses its default model; otherwise the current model is used unless modelId overrides it.",
+				objectSchema(
+						props(prop("name", stringProp("Optional display name.")),
+								prop("taskPrompt", stringProp(
+										"Exact user-visible instruction replayed by RunAgent on every firing. Describe only the action to perform now; never include the cadence, time, timezone, or a request to create a schedule.")),
+								prop("agentId", stringProp("Optional saved agent/workspace id.")),
+								prop("modelId", stringProp(
+										"Optional accessible model override. When no saved agent is selected, the current model is used by default.")),
+								prop("scheduleType", stringProp("ONCE or RECURRING.")),
+								prop("runAt", stringProp("ISO local date-time for an ONCE schedule.")),
+								prop("cronExpression", stringProp("Quartz cron for a RECURRING schedule.")),
+								prop("timezone", stringProp("IANA timezone, such as America/New_York.")),
+								prop("roomMode", stringProp("FRESH or CONTINUE.")),
+								prop("continuingRoomId", stringProp("Owned Playground room id for CONTINUE."))),
+						List.of("taskPrompt", "scheduleType")),
+				PlatformAgentToolHandlers::createAgentSchedule));
+		add(tools, playgroundHandler("ListAgentSchedules",
+				"List the current user's Playground agent schedules, next execution, pause state, latest invocation, and current agent-run status.",
+				objectSchema(new LinkedHashMap<>(), Collections.emptyList()),
+				PlatformAgentToolHandlers::listAgentSchedules));
+		add(tools, playgroundHandler("GetAgentScheduleHistory",
+				"Read the existing scheduler audit history for one owned Playground agent schedule.",
+				objectSchema(
+						props(prop("scheduleId", stringProp("Owned agent schedule id.")),
+								prop("limit", integerProp("Maximum audit rows to return, up to 200."))),
+						List.of("scheduleId")),
+				PlatformAgentToolHandlers::getAgentScheduleHistory));
+		add(tools, playgroundHandler("ManageAgentSchedule",
+				"Update, pause, resume, delete, or run an owned Playground agent schedule now. action is UPDATE, PAUSE, RESUME, DELETE, or RUN_NOW.",
+				objectSchema(
+						props(prop("scheduleId", stringProp("Owned agent schedule id.")),
+								prop("action", stringProp("UPDATE, PAUSE, RESUME, DELETE, or RUN_NOW.")),
+								prop("name", stringProp("Updated display name.")),
+								prop("taskPrompt", stringProp(
+										"Updated exact instruction replayed by RunAgent. Do not include scheduling or timing language.")),
+								prop("agentId", stringProp("Updated saved agent/workspace id.")),
+								prop("modelId", stringProp("Updated model override.")),
+								prop("scheduleType", stringProp("ONCE or RECURRING.")),
+								prop("runAt", stringProp("Updated ISO local date-time for ONCE.")),
+								prop("cronExpression", stringProp("Updated Quartz cron for RECURRING.")),
+								prop("timezone", stringProp("Updated IANA timezone.")),
+								prop("roomMode", stringProp("FRESH or CONTINUE.")),
+								prop("continuingRoomId", stringProp("Updated owned Playground room id."))),
+						List.of("scheduleId", "action")),
+				PlatformAgentToolHandlers::manageAgentSchedule));
 		return Collections.unmodifiableMap(tools);
 	}
 
@@ -286,6 +338,11 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static ToolHandler handler(String name, String description, JSONObject inputSchema, ToolExecutor executor) {
+		return handler(name, description, inputSchema, ctx -> true, executor);
+	}
+
+	private static ToolHandler handler(String name, String description, JSONObject inputSchema,
+			Predicate<AgentRunContext> availability, ToolExecutor executor) {
 		return new ToolHandler() {
 			@Override
 			public String getName() {
@@ -310,7 +367,64 @@ final class PlatformAgentToolHandlers {
 			public String execute(Map<String, Object> params, AgentRunContext ctx) throws Exception {
 				return executor.execute(params != null ? params : Collections.emptyMap(), toolContext(ctx));
 			}
+
+			@Override
+			public boolean isAvailable(AgentRunContext ctx) {
+				return availability.test(ctx);
+			}
 		};
+	}
+
+	private static ToolHandler playgroundHandler(String name, String description, JSONObject inputSchema,
+			ToolExecutor executor) {
+		return handler(name, description, inputSchema,
+				ctx -> ctx != null && ctx.getRoom() != null && ctx.getInsight() != null && ctx.getAgentConfig() != null
+						&& !ctx.getInsight().isSchedulerMode()
+						&& !parseBoolean(ctx.getAgentConfig().getAgentParams()
+								.get(AgentScheduleService.PARAM_SCHEDULED_RUN))
+						&& prerna.playground.PlaygroundUtils.PLAYGROUND_PROJECT_ID.equals(ctx.getRoom().getProjectId()),
+				executor);
+	}
+
+	private static String createAgentSchedule(Map<String, Object> params, ToolContext tc) {
+		String taskPrompt = stringParam(params, "taskPrompt");
+		String agentId = stringParam(params, "agentId");
+		String modelId = stringParam(params, "modelId");
+		if ((agentId == null || agentId.isBlank()) && (modelId == null || modelId.isBlank())) {
+			modelId = tc.ctx.getAgentConfig().getModelId();
+		}
+		Map<String, Object> result = AgentScheduleService.create(tc.ctx.getInsight(), stringParam(params, "name"),
+				taskPrompt, agentId, modelId,
+				stringParam(params, "scheduleType"), stringParam(params, "cronExpression"),
+				stringParam(params, "runAt"), stringParam(params, "timezone"), stringParam(params, "roomMode"),
+				stringParam(params, "continuingRoomId"));
+		return new JSONObject(result).toString();
+	}
+
+	private static String listAgentSchedules(Map<String, Object> params, ToolContext tc) {
+		return new JSONArray(AgentScheduleService.list(tc.ctx.getInsight())).toString();
+	}
+
+	private static String getAgentScheduleHistory(Map<String, Object> params, ToolContext tc) {
+		int limit = parseIntAtLeast(params.get("limit"), 50, 1);
+		return new JSONArray(AgentScheduleService.history(tc.ctx.getInsight(), stringParam(params, "scheduleId"), limit))
+				.toString();
+	}
+
+	private static String manageAgentSchedule(Map<String, Object> params, ToolContext tc) {
+		Map<String, String> updates = new LinkedHashMap<>();
+		for (String key : List.of("name", "agentId", "modelId", "scheduleType", "cronExpression",
+				"runAt", "timezone", "roomMode", "continuingRoomId")) {
+			if (params.containsKey(key)) {
+				updates.put(key, stringParam(params, key));
+			}
+		}
+		if (params.containsKey("taskPrompt")) {
+			updates.put("prompt", stringParam(params, "taskPrompt"));
+		}
+		Map<String, Object> result = AgentScheduleService.manage(tc.ctx.getInsight(),
+				stringParam(params, "scheduleId"), stringParam(params, "action"), updates);
+		return new JSONObject(result).toString();
 	}
 
 	private static ToolContext toolContext(AgentRunContext ctx) {

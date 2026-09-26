@@ -72,13 +72,18 @@ public final class PlatformAgentTools {
 	}
 
 	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap, Set<String> disabledNames) {
+		return resolveDefaultTools(paramMap, disabledNames, null);
+	}
+
+	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap, Set<String> disabledNames,
+			AgentRunContext ctx) {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (useDefaultAgentTools(paramMap)) {
 			String overrideMcpId = getDefaultToolsMcpId();
 			if (overrideMcpId != null) {
 				tools.addAll(getMcpToolDefinitions(overrideMcpId));
 			} else {
-				tools.addAll(getPlatformToolDefinitions());
+				tools.addAll(getPlatformToolDefinitions(ctx));
 			}
 		}
 		tools.addAll(getExplicitTools(paramMap));
@@ -131,6 +136,9 @@ public final class PlatformAgentTools {
 		if (handler == null) {
 			throw new IllegalArgumentException("Unknown platform agent tool: " + toolName);
 		}
+		if (!handler.isAvailable(ctx)) {
+			throw new SecurityException("Platform agent tool is not available in this room: " + toolName);
+		}
 		return handler.execute(params, ctx);
 	}
 
@@ -176,10 +184,12 @@ public final class PlatformAgentTools {
 		return id != null && !id.trim().isEmpty() ? id.trim() : null;
 	}
 
-	private static List<Map<String, Object>> getPlatformToolDefinitions() {
+	private static List<Map<String, Object>> getPlatformToolDefinitions(AgentRunContext ctx) {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (PlatformAgentToolHandlers.ToolHandler handler : PLATFORM_TOOLS.values()) {
-			tools.add(handler.asToolDefinition().toMap());
+			if (handler.isAvailable(ctx)) {
+				tools.add(handler.asToolDefinition().toMap());
+			}
 		}
 		return tools;
 	}
