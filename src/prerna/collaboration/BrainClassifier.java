@@ -63,7 +63,7 @@ public interface BrainClassifier {
 	/**
 	 * Where scores turn into work: fyi at or above fyiAt is FYI, below asksAt asks the owner, in between the
 	 * owner confirms; automated at or above automatedAt skips the thread. Models score on different scales,
-	 * so Brain settings can override these per engine (weightsJson.classifierCutoffs.<engineId>).
+	 * so RDF_Map can override these per engine (COLLAB_CLASSIFIER_CUTOFFS {engineId: {...}}).
 	 */
 	record Cutoffs(double fyiAt, double asksAt, double automatedAt) {
 	}

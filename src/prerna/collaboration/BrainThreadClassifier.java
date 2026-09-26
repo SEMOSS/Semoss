@@ -47,6 +47,7 @@ import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 // Classifier v0 (BRAIN-04 / WORK-02 stand-in): reads each thread through the rules gate, asks a pluggable
@@ -76,11 +77,13 @@ public final class BrainThreadClassifier {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		Map<String, Object> settings = BrainProfileUtils.getSettings(ownerId, ownerType);
-		String engine = engineId != null ? engineId : (String) settings.get("classifierEngineId");
+		// the platform model serves everyone; a named engine (evals) needs the caller's own access
+		String engine = engineId != null ? engineId : platformEngine();
 		if (engine == null) {
-			throw new IllegalArgumentException("Set a classifier engine in Brain settings first");
+			throw new IllegalArgumentException("No classifier model is set; an admin sets "
+					+ Constants.COLLAB_CLASSIFIER_ENGINE_ID + " in RDF_Map.prop");
 		}
-		if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
+		if (engineId != null && !SecurityEngineUtils.userCanViewEngine(user, engine)) {
 			throw new IllegalArgumentException("Model " + engine + " does not exist or you do not have access to it");
 		}
 		IModelEngine model = Utility.getModel(engine);
@@ -88,7 +91,7 @@ public final class BrainThreadClassifier {
 			throw new IllegalArgumentException("Model " + engine + " could not be loaded");
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
-		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(settings, engine, classifier),
+		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier),
 				topics(ownerId, ownerType), (Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun,
 				self(ownerId, ownerType));
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
@@ -241,14 +244,18 @@ public final class BrainThreadClassifier {
 		return new Result(threadId, topicId, confidence, band, work, priority, signals, null);
 	}
 
-	// the classifier's defaults, unless Brain settings carry cutoffs for this engine
+	/** The platform classifier engine id from RDF_Map.prop, or null when unset. */
+	public static String platformEngine() {
+		String id = Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFIER_ENGINE_ID);
+		return id == null || id.isBlank() ? null : id.trim();
+	}
+
+	// the classifier's defaults, unless RDF_Map carries cutoffs for this engine
 	@SuppressWarnings("unchecked")
-	private static BrainClassifier.Cutoffs cutoffs(Map<String, Object> settings, String engine,
-			BrainClassifier classifier) {
+	private static BrainClassifier.Cutoffs cutoffs(String engine, BrainClassifier classifier) {
 		BrainClassifier.Cutoffs base = classifier.cutoffs();
-		Object weights = settings.get("weightsJson");
-		Object all = weights instanceof Map<?, ?> w ? w.get("classifierCutoffs") : null;
-		Object mine = all instanceof Map<?, ?> a ? a.get(engine) : null;
+		Map<String, Object> all = CollaborationDbUtils.parseMap(Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFIER_CUTOFFS));
+		Object mine = all == null ? null : all.get(engine);
 		if (!(mine instanceof Map<?, ?> m)) {
 			return base;
 		}

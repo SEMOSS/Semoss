@@ -61,7 +61,7 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (KEY.equals(key)) {
-			return "Partial settings: classifierEngineId, fileAt, askAt, weightsJson, sourcesJson {sourceId: bool}, version";
+			return "Partial settings: fileAt, askAt, weightsJson, sourcesJson {sourceId: bool}, version";
 		}
 		return super.getDescriptionForKey(key);
 	}

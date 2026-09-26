@@ -1084,6 +1084,9 @@ public class Constants {
 	// collaboration db (Brain and Work)
 	public static final String COLLABORATION_DATABASE_ENABLED = "COLLABORATION_DATABASE_ENABLED";
 	public static final String COLLABORATION_DB = "Collaboration";
+	// one brain classifier model for the whole platform, and its cutoffs per engine id
+	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
+	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

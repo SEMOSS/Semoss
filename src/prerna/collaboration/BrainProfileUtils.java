@@ -203,7 +203,8 @@ public final class BrainProfileUtils {
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
-					row.put("classifierEngineId", CollaborationDbUtils.getString(rs, "CLASSIFIER_ENGINE_ID"));
+					// read-only: one platform classifier (RDF_Map); the column is no longer used
+					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
 					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
 					row.put("sourcesJson", null);
@@ -247,7 +248,6 @@ public final class BrainProfileUtils {
 		List<Object> params = new ArrayList<>();
 		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
 		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
-		CollaborationDbUtils.setIfPresent(changes, "classifierEngineId", "CLASSIFIER_ENGINE_ID", sets, params);
 		if (changes.containsKey("weightsJson")) {
 			Object weights = changes.get("weightsJson");
 			CollaborationDbUtils.addSet(sets, params, "WEIGHTS_JSON", CollaborationDbUtils.toJson(weights));
