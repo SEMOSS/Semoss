@@ -31,16 +31,20 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonParseException;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AuthProvider;
@@ -52,7 +56,6 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
-import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.engine.AbstractEngineFileReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -212,45 +215,7 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 			}
 			return;
 		}
-		// No uploaded content, auto-generate a starter Python file.
-		List<String> requiredParams = GSON.fromJson(
-				asJsonList(functionDetails.get(IFunctionEngine.REQUIRED_PARAMETER_KEY)), new TypeToken<List<String>>() {
-				}.getType());
-		List<FunctionParameter> allParams = GSON.fromJson(
-				asJsonList(functionDetails.get(IFunctionEngine.PARAMETER_KEY)),
-				new TypeToken<List<FunctionParameter>>() {
-				}.getType());
-		Map<String, String> paramDescriptions = allParams.stream().collect(Collectors.toMap(
-				FunctionParameter::getParameterName,
-				parameter -> parameter.getParameterDescription() == null ? "" : parameter.getParameterDescription(),
-				(first, replacement) -> replacement));
-
-		Object configuredFunctionName = functionDetails.get(IFunctionEngine.NAME_KEY);
-		if (configuredFunctionName == null || configuredFunctionName.toString().isBlank()) {
-			throw new IllegalArgumentException("Must define the Python function name");
-		}
-		String pythonFunctionName = configuredFunctionName.toString().trim();
-		validatePythonIdentifier(pythonFunctionName, "function name");
-		for (String requiredParam : requiredParams) {
-			validatePythonIdentifier(requiredParam, "required parameter");
-		}
-		String functionParameters = requiredParams.stream().map(param -> "    " + param + ": str,")
-				.collect(Collectors.joining("\n"));
-		String parameterDocumentation = requiredParams.stream()
-				.map(param -> "        " + param + " (str): " + paramDescriptions.getOrDefault(param, ""))
-				.collect(Collectors.joining("\n"));
-		String printStatements = requiredParams.stream().map(param -> "    print(\"" + param + " - \", " + param + ")")
-				.collect(Collectors.joining("\n"));
-		String generatedPython = """
-				def %s(
-				%s
-				):
-				    \"""
-				    Args:
-				%s
-				    \"""
-				%s
-				""".formatted(pythonFunctionName, functionParameters, parameterDocumentation, printStatements);
+		String generatedPython = buildPythonStarter(functionDetails);
 
 		try (BufferedWriter writer = new BufferedWriter(new FileWriter(mainPy))) {
 			writer.write(generatedPython);
@@ -261,16 +226,91 @@ public class CreatePythonFunctionEngineReactor extends AbstractEngineFileReactor
 		}
 	}
 
-	private static String asJsonList(Object value) {
-		if (value == null || value.toString().isBlank()) {
-			return "[]";
+	static String buildPythonStarter(Map<String, Object> functionDetails) {
+		List<String> requiredParams = parseRequiredParameters(
+				functionDetails.get(IFunctionEngine.REQUIRED_PARAMETER_KEY));
+		List<Map<String, String>> allParams = parseParameters(functionDetails.get(IFunctionEngine.PARAMETER_KEY));
+		String functionName = String.valueOf(functionDetails.get(IFunctionEngine.NAME_KEY));
+		validatePythonIdentifier(functionName, "function name");
+
+		Map<String, Map<String, String>> paramsByName = new LinkedHashMap<>();
+		for (Map<String, String> param : allParams) {
+			String name = param.get("parameterName");
+			validatePythonIdentifier(name, "parameter name");
+			paramsByName.put(name, param);
 		}
-		return value instanceof String stringValue ? stringValue : GSON.toJson(value);
+
+		Set<String> requiredNames = new LinkedHashSet<>(requiredParams);
+		List<String> orderedNames = new ArrayList<>(requiredNames);
+		for (String name : paramsByName.keySet()) {
+			if (!requiredNames.contains(name)) {
+				orderedNames.add(name);
+			}
+		}
+
+		StringBuilder builder = new StringBuilder("def ").append(functionName).append("(\n");
+		for (String name : orderedNames) {
+			validatePythonIdentifier(name, "parameter name");
+			Map<String, String> metadata = paramsByName.getOrDefault(name, Map.of());
+			builder.append("    ").append(name).append(": ").append(toPythonType(metadata.get("parameterType")));
+			if (!requiredNames.contains(name)) {
+				builder.append(" = None");
+			}
+			builder.append(",\n");
+		}
+		builder.append("):\n    \"\"\"\n    Args:\n");
+		for (String name : orderedNames) {
+			Map<String, String> metadata = paramsByName.getOrDefault(name, Map.of());
+			builder.append("        ").append(name).append(" (").append(toPythonType(metadata.get("parameterType")))
+					.append("): ").append(metadata.getOrDefault("parameterDescription", "")).append("\n");
+		}
+		builder.append("    \"\"\"\n");
+		for (String name : orderedNames) {
+			builder.append("    print(\"").append(name).append(" - \", ").append(name).append(")\n");
+		}
+		return builder.toString();
+	}
+
+	private static String toPythonType(String type) {
+		if (type == null) {
+			return "str";
+		}
+		return switch (type.toLowerCase()) {
+		case "integer" -> "int";
+		case "number" -> "float";
+		case "boolean" -> "bool";
+		case "object" -> "dict";
+		case "array" -> "list";
+		default -> "str";
+		};
 	}
 
 	private static void validatePythonIdentifier(String value, String field) {
 		if (value == null || !value.matches("[A-Za-z_][A-Za-z0-9_]*")) {
 			throw new IllegalArgumentException("The Python " + field + " must be a valid identifier");
+		}
+	}
+
+	static List<String> parseRequiredParameters(Object value) {
+		return parseList(value, new TypeToken<List<String>>() {
+		}, IFunctionEngine.REQUIRED_PARAMETER_KEY);
+	}
+
+	static List<Map<String, String>> parseParameters(Object value) {
+		return parseList(value, new TypeToken<List<Map<String, String>>>() {
+		}, IFunctionEngine.PARAMETER_KEY);
+	}
+
+	private static <T> List<T> parseList(Object value, TypeToken<List<T>> type, String key) {
+		if (value == null) {
+			return List.of();
+		}
+		try {
+			List<T> parsed = value instanceof String ? GSON.fromJson((String) value, type.getType())
+					: GSON.fromJson(GSON.toJson(value), type.getType());
+			return parsed == null ? List.of() : parsed;
+		} catch (JsonParseException e) {
+			throw new IllegalArgumentException(key + " must be a JSON array", e);
 		}
 	}
 
