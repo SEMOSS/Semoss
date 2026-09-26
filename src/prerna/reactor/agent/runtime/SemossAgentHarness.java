@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -181,6 +182,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
+		// a Work thread's assistant only answers and drafts; the owner acts from the Work screen
+		boolean threadRoom = CollaborationUtils.isThreadRoom(room);
+		if (threadRoom) {
+			defaultAndExplicitTools.clear();
+			subAgentTools.clear();
+		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -207,24 +214,27 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(
+				threadRoom ? CollaborationPrompts.THREAD_ROOM_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow() && !threadRoom) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier
 		// in the run) so
 		// the model knows what it can pull in via LoadSkill. Empty when no skills are
 		// present.
-		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		String availableSkillsBlock = threadRoom ? "" : buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
-		if (agentConfig.hasPptxWorkflow()) {
+		if (!threadRoom) {
+			composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
+		}
+		if (agentConfig.hasPptxWorkflow() && !threadRoom) {
 			composed.append("\n\n").append(PptxWorkflow.PROMPT);
 		}
 		opts.put("instructions", composed.toString());

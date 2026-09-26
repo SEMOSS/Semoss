@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import java.util.List;
+import java.util.Map;
 
 import prerna.engine.impl.model.Room;
 import prerna.playground.PlaygroundUtils;
@@ -45,6 +46,8 @@ public final class CollaborationUtils {
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
+	// Set by Work on a thread's assistant room (threadId, contextRevision, modelId).
+	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
 
 	private CollaborationUtils() {
 	}
@@ -65,5 +68,14 @@ public final class CollaborationUtils {
 
 	public static boolean isCollaborationRoom(Room room) {
 		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
+	}
+
+	/** A collaboration room that Work opened for one thread's assistant. */
+	public static boolean isThreadRoom(Room room) {
+		if (!isCollaborationRoom(room)) {
+			return false;
+		}
+		Map<String, Object> options = room.getOptionsMap();
+		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
 	}
 }
