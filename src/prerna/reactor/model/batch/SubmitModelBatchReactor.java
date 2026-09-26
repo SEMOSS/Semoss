@@ -34,6 +34,7 @@ import java.util.Map;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchSubmissionResponse;
 import prerna.om.ThreadStore;
@@ -68,6 +69,7 @@ public class SubmitModelBatchReactor extends AbstractModelBatchReactor {
 		Map<String, Object> params = baseParams();
 
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		ModelUsageRestrictionUtility.getModelUsageRestriction(getUser(), engineId);
 		BatchSubmissionResponse response = engine.submitBatch(requests, params);
 		if (response.getProviderBatchId() != null) {
 			ModelBatchManager.recordBatchSubmission(getUser(), engine, response.getProviderBatchId(), requests,
