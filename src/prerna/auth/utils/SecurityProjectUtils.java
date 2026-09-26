@@ -4758,13 +4758,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
-				for (int i = 0; i < requestIdList.size(); i++) {
-					String requestId = requestIdList.get(i);
+				for (String requestId : requestIdList) {
+					// details of this one request: a single row, so always index 0
 					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
+					if (deniedUserDetails.isEmpty()) {
+						continue;
+					}
+					Map<String, Object> deniedUser = deniedUserDetails.get(0);
 					String permission = AccessPermissionEnum
-							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-						NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
-								(String) deniedUserDetails.get(i).get("type"), projectId,
+							.getPermissionValueById((Integer) deniedUser.get("permission"));
+						NotificationDbUtils.createNotification(user, (String) deniedUser.get("userId"),
+								(String) deniedUser.get("type"), projectId,
 								NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
 								NotificationConstants.Priority.MEDIUM, null, permission,
 								NotificationConstants.DisplaySurface.BELL);

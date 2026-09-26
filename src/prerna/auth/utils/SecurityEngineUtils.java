@@ -778,13 +778,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
-				for (int i = 0; i < requestIds.size(); i++) {
-					String requestId = requestIds.get(i);
+				for (String requestId : requestIds) {
+					// details of this one request: a single row, so always index 0
 					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
+					if (deniedUserDetails.isEmpty()) {
+						continue;
+					}
+					Map<String, Object> deniedUser = deniedUserDetails.get(0);
 					String permission = AccessPermissionEnum
-							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-						NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
-								(String) deniedUserDetails.get(i).get("type"), engineId,
+							.getPermissionValueById((Integer) deniedUser.get("permission"));
+						NotificationDbUtils.createNotification(user, (String) deniedUser.get("userId"),
+								(String) deniedUser.get("type"), engineId,
 								NotificationConstants.Type.REQUEST_DENIAL, engineType,
 								NotificationConstants.Priority.MEDIUM, null, permission,
 								NotificationConstants.DisplaySurface.BELL);
