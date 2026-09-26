@@ -307,7 +307,7 @@ public final class WorkItemUtils {
 	// ingest: one item per dedupeKey, so a retried delivery returns the first item; a muted thread gets none.
 	// required: threadId, channel, title, askType, receivedAt, dedupeKey. optional: sourceRef, actorType,
 	// actorId, actorName, priority, score, reasons, dueAt, linkTopicId, classifierVersion, status (open or
-	// waiting), origin (brain or assistant), reason
+	// waiting), origin (brain or assistant), suggested (brain unsure; the owner confirms), reason
 	public static Map<String, Object> createFromIngest(String ownerId, String ownerType, Map<String, Object> item) {
 		String dedupeKey = required(item, "dedupeKey");
 		String threadId = required(item, "threadId");
@@ -362,7 +362,8 @@ public final class WorkItemUtils {
 					priority, score, reasons(item.get("reasons")), CollaborationDbUtils.toTimestamp(item.get("dueAt"),
 							"dueAt"),
 					receivedAt, status, null, linkTopicId,
-					CollaborationDbUtils.asString(item.get("classifierVersion")), dedupeKey, ASSISTANT.equals(origin),
+					CollaborationDbUtils.asString(item.get("classifierVersion")), dedupeKey,
+					ASSISTANT.equals(origin) || Boolean.TRUE.equals(item.get("suggested")),
 					origin, CollaborationDbUtils.asString(item.getOrDefault("reason", "ingest")));
 			result.put("created", true);
 			result.put("item", getItem(ownerId, ownerType, itemId));
