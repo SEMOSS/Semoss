@@ -30,8 +30,11 @@ package prerna.engine.impl.function;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -45,16 +48,26 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.FunctionTypeEnum;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IStorageEngine;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.engine.impl.storage.S3StorageEngine;
+import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
+
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.transcribe.TranscribeClient;
 import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobRequest;
 import software.amazon.awssdk.services.transcribe.model.GetTranscriptionJobResponse;
@@ -84,6 +97,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 	protected String objectPath;
 
 	protected TranscribeClient transcribeClient = null;
+	protected S3Client s3Client = null;
 
 	@Override
 	public void open(Properties smssProp) throws Exception {
@@ -125,6 +139,9 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 			this.transcribeClient = TranscribeClient.builder()
 					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
 
+			this.s3Client = S3Client.builder()
+					.credentialsProvider(StaticCredentialsProvider.create(awsCreds)).region(awsRegion).build();
+
 			IStorageEngine storageEngine = Utility.getStorage(this.storageEngineId);
 			if (storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3
 					|| storageEngine.getStorageType() == StorageTypeEnum.AMAZON_S3_NATIVE) {
@@ -134,7 +151,7 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 			}
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize AWS Transcribe function engine.", e);
 			throw e;
 		}
 	}
@@ -146,6 +163,8 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 		File filePathDir = null;
 		String folderPath = null;
 		String filePath = null;
+		String localFilePath = null;
+		Insight insight = null;
 
 		if (this.requiredParameters != null && !this.requiredParameters.isEmpty()) {
 			Set<String> missingPs = new HashSet<>();
@@ -165,14 +184,22 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 					filePath = parameterValues.get(key).toString();
 				}
 			}
+			if (filePath == null || filePath.isEmpty()) {
+				throw new IllegalArgumentException("Must define required key = S3_FILE_PATH");
+			}
 			filePathDir = new File(filePath);
 			audioFileName = filePathDir.getName();
 			folderPath = this.objectPath + DIR_SEPARATOR + audioFileName;
+			insight = (Insight) parameterValues.get(Constants.INSIGHT);
+			if (insight != null) {
+				File localFile = new File(insight.getInsightFolder(), audioFileName);
+				localFilePath = localFile.getAbsolutePath();
+			}
 
-			output = transcriptionTextFromAudio(folderPath);
+			output = transcriptionTextFromAudio(folderPath, localFilePath, insight);
 
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute AWS Transcribe request for file path: " + filePath, e);
 			throw new IllegalArgumentException(e);
 		}
 
@@ -180,13 +207,31 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 	}
 
 	protected String transcriptionTextFromAudio(String audioFilePath) throws Exception {
-		String transcriptionText = null;
+		return transcriptionTextFromAudio(audioFilePath, null, null);
+	}
+
+	protected String transcriptionTextFromAudio(String audioFilePath, String localFilePath, Insight insight)
+			throws Exception {
+		JSONObject transcriptionResult = getTranscriptionResultFromAudio(audioFilePath, localFilePath, insight);
+		return extractTranscriptionText(transcriptionResult);
+	}
+
+	protected JSONObject getTranscriptionResultFromAudio(String audioFilePath, String localFilePath, Insight insight)
+			throws Exception {
+		JSONObject transcriptionResult = null;
+		boolean uploadedAudioFile = false;
 		try {
 			ZoneId zoneId = Utility.getApplicationZoneIdObj();
 			ZonedDateTime now = ZonedDateTime.now(ZoneId.of(zoneId.getId()));
 			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 			String formattedTimestamp = now.format(formatter);
 			jobName = "jobName_" + formattedTimestamp;
+
+			if (!fileExistsInS3(audioFilePath)) {
+				validateStorageEditPermission(insight);
+				addAudioFileToS3(audioFilePath, localFilePath);
+				uploadedAudioFile = true;
+			}
 
 			String mediaFileUri = "https://s3-" + this.region + ".amazonaws.com/" + this.bucketName + "/"
 					+ audioFilePath;
@@ -205,41 +250,55 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 				TranscriptionJobStatus status = response.transcriptionJob().transcriptionJobStatus();
 
 				if (status == TranscriptionJobStatus.COMPLETED) {
-					transcriptionText = getTranscriptionTextFromS3(jobName);
+					transcriptionResult = getTranscriptionResultFromS3(jobName);
 					break;
 				} else if (status == TranscriptionJobStatus.FAILED) {
-					classLogger.error(Constants.STACKTRACE, "Transcription job failed.");
+					classLogger.error("AWS Transcribe job failed for audio file: " + audioFilePath
+							+ " with job name: " + jobName);
 					throw new IllegalArgumentException("Transcription job failed.");
 				}
 				Thread.sleep(5000);
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed while processing AWS Transcribe job for audio file: " + audioFilePath, e);
 			throw e;
+		} finally {
+			if (uploadedAudioFile) {
+				try {
+					removeAudioFileFromS3(audioFilePath);
+				} catch (Exception e) {
+					classLogger.warn("Failed to clean up audio file from S3: " + audioFilePath, e);
+				}
+			}
 		}
-		return transcriptionText;
+		return transcriptionResult;
 	}
 
 	protected String getTranscriptionTextFromS3(String jobName) throws Exception {
-		String transcriptionText = null;
+		return extractTranscriptionText(getTranscriptionResultFromS3(jobName));
+	}
+
+	protected JSONObject getTranscriptionResultFromS3(String jobName) throws Exception {
+		JSONObject transcriptionResult = null;
 		Path tempFile = null;
 		try {
 			String filePathInBucket = this.objectPath + DIR_SEPARATOR + jobName + JSON_EXT;
 			tempFile = Files.createTempFile("file-temp-", JSON_EXT);
-			IStorageEngine storageEng = Utility.getStorage(this.storageEngineId);
-			storageEng.copyToLocal(tempFile.toString(), filePathInBucket);
+			GetObjectRequest getObjectRequest = GetObjectRequest.builder().bucket(this.bucketName).key(filePathInBucket)
+					.build();
+
+			try (InputStream inputStream = s3Client.getObject(getObjectRequest)) {
+				Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+			}
 			StringBuilder stringBuilder = new StringBuilder();
 			try (BufferedReader reader = Files.newBufferedReader(tempFile)) {
 				String line;
 				while ((line = reader.readLine()) != null) {
 					stringBuilder.append(line);
 				}
-				JSONObject jsonobj = new JSONObject(stringBuilder.toString());
-				JSONObject result = jsonobj.getJSONObject("results");
-				JSONArray transcripts = result.getJSONArray("transcripts");
-				transcriptionText = transcripts.getJSONObject(0).getString("transcript");
+				transcriptionResult = new JSONObject(stringBuilder.toString());
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to parse transcription result for job: " + jobName, e);
 				throw e;
 			} finally {
 				if (tempFile != null) {
@@ -250,23 +309,120 @@ public class AWSTranscribeFunctionEngine extends AbstractFunctionEngine {
 					}
 				}
 				try {
-					storageEng.deleteFromStorage(
-							this.bucketName + DIR_SEPARATOR + this.objectPath + DIR_SEPARATOR + jobName);
+					removeTranscriptionOutputFromS3(jobName);
 				} catch (Exception e) {
-					classLogger.error("Failed to delete file from the storage ", e);
+					classLogger.warn("Failed to clean up transcription output from S3: " + jobName, e);
 				}
 			}
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to retrieve transcription result from S3 for job: " + jobName, e);
 			throw e;
 		}
-		return transcriptionText;
+		return transcriptionResult;
+	}
+
+	protected String extractTranscriptionText(JSONObject transcriptionResult) {
+		JSONObject results = transcriptionResult.getJSONObject("results");
+		JSONArray transcripts = results.getJSONArray("transcripts");
+		return transcripts.getJSONObject(0).getString("transcript");
 	}
 
 	@Override
 	public void close() throws IOException {
 		if (this.transcribeClient != null) {
 			this.transcribeClient.close();
+		}
+		if (this.s3Client != null) {
+			this.s3Client.close();
+		}
+	}
+
+	protected boolean fileExistsInS3(String audioFilePath) throws Exception {
+		try {
+			this.s3Client.headObject(HeadObjectRequest.builder().bucket(this.bucketName).key(audioFilePath).build());
+			return true;
+		} catch (NoSuchKeyException e) {
+			return false;
+		} catch (S3Exception e) {
+			if (e.statusCode() == 404) {
+				return false;
+			}
+			classLogger.error("Failed to check whether audio file exists in S3 for key: " + audioFilePath, e);
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unexpected error while checking S3 for audio file key: " + audioFilePath, e);
+			throw e;
+		}
+	}
+
+	protected void addAudioFileToS3(String audioFilePath, String localFilePath) throws Exception {
+		if (localFilePath == null || localFilePath.isEmpty()) {
+			throw new IllegalArgumentException("No local file path available to upload to S3.");
+		}
+		File localFile = new File(localFilePath);
+		if (!localFile.exists() || !localFile.isFile()) {
+			throw new IllegalArgumentException("Local file does not exist: " + localFilePath);
+		}
+		try {
+			Path localPath = Paths.get(localFile.getAbsolutePath());
+			PutObjectRequest.Builder putRequestBuilder = PutObjectRequest.builder()
+					.bucket(this.bucketName)
+					.key(audioFilePath);
+			String contentType = determineContentType(localPath);
+			if (contentType != null) {
+				putRequestBuilder.contentType(contentType);
+			}
+			this.s3Client.putObject(putRequestBuilder.build(), localPath);
+		} catch (Exception e) {
+			classLogger.error("Failed to upload audio file to S3 for key: " + audioFilePath, e);
+			throw e;
+		}
+	}
+
+	protected void removeAudioFileFromS3(String audioFilePath) {
+		try {
+			DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+					.bucket(this.bucketName)
+					.key(audioFilePath)
+					.build();
+			this.s3Client.deleteObject(deleteRequest);
+		} catch (Exception e) {
+			classLogger.error("Failed to delete uploaded audio file from S3 for key: " + audioFilePath, e);
+			throw e;
+		}
+	}
+
+	protected void removeTranscriptionOutputFromS3(String transcriptionJobName) {
+		try {
+			String transcriptionOutputPath = this.objectPath + DIR_SEPARATOR + transcriptionJobName + JSON_EXT;
+			DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+					.bucket(this.bucketName)
+					.key(transcriptionOutputPath)
+					.build();
+			this.s3Client.deleteObject(deleteRequest);
+		} catch (Exception e) {
+			classLogger.error("Failed to delete transcription output from S3 for job: " + transcriptionJobName, e);
+			throw e;
+		}
+	}
+
+	protected void validateStorageEditPermission(Insight insight) {
+		if (insight == null) {
+			throw new IllegalArgumentException(
+					"Insight is required to upload an audio file to S3 when the file is not already present.");
+		}
+		if (!SecurityEngineUtils.userCanEditEngine(insight.getUser(), this.storageEngineId)) {
+			throw new IllegalArgumentException("Storage " + this.storageEngineId
+					+ " does not exist or user does not have access to this engine");
+		}
+	}
+
+	protected String determineContentType(Path localPath) {
+		try {
+			return Files.probeContentType(localPath);
+		} catch (IOException e) {
+			classLogger.warn("Unable to determine content type for local file: " + localPath, e);
+			return null;
 		}
 	}
 
