@@ -306,7 +306,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("OLD_VALUE", VARCHAR_255),
 				Pair.with("NEW_VALUE", VARCHAR_255),
 				Pair.with("ACTOR", VARCHAR_20),
-				Pair.with("AT", TIMESTAMP_DATATYPE_NAME)));
+				Pair.with("AT", TIMESTAMP_DATATYPE_NAME),
+				// before/after rows for undo of a topic delete or merge; cleared after a day
+				Pair.with("SNAPSHOT_JSON", CLOB_DATATYPE_NAME)));
 		// quoted-text redaction for excluded people; hashes only, dropped when the
 		// exclusion is removed
 		addTable("BRAIN_EXCLUSION_FINGERPRINT", Arrays.asList(

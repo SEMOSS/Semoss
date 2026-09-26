@@ -410,7 +410,10 @@ public final class BrainTopicUtils {
 		String personOnTarget = " AND PERSON_ID IN (SELECT PERSON_ID FROM BRAIN_TOPIC_PERSON "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)";
 
+		String[] changeId = new String[1];
 		CollaborationDbUtils.inTransaction(conn -> {
+			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType,
+					sourceTopicId, targetTopicId);
 			// threads on both topics: the target link inherits primary, the source link goes
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, "
 					+ "CHANGED_AT = ?" + owned + threadOnTopic + " AND IS_PRIMARY = ?)", true, BrainProfileUtils.YOU,
@@ -438,11 +441,16 @@ public final class BrainTopicUtils {
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET KEYWORDS_JSON = ?, UPDATED_AT = ?" + owned,
 					CollaborationDbUtils.toJson(keywords), now, ownerId, ownerType, targetTopicId);
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC" + owned, ownerId, ownerType, sourceTopicId);
+			changeId[0] = BrainTopicChangeUtils.record(conn, snapshot, BrainTopicChangeUtils.MERGE, sourceTopicId,
+					targetTopicId, now);
 		});
 
 		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("topicId", sourceTopicId);
 		result.put("mergedInto", targetTopicId);
 		result.put("threadsMoved", threadsMoved);
+		// pass to BrainUndoTopicChange
+		result.put("changeId", changeId[0]);
 		return result;
 	}
 
@@ -474,7 +482,10 @@ public final class BrainTopicUtils {
 		Timestamp now = CollaborationDbUtils.now();
 		String owned = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?";
 
+		String[] changeId = new String[1];
 		CollaborationDbUtils.inTransaction(conn -> {
+			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType, topicId,
+					null);
 			for (Pair<String, String> thread : newPrimaries) {
 				if (thread.getValue1() != null) {
 					CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, "
@@ -494,11 +505,15 @@ public final class BrainTopicUtils {
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ? "
 					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_ID = ? AND STATUS = ?", "dismissed", now, ownerId,
 					ownerType, topicId, "open");
+			changeId[0] = BrainTopicChangeUtils.record(conn, snapshot, BrainTopicChangeUtils.DELETE, topicId, null,
+					now);
 		});
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("topicId", topicId);
 		result.put("threadsUnlinked", threadsUnlinked);
+		// pass to BrainUndoTopicChange
+		result.put("changeId", changeId[0]);
 		return result;
 	}
 
