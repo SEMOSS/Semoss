@@ -116,10 +116,12 @@ public final class BrainTopicSuggest {
 
 		Map<String, Thread> threads = new LinkedHashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND (MUTED IS NULL OR MUTED = ?) AND (AUTOMATED IS NULL OR AUTOMATED = ?) ORDER BY LAST_MESSAGE_AT DESC",
+				+ "AND (MUTED IS NULL OR MUTED = ?) AND (AUTOMATED IS NULL OR AUTOMATED = ?) "
+				// a chat named only by who is in it says nothing about a topic; the classifier files it from its text
+				+ "AND NOT (SOURCE = ? AND SUBJECT LIKE ?) ORDER BY LAST_MESSAGE_AT DESC",
 				rs -> threads.put(rs.getString(1), new Thread(rs.getString(1), CollaborationDbUtils.getString(rs, "SUBJECT"),
 						new LinkedHashSet<>())),
-				ownerId, ownerType, false, false);
+				ownerId, ownerType, false, false, "teams", BrainGraphHeaderSource.CHAT_PREFIX + "%");
 		// automated and list senders, VIPs, and who wrote on each thread
 		Set<String> automated = new HashSet<>();
 		Set<String> vips = new HashSet<>();

@@ -61,6 +61,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	private static final int LOOKUP_THREADS = 4;
 	// Graph returns at most 50 chats or chat messages a page
 	private static final int CHAT_PAGE = 50;
+	// the subject of a chat with no topic of its own
+	static final String CHAT_PREFIX = "Chat: ";
 	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
 			+ "accountEnabled,userType";
 	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
@@ -240,7 +242,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			}
 		});
 		String with = String.join(", ", names.subList(0, Math.min(4, names.size())));
-		return names.size() > 4 ? "Chat: " + with + " +" + (names.size() - 4) : "Chat: " + with;
+		return CHAT_PREFIX + with + (names.size() > 4 ? " +" + (names.size() - 4) : "");
 	}
 
 	private static Instant instant(Object value) {
