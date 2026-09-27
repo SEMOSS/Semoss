@@ -152,12 +152,22 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 				calls.add(pool.submit(() -> chatMessages(token, chat, selfId, since, maxPerChat)));
 			}
 			List<Map<String, Object>> out = new ArrayList<>();
+			int skipped = 0;
 			for (Future<List<Map<String, Object>>> call : calls) {
 				try {
 					out.addAll(call.get());
 				} catch (ExecutionException e) {
-					throw e.getCause() instanceof Exception cause ? cause : e;
+					Exception cause = e.getCause() instanceof Exception c ? c : e;
+					// no permission stops the run; one chat that fails (throttled, gone) is skipped
+					if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 40[13]\\b.*")) {
+						throw cause;
+					}
+					skipped++;
+					classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
 				}
+			}
+			if (skipped > 0 && out.isEmpty()) {
+				throw new IllegalStateException("No Teams chat could be read (" + skipped + " failed)");
 			}
 			return out;
 		} finally {
@@ -181,7 +191,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		List<Map<String, Object>> out = new ArrayList<>();
 		// createdDateTime only filters with lt; lastModifiedDateTime takes gt with its own order
 		String url = BASE + "/chats/" + encode(chatId) + "/messages?$top=" + CHAT_PAGE + "&$orderby="
-				+ encode("lastModifiedDateTime desc") + "&$filter=" + encode("lastModifiedDateTime gt " + since);
+				+ encode("lastModifiedDateTime desc") + "&$filter="
+				+ encode("lastModifiedDateTime gt " + since.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(token, url);
 			for (Map<String, Object> message : values(page)) {
