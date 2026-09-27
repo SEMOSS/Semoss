@@ -192,7 +192,10 @@ public final class BrainProfileUtils {
 
 	public static Map<String, Object> getSettings(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return getSettings(owner.getValue0(), owner.getValue1());
+		Map<String, Object> settings = getSettings(owner.getValue0(), owner.getValue1());
+		// read-only: the platform agent behind each thread's assistant, when this user can use it
+		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
+		return settings;
 	}
 
 	// creates the row with FILE_AT 85 / ASK_AT 40 on first read (DEC-05)

@@ -1089,6 +1089,8 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	// a general text model for topic grouping and naming
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// the platform agent (workspace id) that powers a Work thread's assistant
+	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";

@@ -27,11 +27,20 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * Collaboration rooms are playground-style rooms under their own system project
@@ -77,5 +86,35 @@ public final class CollaborationUtils {
 		}
 		Map<String, Object> options = room.getOptionsMap();
 		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
+	}
+
+	/**
+	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name, modelId}; null when none is set,
+	 * the user cannot view it, or it is disabled.
+	 */
+	public static Map<String, Object> threadAgent(User user) {
+		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);
+		if (id == null || id.isBlank() || user == null || !SecurityProjectUtils.userCanViewProject(user, id.trim())) {
+			return null;
+		}
+		id = id.trim();
+		Map<String, Object> row = ModelInferenceLogsUtils.getWorkspaceEntry(id);
+		if (row == null || Boolean.FALSE.equals(row.get("is_active"))) {
+			return null;
+		}
+		JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(id);
+		Map<String, Object> agent = new LinkedHashMap<>();
+		agent.put("id", id);
+		agent.put("name", row.get("name") == null ? "Assistant" : String.valueOf(row.get("name")));
+		agent.put("modelId", config == null ? null : config.optString("model_id", null));
+		return agent;
+	}
+
+	/** A tool that acts outside the conversation (send, post, change a calendar): marked for approval. */
+	@SuppressWarnings("unchecked")
+	public static boolean isWriteTool(Map<String, Object> tool) {
+		Object meta = tool == null ? null : tool.get("_meta");
+		return meta instanceof Map
+				&& "ask".equalsIgnoreCase(String.valueOf(((Map<String, Object>) meta).get(MCPUtility.SMSS_MCP_EXECUTION)));
 	}
 }

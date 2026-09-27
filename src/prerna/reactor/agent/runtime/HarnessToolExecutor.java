@@ -150,7 +150,9 @@ final class HarnessToolExecutor {
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
 		// room. Only ask tools become AGENT_RUN_ACTION rows and pause the run.
-		List<Map<String, Object>> askToolCalls = getAskToolCalls(toolCalls);
+		// in a Work thread they are refused, not paused for approval
+		List<Map<String, Object>> askToolCalls = CollaborationUtils.isThreadRoom(room) ? List.of()
+				: getAskToolCalls(toolCalls);
 		if (!askToolCalls.isEmpty()) {
 			List<Map<String, Object>> autoToolCalls = new ArrayList<>();
 			for (Map<String, Object> toolCall : toolCalls) {
@@ -506,11 +508,21 @@ final class HarnessToolExecutor {
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
-		// a Work thread's assistant is offered no tools, so refuse any it names anyway
+		// a Work thread's assistant gets no tools, or with the thread agent only ones that read or draft;
+		// refuse any other it names anyway
 		if (CollaborationUtils.isThreadRoom(ctx.getRoom())) {
-			logger.warn("HarnessToolExecutor: refused tool in thread room roomId={} toolName={}",
-					ctx.getRoom().getId(), tc.rawToolName);
-			return new ToolExecOutcome("No tools are available in this conversation.", false);
+			if (ctx.getAgentConfig().getWorkspaceId() == null) {
+				logger.warn("HarnessToolExecutor: refused tool in thread room roomId={} toolName={}",
+						ctx.getRoom().getId(), tc.rawToolName);
+				return new ToolExecOutcome("No tools are available in this conversation.", false);
+			}
+			if (isAskTool(tc.toolCall)) {
+				logger.warn("HarnessToolExecutor: refused write tool in thread room roomId={} toolName={}",
+						ctx.getRoom().getId(), tc.rawToolName);
+				return new ToolExecOutcome("Sending, posting, uploading and calendar changes are not available in "
+						+ "this conversation; the owner does that from the Work screen. Write the message or save a "
+						+ "draft instead.", false);
+			}
 		}
 		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
 			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),

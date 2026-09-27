@@ -182,11 +182,17 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
-		// a Work thread's assistant only answers and drafts; the owner acts from the Work screen
+		// a Work thread's assistant only answers and drafts; the owner acts from the Work screen. With the
+		// thread agent bound it keeps that agent's read and draft tools, never ones marked for approval.
 		boolean threadRoom = CollaborationUtils.isThreadRoom(room);
+		boolean threadAgent = threadRoom && agentConfig.getWorkspaceId() != null;
 		if (threadRoom) {
-			defaultAndExplicitTools.clear();
 			subAgentTools.clear();
+			if (threadAgent) {
+				defaultAndExplicitTools.removeIf(CollaborationUtils::isWriteTool);
+			} else {
+				defaultAndExplicitTools.clear();
+			}
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -214,8 +220,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(
-				threadRoom ? CollaborationPrompts.THREAD_ROOM_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(threadAgent ? CollaborationPrompts.THREAD_AGENT_PROMPT
+				: threadRoom ? CollaborationPrompts.THREAD_ROOM_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow() && !threadRoom) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
@@ -224,14 +230,15 @@ public class SemossAgentHarness implements IAgentHarness {
 		// in the run) so
 		// the model knows what it can pull in via LoadSkill. Empty when no skills are
 		// present.
-		String availableSkillsBlock = threadRoom ? "" : buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		String availableSkillsBlock = threadRoom && !threadAgent ? ""
+				: buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		if (!threadRoom) {
+		if (!threadRoom || threadAgent) {
 			composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		}
 		if (agentConfig.hasPptxWorkflow() && !threadRoom) {
