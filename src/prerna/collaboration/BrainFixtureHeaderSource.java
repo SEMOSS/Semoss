@@ -49,6 +49,10 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 	private static final Map<String, BrainFixtureHeaderSource> LOADED = new ConcurrentHashMap<>();
 
 	private final List<Map<String, Object>> messages = new ArrayList<>();
+	// teams.json next to mail.json, Graph chat messages without members
+	private final List<Map<String, Object>> chatMessages = new ArrayList<>();
+	// display name to recipient, from the mail, since the chat fixture has no addresses
+	private final Map<String, Map<String, Object>> byName = new LinkedHashMap<>();
 
 	@SuppressWarnings("unchecked")
 	private BrainFixtureHeaderSource(String path) {
@@ -63,6 +67,26 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 			throw new IllegalStateException("Cannot read the " + BrainMessageSource.FIXTURE_ENV + " file", e);
 		}
 		messages.sort(Comparator.comparing((Map<String, Object> m) -> (String) m.get("receivedDateTime")).reversed());
+		for (Map<String, Object> m : messages) {
+			for (String field : List.of("from", "toRecipients", "ccRecipients")) {
+				for (Object r : m.get(field) instanceof List<?> list ? list : List.of(m.get(field))) {
+					if (r instanceof Map<?, ?> recipient && recipient.get("emailAddress") instanceof Map<?, ?> address
+							&& address.get("name") instanceof String name) {
+						byName.putIfAbsent(name, (Map<String, Object>) recipient);
+					}
+				}
+			}
+		}
+		Path teams = Path.of(path).resolveSibling("teams.json");
+		if (Files.exists(teams)) {
+			try (Reader reader = Files.newBufferedReader(teams, StandardCharsets.UTF_8)) {
+				for (Object item : new Gson().fromJson(reader, List.class)) {
+					chatMessages.add((Map<String, Object>) item);
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Cannot read " + teams, e);
+			}
+		}
 	}
 
 	static BrainFixtureHeaderSource of(String path) {
@@ -97,6 +121,44 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 			if (out.size() < max && inFolder(m, folder)
 					&& Instant.parse((String) m.get("receivedDateTime")).compareTo(since) >= 0) {
 				out.add(m);
+			}
+		}
+		return out;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) {
+		// members are whoever wrote in the chat, plus the owner under their own id once they wrote
+		Map<String, Object> me = me(user);
+		Map<String, Object> self = Map.of("emailAddress", Map.of("name", me.get("displayName"), "address",
+				me.get("mail")));
+		String selfId = "owner";
+		Map<String, Map<String, Map<String, Object>>> members = new LinkedHashMap<>();
+		for (Map<String, Object> m : chatMessages) {
+			Map<String, Object> from = (Map<String, Object>) ((Map<String, Object>) m.get("from")).get("user");
+			Map<String, Object> recipient = byName.get(from.get("displayName"));
+			if (recipient != null && recipient.get("emailAddress") instanceof Map<?, ?> a
+					&& String.valueOf(a.get("address")).equalsIgnoreCase(String.valueOf(me.get("mail")))) {
+				selfId = (String) from.get("id");
+			}
+			members.computeIfAbsent((String) m.get("chatId"), k -> new LinkedHashMap<>()).putIfAbsent(
+					(String) from.get("id"), recipient);
+		}
+		List<Map<String, Object>> out = new ArrayList<>();
+		for (Map<String, Object> m : chatMessages) {
+			String chatId = (String) m.get("chatId");
+			Map<String, Map<String, Object>> chat = new LinkedHashMap<>();
+			members.get(chatId).forEach((id, recipient) -> {
+				if (recipient != null) {
+					chat.put(id, recipient);
+				}
+			});
+			chat.put(selfId, self);
+			Map<String, Object> header = BrainGraphHeaderSource.chatHeader(chatId,
+					BrainGraphHeaderSource.chatSubject(Map.of(), chat, selfId), chat, m, since);
+			if (header != null) {
+				out.add(header);
 			}
 		}
 		return out;

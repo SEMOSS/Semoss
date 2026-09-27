@@ -59,6 +59,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	private static final int PAGE = 500;
 	private static final int BATCH = 20;
 	private static final int LOOKUP_THREADS = 4;
+	// Graph returns at most 50 chats or chat messages a page
+	private static final int CHAT_PAGE = 50;
 	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
 			+ "accountEnabled,userType";
 	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
@@ -115,6 +117,138 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			url = (String) page.get("@odata.nextLink");
 		}
 		return out;
+	}
+
+	@Override
+	public List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		// one token for the run, so parallel calls do not race a refresh
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		String selfId = (String) get(token, BASE + "/me?$select=id").get("id");
+		// newest activity first, so the first chat older than the window ends the list
+		List<Map<String, Object>> chats = new ArrayList<>();
+		String url = BASE + "/me/chats?$expand=lastMessagePreview&$top=" + CHAT_PAGE + "&$orderby="
+				+ encode("lastMessagePreview/createdDateTime desc");
+		list: while (url != null) {
+			Map<String, Object> page = get(token, url);
+			for (Map<String, Object> chat : values(page)) {
+				Instant last = instant(chat.get("lastMessagePreview") instanceof Map<?, ?> p ? p.get("createdDateTime")
+						: null);
+				if (last == null) {
+					continue;
+				}
+				if (last.isBefore(since) || chats.size() >= maxChats) {
+					break list;
+				}
+				chats.add(chat);
+			}
+			url = (String) page.get("@odata.nextLink");
+		}
+		ExecutorService pool = Executors.newFixedThreadPool(LOOKUP_THREADS);
+		try {
+			List<Future<List<Map<String, Object>>>> calls = new ArrayList<>();
+			for (Map<String, Object> chat : chats) {
+				calls.add(pool.submit(() -> chatMessages(token, chat, selfId, since, maxPerChat)));
+			}
+			List<Map<String, Object>> out = new ArrayList<>();
+			for (Future<List<Map<String, Object>>> call : calls) {
+				try {
+					out.addAll(call.get());
+				} catch (ExecutionException e) {
+					throw e.getCause() instanceof Exception cause ? cause : e;
+				}
+			}
+			return out;
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	// one chat's members, then its messages since the window opened, newest first
+	private static List<Map<String, Object>> chatMessages(String token, Map<String, Object> chat, String selfId,
+			Instant since, int max) throws Exception {
+		String chatId = (String) chat.get("id");
+		Map<String, Map<String, Object>> members = new LinkedHashMap<>();
+		for (Map<String, Object> member : values(get(token, BASE + "/chats/" + encode(chatId) + "/members"))) {
+			if (member.get("userId") instanceof String userId && member.get("email") instanceof String email
+					&& !email.isBlank()) {
+				members.put(userId, Map.of("emailAddress", Map.of("name", String.valueOf(member.get("displayName")),
+						"address", email.trim().toLowerCase())));
+			}
+		}
+		String subject = chatSubject(chat, members, selfId);
+		List<Map<String, Object>> out = new ArrayList<>();
+		// createdDateTime only filters with lt; lastModifiedDateTime takes gt with its own order
+		String url = BASE + "/chats/" + encode(chatId) + "/messages?$top=" + CHAT_PAGE + "&$orderby="
+				+ encode("lastModifiedDateTime desc") + "&$filter=" + encode("lastModifiedDateTime gt " + since);
+		while (url != null && out.size() < max) {
+			Map<String, Object> page = get(token, url);
+			for (Map<String, Object> message : values(page)) {
+				Map<String, Object> header = chatHeader(chatId, subject, members, message, since);
+				if (header != null && out.size() < max) {
+					header.put("chatType", chat.get("chatType"));
+					out.add(header);
+				}
+			}
+			url = (String) page.get("@odata.nextLink");
+		}
+		return out;
+	}
+
+	/**
+	 * One chat message as a header, with members by user id in the recipient shape; null for system and app
+	 * messages, deleted ones, ones before since, and senders without an address.
+	 */
+	@SuppressWarnings("unchecked")
+	static Map<String, Object> chatHeader(String chatId, String subject, Map<String, Map<String, Object>> members,
+			Map<String, Object> message, Instant since) {
+		Instant at = instant(message.get("createdDateTime"));
+		Object from = message.get("from") instanceof Map<?, ?> f ? f.get("user") : null;
+		Map<String, Object> sender = from instanceof Map<?, ?> u ? members.get(((Map<String, Object>) u).get("id"))
+				: null;
+		Object type = message.get("messageType");
+		if ((type != null && !"message".equals(type)) || message.get("deletedDateTime") != null || at == null
+				|| at.isBefore(since) || sender == null) {
+			return null;
+		}
+		List<Map<String, Object>> to = new ArrayList<>();
+		for (Map<String, Object> member : members.values()) {
+			if (member != sender) {
+				to.add(member);
+			}
+		}
+		Map<String, Object> header = new LinkedHashMap<>();
+		header.put("id", message.get("id"));
+		header.put("internetMessageId", "teams:" + chatId + ":" + message.get("id"));
+		header.put("conversationId", chatId);
+		header.put("subject", subject);
+		header.put("from", sender);
+		header.put("toRecipients", to);
+		header.put("receivedDateTime", message.get("createdDateTime"));
+		return header;
+	}
+
+	// the chat's own topic, or who else is in it (a 1:1 chat has none)
+	@SuppressWarnings("unchecked")
+	static String chatSubject(Map<String, Object> chat, Map<String, Map<String, Object>> members, String selfId) {
+		if (chat.get("topic") instanceof String topic && !topic.isBlank()) {
+			return topic.trim();
+		}
+		List<String> names = new ArrayList<>();
+		members.forEach((id, member) -> {
+			if (!id.equals(selfId)) {
+				names.add(String.valueOf(((Map<String, Object>) member.get("emailAddress")).get("name")));
+			}
+		});
+		String with = String.join(", ", names.subList(0, Math.min(4, names.size())));
+		return names.size() > 4 ? "Chat: " + with + " +" + (names.size() - 4) : "Chat: " + with;
+	}
+
+	private static Instant instant(Object value) {
+		try {
+			return value instanceof String s && !s.isBlank() ? Instant.parse(s) : null;
+		} catch (java.time.format.DateTimeParseException e) {
+			return null;
+		}
 	}
 
 	@Override
@@ -285,7 +419,10 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(User user, String url) throws Exception {
-		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		return get(MicrosoftLoginUtils.getValidAccessToken(user), url);
+	}
+
+	private static Map<String, Object> get(String token, String url) throws Exception {
 		return CollaborationDbUtils
 				.parseMap(HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 	}

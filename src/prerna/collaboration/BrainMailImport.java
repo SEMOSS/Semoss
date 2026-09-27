@@ -41,6 +41,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import prerna.auth.User;
 
 // onboarding and Refresh: Inbox and Sent headers into people, threads, participants, and gated message rows.
@@ -49,12 +52,18 @@ import prerna.auth.User;
 public final class BrainMailImport {
 
 	public static final String KIND = "import";
+	private static final Logger classLogger = LogManager.getLogger(BrainMailImport.class);
 	public static final int MAX_DAYS = 180;
 	private static final int MAX_PER_FOLDER = 5000;
 	private static final int BATCH = 25;
 	// more people than this on To and Cc is a mailing: no new people from it
 	private static final int MAX_RECIPIENTS = 25;
 	private static final String SOURCE = "email";
+	private static final String TEAMS = "teams";
+	private static final int MAX_CHATS = 300;
+	private static final int MAX_PER_CHAT = 200;
+	// which source a header came from; mail headers carry none
+	private static final String SOURCE_KEY = "_source";
 	private static final Pattern REPLY_PREFIX = Pattern.compile("^\\s*((re|fw|fwd|aw|wg)\\s*:\\s*)+",
 			Pattern.CASE_INSENSITIVE);
 	private static final Set<String> LINKED = Set.of(BrainRulesGate.INGESTED, BrainRulesGate.EXCLUDED,
@@ -65,15 +74,25 @@ public final class BrainMailImport {
 
 	/** Starts (or returns the running) import job for the last days of mail. */
 	public static Map<String, Object> start(User user, int days) {
+		return start(user, days, null);
+	}
+
+	/** Also Teams chats: true turns them on, false off, null keeps the owner's setting. */
+	public static Map<String, Object> start(User user, int days, Boolean teams) {
 		if (days < 1 || days > MAX_DAYS) {
 			throw new IllegalArgumentException("days must be 1 to " + MAX_DAYS);
 		}
 		var owner = CollaborationDbUtils.ownerOf(user);
-		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), KIND, Map.of("days", days),
-				job -> run(user, job, days));
+		Map<String, Object> input = new LinkedHashMap<>();
+		input.put("days", days);
+		if (teams != null) {
+			input.put("teams", teams);
+		}
+		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), KIND, input,
+				job -> run(user, job, days, teams));
 	}
 
-	static void run(User user, CollaborationJobUtils.Job job, int days) throws Exception {
+	static void run(User user, CollaborationJobUtils.Job job, int days, Boolean teams) throws Exception {
 		String ownerId = job.ownerId();
 		String ownerType = job.ownerType();
 		BrainMailHeaderSource source = BrainMailHeaderSource.current();
@@ -88,6 +107,11 @@ public final class BrainMailImport {
 				(String) me.get("userPrincipalName"), "active");
 		// the owner starting an import is the consent to read email headers
 		CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, SOURCE, true);
+		// Teams chats only when the owner said so, now or earlier in Settings
+		if (teams != null) {
+			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, TEAMS, teams);
+		}
+		boolean withTeams = Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 
 		Run run = new Run(ownerId, ownerType);
 		String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
@@ -98,6 +122,25 @@ public final class BrainMailImport {
 		for (String folder : BrainMailHeaderSource.FOLDERS) {
 			job.step("reading " + folder, 5 + 10 * BrainMailHeaderSource.FOLDERS.indexOf(folder));
 			headers.addAll(source.list(user, folder, since, MAX_PER_FOLDER));
+		}
+		// a chat failure (no Chat.Read yet, throttled) leaves the mail import whole
+		String teamsError = null;
+		if (withTeams) {
+			job.step("reading Teams chats", 22);
+			try {
+				List<Map<String, Object>> chats = source.chats(user, since, MAX_CHATS, MAX_PER_CHAT);
+				for (Map<String, Object> chat : chats) {
+					chat.put(SOURCE_KEY, TEAMS);
+				}
+				headers.addAll(chats);
+				job.count("teamsMessages", chats.size());
+			} catch (Exception e) {
+				teamsError = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+				classLogger.warn("Teams chats were not read for the import: {}", teamsError);
+				job.count("teamsError", teamsError);
+				CollaborationSourceUtils.recordSourceError(ownerId, ownerType, TEAMS, teamsError,
+						teamsError.contains("403") || teamsError.contains("401"));
+			}
 		}
 		// oldest first so a thread takes its first subject; a message sent to yourself is in both folders once
 		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
@@ -167,6 +210,9 @@ public final class BrainMailImport {
 		});
 		job.count("followSuggested", BrainFollow.suggest(ownerId, ownerType, selfId, org));
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, SOURCE);
+		if (withTeams && teamsError == null) {
+			CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, TEAMS);
+		}
 	}
 
 	// per-run state, loaded once so a message costs only its own writes
@@ -179,7 +225,8 @@ public final class BrainMailImport {
 		final Map<String, String[]> threadsByKey = new HashMap<>();
 		final Map<String, Map<String, Object>> messages = new HashMap<>();
 		final Map<String, Set<String>> participants = new HashMap<>();
-		final BrainRulesGate.Known known;
+		// the gate's lookups per source; only whether the source is on differs
+		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
@@ -216,11 +263,16 @@ public final class BrainMailImport {
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
 					}, ownerId, ownerType);
-			Boolean enabled = CollaborationDbUtils.queryOne("SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? AND SOURCE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId,
-					ownerType, SOURCE);
-			this.known = new BrainRulesGate.Known(rules, Boolean.TRUE.equals(enabled), messages::get, people::get,
-					threadsByKey::get);
+		}
+
+		BrainRulesGate.Known known(String source) {
+			return known.computeIfAbsent(source, s -> {
+				Boolean enabled = CollaborationDbUtils.queryOne("SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ? AND SOURCE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"),
+						ownerId, ownerType, s);
+				return new BrainRulesGate.Known(rules, Boolean.TRUE.equals(enabled), messages::get, people::get,
+						threadsByKey::get);
+			});
 		}
 
 		void importOne(Map<String, Object> header) {
@@ -228,8 +280,9 @@ public final class BrainMailImport {
 			if (from == null) {
 				return;
 			}
+			String source = header.get(SOURCE_KEY) instanceof String s ? s : SOURCE;
 			String messageId = messageId(header);
-			String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, SOURCE, messageId);
+			String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 			Map<String, Object> prior = messages.get(messageKey);
 			if (prior != null && prior.get("threadId") != null) {
 				skipped++;
@@ -237,14 +290,14 @@ public final class BrainMailImport {
 			}
 			String conversationId = (String) header.get("conversationId");
 			Map<String, String> gate = new HashMap<>();
-			gate.put("source", SOURCE);
+			gate.put("source", source);
 			gate.put("messageId", messageId);
 			gate.put("graphId", (String) header.get("id"));
 			gate.put("conversationId", conversationId);
 			gate.put("folderId", (String) header.get("parentFolderId"));
 			gate.put("from", from);
 			gate.put("receivedAt", (String) header.get("receivedDateTime"));
-			Map<String, Object> decision = BrainRulesGate.check(ownerId, ownerType, gate, known);
+			Map<String, Object> decision = BrainRulesGate.check(ownerId, ownerType, gate, known(source));
 			messages.put(messageKey, decision);
 			// an exclusion on a known thread wrote the sender's participant row
 			if (BrainRulesGate.EXCLUDED.equals(decision.get("decision")) && decision.get("threadId") != null
@@ -258,8 +311,8 @@ public final class BrainMailImport {
 			}
 
 			Timestamp at = CollaborationDbUtils.toTimestamp(header.get("receivedDateTime"), "receivedDateTime");
-			String threadKey = SOURCE + ":" + (conversationId != null ? conversationId : messageId);
-			String threadId = ensureThread(threadKey, (String) header.get("subject"), at);
+			String threadKey = source + ":" + (conversationId != null ? conversationId : messageId);
+			String threadId = ensureThread(threadKey, source, (String) header.get("subject"), at);
 			boolean senderHidden = BrainRulesGate.EXCLUDED.equals(decision.get("decision"));
 
 			// who was on it, by role; never-ingest recipients are left out entirely
@@ -384,7 +437,7 @@ public final class BrainMailImport {
 			}
 		}
 
-		private String ensureThread(String threadKey, String subject, Timestamp at) {
+		private String ensureThread(String threadKey, String source, String subject, Timestamp at) {
 			String[] existing = threadsByKey.get(threadKey);
 			if (existing != null) {
 				return existing[0];
@@ -392,7 +445,7 @@ public final class BrainMailImport {
 			String threadId = "th-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "thread", threadKey);
 			CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, "
 					+ "SUBJECT, MUTED, AUTOMATED, MESSAGE_COUNT, LAST_MESSAGE_AT, CREATED_AT) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, threadId, threadKey, SOURCE,
+					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, threadId, threadKey, source,
 					cleanSubject(subject), false, false, 0, at, at);
 			threadsByKey.put(threadKey, new String[] { threadId, "false" });
 			return threadId;

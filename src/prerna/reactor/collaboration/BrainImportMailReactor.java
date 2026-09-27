@@ -30,32 +30,37 @@ package prerna.reactor.collaboration;
 import prerna.collaboration.BrainMailImport;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainImportMail(); or BrainImportMail(days=[30]);
+// BrainImportMail(); or BrainImportMail(days=[30], teams=[true]);
 public class BrainImportMailReactor extends AbstractCollaborationReactor {
 
 	private static final String DAYS = "days";
+	private static final String TEAMS = "teams";
 
 	public BrainImportMailReactor() {
-		this.keysToGet = new String[] { DAYS };
-		this.keyRequired = new int[] { 0 };
+		this.keysToGet = new String[] { DAYS, TEAMS };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		Integer days = getIntFromKeyOrCurRow(DAYS);
-		return mapResult(BrainMailImport.start(getUser(), days == null ? 30 : days));
+		return mapResult(BrainMailImport.start(getUser(), days == null ? 30 : days, getBoolean(TEAMS)));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Starts a background import of Inbox and Sent headers (people, threads, participants) through the rules "
-				+ "gate; returns the job to poll with BrainGetJob. Re-runnable (Refresh)";
+		return "Starts a background import of Inbox and Sent headers, and Teams chats when turned on (people, threads, "
+				+ "participants) through the rules gate; returns the job to poll with BrainGetJob. Re-runnable (Refresh)";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (DAYS.equals(key)) {
 			return "How many days back to import (default 30, at most 180)";
+		}
+		if (TEAMS.equals(key)) {
+			return "Optional true or false to turn Teams chats on or off for this and later imports; the current "
+					+ "setting is kept when omitted";
 		}
 		return super.getDescriptionForKey(key);
 	}

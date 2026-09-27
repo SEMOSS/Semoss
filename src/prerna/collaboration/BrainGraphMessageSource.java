@@ -29,44 +29,121 @@ package prerna.collaboration;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.apache.hc.core5.http.ContentType;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
 
 // reads one message from Graph with the owner's delegated token, only after the rules let it through
 final class BrainGraphMessageSource implements BrainMessageSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
+	private static final int BATCH = 20;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
-			+ "conversationId";
+			+ "conversationId,webLink";
 
 	@Override
 	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId)
 			throws Exception {
-		if (graphId == null) {
-			return null;
-		}
-		String url;
-		if ("email".equals(source)) {
-			url = BASE + "/me/messages/" + encode(graphId) + "?$select=" + MAIL_SELECT;
-		} else if ("teams".equals(source) && conversationId != null) {
-			url = BASE + "/chats/" + encode(conversationId) + "/messages/" + encode(graphId);
-		} else {
+		String path = path(source, conversationId, graphId);
+		if (path == null) {
 			return null;
 		}
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
-		Map<String, Object> message = CollaborationDbUtils
-				.parseMap(HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		Map<String, Object> message = CollaborationDbUtils.parseMap(
+				HttpHelperUtility.getRequest(BASE + path, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 		return "teams".equals(source) ? fromChat(message) : message;
+	}
+
+	// Graph $batch, 20 a call: one round trip instead of one per message
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<Fetched> fetchAll(User user, String source, String conversationId, List<String> graphIds) {
+		Fetched[] out = new Fetched[graphIds.size()];
+		String token;
+		try {
+			token = MicrosoftLoginUtils.getValidAccessToken(user);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			List<Fetched> failed = new ArrayList<>();
+			for (int i = 0; i < graphIds.size(); i++) {
+				failed.add(new Fetched(null, e));
+			}
+			return failed;
+		}
+		for (int start = 0; start < graphIds.size(); start += BATCH) {
+			List<Map<String, Object>> requests = new ArrayList<>();
+			for (int i = start; i < Math.min(graphIds.size(), start + BATCH); i++) {
+				String path = path(source, conversationId, graphIds.get(i));
+				if (path == null) {
+					out[i] = new Fetched(null, null);
+				} else {
+					requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url", path));
+				}
+			}
+			if (requests.isEmpty()) {
+				continue;
+			}
+			List<Object> responses;
+			try {
+				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
+						null, null));
+				responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
+			} catch (Exception e) {
+				for (Map<String, Object> request : requests) {
+					out[Integer.parseInt((String) request.get("id"))] = new Fetched(null, e);
+				}
+				continue;
+			}
+			for (Object r : responses) {
+				Map<String, Object> response = (Map<String, Object>) r;
+				int i = Integer.parseInt(String.valueOf(response.get("id")));
+				int status = response.get("status") instanceof Number n ? n.intValue() : 0;
+				if (status == 200 && response.get("body") instanceof Map<?, ?> body) {
+					Map<String, Object> message = (Map<String, Object>) body;
+					out[i] = new Fetched("teams".equals(source) ? fromChat(message) : message, null);
+				} else if (status == 404) {
+					out[i] = new Fetched(null, null);
+				} else {
+					out[i] = new Fetched(null, new IllegalStateException("Graph returned " + status));
+				}
+			}
+		}
+		List<Fetched> list = new ArrayList<>();
+		for (Fetched f : out) {
+			list.add(f == null ? new Fetched(null, new IllegalStateException("No reply from Graph")) : f);
+		}
+		return list;
+	}
+
+	// the message's path under the Graph base, or null when the source cannot be read
+	private static String path(String source, String conversationId, String graphId) {
+		if (graphId == null) {
+			return null;
+		}
+		if ("email".equals(source)) {
+			return "/me/messages/" + encode(graphId) + "?$select=" + MAIL_SELECT;
+		}
+		if ("teams".equals(source) && conversationId != null) {
+			return "/chats/" + encode(conversationId) + "/messages/" + encode(graphId);
+		}
+		return null;
 	}
 
 	// a chat message has no subject, uniqueBody, or sender address; map it onto the mail shape
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> fromChat(Map<String, Object> chat) {
+	static Map<String, Object> fromChat(Map<String, Object> chat) {
 		if (chat == null) {
 			return null;
 		}
@@ -79,6 +156,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		message.put("body", chat.get("body"));
 		message.put("receivedDateTime", chat.get("createdDateTime"));
 		message.put("conversationId", chat.get("chatId"));
+		message.put("webLink", chat.get("webUrl"));
 		return message;
 	}
 

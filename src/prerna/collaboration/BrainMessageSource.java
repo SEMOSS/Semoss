@@ -27,9 +27,12 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 // TOOL-02: where the thread read gets message bodies at call time; nothing behind this stores them
 public interface BrainMessageSource {
@@ -39,6 +42,25 @@ public interface BrainMessageSource {
 
 	// one message in Graph shape (from, subject, body, uniqueBody, receivedDateTime, conversationId), null if gone
 	Map<String, Object> fetch(User user, String source, String conversationId, String graphId) throws Exception;
+
+	// a message, null when gone, or why it could not be read
+	record Fetched(Map<String, Object> message, Exception error) {
+	}
+
+	// several messages of one conversation, in order; a login problem (SemossPixelException) is thrown
+	default List<Fetched> fetchAll(User user, String source, String conversationId, List<String> graphIds) {
+		List<Fetched> out = new ArrayList<>();
+		for (String graphId : graphIds) {
+			try {
+				out.add(new Fetched(fetch(user, source, conversationId, graphId), null));
+			} catch (SemossPixelException e) {
+				throw e;
+			} catch (Exception e) {
+				out.add(new Fetched(null, e));
+			}
+		}
+		return out;
+	}
 
 	static BrainMessageSource current() {
 		String fixture = System.getenv(FIXTURE_ENV);

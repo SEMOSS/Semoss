@@ -77,6 +77,15 @@ public interface BrainMailHeaderSource {
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 
+	/**
+	 * Teams chat messages sent at or after since, in the header shape: id (the message), internetMessageId
+	 * (chat and message), conversationId (the chat), subject (the chat's), from, toRecipients (the other members),
+	 * receivedDateTime. System and app messages and senders without an address are left out.
+	 */
+	default List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return List.of();
+	}
+
 	static BrainMailHeaderSource current() {
 		String fixture = System.getenv(BrainMessageSource.FIXTURE_ENV);
 		return fixture == null || fixture.isBlank() ? new BrainGraphHeaderSource() : BrainFixtureHeaderSource.of(fixture);

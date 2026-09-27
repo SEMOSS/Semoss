@@ -39,7 +39,6 @@ import java.util.Set;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 
 // TOOL-02: the filtered thread read behind brain_get_thread. Today's rules run before any body is
 // fetched; bodies come from the source at call time, go through BrainMessageText, and are never stored.
@@ -111,42 +110,51 @@ public final class BrainThreadMessages {
 		int unavailable = 0;
 		int next = 0;
 		Exception firstError = null;
-		for (; next < candidates.size() && out.size() < max; next++) {
-			Row row = candidates.get(next);
-			Map<String, Object> message;
-			try {
-				message = messages.fetch(user, source, conversationId, row.graphId());
-			} catch (SemossPixelException e) {
-				// login required: pass it through untouched so the UI can prompt, and stop fetching
-				throw e;
-			} catch (Exception e) {
-				firstError = firstError == null ? e : firstError;
-				unavailable++;
-				continue;
+		while (next < candidates.size() && out.size() < max) {
+			// as many as are still wanted, in one round trip; a login problem is thrown so the UI can prompt
+			List<Row> part = candidates.subList(next, Math.min(candidates.size(), next + max - out.size()));
+			List<String> ids = new ArrayList<>();
+			for (Row row : part) {
+				ids.add(row.graphId());
 			}
-			// gone, or no longer in this conversation
-			Object messageConversation = message == null ? null : message.get("conversationId");
-			if (message == null || (messageConversation != null && conversationId != null
-					&& !conversationId.equals(messageConversation))) {
-				unavailable++;
-				continue;
+			List<BrainMessageSource.Fetched> fetched = messages.fetchAll(user, source, conversationId, ids);
+			next += part.size();
+			for (int i = 0; i < part.size(); i++) {
+				Row row = part.get(i);
+				if (fetched.get(i).error() != null) {
+					firstError = firstError == null ? fetched.get(i).error() : firstError;
+					unavailable++;
+					continue;
+				}
+				Map<String, Object> message = fetched.get(i).message();
+				// gone, or no longer in this conversation
+				Object messageConversation = message == null ? null : message.get("conversationId");
+				if (message == null || (messageConversation != null && conversationId != null
+						&& !conversationId.equals(messageConversation))) {
+					unavailable++;
+					continue;
+				}
+				Map<String, Object> sender = sender(message);
+				String from = BrainRulesGate.norm(CollaborationDbUtils.asString(sender.get("address")));
+				if (from != null && BrainRulesGate.neverRule(rules, from, row.personId(), row.folder()) != null) {
+					hidden++;
+					continue;
+				}
+				// the oldest message we hold: its quoted history is mail the thread does not have
+				Map<String, Object> clean = clean(message, row == rows.get(rows.size() - 1));
+				if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
+					hidden++;
+					continue;
+				}
+				Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
+				entry.put("to", recipients(message.get("toRecipients")));
+				entry.put("cc", recipients(message.get("ccRecipients")));
+				// opens the message in Outlook or Teams
+				if (message.get("webLink") instanceof String link && link.startsWith("https://")) {
+					entry.put("webLink", link);
+				}
+				out.add(entry);
 			}
-			Map<String, Object> sender = sender(message);
-			String from = BrainRulesGate.norm(CollaborationDbUtils.asString(sender.get("address")));
-			if (from != null && BrainRulesGate.neverRule(rules, from, row.personId(), row.folder()) != null) {
-				hidden++;
-				continue;
-			}
-			// the oldest message we hold: its quoted history is mail the thread does not have
-			Map<String, Object> clean = clean(message, row == rows.get(rows.size() - 1));
-			if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
-				hidden++;
-				continue;
-			}
-			Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
-			entry.put("to", recipients(message.get("toRecipients")));
-			entry.put("cc", recipients(message.get("ccRecipients")));
-			out.add(entry);
 		}
 		// every fetch failed: surface why (for example no Microsoft login) instead of an empty thread
 		if (out.isEmpty() && firstError != null) {

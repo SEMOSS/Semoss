@@ -60,6 +60,8 @@ public final class BrainThreadClassifier {
 	private static final int PARALLEL = 8;
 	private static final int MESSAGES = 2;
 	private static final int TEXT_CHARS = 1500;
+	// a forward, or mail from before the thread: the part that matters is under the note
+	private static final int HISTORY_CHARS = 5000;
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
 	// with this few topics the model also gets a way out, or every thread lands in one of them
 	private static final int FEW_TOPICS = 3;
@@ -204,10 +206,11 @@ public final class BrainThreadClassifier {
 		List<BrainClassifier.Message> input = new ArrayList<>();
 		for (Map<String, Object> m : messages) {
 			String text = m.get("text") == null ? "" : String.valueOf(m.get("text"));
+			int max = Boolean.TRUE.equals(m.get("history")) ? HISTORY_CHARS : TEXT_CHARS;
 			input.add(new BrainClassifier.Message(
 					Objects.equals(ctx.self().personId(), m.get("fromId")) ? "me" : (String) m.get("fromName"),
 					names(ctx.self(), m.get("to")), names(ctx.self(), m.get("cc")), (String) m.get("at"),
-					text.length() > TEXT_CHARS ? text.substring(0, TEXT_CHARS) : text));
+					text.length() > max ? text.substring(0, max) : text));
 		}
 		BrainClassifier.Scores scores = ctx.classifier().score(new BrainClassifier.ThreadInput(threadId,
 				ctx.self().name(), (String) thread.get("subject"), participants(ctx, threadId), input), ctx.topics(),

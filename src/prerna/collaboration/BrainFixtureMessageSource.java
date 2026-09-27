@@ -46,6 +46,8 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 	private static final Map<String, BrainFixtureMessageSource> LOADED = new ConcurrentHashMap<>();
 
 	private final Map<String, Map<String, Object>> byId = new HashMap<>();
+	// teams.json next to mail.json, by chat and message id
+	private final Map<String, Map<String, Object>> chats = new HashMap<>();
 
 	private BrainFixtureMessageSource(String path) {
 		try (Reader reader = Files.newBufferedReader(Path.of(path), StandardCharsets.UTF_8)) {
@@ -57,6 +59,18 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 		} catch (Exception e) {
 			throw new IllegalStateException("Cannot read the " + FIXTURE_ENV + " file", e);
 		}
+		Path teams = Path.of(path).resolveSibling("teams.json");
+		if (Files.exists(teams)) {
+			try (Reader reader = Files.newBufferedReader(teams, StandardCharsets.UTF_8)) {
+				for (Object item : new Gson().fromJson(reader, List.class)) {
+					@SuppressWarnings("unchecked")
+					Map<String, Object> message = (Map<String, Object>) item;
+					chats.put(message.get("chatId") + "/" + message.get("id"), message);
+				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Cannot read " + teams, e);
+			}
+		}
 	}
 
 	static BrainFixtureMessageSource of(String path) {
@@ -65,6 +79,10 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 
 	@Override
 	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId) {
+		if ("teams".equals(source) && graphId != null) {
+			Map<String, Object> chat = chats.get(conversationId + "/" + graphId);
+			return chat == null ? null : BrainGraphMessageSource.fromChat(chat);
+		}
 		return "email".equals(source) && graphId != null ? byId.get(graphId) : null;
 	}
 }
