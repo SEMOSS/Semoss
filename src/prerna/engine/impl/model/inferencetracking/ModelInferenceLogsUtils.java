@@ -2368,6 +2368,89 @@ public class ModelInferenceLogsUtils {
 	/* -------- WORKSPACE PIECES ------- */
 
 	/**
+	 * Imports an agent definition and replaces its complete resource set
+	 * atomically. Existing owners, creation dates, and room links survive an
+	 * authorized replacement. New workspaces belong to the importing user and
+	 * receive fresh timestamps.
+	 */
+	public static void importWorkspaceEntry(String workspaceId, String ownerId, String name, String description,
+			String systemPrompt, boolean active, String configJson, List<Map<String, String>> resources,
+			boolean replace) throws SQLException {
+		IRDBMSEngine database = SystemEngineRegistry.getModelInferenceLogsDb();
+		Connection connection = null;
+		Boolean autoCommit = null;
+		try {
+			connection = database.getConnection();
+			autoCommit = connection.getAutoCommit();
+			connection.setAutoCommit(false);
+			boolean exists;
+			try (PreparedStatement statement = connection
+					.prepareStatement("SELECT WORKSPACE_ID FROM WORKSPACE WHERE WORKSPACE_ID = ?")) {
+				statement.setString(1, workspaceId);
+				try (ResultSet result = statement.executeQuery()) {
+					exists = result.next();
+				}
+			}
+			if (exists && !replace) {
+				throw new SQLException("Agent workspace already exists: " + workspaceId);
+			}
+			Timestamp now = Utility.getCurrentSqlTimestampUTC();
+			String sql = exists
+					? "UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?"
+					: "INSERT INTO WORKSPACE (NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, CONFIG_JSON, DATE_UPDATED, WORKSPACE_ID, OWNER, DATE_CREATED) VALUES (?,?,?,?,?,?,?,?,?)";
+			try (PreparedStatement statement = connection.prepareStatement(sql)) {
+				statement.setString(1, name);
+				database.getQueryUtil().handleInsertionOfClob(connection, statement, description, 2, GSON);
+				database.getQueryUtil().handleInsertionOfClob(connection, statement, systemPrompt, 3, GSON);
+				statement.setBoolean(4, active);
+				database.getQueryUtil().handleInsertionOfClob(connection, statement, configJson, 5, GSON);
+				statement.setTimestamp(6, now);
+				statement.setString(7, workspaceId);
+				if (!exists) {
+					statement.setString(8, ownerId);
+					statement.setTimestamp(9, now);
+				}
+				statement.executeUpdate();
+			}
+			try (PreparedStatement statement = connection
+					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
+				statement.setString(1, workspaceId);
+				statement.executeUpdate();
+			}
+			try (PreparedStatement statement = connection.prepareStatement(
+					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")) {
+				for (Map<String, String> resource : resources) {
+					statement.setString(1, resource.get("workspace_resource_id"));
+					statement.setString(2, workspaceId);
+					statement.setString(3, resource.get("resource_id"));
+					statement.setString(4, resource.get("resource_type"));
+					statement.setString(5, resource.get("resource_subtype"));
+					statement.addBatch();
+				}
+				statement.executeBatch();
+			}
+			connection.commit();
+		} catch (Exception e) {
+			if (connection != null && autoCommit != null) {
+				try {
+					connection.rollback();
+				} catch (SQLException rollbackError) {
+					e.addSuppressed(rollbackError);
+				}
+			}
+			throw new SQLException("Unable to import agent workspace " + workspaceId, e);
+		} finally {
+			try {
+				if (connection != null && autoCommit != null) {
+					connection.setAutoCommit(autoCommit);
+				}
+			} finally {
+				ConnectionUtils.closeAllConnectionsIfPooling(database, connection, null, null);
+			}
+		}
+	}
+
+	/**
 	 * Creates a workspace record and optional workspace-resource rows.
 	 *
 	 * @param workspaceId          workspace identifier
