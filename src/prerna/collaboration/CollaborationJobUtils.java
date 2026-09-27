@@ -151,6 +151,13 @@ public final class CollaborationJobUtils {
 		return job;
 	}
 
+	// any job of this owner still running on this server; callers hold the job lock so none can start
+	static boolean anyRunning(String ownerId, String ownerType) {
+		return CollaborationDbUtils.query("SELECT JOB_ID FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND STATUS = ?", rs -> rs.getString("JOB_ID"), ownerId, ownerType, RUNNING).stream()
+				.anyMatch(ALIVE::contains);
+	}
+
 	static Map<String, Object> get(String ownerId, String ownerType, String jobId) {
 		return CollaborationDbUtils.queryOne("SELECT " + COLUMNS + " FROM COLLAB_JOB WHERE OWNER_ID = ? AND "
 				+ "OWNER_TYPE = ? AND JOB_ID = ?", CollaborationJobUtils::map, ownerId, ownerType, jobId);
