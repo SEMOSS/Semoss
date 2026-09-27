@@ -50,6 +50,10 @@ public final class BrainPeopleRanking {
 	}
 
 	public static void rank(String ownerId, String ownerType, String selfId, String myDomain) {
+		// automated and list senders are not ranked
+		Set<String> automated = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE "
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType,
+				BrainSenderTyping.AUTOMATED));
 		// messages per thread and sender
 		Map<String, Map<String, Integer>> sent = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, COUNT(*) AS N FROM BRAIN_MESSAGE "
@@ -66,7 +70,7 @@ public final class BrainPeopleRanking {
 		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON, LAST_SEEN_AT FROM BRAIN_THREAD_PARTICIPANT "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)", rs -> {
 					String person = rs.getString("PERSON_ID");
-					if (person.equals(selfId)) {
+					if (person.equals(selfId) || automated.contains(person)) {
 						return null;
 					}
 					Map<String, Integer> bySender = sent.getOrDefault(rs.getString("THREAD_ID"), Map.of());
@@ -101,13 +105,18 @@ public final class BrainPeopleRanking {
 			max = Math.max(max, score);
 		}
 
-		List<String[]> people = CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM, RELATIONSHIP FROM BRAIN_PERSON "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> new String[] { rs.getString(1), rs.getString(2),
-						rs.getString(3) }, ownerId, ownerType);
+		List<String[]> people = CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM, RELATIONSHIP, RELATIONSHIP_STATE "
+				+ "FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> new String[] { rs.getString(1),
+						rs.getString(2), rs.getString(3), rs.getString(4) }, ownerId, ownerType);
 		Set<String> seenPeople = new HashSet<>(raw.keySet());
 		double top = max;
 		CollaborationDbUtils.inTransaction(conn -> {
 			for (String[] p : people) {
+				if (automated.contains(p[0])) {
+					CollaborationDbUtils.update(conn, "UPDATE BRAIN_PERSON SET STRENGTH = ? WHERE OWNER_ID = ? AND "
+							+ "OWNER_TYPE = ? AND PERSON_ID = ?", 0, ownerId, ownerType, p[0]);
+					continue;
+				}
 				if (p[0].equals(selfId) || !seenPeople.contains(p[0])) {
 					continue;
 				}
@@ -115,9 +124,10 @@ public final class BrainPeopleRanking {
 				List<Object> params = new ArrayList<>(List.of(strength));
 				String sql = "UPDATE BRAIN_PERSON SET STRENGTH = ?, LAST_CONTACT_AT = ?";
 				params.add(last.get(p[0]));
-				if (p[2] == null) {
+				// a suggestion is redone each time (the org's domains may have changed); the owner's choice stays
+				if (p[2] == null || ("suggested".equals(p[3]) && ("colleague".equals(p[2]) || "external".equals(p[2])))) {
 					sql += ", RELATIONSHIP = ?, RELATIONSHIP_STATE = ?";
-					params.add(myDomain != null && myDomain.equals(BrainMailImport.domain(p[1])) ? "colleague" : "external");
+					params.add(BrainOrgDomains.isMine(BrainMailImport.domain(p[1]), myDomain) ? "colleague" : "external");
 					params.add("suggested");
 				}
 				sql += ", UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?";

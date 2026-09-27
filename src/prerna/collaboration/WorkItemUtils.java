@@ -755,8 +755,10 @@ public final class WorkItemUtils {
 			params.addAll(List.of(OPEN, WAITING, WAITING, "waiting_on"));
 		}
 		if (Boolean.parseBoolean(String.valueOf(filter.get("hideMuted")))) {
+			// muted, or automated (by the classifier or by sender typing after the item was made)
 			where.append(" AND NOT EXISTS (SELECT 1 FROM BRAIN_THREAD mt WHERE mt.OWNER_ID = w.OWNER_ID "
-					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND mt.MUTED = ?)");
+					+ "AND mt.OWNER_TYPE = w.OWNER_TYPE AND mt.THREAD_ID = w.THREAD_ID AND (mt.MUTED = ? OR mt.AUTOMATED = ?))");
+			params.add(true);
 			params.add(true);
 		}
 		Timestamp closedSince = CollaborationDbUtils.toTimestamp(filter.get("closedSince"), "closedSince");

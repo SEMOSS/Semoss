@@ -66,7 +66,7 @@ public final class BrainPeopleUtils {
 	// ---- people ----
 
 	public static Map<String, Object> listPeople(User user, String query, String accountId, String topicId,
-			int limit, int offset) {
+			String relationship, int limit, int offset) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -81,6 +81,10 @@ public final class BrainPeopleUtils {
 		if (accountId != null) {
 			where.append(" AND p.ACCOUNT_ID = ?");
 			params.add(accountId);
+		}
+		if (relationship != null) {
+			where.append(" AND p.RELATIONSHIP = ?");
+			params.add(relationship);
 		}
 		if (topicId != null) {
 			where.append(" AND EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON tp WHERE tp.OWNER_ID = p.OWNER_ID "
@@ -158,6 +162,10 @@ public final class BrainPeopleUtils {
 		List<String> sets = new ArrayList<>();
 		List<Object> params = new ArrayList<>();
 		CollaborationDbUtils.setIfPresent(changes, "relationship", "RELATIONSHIP", sets, params);
+		if (changes.containsKey("relationship")) {
+			// the owner's choice; ranking and sender typing leave it alone
+			CollaborationDbUtils.addSet(sets, params, "RELATIONSHIP_STATE", "confirmed");
+		}
 		CollaborationDbUtils.setIfPresent(changes, "accountId", "ACCOUNT_ID", sets, params);
 		if (changes.containsKey("vip")) {
 			CollaborationDbUtils.addSet(sets, params, "IS_VIP", Boolean.parseBoolean(String.valueOf(changes.get("vip"))));
@@ -367,6 +375,9 @@ public final class BrainPeopleUtils {
 		person.put("accountId", CollaborationDbUtils.getString(rs, "ACCOUNT_ID"));
 		person.put("title", CollaborationDbUtils.getString(rs, "JOB_TITLE"));
 		person.put("relationship", CollaborationDbUtils.getString(rs, "RELATIONSHIP"));
+		if (BrainSenderTyping.AUTOMATED.equals(person.get("relationship"))) {
+			person.put("automated", true);
+		}
 		// people take their account's color
 		person.put("color", CollaborationDbUtils.getString(rs, "COLOR"));
 		person.put("vip", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP")));

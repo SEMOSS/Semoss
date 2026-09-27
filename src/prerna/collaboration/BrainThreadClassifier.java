@@ -132,8 +132,14 @@ public final class BrainThreadClassifier {
 			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
 					"Not about the other topics: other work, personal, travel, or automated mail."));
 		}
+		if (!dryRun) {
+			// automated and list senders are left to rules, so no model call is spent on them
+			BrainSenderTyping.run(ownerId, ownerType);
+		}
+		Set<String> vips = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND IS_VIP = ?", rs -> rs.getString(1), ownerId, ownerType, true));
 		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
-				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType));
+				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType), vips);
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
 
 		List<Result> results = new ArrayList<>();
@@ -167,7 +173,8 @@ public final class BrainThreadClassifier {
 	}
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
-			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt, boolean dryRun, Self self) {
+			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt, boolean dryRun, Self self,
+			Set<String> vips) {
 	}
 
 	@SuppressWarnings("unchecked")
@@ -180,13 +187,19 @@ public final class BrainThreadClassifier {
 		}
 		Map<String, Object> newest = messages.get(messages.size() - 1);
 		boolean fromMe = ctx.self().personId() != null && ctx.self().personId().equals(newest.get("fromId"));
-		Map<String, Object> thread = CollaborationDbUtils.queryOne("SELECT SUBJECT, SOURCE FROM BRAIN_THREAD "
+		Map<String, Object> thread = CollaborationDbUtils.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED FROM BRAIN_THREAD "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
 					row.put("source", CollaborationDbUtils.getString(rs, "SOURCE"));
+					row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
 					return row;
 				}, ctx.ownerId(), ctx.ownerType(), threadId);
+		// already known to be automated (sender typing or an earlier run): no model call
+		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
+			return new Result(threadId, null, null, null, "automated", null, null, null);
+		}
+		String onIt = recipientRole(ctx.self(), newest);
 
 		List<BrainClassifier.Message> input = new ArrayList<>();
 		for (Map<String, Object> m : messages) {
@@ -259,6 +272,11 @@ public final class BrainThreadClassifier {
 			work = "waiting";
 			askType = "waiting_on";
 			reasons.add("You wrote last; waiting on a reply");
+		} else if (!"to".equals(onIt)) {
+			// copied, or reached through a list or Bcc: worth knowing, not an ask of the owner
+			work = "fyi";
+			askType = "fyi";
+			reasons.add("cc".equals(onIt) ? "You were copied" : "Not addressed to you");
 		} else if (scores.fyi() >= ctx.cutoffs().fyiAt()) {
 			work = "fyi";
 			askType = "fyi";
@@ -270,6 +288,12 @@ public final class BrainThreadClassifier {
 			reasons.add(suggested ? "Might need you; confirm" : "Asks you to act");
 		}
 		double urgency = scores.urgency();
+		// a VIP's ask moves up one level
+		boolean fromVip = newest.get("fromId") != null && ctx.vips().contains(newest.get("fromId"));
+		if (fromVip && !"fyi".equals(work)) {
+			urgency = Math.min(3, urgency + 0.8);
+			reasons.add("From a VIP");
+		}
 		String priority = urgency >= 2.5 ? "P0" : urgency >= 1.8 ? "P1" : urgency >= 1.0 ? "P2" : "P3";
 		reasons.add("Urgency: " + URGENCY[(int) Math.max(0, Math.min(3, Math.round(urgency)))]);
 		if (!ctx.dryRun()) {
@@ -375,6 +399,26 @@ public final class BrainThreadClassifier {
 		return new Self((String) person.get("id"), (String) person.get("name"), addresses);
 	}
 
+	// "to" or "cc" when the owner is on the newest message that way, else "none"
+	private static String recipientRole(Self self, Map<String, Object> message) {
+		// the owner's addresses are not known yet: do not guess
+		if (self.addresses().isEmpty()) {
+			return "to";
+		}
+		for (String field : new String[] { "to", "cc" }) {
+			if (message.get(field) instanceof List<?> list) {
+				for (Object r : list) {
+					if (r instanceof Map<?, ?> m && (self.addresses()
+							.contains(BrainRulesGate.norm(CollaborationDbUtils.asString(m.get("address"))))
+							|| (self.name() != null && self.name().equalsIgnoreCase(String.valueOf(m.get("name")).trim())))) {
+						return field;
+					}
+				}
+			}
+		}
+		return "none";
+	}
+
 	private static List<String> names(Self self, Object recipients) {
 		List<String> names = new ArrayList<>();
 		if (recipients instanceof List<?> list) {
@@ -418,9 +462,10 @@ public final class BrainThreadClassifier {
 	// a dry run looks at every unmuted thread; a real run only at threads with no work item yet
 	private static List<String> pending(String ownerId, String ownerType, boolean all) {
 		return CollaborationDbUtils.query("SELECT t.THREAD_ID FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? "
-				+ "AND (t.MUTED IS NULL OR t.MUTED = ?)" + (all ? "" : " AND NOT EXISTS (SELECT 1 FROM WORK_ITEM w "
+				+ "AND (t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?)"
+				+ (all ? "" : " AND NOT EXISTS (SELECT 1 FROM WORK_ITEM w "
 						+ "WHERE w.OWNER_ID = t.OWNER_ID AND w.OWNER_TYPE = t.OWNER_TYPE AND w.THREAD_ID = t.THREAD_ID)")
-				+ " ORDER BY t.LAST_MESSAGE_AT DESC", rs -> rs.getString(1), ownerId, ownerType, false);
+				+ " ORDER BY t.LAST_MESSAGE_AT DESC", rs -> rs.getString(1), ownerId, ownerType, false, false);
 	}
 
 	private static List<String> participants(Context ctx, String threadId) {

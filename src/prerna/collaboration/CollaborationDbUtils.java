@@ -74,6 +74,9 @@ public class CollaborationDbUtils {
 	// Covers one server only.
 	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 
+	// the connection of a batch running on this thread; query, update and inTransaction join it
+	private static final ThreadLocal<Connection> BATCH = new ThreadLocal<>();
+
 	private CollaborationDbUtils() {
 
 	}
@@ -116,6 +119,10 @@ public class CollaborationDbUtils {
 	}
 
 	static <T> List<T> query(String sql, RowMapper<T> mapper, Object... params) {
+		Connection batch = BATCH.get();
+		if (batch != null) {
+			return query(batch, sql, mapper, params);
+		}
 		IRDBMSEngine engine = db();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -132,6 +139,23 @@ public class CollaborationDbUtils {
 			throw new IllegalStateException("Collaboration query failed", e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(engine, ps, rs);
+		}
+		return rows;
+	}
+
+	// on a given connection, which stays open
+	static <T> List<T> query(Connection conn, String sql, RowMapper<T> mapper, Object... params) {
+		List<T> rows = new ArrayList<>();
+		try (PreparedStatement ps = conn.prepareStatement(sql)) {
+			bind(ps, params);
+			try (ResultSet rs = ps.executeQuery()) {
+				while (rs.next()) {
+					rows.add(mapper.map(rs));
+				}
+			}
+		} catch (SQLException e) {
+			classLogger.error("Collaboration query failed [{}]", sql, e);
+			throw new IllegalStateException("Collaboration query failed", e);
 		}
 		return rows;
 	}
@@ -162,6 +186,15 @@ public class CollaborationDbUtils {
 
 	// single insert/update/delete; rolls back on failure so a pooled connection goes back clean
 	static int update(String sql, Object... params) {
+		Connection batch = BATCH.get();
+		if (batch != null) {
+			try {
+				return update(batch, sql, params);
+			} catch (SQLException e) {
+				classLogger.error("Collaboration update failed [{}]", sql, e);
+				throw new IllegalStateException("Collaboration update failed", e);
+			}
+		}
 		IRDBMSEngine engine = db();
 		PreparedStatement ps = null;
 		Connection conn = null;
@@ -185,6 +218,16 @@ public class CollaborationDbUtils {
 
 	// several statements on one connection, one commit; needs pooling so the connection is not shared
 	static void inTransaction(TransactionWork work) {
+		Connection batch = BATCH.get();
+		if (batch != null) {
+			try {
+				work.run(batch);
+			} catch (SQLException e) {
+				classLogger.error("Collaboration transaction failed", e);
+				throw new IllegalStateException("Collaboration transaction failed", e);
+			}
+			return;
+		}
 		IRDBMSEngine engine = db();
 		if (!engine.isConnectionPooling()) {
 			classLogger.warn("Collaboration transaction without connection pooling shares the engine connection");
@@ -201,6 +244,10 @@ public class CollaborationDbUtils {
 			rollback(conn);
 			classLogger.error("Collaboration transaction failed", e);
 			throw new IllegalStateException("Collaboration transaction failed", e);
+		} catch (RuntimeException e) {
+			// before setAutoCommit(true) below, which would commit the partial work
+			rollback(conn);
+			throw e;
 		} finally {
 			if (conn != null) {
 				try {
@@ -217,6 +264,27 @@ public class CollaborationDbUtils {
 				}
 			}
 		}
+	}
+
+	// every query and update this thread runs inside work shares one connection and one commit;
+	// a failure rolls back the whole batch
+	static void batch(TransactionWork work) {
+		if (BATCH.get() != null) {
+			try {
+				work.run(BATCH.get());
+			} catch (SQLException e) {
+				throw new IllegalStateException("Collaboration batch failed", e);
+			}
+			return;
+		}
+		inTransaction(conn -> {
+			BATCH.set(conn);
+			try {
+				work.run(conn);
+			} finally {
+				BATCH.remove();
+			}
+		});
 	}
 
 	// for use inside inTransaction

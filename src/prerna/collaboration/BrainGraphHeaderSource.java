@@ -44,12 +44,32 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final String SELECT = "id,internetMessageId,conversationId,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,parentFolderId";
-	private static final int PAGE = 100;
+			+ "receivedDateTime,parentFolderId,sender,inferenceClassification";
+	// Graph allows up to 1000 messages a page; headers only, so a page stays small
+	private static final int PAGE = 500;
 
 	@Override
 	public Map<String, Object> me(User user) throws Exception {
 		return get(user, BASE + "/me?$select=id,displayName,mail,userPrincipalName");
+	}
+
+	@Override
+	public List<String> aliases(User user) {
+		// "SMTP:primary@x" and "smtp:alias@x"; not every tenant returns them, so none is not an error
+		List<String> out = new ArrayList<>();
+		try {
+			if (get(user, BASE + "/me?$select=proxyAddresses").get("proxyAddresses") instanceof List<?> list) {
+				for (Object value : list) {
+					String v = String.valueOf(value);
+					if (v.regionMatches(true, 0, "smtp:", 0, 5)) {
+						out.add(v.substring(5).trim().toLowerCase());
+					}
+				}
+			}
+		} catch (Exception e) {
+			return out;
+		}
+		return out;
 	}
 
 	@Override

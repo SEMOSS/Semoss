@@ -46,6 +46,11 @@ public interface BrainMailHeaderSource {
 	// the owner's manager (displayName, mail), or null
 	Map<String, Object> manager(User user) throws Exception;
 
+	// the owner's other addresses (aliases), lower case; empty when unknown
+	default List<String> aliases(User user) {
+		return List.of();
+	}
+
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 

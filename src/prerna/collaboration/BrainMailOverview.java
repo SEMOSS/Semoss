@@ -36,7 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import prerna.auth.User;
 
@@ -51,19 +50,13 @@ public final class BrainMailOverview {
 	private static final int SUGGESTIONS = 25;
 	private static final int OFTEN = 5;
 	private static final int DOMAIN_SENDERS = 2;
-	// automated local parts, as a whole word anywhere: noreply1, weekly-digest, calendar-notifications, buildbot
-	private static final Pattern AUTOMATED = Pattern.compile("(^|[-_.])(no-?reply|do-?not-?reply|notifications?|"
-			+ "newsletters?|digest|mailer-daemon|bounces?|alerts?|updates|news|marketing|info|support|promos?|"
-			+ "promotions|offers|deals|blast|campaigns?|\\w*bot)"
-			+ "\\d*([-_.+]|$)", Pattern.CASE_INSENSITIVE);
 
 	private BrainMailOverview() {
 	}
 
 	// an automated sender by its local part (noreply1@, weekly-digest@, buildbot@)
 	static boolean isAutomated(String address) {
-		int at = address == null ? -1 : address.indexOf('@');
-		return at > 0 && AUTOMATED.matcher(address.substring(0, at)).find();
+		return BrainSenderTyping.automatedAddress(address);
 	}
 
 	public static Map<String, Object> overview(User user, int days) throws Exception {
@@ -111,10 +104,12 @@ public final class BrainMailOverview {
 				}
 			}
 		}
+		Set<String> mine = new HashSet<>(source.aliases(user));
+		mine.add(myAddress);
 		Map<String, Map<String, Object>> senders = new LinkedHashMap<>();
 		for (Map<String, Object> h : byFolder.get(BrainMailHeaderSource.INBOX)) {
 			String a = BrainMailImport.address(h.get("from"));
-			if (a == null || a.equals(myAddress)) {
+			if (a == null || mine.contains(a)) {
 				continue;
 			}
 			Map<String, Object> s = senders.computeIfAbsent(a, k -> {
@@ -126,6 +121,9 @@ public final class BrainMailOverview {
 				return row;
 			});
 			s.put("count", (Integer) s.get("count") + 1);
+			if (!addressedTo(h, mine)) {
+				s.put("notToYou", (Integer) s.getOrDefault("notToYou", 0) + 1);
+			}
 		}
 		List<Map<String, Object>> ranked = new ArrayList<>(senders.values());
 		ranked.sort((x, y) -> (Integer) y.get("count") - (Integer) x.get("count"));
@@ -136,14 +134,19 @@ public final class BrainMailOverview {
 		Map<String, Integer> automatedByDomain = new HashMap<>();
 		for (Map<String, Object> s : ranked) {
 			String a = (String) s.get("address");
-			boolean automated = isAutomated(a);
-			boolean ignored = !automated && (Integer) s.get("count") >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
-					&& !a.endsWith("@" + myDomain);
+			boolean automated = isAutomated(a) || (BrainSenderTyping.automatedName((String) s.get("name"))
+					&& !BrainSenderTyping.personName((String) s.get("name")));
+			// never someone who writes to you by name: a client who writes often is still a client
+			int count = (Integer) s.get("count");
+			boolean ignored = !automated && count >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
+					&& 2 * (Integer) s.getOrDefault("notToYou", 0) >= count
+					&& !BrainOrgDomains.isMine(BrainMailImport.domain(a), myDomain);
+			s.remove("notToYou");
 			if (!automated && !ignored) {
 				continue;
 			}
 			String domain = BrainMailImport.domain(a);
-			if (automated && domain != null && !domain.equals(myDomain)) {
+			if (automated && domain != null && !BrainOrgDomains.isMine(domain, myDomain)) {
 				automatedByDomain.merge(domain, 1, Integer::sum);
 			}
 			Map<String, Object> suggestion = new LinkedHashMap<>();
@@ -179,6 +182,20 @@ public final class BrainMailOverview {
 		out.put("keepOut", keepOut.subList(0, Math.min(SUGGESTIONS, keepOut.size())));
 		out.put("lastImport", CollaborationJobUtils.latest(owner.getValue0(), owner.getValue1(), BrainMailImport.KIND));
 		return out;
+	}
+
+	// the owner is on To or Cc
+	private static boolean addressedTo(Map<String, Object> header, Set<String> mine) {
+		for (String field : List.of("toRecipients", "ccRecipients")) {
+			if (header.get(field) instanceof List<?> list) {
+				for (Object r : list) {
+					if (mine.contains(BrainMailImport.address(r))) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")

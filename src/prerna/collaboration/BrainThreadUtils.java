@@ -144,9 +144,10 @@ public final class BrainThreadUtils {
 		}
 		addLinks(ownerId, ownerType, List.of(thread));
 		thread.put("participants", CollaborationDbUtils.query(
-				"SELECT PERSON_ID, ROLES_JSON, INCLUDED, EXCLUDED_BY, EXCLUDED_AT, HIDDEN_COUNT "
-						+ "FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
-						+ "ORDER BY FIRST_SEEN_AT, PERSON_ID",
+				"SELECT tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, tp.EXCLUDED_AT, tp.HIDDEN_COUNT, "
+						+ "p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp " + PERSON_JOIN
+						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID = ? "
+						+ "ORDER BY tp.FIRST_SEEN_AT, tp.PERSON_ID",
 				BrainThreadUtils::mapParticipant, ownerId, ownerType, threadId));
 
 		// keep summary last to match the contract's field order
@@ -253,9 +254,10 @@ public final class BrainThreadUtils {
 					included ? null : BrainProfileUtils.YOU, included ? null : CollaborationDbUtils.now(), ownerId,
 					ownerType, threadId, personId);
 		}
-		return CollaborationDbUtils.queryOne("SELECT PERSON_ID, ROLES_JSON, INCLUDED, EXCLUDED_BY, EXCLUDED_AT, "
-				+ "HIDDEN_COUNT FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
-				+ "AND PERSON_ID = ?", BrainThreadUtils::mapParticipant, ownerId, ownerType, threadId, personId);
+		return CollaborationDbUtils.queryOne("SELECT tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, "
+				+ "tp.EXCLUDED_AT, tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "
+				+ PERSON_JOIN + "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID = ? AND tp.PERSON_ID = ?",
+				BrainThreadUtils::mapParticipant, ownerId, ownerType, threadId, personId);
 	}
 
 	public static Map<String, Object> setThreadMuted(User user, String threadId, boolean muted) {
@@ -336,9 +338,10 @@ public final class BrainThreadUtils {
 		}
 		Map<String, List<Map<String, Object>>> byThread = new HashMap<>();
 		for (Pair<String, Map<String, Object>> row : CollaborationDbUtils.query(
-				"SELECT THREAD_ID, PERSON_ID, ROLES_JSON, INCLUDED, EXCLUDED_BY, EXCLUDED_AT, HIDDEN_COUNT "
-						+ "FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IN ("
-						+ CollaborationDbUtils.placeholders(threads.size()) + ") ORDER BY FIRST_SEEN_AT, PERSON_ID",
+				"SELECT tp.THREAD_ID, tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, tp.EXCLUDED_AT, "
+						+ "tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp " + PERSON_JOIN
+						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID IN ("
+						+ CollaborationDbUtils.placeholders(threads.size()) + ") ORDER BY tp.FIRST_SEEN_AT, tp.PERSON_ID",
 				rs -> Pair.with(rs.getString("THREAD_ID"), mapParticipant(rs)), params.toArray())) {
 			byThread.computeIfAbsent(row.getValue0(), k -> new ArrayList<>()).add(row.getValue1());
 		}
@@ -409,10 +412,16 @@ public final class BrainThreadUtils {
 		return link;
 	}
 
+	private static final String PERSON_JOIN = "LEFT JOIN BRAIN_PERSON p ON p.OWNER_ID = tp.OWNER_ID AND "
+			+ "p.OWNER_TYPE = tp.OWNER_TYPE AND p.PERSON_ID = tp.PERSON_ID ";
+
 	private static Map<String, Object> mapParticipant(ResultSet rs) throws SQLException {
 		Map<String, Object> participant = new LinkedHashMap<>();
 		participant.put("personId", CollaborationDbUtils.getString(rs, "PERSON_ID"));
 		participant.put("role", firstRole(CollaborationDbUtils.getString(rs, "ROLES_JSON")));
+		// so a client that has not loaded this person can still name them
+		participant.put("name", CollaborationDbUtils.getString(rs, "DISPLAY_NAME"));
+		participant.put("email", CollaborationDbUtils.getString(rs, "EMAIL_NORM"));
 		// a null flag counts as included
 		boolean included = !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "INCLUDED"));
 		participant.put("included", included);

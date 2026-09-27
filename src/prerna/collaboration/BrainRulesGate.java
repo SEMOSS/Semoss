@@ -37,6 +37,7 @@ import java.time.format.DateTimeParseException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 // GATE-01: decides from headers and owner rules alone, before any body fetch or model call.
@@ -61,14 +62,28 @@ public final class BrainRulesGate {
 
 	}
 
+	/**
+	 * What a bulk import already loaded, so the gate does not read it again per message: the active rules,
+	 * whether the source is on, and lookups for earlier decisions, people by address and threads by key
+	 * ([id, muted]). The caller keeps them current as it writes.
+	 */
+	record Known(List<Rule> rules, boolean enabled, Function<String, Map<String, Object>> replay,
+			Function<String, String> person, Function<String, String[]> thread) {
+	}
+
 	// headers: source, messageId, graphId, conversationId, folderId, from, receivedAt (ISO-8601 UTC)
 	public static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers) {
+		return check(ownerId, ownerType, headers, null);
+	}
+
+	static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers, Known known) {
 		synchronized (lockFor(ownerId, ownerType)) {
-			return checkLocked(ownerId, ownerType, headers);
+			return checkLocked(ownerId, ownerType, headers, known);
 		}
 	}
 
-	private static Map<String, Object> checkLocked(String ownerId, String ownerType, Map<String, String> headers) {
+	private static Map<String, Object> checkLocked(String ownerId, String ownerType, Map<String, String> headers,
+			Known known) {
 		String source = required(headers, "source");
 		String messageId = required(headers, "messageId");
 		String from = norm(required(headers, "from"));
@@ -78,7 +93,7 @@ public final class BrainRulesGate {
 		String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 
 		// replay: the first decision stands and nothing is bumped twice
-		Map<String, Object> replay = CollaborationDbUtils.queryOne(
+		Map<String, Object> replay = known != null ? known.replay().apply(messageKey) : CollaborationDbUtils.queryOne(
 				"SELECT DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
 				rs -> result(CollaborationDbUtils.getString(rs, "DECISION"), CollaborationDbUtils.getString(rs, "RULE_ID"),
@@ -90,22 +105,23 @@ public final class BrainRulesGate {
 		}
 
 		// source off (or never connected): drop without writing anything
-		Boolean enabled = CollaborationDbUtils.queryOne(
+		Boolean enabled = known != null ? Boolean.valueOf(known.enabled()) : CollaborationDbUtils.queryOne(
 				"SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE = ?",
 				rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, source);
 		if (!Boolean.TRUE.equals(enabled)) {
 			return result(OFF, null, null, null);
 		}
 
-		String personId = findPerson(ownerId, ownerType, from);
+		String personId = known != null ? known.person().apply(from) : findPerson(ownerId, ownerType, from);
 		String[] thread = conversationId == null ? null
+				: known != null ? known.thread().apply(source + ":" + conversationId)
 				: CollaborationDbUtils.queryOne(
 						"SELECT THREAD_ID, MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_KEY = ?",
 						rs -> new String[] { rs.getString("THREAD_ID"),
 								String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) },
 						ownerId, ownerType, source + ":" + conversationId);
 		String threadId = thread == null ? null : thread[0];
-		List<Rule> rules = activeRules(ownerId, ownerType);
+		List<Rule> rules = known != null ? known.rules() : activeRules(ownerId, ownerType);
 
 		// never-ingest: counted, not listed, so no thread on the row
 		Rule never = neverRule(rules, from, personId, folderId);
@@ -344,7 +360,7 @@ public final class BrainRulesGate {
 				rs -> rs.getString("PERSON_ID"), ownerId, ownerType, address);
 	}
 
-	private static Map<String, Object> result(String decision, String ruleId, String threadId, String personId) {
+	static Map<String, Object> result(String decision, String ruleId, String threadId, String personId) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		// excluded still flows to ingest: read and classified, but no items or alerts
 		result.put("pass", INGESTED.equals(decision) || EXCLUDED.equals(decision));

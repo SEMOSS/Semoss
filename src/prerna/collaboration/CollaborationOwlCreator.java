@@ -284,7 +284,11 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("DECISION", VARCHAR_20),
 				Pair.with("RULE_ID", VARCHAR_50),
 				Pair.with("CLASSIFIED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("CLASSIFIER_VERSION", VARCHAR_50)));
+				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
+				// the owner was on To or Cc; null for their own messages
+				Pair.with("TO_ME", BOOLEAN_DATATYPE_NAME),
+				// Focused Inbox put it in Other, or it was sent on behalf of another mailbox
+				Pair.with("BULK", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(
