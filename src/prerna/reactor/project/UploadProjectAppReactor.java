@@ -29,6 +29,7 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AuthProvider;
@@ -59,6 +61,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
@@ -134,6 +137,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		String smssFileLoc = null;
 		File smssFile = null;
 		Properties projectProperties = null;
+		JsonObject agentMetadata = null;
 		// unzip files to temp project folder
 		boolean error = false;
 		try {
@@ -179,6 +183,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				exception.setContinueThreadOfExecution(false);
 				throw exception;
 			}
+			agentMetadata = AgentProjectArchiveUtils.readAgent(randomTempUnzipF, projectProperties);
 		} catch (SemossPixelException e) {
 			error = true;
 			throw e;
@@ -203,6 +208,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		File finalProjectVersionF = null;
 		File finalProjectAssetF = null;
 		boolean projectAddedToDIHelper = false;
+		boolean replacingExistingProject = false;
 		try {
 			logger.info(step + ") Reading smss");
 			Properties prop = projectProperties;
@@ -230,6 +236,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 						exception.setContinueThreadOfExecution(false);
 						throw exception;
 					} else {
+						replacingExistingProject = true;
 						// make sure we pull the project from cloud
 						IProject project = Utility.getProject(projectId);
 						project.close();
@@ -314,7 +321,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 			DIHelper.getInstance().setProjectProperty(projectId + "_" + Constants.STORE,
 					finalProjectSmssF.getAbsolutePath());
 			logger.info(step + ") Grabbing project insights");
-			if (!replace) {
+			if (!replacingExistingProject) {
 				SecurityProjectUtils.addProject(projectId, global, user);
 			}
 
@@ -327,7 +334,8 @@ public class UploadProjectAppReactor extends AbstractReactor {
 					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
 							Constants.PROJECT_DISPLAY_NAME, projectName);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write {} into the smss file for project {}",
+							Constants.PROJECT_DISPLAY_NAME, projectId, e);
 				}
 			}
 
@@ -346,10 +354,20 @@ public class UploadProjectAppReactor extends AbstractReactor {
 				}
 			}
 
+			// Consume the generated archive file before the final, atomic agent import.
+			if (agentMetadata != null) {
+				AgentProjectArchiveUtils.importDependencies(finalProjectFolderF, projectName, projectId, user);
+				Files.delete(
+						new File(finalProjectFolderF, projectName + AgentProjectArchiveUtils.FILE_SUFFIX).toPath());
+				AgentProjectArchiveUtils.importAgent(projectId, user, agentMetadata, replacingExistingProject);
+			}
+
 			logger.info(step + ") Done");
 		} catch (Exception e) {
 			error = true;
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error(
+					"Failed to restore metadata, insights, or agent configuration for project {} from archive {}",
+					projectId, zipFilePath, e);
 			throw new SemossPixelException(
 					"Error occurred trying to synchronize the metadata and insights for the zip file", false);
 		} finally {
@@ -372,7 +390,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		}
 
 		// add user as engine owner
-		if (!replace) {
+		if (!replacingExistingProject) {
 			List<AuthProvider> logins = user.getLogins();
 			for (AuthProvider ap : logins) {
 				SecurityProjectUtils.addProjectOwner(user, projectId, user.getAccessToken(ap).getId());
@@ -385,7 +403,7 @@ public class UploadProjectAppReactor extends AbstractReactor {
 		Map<String, Object> engineIdMap = ProjectHelper.extractEngineIdsFromProjectFolder(projectId,
 				finalProjectFolderF);
 		// update the project dependencies table only with valid engineIds
-		if (engineIdMap.containsKey("success")) {
+		if (agentMetadata == null && engineIdMap.containsKey("success")) {
 			Map<String, Object> successMap = (Map<String, Object>) engineIdMap.get("success");
 			SecurityProjectUtils.updateProjectDependenciesWithoutType(user, projectId, successMap.keySet());
 		}
