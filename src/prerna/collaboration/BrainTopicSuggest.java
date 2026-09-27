@@ -109,6 +109,7 @@ public final class BrainTopicSuggest {
 		String myDomain = BrainMailImport.domain(CollaborationDbUtils.queryOne("SELECT EMAIL_NORM FROM BRAIN_PERSON "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType,
 				self));
+		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, String> emails = new HashMap<>();
 		CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> emails.put(rs.getString(1), rs.getString(2)), ownerId, ownerType);
@@ -169,7 +170,7 @@ public final class BrainTopicSuggest {
 		for (Thread t : threads.values()) {
 			for (String p : t.people()) {
 				String d = org(BrainMailImport.domain(emails.get(p)));
-				if (d == null || BrainOrgDomains.isMine(d, myDomain) || FREEMAIL.contains(d) || neverDomains.contains(d)
+				if (d == null || ownOrg.isMine(d) || FREEMAIL.contains(d) || neverDomains.contains(d)
 						|| BrainSenderTyping.automatedAddress(emails.get(p))) {
 					continue;
 				}
@@ -271,7 +272,7 @@ public final class BrainTopicSuggest {
 			String engineId = BrainTopicModel.engine(user);
 			if (engineId != null) {
 				List<Candidate> proposed = modelCandidates(user, engineId, ownerId, ownerType, threads, writers, vips,
-						emails, accountByDomain, accountNames, myDomain, self, topicNames);
+						emails, accountByDomain, accountNames, ownOrg, self, topicNames);
 				if (!proposed.isEmpty()) {
 					candidates = proposed;
 					source = "model";
@@ -322,7 +323,7 @@ public final class BrainTopicSuggest {
 					.orElse(null);
 			boolean outside = c.threads().stream().flatMap(t -> t.people().stream())
 					.map(p -> org(BrainMailImport.domain(emails.get(p))))
-					.anyMatch(d -> d != null && !BrainOrgDomains.isMine(d, myDomain));
+					.anyMatch(d -> d != null && !ownOrg.isMine(d));
 			List<String> members = byPerson.entrySet().stream()
 					.filter(e -> e.getValue() >= Math.max(2, c.threads().size() / 3)
 							&& !automated.contains(e.getKey()) && !BrainSenderTyping.automatedAddress(emails.get(e.getKey())))
@@ -377,7 +378,7 @@ public final class BrainTopicSuggest {
 	// working threads first (a VIP on it, the owner wrote, more messages), then recent; to the model and back
 	private static List<Candidate> modelCandidates(User user, String engineId, String ownerId, String ownerType,
 			Map<String, Thread> threads, Map<String, Set<String>> writers, Set<String> vips, Map<String, String> emails,
-			Map<String, String> accountByDomain, Map<String, String> accountNames, String myDomain, String self,
+			Map<String, String> accountByDomain, Map<String, String> accountNames, BrainOrgDomains.Org ownOrg, String self,
 			Set<String> takenNames) {
 		Map<String, Integer> counts = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, MESSAGE_COUNT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
@@ -388,7 +389,7 @@ public final class BrainTopicSuggest {
 			Set<String> orgs = new LinkedHashSet<>();
 			for (String p : t.people()) {
 				String d = org(BrainMailImport.domain(emails.get(p)));
-				if (d != null && !BrainOrgDomains.isMine(d, myDomain) && !FREEMAIL.contains(d)) {
+				if (d != null && !ownOrg.isMine(d) && !FREEMAIL.contains(d)) {
 					orgs.add(accountByDomain.containsKey(d) ? accountNames.get(accountByDomain.get(d)) : label(d));
 				}
 			}

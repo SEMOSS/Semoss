@@ -127,19 +127,45 @@ public final class BrainMailImport {
 		job.count("threads", run.threads.size());
 		job.count("newPeople", run.newPeople);
 
-		job.step("threads", 88);
+		job.step("threads", 87);
 		run.refreshThreads();
-		job.step("people", 90);
-		// automated and list senders first, so ranking and the later steps leave them out
+
+		// the directory first: who is a colleague, a shared mailbox or a list is a fact, not a guess
+		job.step("directory", 88);
+		BrainOrgDomains.save(ownerId, ownerType, source.organization(user));
+		Map<String, Object> manager = source.manager(user);
+		String managerAddress = manager == null ? null : BrainRulesGate.norm(first(manager, "mail", "userPrincipalName"));
+		String managerPersonId = managerAddress == null ? null
+				: run.ensurePerson(managerAddress, (String) manager.get("displayName"));
+		Map<String, String> chart = source.orgChart(user, manager == null ? null : (String) manager.get("id"));
+		Set<String> check = new HashSet<>(chart.keySet());
+		if (managerAddress != null) {
+			check.add(managerAddress);
+		}
+		Map<String, Object> directory = BrainPeopleDirectory.apply(user, source, ownerId, ownerType, selfId, check);
+		directory.forEach(job::count);
+
+		job.step("people", 91);
+		// then the header rules for everyone the directory did not settle
 		Map<String, Object> typed = BrainSenderTyping.run(ownerId, ownerType);
 		job.count("automatedPeople", typed.get("automatedPeople"));
 		job.count("automatedThreads", typed.get("automatedThreads"));
 		BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
-		Map<String, Object> manager = source.manager(user);
-		String managerAddress = manager == null ? null : BrainRulesGate.norm(first(manager, "mail", "userPrincipalName"));
-		if (managerAddress != null) {
-			job.count("managerPersonId", run.ensurePerson(managerAddress, (String) manager.get("displayName")));
+		if (managerPersonId != null) {
+			job.count("managerPersonId", managerPersonId);
 		}
+		// people to follow: manager, reports, peers, and two-way mail
+		Map<String, String> org = new HashMap<>();
+		if (managerPersonId != null) {
+			org.put(managerPersonId, "Your manager");
+		}
+		chart.forEach((address, role) -> {
+			String id = run.people.get(address);
+			if (id != null && !id.equals(selfId)) {
+				org.putIfAbsent(id, "report".equals(role) ? "Reports to you" : "Same manager");
+			}
+		});
+		job.count("followSuggested", BrainFollow.suggest(ownerId, ownerType, selfId, org));
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, SOURCE);
 	}
 

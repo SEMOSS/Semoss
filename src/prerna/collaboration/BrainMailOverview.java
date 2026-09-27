@@ -50,6 +50,7 @@ public final class BrainMailOverview {
 	private static final int SUGGESTIONS = 25;
 	private static final int OFTEN = 5;
 	private static final int DOMAIN_SENDERS = 2;
+	private static final int DIRECTORY_LOOKUPS = 200;
 
 	private BrainMailOverview() {
 	}
@@ -68,6 +69,10 @@ public final class BrainMailOverview {
 		Map<String, Object> me = source.me(user);
 		String myAddress = BrainRulesGate.norm(me.get("mail") instanceof String m ? m : (String) me.get("userPrincipalName"));
 		String myDomain = BrainMailImport.domain(myAddress);
+		Map<String, Object> organization = source.organization(user);
+		BrainOrgDomains.save(owner.getValue0(), owner.getValue1(), organization);
+		BrainOrgDomains.Org ownOrg = BrainOrgDomains.of(organization.get("domains") instanceof List<?> d
+				? CollaborationDbUtils.toStringList(new ArrayList<>(d)) : List.of(), myDomain);
 		Instant now = Instant.now();
 		Instant since = now.minus(Duration.ofDays(days));
 
@@ -127,6 +132,10 @@ public final class BrainMailOverview {
 		}
 		List<Map<String, Object>> ranked = new ArrayList<>(senders.values());
 		ranked.sort((x, y) -> (Integer) y.get("count") - (Integer) x.get("count"));
+		// the directory settles the busiest senders: a colleague is never suggested, a mailbox or list always is
+		BrainMailHeaderSource.Directory directory = source.lookup(user, ranked.stream().limit(DIRECTORY_LOOKUPS)
+				.map(r -> (String) r.get("address")).toList());
+		Map<String, Map<String, Object>> known = directory == null ? Map.of() : directory.entries();
 
 		// keep-out suggestions: automated addresses, and frequent outside senders you never wrote to
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(owner.getValue0(), owner.getValue1());
@@ -134,19 +143,24 @@ public final class BrainMailOverview {
 		Map<String, Integer> automatedByDomain = new HashMap<>();
 		for (Map<String, Object> s : ranked) {
 			String a = (String) s.get("address");
-			boolean automated = isAutomated(a) || (BrainSenderTyping.automatedName((String) s.get("name"))
-					&& !BrainSenderTyping.personName((String) s.get("name")));
+			String kind = known.get(a) == null ? null : String.valueOf(known.get(a).get("kind"));
+			if ("person".equals(kind)) {
+				continue;
+			}
+			boolean automated = "mailbox".equals(kind) || "list".equals(kind)
+					|| (kind == null && (isAutomated(a) || (BrainSenderTyping.automatedName((String) s.get("name"))
+							&& !BrainSenderTyping.personName((String) s.get("name")))));
 			// never someone who writes to you by name: a client who writes often is still a client
 			int count = (Integer) s.get("count");
 			boolean ignored = !automated && count >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
 					&& 2 * (Integer) s.getOrDefault("notToYou", 0) >= count
-					&& !BrainOrgDomains.isMine(BrainMailImport.domain(a), myDomain);
+					&& !ownOrg.isMine(BrainMailImport.domain(a));
 			s.remove("notToYou");
 			if (!automated && !ignored) {
 				continue;
 			}
 			String domain = BrainMailImport.domain(a);
-			if (automated && domain != null && !BrainOrgDomains.isMine(domain, myDomain)) {
+			if (automated && domain != null && !ownOrg.isMine(domain)) {
 				automatedByDomain.merge(domain, 1, Integer::sum);
 			}
 			Map<String, Object> suggestion = new LinkedHashMap<>();
@@ -154,7 +168,8 @@ public final class BrainMailOverview {
 			suggestion.put("value", a);
 			suggestion.put("name", s.get("name"));
 			suggestion.put("count", s.get("count"));
-			suggestion.put("reason", automated ? "automated address" : "writes often, you never wrote back");
+			suggestion.put("reason", "mailbox".equals(kind) ? "shared mailbox" : "list".equals(kind) ? "distribution list"
+					: automated ? "automated address" : "writes often, you never wrote back");
 			suggestion.put("alreadyKeptOut", BrainRulesGate.neverRule(rules, a, null, null) != null);
 			keepOut.add(suggestion);
 		}

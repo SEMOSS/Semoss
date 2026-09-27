@@ -50,6 +50,7 @@ public final class BrainPeopleRanking {
 	}
 
 	public static void rank(String ownerId, String ownerType, String selfId, String myDomain) {
+		BrainOrgDomains.Org org = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		// automated and list senders are not ranked
 		Set<String> automated = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE "
 				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType,
@@ -127,7 +128,7 @@ public final class BrainPeopleRanking {
 				// a suggestion is redone each time (the org's domains may have changed); the owner's choice stays
 				if (p[2] == null || ("suggested".equals(p[3]) && ("colleague".equals(p[2]) || "external".equals(p[2])))) {
 					sql += ", RELATIONSHIP = ?, RELATIONSHIP_STATE = ?";
-					params.add(BrainOrgDomains.isMine(BrainMailImport.domain(p[1]), myDomain) ? "colleague" : "external");
+					params.add(org.isMine(BrainMailImport.domain(p[1])) ? "colleague" : "external");
 					params.add("suggested");
 				}
 				sql += ", UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?";

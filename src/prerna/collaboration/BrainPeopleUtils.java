@@ -49,7 +49,8 @@ public final class BrainPeopleUtils {
 	public static final Set<String> ACCOUNT_KINDS = Set.of("client", "internal", "other");
 
 	private static final String PERSON_COLUMNS = "p.PERSON_ID, p.EMAIL_NORM, p.DISPLAY_NAME, p.JOB_TITLE, "
-			+ "p.ACCOUNT_ID, p.RELATIONSHIP, p.IS_VIP, p.STRENGTH, p.LAST_CONTACT_AT, a.COLOR";
+			+ "p.ACCOUNT_ID, p.RELATIONSHIP, p.IS_VIP, p.STRENGTH, p.LAST_CONTACT_AT, p.DEPARTMENT, p.FOLLOW_STATE, "
+			+ "p.FOLLOW_REASON, a.COLOR";
 
 	private static final String PERSON_FROM = " FROM BRAIN_PERSON p LEFT JOIN BRAIN_ACCOUNT a "
 			+ "ON a.OWNER_ID = p.OWNER_ID AND a.OWNER_TYPE = p.OWNER_TYPE AND a.ACCOUNT_ID = p.ACCOUNT_ID";
@@ -66,7 +67,7 @@ public final class BrainPeopleUtils {
 	// ---- people ----
 
 	public static Map<String, Object> listPeople(User user, String query, String accountId, String topicId,
-			String relationship, int limit, int offset) {
+			String relationship, String follow, int limit, int offset) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -85,6 +86,14 @@ public final class BrainPeopleUtils {
 		if (relationship != null) {
 			where.append(" AND p.RELATIONSHIP = ?");
 			params.add(relationship);
+		}
+		// following includes VIPs
+		if (BrainFollow.FOLLOWING.equals(follow)) {
+			where.append(" AND (p.FOLLOW_STATE = ? OR p.IS_VIP = ?)");
+			params.addAll(List.of(BrainFollow.FOLLOWING, true));
+		} else if (follow != null) {
+			where.append(" AND p.FOLLOW_STATE = ?");
+			params.add(follow);
 		}
 		if (topicId != null) {
 			where.append(" AND EXISTS (SELECT 1 FROM BRAIN_TOPIC_PERSON tp WHERE tp.OWNER_ID = p.OWNER_ID "
@@ -167,8 +176,18 @@ public final class BrainPeopleUtils {
 			CollaborationDbUtils.addSet(sets, params, "RELATIONSHIP_STATE", "confirmed");
 		}
 		CollaborationDbUtils.setIfPresent(changes, "accountId", "ACCOUNT_ID", sets, params);
+		boolean vip = changes.containsKey("vip") && Boolean.parseBoolean(String.valueOf(changes.get("vip")));
 		if (changes.containsKey("vip")) {
-			CollaborationDbUtils.addSet(sets, params, "IS_VIP", Boolean.parseBoolean(String.valueOf(changes.get("vip"))));
+			CollaborationDbUtils.addSet(sets, params, "IS_VIP", vip);
+		}
+		// follow: following, declined (not suggested again), or null; a VIP is always followed
+		if (changes.containsKey("follow") || vip) {
+			String follow = vip ? BrainFollow.FOLLOWING : CollaborationDbUtils.asString(changes.get("follow"));
+			if (follow != null && !BrainFollow.STATES.contains(follow)) {
+				throw new IllegalArgumentException("follow must be one of " + BrainFollow.STATES);
+			}
+			CollaborationDbUtils.addSet(sets, params, "FOLLOW_STATE", follow);
+			CollaborationDbUtils.addSet(sets, params, "FOLLOW_REASON", vip ? "VIP" : "You chose");
 		}
 		Boolean neverIngest = changes.containsKey("neverIngest")
 				? Boolean.parseBoolean(String.valueOf(changes.get("neverIngest")))
@@ -378,6 +397,11 @@ public final class BrainPeopleUtils {
 		if (BrainSenderTyping.AUTOMATED.equals(person.get("relationship"))) {
 			person.put("automated", true);
 		}
+		person.put("department", CollaborationDbUtils.getString(rs, "DEPARTMENT"));
+		boolean isVip = Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP"));
+		String follow = CollaborationDbUtils.getString(rs, "FOLLOW_STATE");
+		person.put("follow", isVip ? BrainFollow.FOLLOWING : follow);
+		person.put("followReason", CollaborationDbUtils.getString(rs, "FOLLOW_REASON"));
 		// people take their account's color
 		person.put("color", CollaborationDbUtils.getString(rs, "COLOR"));
 		person.put("vip", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "IS_VIP")));

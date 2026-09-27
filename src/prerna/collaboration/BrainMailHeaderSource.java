@@ -51,6 +51,29 @@ public interface BrainMailHeaderSource {
 		return List.of();
 	}
 
+	// the owner's organisation from the directory: name and verified domains; empty when unknown
+	default Map<String, Object> organization(User user) {
+		return Map.of();
+	}
+
+	/**
+	 * Directory entries by lower-case address: kind (person, guest, mailbox, list), name, title, department,
+	 * company, id. Addresses the directory does not know are left out; complete is false when the lookup stopped
+	 * early (no scope, throttled), so a miss there proves nothing.
+	 */
+	record Directory(Map<String, Map<String, Object>> entries, boolean complete) {
+	}
+
+	// null when there is no directory (fixtures, other mail sources)
+	default Directory lookup(User user, List<String> addresses) {
+		return null;
+	}
+
+	// the owner's direct reports and peers (the manager's other reports), address to "report" or "peer"
+	default Map<String, String> orgChart(User user, String managerId) {
+		return Map.of();
+	}
+
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 

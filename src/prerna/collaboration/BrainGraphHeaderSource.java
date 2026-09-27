@@ -31,8 +31,18 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import org.apache.hc.core5.http.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
@@ -47,6 +57,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			+ "receivedDateTime,parentFolderId,sender,inferenceClassification";
 	// Graph allows up to 1000 messages a page; headers only, so a page stays small
 	private static final int PAGE = 500;
+	private static final int BATCH = 20;
+	private static final int LOOKUP_THREADS = 4;
+	private static final String USER_SELECT = "id,displayName,mail,userPrincipalName,jobTitle,department,companyName,"
+			+ "accountEnabled,userType";
+	private static final Logger classLogger = LogManager.getLogger(BrainGraphHeaderSource.class);
 
 	@Override
 	public Map<String, Object> me(User user) throws Exception {
@@ -76,7 +91,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	public Map<String, Object> manager(User user) {
 		// no manager, or no directory permission: not an error for onboarding
 		try {
-			return get(user, BASE + "/me/manager?$select=displayName,mail,userPrincipalName");
+			return get(user, BASE + "/me/manager?$select=id,displayName,mail,userPrincipalName");
 		} catch (Exception e) {
 			return null;
 		}
@@ -100,6 +115,173 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			url = (String) page.get("@odata.nextLink");
 		}
 		return out;
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public Map<String, Object> organization(User user) {
+		// User.Read covers the signed-in user's own organisation
+		try {
+			Map<String, Object> page = get(user, BASE + "/organization?$select=displayName,verifiedDomains");
+			if (page.get("value") instanceof List<?> list && !list.isEmpty() && list.get(0) instanceof Map<?, ?> org) {
+				List<String> domains = new ArrayList<>();
+				if (org.get("verifiedDomains") instanceof List<?> verified) {
+					for (Object v : verified) {
+						if (v instanceof Map<?, ?> d && d.get("name") instanceof String name) {
+							domains.add(name.toLowerCase());
+						}
+					}
+				}
+				Map<String, Object> out = new LinkedHashMap<>();
+				out.put("name", ((Map<String, Object>) org).get("displayName"));
+				out.put("domains", domains);
+				return out;
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not read the organization: {}", e.getMessage());
+		}
+		return Map.of();
+	}
+
+	@Override
+	public Directory lookup(User user, List<String> addresses) {
+		Map<String, Map<String, Object>> out = new ConcurrentHashMap<>();
+		try {
+			// people first (User.Read.All), then lists (GroupMember.Read.All) for what is left
+			run(user, addresses, a -> "/users?$filter=" + encode("mail eq '" + quote(a) + "' or userPrincipalName eq '"
+					+ quote(a) + "'") + "&$select=" + USER_SELECT, (a, row) -> out.put(a, person(row)));
+			List<String> rest = addresses.stream().filter(a -> !out.containsKey(a)).toList();
+			run(user, rest, a -> "/groups?$filter=" + encode("mail eq '" + quote(a) + "'") + "&$select=id,displayName,mail",
+					(a, row) -> out.put(a, entry("list", row, "Distribution list")));
+		} catch (Exception e) {
+			// a missing scope or a throttled tenant: keep what came back, the rules cover the rest
+			classLogger.warn("Directory lookup stopped after {} of {}: {}", out.size(), addresses.size(), e.getMessage());
+			return new Directory(out, false);
+		}
+		return new Directory(out, true);
+	}
+
+	@Override
+	public Map<String, String> orgChart(User user, String managerId) {
+		Map<String, String> out = new LinkedHashMap<>();
+		try {
+			if (managerId != null) {
+				for (Map<String, Object> row : values(get(user, BASE + "/users/" + encode(managerId)
+						+ "/directReports?$select=mail,userPrincipalName&$top=100"))) {
+					String a = address(row);
+					if (a != null) {
+						out.put(a, "peer");
+					}
+				}
+			}
+			for (Map<String, Object> row : values(get(user, BASE + "/me/directReports?$select=mail,userPrincipalName&$top=100"))) {
+				String a = address(row);
+				if (a != null) {
+					out.put(a, "report");
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Could not read the org chart: {}", e.getMessage());
+		}
+		return out;
+	}
+
+	// person, guest, or a mailbox with no one signing in to it (shared, room, or a system sender)
+	private static Map<String, Object> person(Map<String, Object> row) {
+		if (Boolean.FALSE.equals(row.get("accountEnabled"))) {
+			return entry("mailbox", row, "Shared mailbox");
+		}
+		return entry("Guest".equalsIgnoreCase(String.valueOf(row.get("userType"))) ? "guest" : "person", row, null);
+	}
+
+	private static Map<String, Object> entry(String kind, Map<String, Object> row, String title) {
+		Map<String, Object> e = new LinkedHashMap<>();
+		e.put("kind", kind);
+		e.put("id", row.get("id"));
+		e.put("name", row.get("displayName"));
+		e.put("title", title != null ? title : row.get("jobTitle"));
+		e.put("department", row.get("department"));
+		e.put("company", row.get("companyName"));
+		return e;
+	}
+
+	@FunctionalInterface
+	private interface Found {
+		void accept(String address, Map<String, Object> row);
+	}
+
+	// $batch, 20 requests a call, a few calls at a time; a 403 stops the run (no scope), other misses are skipped
+	@SuppressWarnings("unchecked")
+	private static void run(User user, List<String> addresses, java.util.function.Function<String, String> url, Found found)
+			throws Exception {
+		if (addresses.isEmpty()) {
+			return;
+		}
+		// one token for the run, so parallel calls do not race a refresh
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		ExecutorService pool = Executors.newFixedThreadPool(LOOKUP_THREADS);
+		try {
+			List<Future<?>> calls = new ArrayList<>();
+			for (int start = 0; start < addresses.size(); start += BATCH) {
+				List<String> part = addresses.subList(start, Math.min(addresses.size(), start + BATCH));
+				calls.add(pool.submit(() -> {
+					List<Map<String, Object>> requests = new ArrayList<>();
+					for (int i = 0; i < part.size(); i++) {
+						requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url", url.apply(part.get(i))));
+					}
+					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
+							null, null));
+					for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
+						Map<String, Object> response = (Map<String, Object>) r;
+						int status = ((Number) response.getOrDefault("status", 0)).intValue();
+						if (status == 403) {
+							throw new IllegalStateException("The directory is not readable with this sign-in (403)");
+						}
+						if (status == 200 && response.get("body") instanceof Map<?, ?> body) {
+							List<Map<String, Object>> rows = values((Map<String, Object>) body);
+							if (!rows.isEmpty()) {
+								found.accept(part.get(Integer.parseInt(String.valueOf(response.get("id")))), rows.get(0));
+							}
+						}
+					}
+					return null;
+				}));
+			}
+			for (Future<?> call : calls) {
+				try {
+					call.get();
+				} catch (ExecutionException e) {
+					throw e.getCause() instanceof Exception cause ? cause : e;
+				}
+			}
+		} finally {
+			pool.shutdownNow();
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static List<Map<String, Object>> values(Map<String, Object> page) {
+		List<Map<String, Object>> out = new ArrayList<>();
+		if (page.get("value") instanceof List<?> list) {
+			for (Object v : list) {
+				if (v instanceof Map<?, ?> m) {
+					out.add((Map<String, Object>) m);
+				}
+			}
+		}
+		return out;
+	}
+
+	private static String address(Map<String, Object> row) {
+		Object a = row.get("mail") != null ? row.get("mail") : row.get("userPrincipalName");
+		return a == null ? null : String.valueOf(a).trim().toLowerCase();
+	}
+
+	// OData string literal: a quote is doubled
+	private static String quote(String value) {
+		return value.replace("'", "''");
 	}
 
 	private static Map<String, Object> get(User user, String url) throws Exception {

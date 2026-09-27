@@ -65,6 +65,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("MS_USER_ID", VARCHAR_255),
 				Pair.with("MS_UPN", VARCHAR_255),
 				Pair.with("STATUS", VARCHAR_20),
+				// the Microsoft tenant's name and verified domains: what counts as the owner's own organisation
+				Pair.with("ORG_NAME", VARCHAR_255),
+				Pair.with("ORG_DOMAINS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("SOURCE_CONNECTION", Arrays.asList(
@@ -171,6 +174,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("CHANNELS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("STRENGTH", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_CONTACT_AT", TIMESTAMP_DATATYPE_NAME),
+				// following (the owner's people), suggested (Brain proposes), declined (not again); null otherwise
+				Pair.with("FOLLOW_STATE", VARCHAR_20),
+				Pair.with("FOLLOW_REASON", VARCHAR_255),
 				Pair.with("WIKI_PATH", VARCHAR_255),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));

@@ -33,7 +33,8 @@ import prerna.auth.User;
 import prerna.collaboration.BrainPeopleUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSavePerson(person=[{"id": "...", "vip": true, "neverIngest": false, "channelScope": {"teams": false}}]);
+// BrainSavePerson(person=[{"id": "...", "vip": true, "follow": "following", "neverIngest": false,
+// "channelScope": {"teams": false}}]);
 public class BrainSavePersonReactor extends AbstractCollaborationReactor {
 
 	private static final String KEY = "person";

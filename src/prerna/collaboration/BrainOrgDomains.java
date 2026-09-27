@@ -27,17 +27,17 @@
  *******************************************************************************/
 package prerna.collaboration;
 
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import com.google.common.net.InternetDomainName;
 
-import prerna.util.Constants;
-import prerna.util.Utility;
-
-// which domains are the owner's own organisation: their domain, its subdomains, and COLLAB_ORG_DOMAINS
+// the owner's own organisation: their domain and the Microsoft tenant's verified domains (read at import),
+// with any subdomain of those. Nothing is guessed from names or configured by hand.
 public final class BrainOrgDomains {
 
 	// sending subdomains of an organisation that the public suffix list does not know about
@@ -45,6 +45,62 @@ public final class BrainOrgDomains {
 			"marketing", "notifications", "reply", "promo", "promotions", "campaign", "lists", "bounce");
 
 	private BrainOrgDomains() {
+	}
+
+	/** Domains that are the owner's organisation. */
+	public static final class Org {
+		private final Set<String> domains;
+
+		private Org(Set<String> domains) {
+			this.domains = domains;
+		}
+
+		/** The domain, or one it is a subdomain of, belongs to the owner's organisation. */
+		public boolean isMine(String domain) {
+			if (domain == null || domain.isBlank()) {
+				return false;
+			}
+			String d = domain.trim().toLowerCase(Locale.ROOT);
+			for (String mine : domains) {
+				if (d.equals(mine) || d.endsWith("." + mine)) {
+					return true;
+				}
+			}
+			return false;
+		}
+	}
+
+	/** The owner's organisation from their own domain and the tenant's verified domains. */
+	static Org of(Collection<String> verified, String myDomain) {
+		Set<String> domains = new LinkedHashSet<>();
+		String own = org(myDomain);
+		if (own != null) {
+			domains.add(own);
+		}
+		for (String v : verified) {
+			if (v != null && !v.isBlank()) {
+				domains.add(v.trim().toLowerCase(Locale.ROOT));
+			}
+		}
+		return new Org(domains);
+	}
+
+	/** The owner's organisation as saved at the last import. */
+	static Org load(String ownerId, String ownerType, String myDomain) {
+		String json = CollaborationDbUtils.queryOne("SELECT ORG_DOMAINS_JSON FROM COLLAB_OWNER WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getString(rs, "ORG_DOMAINS_JSON"), ownerId, ownerType);
+		return of(json == null ? List.of() : CollaborationDbUtils.toStringList(CollaborationDbUtils.parseList(json)),
+				myDomain);
+	}
+
+	/** Saves what the directory returned (name, domains); an empty answer keeps the last one. */
+	@SuppressWarnings("unchecked")
+	static void save(String ownerId, String ownerType, Map<String, Object> organization) {
+		if (organization.get("domains") instanceof List<?> domains && !domains.isEmpty()) {
+			CollaborationDbUtils.update("UPDATE COLLAB_OWNER SET ORG_NAME = ?, ORG_DOMAINS_JSON = ?, UPDATED_AT = ? "
+					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?", organization.get("name"),
+					CollaborationDbUtils.toJson((List<Object>) domains), CollaborationDbUtils.now(), ownerId, ownerType);
+		}
 	}
 
 	// the organisation's domain: comms.deloitte.com is deloitte.com; government keeps the agency (fda.hhs.gov)
@@ -66,42 +122,5 @@ public final class BrainOrgDomains {
 		} catch (IllegalArgumentException | IllegalStateException e) {
 			return d;
 		}
-	}
-
-	// the first label of the organisation's domain: deloitte for deloitte.co.uk
-	static String label(String domain) {
-		String o = org(domain);
-		return o == null ? null : o.contains(".") ? o.substring(0, o.indexOf('.')) : o;
-	}
-
-	/** True when the domain belongs to the owner's own organisation. */
-	public static boolean isMine(String domain, String myDomain) {
-		String o = org(domain);
-		if (o == null) {
-			return false;
-		}
-		if (o.equals(org(myDomain))) {
-			return true;
-		}
-		for (String entry : configured()) {
-			if (entry.endsWith(".*") ? entry.substring(0, entry.length() - 2).equals(label(o)) : entry.equals(o)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	private static List<String> configured() {
-		String value = Utility.getDIHelperProperty(Constants.COLLAB_ORG_DOMAINS);
-		List<String> out = new ArrayList<>();
-		if (value != null) {
-			for (String part : value.split(",")) {
-				String p = part.trim().toLowerCase(Locale.ROOT);
-				if (!p.isEmpty()) {
-					out.add(p);
-				}
-			}
-		}
-		return out;
 	}
 }

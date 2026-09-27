@@ -32,19 +32,21 @@ import prerna.collaboration.BrainPeopleUtils;
 import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListPeople(query=["priya"], accountId=["..."], topicId=["..."], relationship=["automated"], limit=[30], offset=[0]);
+// BrainListPeople(query=["priya"], accountId=["..."], topicId=["..."], relationship=["automated"], follow=["following"],
+// limit=[30], offset=[0]);
 public class BrainListPeopleReactor extends AbstractCollaborationReactor {
 
 	private static final String QUERY = "query";
 	private static final String ACCOUNT_ID = "accountId";
 	private static final String TOPIC_ID = "topicId";
 	private static final String RELATIONSHIP = "relationship";
+	private static final String FOLLOW = "follow";
 	private static final String LIMIT = "limit";
 	private static final String OFFSET = "offset";
 
 	public BrainListPeopleReactor() {
-		this.keysToGet = new String[] { QUERY, ACCOUNT_ID, TOPIC_ID, RELATIONSHIP, LIMIT, OFFSET };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { QUERY, ACCOUNT_ID, TOPIC_ID, RELATIONSHIP, FOLLOW, LIMIT, OFFSET };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -53,7 +55,7 @@ public class BrainListPeopleReactor extends AbstractCollaborationReactor {
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
 		return mapResult(BrainPeopleUtils.listPeople(user, getString(QUERY), getString(ACCOUNT_ID),
-				getString(TOPIC_ID), getString(RELATIONSHIP), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
+				getString(TOPIC_ID), getString(RELATIONSHIP), getString(FOLLOW), limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
 	}
 
 	@Override
@@ -69,6 +71,8 @@ public class BrainListPeopleReactor extends AbstractCollaborationReactor {
 			return "Only people in this account";
 		} else if (TOPIC_ID.equals(key)) {
 			return "Only members of this topic";
+		} else if (FOLLOW.equals(key)) {
+			return "Only people you follow (following, VIPs included), or suggested / declined";
 		} else if (RELATIONSHIP.equals(key)) {
 			return "Only people with this relationship (colleague, external, automated, self)";
 		} else if (LIMIT.equals(key)) {

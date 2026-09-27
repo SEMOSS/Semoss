@@ -1089,8 +1089,6 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	// a general text model for topic grouping and naming
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
-	// the users' own organisation's other domains, comma separated; "name.*" covers every ending (name.co.uk)
-	public static final String COLLAB_ORG_DOMAINS = "COLLAB_ORG_DOMAINS";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
