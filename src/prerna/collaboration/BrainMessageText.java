@@ -58,8 +58,8 @@ public final class BrainMessageText {
 	private static final Pattern BANNER = Pattern.compile("^\\s*(\\[(external|ext)( email)?\\]|caution:|external email:)",
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern WROTE = Pattern.compile("^\\s*On .{5,250} wrote:\\s*$", Pattern.CASE_INSENSITIVE);
-	private static final Pattern ORIGINAL = Pattern.compile("^\\s*-{2,}\\s*(original message|forwarded message)\\s*-{2,}\\s*$",
-			Pattern.CASE_INSENSITIVE);
+	private static final Pattern ORIGINAL = Pattern.compile("^\\s*(-{2,}\\s*(original message|forwarded message)\\s*-{2,}"
+			+ "|begin forwarded message:)\\s*$", Pattern.CASE_INSENSITIVE);
 	private static final Pattern HEADER_FROM = Pattern.compile("^\\s*\\*?from:\\*?\\s+\\S.*$", Pattern.CASE_INSENSITIVE);
 	private static final Pattern HEADER_NEXT = Pattern.compile("^\\s*\\*?(sent|date|to|subject|cc):\\*?\\s.*$",
 			Pattern.CASE_INSENSITIVE);
@@ -75,6 +75,11 @@ public final class BrainMessageText {
 	private static final Pattern SIGN_OFF = Pattern.compile("^\\s*(thanks|thank you|many thanks|thx|best|best regards|"
 			+ "regards|kind regards|warm regards|cheers|sincerely|talk soon)[,.!]?\\s*$", Pattern.CASE_INSENSITIVE);
 
+	private static final Pattern HEADER_SENT = Pattern.compile("^\\s*\\*?(sent|date):\\*?\\s+(\\S.*)$",
+			Pattern.CASE_INSENSITIVE);
+	// kept history (a forward, or mail from before the thread) can be long
+	private static final int MAX_KEPT_CHARS = 12000;
+
 	// a sign-off counts only near the end, with a short name-and-title block under it
 	private static final int SIGN_OFF_MAX_LINES = 6;
 	private static final int SIGN_OFF_MAX_CHARS = 80;
@@ -86,19 +91,34 @@ public final class BrainMessageText {
 	// contentType is "html" or "text", as Graph returns it; uniqueBody wins when present
 	public static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
 			String bodyType) {
-		boolean useUnique = uniqueBody != null && !uniqueBody.isBlank();
+		return extract(subject, uniqueBody, uniqueType, body, bodyType, false);
+	}
+
+	/**
+	 * keepHistory: the thread holds no earlier message, so quoted history is news, not a repeat. A forward
+	 * always keeps it. uniqueBody leaves that part out, so the full body is read instead.
+	 */
+	public static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
+			String bodyType, boolean keepHistory) {
+		boolean forward = subject != null && FORWARD_SUBJECT.matcher(subject).find();
+		boolean keep = forward || keepHistory;
+		boolean useUnique = uniqueBody != null && !uniqueBody.isBlank() && !(keep && body != null && !body.isBlank());
 		String content = useUnique ? uniqueBody : body;
 		String type = useUnique ? uniqueType : bodyType;
-		boolean forward = subject != null && FORWARD_SUBJECT.matcher(subject).find();
 		List<Map<String, Object>> cuts = new ArrayList<>();
 
-		String text = "html".equalsIgnoreCase(type) ? htmlToText(content, forward, cuts) : content;
-		text = cutText(text == null ? "" : text.replace("\r\n", "\n"), forward, cuts);
+		String text = "html".equalsIgnoreCase(type) ? htmlToText(content, keep, cuts) : content;
+		text = tidy(cutText(text == null ? "" : text.replace("\r\n", "\n"), keep, forward, cuts));
+		if (text.length() > MAX_KEPT_CHARS) {
+			cut(cuts, "too-long", text.substring(MAX_KEPT_CHARS));
+			text = text.substring(0, MAX_KEPT_CHARS) + "\n[rest of the message cut]";
+		}
 
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("subject", cleanSubject(subject));
-		result.put("body", tidy(text));
+		result.put("body", text);
 		result.put("source", useUnique ? "uniqueBody" : "body");
+		result.put("history", keep && !useUnique);
 		result.put("version", VERSION);
 		result.put("cuts", cuts);
 		return result;
@@ -119,14 +139,14 @@ public final class BrainMessageText {
 
 	// ---- html: cut by the markers mail clients write, then flatten to lines ----
 
-	private static String htmlToText(String html, boolean forward, List<Map<String, Object>> cuts) {
+	private static String htmlToText(String html, boolean keep, List<Map<String, Object>> cuts) {
 		Document doc = Jsoup.parse(html == null ? "" : html);
 		for (Element signature : doc.select(SIGNATURE_MARKERS)) {
 			cut(cuts, "html-signature", signature.text());
 			signature.remove();
 		}
-		// a forward keeps what was forwarded; only its header block is dropped, by the text rules below
-		if (!forward) {
+		// a forward or earlier history is kept; only its header block is dropped, by the text rules below
+		if (!keep) {
 			Element quote = doc.selectFirst(QUOTE_MARKERS);
 			if (quote != null) {
 				StringBuilder removed = new StringBuilder();
@@ -184,7 +204,7 @@ public final class BrainMessageText {
 
 	// ---- text: the same cuts for plain-text mail and for what the html left ----
 
-	private static String cutText(String text, boolean forward, List<Map<String, Object>> cuts) {
+	private static String cutText(String text, boolean keep, boolean forward, List<Map<String, Object>> cuts) {
 		List<String> lines = new ArrayList<>(List.of(text.split("\n", -1)));
 
 		// the gateway banner at the top
@@ -195,20 +215,26 @@ public final class BrainMessageText {
 			lines.subList(first, end).clear();
 		}
 
-		// quoted history, or a forward's header block
+		// quoted history, or the header block of a kept forward or history
+		int historyAt = -1;
 		for (int i = 0; i < lines.size(); i++) {
 			String rule = quoteStart(lines, i);
 			if (rule == null) {
 				continue;
 			}
-			if (forward) {
+			if (keep) {
+				historyAt = i;
+				// "On ... wrote:" already says who wrote it
+				if ("on-wrote".equals(rule)) {
+					break;
+				}
 				int end = headerEnd(lines, i);
-				String author = forwardAuthor(lines.subList(i, end));
+				String label = historyLabel(lines.subList(i, end), forward);
 				cut(cuts, "forward-header", String.join("\n", lines.subList(i, end)));
 				lines.subList(i, end).clear();
-				// keep who wrote the forwarded part, so it is not read as the sender's words
-				if (author != null) {
-					lines.add(i, "Forwarded from " + author + ":");
+				// keep who wrote the kept part, so it is not read as the sender's words
+				if (label != null) {
+					lines.add(i, label);
 				}
 				break;
 			}
@@ -216,30 +242,41 @@ public final class BrainMessageText {
 			lines.subList(i, lines.size()).clear();
 			break;
 		}
-		List<String> quoted = new ArrayList<>();
-		lines.removeIf(l -> {
-			boolean q = l.startsWith(">");
-			if (q) {
-				quoted.add(l);
+		if (keep) {
+			lines.replaceAll(l -> l.replaceFirst("^(\\s*>)+ ?", ""));
+		} else {
+			List<String> quoted = new ArrayList<>();
+			lines.removeIf(l -> {
+				boolean q = l.startsWith(">");
+				if (q) {
+					quoted.add(l);
+				}
+				return q;
+			});
+			if (!quoted.isEmpty()) {
+				cut(cuts, "quote-lines", String.join("\n", quoted));
 			}
-			return q;
-		});
-		if (!quoted.isEmpty()) {
-			cut(cuts, "quote-lines", String.join("\n", quoted));
 		}
 
-		// footers, each cuts to the end
+		// footers, each cuts to the end, or above kept history only to where it starts ("Sent from my iPhone")
 		for (int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i);
 			String rule = SIG_DELIMITER.matcher(line).matches() ? "signature-delimiter"
 					: MOBILE.matcher(line).matches() ? "mobile-footer"
 							: DISCLAIMER.matcher(line).find() ? "disclaimer"
 									: isUnsubscribeFooter(lines, i) ? "unsubscribe-footer" : null;
-			if (rule != null) {
-				cut(cuts, rule, String.join("\n", lines.subList(i, lines.size())));
-				lines.subList(i, lines.size()).clear();
-				break;
+			if (rule == null) {
+				continue;
 			}
+			if (i < historyAt) {
+				cut(cuts, rule, String.join("\n", lines.subList(i, historyAt)));
+				lines.subList(i, historyAt).clear();
+				historyAt = i;
+				continue;
+			}
+			cut(cuts, rule, String.join("\n", lines.subList(i, lines.size())));
+			lines.subList(i, lines.size()).clear();
+			break;
 		}
 
 		// a sign-off with a short block under it, near the end
@@ -286,6 +323,24 @@ public final class BrainMessageText {
 			i++;
 		}
 		return i;
+	}
+
+	// "Forwarded from Priya Raman, Monday, August 25, 2026 3:02 PM:"; null when the header names nobody
+	private static String historyLabel(List<String> header, boolean forward) {
+		String author = forwardAuthor(header);
+		if (author == null) {
+			return null;
+		}
+		String sent = null;
+		for (String line : header) {
+			java.util.regex.Matcher m = HEADER_SENT.matcher(line);
+			if (m.matches()) {
+				sent = m.group(2).trim();
+				break;
+			}
+		}
+		return (forward ? "Forwarded from " : "Earlier message from ") + author + (sent == null ? "" : ", " + sent)
+				+ ":";
 	}
 
 	private static String forwardAuthor(List<String> header) {

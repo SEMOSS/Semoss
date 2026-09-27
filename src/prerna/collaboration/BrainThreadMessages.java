@@ -137,7 +137,8 @@ public final class BrainThreadMessages {
 				hidden++;
 				continue;
 			}
-			Map<String, Object> clean = clean(message);
+			// the oldest message we hold: its quoted history is mail the thread does not have
+			Map<String, Object> clean = clean(message, row == rows.get(rows.size() - 1));
 			if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
 				hidden++;
 				continue;
@@ -175,12 +176,12 @@ public final class BrainThreadMessages {
 		return false;
 	}
 
-	private static Map<String, Object> clean(Map<String, Object> message) {
+	private static Map<String, Object> clean(Map<String, Object> message, boolean keepHistory) {
 		Map<String, Object> unique = content(message.get("uniqueBody"));
 		Map<String, Object> body = content(message.get("body"));
 		return BrainMessageText.extract(CollaborationDbUtils.asString(message.get("subject")),
 				(String) unique.get("content"), (String) unique.get("contentType"), (String) body.get("content"),
-				(String) body.get("contentType"));
+				(String) body.get("contentType"), keepHistory);
 	}
 
 	private static Map<String, Object> entry(Row row, Map<String, Object> clean, Map<String, Object> sender,
@@ -196,6 +197,10 @@ public final class BrainThreadMessages {
 		entry.put("at", row.at());
 		entry.put("subject", clean.get("subject"));
 		entry.put("text", clean.get("body"));
+		// forwarded or earlier mail is kept in the text; the UI must not trim it as a quoted reply
+		if (Boolean.TRUE.equals(clean.get("history"))) {
+			entry.put("history", true);
+		}
 		entry.put("excluded", excluded);
 		entry.put("muted", BrainRulesGate.MUTED.equals(row.decision()));
 		return entry;
