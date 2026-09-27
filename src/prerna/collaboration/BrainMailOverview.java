@@ -44,7 +44,9 @@ import prerna.auth.User;
 public final class BrainMailOverview {
 
 	private static final int MAX_PER_FOLDER = 5000;
-	private static final int[] WINDOWS = { 7, 30, 90 };
+	// 90 days read slowly on a real mailbox; 30 is the default look
+	public static final int DEFAULT_DAYS = 30;
+	private static final int[] WINDOWS = { 7, 30 };
 	private static final int TOP = 15;
 	private static final int SUGGESTIONS = 25;
 	private static final int OFTEN = 5;

@@ -30,7 +30,7 @@ package prerna.reactor.collaboration;
 import prerna.collaboration.BrainMailOverview;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainMailboxOverview(); or BrainMailboxOverview(days=[90]);
+// BrainMailboxOverview(); or BrainMailboxOverview(days=[30]);
 public class BrainMailboxOverviewReactor extends AbstractCollaborationReactor {
 
 	private static final String DAYS = "days";
@@ -44,7 +44,7 @@ public class BrainMailboxOverviewReactor extends AbstractCollaborationReactor {
 	public NounMetadata execute() {
 		Integer days = getIntFromKeyOrCurRow(DAYS);
 		try {
-			return mapResult(BrainMailOverview.overview(getUser(), days == null ? 90 : days));
+			return mapResult(BrainMailOverview.overview(getUser(), days == null ? BrainMailOverview.DEFAULT_DAYS : days));
 		} catch (IllegalArgumentException e) {
 			throw e;
 		} catch (Exception e) {
@@ -60,7 +60,7 @@ public class BrainMailboxOverviewReactor extends AbstractCollaborationReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (DAYS.equals(key)) {
-			return "How many days back to look (default 90)";
+			return "How many days back to look (default " + BrainMailOverview.DEFAULT_DAYS + ")";
 		}
 		return super.getDescriptionForKey(key);
 	}

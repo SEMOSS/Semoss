@@ -61,6 +61,10 @@ public final class BrainThreadClassifier {
 	private static final int MESSAGES = 2;
 	private static final int TEXT_CHARS = 1500;
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
+	// with this few topics the model also gets a way out, or every thread lands in one of them
+	private static final int FEW_TOPICS = 3;
+	static final String OTHER_TOPIC = "other";
+	private static final int FEW_TOPICS_ASK_BAND = 15;
 
 	private BrainThreadClassifier() {
 	}
@@ -80,11 +84,8 @@ public final class BrainThreadClassifier {
 
 	// same as classify, as a background job polled with BrainGetJob(kind=classify); results stay out of the job row
 	public static Map<String, Object> start(User user, List<String> threadIds, String engineId) {
-		// fail here, not inside the job, when no model is set
-		if (engineId == null && platformEngine() == null) {
-			throw new IllegalArgumentException("No classifier model is set; an admin sets "
-					+ Constants.COLLAB_CLASSIFIER_ENGINE_ID + " in RDF_Map.prop");
-		}
+		// fail here, not inside the job, when no model is set or the caller cannot use it
+		requireEngine(user, engineId);
 		var owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> params = new LinkedHashMap<>();
 		if (threadIds != null && !threadIds.isEmpty()) {
@@ -120,23 +121,19 @@ public final class BrainThreadClassifier {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		Map<String, Object> settings = BrainProfileUtils.getSettings(ownerId, ownerType);
-		// the platform model serves everyone; a named engine (evals) needs the caller's own access
-		String engine = engineId != null ? engineId : platformEngine();
-		if (engine == null) {
-			throw new IllegalArgumentException("No classifier model is set; an admin sets "
-					+ Constants.COLLAB_CLASSIFIER_ENGINE_ID + " in RDF_Map.prop");
-		}
-		if (engineId != null && !SecurityEngineUtils.userCanViewEngine(user, engine)) {
-			throw new IllegalArgumentException("Model " + engine + " does not exist or you do not have access to it");
-		}
+		String engine = requireEngine(user, engineId);
 		IModelEngine model = Utility.getModel(engine);
 		if (model == null) {
 			throw new IllegalArgumentException("Model " + engine + " could not be loaded");
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
-		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier),
-				topics(ownerId, ownerType), (Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun,
-				self(ownerId, ownerType));
+		List<BrainClassifier.TopicOption> topics = new ArrayList<>(topics(ownerId, ownerType));
+		if (!topics.isEmpty() && topics.size() < FEW_TOPICS) {
+			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
+					"Not about the other topics: other work, personal, travel, or automated mail."));
+		}
+		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
+				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType));
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
 
 		List<Result> results = new ArrayList<>();
@@ -203,30 +200,44 @@ public final class BrainThreadClassifier {
 				ctx.self().name(), (String) thread.get("subject"), participants(ctx, threadId), input), ctx.topics(),
 				ctx.insight());
 		Map<String, Object> signals = signals(scores);
+		boolean automated = scores.automated() >= ctx.cutoffs().automatedAt();
 
-		// topic: file, ask, or leave; owner-made links are never touched (a dry run scores them anyway)
+		// topic: file, ask, or leave; owner-made links are never touched and automated mail gets no topic
+		// (a dry run scores both anyway)
 		String topicId = null;
 		Integer confidence = null;
 		String band = null;
 		List<Map.Entry<String, Double>> ranked = new ArrayList<>(scores.topics().entrySet());
 		ranked.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-		if (!ranked.isEmpty() && (ctx.dryRun() || !hasOwnerLink(ctx, threadId))) {
-			double margin = ranked.get(0).getValue() - (ranked.size() > 1 ? ranked.get(1).getValue() : 0);
-			// 0.1 of margin reads as 90: a top-two gap that size was right every time in the eval
-			confidence = (int) Math.min(100, Math.round(50 + 400 * margin));
+		if (!ranked.isEmpty() && (ctx.dryRun() || (!automated && !hasOwnerLink(ctx, threadId)))) {
 			String bestId = ranked.get(0).getKey();
-			if (confidence >= ctx.fileAt()) {
+			String nextId = ranked.size() > 1 ? ranked.get(1).getKey() : null;
+			// with a "Something else" choice the probability itself is the confidence (fixture, one topic:
+			// real threads 0.87 and up, others mostly under 0.75), and only near misses are asked
+			boolean wayOut = scores.topics().containsKey(OTHER_TOPIC);
+			int askAt = wayOut ? Math.max(ctx.askAt(), ctx.fileAt() - FEW_TOPICS_ASK_BAND) : ctx.askAt();
+			if (wayOut) {
+				confidence = (int) Math.round(100 * ranked.get(0).getValue());
+			} else {
+				double margin = ranked.get(0).getValue() - (nextId != null ? ranked.get(1).getValue() : 0);
+				// 0.1 of margin reads as 90: a top-two gap that size was right every time in the eval
+				confidence = (int) Math.min(100, Math.round(50 + 400 * margin));
+			}
+			if (OTHER_TOPIC.equals(bestId)) {
+				band = "unassigned";
+			} else if (confidence >= ctx.fileAt()) {
 				band = "filed";
 				topicId = bestId;
 				if (!ctx.dryRun()) {
 					link(ctx, threadId, bestId, "confirmed", confidence, scores.topics());
 				}
-			} else if (confidence >= ctx.askAt() && ranked.size() > 1) {
+			} else if (confidence >= askAt && nextId != null) {
 				band = "asked";
 				if (!ctx.dryRun()) {
 					link(ctx, threadId, bestId, "suggested", confidence, scores.topics());
+					List<String> candidates = OTHER_TOPIC.equals(nextId) ? List.of(bestId) : List.of(bestId, nextId);
 					BrainReviewUtils.addReview(ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread",
-							threadId, ctx.classifier().version(), Map.of("candidates", List.of(bestId, ranked.get(1).getKey())));
+							threadId, ctx.classifier().version(), Map.of("candidates", candidates));
 				}
 			} else {
 				band = "unassigned";
@@ -238,7 +249,7 @@ public final class BrainThreadClassifier {
 		String askType;
 		boolean suggested = false;
 		List<String> reasons = new ArrayList<>();
-		if (scores.automated() >= ctx.cutoffs().automatedAt()) {
+		if (automated) {
 			if (!ctx.dryRun()) {
 				CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 						+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
@@ -291,6 +302,20 @@ public final class BrainThreadClassifier {
 			}
 		}
 		return new Result(threadId, topicId, confidence, band, work, priority, signals, null);
+	}
+
+	// the platform model (or a named one for evals); either way the caller needs access to it
+	private static String requireEngine(User user, String engineId) {
+		String engine = engineId != null ? engineId : platformEngine();
+		if (engine == null) {
+			throw new IllegalArgumentException("No classifier model is set; an admin sets "
+					+ Constants.COLLAB_CLASSIFIER_ENGINE_ID + " in RDF_Map.prop");
+		}
+		if (!SecurityEngineUtils.userCanViewEngine(user, engine)) {
+			throw new IllegalArgumentException("You do not have access to the classifier model (" + engine
+					+ "); ask an admin to share it with you");
+		}
+		return engine;
 	}
 
 	/** The platform classifier engine id from RDF_Map.prop, or null when unset. */
