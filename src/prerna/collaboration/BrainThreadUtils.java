@@ -128,33 +128,6 @@ public final class BrainThreadUtils {
 		return page;
 	}
 
-	public static Map<String, Object> getThread(User user, String threadId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		Map<String, Object> thread = CollaborationDbUtils.queryOne("SELECT " + THREAD_COLUMNS + ", t.SUMMARY, "
-				+ OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
-				+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?", rs -> {
-					Map<String, Object> row = mapThread(rs);
-					row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
-					return row;
-				}, ownerId, ownerType, threadId);
-		if (thread == null) {
-			throw new IllegalArgumentException("Thread not found");
-		}
-		addLinks(ownerId, ownerType, List.of(thread));
-		thread.put("participants", CollaborationDbUtils.query(
-				"SELECT tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, tp.EXCLUDED_AT, tp.HIDDEN_COUNT, "
-						+ "p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp " + PERSON_JOIN
-						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.THREAD_ID = ? "
-						+ "ORDER BY tp.FIRST_SEEN_AT, tp.PERSON_ID",
-				BrainThreadUtils::mapParticipant, ownerId, ownerType, threadId));
-
-		// keep summary last to match the contract's field order
-		thread.put("summary", thread.remove("summary"));
-		return thread;
-	}
-
 	static List<Map<String, Object>> getLinks(String ownerId, String ownerType, String threadId) {
 		return CollaborationDbUtils.query("SELECT TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY FROM BRAIN_THREAD_TOPIC "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? ORDER BY IS_PRIMARY DESC, CONFIDENCE DESC, "
@@ -318,12 +291,6 @@ public final class BrainThreadUtils {
 		}
 		for (Map<String, Object> thread : threads) {
 			thread.put("topicLinks", byThread.getOrDefault(thread.get("id"), new ArrayList<>()));
-			// keep topicLinks right after subject, as in the contract
-			for (String key : List.of("muted", "automated", "messageCount", "lastAt", "roomId", "needsTopicChoice")) {
-				if (thread.containsKey(key)) {
-					thread.put(key, thread.remove(key));
-				}
-			}
 		}
 	}
 

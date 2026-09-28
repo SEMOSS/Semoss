@@ -36,8 +36,8 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Work open tabs (WORK_OPEN_ROOM) and thread goals. The room itself lives in the inference logs database
-// (ROOM-01); this only records which thread rooms the owner has open.
+// Work open tabs (WORK_OPEN_ROOM) and thread goals. The room itself lives in the inference logs database;
+// this only records which thread rooms the owner has open.
 public final class WorkRoomUtils {
 
 	private static final String LOCK = "room";

@@ -33,17 +33,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.javatuples.Pair;
-
-import prerna.auth.User;
-
-// Owner and source health: COLLAB_OWNER, SOURCE_CONNECTION, SOURCE_SYNC_STATE, INBOUND_EVENT
+// Owner and source health: COLLAB_OWNER, SOURCE_CONNECTION
 public final class CollaborationSourceUtils {
-
-	public static final String EVENT_PENDING = "PENDING";
-	public static final String EVENT_DONE = "DONE";
-	public static final String EVENT_FAILED = "FAILED";
-	public static final String EVENT_SKIPPED = "SKIPPED";
 
 	private CollaborationSourceUtils() {
 
@@ -66,7 +57,7 @@ public final class CollaborationSourceUtils {
 		return false;
 	}
 
-	// SourceStatus[] from the reactor contract: every catalog source, "off" until it has a connection row
+	// every catalog source, "off" until it has a connection row
 	public static List<Map<String, Object>> getSourceStatuses(String ownerId, String ownerType) {
 		Map<String, Map<String, Object>> rows = new HashMap<>();
 		for (Map<String, Object> row : getSources(ownerId, ownerType)) {
@@ -104,23 +95,6 @@ public final class CollaborationSourceUtils {
 
 	// ---- owner ----
 
-	public static Map<String, Object> getOwner(String ownerId, String ownerType) {
-		return CollaborationDbUtils.queryOne(
-				"SELECT MS_USER_ID, MS_UPN, STATUS, CREATED_AT, UPDATED_AT FROM COLLAB_OWNER "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-				rs -> {
-					Map<String, Object> row = new LinkedHashMap<>();
-					row.put("ownerId", ownerId);
-					row.put("ownerType", ownerType);
-					row.put("msUserId", CollaborationDbUtils.getString(rs, "MS_USER_ID"));
-					row.put("msUpn", CollaborationDbUtils.getString(rs, "MS_UPN"));
-					row.put("status", CollaborationDbUtils.getString(rs, "STATUS"));
-					row.put("createdAt", CollaborationDbUtils.getTimestamp(rs, "CREATED_AT"));
-					row.put("updatedAt", CollaborationDbUtils.getTimestamp(rs, "UPDATED_AT"));
-					return row;
-				}, ownerId, ownerType);
-	}
-
 	public static void saveOwner(String ownerId, String ownerType, String msUserId, String msUpn, String status) {
 		int updated = CollaborationDbUtils.update(
 				"UPDATE COLLAB_OWNER SET MS_USER_ID = ?, MS_UPN = ?, STATUS = ?, UPDATED_AT = ? "
@@ -135,18 +109,7 @@ public final class CollaborationSourceUtils {
 		}
 	}
 
-	// webhooks arrive with the Microsoft user id; resolve it to the SEMOSS owner (id, type)
-	public static Pair<String, String> findOwnerByMsUserId(String msUserId) {
-		return CollaborationDbUtils.queryOne("SELECT OWNER_ID, OWNER_TYPE FROM COLLAB_OWNER WHERE MS_USER_ID = ?",
-				rs -> Pair.with(rs.getString("OWNER_ID"), rs.getString("OWNER_TYPE")), msUserId);
-	}
-
 	// ---- source connections (one row per owner and source: email, calendar, teams) ----
-
-	public static List<Map<String, Object>> getSources(User user) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return getSources(owner.getValue0(), owner.getValue1());
-	}
 
 	public static List<Map<String, Object>> getSources(String ownerId, String ownerType) {
 		return CollaborationDbUtils.query(
@@ -174,7 +137,7 @@ public final class CollaborationSourceUtils {
 		}
 	}
 
-	// a notification or delta page arrived; clears any earlier error
+	// a successful read; clears any earlier error
 	public static void recordSourceEvent(String ownerId, String ownerType, String source) {
 		int updated = CollaborationDbUtils.update(
 				"UPDATE SOURCE_CONNECTION SET LAST_EVENT_AT = ?, LAST_ERROR = NULL, LAST_ERROR_AT = NULL, "
@@ -205,57 +168,5 @@ public final class CollaborationSourceUtils {
 						+ "UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)",
 				ownerId, ownerType, source, enabled, false, CollaborationDbUtils.now(),
 				CollaborationDbUtils.now());
-	}
-
-	// ---- delta sync checkpoints ----
-
-	public static String getDeltaLink(String ownerId, String ownerType, String source, String folder) {
-		return CollaborationDbUtils.queryOne(
-				"SELECT DELTA_LINK FROM SOURCE_SYNC_STATE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE = ? AND FOLDER = ?",
-				rs -> CollaborationDbUtils.getString(rs, "DELTA_LINK"), ownerId, ownerType, source, folder);
-	}
-
-	public static void saveDeltaLink(String ownerId, String ownerType, String source, String folder,
-			String deltaLink) {
-		int updated = CollaborationDbUtils.update(
-				"UPDATE SOURCE_SYNC_STATE SET DELTA_LINK = ?, LAST_SYNC_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND SOURCE = ? AND FOLDER = ?",
-				deltaLink, CollaborationDbUtils.now(), ownerId, ownerType, source, folder);
-		if (updated == 0) {
-			CollaborationDbUtils.update(
-					"INSERT INTO SOURCE_SYNC_STATE (OWNER_ID, OWNER_TYPE, SOURCE, FOLDER, DELTA_LINK, LAST_SYNC_AT) "
-							+ "VALUES (?, ?, ?, ?, ?, ?)",
-					ownerId, ownerType, source, folder, deltaLink, CollaborationDbUtils.now());
-		}
-	}
-
-	// ---- inbound events ----
-
-	// returns the new event id, or null if this event key was already recorded (duplicate delivery)
-	public static String recordInboundEvent(String ownerId, String ownerType, String provider, String eventKey,
-			String source, String resourceLocator, String changeType) {
-		if (CollaborationDbUtils.exists(
-				"SELECT 1 FROM INBOUND_EVENT WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND EVENT_KEY = ?", ownerId,
-				ownerType, eventKey)) {
-			return null;
-		}
-		String eventId = CollaborationDbUtils.deterministicId(ownerId, ownerType, eventKey);
-		CollaborationDbUtils.update(
-				"INSERT INTO INBOUND_EVENT (OWNER_ID, OWNER_TYPE, EVENT_ID, PROVIDER, EVENT_KEY, SOURCE, "
-						+ "RESOURCE_LOCATOR, CHANGE_TYPE, STATUS, ATTEMPT_COUNT, RECEIVED_AT) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-				ownerId, ownerType, eventId, provider, eventKey, source, resourceLocator, changeType, EVENT_PENDING, 0,
-				CollaborationDbUtils.now());
-		return eventId;
-	}
-
-	public static void markInboundEvent(String ownerId, String ownerType, String eventId, String status,
-			String runId, String errorSummary) {
-		CollaborationDbUtils.update(
-				"UPDATE INBOUND_EVENT SET STATUS = ?, RUN_ID = ?, ERROR_SUMMARY = ?, "
-						+ "ATTEMPT_COUNT = ATTEMPT_COUNT + 1, PROCESSED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND EVENT_ID = ?",
-				status, runId, errorSummary, CollaborationDbUtils.now(), ownerId, ownerType, eventId);
 	}
 }

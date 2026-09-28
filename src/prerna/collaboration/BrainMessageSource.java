@@ -34,7 +34,7 @@ import java.util.Map;
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
-// TOOL-02: where the thread read gets message bodies at call time; nothing behind this stores them
+// where the thread read gets message bodies at call time; nothing behind this stores them
 public interface BrainMessageSource {
 
 	// points at a brain-mail-v1 style mail.json; local testing only, never set in production

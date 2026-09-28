@@ -65,7 +65,7 @@ public final class BrainTopicUtils {
 	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"), NOTE,
 			List.of("draft", "confirmed"));
 
-	// TW-Q-BRAIN-011: an active topic with no activity and no owner edit for this long goes dormant
+	// an active topic with no activity and no owner edit for this long goes dormant
 	static final int DORMANT_AFTER_DAYS = 30;
 
 	public static final int DEFAULT_LIMIT = 30;
@@ -154,8 +154,6 @@ public final class BrainTopicUtils {
 		topic.put("notes", notes);
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 
-		// keep stats last to match the contract's field order
-		topic.put("stats", topic.remove("stats"));
 		return topic;
 	}
 

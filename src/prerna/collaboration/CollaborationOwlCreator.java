@@ -35,7 +35,7 @@ import org.javatuples.Pair;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
-// Brain and Work tables; every row is owner-scoped and no table holds a message body
+// Brain and Work tables; every row is owner-scoped; message bodies are read from the source, never stored
 public class CollaborationOwlCreator extends AbstractOwlCreator {
 
 	public CollaborationOwlCreator(AbstractSqlQueryUtil queryUtil) {
@@ -80,26 +80,6 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("REAUTH_NEEDED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
-		addTable("SOURCE_SYNC_STATE", Arrays.asList(
-				OWNER_ID, OWNER_TYPE,
-				Pair.with("SOURCE", VARCHAR_50),
-				Pair.with("FOLDER", VARCHAR_255),
-				Pair.with("DELTA_LINK", CLOB_DATATYPE_NAME),
-				Pair.with("LAST_SYNC_AT", TIMESTAMP_DATATYPE_NAME)));
-		addTable("INBOUND_EVENT", Arrays.asList(
-				OWNER_ID, OWNER_TYPE,
-				Pair.with("EVENT_ID", VARCHAR_50),
-				Pair.with("PROVIDER", VARCHAR_50),
-				Pair.with("EVENT_KEY", VARCHAR_255),
-				Pair.with("SOURCE", VARCHAR_50),
-				Pair.with("RESOURCE_LOCATOR", CLOB_DATATYPE_NAME),
-				Pair.with("CHANGE_TYPE", VARCHAR_50),
-				Pair.with("STATUS", VARCHAR_20),
-				Pair.with("ATTEMPT_COUNT", INTEGER_DATATYPE_NAME),
-				Pair.with("RUN_ID", VARCHAR_50),
-				Pair.with("ERROR_SUMMARY", CLOB_DATATYPE_NAME),
-				Pair.with("RECEIVED_AT", TIMESTAMP_DATATYPE_NAME),
-				Pair.with("PROCESSED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// background work (onboarding import, classify) so the page can poll and a restart is visible
 		addTable("COLLAB_JOB", Arrays.asList(
@@ -133,13 +113,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 		// no topic cap; FILE_AT 85 and ASK_AT 40 defaults are set by the service
 		addTable("BRAIN_SETTINGS", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
-				Pair.with("CLASSIFIER_ENGINE_ID", VARCHAR_50),
 				Pair.with("FILE_AT", INTEGER_DATATYPE_NAME),
 				Pair.with("ASK_AT", INTEGER_DATATYPE_NAME),
-				Pair.with("PRIORITY_THRESHOLDS_JSON", CLOB_DATATYPE_NAME),
-				Pair.with("WEIGHTS_JSON", CLOB_DATATYPE_NAME),
-				Pair.with("SOURCES_JSON", CLOB_DATATYPE_NAME),
-				Pair.with("OPEN_ROOMS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
@@ -177,7 +152,6 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// following (the owner's people), suggested (Brain proposes), declined (not again); null otherwise
 				Pair.with("FOLLOW_STATE", VARCHAR_20),
 				Pair.with("FOLLOW_REASON", VARCHAR_255),
-				Pair.with("WIKI_PATH", VARCHAR_255),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("BRAIN_PERSON_ADDRESS", Arrays.asList(
@@ -242,9 +216,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("AUTOMATED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("GOAL", CLOB_DATATYPE_NAME),
-				Pair.with("GOAL_STATE", VARCHAR_20),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
-				Pair.with("SUMMARY_BUILT_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
@@ -271,13 +243,6 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("HIDDEN_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("FIRST_SEEN_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("LAST_SEEN_AT", TIMESTAMP_DATATYPE_NAME)));
-		addTable("BRAIN_THREAD_LINK", Arrays.asList(
-				OWNER_ID, OWNER_TYPE,
-				Pair.with("LINK_ID", VARCHAR_50),
-				Pair.with("FROM_THREAD_KEY", VARCHAR_255),
-				Pair.with("TO_THREAD_KEY", VARCHAR_255),
-				Pair.with("VIA", VARCHAR_20),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// metadata and gate decision only, never a message body
 		addTable("BRAIN_MESSAGE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
@@ -333,14 +298,6 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("AT", TIMESTAMP_DATATYPE_NAME),
 				// before/after rows for undo of a topic delete or merge; cleared after a day
 				Pair.with("SNAPSHOT_JSON", CLOB_DATATYPE_NAME)));
-		// quoted-text redaction for excluded people; hashes only, dropped when the
-		// exclusion is removed
-		addTable("BRAIN_EXCLUSION_FINGERPRINT", Arrays.asList(
-				OWNER_ID, OWNER_TYPE,
-				Pair.with("THREAD_KEY", VARCHAR_255),
-				Pair.with("PERSON_ID", VARCHAR_50),
-				Pair.with("HASH", VARCHAR_255),
-				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Work ---
 		addTable("WORK_ITEM", Arrays.asList(
@@ -386,11 +343,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("OLD_VALUE", VARCHAR_255),
 				Pair.with("NEW_VALUE", VARCHAR_255),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
-				// rows written by one update share a CHANGE_ID; an undo row names the change it reverts
-				Pair.with("CHANGE_ID", VARCHAR_50),
-				Pair.with("UNDO_OF", VARCHAR_50)));
-		// one row per open workspace tab (assumption: not detailed in the wiki beyond
-		// WorkListOpenRooms/WorkCloseRoom; minimal set to list and close tabs)
+				// rows written by one update share a CHANGE_ID
+				Pair.with("CHANGE_ID", VARCHAR_50)));
+		// one row per open workspace tab
 		addTable("WORK_OPEN_ROOM", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),

@@ -39,8 +39,8 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
-// GATE-03 v1: the subject and new body of one email, before classification.
-// UNVALIDATED: fixed patterns tested only on the brain-mail-v1 fixture, not on real mail yet (TW-Q-SIG-001).
+// The subject and new body of one email, before classification.
+// Fixed patterns, tested on the fixture mailbox only.
 // This is the one place ingest gets clean text from; swap the inside for a model without touching callers.
 public final class BrainMessageText {
 

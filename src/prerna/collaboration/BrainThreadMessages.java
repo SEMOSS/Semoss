@@ -40,7 +40,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// TOOL-02: the filtered thread read behind brain_get_thread. Today's rules run before any body is
+// The filtered thread read behind brain_get_thread. Today's rules run before any body is
 // fetched; bodies come from the source at call time, go through BrainMessageText, and are never stored.
 public final class BrainThreadMessages {
 

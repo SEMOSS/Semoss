@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
-// GATE-01: decides from headers and owner rules alone, before any body fetch or model call.
+// Decides from headers and owner rules alone, before any body fetch or model call.
 // Never reads or logs the subject. One owner's messages go through one at a time (see lockFor).
 public final class BrainRulesGate {
 
@@ -72,10 +72,6 @@ public final class BrainRulesGate {
 	}
 
 	// headers: source, messageId, graphId, conversationId, folderId, from, receivedAt (ISO-8601 UTC)
-	public static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers) {
-		return check(ownerId, ownerType, headers, null);
-	}
-
 	static Map<String, Object> check(String ownerId, String ownerType, Map<String, String> headers, Known known) {
 		synchronized (lockFor(ownerId, ownerType)) {
 			return checkLocked(ownerId, ownerType, headers, known);
@@ -174,50 +170,6 @@ public final class BrainRulesGate {
 		return record(ownerId, ownerType, messageKey, headers, threadId, personId, receivedAt, INGESTED, null, null);
 	}
 
-	// GATE-02: after a passing message's body is fetched and cleaned (BrainMessageText), a never_keyword rule
-	// still stops it. The text is matched in memory, never stored or logged.
-	public static Map<String, Object> checkText(String ownerId, String ownerType, String source, String messageId,
-			String subject, String body) {
-		synchronized (lockFor(ownerId, ownerType)) {
-			return checkTextLocked(ownerId, ownerType, source, messageId, subject, body);
-		}
-	}
-
-	private static Map<String, Object> checkTextLocked(String ownerId, String ownerType, String source,
-			String messageId, String subject, String body) {
-		String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
-		String[] row = CollaborationDbUtils.queryOne("SELECT DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID "
-				+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
-				rs -> new String[] { rs.getString("DECISION"), rs.getString("RULE_ID"), rs.getString("THREAD_ID"),
-						rs.getString("SENDER_PERSON_ID") },
-				ownerId, ownerType, messageKey);
-		if (row == null) {
-			throw new IllegalArgumentException("Run the header gate on this message first");
-		}
-		String decision = row[0];
-		String threadId = row[2];
-		String personId = row[3];
-		if (!INGESTED.equals(decision) && !EXCLUDED.equals(decision)) {
-			return result(decision, row[1], threadId, personId);
-		}
-		Rule keyword = keywordRule(activeRules(ownerId, ownerType), subject, body);
-		if (keyword == null) {
-			return result(decision, row[1], threadId, personId);
-		}
-		// now a never-ingest stop: counted, not listed, and an exclusion's hidden-count bump is taken back
-		CollaborationDbUtils.inTransaction(conn -> {
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MESSAGE SET DECISION = ?, RULE_ID = ?, THREAD_ID = NULL "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?", NEVER, keyword.id(), ownerId,
-					ownerType, messageKey);
-			if (EXCLUDED.equals(decision) && threadId != null && personId != null) {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_PARTICIPANT SET HIDDEN_COUNT = CASE WHEN "
-						+ "HIDDEN_COUNT > 0 THEN HIDDEN_COUNT - 1 ELSE 0 END WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND THREAD_ID = ? AND PERSON_ID = ?", ownerId, ownerType, threadId, personId);
-			}
-		});
-		return result(NEVER, keyword.id(), null, personId);
-	}
-
 	// the first never_keyword rule found in the clean subject or body
 	static Rule keywordRule(List<Rule> rules, String subject, String body) {
 		String text = (subject == null ? "" : subject) + "\n" + (body == null ? "" : body);
@@ -283,8 +235,7 @@ public final class BrainRulesGate {
 		}
 	}
 
-	// webhook, delta sync, and backfill can deliver the same message at once, so the replay check and the
-	// write run under one lock per owner. Covers one server only.
+	// the replay check and the write run under one lock per owner. Covers one server only.
 	private static Object lockFor(String ownerId, String ownerType) {
 		return CollaborationDbUtils.ownerLock("gate", ownerId, ownerType);
 	}

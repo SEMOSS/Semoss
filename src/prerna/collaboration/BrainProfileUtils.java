@@ -198,20 +198,18 @@ public final class BrainProfileUtils {
 		return settings;
 	}
 
-	// creates the row with FILE_AT 85 / ASK_AT 40 on first read (DEC-05)
+	// creates the row with FILE_AT 85 / ASK_AT 40 on first read
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT CLASSIFIER_ENGINE_ID, FILE_AT, ASK_AT, WEIGHTS_JSON, VERSION FROM BRAIN_SETTINGS "
+				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
-					// read-only: one platform classifier (RDF_Map); the column is no longer used
+					// read-only: one platform classifier (RDF_Map)
 					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
 					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
-					row.put("sourcesJson", null);
-					row.put("weightsJson", CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "WEIGHTS_JSON")));
 					row.put("version", CollaborationDbUtils.getInteger(rs, "VERSION"));
 					return row;
 				}, ownerId, ownerType);
@@ -251,10 +249,6 @@ public final class BrainProfileUtils {
 		List<Object> params = new ArrayList<>();
 		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
 		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
-		if (changes.containsKey("weightsJson")) {
-			Object weights = changes.get("weightsJson");
-			CollaborationDbUtils.addSet(sets, params, "WEIGHTS_JSON", CollaborationDbUtils.toJson(weights));
-		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -281,36 +275,5 @@ public final class BrainProfileUtils {
 				"INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, UPDATED_AT) "
 						+ "VALUES (?, ?, ?, ?, ?, ?)",
 				ownerId, ownerType, DEFAULT_FILE_AT, DEFAULT_ASK_AT, 1, CollaborationDbUtils.now());
-	}
-
-	// ---- overview ----
-
-	public static Map<String, Object> getOverview(User user) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		Map<String, Object> full = getProfile(user);
-		Map<String, Object> profile = new LinkedHashMap<>();
-		for (String key : new String[] { "id", "name", "email", "org" }) {
-			profile.put(key, full.get(key));
-		}
-
-		Map<String, Object> counts = new LinkedHashMap<>();
-		counts.put("topics", CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND (STATUS IS NULL OR STATUS <> ?)", ownerId, ownerType,
-				"archived"));
-		counts.put("threads", CollaborationDbUtils.count(
-				"SELECT COUNT(*) FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType));
-		counts.put("people", CollaborationDbUtils.count(
-				"SELECT COUNT(*) FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId, ownerType));
-
-		Map<String, Object> overview = new LinkedHashMap<>();
-		overview.put("profile", profile);
-		overview.put("sources", CollaborationSourceUtils.getSourceStatuses(ownerId, ownerType));
-		overview.put("counts", counts);
-		overview.put("openReviewCount", CollaborationDbUtils.count(
-				"SELECT COUNT(*) FROM BRAIN_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ?", ownerId,
-				ownerType, "open"));
-		return overview;
 	}
 }

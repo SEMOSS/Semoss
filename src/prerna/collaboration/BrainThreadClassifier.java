@@ -50,9 +50,8 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-// Classifier v0 (BRAIN-04 / WORK-02 stand-in): reads each thread through the rules gate, asks a pluggable
-// BrainClassifier for scores, and turns the scores into topic links and work items. Thresholds were tuned on
-// brain-mail-v1 (tools/classifier_eval.py) and are meant to be re-tuned from owner corrections.
+// Reads each thread through the rules gate, asks a pluggable BrainClassifier for scores, and turns the scores
+// into topic links and work items. Thresholds were tuned on the fixture mailbox.
 public final class BrainThreadClassifier {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainThreadClassifier.class);

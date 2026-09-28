@@ -114,11 +114,6 @@ public final class BrainPeopleUtils {
 		return page;
 	}
 
-	public static Map<String, Object> getPerson(User user, String personId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return getPerson(owner.getValue0(), owner.getValue1(), personId);
-	}
-
 	static Map<String, Object> getPerson(String ownerId, String ownerType, String personId) {
 		Map<String, Object> person = CollaborationDbUtils.queryOne("SELECT " + PERSON_COLUMNS + PERSON_FROM
 				+ " WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND p.PERSON_ID = ?", BrainPeopleUtils::mapPerson,
@@ -369,12 +364,7 @@ public final class BrainPeopleUtils {
 			for (String channel : List.of("email", "teams")) {
 				scope.put(channel, !off.contains(channel));
 			}
-			// contract order: vip, neverIngest, strength, lastContact, channels, then scope and topics
-			Object strength = person.remove("strength");
-			Object lastContact = person.remove("lastContact");
 			person.put("neverIngest", off.contains(NEVER));
-			person.put("strength", strength);
-			person.put("lastContact", lastContact);
 			person.put("channels", channels);
 			person.put("channelScope", scope);
 			person.put("topics", topics.getOrDefault(person.get("id"), new ArrayList<>()));

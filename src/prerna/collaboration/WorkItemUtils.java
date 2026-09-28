@@ -48,8 +48,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Work items (WORK_ITEM) and their change history (WORK_ITEM_HISTORY) with undo.
-// Scoring, the queue views, and the preview payload build on this (WORK-02, WORK-03, WORK-05).
+// Work items (WORK_ITEM), their change history (WORK_ITEM_HISTORY), and the queue views.
 public final class WorkItemUtils {
 
 	public static final Set<String> ASK_TYPES = Set.of("reply", "approve", "attend", "review", "waiting_on", "errand",
@@ -76,9 +75,8 @@ public final class WorkItemUtils {
 	public static final String SORT_CLOSED = "closed";
 
 	private static final String LOCK = "work";
-	// history FIELD of the row written when an item is created; never undone
+	// history FIELD of the row written when an item is created
 	private static final String CREATED = "created";
-	private static final String UNDO = "undo";
 
 	// field -> column for everything an update can change, in history order
 	private static final Map<String, String> COLUMNS = new LinkedHashMap<>();
@@ -204,27 +202,6 @@ public final class WorkItemUtils {
 		return page;
 	}
 
-	// WorkGetItem: the item with its thread's summary, topic check, and people
-	public static Map<String, Object> getItemPreview(User user, String itemId) {
-		Map<String, Object> item = getItem(user, itemId);
-		Map<String, Object> thread = BrainThreadUtils.getThread(user, (String) item.get("threadId"));
-		@SuppressWarnings("unchecked")
-		List<Map<String, Object>> people = (List<Map<String, Object>>) thread.get("participants");
-		int hidden = 0;
-		for (Map<String, Object> person : people) {
-			Object count = person.get("hiddenCount");
-			hidden += count instanceof Number n ? n.intValue() : 0;
-		}
-		Map<String, Object> preview = new LinkedHashMap<>();
-		preview.put("item", item);
-		preview.put("threadSummary", thread.get("summary"));
-		preview.put("hiddenCount", hidden);
-		preview.put("topicCheck", thread.get("topicLinks"));
-		preview.put("people", people);
-		preview.put("assistantQuestions", new ArrayList<>());
-		return preview;
-	}
-
 	// midnight in the owner's timezone (UTC when unset), as ISO
 	private static String startOfToday(User user) {
 		Object tz = BrainProfileUtils.getProfile(user).get("timezone");
@@ -247,59 +224,6 @@ public final class WorkItemUtils {
 		List<Object> params = new ArrayList<>();
 		String where = where(owner.getValue0(), owner.getValue1(), filter == null ? Map.of() : filter, params);
 		return CollaborationDbUtils.count("SELECT COUNT(*) FROM WORK_ITEM w" + where, params.toArray());
-	}
-
-	public static Map<String, Object> getItem(User user, String itemId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		Map<String, Object> item = getItem(owner.getValue0(), owner.getValue1(), itemId);
-		if (item == null) {
-			throw new IllegalArgumentException("Work item not found");
-		}
-		return item;
-	}
-
-	// newest first, one entry per change
-	public static List<Map<String, Object>> getHistory(User user, String itemId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		requireItem(ownerId, ownerType, itemId);
-		List<Map<String, Object>> changes = new ArrayList<>();
-		Map<String, Map<String, Object>> byId = new LinkedHashMap<>();
-		for (Map<String, Object> row : CollaborationDbUtils.query("SELECT CHANGE_ID, CHANGED_BY, CHANGED_AT, FIELD, "
-				+ "OLD_VALUE, NEW_VALUE, REASON, UNDO_OF FROM WORK_ITEM_HISTORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND ITEM_ID = ? ORDER BY CHANGED_AT DESC, CHANGE_ID, HISTORY_ID", rs -> {
-					Map<String, Object> r = new LinkedHashMap<>();
-					r.put("changeId", CollaborationDbUtils.getString(rs, "CHANGE_ID"));
-					r.put("by", CollaborationDbUtils.getString(rs, "CHANGED_BY"));
-					r.put("at", CollaborationDbUtils.getTimestamp(rs, "CHANGED_AT"));
-					r.put("field", CollaborationDbUtils.getString(rs, "FIELD"));
-					r.put("from", CollaborationDbUtils.getString(rs, "OLD_VALUE"));
-					r.put("to", CollaborationDbUtils.getString(rs, "NEW_VALUE"));
-					r.put("reason", CollaborationDbUtils.getString(rs, "REASON"));
-					r.put("undoOf", CollaborationDbUtils.getString(rs, "UNDO_OF"));
-					return r;
-				}, ownerId, ownerType, itemId)) {
-			Map<String, Object> change = byId.computeIfAbsent((String) row.get("changeId"), id -> {
-				Map<String, Object> c = new LinkedHashMap<>();
-				c.put("changeId", id);
-				c.put("by", row.get("by"));
-				c.put("at", row.get("at"));
-				c.put("reason", row.get("reason"));
-				c.put("undoOf", row.get("undoOf"));
-				c.put("fields", new ArrayList<Map<String, Object>>());
-				changes.add(c);
-				return c;
-			});
-			Map<String, Object> field = new LinkedHashMap<>();
-			field.put("field", row.get("field"));
-			field.put("from", row.get("from"));
-			field.put("to", row.get("to"));
-			@SuppressWarnings("unchecked")
-			List<Map<String, Object>> fields = (List<Map<String, Object>>) change.get("fields");
-			fields.add(field);
-		}
-		return changes;
 	}
 
 	// ---- create ----
@@ -405,7 +329,7 @@ public final class WorkItemUtils {
 
 	// changes: any of EDITABLE. snoozeUntil alone means snoozed; leaving snoozed clears it; done or dismissed
 	// sets closedAt and closedReason (by_owner or by_agent unless given); reopening clears both.
-	// Returns the item with the changeId to pass to undo; no change writes no history.
+	// Returns the item with its changeId; no change writes no history.
 	public static Map<String, Object> updateItem(String ownerId, String ownerType, String itemId,
 			Map<String, Object> changes, String actor, String reason) {
 		check(ACTORS, actor, "actor");
@@ -420,63 +344,11 @@ public final class WorkItemUtils {
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
 			Map<String, String> current = currentValues(ownerId, ownerType, itemId);
 			Map<String, String> next = next(ownerId, ownerType, current, changes, actor);
-			String changeId = apply(ownerId, ownerType, itemId, current, next, actor, reason, null);
+			String changeId = apply(ownerId, ownerType, itemId, current, next, actor, reason);
 			Map<String, Object> item = getItem(ownerId, ownerType, itemId);
 			if (changeId != null) {
 				item.put("changeId", changeId);
 			}
-			return item;
-		}
-	}
-
-	// reverts one change (default: the actor's latest that is not undone). Refused when a later change touched
-	// the same fields. The undo is itself a history entry.
-	public static Map<String, Object> undo(User user, String itemId, String changeId) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return undo(owner.getValue0(), owner.getValue1(), itemId, changeId, YOU);
-	}
-
-	public static Map<String, Object> undo(String ownerId, String ownerType, String itemId, String changeId,
-			String actor) {
-		check(ACTORS, actor, "actor");
-		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			Map<String, String> current = currentValues(ownerId, ownerType, itemId);
-			String target = changeId;
-			if (target == null) {
-				target = CollaborationDbUtils.queryOne("SELECT h.CHANGE_ID FROM WORK_ITEM_HISTORY h "
-						+ "WHERE h.OWNER_ID = ? AND h.OWNER_TYPE = ? AND h.ITEM_ID = ? AND h.CHANGED_BY = ? "
-						+ "AND h.FIELD <> ? AND h.UNDO_OF IS NULL AND NOT EXISTS (SELECT 1 FROM WORK_ITEM_HISTORY u "
-						+ "WHERE u.OWNER_ID = h.OWNER_ID AND u.OWNER_TYPE = h.OWNER_TYPE AND u.ITEM_ID = h.ITEM_ID "
-						+ "AND u.UNDO_OF = h.CHANGE_ID) ORDER BY h.CHANGED_AT DESC, h.CHANGE_ID FETCH FIRST 1 ROWS ONLY",
-						rs -> rs.getString(1), ownerId, ownerType, itemId, actor, CREATED);
-				if (target == null) {
-					throw new IllegalArgumentException("Nothing to undo");
-				}
-			}
-			List<String[]> rows = CollaborationDbUtils.query("SELECT FIELD, OLD_VALUE, NEW_VALUE, UNDO_OF "
-					+ "FROM WORK_ITEM_HISTORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ? AND CHANGE_ID = ?",
-					rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4) }, ownerId,
-					ownerType, itemId, target);
-			if (rows.isEmpty()) {
-				throw new IllegalArgumentException("Change not found");
-			}
-			if (CollaborationDbUtils.exists("SELECT 1 FROM WORK_ITEM_HISTORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-					+ "AND ITEM_ID = ? AND UNDO_OF = ?", ownerId, ownerType, itemId, target)) {
-				throw new IllegalArgumentException("Change already undone");
-			}
-			Map<String, String> next = new LinkedHashMap<>(current);
-			for (String[] row : rows) {
-				if (CREATED.equals(row[0]) || row[3] != null) {
-					throw new IllegalArgumentException("This change cannot be undone");
-				}
-				if (!Objects.equals(current.get(row[0]), row[2])) {
-					throw new IllegalArgumentException("The item changed since; undo not applied");
-				}
-				next.put(row[0], row[1]);
-			}
-			String undoId = apply(ownerId, ownerType, itemId, current, next, actor, UNDO, target);
-			Map<String, Object> item = getItem(ownerId, ownerType, itemId);
-			item.put("changeId", undoId);
 			return item;
 		}
 	}
@@ -506,7 +378,7 @@ public final class WorkItemUtils {
 				Map<String, String> next = new LinkedHashMap<>(current);
 				next.put("status", OPEN);
 				next.put("snoozeUntil", null);
-				apply(ownerId, ownerType, itemId, current, next, BRAIN, "snooze ended", null);
+				apply(ownerId, ownerType, itemId, current, next, BRAIN, "snooze ended");
 			}
 		}
 	}
@@ -525,7 +397,7 @@ public final class WorkItemUtils {
 				changes.put("status", status);
 				changes.put("closedReason", closedReason);
 				apply(ownerId, ownerType, itemId, current, next(ownerId, ownerType, current, changes, BRAIN), BRAIN,
-						reason, null);
+						reason);
 			}
 			return ids;
 		}
@@ -618,7 +490,7 @@ public final class WorkItemUtils {
 
 	// writes the differing fields and one history row each under a new change id; null when nothing differs
 	private static String apply(String ownerId, String ownerType, String itemId, Map<String, String> current,
-			Map<String, String> next, String actor, String reason, String undoOf) {
+			Map<String, String> next, String actor, String reason) {
 		List<String> changed = new ArrayList<>();
 		for (String field : COLUMNS.keySet()) {
 			if (!Objects.equals(current.get(field), next.get(field))) {
@@ -642,7 +514,7 @@ public final class WorkItemUtils {
 					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?", params.toArray());
 			for (String field : changed) {
 				insertHistory(conn, ownerId, ownerType, itemId, changeId, actor, now, field, current.get(field),
-						next.get(field), reason, undoOf);
+						next.get(field), reason);
 			}
 		});
 		return changeId;
@@ -677,17 +549,17 @@ public final class WorkItemUtils {
 					origin, priority, score, CollaborationDbUtils.toJson(reasons), dueAt, receivedAt, now, status,
 					assignee, linkTopicId, classifierVersion, dedupeKey, suggested, now, now);
 			insertHistory(conn, ownerId, ownerType, itemId, UUID.randomUUID().toString(), actor, now, CREATED, null,
-					status, reason, null);
+					status, reason);
 		});
 	}
 
 	private static void insertHistory(Connection conn, String ownerId, String ownerType, String itemId,
 			String changeId, String actor, Timestamp at, String field, String oldValue, String newValue,
-			String reason, String undoOf) throws SQLException {
+			String reason) throws SQLException {
 		CollaborationDbUtils.update(conn, "INSERT INTO WORK_ITEM_HISTORY (OWNER_ID, OWNER_TYPE, HISTORY_ID, ITEM_ID, "
-				+ "CHANGED_BY, CHANGED_AT, FIELD, OLD_VALUE, NEW_VALUE, REASON, CHANGE_ID, UNDO_OF) "
-				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(),
-				itemId, actor, at, field, oldValue, newValue, reason, changeId, undoOf);
+				+ "CHANGED_BY, CHANGED_AT, FIELD, OLD_VALUE, NEW_VALUE, REASON, CHANGE_ID) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, UUID.randomUUID().toString(),
+				itemId, actor, at, field, oldValue, newValue, reason, changeId);
 	}
 
 	// ---- helpers ----

@@ -73,10 +73,6 @@ public final class BrainMailImport {
 	}
 
 	/** Starts (or returns the running) import job for the last days of mail. */
-	public static Map<String, Object> start(User user, int days) {
-		return start(user, days, null);
-	}
-
 	/** Also Teams chats: true turns them on, false off, null keeps the owner's setting. */
 	public static Map<String, Object> start(User user, int days, Boolean teams) {
 		if (days < 1 || days > MAX_DAYS) {

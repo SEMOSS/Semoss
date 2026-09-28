@@ -72,7 +72,6 @@ public final class CollaborationPrompts {
 			- Ask a question only when you cannot write anything useful without the answer; \
 			otherwise make a reasonable assumption and state it in one line.""";
 
-	// v1 2026-09-25; tune against the fixed asks in tracker ROOM-09
 	public static final String THREAD_ROOM_PROMPT = INTRO + NO_TOOLS + RULES;
 
 	// a thread's assistant backed by the platform agent (COLLAB_THREAD_AGENT_ID); its prompt follows this one

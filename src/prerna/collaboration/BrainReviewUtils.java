@@ -40,7 +40,7 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 
 // Brain review queue (BRAIN_REVIEW): questions Brain asks the owner. Resolving here records the answer;
-// applying it to topics, people, and links is BRAIN-05.
+// the client applies it to topics, people, and links.
 public final class BrainReviewUtils {
 
 	public static final String NEW_TOPIC = "new_topic";
