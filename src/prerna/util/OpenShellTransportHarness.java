@@ -44,6 +44,15 @@ import java.net.Socket;
  */
 public final class OpenShellTransportHarness {
 
+	private static String canConnect(int port) {
+		try (Socket s = new Socket()) {
+			s.connect(new InetSocketAddress("127.0.0.1", port), 2000);
+			return "yes";
+		} catch (Exception e) {
+			return "no (" + e.getClass().getSimpleName() + ": " + e.getMessage() + ")";
+		}
+	}
+
 	private static byte[] readExactly(java.io.InputStream in, int n) throws java.io.IOException {
 		byte[] buf = new byte[n];
 		int off = 0;
@@ -83,8 +92,15 @@ public final class OpenShellTransportHarness {
 		long t0 = System.currentTimeMillis();
 		int port = t.start();
 		System.out.println("start() returned port " + port + " after " + (System.currentTimeMillis() - t0) + "ms");
+		System.out.println("is that port actually LISTENING?  "
+				+ canConnect(port));
 
-		// Prove the worker is actually reachable, not merely that a port opened.
+		// Wait for the worker WITHOUT touching its port. "Forwarding" is printed when
+		// the CLI's listener binds, which precedes the worker's own readiness. A sleep
+		// is deliberate: probing the port would consume the worker's single connection
+		// slot and its disconnect would kill the worker -- see the wiki rule.
+		System.out.println("settling 4s before the single connection...");
+		Thread.sleep(4000);
 		try (Socket s = new Socket()) {
 			s.connect(new InetSocketAddress("127.0.0.1", port), 5000);
 			// One framed request, exactly as the prototype does: [4-byte size][20-byte epoch][payload]

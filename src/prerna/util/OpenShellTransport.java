@@ -309,9 +309,13 @@ public final class OpenShellTransport {
 		// clear message rather than downstream with a confusing one.
 		if (!awaitForwardReady(readyTimeout)) {
 			String detail = readAvailable(forwardProcess);
+			boolean alive = forwardProcess != null && forwardProcess.isAlive();
+			classLogger.error("Forward for sandbox {} did not become ready on 127.0.0.1:{} (alive={}): {}",
+					sandboxName, this.forwardedPort, alive, detail);
 			close();
 			throw new IOException("port forward for sandbox " + sandboxName + " did not become ready on 127.0.0.1:"
-					+ this.forwardedPort + " within " + readyTimeout + "s" + (detail.isEmpty() ? "" : ": " + detail));
+					+ this.forwardedPort + " within " + readyTimeout + "s (process alive=" + alive + ")"
+					+ (detail.isEmpty() ? "" : ": " + detail));
 		}
 		classLogger.info("Executor sandbox {} ready; worker reachable on 127.0.0.1:{}", sandboxName,
 				this.forwardedPort);
@@ -340,6 +344,9 @@ public final class OpenShellTransport {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
 		while (System.nanoTime() < deadline) {
 			if (forwardProcess == null || !forwardProcess.isAlive()) {
+				// Died: record why before returning, or the reason is lost with the process.
+				classLogger.error("Forward process exited early (exit={}): {}",
+						forwardProcess == null ? "null" : forwardProcess.exitValue(), readAvailable(forwardProcess));
 				return false;
 			}
 			synchronized (forwardLog) {
