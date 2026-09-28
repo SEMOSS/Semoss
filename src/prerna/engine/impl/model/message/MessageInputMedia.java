@@ -30,8 +30,8 @@ package prerna.engine.impl.model.message;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.HashMap;
@@ -85,6 +85,9 @@ public class MessageInputMedia {
 				throw new IllegalArgumentException("Room folder must remain within the room directory");
 			}
 			expectedRoomFolder = expectedRoomFolder.toFile().getCanonicalFile().toPath();
+			if (!roomRoot.equals(expectedRoomFolder.getParent())) {
+				throw new IllegalArgumentException("Room folder must remain within the room directory");
+			}
 			Path suppliedRoomFolder = Paths.get(roomFolder).toFile().getCanonicalFile().toPath();
 			if (!expectedRoomFolder.equals(suppliedRoomFolder)) {
 				throw new IllegalArgumentException("Media room folder does not match the room ID");

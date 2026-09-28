@@ -29,8 +29,8 @@ package prerna.reactor.agent;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.util.stream.Stream;
 
 import prerna.util.Constants;
@@ -73,10 +73,20 @@ public class ClaudeCodeTranscriptLocator {
 			}
 
 			String targetFileName = roomId + ".jsonl";
+			Path transcriptRoot = rootDir;
 			try (Stream<Path> walk = Files.walk(rootDir)) {
 				return walk
 						.filter(Files::isRegularFile)
 						.filter(p -> p.getFileName().toString().equals(targetFileName))
+						.map(p -> {
+							try {
+								Path actual = p.toRealPath();
+								return actual.startsWith(transcriptRoot) && Files.isRegularFile(actual) ? actual : null;
+							} catch (IOException e) {
+								return null;
+							}
+						})
+						.filter(java.util.Objects::nonNull)
 						.findFirst()
 						.orElse(null);
 			}

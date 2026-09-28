@@ -501,14 +501,14 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
-					File thisF;
+					File thisF = null;
 					try {
 						thisF = PathSecurityUtils.requireDescendant(canonicalDocumentsDir,
 								new File(canonicalDocumentsDir, source));
-					} catch (IllegalArgumentException e) {
-						continue;
+					} catch (IllegalArgumentException | IOException e) {
+						// A Source label can be non-file data. Keep the row without local metadata.
 					}
-					if (thisF.exists() && thisF.isFile()) {
+					if (thisF != null && thisF.exists() && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);
 						SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

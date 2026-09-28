@@ -30,8 +30,8 @@ package prerna.om;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -871,7 +871,7 @@ public class Insight implements Serializable {
 		String roomId = PathSecurityUtils.requireSinglePathSegment(room.getId(), "Room ID");
 		try {
 			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
-			Path roomFolder = roomRoot.resolve(roomId).normalize();
+			Path roomFolder = roomRoot.resolve(roomId).normalize().toFile().getCanonicalFile().toPath();
 			if (!roomFolder.startsWith(roomRoot) || !roomRoot.equals(roomFolder.getParent())) {
 				throw new IllegalArgumentException("Room folder must remain within the room directory");
 			}

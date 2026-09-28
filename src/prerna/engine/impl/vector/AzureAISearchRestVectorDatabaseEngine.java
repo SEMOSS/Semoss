@@ -29,6 +29,7 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -554,8 +555,17 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 			Map<String, Object> fileInfo = new HashMap<>();
 			String fileName = bucketDetails.get("value").getAsString();
 			fileInfo.put("fileName", fileName);
-			File thisF = new File(documentsDir, fileName);
-			if (thisF.exists() && thisF.isFile()) {
+			File thisF = null;
+			try {
+				Path documentsRoot = documentsDir.getCanonicalFile().toPath();
+				Path documentPath = documentsRoot.resolve(fileName).normalize().toFile().getCanonicalFile().toPath();
+				if (!documentPath.equals(documentsRoot) && documentPath.startsWith(documentsRoot)) {
+					thisF = documentPath.toFile();
+				}
+			} catch (IOException | IllegalArgumentException e) {
+				// Keep non-file Source labels in the listing, without local metadata.
+			}
+			if (thisF != null && thisF.exists() && thisF.isFile()) {
 				long fileSizeInBytes = thisF.length();
 				double fileSizeInMB = (double) fileSizeInBytes / (1024);
 				SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");

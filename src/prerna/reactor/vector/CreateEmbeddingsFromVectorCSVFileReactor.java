@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -201,7 +202,21 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 */
 	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
 			List<String> invalidFiles) throws IOException {
-		File destDir = new File(Utility.normalizePath(destDirectory));
+		File requestedRoot = new File(Utility.normalizePath(destDirectory)).getAbsoluteFile();
+		Path parent = requestedRoot.getParentFile().getCanonicalFile().toPath();
+		Path extractionRoot = requestedRoot.getCanonicalFile().toPath();
+		if (!parent.equals(extractionRoot.getParent())) {
+			throw new IOException("Extraction folder must remain within its parent directory");
+		}
+		unzipAndFilter(zipFilePath, destDirectory, validFiles, invalidFiles, extractionRoot);
+	}
+
+	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles,
+			List<String> invalidFiles, Path extractionRoot) throws IOException {
+		File destDir = new File(Utility.normalizePath(destDirectory)).getCanonicalFile();
+		if (!destDir.toPath().startsWith(extractionRoot)) {
+			throw new IOException("Nested extraction folder must remain within the original extraction directory");
+		}
 		if (!destDir.exists()) {
 			destDir.mkdir();
 		}
@@ -210,7 +225,13 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 			ZipEntry entry = zipIn.getNextEntry();
 
 			while (entry != null) {
-				String filePath = destDirectory + "/" + entry.getName();
+				// Keep the same Unicode/path normalization for validation and all later uses.
+				Path target = new File(Utility.normalizePath(destDir + "/" + entry.getName()))
+						.getCanonicalFile().toPath();
+				if (!target.startsWith(destDir.toPath()) || (!entry.isDirectory() && target.equals(destDir.toPath()))) {
+					throw new IOException("Archive entry must remain within the extraction directory");
+				}
+				String filePath = target.toString();
 				if (!entry.isDirectory() && isSupportedFileType(filePath)) {
 					if (isSupportedFileType(filePath)) {
 						extractFile(zipIn, filePath);
@@ -219,7 +240,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 						invalidFiles.add(filePath);
 					}
 				} else if (entry.isDirectory()) {
-					File dir = new File(Utility.normalizePath(filePath));
+					File dir = new File(filePath);
 					dir.mkdirs();
 				} else if (isZipFile(filePath)) {
 					// Handle nested zip file
@@ -241,7 +262,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
 							: fileNameWithExtension;
 
-					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles);
+					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles, invalidFiles, extractionRoot);
 				}
 
 				zipIn.closeEntry();
@@ -271,7 +292,7 @@ public class CreateEmbeddingsFromVectorCSVFileReactor extends AbstractReactor {
 	 * @throws IOException
 	 */
 	private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-		try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
+		try (FileOutputStream fos = new FileOutputStream(filePath)) {
 			byte[] buffer = new byte[1024];
 			int bytesRead;
 			while ((bytesRead = zipIn.read(buffer)) != -1) {

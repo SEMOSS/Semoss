@@ -33,10 +33,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URLEncoder;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -887,10 +886,13 @@ public class MicrosoftOneDriveHelper {
 		if (isBlank(normalizedFileName) && new File(destination).isDirectory() && itemName != null) {
 			normalizedFileName = itemName;
 		}
-		String targetPath = isBlank(normalizedFileName) ? destination
-				: Paths.get(destination, normalizedFileName).toString();
-
-		File file = new File(targetPath);
+		Path destinationRoot = new File(destination).getCanonicalFile().toPath();
+		Path target = isBlank(normalizedFileName) ? destinationRoot
+				: destinationRoot.resolve(normalizedFileName).normalize().toFile().getCanonicalFile().toPath();
+		if (!isBlank(normalizedFileName) && (target.equals(destinationRoot) || !target.startsWith(destinationRoot))) {
+			throw new IllegalArgumentException("Downloaded file must remain within the destination directory");
+		}
+		File file = target.toFile();
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());

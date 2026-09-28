@@ -29,7 +29,7 @@ package prerna.io.connector.ms.outlook;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -125,7 +125,12 @@ public class MicrosoftOutlookDownloadAttachmentReactor extends AbstractMicrosoft
 			if (name == null) {
 				name = "attachment";
 			}
-			File file = new File(Paths.get(insightFolder, name).toString());
+			Path insightRoot = insightFolderFile.getCanonicalFile().toPath();
+			Path target = insightRoot.resolve(name).normalize().toFile().getCanonicalFile().toPath();
+			if (!insightRoot.equals(target.getParent())) {
+				throw new IllegalArgumentException("Attachment must remain within the insight folder");
+			}
+			File file = target.toFile();
 			try (FileOutputStream fos = new FileOutputStream(file)) {
 				fos.write(bytes);
 				fos.flush();

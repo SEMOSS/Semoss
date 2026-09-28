@@ -29,8 +29,8 @@ package prerna.engine.impl.model;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
@@ -181,9 +181,9 @@ public final class RoomUtils {
 
 	private static String resolveRoomId(String roomId, Insight insight) {
 		if (roomId == null || roomId.trim().isEmpty()) {
-			return insight.getInsightId();
+			roomId = insight.getInsightId();
 		}
-		return roomId;
+		return PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
 	}
 
 	private static void createRoomRowIfMissing(String roomId, Insight insight, IModelEngine modelEngine,
@@ -833,7 +833,7 @@ public final class RoomUtils {
 		Path targetDir = null;
 		try {
 			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
-			targetDir = roomRoot.resolve(roomId).normalize();
+			targetDir = roomRoot.resolve(roomId).normalize().toFile().getCanonicalFile().toPath();
 			if (!targetDir.startsWith(roomRoot) || !roomRoot.equals(targetDir.getParent())) {
 				throw new IllegalArgumentException("Room folder must remain within the room directory");
 			}

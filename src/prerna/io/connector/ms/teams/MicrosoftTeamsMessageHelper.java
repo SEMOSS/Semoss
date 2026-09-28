@@ -31,9 +31,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -964,7 +963,12 @@ public class MicrosoftTeamsMessageHelper {
 	 * Writes downloaded bytes into a directory.
 	 */
 	private static File write(byte[] bytes, String destination, String fileName) throws Exception {
-		File file = new File(Paths.get(destination, fileName).toString());
+		Path destinationRoot = new File(destination).getCanonicalFile().toPath();
+		Path target = destinationRoot.resolve(fileName).normalize().toFile().getCanonicalFile().toPath();
+		if (target.equals(destinationRoot) || !target.startsWith(destinationRoot)) {
+			throw new IllegalArgumentException("Attachment must remain within the destination directory");
+		}
+		File file = target.toFile();
 		File parent = file.getParentFile();
 		if (parent != null && !parent.exists() && !parent.mkdirs()) {
 			throw new IllegalStateException("Unable to create destination directory at: " + parent.getAbsolutePath());

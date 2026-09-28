@@ -29,8 +29,8 @@ package prerna.reactor.vector;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -242,7 +242,12 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 	 * @throws IOException
 	 */
 	private void unzipAndFilter(String zipFilePath, String destDirectory, List<String> validFiles) throws IOException {
-		File destDir = new File(Utility.normalizePath(destDirectory));
+		File requestedRoot = new File(Utility.normalizePath(destDirectory)).getAbsoluteFile();
+		Path parent = requestedRoot.getParentFile().getCanonicalFile().toPath();
+		File destDir = requestedRoot.getCanonicalFile();
+		if (!parent.equals(destDir.toPath().getParent())) {
+			throw new IOException("Extraction folder must remain within its parent directory");
+		}
 		if (!destDir.exists()) {
 			destDir.mkdir();
 		}
@@ -251,53 +256,22 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 			ZipEntry entry = zipIn.getNextEntry();
 
 			while (entry != null) {
-				String filePath = destDirectory + "/" + entry.getName();
+				// Keep the same Unicode/path normalization for validation and all later uses.
+				Path target = new File(Utility.normalizePath(destDir + "/" + entry.getName()))
+						.getCanonicalFile().toPath();
+				if (!target.startsWith(destDir.toPath()) || (!entry.isDirectory() && target.equals(destDir.toPath()))) {
+					throw new IOException("Archive entry must remain within the extraction directory");
+				}
+				String filePath = target.toString();
 				if (!entry.isDirectory()) {
 					validFiles.add(filePath);
 				} else if (entry.isDirectory()) {
-					File dir = new File(Utility.normalizePath(filePath));
+					File dir = new File(filePath);
 					dir.mkdirs();
-				} else if (isZipFile(filePath)) {
-					// Handle nested zip file
-					this.extractFile(zipIn, filePath);
-
-					// Check if the entry is not in the root directory
-					String parentPath = null;
-					if (filePath.contains("/")) { // ZIP entries use "/" as a separator
-						parentPath = filePath.substring(0, filePath.lastIndexOf('/'));
-					}
-
-					// Extract the last part of the path (file name + extension)
-					String fileNameWithExtension = filePath.contains("/")
-							? filePath.substring(filePath.lastIndexOf('/') + 1)
-							: filePath;
-
-					// Remove the extension
-					String baseName = fileNameWithExtension.contains(".")
-							? fileNameWithExtension.substring(0, fileNameWithExtension.lastIndexOf('.'))
-							: fileNameWithExtension;
-
-					unzipAndFilter(filePath, parentPath + "/" + baseName, validFiles);
 				}
 
 				zipIn.closeEntry();
 				entry = zipIn.getNextEntry();
-			}
-		}
-	}
-
-	/**
-	 * 
-	 * @param zipIn
-	 * @param filePath
-	 * @throws IOException
-	 */
-	private void extractFile(ZipInputStream zipIn, String filePath) throws IOException {
-		try (FileOutputStream fos = new FileOutputStream(Utility.normalizePath(filePath))) {
-			byte[] buffer = new byte[1024];
-			int bytesRead;
-			while ((bytesRead = zipIn.read(buffer)) != -1) {
-				fos.write(buffer, 0, bytesRead);
 			}
 		}
 	}
