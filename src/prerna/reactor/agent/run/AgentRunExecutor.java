@@ -123,11 +123,15 @@ final class AgentRunExecutor {
 				throw new AgentCancelledException();
 			}
 			String completionError = result == null ? null : result.getCompletionError();
-            if (completionError == null) AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
-            else AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
+			if (completionError == null) {
+				AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			} else {
+				AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
+			}
 			AgentRunStreamService.get().markTerminal(runId);
 			publishSubagentTerminal(parentRunId, record, runId, completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED,
 					result != null ? result.getFinalText() : null, completionError);
+			queueChildCompletion(parentRunId, record, runId);
 		} catch (Exception e) {
 			// A cancel reaches this thread as an interrupt and the flag is still set.
 			// Clear it before the bookkeeping below, because this thread is virtual and
@@ -141,6 +145,7 @@ final class AgentRunExecutor {
 				AgentRunStore.markCancelled(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null, boundedError(e));
+				queueChildCompletion(parentRunId, record, runId);
 				logger.info("AgentRunExecutor: runId={} cancelled: {}", runId, e.getMessage());
 			} else if (e instanceof AgentInputRequiredException) {
 				// The harness already persisted the AGENT_RUN_ACTION rows; only
@@ -152,10 +157,18 @@ final class AgentRunExecutor {
 				AgentRunStore.markFailed(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
+				queueChildCompletion(parentRunId, record, runId);
 				logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 			}
 		} finally {
 			ThreadStore.remove();
+		}
+	}
+
+	private static void queueChildCompletion(String parentRunId, AgentRunRecord record, String childRunId) {
+		if (parentRunId != null && !parentRunId.isBlank() && record.request() != null
+				&& record.request().getCompletionMode() != SubAgentRunCompletionMode.WAIT) {
+			AgentRunService.get().queueChildCompletion(childRunId);
 		}
 	}
 

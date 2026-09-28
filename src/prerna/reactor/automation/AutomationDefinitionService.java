@@ -106,7 +106,7 @@ public final class AutomationDefinitionService {
 			validateUniqueNodeSourceFileNames(validated);
 			Map<String, String> sources = new LinkedHashMap<>();
 			for (Map<String, Object> node : validated.nodes()) {
-				if (AutomationConstants.NODE_CONTROL_IF.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				if (isJavaOwnedRoutingNode(node)) {
 					continue;
 				}
 				String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
@@ -282,16 +282,15 @@ public final class AutomationDefinitionService {
 			if (!nodesById.containsKey(entry.getKey())) {
 				throw new IllegalArgumentException("Python source was supplied for an unknown node: " + entry.getKey());
 			}
-			if (AutomationConstants.NODE_CONTROL_IF
-					.equals(nodesById.get(entry.getKey()).get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (isJavaOwnedRoutingNode(nodesById.get(entry.getKey()))) {
 				throw new IllegalArgumentException(
-						"If node '" + entry.getKey() + "' is evaluated by Java and cannot have Python source.");
+						"Routing node '" + entry.getKey() + "' is evaluated by Java and cannot have Python source.");
 			}
 			validateNodeSource(entry.getKey(), nodesById.get(entry.getKey()), entry.getValue());
 		}
 		Map<String, String> result = new LinkedHashMap<>();
 		for (Map.Entry<String, Map<String, Object>> entry : nodesById.entrySet()) {
-			if (AutomationConstants.NODE_CONTROL_IF.equals(entry.getValue().get(AutomationConstants.NODE_FIELD_TYPE))) {
+			if (isJavaOwnedRoutingNode(entry.getValue())) {
 				continue;
 			}
 			String source = supplied.get(entry.getKey());
@@ -353,7 +352,7 @@ public final class AutomationDefinitionService {
 		changed |= definition.definition().remove(AutomationConstants.DOC_GLOBALS) != null;
 		for (Map<String, Object> node : definition.nodes()) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
-			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)) {
+			if (isJavaOwnedRoutingNode(node)) {
 				if (!AutomationConstants.NODE_CODE_MODE_GENERATED
 						.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
 					node.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
@@ -579,9 +578,21 @@ public final class AutomationDefinitionService {
 	}
 
 	private static boolean requiresPythonSource(Map<String, Object> node) {
+		return !AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
+				&& !isJavaOwnedRoutingNode(node);
+	}
+
+	/**
+	 * Reports whether a node is evaluated directly by the Java control-flow
+	 * runtime and therefore has no persisted Python source file.
+	 *
+	 * @param node automation node
+	 * @return {@code true} for a Java-owned routing node
+	 */
+	private static boolean isJavaOwnedRoutingNode(Map<String, Object> node) {
 		Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
-		return !AutomationConstants.NODE_START.equals(nodeType)
-				&& !AutomationConstants.NODE_CONTROL_IF.equals(nodeType);
+		return AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
+				|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType);
 	}
 
 	private static String emptyDefinition() {

@@ -48,11 +48,16 @@ import org.apache.logging.log4j.Logger;
 import com.google.re2j.Matcher;
 import com.google.re2j.Pattern;
 
+import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
+import prerna.engine.api.ITypeSafeEngine;
+import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -69,9 +74,9 @@ import prerna.util.insight.InsightUtility;
  * submitted run history before entering this boundary. This class claims that
  * individual run, creates a run-local {@link Insight}, traverses the validated
  * control path, executes the immutable source snapshot one node at a time,
- * persists each transition, and always tears down the run-local Insight. Python
- * receives only the selected node source and a read-only scope; it does not own
- * graph traversal or persistence.
+ * persists each transition, and binds interactive run Insights to the caller's
+ * session lifecycle. Python receives only the selected node source and a
+ * read-only scope; it does not own graph traversal or persistence.
  *
  * <p>
  * Keeping this lifecycle independent from the Pixel reactor allows the same
@@ -84,6 +89,7 @@ final class AutomationRunExecutionService {
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
 	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
+	private static final String EXECUTION_INSIGHT_PREFIX = "automation-run-";
 	private static final long AGENT_RUN_POLL_INTERVAL_MS = 500L;
 	private static final String AGENT_RUN_WAIT_TIMEOUT_PROPERTY = "AGENT_RUN_WAIT_TIMEOUT_MS";
 	private static final long DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS = 3600000L;
@@ -127,9 +133,11 @@ final class AutomationRunExecutionService {
 		streamRunStarted(runId, definition);
 
 		Map<String, Object> result;
+		ExecutionInsightLease executionInsightLease = null;
 		Insight executionInsight = null;
 		try {
-			executionInsight = createExecutionInsight(projectId);
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
 			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
@@ -150,7 +158,9 @@ final class AutomationRunExecutionService {
 			result = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationPythonRunRegistry.unregister(runId);
-			cleanupExecutionInsight(executionInsight);
+			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
+				cleanupExecutionInsight(executionInsight);
+			}
 		}
 		return buildResult(runId, projectId, result);
 	}
@@ -170,6 +180,10 @@ final class AutomationRunExecutionService {
 		Map<String, Object> result = new LinkedHashMap<>(persisted);
 		result.put(AutomationConstants.RESULT_NODE_RESULTS,
 				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
+		String executionInsightId = getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null) {
+			result.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
 		if (wait != null) {
 			result.put("wait", wait);
@@ -222,6 +236,8 @@ final class AutomationRunExecutionService {
 						AutomationRuntime.triggerSource(node), scope);
 			} else if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
 				nodeResult = executeConditionNode(runId, node, scope);
+			} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
+				nodeResult = executeJevDecisionNode(executionInsight, runId, node, scope);
 			} else {
 				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
 						traceRoomIds.get(nodeId),
@@ -244,7 +260,8 @@ final class AutomationRunExecutionService {
 				scope.put(outputVar, nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE));
 			}
 			String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
-			if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
+			if (AutomationConstants.NODE_CONTROL_IF.equals(type)
+					|| AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
 				@SuppressWarnings("unchecked")
 				Map<String, Object> decision = (Map<String, Object>) nodeResult
 						.get(AutomationConstants.RESULT_OUTPUT_VALUE);
@@ -257,6 +274,189 @@ final class AutomationRunExecutionService {
 		}
 		result.put("scope", scope);
 		return result;
+	}
+
+	/**
+	 * Evaluates one typed routing question through the configured TypeSafe/Jev
+	 * engine. The model may select only a configured route; responses below the
+	 * configured confidence threshold use the explicit fallback port.
+	 */
+	@SuppressWarnings("unchecked")
+	private Map<String, Object> executeJevDecisionNode(Insight executionInsight, String runId,
+			Map<String, Object> node, Map<String, Object> scope) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		try {
+			Map<String, Object> config = (Map<String, Object>) node.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String engineId = (String) config.get(AutomationConstants.CONFIG_ENGINE_ID);
+			if (!SecurityEngineUtils.userCanViewEngine(executionInsight.getUser(), engineId)) {
+				throw new IllegalArgumentException(
+						"Model " + engineId + " does not exist or user does not have access to this model");
+			}
+			IModelEngine model = Utility.getModel(engineId);
+			if (!(model instanceof ITypeSafeEngine engine)) {
+				throw new IllegalArgumentException("Jev decision nodes require a TYPESAFE model engine.");
+			}
+
+			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+					.get(AutomationConstants.CONFIG_CLAUSES);
+			String questionType = jevQuestionType(config);
+			Map<String, Object> criteria = new LinkedHashMap<>();
+			for (Map<String, Object> clause : clauses) {
+				Object criterion = AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)
+						? String.valueOf(clause.get(AutomationConstants.CONFIG_ANSWER))
+						: clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+				criteria.put(String.valueOf(criterion),
+						clause.get(AutomationConstants.CONFIG_DESCRIPTION));
+			}
+			Map<String, Object> routeQuestion = new LinkedHashMap<>();
+			routeQuestion.put("type", questionType);
+			routeQuestion.put("instructions", resolveJevText(config.get(AutomationConstants.CONFIG_QUESTION), scope));
+			routeQuestion.put("criteria", criteria);
+			Map<String, Object> questions = Map.of("route", routeQuestion);
+			Map<String, Object> parameters = config.get(AutomationConstants.CONFIG_PARAM_VALUES) instanceof Map<?, ?> map
+					? (Map<String, Object>) map
+					: Map.of();
+			Object state = resolveJevState(config.get(AutomationConstants.CONFIG_STATE), scope);
+			TypeSafeModelEngineResponse response = engine.evaluate(state, questions, executionInsight, parameters);
+			Map<String, Object> decision = jevDecision(response, clauses, config);
+
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(decision,
+					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation Jev decision '" + nodeId + "' output");
+			long duration = System.currentTimeMillis() - startedMs;
+			String preview = AutomationRuntimeUtils.generatePreview(output);
+			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
+					null);
+			AutomationPythonRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
+		} catch (Exception e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
+			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Resolves an exact scope reference while preserving its native value. Literal
+	 * state remains unchanged so maps and lists are not coerced to text.
+	 */
+	private static Object resolveJevState(Object configuredState, Map<String, Object> scope) {
+		if (configuredState instanceof String value) {
+			Matcher reference = EXACT_SCOPE_REFERENCE.matcher(value.trim());
+			if (reference.matches()) {
+				String name = reference.group(1);
+				if (!scope.containsKey(name)) {
+					throw new IllegalArgumentException("Jev decision state references unavailable scope value: " + name);
+				}
+				return scope.get(name);
+			}
+		}
+		return configuredState;
+	}
+
+	/** Resolves the optional Jev instruction text from the current run scope. */
+	private static String resolveJevText(Object configuredText, Map<String, Object> scope) {
+		Object resolved = resolveJevState(configuredText, scope);
+		return resolved == null ? "" : String.valueOf(resolved);
+	}
+
+	/**
+	 * Validates a typed response and maps it to a configured graph port.
+	 * Low-confidence responses use the explicit fallback instead of guessing.
+	 */
+	static Map<String, Object> jevDecision(TypeSafeModelEngineResponse response, List<Map<String, Object>> clauses,
+			Map<String, Object> config) {
+		Map<String, Object> providerResponse = response.getResponse();
+		Object rawAnswers = providerResponse.get("answers");
+		if (!(rawAnswers instanceof Map<?, ?> answers) || !(answers.get("route") instanceof Map<?, ?> routeAnswer)) {
+			throw new IllegalStateException("Jev response did not include answers.route.");
+		}
+		return AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(jevQuestionType(config))
+				? jevNoulDecision(providerResponse, routeAnswer, clauses, config)
+				: jevChoiceDecision(providerResponse, routeAnswer, clauses, config);
+	}
+
+	/** Maps an arbitrary choice answer to its stable route identifier. */
+	private static Map<String, Object> jevChoiceDecision(Map<String, Object> providerResponse,
+			Map<?, ?> routeAnswer, List<Map<String, Object>> clauses, Map<String, Object> config) {
+		Set<String> routeIds = new HashSet<>();
+		for (Map<String, Object> clause : clauses) {
+			routeIds.add((String) clause.get(AutomationConstants.CONFIG_CLAUSE_ID));
+		}
+		Object choiceValue = routeAnswer.get("choice");
+		if (!(choiceValue instanceof String choice) || !routeIds.contains(choice)) {
+			throw new IllegalStateException("Jev response selected an unknown route.");
+		}
+		Object confidenceValue = routeAnswer.get("confidence");
+		if (!(confidenceValue instanceof Number confidenceNumber)
+				|| !Double.isFinite(confidenceNumber.doubleValue()) || confidenceNumber.doubleValue() < 0
+				|| confidenceNumber.doubleValue() > 1) {
+			throw new IllegalStateException("Jev response route confidence must be a number from 0 through 1.");
+		}
+		double confidence = confidenceNumber.doubleValue();
+		double threshold = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD) instanceof Number number
+				? number.doubleValue()
+				: 0.0;
+		String branch = confidence >= threshold ? AutomationConstants.CONTROL_PORT_CASE_PREFIX + choice
+				: AutomationConstants.CONTROL_PORT_ELSE;
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch", branch);
+		decision.put("choice", choice);
+		decision.put("confidence", confidence);
+		decision.put("confidenceThreshold", threshold);
+		decision.put("probabilities",
+				routeAnswer.containsKey("probabilities") ? routeAnswer.get("probabilities") : Map.of());
+		decision.put("model", providerResponse.get("model"));
+		return decision;
+	}
+
+	/** Maps a Noul probability to the explicitly configured Yes or No route. */
+	private static Map<String, Object> jevNoulDecision(Map<String, Object> providerResponse,
+			Map<?, ?> routeAnswer, List<Map<String, Object>> clauses, Map<String, Object> config) {
+		Object probabilityValue = routeAnswer.get("noul");
+		if (!(probabilityValue instanceof Number probabilityNumber)
+				|| !Double.isFinite(probabilityNumber.doubleValue()) || probabilityNumber.doubleValue() < 0
+				|| probabilityNumber.doubleValue() > 1) {
+			throw new IllegalStateException("Jev response route.noul must be a number from 0 through 1.");
+		}
+		double probabilityYes = probabilityNumber.doubleValue();
+		boolean answer = probabilityYes >= 0.5;
+		double confidence = answer ? probabilityYes : 1 - probabilityYes;
+		double threshold = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD) instanceof Number number
+				? number.doubleValue()
+				: 0.5;
+		String routeId = null;
+		for (Map<String, Object> clause : clauses) {
+			if (Boolean.valueOf(answer).equals(clause.get(AutomationConstants.CONFIG_ANSWER))) {
+				routeId = (String) clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+				break;
+			}
+		}
+		if (routeId == null) {
+			throw new IllegalStateException("Jev Noul decision has no route for answer=" + answer + ".");
+		}
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch", confidence >= threshold ? AutomationConstants.CONTROL_PORT_CASE_PREFIX + routeId
+				: AutomationConstants.CONTROL_PORT_ELSE);
+		decision.put("answer", answer);
+		decision.put("probabilityYes", probabilityYes);
+		decision.put("confidence", confidence);
+		decision.put("confidenceThreshold", threshold);
+		decision.put("probabilities", Map.of("true", probabilityYes, "false", 1 - probabilityYes));
+		decision.put("model", providerResponse.get("model"));
+		return decision;
+	}
+
+	/** Returns the canonical Jev question type, defaulting older graphs to choice. */
+	private static String jevQuestionType(Map<String, Object> config) {
+		Object value = config.get(AutomationConstants.CONFIG_QUESTION_TYPE);
+		return value instanceof String questionType ? questionType : AutomationConstants.JEV_QUESTION_TYPE_CHOICE;
 	}
 
 	/**
@@ -720,12 +920,25 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Creates the run-local Insight that owns this run's Python session, carrying
-	 * the caller's user, base URL, and scheduler mode and scoped to the automation
-	 * project.
+	 * Opens the deterministic run-local Insight that owns this run's Python session.
+	 * Interactive runs are registered with the current session so the standard
+	 * session cleanup owns their lifetime. Scheduler and other sessionless runs are
+	 * returned with completion cleanup enabled.
+	 *
+	 * @param projectId Automation project identifier
+	 * @param runId     durable run identifier
+	 * @return execution Insight and whether this service must clean it on completion
 	 */
-	private Insight createExecutionInsight(String projectId) {
+	private ExecutionInsightLease openExecutionInsight(String projectId, String runId) {
+		InsightStore insightStore = InsightStore.getInstance();
+		String executionInsightId = executionInsightId(runId);
+		Insight existing = insightStore.get(executionInsightId);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
 		Insight executionInsight = new Insight();
+		executionInsight.setInsightId(executionInsightId);
 		executionInsight.setUser(requestInsight.getUser());
 		executionInsight.setBaseURL(requestInsight.getBaseURL());
 		executionInsight.setSchedulerMode(requestInsight.isSchedulerMode());
@@ -734,14 +947,46 @@ final class AutomationRunExecutionService {
 		if (project != null) {
 			executionInsight.setProjectName(project.getProjectName());
 		}
-		InsightStore.getInstance().put(executionInsight);
-		return executionInsight;
+		existing = insightStore.putIfAbsent(executionInsightId, executionInsight);
+		if (existing != null) {
+			return existingExecutionInsight(existing, projectId);
+		}
+
+		String sessionId = ThreadStore.getSessionId();
+		boolean sessionOwned = !requestInsight.isSchedulerMode() && sessionId != null && !sessionId.isBlank();
+		if (sessionOwned) {
+			insightStore.addToSessionHash(sessionId, executionInsightId);
+		}
+		return new ExecutionInsightLease(executionInsight, !sessionOwned);
+	}
+
+	private static ExecutionInsightLease existingExecutionInsight(Insight executionInsight, String projectId) {
+		if (!projectId.equals(executionInsight.getProjectId())) {
+			throw new IllegalStateException("Automation run Insight belongs to a different project.");
+		}
+		return new ExecutionInsightLease(executionInsight, false);
 	}
 
 	/**
-	 * Drops the run-local Insight and its Python session. When normal teardown
-	 * fails the Insight is still removed from the store so a failed run cannot leak
-	 * a session.
+	 * Returns the execution Insight identifier only while that exact run workspace
+	 * remains live in the platform Insight store.
+	 *
+	 * @param runId durable run identifier
+	 * @return live execution Insight identifier, or {@code null} when unavailable
+	 */
+	static String getAvailableExecutionInsightId(String runId) {
+		String executionInsightId = executionInsightId(runId);
+		return InsightStore.getInstance().containsKey(executionInsightId) ? executionInsightId : null;
+	}
+
+	private static String executionInsightId(String runId) {
+		return EXECUTION_INSIGHT_PREFIX + runId;
+	}
+
+	/**
+	 * Drops a sessionless run-local Insight and its Python session. Session-owned
+	 * Insights are instead released by the platform's standard session cleanup.
+	 * When normal teardown fails the Insight is still removed from the store.
 	 */
 	private static void cleanupExecutionInsight(Insight executionInsight) {
 		if (executionInsight == null) {
@@ -971,6 +1216,7 @@ final class AutomationRunExecutionService {
 			return finishTerminalAgentWait(runId, projectId, waitingNodeId, agentRunId, agentStatus, agent, waitId);
 		}
 
+		ExecutionInsightLease executionInsightLease = null;
 		Insight executionInsight = null;
 		Map<String, Object> continuation = new LinkedHashMap<>();
 		try {
@@ -992,7 +1238,8 @@ final class AutomationRunExecutionService {
 					AutomationRuntimeUtils.generatePreview(output), null, agentRunId);
 			AutomationDatabaseUtility.resolveWait(runId, waitId, currentUserId());
 
-			executionInsight = createExecutionInsight(projectId);
+			executionInsightLease = openExecutionInsight(projectId, runId);
+			executionInsight = executionInsightLease.insight();
 			PyTranslator translator = executionInsight.getPyTranslator();
 			if (translator == null) {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
@@ -1020,7 +1267,9 @@ final class AutomationRunExecutionService {
 			continuation = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationPythonRunRegistry.unregister(runId);
-			cleanupExecutionInsight(executionInsight);
+			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
+				cleanupExecutionInsight(executionInsight);
+			}
 		}
 		return buildResult(runId, projectId, continuation);
 	}
@@ -1510,6 +1759,10 @@ final class AutomationRunExecutionService {
 		detail.put(AutomationConstants.RESULT_GLOBALS,
 				normalizeScope(pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
 		detail.put("pythonResult", pythonResult);
+		String executionInsightId = getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null && !executionInsightId.isBlank()) {
+			detail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
 				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
 				: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))
@@ -1520,6 +1773,10 @@ final class AutomationRunExecutionService {
 		detail.put(AutomationConstants.RESULT_SUMMARY, summary);
 		AutomationDatabaseUtility.updateRunSummary(runId, summary);
 		return detail;
+	}
+
+	/** Couples a run Insight with the component that owns its teardown. */
+	private record ExecutionInsightLease(Insight insight, boolean cleanupOnCompletion) {
 	}
 
 	/**

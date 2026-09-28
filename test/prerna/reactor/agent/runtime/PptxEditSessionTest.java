@@ -74,8 +74,8 @@ class PptxEditSessionTest {
 		put("ppt/slides/_rels/slide2.xml.rels", "<Relationships xmlns=\"" + REL
 				+ "\"><Relationship Id=\"media\" Target=\"../media/shared.png\"/></Relationships>");
 		put("ppt/media/shared.png", "unchanged image bytes");
-		put("ppt/notesSlides/notesSlide7.xml", "manual speaker notes");
-		put("ppt/charts/chart1.xml", "chart cache");
+		put("ppt/notesSlides/notesSlide7.xml", "<notes>Manual speaker notes</notes>");
+		put("ppt/charts/chart1.xml", "<chart>Chart cache</chart>");
 		put("ppt/embeddings/data.xlsx", "embedded workbook bytes");
 		save(root.resolve("deck.pptx"), original);
 		edit = new PptxEditSession(root, root.resolve(".semoss/pptx-workflow/test"));
@@ -126,53 +126,99 @@ class PptxEditSessionTest {
 	}
 
 	@Test
-	void textModeRejectsGeometryFontAndShapeChangesOnSelectedSlide() throws Exception {
+	void textModeFormattingChangesAreProposalsRatherThanBuildFailures() throws Exception {
 		prepare();
 		for (String xml : List.of(SLIDE.replace("12345", "88888"), SLIDE.replace("3100", "3200"),
 				SLIDE.replace("<a:rPr i=\"1\"/>", ""))) {
 			save(root.resolve("deck.pptx"), changed(FIRST, xml.replace("DOGS", "CATS")));
-			assertTrue(assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")))
-					.getMessage().contains("formatting"));
+			assertEquals("proposal", edit.verify(root.resolve("deck.pptx")).getString("disposition"));
 		}
 	}
 
 	@Test
-	void unrelatedSlideNotesMediaWorkbookAndChartChangesAreRejected() throws Exception {
+	void unrelatedAndUnassignedChangesAreReportedWithoutDiscardingTheEdit() throws Exception {
 		prepare();
 		for (String part : List.of(SECOND, "ppt/media/shared.png", "ppt/notesSlides/notesSlide7.xml",
 				"ppt/charts/chart1.xml", "ppt/embeddings/data.xlsx")) {
-			save(root.resolve("deck.pptx"), changed(part, "unrequested change"));
-			assertTrue(assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")))
-					.getMessage().contains(part));
+			save(root.resolve("deck.pptx"), changed(part, part.equals(SECOND) ? SLIDE : "<changed/>"));
+			var result = edit.verify(root.resolve("deck.pptx"));
+			assertEquals("proposal", result.getString("disposition"));
+			assertTrue(result.getJSONArray("changedParts").toList().contains(part));
 		}
 	}
 
 	@Test
-	void entryAdditionRemovalAndUnchangedOutputAreRejected() throws Exception {
+	void unchangedOutputAndNewBrokenLinksRemainFailures() throws Exception {
 		prepare();
 		assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")));
-		var added = changed("extra.xml", "extra");
-		save(root.resolve("deck.pptx"), added);
-		assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")));
-		var removed = new HashMap<>(original);
-		removed.remove("ppt/media/shared.png");
+		save(root.resolve("deck.pptx"), changed("extra.xml", "<extra/>"));
+		assertEquals("proposal", edit.verify(root.resolve("deck.pptx")).getString("disposition"));
+		var removed = new HashMap<>(original); removed.remove("ppt/media/shared.png");
 		save(root.resolve("deck.pptx"), removed);
-		assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")));
+		assertTrue(assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")))
+				.getMessage().contains("missing linked files"));
 	}
 
 	@Test
-	void scopeIsImmutableAndSharedAssetsRequireAllAffectedSlides() throws Exception {
+	void preparationCanBeCorrectedAndSharedAssetsReportAffectedSlides() throws Exception {
 		prepare();
-		assertThrows(IllegalArgumentException.class,
-				() -> edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1, 2))));
-		var shared = new PptxEditSession(root, root.resolve(".semoss/pptx-workflow/shared"));
-		shared.capture();
-		assertThrows(IllegalArgumentException.class, () -> shared.prepare("deck.pptx", "deck.pptx", Map.of("slides",
-				List.of(1), "editType", "slides", "additionalParts", List.of("ppt/media/shared.png"))));
-		shared.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1, 2), "editType", "slides",
+		edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1), "editType", "slides",
 				"additionalParts", List.of("ppt/media/shared.png")));
 		save(root.resolve("deck.pptx"), changed("ppt/media/shared.png", "requested updated image"));
-		assertEquals("passed", shared.verify(root.resolve("deck.pptx")).getString("status"));
+		var report = edit.verify(root.resolve("deck.pptx"));
+		assertEquals(List.of(2), report.getJSONArray("outsideRequestedSlides").toList());
+		assertEquals("proposal", report.getString("disposition"));
+		edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1, 2), "editType", "slides"));
+		assertEquals("passed", edit.verify(root.resolve("deck.pptx")).getString("status"));
+	}
+
+	@Test
+	void linkedChartsWorkWithoutAnAdditionalPartsWhitelist() throws Exception {
+		put("ppt/slides/_rels/slide7.xml.rels", "<Relationships xmlns=\"" + REL
+				+ "\"><Relationship Id=\"chart\" Target=\"/ppt/charts/chart1.xml\"/></Relationships>");
+		save(root.resolve("deck.pptx"), original); edit.capture();
+		var inspection = edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1), "editType", "slides"));
+		assertTrue(inspection.getJSONArray("slides").getJSONObject(0).getJSONArray("linkedParts").toString().contains("chart1.xml"));
+		save(root.resolve("deck.pptx"), changed("ppt/charts/chart1.xml", "<chart>Red</chart>"));
+		var report = edit.verify(root.resolve("deck.pptx"));
+		assertEquals("revision", report.getString("disposition"));
+		assertEquals(List.of(1), report.getJSONArray("affectedSlides").toList());
+	}
+
+	@Test
+	void newMediaAndRemovedUnusedPartsAreAssessedAgainstBothGraphs() throws Exception {
+		edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1), "editType", "slides"));
+		var next = changed("ppt/slides/_rels/slide7.xml.rels", "<Relationships xmlns=\"" + REL
+				+ "\"><Relationship Id=\"media\" Target=\"../media/new.png\"/></Relationships>");
+		next.put("ppt/media/new.png", new byte[] { 1, 2, 3 });
+		save(root.resolve("deck.pptx"), next);
+		var report = edit.verify(root.resolve("deck.pptx"));
+		assertEquals("revision", report.getString("disposition"));
+		assertEquals(List.of("ppt/media/new.png"), report.getJSONArray("addedParts").toList());
+	}
+
+	@Test
+	void packageRelationshipUrisSupportEncodedSpacesAndIgnoreExternalLinks() throws Exception {
+		edit.prepare("deck.pptx", "deck.pptx", Map.of("slides", List.of(1), "editType", "slides"));
+		var next = changed("ppt/slides/_rels/slide7.xml.rels", "<Relationships xmlns=\"" + REL
+				+ "\"><Relationship Id=\"media\" Target=\"../media/new%20image.png\"/>"
+				+ "<Relationship Id=\"web\" TargetMode=\"External\" Target=\"https://example.com/page\"/></Relationships>");
+		next.put("ppt/media/new image.png", new byte[] { 3, 2, 1 });
+		save(root.resolve("deck.pptx"), next);
+		assertEquals("revision", edit.verify(root.resolve("deck.pptx")).getString("disposition"));
+	}
+
+	@Test
+	void xmlReserializationDoesNotCreateFalseOutsideSlideChangesOrSuccessfulNoOps() throws Exception {
+		prepare();
+		var next = changed(SECOND, new String(original.get(SECOND)).replace("<a:off x=\"12345\" y=\"6789\"/>", "<a:off y=\"6789\" x=\"12345\"/>").replace("><", ">\n<"));
+		save(root.resolve("deck.pptx"), next);
+		assertThrows(IllegalArgumentException.class, () -> edit.verify(root.resolve("deck.pptx")));
+		next.put(FIRST, SLIDE.replace("DOGS", "CATS").getBytes());
+		save(root.resolve("deck.pptx"), next);
+		var report = edit.verify(root.resolve("deck.pptx"));
+		assertEquals("revision", report.getString("disposition"));
+		assertEquals(List.of(FIRST), report.getJSONArray("contentChangedParts").toList());
 	}
 
 	@Test
@@ -220,50 +266,67 @@ class PptxEditSessionTest {
 	}
 
 	@Test
-	void resumeBeforeFirstToolKeepsTheCapturedInputs() throws Exception {
-		var operations = new FakeOperations();
-		var workflow = workflow(operations);
+	void resumeBeforeFirstToolRetainsBaselineAndCanDeliverAnUnpreparedProposal() throws Exception {
+		var operations = new FakeOperations(); workflow(operations);
 		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
-		var restore = PptxWorkflow.class.getDeclaredMethod("restore");
-		restore.setAccessible(true);
-		restore.invoke(resumed);
-		assertTrue(resumed.build(buildArgs(), 1).getString("buildError").contains("PreparePptxEdit"));
-		assertEquals(0, operations.builds);
+		var restore = PptxWorkflow.class.getDeclaredMethod("restore"); restore.setAccessible(true); restore.invoke(resumed);
+		resumed.build(buildArgs(), 1);
+		assertNull(resumed.completionError());
+		assertEquals("proposal", resumed.snapshot().getJSONObject("artifact").getString("disposition"));
+		assertEquals(List.of(1, 2), operations.scope);
 	}
 
 	@Test
-	void workflowBlocksUnpreparedRebuildBeforeExecutingCode() throws Exception {
-		var operations = new FakeOperations();
+	void workflowDeliversBroaderChangesAsProposalAndPersistsAssessmentOnResume() throws Exception {
+		var operations = new FakeOperations(); operations.rebuild = true;
 		var workflow = workflow(operations);
-		String originalHash = PptxWorkflow.hash(root.resolve("deck.pptx"));
-		Files.writeString(root.resolve("deck.pptx"), "accidental direct write before preparation");
-		var result = workflow.build(buildArgs(), 1);
-		assertEquals(0, operations.builds);
-		assertTrue(result.getString("buildError").contains("PreparePptxEdit"));
-		assertEquals(originalHash, PptxWorkflow.hash(root.resolve("deck.pptx")));
 		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
-		workflow.build(buildArgs(), 3);
+		workflow.build(buildArgs(), 2);
 		assertNull(workflow.completionError());
-		assertEquals(1, operations.builds);
-		assertEquals(List.of(1), operations.scope);
-		assertEquals("passed",
-				workflow.snapshot().getJSONObject("validation").getJSONObject("preservation").getString("status"));
+		assertEquals(List.of(1, 2), operations.scope);
+		assertEquals("available", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		assertEquals("proposal", workflow.snapshot().getJSONObject("artifact").getString("disposition"));
+		assertTrue(workflow.completionWarning().contains("separate proposed revision"));
+		assertFalse(java.util.Arrays.equals(original.get(SECOND), PptxEditSession.parts(root.resolve("deck.pptx")).get(SECOND)));
+		var resumed = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
+		var restore = PptxWorkflow.class.getDeclaredMethod("restore"); restore.setAccessible(true); restore.invoke(resumed);
+		assertEquals(workflow.snapshot().getJSONObject("artifact").toString(), resumed.snapshot().getJSONObject("artifact").toString());
 	}
 
 	@Test
-	void workflowRejectsReconstructionAndRestoresOriginalWithoutReview() throws Exception {
-		var operations = new FakeOperations();
-		operations.rebuild = true;
+	void oldOfficePagesCannotSilentlyImportProposalsOverTheAcceptedDeck() throws Exception {
+		var operations = new FakeOperations(); operations.rebuild = true;
 		var workflow = workflow(operations);
-		String hash = PptxWorkflow.hash(root.resolve("deck.pptx"));
+		workflow.configureDelivery(Map.of("pptx_edit_file", "deck.pptx"));
 		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
-		var result = workflow.build(buildArgs(), 2);
-		assertTrue(result.getString("buildError").contains("preservation failed"));
-		assertEquals(hash, PptxWorkflow.hash(root.resolve("deck.pptx")));
-		assertEquals(0, operations.reviews);
-		workflow.build(buildArgs(), 4);
-		assertNotNull(workflow.completionError());
-		assertEquals("unavailable", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		workflow.build(buildArgs(), 2);
+		assertTrue(workflow.completionError().contains("Refresh the Microsoft Office app"));
+		assertEquals("available", workflow.snapshot().getJSONObject("artifact").getString("status"));
+		assertEquals("proposal", workflow.snapshot().getJSONObject("artifact").getString("disposition"));
+	}
+
+	@Test
+	void updatedOfficeCanImportProposalsSeparately() throws Exception {
+		var operations = new FakeOperations(); operations.rebuild = true;
+		var workflow = workflow(operations);
+		workflow.configureDelivery(Map.of("pptx_edit_file", "deck.pptx", "pptx_edit_proposals", true));
+		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
+		workflow.build(buildArgs(), 2);
+		assertNull(workflow.completionError());
+		assertEquals("proposal", workflow.snapshot().getJSONObject("artifact").getString("disposition"));
+	}
+
+	@Test
+	void unresolvedSignificantVisualFindingsKeepTheEditAsAProposal() throws Exception {
+		var operations = new FakeOperations(); operations.major = true;
+		var workflow = workflow(operations);
+		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
+		workflow.build(buildArgs(), 2);
+		assertFalse(workflow.isTerminal());
+		workflow.modelStopped("Stopped repairing");
+		assertNull(workflow.completionError());
+		assertEquals("proposal", workflow.snapshot().getJSONObject("artifact").getString("disposition"));
+		assertTrue(workflow.completionWarning().contains("separate proposed revision"));
 	}
 
 	@Test
@@ -279,6 +342,65 @@ class PptxEditSessionTest {
 		assertFalse(workflow.isTerminal());
 	}
 
+	@Test
+	void structuredInspectionReturnsObjectIdentityGeometryAndRunStyles() throws Exception {
+		String xml = SLIDE.replace("<p:spPr>", "<p:nvSpPr><p:cNvPr id=\"9\" name=\"Title\"/></p:nvSpPr><p:spPr>");
+		save(root.resolve("deck.pptx"), changed(FIRST, xml));
+		edit.capture();
+		JSONObject slide = prepare().getJSONArray("slides").getJSONObject(0);
+		JSONObject object = slide.getJSONArray("objects").getJSONObject(0);
+		assertEquals("9", object.getString("objectId"));
+		assertEquals("Title", object.getString("name"));
+		assertEquals("12345", object.getJSONObject("geometry").getString("x"));
+		assertEquals(List.of(0, 1), object.getJSONArray("textIndexes").toList());
+		assertEquals("9", slide.getJSONArray("texts").getJSONObject(0).getString("objectId"));
+		assertEquals("3100", slide.getJSONArray("texts").getJSONObject(0).getJSONObject("formatting").getString("sz"));
+		assertEquals("inherited", slide.getJSONObject("background").getString("kind"));
+		assertEquals(1, prepare().getJSONArray("slides").length());
+	}
+
+	Map<String, Object> textOperation() {
+		return Map.of("type", "replaceText", "part", FIRST, "objectId", "9", "index", 0, "oldText", "DOGS", "newText", "CATS");
+	}
+
+	@Test
+	void structuredPlanRejectsUnpreparedOutOfScopeAndWrongModeWithoutBuilding() throws Exception {
+		var operations = new FakeOperations();
+		var workflow = workflow(operations);
+		assertThrows(IllegalArgumentException.class, () -> workflow.applyEdits(Map.of("operations", List.of(textOperation())), 1));
+		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
+		String originalHash = PptxWorkflow.hash(root.resolve("deck.pptx"));
+		for (var op : List.of(Map.of("type", "setBackground", "part", FIRST, "color", "000000"),
+				Map.of("type", "setBackground", "part", SECOND, "color", "000000")))
+			assertThrows(IllegalArgumentException.class, () -> workflow.applyEdits(Map.of("operations", List.of(op)), 2));
+		assertEquals(0, operations.builds);
+		assertEquals(originalHash, PptxWorkflow.hash(root.resolve("deck.pptx")));
+	}
+
+	@Test
+	void structuredPlanUsesExistingBuildPreservationAndSelectedSlideReview() throws Exception {
+		var operations = new FakeOperations();
+		var workflow = workflow(operations);
+		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
+		workflow.applyEdits(Map.of("operations", List.of(textOperation())), 2);
+		assertNull(workflow.completionError());
+		assertTrue(workflow.isTerminal());
+		assertEquals(List.of(1), operations.scope);
+		assertEquals("passed", workflow.snapshot().getJSONObject("validation").getJSONObject("preservation").getString("status"));
+		assertTrue(Files.readString(root.resolve("pptx-edit-controller.js")).contains("structured-edit.js"));
+	}
+
+	@Test
+	void structuredPlanAlsoDeliversUnexpectedChangesAsASeparateProposal() throws Exception {
+		var operations = new FakeOperations(); operations.rebuild = true;
+		var workflow = workflow(operations);
+		workflow.prepareEdit(Map.of("filePath", "deck.pptx", "slides", List.of(1)));
+		JSONObject result = workflow.applyEdits(Map.of("operations", List.of(textOperation())), 2);
+		assertFalse(result.has("buildError"));
+		assertEquals("proposal", result.getJSONObject("artifact").getString("disposition"));
+		assertEquals(1, operations.reviews);
+	}
+
 	PptxWorkflow workflow(FakeOperations operations) throws Exception {
 		Files.writeString(root.resolve("build-deck.js"), "test generator");
 		var workflow = new PptxWorkflow(root, root.resolve(".semoss/pptx-workflow/controller"), 6, operations);
@@ -292,7 +414,7 @@ class PptxEditSessionTest {
 
 	final class FakeOperations implements PptxWorkflow.Operations {
 		int builds, reviews;
-		boolean rebuild, cancel;
+		boolean rebuild, cancel, major;
 		List<Integer> scope;
 
 		@Override
@@ -309,7 +431,7 @@ class PptxEditSessionTest {
 			}
 			return new JSONObject().put("ok", true).put("slides", 2).put("warnings", new JSONArray())
 					.put("sourceHash", PptxWorkflow.hash(root.resolve("deck.pptx")))
-					.put("generatorHash", PptxWorkflow.hash(root.resolve("build-deck.js")));
+					.put("generatorHash", PptxWorkflow.hash(root.resolve((String) args.get("generator"))));
 		}
 
 		@Override
@@ -320,7 +442,9 @@ class PptxEditSessionTest {
 			return new JSONObject().put("filePath", file).put("sourceHash", PptxWorkflow.hash(root.resolve(file)))
 					.put("slideCount", 2).put("status", "complete").put("verdict", "pass").put("sourceChanged", false)
 					.put("requestedSlides", slides).put("reviewedSlides", slides)
-					.put("unreviewedSlides", new JSONArray()).put("issues", new JSONArray());
+					.put("unreviewedSlides", new JSONArray()).put("issues", major
+							? new JSONArray().put(new JSONObject().put("slide", 1).put("severity", "major").put("evidence", "Text is clipped"))
+							: new JSONArray());
 		}
 	}
 }

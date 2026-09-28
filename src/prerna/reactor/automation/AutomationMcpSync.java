@@ -294,10 +294,10 @@ public final class AutomationMcpSync {
 		properties.put("label", stringProperty("Short user-facing action label."));
 		properties.put("outputVar", stringProperty("""
 				Required unique Python-style variable name for this node's business output. Omit it for \
-				control.if, which does not produce an output."""));
+				control.if and control.jev, which route control flow instead of producing an output."""));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
 		properties.put("branchPort", stringProperty("""
-				Required only when afterNodeId identifies a control.if node. Use 'case:<clause-id>' for one \
+				Required only when afterNodeId identifies a routing node. Use 'case:<clause-id>' for one \
 				of that node's configured clauses or 'else' for its fallback. Omit it for every other \
 				parent node."""));
 		return tool("AddAutomationStep", "Add Automation Step", """
@@ -382,8 +382,8 @@ public final class AutomationMcpSync {
 			}
 		}
 		return stringProperty("""
-				The typed action to add. control.if is a standalone branch node with an ordered \
-				config.clauses array; add each case child and the final else child in later calls using \
+				The typed action to add. control.if and control.jev are standalone routing nodes with an ordered \
+				config.clauses array. control.jev requires a TYPESAFE engine. Use questionType=choice for arbitrary described routes, or questionType=noul for exactly two described routes with explicit boolean answer values. Route edges use case:<stable-route-id>; the fallback edge uses else. Add each case child and the final else child in later calls using \
 				afterNodeId and branchPort.""").put("enum", values);
 	}
 

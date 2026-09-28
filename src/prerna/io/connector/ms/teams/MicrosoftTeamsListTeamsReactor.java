@@ -34,8 +34,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -55,7 +55,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * Graph always returns every joined team and the limit is applied locally.
  * </p>
  */
-public class MicrosoftTeamsListTeamsReactor extends AbstractReactor {
+public class MicrosoftTeamsListTeamsReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftTeamsListTeamsReactor.class);
 
@@ -65,7 +65,7 @@ public class MicrosoftTeamsListTeamsReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String limitStr = this.keyValue.get(this.keysToGet[0]);
 		int limit = 0;

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.Security;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,13 +43,23 @@ import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.CryptoServicesRegistrar;
 
+import com.hierynomus.sshj.key.KeyAlgorithms;
+import com.hierynomus.sshj.transport.cipher.BlockCiphers;
+import com.hierynomus.sshj.transport.kex.DHGroups;
+import com.hierynomus.sshj.transport.kex.ExtInfoClientFactory;
+import com.hierynomus.sshj.transport.kex.ExtendedDHGroups;
+import com.hierynomus.sshj.transport.mac.Macs;
+
+import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
 import net.schmizz.sshj.sftp.FileMode.Type;
 import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.SFTPClient;
+import net.schmizz.sshj.transport.kex.ECDHNistP;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.xfer.FileSystemFile;
 import net.schmizz.sshj.xfer.LocalDestFile;
@@ -145,8 +156,46 @@ public class SFTPStorageEngine extends AbstractStorageEngine {
 		}
 	}
 
+	/**
+	 * Keep SSHJ defaults in standard mode. In FIPS deployments explicitly restrict
+	 * negotiation: excluding ordinary BC dependencies does not filter SSHJ
+	 * defaults. See docker/SSHJ-FIPS.md for the complete inventory and policy
+	 * exclusions.
+	 */
+	static DefaultConfig createSshConfig() {
+		boolean fipsRequested = Boolean.getBoolean("org.bouncycastle.fips.approved_only")
+				|| Boolean.parseBoolean(System.getenv("SEMOSS_FIPS"));
+		if (!fipsRequested) {
+			return new DefaultConfig();
+		}
+
+		// Do not silently use another provider when the deployment requests FIPS.
+		if (Security.getProvider("BCFIPS") == null || !"BCFIPS".equals(Security.getProviders()[0].getName())
+				|| !CryptoServicesRegistrar.isInApprovedOnlyMode()) {
+			throw new IllegalStateException("FIPS SFTP requires BCFIPS as the first provider in approved-only mode");
+		}
+
+		DefaultConfig config = new DefaultConfig();
+		config.setKeyExchangeFactories(
+				List.of(new ECDHNistP.Factory256(), new ECDHNistP.Factory384(), new ECDHNistP.Factory521(),
+						DHGroups.Group14SHA256(), DHGroups.Group15SHA512(), DHGroups.Group16SHA512(),
+						DHGroups.Group17SHA512(), DHGroups.Group18SHA512(), ExtendedDHGroups.Group14SHA256AtSSH(),
+						ExtendedDHGroups.Group15SHA256(), ExtendedDHGroups.Group15SHA256AtSSH(),
+						ExtendedDHGroups.Group15SHA384AtSSH(), ExtendedDHGroups.Group16SHA256(),
+						ExtendedDHGroups.Group16SHA384AtSSH(), ExtendedDHGroups.Group16SHA512AtSSH(),
+						ExtendedDHGroups.Group18SHA512AtSSH(), new ExtInfoClientFactory()));
+		config.setKeyAlgorithms(List.of(KeyAlgorithms.RSASHA512(), KeyAlgorithms.RSASHA256(),
+				KeyAlgorithms.ECDSASHANistp256(), KeyAlgorithms.ECDSASHANistp384(), KeyAlgorithms.ECDSASHANistp521(),
+				KeyAlgorithms.EdDSA25519()));
+		config.setCipherFactories(
+				List.of(BlockCiphers.AES256CTR(), BlockCiphers.AES192CTR(), BlockCiphers.AES128CTR()));
+		config.setMACFactories(
+				List.of(Macs.HMACSHA2512Etm(), Macs.HMACSHA2256Etm(), Macs.HMACSHA2512(), Macs.HMACSHA2256()));
+		return config;
+	}
+
 	private SSHClient getSSHClient() throws Exception {
-		SSHClient sshClient = new SSHClient();
+		SSHClient sshClient = new SSHClient(createSshConfig());
 		try {
 			sshClient.loadKnownHosts();
 		} catch (IOException e) {

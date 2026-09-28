@@ -169,6 +169,7 @@ public final class AutomationConstants {
 	public static final String NODE_AGENT_RUN = "agent.run";
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
+	public static final String NODE_CONTROL_JEV = "control.jev";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors)
@@ -178,6 +179,10 @@ public final class AutomationConstants {
 	public static final String CONFIG_CLAUSES = "clauses";
 	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
+	public static final String CONFIG_STATE = "state";
+	public static final String CONFIG_QUESTION = "question";
+	public static final String CONFIG_QUESTION_TYPE = "questionType";
+	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
 	public static final String CONFIG_PARAM_VALUES = "paramValues";
@@ -185,6 +190,9 @@ public final class AutomationConstants {
 	public static final String CONFIG_GLOBALS = "globals";
 	public static final String CONFIG_DEFAULT_VALUE = "defaultValue";
 	public static final String CONFIG_DESCRIPTION = "description";
+	public static final String CONFIG_ANSWER = "answer";
+	public static final String JEV_QUESTION_TYPE_CHOICE = "choice";
+	public static final String JEV_QUESTION_TYPE_NOUL = "noul";
 	/** Optional trigger setup Python. */
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";
@@ -269,6 +277,8 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
+	/** Ephemeral Insight workspace for an active or recently completed local run. */
+	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
@@ -304,6 +314,8 @@ public final class AutomationConstants {
 	public static final String RESULT_REVISION = "revision";
 	/** Human-readable result summary for an automation workflow run. */
 	public static final String RESULT_SUMMARY = "summary";
+	/** Per-node variable descriptors used by Automation authoring clients. */
+	public static final String RESULT_SCOPE_VARIABLES = "scopeVariables";
 
 	// -- Pixel execution defaults
 	// ----------------------------------------------------

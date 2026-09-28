@@ -95,6 +95,46 @@ public class AutomationSourceRendererUnitTests {
 		}
 	}
 
+	@Test
+	void storageDownloadReturnsTransferDetailsWithoutReimplementingPathRules() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("engineId", "storage-1");
+		config.put("path", "incoming/report.pdf");
+		config.put("destination", "/");
+
+		String source = AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_STORAGE_DOWNLOAD, config));
+
+		assertTrue(source.contains("storage.copyToLocal("));
+		assertFalse(source.contains("space=\"INSIGHT\""));
+		assertTrue(source.contains("\"success\": copied"));
+		assertTrue(source.contains("\"storagePath\": storage_path"));
+		assertTrue(source.contains("\"destination\": destination"));
+		assertTrue(source.contains("\"space\": \"INSIGHT\""));
+		assertTrue(source.contains("SearchInsightAssets("));
+		assertTrue(source.contains("_pixel_value(\"options\", \"regex\")"));
+		assertTrue(source.contains("\"files\": files"));
+		assertTrue(source.contains("\"filePath\": files[0] if len(files) == 1 else None"));
+		assertTrue(source.contains("or \"/\""));
+		assertFalse(source.contains("pathlib"));
+		assertFalse(source.contains(".replace("));
+		assertFalse(source.contains("return storage.copyToLocal("));
+	}
+
+	@Test
+	void visionAcceptsOneOrManyMediaPathsWithoutNestingThem() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("engineId", "model-1");
+		config.put("prompt", "Describe the attached file.");
+		config.put("image", "${storage_download.files}");
+
+		String source = AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_MODEL_VISION, config));
+
+		assertTrue(source.contains("value if isinstance(value, list) else [value]"));
+		assertTrue(source.contains("media=_automation_media(scope.resolve(MEDIA))"));
+		assertFalse(source.contains("image=[scope.resolve(IMAGE)]"));
+	}
+
 	/**
 	 * The canvas seeds its trigger editor with an identical template, and the save
 	 * path compares the persisted source against this string to decide whether the
@@ -112,6 +152,18 @@ public class AutomationSourceRendererUnitTests {
 		assertEquals(expected, AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_START, Map.of())));
 	}
 
+	@Test
+	void customPythonStartsWithAnEditableRunScopeTemplate() {
+		String source = AutomationSourceRenderer.defaultDeveloperSource();
+
+		assertTrue(source.contains("def run(scope):"));
+		assertTrue(source.contains("scope[\"outputVar\"]"));
+		assertTrue(AutomationDefinitionService.definesRunEntryPoint(source));
+		assertEquals(source,
+				AddAutomationStepReactor.customSource(AutomationConstants.NODE_DEVELOPER_PYTHON,
+						new LinkedHashMap<>()));
+	}
+
 	/**
 	 * resolve is a method on the scope mapping the runtime passes in, not a builtin.
 	 * A module-level resolve(...) call raises NameError the moment the node runs, so
@@ -120,7 +172,7 @@ public class AutomationSourceRendererUnitTests {
 	@Test
 	void everyNodeSourceResolvesThroughScope() {
 		for (AutomationNodeType type : AutomationNodeType.values()) {
-			if (type == AutomationNodeType.CONTROL_IF) {
+			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV) {
 				continue;
 			}
 			String source = AutomationSourceRenderer.renderNode(node(type.getType(), databaseConfig()));
@@ -141,5 +193,7 @@ public class AutomationSourceRendererUnitTests {
 	void decisionNodesHaveNoPythonSource() {
 		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
 				.renderNode(node(AutomationConstants.NODE_CONTROL_IF, Map.of())));
+		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_CONTROL_JEV, Map.of())));
 	}
 }

@@ -33,13 +33,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.google.AbstractGoogleReactor;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-public class GoogleGmailProfileByIdReactor extends AbstractReactor {
+public class GoogleGmailProfileByIdReactor extends AbstractGoogleReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailProfileByIdReactor.class);
 
@@ -48,7 +48,7 @@ public class GoogleGmailProfileByIdReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		try {
 			User user = this.insight.getUser();
 			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);

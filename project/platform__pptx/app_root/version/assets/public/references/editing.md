@@ -21,7 +21,49 @@ rerun an old creation generator, or use creation examples for an editing task.
    validates, checks preservation and invokes review. ExecuteNodeCode is unavailable
    in managed runs. Do not install packages or run local rendering commands.
 
-## Text editing example
+## Optional structured edits
+
+PreparePptxEdit now returns selected-slide `objects` (objectId, name, type, local
+geometry/fill, textIndexes) and `texts` (index, exact text, objectId and explicit
+run formatting). Missing styles are inherited; do not assume a color or font.
+Geometry is in EMU, and grouped objects use group-local coordinates. This is
+slide-focused inspection of the original package, not an exported single-slide deck.
+
+For wording changes prepare `editType: "text"`; for colors prepare `editType:
+"slides"`. Then call `ApplyPptxEdits` alone; it builds, checks preservation, and
+reviews the selected original slides without model-written generator code:
+
+```json
+{"operations":[
+  {"type":"setBackground","part":"ppt/slides/slide3.xml","color":"000000"},
+  {"type":"setTextColor","part":"ppt/slides/slide3.xml","objectId":"5","color":"FFFFFF"}
+],"instructions":"Check the requested background and body-text colors and readability."}
+```
+
+Use actual part/object IDs from inspection. `setTextColor` changes every existing
+text run in that text shape, preserving the other font properties and geometry.
+It supports ordinary text shapes, including shapes within groups; tables/charts
+use the advanced path below. For wording changes use:
+
+```json
+{"operations":[{"type":"replaceText","part":"ppt/slides/slide1.xml","objectId":"2","index":0,"oldText":"DOGS","newText":"CATS"}]}
+```
+
+Each call starts from the protected original. During repair submit the COMPLETE
+operation list, including edits already requested. A bad ID, stale oldText,
+invalid color, duplicate target or out-of-scope operation fails without publishing
+partial changes. Preparation can be corrected before the first build; keep the selected slides faithful to the user request. Check affected foreground
+readability when changing a background and include explicit text-color operations
+where needed; do not recolor unrelated objects. Do not change text-box size or
+font properties in text mode to fix a longer replacement.
+
+The Office app opts into a bounded edit context: original/recent user requests
+and the authoritative current deck. Historical generator/tool output is omitted
+from model input while the full chat remains stored. Earlier excerpts may be
+truncated; inspect the current deck and request clarification when a necessary
+reference cannot be resolved.
+
+## Advanced text editing example
 
 Substitute `inputSnapshot`, `part`, `index`, and `oldText` from PreparePptxEdit,
 and the user's output filename and replacement. For a title change, change only
@@ -58,23 +100,24 @@ Use `editType: "slides"` only for requested layout or object changes. Selected
 slide XML may then change. Use JSZip to modify the snapshot's existing XML/parts
 inside the saved build program. Keep unrelated content intact.
 
-Declare exact existing `additionalParts` only when the request requires notes,
-image, chart, embedded workbook or relationship edits. A shared part requires all
-affected slides to be in the requested scope. For chart data update both the cache
-and embedded workbook, retaining units, labels and axes. Keep image crop and frame
-unless requested. Inspect relationships with file tools when needed.
+Linked chart, workbook, image, notes and relationship parts are discovered from
+both the original and edited package. `PreparePptxEdit` returns `linkedParts` and
+`usedBySlides` so you can inspect shared resources. No `additionalParts` whitelist
+is required. For chart data update both the cache and embedded workbook, retaining
+units, labels and axes. Keep image crop and frame unless requested. New or removed
+parts are supported when the package remains valid.
 
-The preservation contract keeps slide count, order and package entry names fixed.
-Adding/removing slides or package parts needs a broader authoring operation; do not
-silently regenerate the deck or broaden scope to force it. Scope is immutable once
-prepared, including during repairs. Do not fix unrelated pre-existing warnings.
+BuildPptx validates the saved package and records changed parts and affected slides.
+XML serialization differences alone are not content edits. Actual changes outside
+the requested slides, text-mode formatting changes, slide order/count changes, or
+changes whose impact cannot be determined are saved as a separate proposed revision
+for inspection. They do not cause a file-preservation failure or replace the accepted
+Office library version. Broken output and unchanged content are still unsuccessful
+edits; the last validated output or original is recoverable. Missing visual review
+is reported separately from saving. Pre-existing warnings do not authorize redesign.
 
-BuildPptx compares against the run's original package. Unrelated parts must be
-byte-identical after decompression. In text mode, formatting and object structure
-on edited slides must remain identical too. A violation restores the previous
-validated output or original and returns an actionable error. The original is not
-reported as a successful edit. Original advisory warnings are supplied to review
-separately; review concerns the requested changes, not a redesign.
+The selected slide context is for inspection; the editing program still uses the
+whole original package so linked assets, themes, notes and manual edits stay intact.
 
 Without managed tools, use the same helper with JSZip in one async ExecuteNodeCode
 IIFE, reading from a separate preserved source. Validate the slide count and report

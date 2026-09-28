@@ -10,8 +10,10 @@ Create a deck suited to the user's audience, content and visual direction. Prese
 the requested filename, total slide count, source data and branding. Components and
 native PptxGenJS calls may share a new slide; every new slide may be entirely custom.
 For existing decks, call PreparePptxEdit first and read
-[references/editing.md](references/editing.md). Patch its protected snapshot with
-JSZip and scripts/edit.js. Never regenerate it from a creation program: that loses
+[references/editing.md](references/editing.md). Optionally use
+ApplyPptxEdits for text and colors with inspected object IDs. Other edits use
+JSZip through BuildPptx; linked assets are discovered automatically.
+Never regenerate it from a creation program: that loses
 manual edits and unrelated content. Prepare only the requested slides.
 
 ## Load only what the task needs
@@ -34,8 +36,7 @@ demonstrations, not a required count or sequence. Replace their demo data and ou
 filename. The bundled Earthrise photograph is only for relevant imagery; its source
 is recorded in [assets/CREDITS.md](assets/CREDITS.md).
 
-Read another example only when its techniques are useful. You can combine examples,
-configure the components, or write native code throughout. Packaged skill files are read-only; edit your deck-specific generator and assets. The fixed JSON layouts are
+Combine examples, configure components, or write native code as needed. Packaged skill files are read-only; edit your deck-specific generator and assets. The fixed JSON layouts are
 optional for simple decks, not the default design boundary.
 
 Supporting references load the same way, e.g.
@@ -77,7 +78,7 @@ labels editable. Never invent source values to fill an example chart.
 
 ## Execution contract
 
-- Managed runs execute the saved generator through `BuildPptx`. Otherwise use
+- Managed runs use `ApplyPptxEdits` for supported existing-slide edits, or execute a saved generator through `BuildPptx`. Otherwise use
   `ExecuteNodeCode`. The generator must be ONE
   `(async () => { ... })()` with EVERY `require`, `const`, `let`, class and function
   declaration inside it. Await all asynchronous work. Use `globalThis` only for

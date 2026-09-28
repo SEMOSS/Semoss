@@ -27,26 +27,32 @@
  *******************************************************************************/
 package prerna.reactor.notification;
 
-import java.util.List;
-
-import org.javatuples.Pair;
-
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+/**
+ * Dismisses one notification for the user, or every notification in a scope
+ * (ALL by default) when no notificationId is given.
+ *
+ * <pre>{@code
+ * DeleteNotification(notificationId=["<notificationId>"]);
+ * DeleteNotification(scopeType=["APP"], scopeId=["SYSTEM__COLLABORATION"]);
+ * }</pre>
+ */
 public class DeleteNotificationReactor extends AbstractReactor {
 
+	private static final String SCOPE_TYPE = "scopeType";
+	private static final String SCOPE_ID = "scopeId";
+
 	public DeleteNotificationReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey() };
-		this.keyRequired = new int[] { 0 };
+		this.keysToGet = new String[] { ReactorKeysEnum.NOTIFICATION_ID.getKey(), SCOPE_TYPE, SCOPE_ID };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -61,30 +67,26 @@ public class DeleteNotificationReactor extends AbstractReactor {
 
 		organizeKeys();
 		String notificationId = this.keyValue.get(this.keysToGet[0]);
+		String scopeId = this.keyValue.get(SCOPE_ID);
+		String scopeType = NotificationDbUtils.resolveReadScope(user, this.keyValue.get(SCOPE_TYPE), scopeId);
 
-		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
-		if (userIdAndTypeList == null || userIdAndTypeList.isEmpty()) {
-			throw new SemossPixelException(new NounMetadata("Unable to determine user type for deletion",
-					PixelDataType.CONST_STRING, PixelOperationType.ERROR, PixelOperationType.LOGGIN_REQUIRED_ERROR));
-		}
-
-		String recipientId = userIdAndTypeList.get(0).getValue0();
-		String recipientType = userIdAndTypeList.get(0).getValue1();
-		int deleteCount;
-		if (notificationId != null) {
-			deleteCount = 0;
-			for (Pair<String, String> recipient : userIdAndTypeList) {
-				deleteCount += NotificationDbUtils.deleteNotification(recipient.getValue0(), recipient.getValue1(),
-						notificationId);
-			}
-		} else {
-			deleteCount = NotificationDbUtils.deleteNotification(recipientId, recipientType, null);
-		}
+		int deleteCount = NotificationDbUtils.deleteNotification(user, notificationId, scopeType, scopeId);
 		return new NounMetadata(deleteCount, PixelDataType.CONST_INT);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a user's notification. Takes in a notificatioinId for a single notification or no value for all notifications";
+		return "Deletes a user's notification. Takes in a notificatioinId for a single notification, or no value for all notifications in the scope";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (SCOPE_TYPE.equals(key)) {
+			return "Scope to clear when no notificationId is given: ALL (default), SYSTEM, or APP.";
+		}
+		if (SCOPE_ID.equals(key)) {
+			return "The app id when scopeType is APP, e.g. SYSTEM__COLLABORATION for the Collaboration inbox.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

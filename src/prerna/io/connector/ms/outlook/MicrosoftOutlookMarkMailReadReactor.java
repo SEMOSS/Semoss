@@ -69,7 +69,7 @@ public class MicrosoftOutlookMarkMailReadReactor extends AbstractMicrosoftOutloo
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("mark a message");
 		// marking something read is what a caller almost always means, so that is

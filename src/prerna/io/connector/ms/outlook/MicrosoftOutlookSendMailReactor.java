@@ -38,8 +38,8 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.EmailUtility;
 
 /**
  * Sends mail as whoever is signed in.
@@ -84,7 +84,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		// keeping the copy is the default because the sent mail is the user's own

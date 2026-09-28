@@ -88,7 +88,7 @@ public class MicrosoftOneDriveListSharedFilesReactor extends AbstractMicrosoftOn
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String search = trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), DEFAULT_LIMIT, MAX_LIMIT);

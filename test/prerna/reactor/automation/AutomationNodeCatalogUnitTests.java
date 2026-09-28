@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
@@ -75,6 +76,36 @@ public class AutomationNodeCatalogUnitTests {
 				AutomationConstants.NODE_DATABASE_UPDATE, AutomationConstants.NODE_DATABASE_DELETE)) {
 			assertEquals("database", find(type).toMap().get("category"), type + " belongs to the database category");
 		}
+	}
+
+	@Test
+	void storageDownloadAdvertisesItsStructuredResult() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_DOWNLOAD);
+		assertNotNull(definition);
+		Map<String, Map<String, Object>> fieldsByKey = definition.outputFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.OutputField::key,
+						AutomationNodeDefinition.OutputField::toMap));
+		assertEquals("string[]", fieldsByKey.get("files").get("type"));
+		assertEquals(true, fieldsByKey.get("files").get("required"));
+		assertEquals("string", fieldsByKey.get("filePath").get("type"));
+		assertEquals(false, fieldsByKey.get("filePath").get("required"));
+	}
+
+	@Test
+	void jevDecisionAdvertisesTypeSafeRoutingConfiguration() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_JEV);
+		assertNotNull(definition);
+		assertEquals(AutomationNodeType.Permission.VIEW, definition.nodeType().getPermission());
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		Map<String, Object> confidence = fieldsByKey.get("confidenceThreshold");
+		assertEquals(0.0, confidence.get("minimum"));
+		assertEquals(1.0, confidence.get("maximum"));
+		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
+				fieldsByKey.get(AutomationConstants.CONFIG_QUESTION_TYPE).get("defaultValue"));
+		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
+				definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTION_TYPE));
 	}
 
 	/** Writes need edit rights on the engine; a read only needs view. */

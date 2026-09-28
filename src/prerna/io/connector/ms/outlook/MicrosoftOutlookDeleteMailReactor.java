@@ -66,7 +66,7 @@ public class MicrosoftOutlookDeleteMailReactor extends AbstractMicrosoftOutlookM
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("delete a message");
 

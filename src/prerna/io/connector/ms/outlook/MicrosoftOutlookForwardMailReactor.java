@@ -70,7 +70,7 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("forward a message");
 		String[] to = values(TO);

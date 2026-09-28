@@ -70,7 +70,7 @@ public class MicrosoftOneDriveListDrivesReactor extends AbstractMicrosoftOneDriv
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), 0, Integer.MAX_VALUE);
 

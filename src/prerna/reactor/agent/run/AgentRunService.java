@@ -38,11 +38,16 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.Gson;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.utils.SecurityQueryUtils;
+import prerna.auth.utils.SecurityUserUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.ClaudeCodeAgentHarness;
@@ -106,14 +111,92 @@ public final class AgentRunService {
 		if (AgentRunStore.runExists(resolvedRunId)) {
 			throw new IllegalArgumentException("AGENT_RUN already exists for runId=" + resolvedRunId);
 		}
+		return submitNewRun(resolvedRunId, request, false);
+	}
+
+	private AgentRunHandle submitNewRun(String runId, AgentRunRequest request, boolean ownsUser) {
 		String userId = resolveUserId(request.getInsight());
-		AgentRunStore.insertSubmitted(resolvedRunId, request, userId);
+		AgentRunStore.insertSubmitted(runId, request, userId);
 		if (supportsCanonicalStreaming(request.getHarnessType())) {
-			AgentRunStreamService.get().register(resolvedRunId);
+			AgentRunStreamService.get().register(runId);
 		}
-		queueLoop.rememberInsight(resolvedRunId, request.getInsight());
+		queueLoop.rememberInsight(runId, request.getInsight(), ownsUser);
 		queueLoop.signal();
-		return new AgentRunHandle(resolvedRunId, request.getRoomId(), AgentRunStatus.SUBMITTED);
+		return new AgentRunHandle(runId, request.getRoomId(), AgentRunStatus.SUBMITTED);
+	}
+
+	/** Submit deterministic server-owned work through the normal RunAgent queue path. */
+	boolean runBackgroundWithIdIfAbsent(String runId, AgentRunRequest request) {
+		if (runId == null || runId.isBlank() || request == null || request.getInsight() == null) {
+			throw new IllegalArgumentException("Background agent submission requires runId and an execution Insight");
+		}
+		String resolvedRunId = runId.trim();
+		boolean submitted = false;
+		try {
+			if (!AgentRunStore.runExists(resolvedRunId)) {
+				submitNewRun(resolvedRunId, request, true);
+				submitted = true;
+			}
+		} catch (RuntimeException e) {
+			// The room lease normally serializes this path. If a retry raced the first
+			// insert, the deterministic run already represents the requested work.
+			if (!AgentRunStore.runExists(resolvedRunId)) {
+				throw e;
+			}
+		} finally {
+			// A submitted run's handle owns the background user; otherwise release it here.
+			if (!submitted) {
+				request.getInsight().getUser().removeUserMemory();
+			}
+		}
+		if (!submitted) {
+			queueLoop.signal();
+		}
+		return submitted;
+	}
+
+	/** Creates the minimal authenticated context required by logged-out background work. */
+	static Insight createBackgroundExecutionInsight(String userId, AgentRunRequest request) {
+		if (request == null || userId == null || userId.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner identity");
+		}
+		return createBackgroundExecutionInsight(userId, request.getOwnerAuthType(), request.getWorkspaceId());
+	}
+
+	static Insight createBackgroundExecutionInsight(String userId, String authType, String workspaceId) {
+		if (userId == null || userId.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner identity");
+		}
+		if (authType == null || authType.isBlank()) {
+			throw new SecurityException("Agent run is missing its durable owner authentication type");
+		}
+		AuthProvider provider = AuthProvider.getProviderFromString(authType);
+		if (!provider.getLabel().equalsIgnoreCase(authType) && !provider.name().equalsIgnoreCase(authType)) {
+			throw new SecurityException("Agent run owner authentication type is invalid");
+		}
+		if (!SecurityQueryUtils.isUserType(userId, provider)) {
+			throw new SecurityException("Agent run owner no longer exists");
+		}
+		Object[] accountState = SecurityQueryUtils.getUserLockAndLastLoginAndLastPassReset(userId, provider);
+		if (accountState.length > 0 && Boolean.TRUE.equals(accountState[0])) {
+			throw new SecurityException("Agent run owner is locked");
+		}
+
+		AccessToken token = new AccessToken();
+		token.setProvider(provider);
+		token.setId(userId);
+		SecurityUserUtils.loadUserMetadata(token);
+		User user = new User();
+		user.setAccessToken(token);
+		user.setPrimaryLogin(provider);
+
+		Insight insight = new Insight();
+		insight.setUser(user);
+		if (workspaceId != null && !workspaceId.isBlank()) {
+			insight.setProjectId(workspaceId);
+			insight.setContextProjectId(workspaceId);
+		}
+		return insight;
 	}
 
 	/**
@@ -122,6 +205,28 @@ public final class AgentRunService {
 	 * {@code INPUT_REQUIRED} back to {@code SUBMITTED}.
 	 */
 	public void signalWorker() {
+		queueLoop.signal();
+	}
+
+	/** Queue one terminal child's single-message delivery behind its parent room turn. */
+	public void queueChildCompletion(String childRunId) {
+		queueLoop.enqueueChildCompletion(childRunId);
+	}
+
+	/** Rebuild lightweight delivery work from durable child rows when a room is loaded. */
+	public void queueChildCompletionsForRoom(String parentRoomId, Insight insight) {
+		try {
+			String userId = resolveUserId(insight);
+			if (userId == null) {
+				return;
+			}
+			for (String childRunId : ChildRunCompletionService.findUndeliveredChildIdsForRoom(parentRoomId, userId)) {
+				queueLoop.enqueueChildCompletion(childRunId);
+			}
+		} catch (Exception e) {
+			logger.warn("Unable to queue child completions for roomId={}: {}", parentRoomId, e.getMessage(), e);
+		}
+		// Starts the loop, and with it the one-time recovery scan, on the first room open.
 		queueLoop.signal();
 	}
 
@@ -263,6 +368,12 @@ public final class AgentRunService {
 		prerna.reactor.agent.AgentCancelHook.onStop(runId);
 		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, "Agent run cancelled")) {
 			notifyStreamCancelled(runId, "Agent run cancelled");
+			// Approvals the stopped run was waiting on, or the person's open request.
+			AgentRunActionStore.cancelPendingForRun(runId);
+			// A child cancelled while idle has no executor to report it.
+			if (record.request() != null && record.request().getParentRunId() != null) {
+				queueChildCompletion(runId);
+			}
 		}
 		return getRun(runId, insight);
 	}
@@ -291,6 +402,7 @@ public final class AgentRunService {
 		String message = "Agent run cancelled by an Automation project editor";
 		if (AgentRunStore.markCancelledIfNotTerminal(runId, runId, message)) {
 			notifyStreamCancelled(runId, message);
+			AgentRunActionStore.cancelPendingForRun(runId);
 		}
 		return getRunForAutomation(runId, insight, false);
 	}
@@ -312,6 +424,7 @@ public final class AgentRunService {
 		boolean cancelled = AgentRunStore.markCancelledIfNotTerminal(runId, runId, message);
 		if (cancelled) {
 			notifyStreamCancelled(runId, message);
+			AgentRunActionStore.cancelPendingForRun(runId);
 		}
 		return cancelled;
 	}
@@ -455,8 +568,8 @@ public final class AgentRunService {
 			if (message == null) {
 				continue;
 			}
-			Object taggedRunId = message.getOrnament(SemossAgentHarness.ORNAMENT_AGENT_RUN_ID);
-			if (taggedRunId != null && runId.equals(String.valueOf(taggedRunId))) {
+			AgentRunMessageContext agentRun = message.getAgentRun();
+			if (agentRun != null && runId.equals(agentRun.getRunId())) {
 				runMessages.add(message);
 			}
 		}

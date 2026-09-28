@@ -73,7 +73,7 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractMicrosoftOutlookCo
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		try {
