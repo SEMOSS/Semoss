@@ -87,7 +87,7 @@ public interface BrainMailHeaderSource {
 	}
 
 	static BrainMailHeaderSource current() {
-		String fixture = System.getenv(BrainMessageSource.FIXTURE_ENV);
-		return fixture == null || fixture.isBlank() ? new BrainGraphHeaderSource() : BrainFixtureHeaderSource.of(fixture);
+		String fixture = BrainMessageSource.fixturePath();
+		return fixture == null ? new BrainGraphHeaderSource() : BrainFixtureHeaderSource.of(fixture);
 	}
 }

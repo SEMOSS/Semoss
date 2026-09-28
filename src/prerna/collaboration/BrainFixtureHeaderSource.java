@@ -64,7 +64,7 @@ final class BrainFixtureHeaderSource implements BrainMailHeaderSource {
 				messages.add(header);
 			}
 		} catch (Exception e) {
-			throw new IllegalStateException("Cannot read the " + BrainMessageSource.FIXTURE_ENV + " file", e);
+			throw new IllegalStateException("Cannot read the " + BrainMessageSource.FIXTURE_SETTING + " file", e);
 		}
 		messages.sort(Comparator.comparing((Map<String, Object> m) -> (String) m.get("receivedDateTime")).reversed());
 		for (Map<String, Object> m : messages) {

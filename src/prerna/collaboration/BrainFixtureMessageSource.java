@@ -57,7 +57,7 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 				byId.put((String) message.get("id"), message);
 			}
 		} catch (Exception e) {
-			throw new IllegalStateException("Cannot read the " + FIXTURE_ENV + " file", e);
+			throw new IllegalStateException("Cannot read the " + FIXTURE_SETTING + " file", e);
 		}
 		Path teams = Path.of(path).resolveSibling("teams.json");
 		if (Files.exists(teams)) {

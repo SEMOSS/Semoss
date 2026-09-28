@@ -33,12 +33,14 @@ import java.util.Map;
 
 import prerna.auth.User;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.Utility;
 
 // where the thread read gets message bodies at call time; nothing behind this stores them
 public interface BrainMessageSource {
 
-	// points at a brain-mail-v1 style mail.json; local testing only, never set in production
-	String FIXTURE_ENV = "COLLABORATION_FIXTURE_MAIL";
+	// points at a brain-mail-v1 style mail.json (RDF_Map, else an environment variable); local testing only,
+	// never set in production: mail then comes from the file, not Graph
+	String FIXTURE_SETTING = "COLLABORATION_FIXTURE_MAIL";
 
 	// one message in Graph shape (from, subject, body, uniqueBody, receivedDateTime, conversationId), null if gone
 	Map<String, Object> fetch(User user, String source, String conversationId, String graphId) throws Exception;
@@ -63,8 +65,16 @@ public interface BrainMessageSource {
 	}
 
 	static BrainMessageSource current() {
-		String fixture = System.getenv(FIXTURE_ENV);
-		return fixture == null || fixture.isBlank() ? new BrainGraphMessageSource()
-				: BrainFixtureMessageSource.of(fixture);
+		String fixture = fixturePath();
+		return fixture == null ? new BrainGraphMessageSource() : BrainFixtureMessageSource.of(fixture);
+	}
+
+	// the fixture mail.json, or null to read Graph
+	static String fixturePath() {
+		String fixture = Utility.getDIHelperProperty(FIXTURE_SETTING);
+		if (fixture == null || fixture.isBlank()) {
+			fixture = System.getenv(FIXTURE_SETTING);
+		}
+		return fixture == null || fixture.isBlank() ? null : fixture.trim();
 	}
 }
