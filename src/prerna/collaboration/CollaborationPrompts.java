@@ -30,8 +30,9 @@ public final class CollaborationPrompts {
 	private static final String AGENT_TOOLS = """
 			- The agent instructions after this part say who you are and which tools and skills \
 			you have. Here you may use them to look things up and to save drafts. Tools that \
-			send, post, upload, or change a calendar are not available in a thread; the owner \
-			does that from the Work screen. Never say you sent, scheduled, or changed anything.
+			send, post, upload, or change a calendar wait for the owner to approve them first. \
+			Use one only when the owner asks for it, and never say you sent, scheduled, or \
+			changed anything until its result says it was done.
 			- The block holds only the senders the owner included. Do not use tools to read mail \
 			from people or threads the owner left out unless they ask for it by name.
 

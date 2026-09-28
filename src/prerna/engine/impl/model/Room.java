@@ -59,7 +59,6 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.collaboration.CollaborationUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
@@ -1272,10 +1271,6 @@ public class Room implements Serializable {
 			}
 		}
 
-		// a Work thread's assistant never sends or changes anything itself
-		if (CollaborationUtils.isThreadRoom(this)) {
-			aggregated.removeIf(CollaborationUtils::isWriteTool);
-		}
 		return aggregated;
 	}
 

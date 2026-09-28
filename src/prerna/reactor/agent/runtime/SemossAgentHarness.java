@@ -182,15 +182,13 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
-		// a Work thread's assistant only answers and drafts; the owner acts from the Work screen. With the
-		// thread agent bound it keeps that agent's read and draft tools, never ones marked for approval.
+		// a Work thread's assistant gets the thread agent's tools, or none without it; ask tools pause for
+		// the owner's approval as anywhere else
 		boolean threadRoom = CollaborationUtils.isThreadRoom(room);
 		boolean threadAgent = threadRoom && agentConfig.getWorkspaceId() != null;
 		if (threadRoom) {
 			subAgentTools.clear();
-			if (threadAgent) {
-				defaultAndExplicitTools.removeIf(CollaborationUtils::isWriteTool);
-			} else {
+			if (!threadAgent) {
 				defaultAndExplicitTools.clear();
 			}
 		}

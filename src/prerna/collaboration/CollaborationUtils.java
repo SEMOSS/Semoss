@@ -38,7 +38,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -110,11 +109,4 @@ public final class CollaborationUtils {
 		return agent;
 	}
 
-	/** A tool that acts outside the conversation (send, post, change a calendar): marked for approval. */
-	@SuppressWarnings("unchecked")
-	public static boolean isWriteTool(Map<String, Object> tool) {
-		Object meta = tool == null ? null : tool.get("_meta");
-		return meta instanceof Map
-				&& "ask".equalsIgnoreCase(String.valueOf(((Map<String, Object>) meta).get(MCPUtility.SMSS_MCP_EXECUTION)));
-	}
 }
