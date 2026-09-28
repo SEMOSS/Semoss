@@ -72,6 +72,10 @@ public final class OpenShellTransport {
 	public static final String CLI_PROP = "OPENSHELL_CLI";
 	/** Property naming the sandbox workload template to create from. */
 	public static final String TEMPLATE_PROP = "OPENSHELL_TEMPLATE";
+	/** Property naming the sandbox image (used when no template is set). */
+	public static final String IMAGE_PROP = "OPENSHELL_IMAGE";
+	/** Property naming a filesystem-policy YAML applied at creation. */
+	public static final String POLICY_PROP = "OPENSHELL_POLICY";
 	/** Property naming the port the worker listens on *inside* the sandbox. */
 	public static final String WORKER_PORT_PROP = "OPENSHELL_WORKER_PORT";
 	/** Property naming the label value used to group executor sandboxes. */
@@ -153,6 +157,21 @@ public final class OpenShellTransport {
 		if (template != null && !template.trim().isEmpty()) {
 			create.add("--template");
 			create.add(template.trim());
+		} else {
+			// No template: use an explicit image. The stock OpenShell base image
+			// carries no python3, so an executor image is mandatory in practice.
+			String image = Utility.getDIHelperProperty(IMAGE_PROP);
+			if (image != null && !image.trim().isEmpty()) {
+				create.add("--from");
+				create.add(image.trim());
+			}
+		}
+		// The filesystem/egress policy is applied at creation: Landlock settings are
+		// locked at startup and cannot be widened later, which is the point.
+		String policy = Utility.getDIHelperProperty(POLICY_PROP);
+		if (policy != null && !policy.trim().isEmpty()) {
+			create.add("--policy");
+			create.add(policy.trim());
 		}
 		// The worker is the sandbox's canonical main process. It must be started with
 		// the insight folder it will write {insightFolder}/log.txt into.
