@@ -82,10 +82,14 @@ final class AutomationScopeCatalog {
 				if (outputVar == null || outputVar.isBlank()) {
 					continue;
 				}
-				variablesByName.put(outputVar,
-						variable(outputVar, "node", string(source.get(AutomationConstants.NODE_FIELD_LABEL)),
-								"Output from an earlier step.", sourceId, null,
-								guaranteedNodes.contains(sourceId) ? "guaranteed" : "conditional"));
+				Map<String, Object> outputVariable = variable(outputVar, "node",
+						string(source.get(AutomationConstants.NODE_FIELD_LABEL)), "Output from an earlier step.",
+						sourceId, null, guaranteedNodes.contains(sourceId) ? "guaranteed" : "conditional");
+				String valueType = generatedResultValueType(source);
+				if (valueType != null) {
+					outputVariable.put("valueType", valueType);
+				}
+				variablesByName.put(outputVar, outputVariable);
 			}
 			result.put(targetId, new ArrayList<>(variablesByName.values()));
 		}
@@ -130,6 +134,18 @@ final class AutomationScopeCatalog {
 			break;
 		}
 		return variables;
+	}
+
+	private static String generatedResultValueType(Map<String, Object> node) {
+		if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			return null;
+		}
+		String type = string(node.get(AutomationConstants.NODE_FIELD_TYPE));
+		if (type == null || !AutomationNodeType.isSupported(type)) {
+			return null;
+		}
+		AutomationValueType resultType = AutomationNodeCatalog.getResultValueType(AutomationNodeType.fromType(type));
+		return resultType == AutomationValueType.UNKNOWN ? null : resultType.getValue();
 	}
 
 	private static Map<String, List<String>> predecessors(

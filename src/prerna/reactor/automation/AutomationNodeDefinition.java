@@ -166,9 +166,9 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 	 * @param label     user-facing label
 	 * @param kind      control or data port
 	 * @param direction input or output port
-	 * @param dataType  optional data type for data ports
+	 * @param dataType  optional logical data type for data ports
 	 */
-	public record Port(String id, String label, PortKind kind, PortDirection direction, String dataType) {
+	public record Port(String id, String label, PortKind kind, PortDirection direction, AutomationValueType dataType) {
 
 		Map<String, Object> toMap() {
 			Map<String, Object> port = new LinkedHashMap<>();
@@ -177,7 +177,7 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 			port.put("kind", this.kind.name().toLowerCase(Locale.ROOT));
 			port.put("direction", this.direction.name().toLowerCase(Locale.ROOT));
 			if (this.dataType != null) {
-				port.put("dataType", this.dataType);
+				port.put("dataType", this.dataType.getValue());
 			}
 			return port;
 		}

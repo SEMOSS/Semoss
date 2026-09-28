@@ -29,6 +29,7 @@ package prerna.reactor.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -114,5 +115,83 @@ public class AutomationRuntimeUnitTests {
 		assertFalse(AutomationDefinitionService
 				.definesRunEntryPoint("class Job:\n    def run(self, scope):\n        return {}\n"));
 		assertFalse(AutomationDefinitionService.definesRunEntryPoint("def outer():\n    run = 1\n    return run\n"));
+	}
+
+	@Test
+	void generatedDatabaseQueriesUseTheCatalogDatasetCategory() {
+		Map<String, Object> query = new LinkedHashMap<>();
+		query.put(AutomationConstants.NODE_FIELD_TYPE, AutomationConstants.NODE_DATABASE_QUERY);
+		query.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_GENERATED);
+		assertEquals(AutomationValueType.DATASET, AutomationRuntime.resultValueType(query));
+
+		query.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_CUSTOM);
+		assertEquals(AutomationValueType.UNKNOWN, AutomationRuntime.resultValueType(query));
+	}
+
+	@Test
+	void dataReferenceRoundTripsWithoutProviderDetails() {
+		AutomationDataReference expected = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "opaque-reference", AutomationValueType.DATASET);
+		Map<String, Object> value = expected.toMap();
+		AutomationDataReference actual = AutomationDataReference.fromValue(value);
+
+		assertEquals(expected, actual);
+		assertNotNull(value.get(AutomationDataReference.MARKER));
+		String serialized = prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(value);
+		assertFalse(serialized.contains("engine"));
+		assertFalse(serialized.contains("query"));
+		assertFalse(serialized.contains("path"));
+	}
+
+	@Test
+	void nodeHistoryDoesNotExposeOpaqueDataReference() {
+		AutomationDataReference reference = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "opaque-reference", AutomationValueType.DATASET);
+		Map<String, Object> persistedValue = Map.of("summary", "bounded", "data", List.of(reference.toMap()));
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.NODE_ID, "query");
+		row.put(AutomationConstants.NODE_LABEL, "Query database");
+		row.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		row.put(AutomationConstants.OUTPUT_VALUE,
+				prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(persistedValue));
+		row.put(AutomationConstants.OUTPUT_PREVIEW, AutomationDataReference.CLIENT_PREVIEW);
+
+		Map<String, Object> result = AutomationDatabaseUtility.buildNodeResults(List.of(row)).get(0);
+		assertNull(result.get(AutomationConstants.OUTPUT_VALUE));
+		assertEquals(AutomationDataReference.CLIENT_PREVIEW, result.get(AutomationConstants.OUTPUT_PREVIEW));
+		assertFalse((Boolean) result.get(AutomationConstants.RESULT_DATA_AVAILABLE));
+	}
+
+	@Test
+	void topLevelDataReferenceAdvertisesViewableRunDataWithoutItsIdentifier() {
+		AutomationDataReference reference = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "private-reference", AutomationValueType.DATASET);
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.NODE_ID, "query");
+		row.put(AutomationConstants.NODE_LABEL, "Query database");
+		row.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		row.put(AutomationConstants.OUTPUT_VALUE,
+				prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(reference.toMap()));
+		row.put(AutomationConstants.OUTPUT_PREVIEW, AutomationDataReference.CLIENT_PREVIEW);
+
+		Map<String, Object> result = AutomationDatabaseUtility.buildNodeResults(List.of(row)).get(0);
+		assertTrue((Boolean) result.get(AutomationConstants.RESULT_DATA_AVAILABLE));
+		assertEquals("dataset", result.get(AutomationConstants.RESULT_DATA_VALUE_TYPE));
+		assertFalse(prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(result)
+				.contains("private-reference"));
+	}
+
+	@Test
+	void nestedDataReferencesAreRemovedFromClientValues() {
+		AutomationDataReference reference = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "private-reference", AutomationValueType.FILE);
+		Map<String, Object> value = Map.of("small", "visible", "nested", List.of(reference.toMap()));
+
+		assertTrue(AutomationDataReference.containsReference(value));
+		Object safe = AutomationDataReference.forClient(value);
+		String serialized = prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(safe);
+		assertTrue(serialized.contains("visible"));
+		assertTrue(serialized.contains(AutomationDataReference.CLIENT_PREVIEW));
+		assertFalse(serialized.contains("private-reference"));
 	}
 }

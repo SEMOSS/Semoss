@@ -79,6 +79,43 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void databaseQueryAdvertisesDatasetResult() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATABASE_QUERY);
+		assertNotNull(definition);
+		Map<String, Object> resultPort = definition.outputs().stream().map(AutomationNodeDefinition.Port::toMap)
+				.filter(port -> "result".equals(port.get("id"))).findFirst().orElseThrow();
+		assertEquals("data", resultPort.get("kind"));
+		assertEquals("dataset", resultPort.get("dataType"));
+	}
+
+	@Test
+	void generatedResultPortsAdvertiseLogicalValueCategories() {
+		assertResultType(AutomationConstants.NODE_MODEL_CHAT, "value");
+		assertResultType(AutomationConstants.NODE_MODEL_EMBEDDINGS, "collection");
+		assertResultType(AutomationConstants.NODE_DATABASE_INSERT, "value");
+		assertResultType(AutomationConstants.NODE_DATABASE_UPDATE, "value");
+		assertResultType(AutomationConstants.NODE_DATABASE_DELETE, "value");
+		assertResultType(AutomationConstants.NODE_STORAGE_LIST, "collection");
+		assertResultType(AutomationConstants.NODE_STORAGE_READ, "file");
+		assertResultType(AutomationConstants.NODE_STORAGE_DOWNLOAD, "file");
+		assertResultType(AutomationConstants.NODE_VECTOR_SEARCH, "collection");
+		assertResultType(AutomationConstants.NODE_FUNCTION_EXECUTE, "unknown");
+		assertResultType(AutomationConstants.NODE_CONTROL_WAIT, "value");
+	}
+
+	@Test
+	void everyOutputProducingNodeAdvertisesItsCanonicalResultPort() {
+		for (AutomationNodeDefinition definition : AutomationNodeCatalog.getDefinitions()) {
+			if (!definition.nodeType().supportsOutput()) {
+				continue;
+			}
+			assertTrue(definition.outputs().stream()
+					.anyMatch(port -> "result".equals(port.id()) && port.kind() == AutomationNodeDefinition.PortKind.DATA),
+					() -> definition.nodeType().getType() + " has no result port");
+		}
+	}
+
+	@Test
 	void storageDownloadAdvertisesItsStructuredResult() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_DOWNLOAD);
 		assertNotNull(definition);
@@ -125,5 +162,13 @@ public class AutomationNodeCatalogUnitTests {
 			assertEquals(type, AutomationNodeType.fromType(type.getType()));
 			assertTrue(AutomationNodeType.isSupported(type.getType()));
 		}
+	}
+
+	private static void assertResultType(String nodeType, String valueType) {
+		AutomationNodeDefinition definition = find(nodeType);
+		assertNotNull(definition);
+		Map<String, Object> resultPort = definition.outputs().stream().map(AutomationNodeDefinition.Port::toMap)
+				.filter(port -> "result".equals(port.get("id"))).findFirst().orElseThrow();
+		assertEquals(valueType, resultPort.get("dataType"));
 	}
 }

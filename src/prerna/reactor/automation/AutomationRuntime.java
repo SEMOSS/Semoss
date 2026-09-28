@@ -155,8 +155,10 @@ final class AutomationRuntime {
 	/**
 	 * Runs one node module with the workflow scope supplied by the Java scheduler.
 	 */
-	static String buildNodeInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_node", source, scope);
+	static String buildNodeInvocationScript(String source, Map<String, Object> scope, AutomationValueType valueType,
+			String projectId, String runId, String executionUserId) {
+		return buildPythonInvocation("execute_node", source, scope, valueType, projectId, runId,
+				executionUserId);
 	}
 
 	/**
@@ -164,11 +166,50 @@ final class AutomationRuntime {
 	 * JSON-compatible globals. A trigger may also return a map from
 	 * {@code run(scope)} to define computed globals.
 	 */
-	static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope);
+	static String buildTriggerInvocationScript(String source, Map<String, Object> scope, String projectId, String runId,
+			String executionUserId) {
+		return buildPythonInvocation("execute_trigger", source, scope, AutomationValueType.UNKNOWN, projectId, runId,
+				executionUserId);
 	}
 
-	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope) {
+	/** Builds the Python call that reads one bounded page from run-owned data. */
+	static String buildDataPageInvocationScript(AutomationDataReference reference, Map<String, String> owner, int offset,
+			int limit) {
+		String invocation = """
+				_automation_data_store = globals().setdefault("_automation_data_store", {})
+				_automation_runtime.read_data_page(%s, %s, %d, %d, %d, _automation_data_store)
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(reference.toMap()),
+				AutomationRuntimeUtils.GSON.toJson(owner), offset, limit, AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+		return runtimeModuleScript(invocation);
+	}
+
+	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
+			AutomationValueType valueType, String projectId, String runId, String executionUserId) {
+		String encodedScope = encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
+				AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope"));
+		String encodedSource = encode(source != null ? source : "");
+		String invocation;
+		Map<String, String> dataOwner = Map.of("projectId", projectId, "runId", runId, "userId", executionUserId);
+		if ("execute_node".equals(function)) {
+			invocation = """
+					_automation_data_store = globals().setdefault("_automation_data_store", {})
+					_automation_runtime.execute_node("%s", "%s", %d, %s, %d, %s, _automation_data_store)
+					""".formatted(encodedScope, encodedSource, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+						AutomationRuntimeUtils.GSON.toJson(valueType.getValue()),
+						AutomationConstants.DATA_REFERENCE_INLINE_MAX_BYTES,
+						AutomationRuntimeUtils.GSON.toJson(dataOwner));
+		} else {
+			invocation = """
+					_automation_data_store = globals().setdefault("_automation_data_store", {})
+					_automation_runtime.execute_trigger("%s", "%s", %d, %d, %s, _automation_data_store)
+					""".formatted(encodedScope, encodedSource, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+						AutomationConstants.DATA_REFERENCE_INLINE_MAX_BYTES,
+						AutomationRuntimeUtils.GSON.toJson(dataOwner));
+		}
+		return runtimeModuleScript(invocation);
+	}
+
+	private static String runtimeModuleScript(String invocation) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
@@ -180,11 +221,24 @@ final class AutomationRuntime {
 				    "_semoss_automation_runtime", %s)
 				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
 				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s", %d)
-				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
-				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
-						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
-				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				%s
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), invocation);
+	}
+
+	/**
+	 * Returns the canonical result category for generated source. Custom source is
+	 * unknown because its return value is author-defined even when it is attached to
+	 * a typed palette node.
+	 */
+	static AutomationValueType resultValueType(Map<String, Object> node) {
+		if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			return AutomationValueType.UNKNOWN;
+		}
+		Object rawType = node.get(AutomationConstants.NODE_FIELD_TYPE);
+		if (!(rawType instanceof String type) || !AutomationNodeType.isSupported(type)) {
+			return AutomationValueType.UNKNOWN;
+		}
+		return AutomationNodeCatalog.getResultValueType(AutomationNodeType.fromType(type));
 	}
 
 	/**

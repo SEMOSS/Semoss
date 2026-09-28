@@ -56,6 +56,7 @@ public class AutomationScopeCatalogUnitTests {
 				variable(variables.get("left"), "query_result").get("optionalPythonExpression"));
 		assertEquals("${query_result}",
 				variable(variables.get("left"), "query_result").get("templateExpression"));
+		assertEquals("dataset", variable(variables.get("left"), "query_result").get("valueType"));
 	}
 
 	@Test
@@ -73,8 +74,9 @@ public class AutomationScopeCatalogUnitTests {
 		Map<String, Object> start = node("start", AutomationConstants.NODE_START, null,
 				Map.of(AutomationConstants.CONFIG_GLOBALS,
 						List.of(Map.of("name", "region", AutomationConstants.CONFIG_DEFAULT_VALUE, "east"))));
-		Map<String, Object> query = node("query", AutomationConstants.NODE_DEVELOPER_PYTHON, "query_result",
-				Map.of());
+		Map<String, Object> query = node("query", AutomationConstants.NODE_DATABASE_QUERY, "query_result",
+				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
+						AutomationConstants.CONFIG_LIMIT, 50));
 		Map<String, Object> decision = node("decision", AutomationConstants.NODE_CONTROL_IF, null,
 				Map.of(AutomationConstants.CONFIG_CLAUSES, List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "route",
 						AutomationConstants.CONFIG_CONDITION, "True"))));
@@ -104,7 +106,8 @@ public class AutomationScopeCatalogUnitTests {
 		node.put(AutomationConstants.NODE_FIELD_LABEL, id);
 		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
 		node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
-				AutomationConstants.NODE_CONTROL_IF.equals(type) ? AutomationConstants.NODE_CODE_MODE_GENERATED
+				AutomationConstants.NODE_CONTROL_IF.equals(type) || AutomationConstants.NODE_DATABASE_QUERY.equals(type)
+						? AutomationConstants.NODE_CODE_MODE_GENERATED
 						: AutomationConstants.NODE_CODE_MODE_CUSTOM);
 		if (outputVar != null) {
 			node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);

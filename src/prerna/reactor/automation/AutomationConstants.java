@@ -217,6 +217,12 @@ public final class AutomationConstants {
 	public static final int WAIT_MAX_SECONDS = 3600;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
+	/** Largest node value kept inline before its execution Insight retains it by reference. */
+	public static final int DATA_REFERENCE_INLINE_MAX_BYTES = 512 * 1024;
+	/** Default number of retained data rows or entries returned to a client. */
+	public static final int DEFAULT_DATA_PAGE_LIMIT = 50;
+	/** Largest retained data page a client may request. */
+	public static final int MAX_DATA_PAGE_LIMIT = 100;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
 	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
@@ -282,6 +288,10 @@ public final class AutomationConstants {
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+	/** Whether a node result has run-owned data available through the paging reactor. */
+	public static final String RESULT_DATA_AVAILABLE = "dataAvailable";
+	/** Provider-independent category of a node result retained in its run Insight. */
+	public static final String RESULT_DATA_VALUE_TYPE = "dataValueType";
 	public static final String RESULT_TRACE = "trace";
 	/**
 	 * Internal generated-node envelope value; removed before history/scope
