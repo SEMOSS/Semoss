@@ -23,7 +23,7 @@ For detailed information on specific engine types (like relational databases, No
 ### Pixel Language
 
 -   **Pixel** is SEMOSS's primary language for data access, manipulation, and orchestration. It provides a unified syntax for interacting with diverse data engines.
--   Pixel scripts are used to perform queries, transformations, create visualizations, and execute custom logic (like Reactors).
+-   Pixel scripts are used to perform queries and transformations and execute custom logic (like Reactors).
 
 ## Connecting to a Database (Setting Context)
 
@@ -294,10 +294,7 @@ While Pixel provides direct ways to query and sometimes manipulate data, encapsu
 
 The following examples are inspired by the `SEMOSS/backend-training` repository and demonstrate how to build Reactors for managing a sample movie database.
 
-**(Assume the image will be placed at `docs/how-to-guides/images/movie-metamodel.png`)**
-The database schema (metamodel) we'll be referring to is:
-![Movie Database Metamodel](./images/movie-metamodel.png)
-*(This schema includes tables like TITLE, GENRE, and NOMINATED.)*
+The examples refer to movie tables such as `TITLE`, `GENRE`, and `NOMINATED`. Adapt their identifiers and relationships to the actual database schema before running the examples.
 
 **General Pattern in CRUD Reactors:**
 1.  Define input keys (e.g., database ID, data for new records, IDs for updates/deletes).
