@@ -516,7 +516,7 @@ final class HarnessToolExecutor {
 						ctx.getRoom().getId(), tc.rawToolName);
 				return new ToolExecOutcome("No tools are available in this conversation.", false);
 			}
-			if (CollaborationUtils.isWriteTool(tc.toolCall)) {
+			if (isAskTool(tc.toolCall)) {
 				logger.warn("HarnessToolExecutor: refused write tool in thread room roomId={} toolName={}",
 						ctx.getRoom().getId(), tc.rawToolName);
 				return new ToolExecOutcome("Sending, posting, uploading and calendar changes are not available in "

@@ -30,7 +30,6 @@ package prerna.collaboration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.json.JSONObject;
 
@@ -111,21 +110,11 @@ public final class CollaborationUtils {
 		return agent;
 	}
 
-	// Microsoft functions that send, post, upload or change a calendar, caught even when a tool list marks them auto
-	private static final Set<String> WRITE_FUNCTIONS = Set.of("MicrosoftOutlookSendMail", "MicrosoftOutlookSendDraft",
-			"MicrosoftCalendarCreateEvent", "MicrosoftCalendarUpdateEvent", "MicrosoftCalendarDeleteEvent",
-			"MicrosoftCalendarRespondToEvent", "MicrosoftTeamsSendChatMessage", "MicrosoftTeamsUploadFile",
-			"MicrosoftOneDriveUploadFile");
-
-	/** A tool that acts outside the conversation (send, post, change a calendar): marked for approval or known. */
+	/** A tool that acts outside the conversation (send, post, change a calendar): marked for approval. */
 	@SuppressWarnings("unchecked")
 	public static boolean isWriteTool(Map<String, Object> tool) {
 		Object meta = tool == null ? null : tool.get("_meta");
-		if (!(meta instanceof Map)) {
-			return false;
-		}
-		Map<String, Object> m = (Map<String, Object>) meta;
-		return "ask".equalsIgnoreCase(String.valueOf(m.get(MCPUtility.SMSS_MCP_EXECUTION)))
-				|| WRITE_FUNCTIONS.contains(String.valueOf(m.get(MCPUtility.SMSS_FUNCTION_NAME)));
+		return meta instanceof Map
+				&& "ask".equalsIgnoreCase(String.valueOf(((Map<String, Object>) meta).get(MCPUtility.SMSS_MCP_EXECUTION)));
 	}
 }

@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -132,5 +133,13 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 			return "Optional boolean for whether a copy is kept in the sender's Sent Items. Defaults to true.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// sends mail as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }
