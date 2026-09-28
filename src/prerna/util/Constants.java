@@ -767,7 +767,11 @@ public class Constants {
 	public static final String CHROOT_DIR = "CHROOT_DIR";
 
 	// OFF / FAKECHROOT / NAMESPACE / SECCOMP_ONLY (legacy NSJAIL is accepted)
+	// OPENSHELL is an additional mode, not a replacement for the others: the worker
+	// runs as the canonical main process of an OpenShell sandbox instead of a child
+	// process of Tomcat. See prerna.util.OpenShellTransport.
 	public static final String SANDBOX_MODE = "SANDBOX_MODE";
+	public static final String SANDBOX_MODE_OPENSHELL = "OPENSHELL";
 	public static final String SANDBOX_IO_DIR = "SANDBOX_IO_DIR";
 	// Colon/semicolon-separated executable directories exposed inside sandboxes
 	public static final String SANDBOX_PATH = "SANDBOX_PATH";

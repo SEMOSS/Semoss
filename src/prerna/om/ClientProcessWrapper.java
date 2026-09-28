@@ -127,6 +127,8 @@ public class ClientProcessWrapper {
 	// the same JSON protocol, so it reuses NativePySocketClient.
 	private boolean nodeServer = false;
 	private SymlinkHelper chrootSymlinkHelper;
+	// OPENSHELL mode: owns the sandbox + port-forward for this worker's lifetime
+	private prerna.util.OpenShellTransport openshell;
 	private String classPath;
 	private boolean debug;
 	private String timeout;
@@ -223,7 +225,27 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
+					// OPENSHELL: the worker is the canonical main process of its own
+					// sandbox, not a child of Tomcat. Create/attach the sandbox, take
+					// the forwarded local port, and let the existing socket client
+					// connect to it exactly as the non-sandbox path does. No udsPath
+					// is set, which is what selects the TCP branch below.
+					String openshellMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+					if (Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(openshellMode)) {
+						this.openshell = prerna.util.OpenShellTransport.forSession(this.serverDirectory != null
+								? this.serverDirectory
+								: Integer.toHexString(System.identityHashCode(this)));
+						try {
+							this.port = this.openshell.start();
+						} catch (Exception e) {
+							// Fail closed: never fall back to an in-Tomcat worker when the
+							// deployment asked for an external boundary.
+							throw new IllegalStateException(
+									"OpenShell executor sandbox unavailable and no fallback is permitted in "
+											+ "SANDBOX_MODE=OPENSHELL",
+									e);
+						}
+					} else if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isInjectMode()) {
 						String insightCache = Utility.getDIHelperProperty(Constants.INSIGHT_CACHE_DIR);
 						Path serverDirectoryPath = Files.createTempDirectory(Paths.get(insightCache), "a");
 						this.serverDirectory = serverDirectoryPath.toString();
@@ -409,6 +431,19 @@ public class ClientProcessWrapper {
 					this.process.destroy();
 				} catch (Exception e) {
 					classLogger.error("Failed to destroy isolated analytics process for port {}", this.port, e);
+				}
+			}
+			// OPENSHELL: the worker lives in the sandbox, not in this JVM's process
+			// tree. Killing the local forward and deleting the sandbox is the whole
+			// teardown -- the gateway delete is authoritative and the worker cannot
+			// outlive its sandbox. There is no graceful-shutdown verb to send first.
+			if (this.openshell != null) {
+				try {
+					this.openshell.close();
+				} catch (Exception e) {
+					classLogger.error("Failed to close OpenShell executor sandbox for port {}", this.port, e);
+				} finally {
+					this.openshell = null;
 				}
 			}
 		} finally {
