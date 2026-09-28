@@ -246,10 +246,11 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "image");
 		}
 		case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
-		case STORAGE_UPLOAD, STORAGE_DOWNLOAD -> {
+		case STORAGE_UPLOAD -> {
 			requireConfigString(nodeId, config, "path");
 			requireConfigString(nodeId, config, "destination");
 		}
+		case STORAGE_DOWNLOAD -> requireConfigString(nodeId, config, "path");
 		case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
 		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
 		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");

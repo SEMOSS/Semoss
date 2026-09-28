@@ -88,6 +88,10 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility.buildNodeResults(nodeOutputs);
 
 		runDetail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
+		String executionInsightId = AutomationRunExecutionService.getAvailableExecutionInsightId(runId);
+		if (executionInsightId != null && !executionInsightId.isBlank()) {
+			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
+		}
 		Map<String, Object> wait = AutomationDatabaseUtility.getActiveWait(runId);
 		if (wait != null) {
 			runDetail.put("wait", wait);

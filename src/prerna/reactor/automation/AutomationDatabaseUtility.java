@@ -122,6 +122,7 @@ import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.reactor.scheduler.SchedulerOwlCreator;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
+import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -437,11 +438,7 @@ public final class AutomationDatabaseUtility {
 			String definitionHash, String definitionSnapshot, Map<String, Object> inputs, String triggerType,
 			String createdBy, List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds,
 			Map<String, String> nodeSources) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) {
-			throw new IllegalStateException(
-					"Scheduler DB is not available; automation run history cannot be initialized.");
-		}
+		IRDBMSEngine schedulerDb = requireSchedulerDb("initializing automation run history");
 
 		Connection conn = null;
 		boolean originalAutoCommit = false;
@@ -479,7 +476,7 @@ public final class AutomationDatabaseUtility {
 	 *         was already claimed or reached another state
 	 */
 	public static boolean claimRun(String runId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("claim the submitted automation run");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("claiming the submitted automation run");
 		Timestamp now = toTimestamp(Instant.now());
 
 		Connection conn = null;
@@ -531,7 +528,7 @@ public final class AutomationDatabaseUtility {
 	public static String persistAgentWait(String runId, String projectId, String nodeId, String outputVar,
 			String outputValue, String outputPreview, String agentRunId, String roomId, String resumeNodeId,
 			String createdBy, Instant expiresAt, long durationMs) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation agent wait");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation agent wait");
 		String waitId = UUID.randomUUID().toString();
 		Timestamp now = toTimestamp(Instant.now());
 		Connection conn = null;
@@ -636,7 +633,7 @@ public final class AutomationDatabaseUtility {
 		if (wait == null || !AutomationConstants.WAIT_STATUS_PENDING.equals(wait.get(STATUS))) {
 			return null;
 		}
-		IRDBMSEngine schedulerDb = requireSchedulerDb("claim the waiting automation run");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("claiming the waiting automation run");
 		Connection conn = null;
 		boolean originalAutoCommit = false;
 		try {
@@ -686,7 +683,7 @@ public final class AutomationDatabaseUtility {
 	 * @param resolvedBy project editor who reconciled the completed agent run
 	 */
 	public static void resolveWait(String runId, String waitId, String resolvedBy) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("resolve the automation wait");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("resolving the automation wait");
 		Connection conn = null;
 		try {
 			conn = schedulerDb.getConnection();
@@ -778,7 +775,7 @@ public final class AutomationDatabaseUtility {
 	 * whichever pod is executing the run via {@link #isCancelRequested(String)}.
 	 */
 	public static void setCancelRequested(String runId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation cancellation request");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation cancellation request");
 
 		Connection conn = null;
 		try {
@@ -834,7 +831,7 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void completeRun(String runId, String projectId, String status, String failedNodeId,
 			String errorMessage) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("complete the automation run");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("completing the automation run");
 
 		Connection conn = null;
 		boolean originalAutoCommit = false;
@@ -1045,7 +1042,7 @@ public final class AutomationDatabaseUtility {
 	 * @return mutable input map for the run-local execution scope
 	 */
 	public static Map<String, Object> getRunInputs(String runId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run input snapshot");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("loading the automation run input snapshot");
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + INPUT_SNAPSHOT, INPUT_SNAPSHOT));
@@ -1077,7 +1074,7 @@ public final class AutomationDatabaseUtility {
 	 * Source hashes are checked before any source is returned for execution.
 	 */
 	public static Map<String, String> getRunNodeSources(String runId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("load the automation run source snapshot");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("loading the automation run source snapshot");
 
 		SelectQueryStruct qs = new SelectQueryStruct();
 		qs.addSelector(new QueryColumnSelector(TABLE_RUN_SOURCES + "__" + NODE_ID, NODE_ID));
@@ -1111,7 +1108,7 @@ public final class AutomationDatabaseUtility {
 	 * Marks a node as RUNNING (before pixel execution starts).
 	 */
 	public static void markNodeRunning(String runId, String nodeId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("mark the automation node as running");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("marking the automation node as running");
 
 		Connection conn = null;
 		try {
@@ -1142,7 +1139,7 @@ public final class AutomationDatabaseUtility {
 	 * as skipped.
 	 */
 	public static void skipPendingNodes(String runId, String reason) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist skipped automation nodes");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting skipped automation nodes");
 
 		Connection conn = null;
 		try {
@@ -1171,7 +1168,7 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String modelMessageId, String agentRunId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the successful automation node result");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
 		Connection conn = null;
 		try {
@@ -1212,7 +1209,7 @@ public final class AutomationDatabaseUtility {
 	 * nodes inspectable before terminal output exists.
 	 */
 	public static void updateNodeAgentRunTrace(String runId, String nodeId, String agentRunId) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the automation agent run trace");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation agent run trace");
 
 		Connection conn = null;
 		try {
@@ -1240,7 +1237,7 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void updateNodeFailed(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String errorMessage) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation node result");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the failed automation node result");
 
 		Connection conn = null;
 		try {
@@ -1275,7 +1272,7 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String agentRunId, String errorMessage) {
-		IRDBMSEngine schedulerDb = requireSchedulerDb("persist the failed automation agent result");
+		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the failed automation agent result");
 
 		Connection conn = null;
 		try {
@@ -1459,11 +1456,14 @@ public final class AutomationDatabaseUtility {
 	}
 
 	private static IRDBMSEngine requireSchedulerDb(String operation) {
-		IRDBMSEngine schedulerDb = getSchedulerDb();
-		if (schedulerDb == null) {
-			throw new IllegalStateException("Scheduler DB is not available; unable to " + operation + ".");
+		try {
+			SystemEngineRegistry.requireDatabase(Constants.SCHEDULER_DB, operation);
+		} catch (IllegalArgumentException e) {
+			// Automation persistence exposes unavailable infrastructure as an invalid
+			// state.
+			throw new IllegalStateException(e.getMessage(), e);
 		}
-		return schedulerDb;
+		return SystemEngineRegistry.getSchedulerDb();
 	}
 
 	private static void closeConnection(IRDBMSEngine engine, Connection conn) {

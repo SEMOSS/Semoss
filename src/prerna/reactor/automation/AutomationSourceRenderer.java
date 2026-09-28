@@ -75,7 +75,7 @@ public final class AutomationSourceRenderer {
 		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
 		case STORAGE_READ -> storageReadSource(config);
 		case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
-		case STORAGE_DOWNLOAD -> storageTransferSource(config, "copyToLocal");
+		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
 		case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
 		case VECTOR_SEARCH -> vectorSearchSource(config);
 		case VECTOR_ADD -> vectorAddSource(config);
@@ -230,12 +230,12 @@ public final class AutomationSourceRenderer {
 
 	private static String modelVisionSource(Map<String, Object> config) {
 		return """
-				# Send an image prompt directly through the SEMOSS Python SDK.
+				# Send media to a multimodal SEMOSS model through the Python SDK.
 				from ai_server import ModelEngine
 
 				ENGINE_ID = %s
 				PROMPT = %s
-				IMAGE = %s
+				MEDIA = %s
 				ROOM_ID = "${_automation_room_id}"
 				RESULT_VALUE_KEY = %s
 				RESULT_METADATA_KEY = %s
@@ -254,11 +254,18 @@ public final class AutomationSourceRenderer {
 				        },
 				    }
 
+				def _automation_media(value):
+				    values = value if isinstance(value, list) else [value]
+				    media = [str(item).strip() for item in values if item is not None and str(item).strip()]
+				    if not media:
+				        raise ValueError("SEMOSS model media path is empty.")
+				    return media
+
 				def run(scope):
 				    model = ModelEngine(engine_id=scope.resolve(ENGINE_ID))
 				    result = model.ask(
 				        command=scope.resolve(PROMPT),
-				        image=[scope.resolve(IMAGE)],
+				        media=_automation_media(scope.resolve(MEDIA)),
 				        room_id=scope.resolve(ROOM_ID),
 				    )
 				    return _automation_model_result(result)
@@ -339,6 +346,57 @@ public final class AutomationSourceRenderer {
 				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
 				    return storage.%s(storagePath=scope.resolve(STORAGE_PATH), localPath=scope.resolve(FILE_PATH))
 				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"), method);
+	}
+
+	private static String storageDownloadSource(Map<String, Object> config) {
+		return """
+				# Download into this run's isolated Insight workspace.
+				from ai_server import StorageEngine
+				from semoss import Insight
+				import json
+
+				ENGINE_ID = %s
+				STORAGE_PATH = %s
+				DESTINATION = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def _destination_files(destination):
+				    pixel = "SearchInsightAssets(" + ", ".join([
+				        _pixel_value("filePath", destination),
+				        _pixel_value("search", ".*"),
+				        _pixel_value("options", "regex"),
+				    ]) + ");"
+				    assets = Insight().run_pixel(pixel, raw=False)
+				    if not isinstance(assets, list):
+				        return []
+				    return [
+				        asset.get("path")
+				        for asset in assets
+				        if isinstance(asset, dict)
+				        and asset.get("type") != "directory"
+				        and isinstance(asset.get("path"), str)
+				    ]
+
+				def run(scope):
+				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
+				    storage_path = str(scope.resolve(STORAGE_PATH))
+				    destination = str(scope.resolve(DESTINATION) or "").strip() or "/"
+				    copied = storage.copyToLocal(
+				        storagePath=storage_path,
+				        localPath=destination,
+				    )
+				    files = _destination_files(destination)
+				    return {
+				        "success": copied,
+				        "storagePath": storage_path,
+				        "destination": destination,
+				        "space": "INSIGHT",
+				        "files": files,
+				        "filePath": files[0] if len(files) == 1 else None,
+				    }
+				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"));
 	}
 
 	private static String vectorSearchSource(Map<String, Object> config) {
