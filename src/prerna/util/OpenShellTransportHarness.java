@@ -76,6 +76,8 @@ public final class OpenShellTransportHarness {
 		System.out.println("name length: " + OpenShellTransport.sandboxNameFor(sessionKey).length() + " (max "
 				+ OpenShellTransport.MAX_SANDBOX_NAME_LENGTH + ")");
 
+		System.out.println("EXPECTED ARGV:");
+		System.out.println("  " + OpenShellTransport.describeCreateCommand(sessionKey));
 		OpenShellTransport t = OpenShellTransport.forSession(sessionKey);
 		System.out.println("starting transport...");
 		long t0 = System.currentTimeMillis();
@@ -108,6 +110,19 @@ public final class OpenShellTransportHarness {
 			System.out.println("reply declared size=" + size);
 			byte[] body = readExactly(in, size);
 			System.out.println("reply body=" + new String(body, java.nio.charset.StandardCharsets.UTF_8));
+			// Keep reading: the worker streams LOG frames before the terminal response.
+			for (int i = 0; i < 5; i++) {
+				try {
+					byte[] h2 = readExactly(in, 4);
+					int s2 = ((h2[0] & 0xff) << 24) | ((h2[1] & 0xff) << 16) | ((h2[2] & 0xff) << 8) | (h2[3] & 0xff);
+					byte[] b2 = readExactly(in, s2);
+					System.out.println("frame " + (i + 2) + " (" + s2 + " bytes): "
+							+ new String(b2, java.nio.charset.StandardCharsets.UTF_8));
+				} catch (Exception more) {
+					System.out.println("(no more frames: " + more.getMessage() + ")");
+					break;
+				}
+			}
 		}
 
 		System.out.println("closing transport...");

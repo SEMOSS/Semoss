@@ -70,6 +70,29 @@ public final class OpenShellTransport {
 
 	/** Property naming the OpenShell CLI. */
 	public static final String CLI_PROP = "OPENSHELL_CLI";
+	/**
+	 * Explicit {@code HOME} for the CLI child process.
+	 *
+	 * <p>
+	 * <b>This is required, and it is the subtlest thing in this class.</b> The
+	 * {@code openshell} CLI resolves both its gateway registration and its mTLS client
+	 * bundle from <code>$HOME/.local/state/openshell/</code>. A caller with a different
+	 * (or unset) {@code HOME} therefore talks to a different, or non-existent, gateway --
+	 * and the failure is quiet: the sandbox is still created, but it is not the one the
+	 * caller can reach, so the worker appears to die and the caller sees an unrelated
+	 * null response several layers away.
+	 *
+	 * <p>
+	 * Measured 2026-09-28: the same argv stays {@code Ready} when launched from a shell
+	 * with a full environment, and dies when launched from a process with Tomcat's much
+	 * thinner one (13 variables versus 124). With {@code HOME} unset the CLI reports
+	 * "Or register one with: openshell gateway add".
+	 *
+	 * <p>
+	 * Pinned explicitly rather than inherited, so behaviour does not depend on how the
+	 * JVM happened to be started.
+	 */
+	public static final String CLI_HOME_PROP = "OPENSHELL_CLI_HOME";
 	/** Property naming the sandbox workload template to create from. */
 	public static final String TEMPLATE_PROP = "OPENSHELL_TEMPLATE";
 	/** Property naming the sandbox image (used when no template is set). */
@@ -88,8 +111,20 @@ public final class OpenShellTransport {
 	private static final String DEFAULT_LABEL = "app=semoss-executor";
 	private static final int DEFAULT_READY_TIMEOUT_S = 180;
 
+	/**
+	 * When true, {@link #close()} stops the forward but leaves the sandbox in place.
+	 *
+	 * <p>
+	 * Exists because the default teardown deletes the sandbox, which destroys the
+	 * evidence needed to diagnose a startup failure: the worker's own output and the
+	 * sandbox's final phase both vanish. Set with {@code -DOPENSHELL_KEEP_SANDBOX=true}
+	 * or the {@link #KEEP_SANDBOX_PROP} property while investigating.
+	 */
+	public static final String KEEP_SANDBOX_PROP = "OPENSHELL_KEEP_SANDBOX";
+
 	private final String sandboxName;
 	private final String workerPort;
+	private final boolean keepSandbox;
 	private int forwardedPort = -1;
 	private Process forwardProcess;
 	private StringBuilder forwardLog;
@@ -97,6 +132,11 @@ public final class OpenShellTransport {
 	private OpenShellTransport(String sandboxName, String workerPort) {
 		this.sandboxName = sandboxName;
 		this.workerPort = workerPort;
+		String keep = System.getProperty(KEEP_SANDBOX_PROP);
+		if (keep == null || keep.trim().isEmpty()) {
+			keep = Utility.getDIHelperProperty(KEEP_SANDBOX_PROP);
+		}
+		this.keepSandbox = "true".equalsIgnoreCase(keep == null ? "" : keep.trim());
 	}
 
 	/**
@@ -147,6 +187,63 @@ public final class OpenShellTransport {
 		return name;
 	}
 
+	/**
+	 * The exact argv {@link #start()} will run. Exposed so a hand-run command can be
+	 * diffed against it byte for byte: every debugging round that failed here failed
+	 * because the Java-side argv differed from the hand-run one in a way that was not
+	 * visible by eye.
+	 */
+	public static String describeCreateCommand(String sessionKey) {
+		try {
+			return String.join(" ", createCommand(sandboxNameFor(sessionKey)));
+		} catch (Exception e) {
+			return "(cannot build: " + e.getMessage() + ")";
+		}
+	}
+
+	private static List<String> createCommand(String sandboxName) throws IOException {
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
+		String template = Utility.getDIHelperProperty(TEMPLATE_PROP);
+		String label = propOr(LABEL_PROP, DEFAULT_LABEL);
+		String workerPort = propOr(WORKER_PORT_PROP, DEFAULT_WORKER_PORT);
+
+		List<String> create = new ArrayList<>(Arrays.asList(cli, "sandbox", "create", "--name", sandboxName,
+				"--keep", "--detach", "--label", label));
+		if (template != null && !template.trim().isEmpty()) {
+			create.add("--template");
+			create.add(template.trim());
+		} else {
+			String image = Utility.getDIHelperProperty(IMAGE_PROP);
+			if (image == null || image.trim().isEmpty()) {
+				throw new IOException("no sandbox image: set " + IMAGE_PROP + " (or " + TEMPLATE_PROP
+						+ "). The stock OpenShell image has no python3, so omitting this produces a sandbox"
+						+ " that starts and then cannot run the worker.");
+			}
+			create.add("--from");
+			create.add(image.trim());
+		}
+		String policy = Utility.getDIHelperProperty(POLICY_PROP);
+		if (policy == null || policy.trim().isEmpty()) {
+			throw new IOException("no sandbox policy: set " + POLICY_PROP
+					+ ". Creating a sandbox without a filesystem policy leaves the workload unfenced, which"
+					+ " is never what a deployment intends.");
+		}
+		create.add("--policy");
+		create.add(policy.trim());
+		create.add("--");
+		create.add("python3");
+		create.add("/opt/semosshome/py/gaas_tcp_socket_server.py");
+		create.add("--port");
+		create.add(workerPort);
+		create.add("--start");
+		create.add("True");
+		create.add("--py_folder");
+		create.add("/opt/semosshome/py");
+		create.add("--insight_folder");
+		create.add("/opt/semosshome/insight");
+		return create;
+	}
+
 	public static OpenShellTransport forSession(String sessionKey) {
 		String workerPort = Utility.getDIHelperProperty(WORKER_PORT_PROP);
 		if (workerPort == null || workerPort.trim().isEmpty()) {
@@ -169,54 +266,10 @@ public final class OpenShellTransport {
 	 */
 	public int start() throws IOException, InterruptedException {
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
-		String template = Utility.getDIHelperProperty(TEMPLATE_PROP);
-		String label = propOr(LABEL_PROP, DEFAULT_LABEL);
 		int readyTimeout = intPropOr(READY_TIMEOUT_PROP, DEFAULT_READY_TIMEOUT_S);
-
-		List<String> create = new ArrayList<>(Arrays.asList(cli, "sandbox", "create", "--name", sandboxName,
-				"--keep", "--detach", "--label", label));
-		if (template != null && !template.trim().isEmpty()) {
-			create.add("--template");
-			create.add(template.trim());
-		} else {
-			// An explicit image is REQUIRED, not optional. The stock OpenShell base
-			// image carries no python3, and if --from is omitted the sandbox is still
-			// created and reaches Ready -- only the workload fails to spawn, which
-			// surfaces to the caller as an unrelated null response. Fail loudly here
-			// instead of silently provisioning an image that cannot run the worker.
-			String image = Utility.getDIHelperProperty(IMAGE_PROP);
-			if (image == null || image.trim().isEmpty()) {
-				throw new IOException("no sandbox image: set " + IMAGE_PROP + " (or " + TEMPLATE_PROP
-						+ "). The stock OpenShell image has no python3, so omitting this produces a sandbox"
-						+ " that starts and then cannot run the worker.");
-			}
-			create.add("--from");
-			create.add(image.trim());
-		}
-		// The filesystem/egress policy is applied at creation: Landlock settings are
-		// locked at startup and cannot be widened later, which is the point. Omitting
-		// it silently means NO filesystem policy, so require it explicitly too.
-		String policy = Utility.getDIHelperProperty(POLICY_PROP);
-		if (policy == null || policy.trim().isEmpty()) {
-			throw new IOException("no sandbox policy: set " + POLICY_PROP
-					+ ". Creating a sandbox without a filesystem policy leaves the workload unfenced, which"
-					+ " is never what a deployment intends.");
-		}
-		create.add("--policy");
-		create.add(policy.trim());
-		// The worker is the sandbox's canonical main process. It must be started with
-		// the insight folder it will write {insightFolder}/log.txt into.
-		create.add("--");
-		create.add("python3");
-		create.add("/opt/semosshome/py/gaas_tcp_socket_server.py");
-		create.add("--port");
-		create.add(workerPort);
-		create.add("--start");
-		create.add("True");
-		create.add("--py_folder");
-		create.add("/opt/semosshome/py");
-		create.add("--insight_folder");
-		create.add("/opt/semosshome/insight");
+		// Single source of truth: the argv used here is exactly the one
+		// describeCreateCommand() prints, so a hand-run diff is meaningful.
+		List<String> create = createCommand(sandboxName);
 
 		classLogger.info("Starting executor sandbox {} (worker port {})", sandboxName, workerPort);
 		String createOut = run(create, readyTimeout);
@@ -227,6 +280,7 @@ public final class OpenShellTransport {
 				String.valueOf(this.forwardedPort), sandboxName);
 		classLogger.info("Forwarding localhost:{} -> sandbox {}:{}", this.forwardedPort, sandboxName, workerPort);
 		ProcessBuilder pb = new ProcessBuilder(forward);
+		pb.environment().putAll(cliEnv());
 		pb.redirectErrorStream(true);
 		this.forwardProcess = pb.start();
 		this.forwardLog = new StringBuilder();
@@ -253,7 +307,7 @@ public final class OpenShellTransport {
 		// and surfaces as "Received a null PayloadStruct response" -- measured
 		// 2026-09-28. Poll until the port actually accepts, or fail here with a
 		// clear message rather than downstream with a confusing one.
-		if (!awaitForwardReady(this.forwardedPort, readyTimeout)) {
+		if (!awaitForwardReady(readyTimeout)) {
 			String detail = readAvailable(forwardProcess);
 			close();
 			throw new IOException("port forward for sandbox " + sandboxName + " did not become ready on 127.0.0.1:"
@@ -265,26 +319,39 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * Poll the forwarded port until something accepts a connection.
+	 * Poll until the forward is up, <b>without ever connecting to the forwarded port</b>.
 	 *
 	 * <p>
-	 * A TCP connect is the right probe here and deliberately not a protocol exchange:
-	 * the worker is single-connection ({@code --max_count 1}), so sending anything to
-	 * test readiness would consume its only slot and, on disconnect, end the worker.
+	 * <b>Do not replace this with a TCP connect.</b> An earlier version did exactly
+	 * that and it killed every sandbox it was meant to check: the forward proxies
+	 * straight into the worker, the worker is single-connection ({@code --max_count 1}),
+	 * so the probe consumed the worker's only slot and its disconnect triggered
+	 * {@code stop_request()} -- ending the worker and taking the sandbox to
+	 * {@code Completed}. The symptom was indistinguishable from "the worker never
+	 * started", which is why it took so long to find. See the wiki's
+	 * "never open a second connection to the worker's port" rule; this method exists to
+	 * honour it.
+	 *
+	 * <p>
+	 * Readiness is therefore taken from the CLI's own output: {@code forward service}
+	 * prints a line containing {@code "Forwarding"} once the local listener is bound.
 	 */
-	private static boolean awaitForwardReady(int port, int timeoutSeconds) {
+	private boolean awaitForwardReady(int timeoutSeconds) {
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
 		while (System.nanoTime() < deadline) {
-			try (java.net.Socket probe = new java.net.Socket()) {
-				probe.connect(new java.net.InetSocketAddress("127.0.0.1", port), 1000);
-				return true;
-			} catch (IOException notYet) {
-				try {
-					Thread.sleep(250);
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
-					return false;
+			if (forwardProcess == null || !forwardProcess.isAlive()) {
+				return false;
+			}
+			synchronized (forwardLog) {
+				if (forwardLog.indexOf("Forwarding") >= 0) {
+					return true;
 				}
+			}
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return false;
 			}
 		}
 		return false;
@@ -324,6 +391,10 @@ public final class OpenShellTransport {
 			}
 			forwardProcess = null;
 		}
+		if (keepSandbox) {
+			classLogger.warn("KEEP_SANDBOX is set; leaving sandbox {} in place for inspection", sandboxName);
+			return;
+		}
 		try {
 			run(Arrays.asList(propOr(CLI_PROP, DEFAULT_CLI), "sandbox", "delete", sandboxName), 60);
 		} catch (Exception e) {
@@ -332,6 +403,22 @@ public final class OpenShellTransport {
 	}
 
 	// ------------------------------------------------------------------ helpers
+
+	/**
+	 * Environment for CLI children: inherit the caller's, but pin {@code HOME} so the
+	 * CLI always finds the same gateway registration and client certificate bundle.
+	 */
+	private static java.util.Map<String, String> cliEnv() {
+		java.util.Map<String, String> env = new java.util.HashMap<>(System.getenv());
+		String home = System.getProperty(CLI_HOME_PROP);
+		if (home == null || home.trim().isEmpty()) {
+			home = Utility.getDIHelperProperty(CLI_HOME_PROP);
+		}
+		if (home != null && !home.trim().isEmpty()) {
+			env.put("HOME", home.trim());
+		}
+		return env;
+	}
 
 	private static String propOr(String key, String fallback) {
 		String v = Utility.getDIHelperProperty(key);
@@ -362,6 +449,7 @@ public final class OpenShellTransport {
 
 	private static String run(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
 		ProcessBuilder pb = new ProcessBuilder(cmd);
+		pb.environment().putAll(cliEnv());
 		pb.redirectErrorStream(true);
 		Process p = pb.start();
 		StringBuilder out = new StringBuilder();
