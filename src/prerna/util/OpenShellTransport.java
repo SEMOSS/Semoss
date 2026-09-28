@@ -111,6 +111,11 @@ public final class OpenShellTransport {
 	private static final String DEFAULT_LABEL = "app=semoss-executor";
 	private static final int DEFAULT_READY_TIMEOUT_S = 180;
 
+	/** Where the worker writes its own log inside the sandbox. */
+	public static final String WORKER_LOG_PATH = "/opt/semosshome/insight/worker.log";
+	/** The worker's own line announcing that it is serving; the readiness signal. */
+	public static final String WORKER_READY_MARKER = "waiting for request";
+
 	/**
 	 * When true, {@link #close()} stops the forward but leaves the sandbox in place.
 	 *
@@ -231,16 +236,22 @@ public final class OpenShellTransport {
 		create.add("--policy");
 		create.add(policy.trim());
 		create.add("--");
-		create.add("python3");
-		create.add("/opt/semosshome/py/gaas_tcp_socket_server.py");
-		create.add("--port");
-		create.add(workerPort);
-		create.add("--start");
-		create.add("True");
-		create.add("--py_folder");
-		create.add("/opt/semosshome/py");
-		create.add("--insight_folder");
-		create.add("/opt/semosshome/insight");
+		// The worker's stdout/stderr MUST go to a file, not to the supervisor's
+		// stdout pipe. With the pipe it came up erratically -- sometimes serving,
+		// sometimes never binding at all while the sandbox still read `Ready` -- and
+		// slow (~5s). Redirecting to a file made it reliable, 3 runs out of 3, and
+		// ready in ~0.66s. Suspected cause is output back-pressure on that pipe.
+		// The file is also the readiness signal, read via `sandbox exec` so that no
+		// connection is ever made to the single-connection worker.
+		create.add("sh");
+		create.add("-c");
+		create.add("exec python3 /opt/semosshome/py/gaas_tcp_socket_server.py" //
+				+ " --port " + workerPort //
+				+ " --start True" //
+				+ " --py_folder /opt/semosshome/py" //
+				+ " --insight_folder /opt/semosshome/insight" //
+				+ " --timeout 30" //
+				+ " > " + WORKER_LOG_PATH + " 2>&1");
 		return create;
 	}
 
@@ -317,22 +328,30 @@ public final class OpenShellTransport {
 					+ this.forwardedPort + " within " + readyTimeout + "s (process alive=" + alive + ")"
 					+ (detail.isEmpty() ? "" : ": " + detail));
 		}
-		// The forward binding is NOT readiness. It binds in ~60ms, but the worker
-		// inside takes ~5s to reach serve_forever(). A client connecting in that
-		// window succeeds at TCP level and then consumes the single-connection
-		// worker's only slot, wedging it -- measured 2026-09-28:
-		//   connect at +0s after "Forwarding"  -> no reply
-		//   connect at +5s after "Forwarding"  -> response=true
-		// The worker's own startup line is the only reliable signal, and it must be
-		// read from the sandbox log rather than by probing the port, for the same
-		// reason awaitForwardReady exists.
-		if (!awaitWorkerListening(readyTimeout)) {
+		// Readiness must come from the worker's OWN log, and the worker must write
+		// that log to a FILE, not to the supervisor's stdout pipe.
+		//
+		// Two measured facts (2026-09-28):
+		//  1. With stdout on the supervisor's pipe the worker came up erratically --
+		//     sometimes serving, sometimes never opening the port at all while the
+		//     sandbox still read `Ready`. Redirecting its stdout to a file made it
+		//     reliable, 3 runs out of 3, and fast (~0.66s instead of ~5s). Output
+		//     back-pressure on that pipe is the suspected cause; the file removes it.
+		//  2. The supervisor's `NET:OPEN 127.0.0.1:<port>/tcp` line is a *connection*
+		//     event, not a bind event -- it also marks NET:CLOSE, and it fired only
+		//     because a probe connected. Waiting for it is a mistake; an earlier
+		//     version of this method did exactly that and stalled for the full
+		//     timeout. The worker's own "waiting for request" line is the real signal.
+		//
+		// Never probe the forwarded port to test readiness: the worker is
+		// single-connection (--max_count 1), so a probe consumes its only slot and its
+		// disconnect ends the worker.
+		if (!awaitWorkerReady(readyTimeout)) {
 			String detail = readAvailable(forwardProcess);
 			close();
-			throw new IOException("worker inside sandbox " + sandboxName + " on port " + workerPort
-					+ " did not begin listening within " + readyTimeout + "s (forward alive="
-					+ (forwardProcess != null && forwardProcess.isAlive()) + ")"
-					+ (detail.isEmpty() ? "" : ": " + detail));
+			throw new IOException("worker inside sandbox " + sandboxName + " did not report ready within "
+					+ readyTimeout + "s (forward alive=" + (forwardProcess != null && forwardProcess.isAlive())
+					+ ")" + (detail.isEmpty() ? "" : ": " + detail));
 		}
 		classLogger.info("Executor sandbox {} ready; worker listening, local port {}", sandboxName,
 				this.forwardedPort);
@@ -382,38 +401,34 @@ public final class OpenShellTransport {
 	}
 
 	/**
-	 * Poll until the worker inside the sandbox reports that it is listening, again
-	 * <b>without ever connecting to the forwarded port</b>.
+	 * Poll until the worker reports that it is serving, <b>without ever connecting to
+	 * the forwarded port</b>.
 	 *
 	 * <p>
-	 * This is a second, later gate than {@link #awaitForwardReady}: the forward binds
-	 * in ~60ms, but the worker needs ~5s to reach {@code serve_forever()}. Connecting
-	 * in that window succeeds at TCP level and then wedges the single-connection
-	 * worker, so the distinction matters and was measured directly (see the call site).
-	 *
-	 * <p>
-	 * The signal is the sandbox supervisor's own event line:
-	 * {@code NET:OPEN [INFO] 127.0.0.1:7100/tcp}. It is emitted when the worker's
-	 * socket opens and again on close, so only an OPEN counts.
+	 * The signal is the worker's own log line {@code "waiting for request"}. It is read
+	 * back with {@code sandbox exec}, so no socket is opened to the worker. Measured
+	 * ready at +0.66s, against ~5s when the worker's stdout went to the supervisor's
+	 * pipe instead of a file.
 	 */
-	private boolean awaitWorkerListening(int timeoutSeconds) {
+	private boolean awaitWorkerReady(int timeoutSeconds) {
 		String cli = propOr(CLI_PROP, DEFAULT_CLI);
 		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
-		String needle = "127.0.0.1:" + workerPort + "/tcp";
 		while (System.nanoTime() < deadline) {
 			try {
-				List<String> cmd = Arrays.asList(cli, "logs", sandboxName, "--source", "sandbox");
-				String out = run(cmd, Math.min(20, timeoutSeconds));
-				for (String line : out.split("\n")) {
-					if (line.contains(needle) && line.contains("NET:OPEN")) {
-						return true;
-					}
+				List<String> cmd = Arrays.asList(cli, "sandbox", "exec", "-n", sandboxName, "--", "cat",
+						WORKER_LOG_PATH);
+				String out = run(cmd, Math.min(30, timeoutSeconds));
+				if (out.contains(WORKER_READY_MARKER)) {
+					return true;
 				}
 			} catch (Exception e) {
-				classLogger.error("Could not read sandbox log while waiting for the worker to listen: {}", e);
+				// Log the message AND the exception: with just "{}" and no argument the
+				// cause vanished and the failure read as a bare timeout.
+				classLogger.error("Could not read the worker log while waiting for it to become ready: "
+						+ e.getClass().getSimpleName() + ": " + e.getMessage(), e);
 			}
 			try {
-				Thread.sleep(250);
+				Thread.sleep(300);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 				return false;
@@ -516,6 +531,14 @@ public final class OpenShellTransport {
 		ProcessBuilder pb = new ProcessBuilder(cmd);
 		pb.environment().putAll(cliEnv());
 		pb.redirectErrorStream(true);
+		// Close the child's stdin immediately. Without this it inherits a pipe that
+		// stays open for the JVM's lifetime and any subcommand that reads stdin --
+		// `openshell sandbox exec` does -- blocks until the timeout instead of
+		// running. Measured 2026-09-28: the same `sandbox exec ... cat` returned
+		// instantly from a shell (stdin at EOF) and timed out after 30s under
+		// Tomcat, which is what made the readiness poll fail and the pixel stall for
+		// the full 180s. A shell would not have shown this.
+		pb.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
 		Process p = pb.start();
 
 		// Read on a separate thread. A blocking readLine() here hangs the CALLER --
