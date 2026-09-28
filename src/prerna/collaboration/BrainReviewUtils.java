@@ -260,7 +260,9 @@ public final class BrainReviewUtils {
 			Map<String, Object> data) {
 		return switch (kind) {
 		case NEW_TOPIC -> "New topic suggested: " + topicName(ownerId, ownerType, data.get("candidate"));
-		case TOPIC_CHOICE -> threadSubject(ownerId, ownerType, refId) + " fits more than one topic";
+		case TOPIC_CHOICE -> threadSubject(ownerId, ownerType, refId)
+				+ (data.get("candidates") instanceof List<?> l && l.size() == 1 ? " may belong to "
+						+ topicName(ownerId, ownerType, l.get(0)) : " fits more than one topic");
 		case ADD_PERSON -> "Add " + personName(ownerId, ownerType, refId) + " to "
 				+ topicName(ownerId, ownerType, data.get("suggestedTopic")) + "?";
 		default -> threadSubject(ownerId, ownerType, refId) + " has no topic";

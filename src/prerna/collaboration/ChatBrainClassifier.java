@@ -77,18 +77,23 @@ final class ChatBrainClassifier implements BrainClassifier {
 				.getStringResponse();
 		Map<String, Object> answer = parse(reply);
 
+		// a reply missing any score is an error for this thread, never a default that files it
 		Map<String, Double> topicScores = new LinkedHashMap<>();
 		double total = 0;
-		if (answer.get("topics") instanceof Map<?, ?> probs) {
+		if (!topics.isEmpty()) {
+			if (!(answer.get("topics") instanceof Map<?, ?> probs)) {
+				throw new IllegalStateException("The classifier model gave no topic scores");
+			}
 			for (TopicOption topic : topics) {
 				Object p = probs.get(topic.id());
 				double value = p instanceof Number n ? Math.max(0, n.doubleValue()) : 0;
 				topicScores.put(topic.id(), value);
 				total += value;
 			}
-		}
-		// models do not always sum to 1; normalize so the margin means the same as for Jev
-		if (total > 0) {
+			if (total <= 0) {
+				throw new IllegalStateException("The classifier model scored no topic");
+			}
+			// models do not always sum to 1; normalize so the margin means the same as for Jev
 			for (Map.Entry<String, Double> e : topicScores.entrySet()) {
 				e.setValue(e.getValue() / total);
 			}
@@ -97,17 +102,8 @@ final class ChatBrainClassifier implements BrainClassifier {
 				number(answer, "urgency", 3), answer);
 	}
 
-	// the JSON object in the reply, ignoring code fences or stray text around it
 	private static Map<String, Object> parse(String reply) {
-		if (reply == null) {
-			throw new IllegalStateException("The classifier model returned nothing");
-		}
-		int start = reply.indexOf('{');
-		int end = reply.lastIndexOf('}');
-		if (start < 0 || end <= start) {
-			throw new IllegalStateException("The classifier model did not return JSON");
-		}
-		Map<String, Object> answer = CollaborationDbUtils.parseMap(reply.substring(start, end + 1));
+		Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(reply);
 		if (answer == null) {
 			throw new IllegalStateException("The classifier model did not return JSON");
 		}
@@ -115,8 +111,9 @@ final class ChatBrainClassifier implements BrainClassifier {
 	}
 
 	private static double number(Map<String, Object> answer, String key, double max) {
-		Object value = answer.get(key);
-		double n = value instanceof Number num ? num.doubleValue() : 0;
-		return Math.max(0, Math.min(max, n));
+		if (!(answer.get(key) instanceof Number n)) {
+			throw new IllegalStateException("The classifier model gave no " + key + " score");
+		}
+		return Math.max(0, Math.min(max, n.doubleValue()));
 	}
 }

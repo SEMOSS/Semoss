@@ -76,21 +76,32 @@ final class JevBrainClassifier implements BrainClassifier {
 		questions.put("urgency", question("score", "How urgently does the newest message need a response?",
 				List.of(URGENCY)));
 
-		Map<String, Object> answers = (Map<String, Object>) engine.evaluate(state(thread), questions, insight, null)
-				.getResponse().get("answers");
+		Map<String, Object> answers = map(engine.evaluate(state(thread), questions, insight, null).getResponse()
+				.get("answers"));
+		if (answers == null) {
+			throw new IllegalStateException("The classifier model returned no answers");
+		}
+		// an answer missing any score is an error for this thread, never a default that files it
 		Map<String, Double> topicScores = new LinkedHashMap<>();
-		Map<String, Object> topic = map(answers.get("topic"));
-		if (topic != null && topic.get("probabilities") instanceof Map<?, ?> probs) {
-			for (Map.Entry<?, ?> e : probs.entrySet()) {
-				String id = labelToId.get(String.valueOf(e.getKey()));
-				if (id != null && e.getValue() instanceof Number n) {
-					topicScores.put(id, n.doubleValue());
+		if (!labelToId.isEmpty()) {
+			Map<String, Object> topic = map(answers.get("topic"));
+			if (topic != null && topic.get("probabilities") instanceof Map<?, ?> probs) {
+				for (Map.Entry<?, ?> e : probs.entrySet()) {
+					String id = labelToId.get(String.valueOf(e.getKey()));
+					if (id != null && e.getValue() instanceof Number n) {
+						topicScores.put(id, n.doubleValue());
+					}
 				}
+			}
+			if (topicScores.values().stream().noneMatch(p -> p > 0)) {
+				throw new IllegalStateException("The classifier model scored no topic");
 			}
 		}
 		Map<String, Object> urgency = map(answers.get("urgency"));
-		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"),
-				urgency != null && urgency.get("score") instanceof Number n ? n.doubleValue() : 0, answers);
+		if (urgency == null || !(urgency.get("score") instanceof Number score)) {
+			throw new IllegalStateException("The classifier model gave no urgency score");
+		}
+		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
 	// the thread as Jev state; Jev did best on the newest message alone (two messages and the owner's name
@@ -129,6 +140,9 @@ final class JevBrainClassifier implements BrainClassifier {
 
 	private static double noul(Map<String, Object> answers, String key) {
 		Map<String, Object> a = map(answers.get(key));
-		return a != null && a.get("noul") instanceof Number n ? n.doubleValue() : 0;
+		if (a == null || !(a.get("noul") instanceof Number n)) {
+			throw new IllegalStateException("The classifier model gave no " + key + " score");
+		}
+		return n.doubleValue();
 	}
 }

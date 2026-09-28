@@ -52,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
@@ -66,7 +67,8 @@ public class CollaborationDbUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(CollaborationDbUtils.class);
 
-	private static final Gson GSON = new Gson();
+	// no HTML escaping: model input keeps quotes, <, > and = as written
+	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
 	static boolean initialized = false;
 
@@ -401,6 +403,52 @@ public class CollaborationDbUtils {
 	@SuppressWarnings("unchecked")
 	static Map<String, Object> parseMap(String json) {
 		return json == null ? null : GSON.fromJson(json, Map.class);
+	}
+
+	// the first JSON object in a model reply, skipping reasoning blocks, code fences, and stray text; null if none
+	static Map<String, Object> firstJsonObject(String reply) {
+		if (reply == null) {
+			return null;
+		}
+		String text = reply.replaceAll("(?s)<think>.*?</think>", "");
+		for (int start = text.indexOf('{'); start >= 0; start = text.indexOf('{', start + 1)) {
+			int end = objectEnd(text, start);
+			if (end < 0) {
+				continue;
+			}
+			try {
+				Map<String, Object> map = parseMap(text.substring(start, end + 1));
+				if (map != null) {
+					return map;
+				}
+			} catch (RuntimeException e) {
+				// not JSON after all; try the next brace
+			}
+		}
+		return null;
+	}
+
+	// index of the brace closing the object that opens at start, or -1; skips braces inside strings
+	private static int objectEnd(String text, int start) {
+		int depth = 0;
+		boolean inString = false;
+		for (int i = start; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (inString) {
+				if (c == '\\') {
+					i++;
+				} else if (c == '"') {
+					inString = false;
+				}
+			} else if (c == '"') {
+				inString = true;
+			} else if (c == '{') {
+				depth++;
+			} else if (c == '}' && --depth == 0) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	private static void bind(PreparedStatement ps, Object... params) throws SQLException {

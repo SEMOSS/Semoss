@@ -235,8 +235,9 @@ public final class BrainThreadClassifier {
 				confidence = (int) Math.round(100 * ranked.get(0).getValue());
 			} else {
 				double margin = ranked.get(0).getValue() - (nextId != null ? ranked.get(1).getValue() : 0);
-				// 0.1 of margin reads as 90: a top-two gap that size was right every time in the eval
-				confidence = (int) Math.min(100, Math.round(50 + 400 * margin));
+				// 0.1 of margin reads as 90 (a top-two gap that size was right every time in the eval); a near
+				// tie reads as no pick, so it stays unassigned instead of suggesting a topic
+				confidence = (int) Math.min(100, Math.round(900 * margin));
 			}
 			if (OTHER_TOPIC.equals(bestId)) {
 				band = "unassigned";
@@ -438,12 +439,17 @@ public final class BrainThreadClassifier {
 
 	// active and dormant topics with a description the model can match against
 	private static List<BrainClassifier.TopicOption> topics(String ownerId, String ownerType) {
-		return CollaborationDbUtils.query("SELECT t.TOPIC_ID, t.NAME, t.DESCRIPTION, t.KEYWORDS_JSON, a.NAME AS ACCOUNT "
+		return CollaborationDbUtils.query("SELECT t.TOPIC_ID, t.NAME, t.DESCRIPTION, t.SUGGEST_REASON, t.KEYWORDS_JSON, "
+				+ "a.NAME AS ACCOUNT "
 				+ "FROM BRAIN_TOPIC t LEFT JOIN BRAIN_ACCOUNT a ON a.OWNER_ID = t.OWNER_ID AND a.OWNER_TYPE = t.OWNER_TYPE "
 				+ "AND a.ACCOUNT_ID = t.ACCOUNT_ID WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATUS IN (?, ?) "
 				+ "ORDER BY t.TOPIC_ID", rs -> {
 					StringBuilder describe = new StringBuilder();
+					// a suggested topic has no description yet; why it was suggested is the next best thing
 					String description = CollaborationDbUtils.getString(rs, "DESCRIPTION");
+					if (description == null || description.isBlank()) {
+						description = CollaborationDbUtils.getString(rs, "SUGGEST_REASON");
+					}
 					if (description != null) {
 						describe.append(description);
 					}

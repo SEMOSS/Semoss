@@ -340,9 +340,9 @@ public final class BrainTopicSuggest {
 			String kind = outside ? "client" : "internal";
 			CollaborationDbUtils.inTransaction(conn -> {
 				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, SHORT_NAME, "
-						+ "KIND, ACCOUNT_ID, KEYWORDS_JSON, STATUS, ORIGIN, SUGGEST_REASON, LAST_ACTIVITY_AT, CREATED_AT, "
-						+ "UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, topicId,
-						c.name(), c.name(), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
+						+ "DESCRIPTION, KIND, ACCOUNT_ID, KEYWORDS_JSON, STATUS, ORIGIN, SUGGEST_REASON, LAST_ACTIVITY_AT, "
+						+ "CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
+						topicId, c.name(), c.name(), description(c), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
 						BrainTopicUtils.SUGGESTED, "brain", c.reason(), now, now, now);
 				for (String p : members) {
 					CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
@@ -372,6 +372,14 @@ public final class BrainTopicSuggest {
 
 		out.put("topics", written);
 		return out;
+	}
+
+	// what the classifier matches threads against: why the topic was suggested and a few of its subjects
+	private static String description(Candidate c) {
+		String examples = c.threads().stream().map(Thread::subject).filter(x -> x != null && !x.isBlank()).distinct()
+				.limit(3).collect(Collectors.joining("; "));
+		String why = c.reason() == null ? "" : c.reason().trim();
+		return (why + (examples.isEmpty() ? "" : " Threads such as: " + examples + ".")).trim();
 	}
 
 	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason) {

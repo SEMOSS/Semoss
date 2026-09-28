@@ -155,14 +155,8 @@ final class BrainTopicModel {
 		return out;
 	}
 
-	// the JSON object in the reply, ignoring code fences or stray text around it
 	private static Map<String, Object> parse(String reply) {
-		int start = reply == null ? -1 : reply.indexOf('{');
-		int end = reply == null ? -1 : reply.lastIndexOf('}');
-		if (start < 0 || end <= start) {
-			throw new IllegalStateException("The topic model did not return JSON");
-		}
-		Map<String, Object> answer = CollaborationDbUtils.parseMap(reply.substring(start, end + 1));
+		Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(reply);
 		if (answer == null) {
 			throw new IllegalStateException("The topic model did not return JSON");
 		}
