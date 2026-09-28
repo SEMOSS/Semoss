@@ -1,73 +1,54 @@
-# Claude Code Integration
+# Claude Code Harness Integration
 
-## Overview
+SEMOSS registers `claude_code` as an alternate implementation of `IAgentHarness`. It uses the same `RunAgent` submission and durable run services as other harnesses, while delegating its model/tool loop to the Claude Code integration.
 
-SEMOSS includes a built-in integration with [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Anthropic's agentic coding tool. The Claude Agent SDK (`claude-agent-sdk`) is embedded directly into the Python layer of the platform, and SEMOSS ships with a bundled version of Claude Code — no separate installation is required.
+For the native Java loop, see [the SEMOSS harness](../agents/semoss_harness.md). The two runtimes do not have identical tool, budget, media, or approval behavior.
 
-This integration allows users to invoke Claude Code as an autonomous coding agent within the context of a SEMOSS project. Claude Code can read and write files, execute shell commands, search the web, and perform other tool-based actions — all routed through SEMOSS's model proxy and security layer.
+## Submit through RunAgent
 
-## How It Works
+Use accessible room, model, workspace, and target project identifiers:
 
-When a Claude Code request is made, the Java layer (`ClaudeCodeManager`) spins up a dedicated Python TCP server process and initializes a `ClaudeCodeClient` instance. This client wraps the Claude Agent SDK and communicates with the Anthropic API through SEMOSS's internal model endpoint (`/Monolith/api/model/anthropic`), ensuring that all requests flow through the platform's authentication and access control mechanisms.
-
-Key aspects of the architecture:
-
-- **Authentication** is handled automatically. SEMOSS generates temporary access/secret key pairs per request based on the users credentials, which are passed to Claude Code as environment variables.
-- **Project scoping** — Claude Code operates within the assets folder of the specified SEMOSS project, giving it a working directory for file operations.
-- **Room-based conversation tracking** — each interaction is tied to a room ID for audit and session management.
-
-## Pixel Usage
-
-Claude Code is invoked via a Pixel call using the `ClaudeCode` reactor:
-
-```
-ClaudeCode(
-    engine="engine_id",
-    project="project_id",
-    context="system_prompt",
-    command="prompt",
-    roomId="room_id",
-    allowedTools=["Bash", "Glob", "Read", "Write", "Edit", "Grep", "WebSearch", "WebFetch", "AskUserQuestion"],
-    permissionMode="acceptEdits"
-)
+```pixel
+RunAgent(
+    roomId=["<room-id>"],
+    engine=["<model-engine-id>"],
+    workspaceId=["<workspace-id>"],
+    harnessType=["claude_code"],
+    space=["<target-project-id>"],
+    command=["Inspect the application and explain its structure."],
+    wait=[false]
+);
 ```
 
-### Parameters
+The public entry point is `RunAgent` with a harness selection. Older examples using a standalone `ClaudeCode(...)` reactor do not describe this path.
 
-| Parameter | Required | Description |
-|---|---|---|
-| `engine` | Yes | The engine ID of the registered Anthropic model to use. |
-| `project` | Yes | The SEMOSS project ID. Claude Code will operate within this project's assets directory. |
-| `command` | Yes | The user prompt — the task or question you want Claude Code to perform. |
-| `context` | No | An optional system prompt to guide Claude Code's behavior. |
-| `roomId` | No | A room ID for conversation tracking. A new room is created if one does not already exist. |
-| `allowedTools` | No | A list of tools Claude Code is permitted to use. Defaults to a standard set including Bash, file operations, and web access. |
-| `permissionMode` | No | Controls how Claude Code handles tool permissions. Defaults to `acceptEdits`. |
+## Components
 
-### Allowed Tools
+| Component | Responsibility |
+| --- | --- |
+| [ClaudeCodeAgentHarness](../../src/prerna/reactor/agent/ClaudeCodeAgentHarness.java) | Adapts `AgentRunContext` to the external runtime |
+| [ClaudeCodeManager](../../src/prerna/engine/impl/model/ClaudeCodeManager.java) | Configures the managed Python process, model proxy credentials, working target, and CLI integration |
+| [ClaudeCodeClient](../../py/genai_client/agents/claude_code/claude_code_client.py) | Wraps the Claude Agent SDK and configures session/resume behavior |
+| [AgentRunStreamService](../../src/prerna/reactor/agent/stream/AgentRunStreamService.java) | Canonical run event buffering and polling |
 
-The following tools can be granted to Claude Code:
+The manager resolves the CLI path from deployment configuration, an SDK-bundled binary where available, and its supported fallback lookup. The Python environment and CLI must actually be present in the deployed runtime; a source checkout alone does not install them.
 
-- **Bash** — Execute shell commands
-- **Glob** — Search for files by pattern
-- **Read** — Read file contents
-- **Write** — Create or overwrite files
-- **Edit** — Make targeted edits to existing files
-- **Grep** — Search file contents
-- **WebSearch** — Search the web
-- **WebFetch** — Fetch content from URLs
-- **AskUserQuestion** — Prompt the user for input
+## Model, files, and skills
 
-### Permission Modes
+The integration routes model requests through the configured SEMOSS model endpoint and uses the caller's permitted model context. The working directory comes from the agent runner's authorized target; there is no automatic `client/` suffix. Select a relative subdirectory explicitly when needed.
 
-| Mode | Description |
-|---|---|
-| `default` | Standard behavior — prompts for permission on first use of each tool. |
-| `acceptEdits` | Automatically accepts file edit permissions for the session. |
-| `plan` | Plan Mode — Claude can analyze but not modify files or execute commands. |
-| `dontAsk` | Auto-denies tools unless pre-approved via `/permissions` or `permissions.allow` rules. |
-| `bypassPermissions` | Skips all permission prompts. **Use only in safe, sandboxed environments.** |
+Workspace MCP resources are passed to the adapter. Attached skills are staged under `.claude/skills/` before execution, using the shared [skill lifecycle](../agents/skills/skills_doc.md). The external runtime then applies its own instruction/tool loading behavior.
 
-## Current Limitations
+## Sessions and limits
 
-- **One-off messages only** — The integration currently supports single prompt-response interactions. Multi-turn conversational sessions with Claude Code are not yet supported; each `ClaudeCode` Pixel call is an independent invocation.
+The Python wrapper supports session resume keyed to room history; it is not limited to independent one-off conversations. Continuing a room requires the corresponding runtime/session assets and configuration.
+
+The adapter owns a separate loop. Native `maxTurns`, reflection counts, and native tool-approval behavior should not be interpreted as external-runtime guarantees. The current Python wrapper also sets permission behavior and turn options internally; inspect its implementation before relying on a requested override. The harness does not advertise the native media-input capability.
+
+Canonical run events are supported for this adapter, while the returned native-loop iteration/tool trace fields do not represent its complete external transcript. Use [durable run status and streaming](../agents/agent_runs.md) and the associated conversation/transcript representation when diagnosing a run.
+
+## Deployment checks
+
+Confirm the managed Python environment, SDK/CLI availability, selected model endpoint, target project permissions, staged skills, and configured sandbox support. Keep adapter code, Python runtime assets, and Monolith model proxy routes on compatible versions.
+
+See [agent configuration](../agents/agent_configuration.md), [local Docker setup](../cloud_and_cluster/docker_deployment.md), and [Monolith integration](../integrations/monolith_interaction.md). For Kubernetes and semoss-artifacts property configuration, use [SEMOSS-deployment](https://github.com/SEMOSS/SEMOSS-deployment).

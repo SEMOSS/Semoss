@@ -89,8 +89,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY, Constants.PRICING);
 	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY, Constants.MODEL_PROVIDER,
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
-			Constants.OUTPUT_MODALITIES, Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
-			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
+			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
+			Constants.MODEL_FAMILY, Constants.ATTACHMENT, Constants.REASONING, Constants.TOOL_CALL,
+			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
 			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING, Constants.DESCR);
 
@@ -141,16 +142,13 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the properties needed to open the model engine. Catalog-only metadata
-	 * is deliberately excluded so the security database remains its source of
-	 * truth. MODEL, CONTEXT_WINDOW, and MAX_TOKENS remain because model engines use
-	 * them at runtime.
+	 * Return the properties to persist in the model SMSS. Token limits and other
+	 * catalog metadata live in the security database; model engines resolve them
+	 * from that table when opening.
 	 */
 	public static Map<String, Object> getModelEngineProperties(Map<String, Object> normalizedModelDetails) {
 		Map<String, Object> engineProperties = new LinkedHashMap<>(normalizedModelDetails);
-		for (String key : CATALOG_ONLY_KEYS) {
-			engineProperties.remove(key);
-		}
+		engineProperties.keySet().removeIf(key -> CATALOG_ONLY_KEYS.contains(key.toUpperCase(Locale.ROOT)));
 		return engineProperties;
 	}
 
@@ -159,10 +157,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * metadata-related properties are present, no row is created.
 	 * <p>
 	 * The SMSS only carries the handful of properties the model engine needs at
-	 * runtime, so this runs as a merge: whatever the SMSS defines wins, anything
-	 * already saved for the engine is preserved, and the remaining gaps are filled
-	 * from the static catalog. Replacing the row outright would blank the catalog
-	 * columns every time the engine is loaded.
+	 * runtime. Legacy SMSS limits seed models without a metadata row. Once a row
+	 * exists, its token limits (including NULL) are authoritative and cannot be
+	 * replaced by SMSS values or automatic catalog defaults during engine load.
+	 * Other properties retain their existing SMSS/catalog merge behavior.
 	 */
 	public static void upsertModelMetadata(String engineId, Properties properties) {
 		if (properties == null) {
@@ -193,9 +191,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
 		copyIfPresent(properties, details, Constants.PRICING);
 
-		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		Map<String, Object> existing = getModelMetadata(engineId);
+		Map<String, Object> merged = toDetails(existing);
 		merged.putAll(details);
 		StaticModelMetadataCatalog.applyStaticDefaults(merged);
+		if (existing != null) {
+			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		}
 		upsertModelMetadata(engineId, merged);
 	}
 

@@ -33,7 +33,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.reactor.AbstractReactor;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
@@ -49,10 +49,11 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
  * reactor happened to read it.
  * </p>
  */
-public abstract class AbstractMicrosoftCalendarReactor extends AbstractReactor {
+public abstract class AbstractMicrosoftCalendarReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractMicrosoftCalendarReactor.class);
 
+	protected static final String MAILBOX = "mailbox";
 	protected static final String CALENDAR_ID = "calendarId";
 	protected static final String EVENT_ID = "eventId";
 	protected static final String TIME_ZONE = "timeZone";
@@ -165,8 +166,10 @@ public abstract class AbstractMicrosoftCalendarReactor extends AbstractReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (key.equals(CALENDAR_ID)) {
-			return "Optional id of the calendar to work against. The signed in user's default calendar is used when omitted.";
+		if (key.equals(MAILBOX)) {
+			return "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.";
+		} else if (key.equals(CALENDAR_ID)) {
+			return "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.";
 		} else if (key.equals(EVENT_ID)) {
 			return "Id of the calendar event.";
 		} else if (key.equals(TIME_ZONE)) {

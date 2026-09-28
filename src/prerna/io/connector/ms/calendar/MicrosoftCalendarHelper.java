@@ -60,11 +60,35 @@ import prerna.security.HttpHelperUtility;
  * The calendar operations of Microsoft Graph, as plain calls.
  *
  * <p>
- * Everything here is delegated: the token says who the signed in user is, so
- * every url is rooted at {@code /me} and nothing a caller passes can read or
- * write somebody else's calendar. A calendar id narrows the call to one of the
- * user's own calendars, and leaving it out uses their default one.
+ * Everything here is delegated: the token says who the signed in user is, so a
+ * url that names no mailbox is rooted at {@code /me}. A calendar id narrows the
+ * call to one calendar of that mailbox, and leaving it out uses the default
+ * one.
  * </p>
+ *
+ * <p>
+ * A mailbox names somebody else, and is how a calendar that has been shared or
+ * delegated to the signed in user is read and written. Graph answers
+ * {@code /users/{owner}} only where that owner has actually shared or delegated
+ * the calendar, and only when the token carries {@code Calendars.Read.Shared}
+ * or {@code Calendars.ReadWrite.Shared}, so naming a mailbox cannot reach a
+ * calendar the user was not given.
+ * </p>
+ *
+ * <p>
+ * Outlook offers two ways to reach the same shared calendar, and which one
+ * works depends on the ids being used, so both are supported here:
+ * </p>
+ * <ul>
+ * <li>Out of the owner's mailbox, by naming the mailbox. The calendar and event
+ * ids that come back belong to the owner's mailbox and are only valid against
+ * it. This is the only way to reach a shared or delegated <em>primary</em>
+ * calendar.</li>
+ * <li>Out of the signed in user's own mailbox, by naming no mailbox. A shared
+ * <em>custom</em> calendar the user accepted appears in their own calendar list
+ * with its owner named, and the id it has there is a local one, valid only
+ * against {@code /me}.</li>
+ * </ul>
  *
  * <p>
  * What the methods return is Graph's own json, parsed into maps, rather than a
@@ -101,7 +125,8 @@ public class MicrosoftCalendarHelper {
 			+ "organizer,webLink,onlineMeeting,isOnlineMeeting,isCancelled,showAs,importance,responseStatus,"
 			+ "reminderMinutesBeforeStart,categories,seriesMasterId,type";
 
-	private static final String CALENDAR_FIELDS = "id,name,color,canEdit,canShare,isDefaultCalendar,owner";
+	private static final String CALENDAR_FIELDS = "id,name,color,canEdit,canShare,canViewPrivateItems,"
+			+ "isDefaultCalendar,owner";
 
 	private static final String VALUE = "value";
 	private static final String EVENTS = "/events";
@@ -137,30 +162,83 @@ public class MicrosoftCalendarHelper {
 	}
 
 	/**
-	 * Lists the calendars the signed in user can see.
+	 * Lists the calendars a mailbox holds.
+	 *
+	 * <p>
+	 * Read against the signed in user's own mailbox, this is also the list of
+	 * calendars other people have shared with them: a shared custom calendar the
+	 * user accepted sits in their list with its owner named, which is what
+	 * {@code isSharedWithMe} reports.
+	 * </p>
 	 *
 	 * @param accessToken Microsoft Graph access token for the user
+	 * @param mailbox     optional user id or principal name of the mailbox to read;
+	 *                    the signed in user's own mailbox is read when blank
+	 * @param userEmail   optional address of the signed in user, used to tell their
+	 *                    own calendars from the ones shared with them
 	 * @param limit       maximum number of calendars to return; values less than or
 	 *                    equal to 0 return every calendar
 	 * @return list of calendar metadata maps
 	 * @throws Exception if the list retrieval fails
 	 */
-	public static List<Map<String, Object>> listCalendars(String accessToken, int limit) throws Exception {
-		final String CALENDARS = GRAPH_BASE + "/me/calendars?$select=" + CALENDAR_FIELDS + "&$top=%s";
-
+	public static List<Map<String, Object>> listCalendars(String accessToken, String mailbox, String userEmail,
+			int limit) throws Exception {
 		try {
-			String url = String.format(CALENDARS, limit > 0 ? limit : PAGE_SIZE);
+			String url = mailboxPath(mailbox) + "/calendars?$select=" + CALENDAR_FIELDS + "&$top="
+					+ (limit > 0 ? limit : PAGE_SIZE);
 			String response = HttpHelperUtility.getRequest(url, headers(accessToken, null), null, null, null);
 			List<Map<String, Object>> calendars = new ArrayList<>();
 			for (Map<String, Object> calendar : getValueList(response)) {
-				calendars.add(MicrosoftCalendarEventMapper.toCalendar(calendar));
+				calendars.add(MicrosoftCalendarEventMapper.toCalendar(calendar, userEmail));
 				if (limit > 0 && calendars.size() >= limit) {
 					break;
 				}
 			}
 			return calendars;
 		} catch (Exception e) {
-			classLogger.error("Failed to list the Microsoft calendars for the current user.", e);
+			classLogger.error("Failed to list the Microsoft calendars of mailbox '{}'.", mailbox, e);
+			throw e;
+		}
+	}
+
+	/**
+	 * Lists who can see a calendar and what each of them may do with it.
+	 *
+	 * <p>
+	 * This is how a share is told apart from a delegation. Both show up as somebody
+	 * holding a permission on the calendar, and the {@code role} is what
+	 * distinguishes them: a reader or a writer has been shared the calendar, while
+	 * a delegate has also been given the right to act on the owner's behalf and
+	 * answer meeting requests for them.
+	 * </p>
+	 *
+	 * @param accessToken Microsoft Graph access token for the user
+	 * @param mailbox     optional user id or principal name of the mailbox holding
+	 *                    the calendar; the signed in user's own mailbox is read
+	 *                    when blank
+	 * @param calendarId  optional id of the calendar; the default calendar of the
+	 *                    mailbox is read when blank
+	 * @return list of permission maps, one for each person the calendar is shared
+	 *         with
+	 * @throws Exception if the list retrieval fails
+	 */
+	public static List<Map<String, Object>> listCalendarPermissions(String accessToken, String mailbox,
+			String calendarId) throws Exception {
+		try {
+			// the permissions of the default calendar hang off the calendar shortcut
+			// rather than off the mailbox, so a blank calendar id is spelled out here
+			String url = calendarId == null || calendarId.trim().isEmpty()
+					? mailboxPath(mailbox) + "/calendar/calendarPermissions"
+					: calendarPath(mailbox, calendarId) + "/calendarPermissions";
+			String response = HttpHelperUtility.getRequest(url, headers(accessToken, null), null, null, null);
+			List<Map<String, Object>> permissions = new ArrayList<>();
+			for (Map<String, Object> permission : getValueList(response)) {
+				permissions.add(MicrosoftCalendarEventMapper.toCalendarPermission(permission));
+			}
+			return permissions;
+		} catch (Exception e) {
+			classLogger.error("Failed to list the permissions on Microsoft calendar '{}' of mailbox '{}'.", calendarId,
+					mailbox, e);
 			throw e;
 		}
 	}
@@ -175,8 +253,11 @@ public class MicrosoftCalendarHelper {
 	 * </p>
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
-	 * @param calendarId   optional id of the calendar to read; the user's default
-	 *                     calendar is read when blank
+	 * @param mailbox      optional user id or principal name of the mailbox holding
+	 *                     the calendar, for one shared or delegated to the signed
+	 *                     in user; their own mailbox is read when blank
+	 * @param calendarId   optional id of the calendar to read; the default calendar
+	 *                     of that mailbox is read when blank
 	 * @param start        start of the window, as an ISO 8601 date and time
 	 * @param end          end of the window, as an ISO 8601 date and time
 	 * @param subject      optional text the subject has to contain, matched after
@@ -193,8 +274,9 @@ public class MicrosoftCalendarHelper {
 	 * @throws IllegalArgumentException if required inputs are missing or invalid
 	 * @throws Exception                if the list retrieval fails
 	 */
-	public static List<Map<String, Object>> listEvents(String accessToken, String calendarId, String start, String end,
-			String subject, boolean includeBody, int maxBodyChars, String timeZone, int limit) throws Exception {
+	public static List<Map<String, Object>> listEvents(String accessToken, String mailbox, String calendarId,
+			String start, String end, String subject, boolean includeBody, int maxBodyChars, String timeZone, int limit)
+			throws Exception {
 		final String CALENDAR_VIEW = "%s/calendarView?startDateTime=%s&endDateTime=%s&$select=%s&$orderby=%s&$top=%s";
 
 		try {
@@ -208,8 +290,9 @@ public class MicrosoftCalendarHelper {
 			boolean narrowing = subject != null && !subject.trim().isEmpty();
 			int pageSize = !narrowing && limit > 0 ? limit : PAGE_SIZE;
 
-			String url = String.format(CALENDAR_VIEW, calendarPath(calendarId), encode(windowStart), encode(windowEnd),
-					includeBody ? EVENT_FIELDS : EVENT_FIELDS_NO_BODY, encode("start/dateTime"), pageSize);
+			String url = String.format(CALENDAR_VIEW, calendarPath(mailbox, calendarId), encode(windowStart),
+					encode(windowEnd), includeBody ? EVENT_FIELDS : EVENT_FIELDS_NO_BODY, encode("start/dateTime"),
+					pageSize);
 			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone), null, null, null);
 
 			String wanted = narrowing ? subject.trim().toLowerCase(Locale.ROOT) : null;
@@ -237,8 +320,11 @@ public class MicrosoftCalendarHelper {
 	 * Reads one event.
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
-	 * @param calendarId   optional id of the calendar holding the event; the user's
-	 *                     default calendar is read when blank
+	 * @param mailbox      optional user id or principal name of the mailbox holding
+	 *                     the calendar, for one shared or delegated to the signed
+	 *                     in user; their own mailbox is read when blank
+	 * @param calendarId   optional id of the calendar holding the event; the
+	 *                     default calendar of that mailbox is read when blank
 	 * @param eventId      id of the event to read
 	 * @param maxBodyChars the longest body to return before truncating it, or 0 to
 	 *                     return whatever length it is
@@ -247,12 +333,13 @@ public class MicrosoftCalendarHelper {
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the read fails
 	 */
-	public static Map<String, Object> getEvent(String accessToken, String calendarId, String eventId, int maxBodyChars,
-			String timeZone) throws Exception {
+	public static Map<String, Object> getEvent(String accessToken, String mailbox, String calendarId, String eventId,
+			int maxBodyChars, String timeZone) throws Exception {
 		try {
 			requireValue(eventId, "Event ID is required to read a Microsoft calendar event.");
 
-			String url = calendarPath(calendarId) + EVENTS + "/" + encode(eventId.trim()) + "?$select=" + EVENT_FIELDS;
+			String url = calendarPath(mailbox, calendarId) + EVENTS + "/" + encode(eventId.trim()) + "?$select="
+					+ EVENT_FIELDS;
 			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone), null, null, null);
 			Map<String, Object> event = readMap(response);
 			if (event == null) {
@@ -269,8 +356,12 @@ public class MicrosoftCalendarHelper {
 	 * Creates an event.
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
-	 * @param calendarId   optional id of the calendar to create in; the user's
-	 *                     default calendar is used when blank
+	 * @param mailbox      optional user id or principal name of the mailbox to
+	 *                     create in, for a calendar shared or delegated to the
+	 *                     signed in user with write access; their own mailbox is
+	 *                     used when blank
+	 * @param calendarId   optional id of the calendar to create in; the default
+	 *                     calendar of that mailbox is used when blank
 	 * @param event        the event, as built by
 	 *                     {@link #buildEvent(String, String, boolean, String, String, String, boolean, String, String[], String[], Boolean, Integer, String, String, String[])}
 	 * @param maxBodyChars the longest body to return before truncating it, or 0 to
@@ -281,14 +372,14 @@ public class MicrosoftCalendarHelper {
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the create fails
 	 */
-	public static Map<String, Object> createEvent(String accessToken, String calendarId, Map<String, Object> event,
-			int maxBodyChars, String timeZone) throws Exception {
+	public static Map<String, Object> createEvent(String accessToken, String mailbox, String calendarId,
+			Map<String, Object> event, int maxBodyChars, String timeZone) throws Exception {
 		try {
 			if (event == null || event.isEmpty()) {
 				throw new IllegalArgumentException("An event is required to create a Microsoft calendar event.");
 			}
 
-			String url = calendarPath(calendarId) + EVENTS;
+			String url = calendarPath(mailbox, calendarId) + EVENTS;
 			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken, timeZone),
 					GSON.toJson(event), ContentType.APPLICATION_JSON, null, null, null);
 			Map<String, Object> created = readMap(response);
@@ -311,8 +402,12 @@ public class MicrosoftCalendarHelper {
 	 * </p>
 	 *
 	 * @param accessToken  Microsoft Graph access token for the user
-	 * @param calendarId   optional id of the calendar holding the event; the user's
-	 *                     default calendar is used when blank
+	 * @param mailbox      optional user id or principal name of the mailbox holding
+	 *                     the calendar, for one shared or delegated to the signed
+	 *                     in user with write access; their own mailbox is used when
+	 *                     blank
+	 * @param calendarId   optional id of the calendar holding the event; the
+	 *                     default calendar of that mailbox is used when blank
 	 * @param eventId      id of the event to change
 	 * @param changes      the fields to set, in the shape Graph reads them
 	 * @param maxBodyChars the longest body to return before truncating it, or 0 to
@@ -322,7 +417,7 @@ public class MicrosoftCalendarHelper {
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the change fails
 	 */
-	public static Map<String, Object> updateEvent(String accessToken, String calendarId, String eventId,
+	public static Map<String, Object> updateEvent(String accessToken, String mailbox, String calendarId, String eventId,
 			Map<String, Object> changes, int maxBodyChars, String timeZone) throws Exception {
 		try {
 			requireValue(eventId, "Event ID is required to change a Microsoft calendar event.");
@@ -330,7 +425,7 @@ public class MicrosoftCalendarHelper {
 				throw new IllegalArgumentException("Nothing was passed to change on the Microsoft calendar event.");
 			}
 
-			String url = calendarPath(calendarId) + EVENTS + "/" + encode(eventId.trim());
+			String url = calendarPath(mailbox, calendarId) + EVENTS + "/" + encode(eventId.trim());
 			String response = HttpHelperUtility.patchRequestStringBody(url, headers(accessToken, timeZone),
 					GSON.toJson(changes), ContentType.APPLICATION_JSON, null, null, null);
 			Map<String, Object> updated = readMap(response);
@@ -348,22 +443,27 @@ public class MicrosoftCalendarHelper {
 	 * Deletes an event.
 	 *
 	 * <p>
-	 * An event the user organized is cancelled for everybody invited, and one they
+	 * An event the user organized is canceled for everybody invited, and one they
 	 * were invited to is only removed from their own calendar.
 	 * </p>
 	 *
 	 * @param accessToken Microsoft Graph access token for the user
-	 * @param calendarId  optional id of the calendar holding the event; the user's
-	 *                    default calendar is used when blank
+	 * @param mailbox     optional user id or principal name of the mailbox holding
+	 *                    the calendar, for one shared or delegated to the signed in
+	 *                    user with write access; their own mailbox is used when
+	 *                    blank
+	 * @param calendarId  optional id of the calendar holding the event; the default
+	 *                    calendar of that mailbox is used when blank
 	 * @param eventId     id of the event to delete
 	 * @throws IllegalArgumentException if required inputs are missing
 	 * @throws Exception                if the delete fails
 	 */
-	public static void deleteEvent(String accessToken, String calendarId, String eventId) throws Exception {
+	public static void deleteEvent(String accessToken, String mailbox, String calendarId, String eventId)
+			throws Exception {
 		try {
 			requireValue(eventId, "Event ID is required to delete a Microsoft calendar event.");
 
-			String url = calendarPath(calendarId) + EVENTS + "/" + encode(eventId.trim());
+			String url = calendarPath(mailbox, calendarId) + EVENTS + "/" + encode(eventId.trim());
 			// a successful delete answers 204 with no body
 			HttpHelperUtility.deleteRequestStringBody(url, headers(accessToken, null), null, null, null);
 		} catch (Exception e) {
@@ -375,7 +475,16 @@ public class MicrosoftCalendarHelper {
 	/**
 	 * Replies to a meeting invitation.
 	 *
+	 * <p>
+	 * Naming a mailbox replies on that mailbox's behalf, which is what a delegate
+	 * has been given the right to do. A share that only grants reading or writing
+	 * is not enough for this, and Graph refuses it.
+	 * </p>
+	 *
 	 * @param accessToken  Microsoft Graph access token for the user
+	 * @param mailbox      optional user id or principal name of the mailbox the
+	 *                     invitation was sent to, for one the signed in user is a
+	 *                     delegate of; their own mailbox is used when blank
 	 * @param eventId      id of the event to reply to
 	 * @param response     the reply, one of {@code accept}, {@code decline} or
 	 *                     {@code tentative}
@@ -385,8 +494,8 @@ public class MicrosoftCalendarHelper {
 	 * @throws IllegalArgumentException if required inputs are missing or invalid
 	 * @throws Exception                if the reply fails
 	 */
-	public static String respondToEvent(String accessToken, String eventId, String response, String comment,
-			boolean sendResponse) throws Exception {
+	public static String respondToEvent(String accessToken, String mailbox, String eventId, String response,
+			String comment, boolean sendResponse) throws Exception {
 		try {
 			requireValue(eventId, "Event ID is required to reply to a Microsoft calendar invitation.");
 			String action = normalizeResponse(response);
@@ -397,7 +506,7 @@ public class MicrosoftCalendarHelper {
 			}
 			body.put("sendResponse", sendResponse);
 
-			String url = GRAPH_BASE + "/me" + EVENTS + "/" + encode(eventId.trim()) + "/" + action;
+			String url = mailboxPath(mailbox) + EVENTS + "/" + encode(eventId.trim()) + "/" + action;
 			// answers 202 with no body, so there is nothing to read back
 			HttpHelperUtility.postRequestStringBody(url, headers(accessToken, null), GSON.toJson(body),
 					ContentType.APPLICATION_JSON, null, null, null);
@@ -582,9 +691,9 @@ public class MicrosoftCalendarHelper {
 	 * Builds the object Graph reads a moment out of.
 	 *
 	 * <p>
-	 * A value carrying an offset is turned into UTC and labelled as such, because
+	 * A value carrying an offset is turned into UTC and labeled as such, because
 	 * Graph reads the zone off the label rather than off the value. A value without
-	 * one is left alone and labelled with the zone the caller named, which is the
+	 * one is left alone and labeled with the zone the caller named, which is the
 	 * shape somebody writing {@code 2026-09-01T13:00:00} in their own zone means.
 	 * </p>
 	 *
@@ -726,16 +835,34 @@ public class MicrosoftCalendarHelper {
 	}
 
 	/**
-	 * The part of a Graph url that says which calendar this is.
+	 * The part of a Graph url that says whose mailbox this is.
 	 *
-	 * @param calendarId the calendar, or null for the user's default one
-	 * @return the url up to the calendar
+	 * @param mailbox the mailbox, or null for the signed in user's own
+	 * @return the url up to the mailbox
 	 */
-	private static String calendarPath(String calendarId) {
-		if (calendarId == null || calendarId.trim().isEmpty()) {
+	private static String mailboxPath(String mailbox) {
+		if (mailbox == null || mailbox.trim().isEmpty()) {
+			// the delegated shape, where the token already says who this is
 			return GRAPH_BASE + "/me";
 		}
-		return GRAPH_BASE + "/me/calendars/" + encode(calendarId.trim());
+		return GRAPH_BASE + "/users/" + encode(mailbox.trim());
+	}
+
+	/**
+	 * The part of a Graph url that says which calendar this is.
+	 *
+	 * @param mailbox    the mailbox holding the calendar, or null for the signed in
+	 *                   user's own
+	 * @param calendarId the calendar, or null for the default calendar of that
+	 *                   mailbox
+	 * @return the url up to the calendar
+	 */
+	private static String calendarPath(String mailbox, String calendarId) {
+		String owner = mailboxPath(mailbox);
+		if (calendarId == null || calendarId.trim().isEmpty()) {
+			return owner;
+		}
+		return owner + "/calendars/" + encode(calendarId.trim());
 	}
 
 	/**

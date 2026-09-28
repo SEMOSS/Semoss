@@ -59,7 +59,7 @@ public final class GoogleLoginUtils {
 		try {
 			if (user == null) {
 				Map<String, Object> retMap = new HashMap<>();
-				retMap.put("type", "google");
+				retMap.put("type", AuthProvider.GOOGLE.getLabel());
 				retMap.put("message", "Please login to your Google account");
 				throwLoginError(retMap);
 			} else {
@@ -68,7 +68,7 @@ public final class GoogleLoginUtils {
 			}
 		} catch (Exception e) {
 			Map<String, Object> retMap = new HashMap<>();
-			retMap.put("type", "google");
+			retMap.put("type", AuthProvider.GOOGLE.getLabel());
 			retMap.put("message", "Please login to your Google account");
 			throwLoginError(retMap);
 		}

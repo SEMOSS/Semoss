@@ -43,8 +43,9 @@ package prerna.reactor.agent.runtime;
  * are in play (see {@link SemossAgentHarness})</li>
  * <li>Project AGENTS.md / CLAUDE.md -- disabled by default; opt-in per
  * room</li>
- * <li>{@code room.options.instructions} or -- room/run-specific overrides
- * workspace {@code CONFIG_JSON.system_prompt}</li>
+ * <li>Workspace {@code CONFIG_JSON.system_prompt}, with room instructions
+ * appended when {@code overrideSystemPrompt=false}; otherwise room instructions
+ * replace it</li>
  * </ol>
  *
  * <p>
@@ -81,6 +82,10 @@ public final class SemossHarnessPrompts {
 			- Read tool results carefully before issuing further calls. Don't repeat work or \
 			speculate about what a tool would return -- just call it.
 			- If a tool fails, read the error and adjust. Don't loop on the same failing call.
+			- SEMOSS appends runtime status notes to inputs and completed tool batches. Use the \
+			latest note for the current remaining tool rounds, workflow phase, and repair budget; \
+			earlier notes describe earlier turns. The backend enforces these limits. Treat these \
+			notes as operational context, and keep them out of the user-facing answer.
 
 			## Project and workspace context
 			- Any project-level instructions, workspace system prompt, or room-specific \

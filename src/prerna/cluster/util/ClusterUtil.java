@@ -29,15 +29,18 @@ package prerna.cluster.util;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FilenameFilter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.sync.impl.ClusterSynchronizerFactory;
@@ -91,6 +94,10 @@ public class ClusterUtil {
 	private static final String DIR_SEPARATOR = java.nio.file.FileSystems.getDefault().getSeparator();
 
 	public static String IMAGES_FOLDER_PATH = Utility.getBaseFolder() + DIR_SEPARATOR + "images";
+	// A successful folder refresh covers every resource in that catalog. Keep only
+	// a short, bounded in-memory record so stock-only cards do not each pull it again.
+	private static final Cache<String, Boolean> IMAGE_FOLDER_REFRESHES = CacheBuilder.newBuilder()
+			.maximumSize(64).expireAfterWrite(30, TimeUnit.SECONDS).build();
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	private static final String IS_CLUSTERED_SCHEDULER_KEY = "SEMOSS_SCHEDULER_IS_CLUSTER";
@@ -1150,71 +1157,34 @@ public class ClusterUtil {
 	}
 
 	/**
-	 * 
-	 * @param storageId
-	 * @return
-	 * @throws Exception
+	 * Returns an existing resource image, refreshing the cloud image folder at most
+	 * once per 30 seconds when an image is missing. A missing custom image uses the
+	 * shared stock file without creating or uploading a per-resource copy. Locally
+	 * available uploads take precedence immediately, even during the refresh window.
 	 */
 	public static File getEngineAndProjectImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
 		File localEngineImageFolder = new File(EngineUtility.getLocalEngineImageDirectory(engineType));
-		// if it doesn't exist locally
-		// pull from cloud storage
-		boolean pulled = false;
-		if (!localEngineImageFolder.exists() || !localEngineImageFolder.isDirectory()) {
+		File image = findEngineAndProjectImage(localEngineImageFolder, engineId);
+		if (image != null) {
+			return image;
+		}
+
+		String folderKey = engineType + ":" + localEngineImageFolder.getAbsolutePath();
+		IMAGE_FOLDER_REFRESHES.get(folderKey, () -> {
 			getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
-			pulled = true;
-		}
-
-		File imageFile = null;
-		String imageFilePath = null;
-		;
-
-		// so i dont always know the extension
-		// but every image should be named by the engineid
-		// which means i need to search the folder for something like the file
-		File[] images = localEngineImageFolder.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				return name.contains(engineId);
-			}
+			return Boolean.TRUE;
 		});
-		if (images != null && images.length > 0) {
-			// we got a file hopefully there is only 1 file if there is more, return [0] for
-			// now
-			return images[0];
-		} else {
-			if (!pulled) {
-				// we haven't pulled the image
-				// maybe this was created in another container
-				// lets pull again just in case
-				getCentralStorageClient().pullEngineAndProjectImageFolder(engineType);
-			}
-
-			images = localEngineImageFolder.listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.contains(engineId);
-				}
-			});
-			if (images.length > 0) {
-				// we got a file. hopefully there is only 1 file if there is more, return [0]
-				// for now
-				return images[0];
-			}
-
-			// if i hit this point
-			// after pulling, i dont have the engine id
-			// so lets make the image
-			imageFilePath = localEngineImageFolder.getAbsolutePath() + DIR_SEPARATOR + engineId + ".png";
-			imageFile = new File(imageFilePath);
-
-			DefaultImageGeneratorUtil.pickRandomImage(imageFilePath);
-			getCentralStorageClient().pushEngineAndProjectImage(engineType, imageFile.getName());
-
-			// TODO:
-			// need to also push to engine version folder?
+		image = findEngineAndProjectImage(localEngineImageFolder, engineId);
+		if (image != null) {
+			return image;
 		}
-		return imageFile;
+		String imageFilePath = localEngineImageFolder.getAbsolutePath() + DIR_SEPARATOR + engineId + ".png";
+		return DefaultImageGeneratorUtil.getStockImageForPath(imageFilePath);
+	}
+
+	private static File findEngineAndProjectImage(File folder, String engineId) {
+		File[] images = folder.listFiles((dir, name) -> name.contains(engineId));
+		return images != null && images.length > 0 ? images[0] : null;
 	}
 
 	/**

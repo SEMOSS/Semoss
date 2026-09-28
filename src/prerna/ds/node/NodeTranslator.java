@@ -89,7 +89,17 @@ public class NodeTranslator {
 	 *         {@code stdout} keys
 	 */
 	public Object runScript(Insight executionInsight, String script, long timeoutMs) {
-		final String ROOT = this.globalStoreInsight.getInsightFolder().replace('\\', '/');
+		return runScript(executionInsight, script, timeoutMs, null);
+	}
+
+	/**
+	 * Execute with an explicitly resolved agent working directory. Project/subdir
+	 * runs can stage their files and skills outside the insight's room folder.
+	 * The caller must resolve and authorize this path before passing it here.
+	 */
+	public Object runScript(Insight executionInsight, String script, long timeoutMs, String workingDir) {
+		final String ROOT = (workingDir == null || workingDir.trim().isEmpty()
+				? this.globalStoreInsight.getInsightFolder() : workingDir).replace('\\', '/');
 		final String APP_ROOT = this.globalStoreInsight.getContextProjectId() != null ? EngineUtility
 				.getSpecificEngineAssetsFolder(IEngine.CATALOG_TYPE.PROJECT,
 						this.globalStoreInsight.getContextProjectId(), this.globalStoreInsight.getContextProjectName())
@@ -146,6 +156,29 @@ public class NodeTranslator {
 		}
 		Object output = ps.payload != null && ps.payload.length > 0 ? ps.payload[0] : null;
 		return scrubOutput(output, ROOT, APP_ROOT, USER_ROOT);
+	}
+
+	/**
+	 * Drops the Node executor retained for this translator's Insight.
+	 */
+	public void removeInsightGlobals() {
+		PayloadStruct ps = new PayloadStruct();
+		ps.operation = PayloadStruct.OPERATION.INSIGHT;
+		ps.payload = new Object[] { "REMOVE_INSIGHT_GLOBALS" };
+		ps.insightId = this.globalStoreInsight.getInsightId();
+		ps.jobId = ThreadStore.getJobId();
+		ps.sessionId = ThreadStore.getSessionId();
+		ps.mdc = ThreadContext.getImmutableContext();
+		if (!sc.isConnected()) {
+			throw new SemossPixelException("The node execution engine is no longer available.");
+		}
+		ps = (PayloadStruct) sc.executeCommand(ps);
+		if (ps == null) {
+			throw new SemossPixelException("Received a null response from the node worker");
+		}
+		if (ps.ex != null) {
+			throw new SemossPixelException(ps.ex);
+		}
 	}
 
 	/**

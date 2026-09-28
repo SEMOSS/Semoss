@@ -35,11 +35,13 @@ import java.nio.file.Files;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.apache.hc.core5.http.ContentType;
@@ -97,6 +99,16 @@ public class MicrosoftOutlookMailHelper {
 	// graph refuses a message over this size on the simple send, and the limit is
 	// on the encoded form rather than the file, so it is checked after encoding
 	private static final long MAX_SEND_BYTES = 4L * 1024L * 1024L;
+
+	/**
+	 * The folders Graph addresses by name rather than by id. Anything else somebody
+	 * names is either an id or a folder they made, and the two are told apart by
+	 * looking it up.
+	 */
+	private static final List<String> WELL_KNOWN_FOLDERS = Arrays.asList("archive", "clutter", "conflicts",
+			"conversationhistory", "deleteditems", "drafts", "inbox", "junkemail", "localfailures", "msgfolderroot",
+			"outbox", "recoverableitemsdeletions", "scheduled", "searchfolders", "sentitems", "serverfailures",
+			"syncissues");
 
 	private final String graphBaseUrl;
 
@@ -190,6 +202,126 @@ public class MicrosoftOutlookMailHelper {
 		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), "",
 				ContentType.APPLICATION_JSON, null, null, null);
 		throwOnError(response, "send a saved draft");
+	}
+
+	/**
+	 * Answer a message, either to the sender alone or to everybody on it.
+	 *
+	 * <p>
+	 * Graph writes the quoted original and the recipients itself, so what is passed
+	 * here is only what the reply adds to the top of it. That is also why there is
+	 * no subject: a reply keeps the one it is answering.
+	 * </p>
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message being answered
+	 * @param comment     what the reply says
+	 * @param replyAll    whether everybody on the message is answered, rather than
+	 *                    just whoever sent it
+	 * @param asDraft     whether the reply is left in Drafts instead of being sent,
+	 *                    for somebody to read before it goes
+	 * @return the draft as Graph created it when one was asked for, otherwise null,
+	 *         since a sent reply answers with nothing
+	 */
+	public Map<String, Object> reply(String accessToken, String mailbox, String messageId, String comment,
+			boolean replyAll, boolean asDraft) {
+		String action = replyAll ? "replyAll" : "reply";
+		if (asDraft) {
+			action = "createReply" + (replyAll ? "All" : "");
+		}
+
+		Map<String, Object> request = new LinkedHashMap<>();
+		if (comment != null) {
+			request.put("comment", comment);
+		}
+
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/" + action;
+		classLogger.info("Answering an email through {}", url);
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(request),
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "answer an email");
+		// sending answers 202 with no body, while creating a draft answers with the
+		// draft it made
+		return asDraft ? readMap(response) : null;
+	}
+
+	/**
+	 * Pass a message on to somebody else.
+	 *
+	 * @param accessToken the token to send with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message being passed on
+	 * @param to          who it goes to
+	 * @param comment     optional note added above the message being forwarded
+	 * @param asDraft     whether the forward is left in Drafts instead of being
+	 *                    sent
+	 * @return the draft as Graph created it when one was asked for, otherwise null
+	 * @throws IllegalArgumentException if nobody was named to forward to
+	 */
+	public Map<String, Object> forward(String accessToken, String mailbox, String messageId, String[] to,
+			String comment, boolean asDraft) {
+		if (to == null || to.length == 0) {
+			throw new IllegalArgumentException("At least one recipient is required to forward an email.");
+		}
+
+		Map<String, Object> request = new LinkedHashMap<>();
+		if (comment != null) {
+			request.put("comment", comment);
+		}
+		putRecipients(request, "toRecipients", to);
+
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/"
+				+ (asDraft ? "createForward" : "forward");
+		classLogger.info("Forwarding an email through {}", url);
+		String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(request),
+				ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "forward an email");
+		return asDraft ? readMap(response) : null;
+	}
+
+	/**
+	 * Read one attachment, including its bytes when it is a file.
+	 *
+	 * @param accessToken  the token to read with
+	 * @param mailbox      the mailbox, or null for the signed in user
+	 * @param messageId    the message holding it
+	 * @param attachmentId the attachment to read
+	 * @return the attachment as Graph returned it
+	 */
+	public Map<String, Object> getAttachment(String accessToken, String mailbox, String messageId,
+			String attachmentId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "/attachments/" + encode(attachmentId);
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read an attachment");
+		return readMap(response);
+	}
+
+	/**
+	 * Work out what to hand {@link #moveMessage} for a folder somebody named.
+	 *
+	 * <p>
+	 * Graph takes a well known name such as {@code archive} and an id, and nothing
+	 * else, so a folder somebody made is looked up by the name they call it. Only
+	 * the top level of the mailbox is searched, which is what {@link #listFolders}
+	 * reads, so a folder nested inside another has to be named by its id.
+	 * </p>
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param destination a well known name, a folder id, or the name of a folder in
+	 *                    the mailbox
+	 * @return what Graph will accept for that folder
+	 */
+	public String resolveDestination(String accessToken, String mailbox, String destination) {
+		String wanted = destination.trim();
+		if (WELL_KNOWN_FOLDERS.contains(wanted.toLowerCase(Locale.ROOT))) {
+			return wanted.toLowerCase(Locale.ROOT);
+		}
+		String byName = resolveFolderId(accessToken, mailbox, wanted);
+		// nothing of that name leaves the value as it was given, which is what an id
+		// looks like from here
+		return byName == null ? wanted : byName;
 	}
 
 	/**

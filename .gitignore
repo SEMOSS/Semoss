@@ -61,15 +61,16 @@ social.properties
 /src/main/resources/META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat
 
 # local engines
-db/**
-function/**
-guardrail/**
-model/**
-project/**
-room/**
-storage/**
-user/**
-vector/**
+/db/**
+/function/**
+/guardrail/**
+/model/**
+/project/*
+!/project/platform__*
+/room/**
+/storage/**
+/user/**
+/vector/**
 *.mv.db
 # Don't track anything but CSV_Insights folder
 InsightCache/*

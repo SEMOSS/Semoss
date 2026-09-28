@@ -62,16 +62,21 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
+import prerna.ds.py.PyTranslator;
+import prerna.ds.py.PyUtils;
+import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.reactor.agent.skill.Skill;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
+import prerna.tcp.client.SocketClient;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.pptx.SemossPptxInspector;
 
 final class PlatformAgentToolHandlers {
 
@@ -92,6 +97,8 @@ final class PlatformAgentToolHandlers {
 	private static final int HARD_SKILL_MAX_BYTES = 200 * 1024;
 	private static final int MAX_COMMAND_LENGTH = 4000;
 	private static final String PROP_ENABLE_BASH = "AGENT_DEFAULT_TOOLS_ENABLE_BASH";
+	private static final int MAX_PYTHON_CODE_LENGTH = 200_000;
+	private static final int MAX_PYTHON_OUTPUT_LENGTH = 40_000;
 	private static final int MAX_NODE_CODE_LENGTH = 200_000;
 	private static final int MAX_NODE_OUTPUT_LENGTH = 40_000;
 	private static final int DEFAULT_NODE_TIMEOUT_SECONDS = 60;
@@ -106,6 +113,10 @@ final class PlatformAgentToolHandlers {
 	private PlatformAgentToolHandlers() {
 	}
 
+	static String describeAllowedCommands() {
+		return String.join(", ", ALLOWED_COMMANDS.stream().sorted().toList());
+	}
+
 	interface ToolHandler {
 		String getName();
 
@@ -116,6 +127,13 @@ final class PlatformAgentToolHandlers {
 
 	static Map<String, ToolHandler> handlersByName() {
 		Map<String, ToolHandler> tools = new LinkedHashMap<>();
+		add(tools, handler("InspectPptx",
+				"Render a PowerPoint through UnoServer and inspect its slides with a vision model using your review instructions. "
+						+ "Returns structured issues, exact slide coverage, source hash and image/report paths. "
+						+ "A pass requires status=complete and verdict=pass. Does not edit the source deck.",
+				SemossPptxInspector.inputSchema(), (params, tc) -> SemossPptxInspector.inspect(
+						Path.of(tc.root), params, tc.ctx.getInsight(), tc.ctx.getRoom().getId(),
+						tc.ctx.getAgentConfig().getModelId()).toString()));
 		add(tools,
 				handler("ReadFile",
 						"Reads a file from the working directory. Returns content with line numbers "
@@ -186,20 +204,43 @@ final class PlatformAgentToolHandlers {
 						props(prop("path", stringProp("Optional directory path. Defaults to working directory."))),
 						Collections.emptyList()), PlatformAgentToolHandlers::listDirectory));
 		if (isBashEnabled()) {
-			add(tools, handler("BashCommand", "Executes one allowlisted shell command in the working directory.",
+			add(tools, handler("BashCommand",
+					"Executes one command in the working directory. Allowed commands: " + describeAllowedCommands()
+							+ ". One command per call: no pipes, chaining, redirects (including 2>&1), $(), or backticks. "
+							+ "Use working-directory-relative paths; no absolute paths, ~ paths, or .. . "
+							+ "node, npm, npx are not available here; use ExecuteNodeCode for JavaScript. "
+							+ "Capture output via the tool result, not shell redirects.",
 					objectSchema(props(prop("command", stringProp(
 							"Single command to execute. Shell chains, pipes, redirects, and command substitution are blocked.")),
 							prop("description", stringProp("Short reason for running the command."))),
 							List.of("command")),
 					PlatformAgentToolHandlers::bashCommand));
 		}
+		if (isPythonToolEnabled()) {
+			add(tools, handler("ExecutePythonCode",
+					"Executes inline Python in the platform's managed Python runtime. Python state persists "
+							+ "across calls in this room during the current login session while the managed worker "
+							+ "remains alive; use files under ROOT "
+							+ "for durable state. The bare ROOT and "
+							+ "USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the "
+							+ "agent working directory and USER_ROOT is the authenticated user's asset-app root. "
+							+ "APP_ROOT is additionally available when the insight has a current app context. "
+							+ "smss_get_runtime_var is also available for thread-local access. The value of the "
+							+ "last expression is returned.",
+					objectSchema(props(prop("code", stringProp("Inline Python source to execute."))), List.of("code")),
+					PlatformAgentToolHandlers::executePythonCode));
+		}
 		if (NodeUtils.isNodeToolEnabled()) {
 			add(tools, handler("ExecuteNodeCode",
 					"Executes JavaScript in the platform's isolated Node.js environment. State persists across "
-							+ "calls within this conversation (assign to globalThis for durable state when using "
-							+ "top-level await). The value of the last expression is returned (use an explicit "
-							+ "'return' with top-level await); console output is captured and returned too. "
-							+ "require() resolves only against the curated platform packages: "
+							+ "calls in this room during the current login session while the managed worker remains "
+							+ "alive. Put every require/const/let/class/function declaration "
+							+ "inside a single (async () => { ... })(); top-level declarations collide with earlier calls. "
+							+ "Use globalThis for durable state. Await all asynchronous work and return the result "
+							+ "from inside the function; console output is captured too. ROOT is the working directory; "
+							+ "APP_ROOT is the project's assets directory and USER_ROOT is the user's assets directory "
+							+ "when available. Relative paths resolve to the working directory. Use path.join(ROOT, "
+							+ "\"<exact filename>\") for output files. Bare require() resolves against curated packages: "
 							+ NodeUtils.describeCuratedPackages() + ". There is no npm install.",
 					objectSchema(props(
 							prop("code", stringProp("JavaScript source to execute.")),
@@ -331,6 +372,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: path is required";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		saveTextFile(file, content, tc);
 		return "Wrote file: " + tc.toRelative(file.getAbsolutePath());
 	}
@@ -350,6 +392,7 @@ final class PlatformAgentToolHandlers {
 			newString = "";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -390,6 +433,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: too many edits (" + edits.length() + " > " + MAX_MULTI_EDITS + ")";
 		}
 		File file = tc.resolve(filePath);
+		tc.requireWritable(file);
 		if (!file.exists() || !file.isFile()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -443,6 +487,8 @@ final class PlatformAgentToolHandlers {
 		}
 		File source = tc.resolve(filePath);
 		File target = tc.resolve(newValue);
+		tc.requireWritable(source);
+		tc.requireWritable(target);
 		if (!source.exists()) {
 			return "Error: file not found: " + filePath;
 		}
@@ -461,6 +507,7 @@ final class PlatformAgentToolHandlers {
 			return "Error: path is required";
 		}
 		File target = tc.resolve(filePath);
+		tc.requireWritable(target);
 		if (!target.exists()) {
 			return "Error: path not found: " + filePath;
 		}
@@ -637,13 +684,72 @@ final class PlatformAgentToolHandlers {
 		if (!isWithinRoot(normalizePath(cmdUtil.getWorkingDir()), tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
 		}
-		String output = cmdUtil.executeCommand(command);
+		String[] commandResult = cmdUtil.executeCommandWithStatus(command);
+        String output = commandResult[1];
+        if (!Boolean.parseBoolean(commandResult[0])) output = "Error: " + (output == null || output.isBlank() ? "Command failed" : output);
 		String updatedDir = normalizePath(cmdUtil.getWorkingDir());
 		if (!isWithinRoot(updatedDir, tc.root)) {
 			cmdUtil.setWorkingDir(tc.root);
 			throw new IllegalArgumentException("Command attempted to navigate outside the working directory sandbox.");
 		}
 		return output == null ? "" : output;
+	}
+
+	private static String executePythonCode(Map<String, Object> params, ToolContext tc) {
+		if (!isPythonToolEnabled()) {
+			return "Error: ExecutePythonCode is disabled on this instance.";
+		}
+		String code = stringParam(params, "code");
+		if (code == null || code.trim().isEmpty()) {
+			return "Error: code is required";
+		}
+		if (code.length() > MAX_PYTHON_CODE_LENGTH) {
+			return "Error: code exceeds maximum length of " + MAX_PYTHON_CODE_LENGTH;
+		}
+		if (tc.ctx.getInsight() == null || tc.ctx.getInsight().getUser() == null) {
+			return "Error: no user is associated with this agent run";
+		}
+
+		try {
+			Insight executionInsight = tc.ctx.getInsight();
+			User user = executionInsight.getUser();
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getPythonSocketClient(true);
+						PyTranslator translator = new PyTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(code);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
+			return formatPythonOutput(output);
+		} catch (Exception e) {
+			logger.warn("ExecutePythonCode failed", e);
+			String message = e.getMessage() != null ? e.getMessage() : e.toString();
+			return "Error: " + message;
+		}
+	}
+
+	private static String formatPythonOutput(Object output) {
+		String formatted;
+		if (output == null || "\"\"".equals(output)) {
+			formatted = "(no output)";
+		} else if (output instanceof String) {
+			formatted = (String) output;
+		} else {
+			try {
+				formatted = JSONObject.valueToString(output);
+			} catch (Exception e) {
+				formatted = output.toString();
+			}
+		}
+		if (formatted.length() > MAX_PYTHON_OUTPUT_LENGTH) {
+			String marker = "\n[output truncated at " + MAX_PYTHON_OUTPUT_LENGTH + " characters]";
+			return formatted.substring(0, MAX_PYTHON_OUTPUT_LENGTH - marker.length()) + marker;
+		}
+		return formatted;
 	}
 
 	private static String executeNodeCode(Map<String, Object> params, ToolContext tc) {
@@ -669,14 +775,37 @@ final class PlatformAgentToolHandlers {
 			return "Error: no user is associated with this agent run";
 		}
 		try {
-			prerna.tcp.client.SocketClient sc = user.getNodeSocketClient(true);
-			NodeTranslator translator = new NodeTranslator(sc, tc.ctx.getInsight());
-			Object output = translator.runScript(tc.ctx.getInsight(), code, timeoutSeconds * 1000L);
+			Insight executionInsight = tc.ctx.getInsight();
+			long timeoutMs = timeoutSeconds * 1000L;
+			Object output = AgentCodeExecutionContext.executeForRoom(tc.ctx.getRoom(), executionInsight, tc.root,
+					roomInsight -> {
+						SocketClient sc = user.getNodeSocketClient(true);
+						NodeTranslator translator = new NodeTranslator(sc, roomInsight);
+						try {
+							return translator.runScript(executionInsight, code, timeoutMs, tc.root);
+						} catch (RuntimeException e) {
+							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
+							throw e;
+						}
+					});
 			return formatNodeOutput(output);
 		} catch (Exception e) {
 			logger.warn("ExecuteNodeCode failed", e);
 			String message = e.getMessage() != null ? e.getMessage() : e.toString();
 			return "Error: " + message;
+		}
+	}
+
+	private static void interruptRoomExecutionIfCancelled(SocketClient socketClient, Insight roomInsight,
+			AgentRunContext ctx) {
+		if (!Thread.currentThread().isInterrupted()) {
+			return;
+		}
+		try {
+			socketClient.interruptInsightJob(roomInsight.getInsightId(), ctx.getRunId());
+		} catch (RuntimeException e) {
+			logger.warn("Failed to interrupt managed code execution for room '{}' and run '{}'",
+					ctx.getRoom().getId(), ctx.getRunId(), e);
 		}
 	}
 
@@ -919,6 +1048,7 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static void saveTextFile(File file, String content, ToolContext tc) {
+		tc.requireWritable(file);
 		if (content == null) {
 			content = "";
 		}
@@ -1039,7 +1169,9 @@ final class PlatformAgentToolHandlers {
 
 	private static String validateCommand(String command) {
 		if (containsUnquoted(command, '>') || containsUnquoted(command, '<')) {
-			return "Redirects (>, <, >>) are not allowed. Use curl/wget -o to write files.";
+			return "Redirects (>, <, >>, 2>&1) are not allowed. Capture output via the tool result, "
+					+ "not > or 2>&1. Use WriteFile for text, curl -o or wget -O with working-directory-relative "
+					+ "paths for downloads.";
 		}
 		if (containsUnquoted(command, '|') || containsUnquoted(command, ';') || containsUnquotedSequence(command, "&&")
 				|| containsUnquotedSequence(command, "||")) {
@@ -1054,17 +1186,20 @@ final class PlatformAgentToolHandlers {
 		for (String token : tokenize(command)) {
 			String clean = stripQuotes(token);
 			if (clean.startsWith("/") || clean.startsWith("~")) {
-				return "Absolute paths and home-directory paths are not allowed: " + clean;
+				return "Absolute paths and home-directory paths are not allowed: " + clean
+						+ ". Use working-directory-relative paths (for example, deck.pptx or scripts/deck.js).";
 			}
 			if (clean.contains("..")) {
-				return "Parent directory traversal (..) is not allowed: " + clean;
+				return "Parent directory traversal (..) is not allowed: " + clean
+						+ ". Use paths within the working directory.";
 			}
 		}
 		String[] parts = command.trim().split("\\s+");
 		if (parts.length > 0) {
 			String cmd = stripQuotes(parts[0]);
 			if (!cmd.isEmpty() && !ALLOWED_COMMANDS.contains(cmd)) {
-				return "Command not allowed: " + cmd;
+				return "Command not allowed: " + cmd + ". Allowed commands: " + describeAllowedCommands() + "."
+						+ (Set.of("node", "npm", "npx").contains(cmd) ? " Use ExecuteNodeCode for JavaScript." : "");
 			}
 		}
 		return null;
@@ -1079,6 +1214,11 @@ final class PlatformAgentToolHandlers {
 			return Boolean.parseBoolean(explicit);
 		}
 		return isTrue(Constants.CHROOT_ENABLE);
+	}
+
+	private static boolean isPythonToolEnabled() {
+		return !isTrue(Constants.DISABLE_TERMINAL) && !isTrue(Constants.DISABLE_PY_TERMINAL)
+				&& PyUtils.pyEnabled();
 	}
 
 	private static boolean isTrue(String property) {
@@ -1349,6 +1489,10 @@ final class PlatformAgentToolHandlers {
 				throw new IllegalArgumentException("Path escapes the working directory: " + clean);
 			}
 			return resolved;
+		}
+
+		private void requireWritable(File file) {
+			ReadOnlyPathPolicy.requireWritable(Path.of(root), file.toPath(), ctx.getAgentConfig().getReadOnlyPaths());
 		}
 
 		private String toRelative(String absolutePath) {

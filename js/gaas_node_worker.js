@@ -195,19 +195,53 @@ if (!isMainThread && workerData && workerData.role === 'executor') {
 		});
 
 		let script;
+		let wrapped = false;
 		try {
 			script = new vm.Script(code, { filename: 'agent_code.js' });
 		} catch (e) {
 			if (e instanceof SyntaxError) {
-				// top-level await / return: rerun the body inside an async
-				// function. NOTE: var/const declared here do not persist across
-				// calls; assign to globalThis for durable state.
-				script = new vm.Script('(async () => {\n' + code + '\n})()', { filename: 'agent_code.js' });
+				// Allow top-level await / return inside an async function. Plain
+				// scripts DO retain top-level const/let/class bindings; declarations
+				// inside this wrapper do not. Use globalThis for durable state.
+				try {
+					script = new vm.Script('(async () => {\n' + code + '\n})()', { filename: 'agent_code.js' });
+					wrapped = true;
+				} catch (ignored) {
+					throw e; // a genuine syntax error: preserve the original diagnostic
+				}
 			} else {
 				throw e;
 			}
 		}
-		let result = script.runInContext(context);
+		let result;
+		try {
+			result = script.runInContext(context);
+		} catch (e) {
+			// Redeclaration against an earlier call throws during scope
+			// instantiation, before this script executes any statements. Retry
+			// exactly once in a fresh function scope. VM errors cross realms,
+			// so instanceof SyntaxError does not recognize them here.
+			const firstFrame = e && typeof e.stack === 'string' ? e.stack.match(/\n\s+at ([^\n]+)/) : null;
+			// V8 reports function/var instantiation conflicts at the start of
+			// the script; const/let/class conflicts start at runInContext.
+			const scopeError = firstFrame && (firstFrame[1].startsWith('Script.runInContext (')
+				|| (firstFrame[1] === 'agent_code.js:1:1' && e.stack.startsWith('agent_code.js:1\n')));
+			if (!wrapped && util.types.isNativeError(e) && e.name === 'SyntaxError'
+				&& /has already been declared/.test(e.message)
+				&& scopeError) {
+				// SyntaxErrors from eval() or a throw inside the script have an
+				// executed code location; never replay those statements.
+				// Direct eval keeps the identical (already compiled) plain source
+				// local to the IIFE and preserves its completion value. Merely
+				// inserting the body in an IIFE drops a trailing expression's
+				// promise, releasing the cwd guard before e.g. writeFile finishes.
+				script = new vm.Script('(async () => { return eval(' + JSON.stringify(code) + '); })()',
+					{ filename: 'agent_code.js' });
+				result = script.runInContext(context);
+			} else {
+				throw e;
+			}
+		}
 		if (result && typeof result.then === 'function') {
 			result = await result;
 		}
@@ -290,6 +324,71 @@ let client = null;
 let lastActivity = Date.now();
 let shuttingDown = false;
 
+// cwd is process-wide, including executor threads. Hold it until every exec
+// started in that directory has finished (or its thread has actually exited).
+let inFlightExecutions = 0;
+let inFlightRoot = null;
+const deferredExecutors = new Set();
+let pumpScheduled = false;
+
+function wakeDeferredExecutors() {
+	if (pumpScheduled || shuttingDown) {
+		return;
+	}
+	pumpScheduled = true;
+	setImmediate(function () {
+		pumpScheduled = false;
+		const waiting = Array.from(deferredExecutors);
+		deferredExecutors.clear();
+		waiting.forEach(function (executor) { executor.pump(); });
+	});
+}
+
+function acquireWorkingDirectory(job) {
+	let root = inFlightRoot;
+	try {
+		root = process.cwd();
+		const requested = job.payload.runtime_vars && job.payload.runtime_vars.ROOT;
+		if (typeof requested === 'string' && requested && fs.statSync(requested).isDirectory()) {
+			root = fs.realpathSync(requested);
+		}
+	} catch (err) {
+		log('DEBUG', 'keeping cwd for insight ' + job.payload.insightId + ': ' + err.message);
+	}
+	if (inFlightExecutions > 0 && root !== inFlightRoot) {
+		return false;
+	}
+	if (inFlightExecutions === 0) {
+		try {
+			if (root && process.cwd() !== root) {
+				process.chdir(root);
+				log('DEBUG', 'cwd set to ' + root + ' for insight ' + job.payload.insightId);
+			}
+			root = process.cwd();
+		} catch (err) {
+			log('DEBUG', 'could not change cwd for insight ' + job.payload.insightId + ': ' + err.message);
+			// chdir is best-effort; do not fail the user's execution.
+			try { root = process.cwd(); } catch (ignored) { root = null; }
+		}
+		inFlightRoot = root;
+	}
+	inFlightExecutions++;
+	job.cwdHeld = true;
+	return true;
+}
+
+function releaseWorkingDirectory(job) {
+	if (!job || !job.cwdHeld) {
+		return;
+	}
+	job.cwdHeld = false;
+	inFlightExecutions--;
+	if (inFlightExecutions === 0) {
+		inFlightRoot = null;
+	}
+	wakeDeferredExecutors();
+}
+
 /* per-insight executor: one worker_thread holding one persistent vm context */
 class InsightExecutor {
 	constructor(insightId) {
@@ -297,29 +396,38 @@ class InsightExecutor {
 		this.queue = [];
 		this.current = null; // { payload, timer }
 		this.worker = null;
+		this.restarting = false;
+		this.closed = false;
 		this.spawn();
 	}
 
 	spawn() {
-		this.worker = new Worker(__filename, {
+		const worker = new Worker(__filename, {
 			workerData: {
 				role: 'executor',
 				nodeEnv: args.node_env || null,
 				insightFolder: args.insight_folder || null
 			}
 		});
+		this.worker = worker;
 		const self = this;
-		this.worker.on('message', function (msg) {
-			self.onWorkerMessage(msg);
+		worker.on('message', function (msg) {
+			if (self.worker === worker) {
+				self.onWorkerMessage(msg);
+			}
 		});
-		this.worker.on('error', function (err) {
+		worker.on('error', function (err) {
+			if (self.worker !== worker) { return; }
 			log('WARNING', 'executor error for insight ' + self.insightId + ': ' + err);
 			self.failCurrent('Executor thread error: ' + (err && err.stack ? err.stack : err));
+			self.restart();
 		});
-		this.worker.on('exit', function (code) {
+		worker.on('exit', function (code) {
+			if (self.worker !== worker) { return; }
 			if (self.current && !self.current.finished) {
 				self.failCurrent('Executor thread exited unexpectedly with code ' + code);
 			}
+			self.restart();
 		});
 	}
 
@@ -352,12 +460,14 @@ class InsightExecutor {
 			job.finished = true;
 			clearTimeout(job.timer);
 			this.current = null;
+			releaseWorkingDirectory(job);
 			if (msg.type === 'done') {
 				respond(job.payload, { result: msg.result, stdout: msg.stdout }, null);
 			} else {
 				respond(job.payload, { result: null, stdout: msg.stdout }, msg.message);
 			}
-			this.pump();
+			deferredExecutors.add(this);
+			wakeDeferredExecutors();
 		}
 	}
 
@@ -371,10 +481,17 @@ class InsightExecutor {
 	}
 
 	pump() {
-		if (this.current || this.queue.length === 0 || !this.worker) {
+		if (this.current || this.queue.length === 0 || !this.worker || this.closed || shuttingDown) {
 			return;
 		}
-		const payload = this.queue.shift();
+		const payload = this.queue[0];
+		const job = { payload: payload, finished: false, timer: null, cwdHeld: false };
+		if (!acquireWorkingDirectory(job)) {
+			deferredExecutors.add(this);
+			return;
+		}
+		deferredExecutors.delete(this);
+		this.queue.shift();
 		let timeoutMs = DEFAULT_EXEC_TIMEOUT_MS;
 		if (payload.runtime_vars && payload.runtime_vars.NODE_TIMEOUT_MS) {
 			const requested = parseInt(payload.runtime_vars.NODE_TIMEOUT_MS, 10);
@@ -383,24 +500,26 @@ class InsightExecutor {
 			}
 		}
 		const self = this;
-		const job = { payload: payload, finished: false, timer: null };
 		job.timer = setTimeout(function () {
 			if (job.finished) {
 				return;
 			}
-			job.finished = true;
-			self.current = null;
 			log('WARNING', 'execution timed out after ' + timeoutMs + 'ms for insight ' + self.insightId);
-			respond(payload, null, 'Execution timed out after ' + timeoutMs
+			self.failCurrent('Execution timed out after ' + timeoutMs
 				+ 'ms. The execution context for this insight was reset.');
 			self.restart();
 		}, timeoutMs);
 		this.current = job;
-		this.worker.postMessage({
-			type: 'exec',
-			code: String(payload.payload && payload.payload.length > 0 ? payload.payload[0] : ''),
-			runtimeVars: payload.runtime_vars || {}
-		});
+		try {
+			this.worker.postMessage({
+				type: 'exec',
+				code: String(payload.payload && payload.payload.length > 0 ? payload.payload[0] : ''),
+				runtimeVars: payload.runtime_vars || {}
+			});
+		} catch (err) {
+			this.failCurrent('Could not dispatch execution: ' + err.message);
+			this.restart();
+		}
 	}
 
 	failCurrent(message) {
@@ -408,45 +527,67 @@ class InsightExecutor {
 		if (job && !job.finished) {
 			job.finished = true;
 			clearTimeout(job.timer);
-			this.current = null;
 			respond(job.payload, null, message);
 		}
 	}
 
 	/* hard-kill the thread (timeout / interrupt) and start a fresh context */
 	restart() {
+		if (this.restarting) { return; }
+		this.restarting = true;
 		const stale = this.worker;
+		const job = this.current;
 		this.worker = null;
-		if (stale) {
-			stale.terminate().catch(function () { /* already gone */ });
+		this.current = null;
+		const self = this;
+		let stopped = false;
+		function onStopped() {
+			if (stopped) { return; }
+			stopped = true;
+			// terminate() is asynchronous. Releasing earlier lets another room
+			// change cwd while the cancelled thread can still write files.
+			releaseWorkingDirectory(job);
+			self.restarting = false;
+			if (!shuttingDown && !self.closed) {
+				self.spawn();
+				deferredExecutors.add(self);
+				wakeDeferredExecutors();
+			}
 		}
-		if (!shuttingDown) {
-			this.spawn();
-			this.pump();
+		if (stale) {
+			stale.once('exit', onStopped);
+			stale.terminate().then(onStopped).catch(function (err) {
+				log('WARNING', 'could not terminate executor for insight ' + self.insightId + ': ' + err);
+				// Retain the cwd guard until the exit event confirms it stopped.
+			});
+		} else {
+			onStopped();
 		}
 	}
 
 	/* user-driven interrupt: drop queued work too, no responses owed */
 	interrupt() {
 		this.queue = [];
+		deferredExecutors.delete(this);
 		const job = this.current;
 		if (job && !job.finished) {
 			// Java already released the waiting caller before sending the
 			// interrupt, so no response frame is owed for this epoc
 			job.finished = true;
 			clearTimeout(job.timer);
-			this.current = null;
 		}
 		this.restart();
 	}
 
 	shutdown() {
+		this.closed = true;
 		this.queue = [];
-		const stale = this.worker;
-		this.worker = null;
-		if (stale) {
-			stale.terminate().catch(function () { /* already gone */ });
+		deferredExecutors.delete(this);
+		if (this.current) {
+			this.current.finished = true;
+			clearTimeout(this.current.timer);
 		}
+		this.restart();
 	}
 }
 
