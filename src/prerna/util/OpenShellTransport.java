@@ -459,26 +459,49 @@ public final class OpenShellTransport {
 		pb.environment().putAll(cliEnv());
 		pb.redirectErrorStream(true);
 		Process p = pb.start();
+
+		// Read on a separate thread. A blocking readLine() here hangs the CALLER --
+		// and because close() also calls run(), a wedged CLI child used to deadlock the
+		// failure path itself: the request thread sat in readLine() inside close() with
+		// no timeout, and the sandbox was never cleaned up. Measured 2026-09-28.
 		StringBuilder out = new StringBuilder();
-		try (java.io.BufferedReader r = new java.io.BufferedReader(
-				new java.io.InputStreamReader(p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
-			String line;
-			while ((line = r.readLine()) != null) {
-				out.append(line).append('\n');
+		Thread reader = new Thread(() -> {
+			try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+					p.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					synchronized (out) {
+						out.append(line).append('\n');
+					}
+				}
+			} catch (IOException ignored) {
+				// stream closed with the process; the exit code carries the outcome
 			}
-		}
+		}, "openshell-cli-" + cmd.get(0));
+		reader.setDaemon(true);
+		reader.start();
+
 		if (!p.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
 			p.destroyForcibly();
+			reader.interrupt();
 			throw new IOException("timed out after " + timeoutSeconds + "s: " + String.join(" ", cmd));
 		}
+		// Give the reader a moment to drain what the process wrote before it exited.
+		reader.join(2000);
 		if (p.exitValue() != 0) {
 			// A sandbox that already exists is the normal re-entry case, not a failure.
-			String lower = out.toString().toLowerCase();
+			String collected;
+			synchronized (out) {
+				collected = out.toString();
+			}
+			String lower = collected.toLowerCase();
 			if (!lower.contains("already exists")) {
 				throw new IOException("command failed (" + p.exitValue() + "): " + String.join(" ", cmd) + "\n"
-						+ out.toString().trim());
+						+ collected.trim());
 			}
 		}
-		return out.toString().trim();
+		synchronized (out) {
+			return out.toString().trim();
+		}
 	}
 }
