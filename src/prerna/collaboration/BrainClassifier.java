@@ -68,7 +68,7 @@ public interface BrainClassifier {
 	record Cutoffs(double fyiAt, double asksAt, double automatedAt) {
 	}
 
-	// defaults tuned on brain-mail-v1 with the laya Jev model
+	// defaults tuned on brain-mail-v1 with a Jev (TypeSafe) model
 	default Cutoffs cutoffs() {
 		return new Cutoffs(0.6, 0.4, 0.8);
 	}

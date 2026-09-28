@@ -33,7 +33,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListTopics(status=["active"], accountId=["google"], limit=[30], offset=[0]);
+// BrainListTopics(status=["active"], accountId=["..."], limit=[30], offset=[0]);
 public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 
 	private static final String STATUS = "status";

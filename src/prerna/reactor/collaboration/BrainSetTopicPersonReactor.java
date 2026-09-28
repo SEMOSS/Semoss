@@ -31,7 +31,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Google lead"]);
+// BrainSetTopicPerson(topicId=["..."], personId=["..."], state=["member"], role=["Client lead"]);
 public class BrainSetTopicPersonReactor extends AbstractCollaborationReactor {
 
 	private static final String TOPIC_ID = "topicId";
