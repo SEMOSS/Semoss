@@ -44,7 +44,8 @@ public class BrainSuggestTopicsReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Onboarding: writes suggested topics (and members) from imported headers by rules, linked to saved "
-				+ "accounts; accept one by saving it with status active. Also returns unsaved account suggestions";
+		return "Onboarding: writes suggested topics (and members) that the platform text model groups from imported "
+				+ "headers, linked to saved accounts; accept one by saving it with status active. No text model set means "
+				+ "no topics and a modelError. Also returns unsaved account suggestions";
 	}
 }

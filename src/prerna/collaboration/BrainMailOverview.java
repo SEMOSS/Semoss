@@ -49,15 +49,11 @@ public final class BrainMailOverview {
 	private static final int TOP = 15;
 	private static final int SUGGESTIONS = 25;
 	private static final int OFTEN = 5;
+	private static final int OTHER_MIN = 2;
 	private static final int DOMAIN_SENDERS = 2;
 	private static final int DIRECTORY_LOOKUPS = 200;
 
 	private BrainMailOverview() {
-	}
-
-	// an automated sender by its local part (noreply1@, weekly-digest@, buildbot@)
-	static boolean isAutomated(String address) {
-		return BrainSenderTyping.automatedAddress(address);
 	}
 
 	public static Map<String, Object> overview(User user, int days) throws Exception {
@@ -129,6 +125,10 @@ public final class BrainMailOverview {
 			if (!addressedTo(h, mine)) {
 				s.put("notToYou", (Integer) s.getOrDefault("notToYou", 0) + 1);
 			}
+			// Focused Inbox put it in Other
+			if ("other".equals(h.get("inferenceClassification"))) {
+				s.put("other", (Integer) s.getOrDefault("other", 0) + 1);
+			}
 		}
 		List<Map<String, Object>> ranked = new ArrayList<>(senders.values());
 		ranked.sort((x, y) -> (Integer) y.get("count") - (Integer) x.get("count"));
@@ -137,7 +137,8 @@ public final class BrainMailOverview {
 				.map(r -> (String) r.get("address")).toList());
 		Map<String, Map<String, Object>> known = directory == null ? Map.of() : directory.entries();
 
-		// keep-out suggestions: automated addresses, and frequent outside senders you never wrote to
+		// keep-out suggestions: shared mailboxes and lists, mail Focused Inbox files as Other, and frequent outside
+		// senders you never wrote to
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(owner.getValue0(), owner.getValue1());
 		List<Map<String, Object>> keepOut = new ArrayList<>();
 		Map<String, Integer> automatedByDomain = new HashMap<>();
@@ -147,15 +148,16 @@ public final class BrainMailOverview {
 			if ("person".equals(kind)) {
 				continue;
 			}
-			boolean automated = "mailbox".equals(kind) || "list".equals(kind)
-					|| (kind == null && (isAutomated(a) || (BrainSenderTyping.automatedName((String) s.get("name"))
-							&& !BrainSenderTyping.personName((String) s.get("name")))));
-			// never someone who writes to you by name: a client who writes often is still a client
 			int count = (Integer) s.get("count");
+			int other = (Integer) s.getOrDefault("other", 0);
+			boolean automated = "mailbox".equals(kind) || "list".equals(kind)
+					|| (kind == null && !Boolean.TRUE.equals(s.get("youWrote")) && other >= OTHER_MIN && 2 * other >= count);
+			// never someone who writes to you by name: a client who writes often is still a client
 			boolean ignored = !automated && count >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
 					&& 2 * (Integer) s.getOrDefault("notToYou", 0) >= count
 					&& !ownOrg.isMine(BrainMailImport.domain(a));
 			s.remove("notToYou");
+			s.remove("other");
 			if (!automated && !ignored) {
 				continue;
 			}
@@ -169,7 +171,7 @@ public final class BrainMailOverview {
 			suggestion.put("name", s.get("name"));
 			suggestion.put("count", s.get("count"));
 			suggestion.put("reason", "mailbox".equals(kind) ? "shared mailbox" : "list".equals(kind) ? "distribution list"
-					: automated ? "automated address" : "writes often, you never wrote back");
+					: automated ? "Focused Inbox files it as Other" : "writes often, you never wrote back");
 			suggestion.put("alreadyKeptOut", BrainRulesGate.neverRule(rules, a, null, null) != null);
 			keepOut.add(suggestion);
 		}

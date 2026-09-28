@@ -105,7 +105,7 @@ public final class BrainThreadClassifier {
 				job.count("total", total);
 				job.step("classifying", total == 0 ? 99 : Math.max(1, 99 * done / total));
 			});
-			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors" }) {
+			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors", "automatedPeople" }) {
 				job.count(key, summary.get(key));
 			}
 		});
@@ -132,10 +132,6 @@ public final class BrainThreadClassifier {
 		if (!topics.isEmpty() && topics.size() < FEW_TOPICS) {
 			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
 					"Not about the other topics: other work, personal, travel, or automated mail."));
-		}
-		if (!dryRun) {
-			// automated and list senders are left to rules, so no model call is spent on them
-			BrainSenderTyping.run(ownerId, ownerType);
 		}
 		Set<String> vips = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? "
 				+ "AND OWNER_TYPE = ? AND IS_VIP = ?", rs -> rs.getString(1), ownerId, ownerType, true));
@@ -167,7 +163,12 @@ public final class BrainThreadClassifier {
 		} finally {
 			pool.shutdown();
 		}
-		return summary(classifier.version(), dryRun, results);
+		Map<String, Object> summary = summary(classifier.version(), dryRun, results);
+		if (!dryRun) {
+			// senders of only automated threads leave People, Topics and Follow
+			summary.put("automatedPeople", BrainSenderTyping.fromThreads(ownerId, ownerType));
+		}
+		return summary;
 	}
 
 	private record Self(String personId, String name, Set<String> addresses) {
@@ -196,7 +197,7 @@ public final class BrainThreadClassifier {
 					row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
 					return row;
 				}, ctx.ownerId(), ctx.ownerType(), threadId);
-		// already known to be automated (sender typing or an earlier run): no model call
+		// marked automated by an earlier run: no model call
 		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
 		}

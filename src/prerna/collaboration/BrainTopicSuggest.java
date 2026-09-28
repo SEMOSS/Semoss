@@ -36,44 +36,27 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.util.Constants;
 
-// onboarding topics: the platform text model when one is set (BrainTopicModel), else rules. The classifier picks
-// among topics, it does not name them. Rules:
-// accounts from outside domains (returned, the owner saves them) and topics from recurring subject prefixes and
-// account threads (written as STATUS suggested, ORIGIN brain, with suggested members). The classifier files only
-// against accepted topics.
+// onboarding: accounts from outside domains (returned, the owner saves them), and topics the platform text model
+// (BrainTopicModel, COLLAB_LLM_ENGINE_ID) groups and names, written as STATUS suggested, ORIGIN brain, with suggested
+// members. No text model means no topic suggestions. The classifier files only against accepted topics.
 public final class BrainTopicSuggest {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainTopicSuggest.class);
 
 	private static final int MAX_TOPICS = 12;
-	private static final int MIN_THREADS = 2;
 	private static final int ACCOUNT_MIN_PEOPLE = 2;
 	private static final int ACCOUNT_MIN_THREADS = 3;
-	private static final int ACCOUNT_TOPIC_MIN_THREADS = 3;
 	private static final int MEMBERS = 6;
 	private static final Set<String> FREEMAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
 			"live.com", "msn.com", "yahoo.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com");
-	// subject prefixes that are mail machinery, not work
-	private static final Set<String> STOP_PREFIXES = Set.of("accepted", "declined", "tentative", "tentatively accepted",
-			"canceled", "cancelled", "updated invitation", "invitation", "updated", "reminder", "action required",
-			"action needed", "fyi", "urgent", "important", "automatic reply", "out of office", "undeliverable", "read",
-			"new", "update", "request", "approval required", "approved", "rejected", "notice", "notification", "alert",
-			"total time", "response required", "sample", "test");
-	// [EXTERNAL], [CAUTION] and similar banner tags; reply and forward prefixes
-	private static final Pattern TAG = Pattern.compile("^\\s*\\[(external|caution|ext|warning|spam|secure)\\]\\s*",
-			Pattern.CASE_INSENSITIVE);
-	private static final Pattern REPLY = Pattern.compile("^\\s*(re|fw|fwd|aw|wg)\\s*:\\s*", Pattern.CASE_INSENSITIVE);
-	private static final Pattern BRACKET = Pattern.compile("^\\s*\\[([^\\]]{2,40})\\]");
-	private static final Pattern PREFIX = Pattern.compile("^([^:|]{2,40}?)\\s*(:|\\s-\\s|\\s\\|\\s)");
 
 	private BrainTopicSuggest() {
 	}
@@ -172,8 +155,7 @@ public final class BrainTopicSuggest {
 		for (Thread t : threads.values()) {
 			for (String p : t.people()) {
 				String d = org(BrainMailImport.domain(emails.get(p)));
-				if (d == null || ownOrg.isMine(d) || FREEMAIL.contains(d) || neverDomains.contains(d)
-						|| BrainSenderTyping.automatedAddress(emails.get(p))) {
+				if (d == null || ownOrg.isMine(d) || FREEMAIL.contains(d) || neverDomains.contains(d)) {
 					continue;
 				}
 				domainPeople.computeIfAbsent(d, k -> new HashSet<>()).add(p);
@@ -215,88 +197,32 @@ public final class BrainTopicSuggest {
 			return out;
 		}
 
-		// topics: threads sharing a subject prefix, then leftover threads of one account
-		Map<String, List<Thread>> byPrefix = new LinkedHashMap<>();
-		Map<String, Map<String, Integer>> casing = new HashMap<>();
-		for (Thread t : threads.values()) {
-			String prefix = prefix(t.subject());
-			if (prefix != null) {
-				String key = prefix.toLowerCase();
-				byPrefix.computeIfAbsent(key, k -> new ArrayList<>()).add(t);
-				casing.computeIfAbsent(key, k -> new HashMap<>()).merge(prefix, 1, Integer::sum);
-			}
-		}
-		List<Candidate> candidates = new ArrayList<>();
-		Set<String> covered = new HashSet<>();
-		Set<String> firstNames = new HashSet<>();
-		CollaborationDbUtils.query("SELECT DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
-			String n = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
-			if (n != null) {
-				// "Doe, Jane" and "Jane Doe" both give jane
-				String first = n.contains(",") ? n.substring(n.indexOf(',') + 1).trim() : n.trim();
-				first = first.split("\\s+")[0].toLowerCase();
-				if (!first.isEmpty()) {
-					firstNames.add(first);
-				}
-			}
-			return null;
-		}, ownerId, ownerType);
-		for (Map.Entry<String, List<Thread>> e : byPrefix.entrySet()) {
-			if (STOP_PREFIXES.contains(e.getKey()) || firstNames.contains(e.getKey())) {
-				continue;
-			}
-			// a conversation: the owner wrote on one, or two or more people wrote
-			Set<String> wrote = new HashSet<>();
-			e.getValue().forEach(t -> wrote.addAll(writers.getOrDefault(t.id(), Set.of())));
-			wrote.removeAll(automated);
-			if (!wrote.contains(self) && wrote.size() < 2) {
-				continue;
-			}
-			if (e.getValue().size() >= MIN_THREADS) {
-				String name = casing.get(e.getKey()).entrySet().stream().max(Map.Entry.comparingByValue()).get().getKey();
-				candidates.add(new Candidate("prefix:" + e.getKey(), name, e.getValue(), List.of(e.getKey()),
-						e.getValue().size() + " threads start with \"" + name + "\""));
-				e.getValue().forEach(t -> covered.add(t.id()));
-			}
-		}
-		for (String d : domainThreads.keySet()) {
-			List<Thread> rest = domainThreads.get(d).stream().filter(id -> !covered.contains(id)).map(threads::get)
-					.collect(Collectors.toList());
-			if (rest.size() >= ACCOUNT_TOPIC_MIN_THREADS) {
-				String account = accountByDomain.containsKey(d) ? accountNames.get(accountByDomain.get(d)) : label(d);
-				candidates.add(new Candidate("account:" + d, account, rest, List.of(d.substring(0, d.indexOf('.') < 0
-						? d.length() : d.indexOf('.'))), rest.size() + " other threads with people from " + d));
-			}
-		}
-		// the text model groups and names topics when one is set; rules are the fallback
-		String source = "rules";
+		List<Candidate> candidates;
 		try {
 			String engineId = BrainTopicModel.engine(user);
-			if (engineId != null) {
-				List<Candidate> proposed = modelCandidates(user, engineId, ownerId, ownerType, threads, writers, vips,
-						emails, accountByDomain, accountNames, ownOrg, self, topicNames);
-				if (!proposed.isEmpty()) {
-					candidates = proposed;
-					source = "model";
-				}
+			if (engineId == null) {
+				out.put("topics", List.of());
+				out.put("modelError", "No topic model is set up (" + Constants.COLLAB_LLM_ENGINE_ID
+						+ "); ask an admin to set one");
+				return out;
 			}
+			candidates = modelCandidates(user, engineId, ownerId, ownerType, threads, writers, vips, emails,
+					accountByDomain, accountNames, ownOrg, self, topicNames);
 		} catch (RuntimeException e) {
-			classLogger.warn("Topic model failed; using rules", e);
+			classLogger.warn("Topic model failed", e);
+			out.put("topics", List.of());
 			out.put("modelError", e.getMessage());
+			return out;
 		}
-		out.put("source", source);
 
-		// subject topics first; an account catch-all only when that account has no subject topic
-		// threads with a VIP or the owner on them rank a topic first; subject topics before account catch-alls
+		// threads with a VIP or the owner on them rank a topic first
 		java.util.function.ToIntFunction<Candidate> weight = c -> (int) c.threads().stream()
 				.filter(t -> t.people().stream().anyMatch(vips::contains)
 						|| writers.getOrDefault(t.id(), Set.of()).contains(self))
 				.count();
-		candidates.sort((x, y) -> x.key().startsWith("prefix:") != y.key().startsWith("prefix:")
-				? (x.key().startsWith("prefix:") ? -1 : 1)
-				: weight.applyAsInt(y) != weight.applyAsInt(x) ? weight.applyAsInt(y) - weight.applyAsInt(x)
-						: y.threads().size() - x.threads().size());
-		Set<String> accountsWithTopic = new HashSet<>();
+		candidates.sort((x, y) -> weight.applyAsInt(y) != weight.applyAsInt(x) ? weight.applyAsInt(y) - weight.applyAsInt(x)
+				: y.threads().size() - x.threads().size());
+
 
 		List<Map<String, Object>> written = new ArrayList<>();
 		Timestamp now = CollaborationDbUtils.now();
@@ -328,15 +254,9 @@ public final class BrainTopicSuggest {
 					.anyMatch(d -> d != null && !ownOrg.isMine(d));
 			List<String> members = byPerson.entrySet().stream()
 					.filter(e -> e.getValue() >= Math.max(2, c.threads().size() / 3)
-							&& !automated.contains(e.getKey()) && !BrainSenderTyping.automatedAddress(emails.get(e.getKey())))
+							&& !automated.contains(e.getKey()))
 					.sorted((x, y) -> y.getValue() - x.getValue()).limit(MEMBERS).map(Map.Entry::getKey)
 					.collect(Collectors.toList());
-			if (c.key().startsWith("account:") && accountId != null && accountsWithTopic.contains(accountId)) {
-				continue;
-			}
-			if (accountId != null) {
-				accountsWithTopic.add(accountId);
-			}
 			String kind = outside ? "client" : "internal";
 			CollaborationDbUtils.inTransaction(conn -> {
 				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, SHORT_NAME, "
@@ -428,33 +348,6 @@ public final class BrainTopicSuggest {
 					p.why().isEmpty() ? list.size() + " threads grouped by the topic model" : p.why()));
 		}
 		return out;
-	}
-
-	// "Northwind Migration" from "[EXTERNAL] RE: Northwind Migration: the cutover plan"; "[Proj X] ..." too
-	static String prefix(String subject) {
-		if (subject == null) {
-			return null;
-		}
-		String s = subject;
-		for (int i = 0; i < 4; i++) {
-			String before = s;
-			s = REPLY.matcher(TAG.matcher(s).replaceFirst("")).replaceFirst("");
-			if (s.equals(before)) {
-				break;
-			}
-		}
-		Matcher bracket = BRACKET.matcher(s);
-		String prefix = bracket.find() ? bracket.group(1) : null;
-		if (prefix == null) {
-			Matcher m = PREFIX.matcher(s);
-			prefix = m.find() ? m.group(1) : null;
-		}
-		if (prefix == null) {
-			return null;
-		}
-		prefix = prefix.trim();
-		int words = prefix.split("\\s+").length;
-		return words >= 1 && words <= 5 && !REPLY.matcher(prefix + ":").find() ? prefix : null;
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example

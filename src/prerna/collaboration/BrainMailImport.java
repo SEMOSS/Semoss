@@ -185,10 +185,7 @@ public final class BrainMailImport {
 		directory.forEach(job::count);
 
 		job.step("people", 91);
-		// then the header rules for everyone the directory did not settle
-		Map<String, Object> typed = BrainSenderTyping.run(ownerId, ownerType);
-		job.count("automatedPeople", typed.get("automatedPeople"));
-		job.count("automatedThreads", typed.get("automatedThreads"));
+		// everyone the directory did not settle is ranked; the classifier later marks automated senders
 		BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
 		if (managerPersonId != null) {
 			job.count("managerPersonId", managerPersonId);
