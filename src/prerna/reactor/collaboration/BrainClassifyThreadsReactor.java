@@ -34,17 +34,17 @@ import prerna.collaboration.BrainThreadClassifier;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], engine=["..."], dryRun=[true]);
+// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], dryRun=[true]); the model is always
+// COLLAB_CLASSIFIER_ENGINE_ID
 public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 
 	private static final String THREAD_IDS = "threadIds";
-	private static final String ENGINE = "engine";
 	private static final String DRY_RUN = "dryRun";
 	private static final String ASYNC = "async";
 
 	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, ENGINE, DRY_RUN, ASYNC };
-		this.keyRequired = new int[] { 0, 0, 0, 0 };
+		this.keysToGet = new String[] { THREAD_IDS, DRY_RUN, ASYNC };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
@@ -57,22 +57,21 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 			if (dryRun) {
 				throw new IllegalArgumentException("A dry run returns its scores and cannot run in the background");
 			}
-			return mapResult(BrainThreadClassifier.start(user, threadIds, getString(ENGINE)));
+			return mapResult(BrainThreadClassifier.start(user, threadIds));
 		}
-		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, getString(ENGINE), dryRun));
+		return mapResult(BrainThreadClassifier.classify(user, this.insight, threadIds, dryRun));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Files threads under topics and creates work items with the Brain classifier (v0, pluggable model)";
+		return "Files threads under topics and creates work items with the platform classifier model "
+				+ "(COLLAB_CLASSIFIER_ENGINE_ID, a Jev/TypeSafe or chat model)";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (THREAD_IDS.equals(key)) {
 			return "Threads to classify; omit for every unmuted thread with no work item yet";
-		} else if (ENGINE.equals(key)) {
-			return "Model engine id (a Jev/TypeSafe model or any chat model); omit to use the platform classifier (COLLAB_CLASSIFIER_ENGINE_ID)";
 		} else if (DRY_RUN.equals(key)) {
 			return "true to return scores for every unmuted thread without writing anything";
 		} else if (ASYNC.equals(key)) {
