@@ -225,27 +225,20 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					// OPENSHELL applies to USER-AUTHORED python only -- the user's
-					// isolated analytics engine (User.pythonCPW) and project python.
-					// It deliberately does NOT apply to engine-owned workers:
-					// model engines, vector databases, guardrails and local function
-					// engines are SEMOSS's own code calling controlled SDKs, so they
-					// stay on the Tomcat side where they have always lived. They are
-					// trusted; the user's REPL is not.
+					// The jail is selected the same way the fakechroot and namespace
+					// jails have always been selected: by the chain below, on the
+					// SymlinkHelper the caller supplied. User-authored python gets one
+					// (User.startPythonSocketServerAndClient); engine-owned workers and
+					// Project python pass null and so are never jailed at all.
 					//
-					// `engineOwned` is the discriminator (set true by
-					// AbstractPythonModelEngine, AbstractVectorDatabaseEngine,
-					// PGVectorDatabaseEngine, AbstractPythonGuardrailReactorFunctionEngine
-					// and LocalPythonFunctionEngine). Without this guard the model
-					// engine was sandboxed too and AskRoom broke on an import the
-					// sandbox image does not carry -- observed 2026-09-28:
-					//   AskRoomReactor -> AbstractPythonModelEngine.startServer
-					//     -> ModuleNotFoundError: No module named 'openai'
-					String openshellMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-					if (!this.engineOwned && Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(openshellMode)) {
-						this.openshell = prerna.util.OpenShellTransport.forSession(this.serverDirectory != null
-								? this.serverDirectory
-								: Integer.toHexString(System.identityHashCode(this)));
+					// OPENSHELL is simply the third branch of that chain. The sandbox is
+					// created ahead of the worker, so the worker becomes the sandbox's
+					// canonical process instead of a child of Tomcat, and the socket
+					// client connects to the forwarded port. No udsPath is set, which is
+					// what selects the TCP branch below.
+					if (this.chrootSymlinkHelper != null && this.chrootSymlinkHelper.isExternalSandbox()) {
+						this.openshell = prerna.util.OpenShellTransport.forSession(
+								this.chrootSymlinkHelper.getUserChrootFolder());
 						try {
 							this.port = this.openshell.start();
 						} catch (Exception e) {

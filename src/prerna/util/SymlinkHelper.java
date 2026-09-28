@@ -55,6 +55,27 @@ import prerna.project.api.IProject;
 
 public class SymlinkHelper {
 
+	/**
+	 * Sandbox modes this user-level jail can be in.
+	 *
+	 * <p>
+	 * The distinction is <b>who supplies the {@link SymlinkHelper}</b>, not a flag checked at the call
+	 * site: {@code User.startPythonSocketServerAndClient} passes one for user-authored python, while
+	 * engine-owned workers (model engines, vector databases, guardrails, local function engines) and
+	 * {@code Project} pass {@code null}. That is existing semantics and the reason a user-authored
+	 * worker is the only one that ever reaches this class.
+	 */
+	public enum SandboxMode {
+		/** No kernel jail: fake chroot with symlinks. */
+		FAKECHROOT,
+		/** Namespace jail (nsjail/landlock style) with a control-socket injector. */
+		NAMESPACE,
+		/** External sandbox (OpenShell) created ahead of the worker; no in-process jail. */
+		OPENSHELL
+	}
+
+	private final SandboxMode sandboxMode;
+
 	private static final Logger classLogger = LogManager.getLogger(SymlinkHelper.class);
 
 	private String userChrootFolder = null;
@@ -75,8 +96,11 @@ public class SymlinkHelper {
 	 */
 	public SymlinkHelper(String targetDirName) {
 		this.userChrootFolder = targetDirName;
-		String sandboxMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-		this.injectMode = "NAMESPACE".equalsIgnoreCase(sandboxMode) || "NSJAIL".equalsIgnoreCase(sandboxMode);
+		// The mode is resolved once, here, because this object exists only for a
+		// user-authored worker. Callers that must NOT be jailed (engine-owned
+		// workers, Project python) pass a null helper and never reach this.
+		this.sandboxMode = resolveSandboxMode();
+		this.injectMode = this.sandboxMode == SandboxMode.NAMESPACE;
 
 		File targetDir = new File(Utility.normalizePath(userChrootFolder));
 		if (!targetDir.exists()) {
@@ -115,6 +139,39 @@ public class SymlinkHelper {
 
 	public boolean isInjectMode() {
 		return injectMode;
+	}
+
+	/** The user-level jail this helper's worker runs under. */
+	public SandboxMode getSandboxMode() {
+		return this.sandboxMode;
+	}
+
+	/**
+	 * True when the worker runs inside an external sandbox created ahead of it
+	 * (OpenShell), so no in-process jail is applied.
+	 */
+	public boolean isExternalSandbox() {
+		return this.sandboxMode == SandboxMode.OPENSHELL;
+	}
+
+	private static SandboxMode resolveSandboxMode() {
+		String mode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
+		if (mode == null || (mode = mode.trim()).isEmpty()) {
+			// Historically an unset mode means the plain fakechroot jail.
+			return SandboxMode.FAKECHROOT;
+		}
+		if (Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(mode)) {
+			return SandboxMode.OPENSHELL;
+		}
+		if ("NAMESPACE".equalsIgnoreCase(mode) || "NSJAIL".equalsIgnoreCase(mode)) {
+			return SandboxMode.NAMESPACE;
+		}
+		if ("FAKECHROOT".equalsIgnoreCase(mode)) {
+			return SandboxMode.FAKECHROOT;
+		}
+		// SECCOMP_ONLY and anything unrecognised keep the pre-existing fakechroot
+		// behaviour rather than silently gaining a jail.
+		return SandboxMode.FAKECHROOT;
 	}
 
 	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
