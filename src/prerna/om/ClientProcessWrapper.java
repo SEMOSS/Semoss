@@ -225,13 +225,24 @@ public class ClientProcessWrapper {
 			boolean serverRunning = debug && port > 0;
 			if (!serverRunning) {
 				if (nativePyServer) {
-					// OPENSHELL: the worker is the canonical main process of its own
-					// sandbox, not a child of Tomcat. Create/attach the sandbox, take
-					// the forwarded local port, and let the existing socket client
-					// connect to it exactly as the non-sandbox path does. No udsPath
-					// is set, which is what selects the TCP branch below.
+					// OPENSHELL applies to USER-AUTHORED python only -- the user's
+					// isolated analytics engine (User.pythonCPW) and project python.
+					// It deliberately does NOT apply to engine-owned workers:
+					// model engines, vector databases, guardrails and local function
+					// engines are SEMOSS's own code calling controlled SDKs, so they
+					// stay on the Tomcat side where they have always lived. They are
+					// trusted; the user's REPL is not.
+					//
+					// `engineOwned` is the discriminator (set true by
+					// AbstractPythonModelEngine, AbstractVectorDatabaseEngine,
+					// PGVectorDatabaseEngine, AbstractPythonGuardrailReactorFunctionEngine
+					// and LocalPythonFunctionEngine). Without this guard the model
+					// engine was sandboxed too and AskRoom broke on an import the
+					// sandbox image does not carry -- observed 2026-09-28:
+					//   AskRoomReactor -> AbstractPythonModelEngine.startServer
+					//     -> ModuleNotFoundError: No module named 'openai'
 					String openshellMode = Utility.getDIHelperProperty(Constants.SANDBOX_MODE);
-					if (Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(openshellMode)) {
+					if (!this.engineOwned && Constants.SANDBOX_MODE_OPENSHELL.equalsIgnoreCase(openshellMode)) {
 						this.openshell = prerna.util.OpenShellTransport.forSession(this.serverDirectory != null
 								? this.serverDirectory
 								: Integer.toHexString(System.identityHashCode(this)));
