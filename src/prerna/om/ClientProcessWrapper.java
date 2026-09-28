@@ -241,6 +241,13 @@ public class ClientProcessWrapper {
 								this.chrootSymlinkHelper.getUserChrootFolder());
 						try {
 							this.port = this.openshell.start();
+							// Same seam as the namespace injector below: the per-mode collaborator
+							// that receives every path symlinkFolder/symlinkProject would otherwise
+							// have symlinked. Assets registered before the worker existed are
+							// replayed by setTransport, which is why this happens here rather than
+							// before start().
+							this.chrootSymlinkHelper.setTransport(
+									new prerna.util.OpenShellTransporter(this.openshell));
 						} catch (Exception e) {
 							// Fail closed: never fall back to an in-Tomcat worker when the
 							// deployment asked for an external boundary.

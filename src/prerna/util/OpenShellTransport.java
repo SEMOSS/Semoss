@@ -401,6 +401,40 @@ public final class OpenShellTransport {
 	}
 
 	/**
+	 * Copy a host file or directory into this sandbox, preserving its absolute path.
+	 *
+	 * <p>
+	 * Used by {@link OpenShellTransporter} so that asset and project folders the worker refers to by
+	 * absolute path exist inside the sandbox. Idempotency is the caller's job
+	 * ({@code SymlinkHelper.activeTransports}); this method always transfers.
+	 *
+	 * @param absPath host path to copy
+	 * @return true when the CLI reported success
+	 */
+	public boolean upload(String absPath) {
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
+		// `sandbox upload <src> <dst>` copies src INTO dst, i.e. it appends basename(src).
+		// Passing dst == src therefore nests: uploading /a/b/app_root to /a/b/app_root
+		// produced /a/b/app_root/app_root/version/... (observed 2026-09-28, and the same
+		// shape as the earlier X.py -> /path/X.py/X.py trap). The destination must be the
+		// PARENT so the tree lands at the absolute path the worker expects.
+		String destination = java.nio.file.Paths.get(absPath).getParent() == null ? "/"
+				: java.nio.file.Paths.get(absPath).getParent().toString();
+		classLogger.info("Sandbox upload {} -> {}:{}", absPath, sandboxName, destination);
+		try {
+			String out = run(Arrays.asList(cli, "sandbox", "upload", sandboxName, absPath, destination), 300);
+			// `sandbox upload` prints a tick with its result; treat a non-zero exit as failure,
+			// which run() already raises as IOException.
+			classLogger.info("Sandbox upload result for {}: {}", absPath, out.trim());
+			return true;
+		} catch (Exception e) {
+			classLogger.error("Sandbox upload failed for " + absPath + ": " + e.getClass().getSimpleName() + ": "
+					+ e.getMessage(), e);
+			return false;
+		}
+	}
+
+	/**
 	 * Poll until the worker reports that it is serving, <b>without ever connecting to
 	 * the forwarded port</b>.
 	 *

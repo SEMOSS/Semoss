@@ -41,6 +41,8 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
@@ -83,6 +85,12 @@ public class SymlinkHelper {
 	private final boolean injectMode;
 	private SandboxInjector injector;
 	private final Map<String, Boolean> activeInjects = new LinkedHashMap<>();
+	/**
+	 * Paths already handed to the external sandbox. A project open, an insight and an MCP call all
+	 * re-symlink the same folders; without this the tree would be re-transferred on every request.
+	 */
+	private final Set<String> activeTransports = ConcurrentHashMap.newKeySet();
+	private SandboxTransporter transporter;
 
 	/**
 	 * Construct a SymlinkHelper bound to a user-specific chroot folder and run the
@@ -122,6 +130,29 @@ public class SymlinkHelper {
 		initalizeChrootFolder();
 		long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000L;
 		classLogger.info("Chroot init completed in {} ms for: {}", elapsedMs, userChrootFolder);
+	}
+
+	/**
+	 * Wire the per-mode collaborator that moves paths into an external sandbox.
+	 *
+	 * <p>
+	 * The exact counterpart of {@link #setInjector(SandboxInjector)}: both are set once by
+	 * {@code ClientProcessWrapper} when the worker starts, and both are replayed with everything
+	 * requested so far, because asset paths are registered before the worker exists.
+	 *
+	 * @param transporter the transporter for {@link SandboxMode#OPENSHELL}
+	 */
+	public synchronized void setTransport(SandboxTransporter transporter) {
+		this.transporter = transporter;
+		if (transporter != null && !activeTransports.isEmpty()) {
+			for (String absPath : activeTransports) {
+				try {
+					transporter.transport(absPath);
+				} catch (RuntimeException e) {
+					classLogger.warn("Skipping sandbox transport for {}", absPath, e);
+				}
+			}
+		}
 	}
 
 	public synchronized void setInjector(SandboxInjector injector) {
@@ -172,6 +203,45 @@ public class SymlinkHelper {
 		// SECCOMP_ONLY and anything unrecognised keep the pre-existing fakechroot
 		// behaviour rather than silently gaining a jail.
 		return SandboxMode.FAKECHROOT;
+	}
+
+	/**
+	 * The single place a path is handed to the active jail.
+	 *
+	 * <p>
+	 * Every {@code symlinkFolder}/{@code symlinkProject} caller routes through here, so this is the
+	 * seam that gives the sandbox the same files the other two jails get. A path requested before the
+	 * worker exists is remembered and replayed by {@link #setTransport(SandboxTransporter)}, exactly as
+	 * the namespace injector replays {@code activeInjects}.
+	 */
+	private synchronized void transportOrEnqueue(String absPath, boolean readWrite) {
+		if (sandboxMode == SandboxMode.OPENSHELL) {
+			// Same scope rule as the namespace injector. Without it the transporter is handed
+			// system paths -- /usr/bin, /etc/ssl, /usr/lib/git-core -- because
+			// MCPUtility.runPythonTool also symlinks git's own directories. Uploading those is
+			// wrong and enormous: observed as several 30s CLI timeouts, a 77s pixel, and the
+			// project never arriving. The sandbox image already provides them.
+			if (!isNamespaceInjectablePath(absPath)) {
+				classLogger.debug("Skipping sandbox transport for path outside SEMOSS home: {}", absPath);
+				return;
+			}
+			boolean existing = !activeTransports.add(absPath);
+			if (existing) {
+				// Already sent once; transport() is idempotent but there is no reason to call it.
+				return;
+			}
+			if (transporter != null) {
+				try {
+					if (!transporter.transport(absPath)) {
+						classLogger.warn("Sandbox transport reported failure for {}", absPath);
+					}
+				} catch (RuntimeException e) {
+					classLogger.warn("Sandbox transport failed for {}", absPath, e);
+				}
+			}
+			return;
+		}
+		enqueueOrInject(absPath, readWrite);
 	}
 
 	private synchronized void enqueueOrInject(String absPath, boolean readWrite) {
@@ -367,8 +437,13 @@ public class SymlinkHelper {
 	 */
 	public void symlinkFolder(String sourceDirName) {
 		sourceDirName = Utility.normalizePath(sourceDirName);
-		if (injectMode) {
-			enqueueOrInject(sourceDirName, true);
+		if (sandboxMode != SandboxMode.FAKECHROOT) {
+			transportOrEnqueue(sourceDirName, true);
+		}
+		if (sandboxMode == SandboxMode.OPENSHELL) {
+			// The sandbox has its own filesystem root; a chroot symlink under the host user folder
+			// would point at a path the sandbox cannot see, so it is meaningless here.
+			return;
 		}
 		createChrootSymlink(sourceDirName);
 	}
@@ -493,8 +568,8 @@ public class SymlinkHelper {
 
 		boolean canEdit = SecurityProjectUtils.userCanEditProject(user, projectId);
 
-		if (injectMode) {
-			enqueueOrInject(Utility.normalizePath(projectAppRootFolder), canEdit);
+		if (sandboxMode != SandboxMode.FAKECHROOT) {
+			transportOrEnqueue(Utility.normalizePath(projectAppRootFolder), canEdit);
 		}
 
 		if (canEdit) {
