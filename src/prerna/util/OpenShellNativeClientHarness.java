@@ -27,21 +27,23 @@
  *******************************************************************************/
 package prerna.util;
 
+import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.NativePySocketClient;
 
 /**
- * Drives the REAL client ({@link NativePySocketClient}) against a sandbox created by
- * {@link OpenShellTransport}.
+ * Drives the REAL client ({@link NativePySocketClient}) end to end against a sandbox
+ * created by {@link OpenShellTransport} -- connect, send, and read the reply.
  *
  * <p>
- * This exists because the hand-rolled {@link OpenShellTransportHarness} proved the
- * transport and then became the blocker: its own read path kept failing while an
- * independent client succeeded against the same sandbox. Debugging through test
- * scaffolding is how you spend hours on the wrong layer. This harness has no protocol
- * code of its own -- it only wires the transport to the class that will actually ship.
+ * An earlier version only proved the handshake ({@code ready=true}). This one sends an
+ * actual {@link PayloadStruct} and waits for the response, which is the operation
+ * {@code PyTranslator} performs and the one the live pixel fails on. It carries no
+ * protocol code of its own: everything goes through the class that ships, because
+ * debugging through a hand-rolled protocol harness meant repeatedly mistaking a
+ * failing test client for a failing transport.
  *
  * <p>
- * Usage: {@code java ... prerna.util.OpenShellNativeClientHarness <sessionKey>}
+ * Usage: {@code java ... prerna.util.OpenShellNativeClientHarness [sessionKey]}
  */
 public final class OpenShellNativeClientHarness {
 
@@ -54,23 +56,51 @@ public final class OpenShellNativeClientHarness {
 		int port = t.start();
 		System.out.println("transport up on port " + port);
 
-		// Wait for the worker WITHOUT touching its port: connecting to probe would
-		// consume the single connection slot and kill the worker.
-		System.out.println("settling 4s...");
-		Thread.sleep(4000);
+		// Wait for the worker WITHOUT touching its port: a probe connect would consume
+		// the single connection slot and its disconnect would kill the worker.
+		System.out.println("settling 5s...");
+		Thread.sleep(5000);
 
 		NativePySocketClient client = new NativePySocketClient(java.util.Map.of());
 		client.connect("127.0.0.1", port, false);
-		System.out.println("NativePySocketClient connected");
-
 		Thread reader = new Thread(client, "native-client-reader");
 		reader.setDaemon(true);
 		reader.start();
 		client.awaitReadyOrKill(30_000, 500);
-		System.out.println("client ready=" + client.isReady() + " connected=" + client.isConnected());
+		System.out.println("connected=" + client.isConnected() + " ready=" + client.isReady());
 
-		client.stopServer();
-		client.close();
+		System.out.println("--- sending a real PayloadStruct (what PyTranslator sends) ---");
+		PayloadStruct ps = new PayloadStruct();
+		ps.epoc = "00000000000000000001";
+		ps.operation = PayloadStruct.OPERATION.PYTHON;
+		ps.methodName = "transportScriptWithExplicitPaths";
+		ps.payload = new Object[] { "import os; print('NATIVE_CLIENT_OK', os.getpid())" };
+		ps.payloadClasses = new Class[] { String.class };
+		ps.longRunning = true;
+		ps.hasReturn = true;
+		ps.insightId = "harness-insight";
+		ps.executionInsightId = "harness-insight";
+		ps.sessionId = "harness-session";
+		ps.jobId = "harness-job";
+
+		try {
+			Object resp = client.executeCommand(ps);
+			System.out.println("executeCommand returned: " + (resp == null ? "NULL" : resp.getClass().getSimpleName()));
+			if (resp instanceof PayloadStruct) {
+				PayloadStruct back = (PayloadStruct) resp;
+				System.out.println("  operation=" + back.operation + " response=" + back.response);
+				System.out.println("  payload=" + java.util.Arrays.toString(back.payload));
+			}
+		} catch (Exception e) {
+			System.out.println("executeCommand FAILED: " + e.getClass().getSimpleName() + ": " + e.getMessage());
+		}
+
+		try {
+			client.stopServer();
+			client.close();
+		} catch (Exception ignored) {
+			// teardown is best-effort; the round trip above is the point of this harness
+		}
 		t.close();
 		System.out.println("done");
 	}
