@@ -92,6 +92,7 @@ public final class OpenShellTransport {
 	private final String workerPort;
 	private int forwardedPort = -1;
 	private Process forwardProcess;
+	private StringBuilder forwardLog;
 
 	private OpenShellTransport(String sandboxName, String workerPort) {
 		this.sandboxName = sandboxName;
@@ -99,31 +100,51 @@ public final class OpenShellTransport {
 	}
 
 	/**
+	 * Maximum sandbox name length the gateway accepts.
+	 *
+	 * <p>
+	 * Measured 2026-09-28: {@code openshell sandbox create} rejects longer names
+	 * with <code>Client specified an invalid argument: name exceeds maximum length
+	 * (25 &gt; 19)</code>. This is stricter than the DNS-1123 limit the name is
+	 * otherwise modelled on, and it is not documented at the call site, so it is
+	 * pinned here with its own regression check.
+	 */
+	public static final int MAX_SANDBOX_NAME_LENGTH = 19;
+
+	private static final String NAME_PREFIX = "pyw-";
+
+	/**
 	 * Deterministic sandbox name for a session key.
 	 *
 	 * <p>
 	 * Kept in Java so the name is a pure function of the session key and needs no
-	 * lookup: the gateway's own object store is the registry. Mirrors the naming
-	 * rule the prototype validated (DNS-1123 label: lowercase alphanumeric + '-',
-	 * &le;63 chars).
+	 * lookup: the gateway's own object store is the registry. The digest is
+	 * truncated so the whole name fits {@link #MAX_SANDBOX_NAME_LENGTH}: with a
+	 * 4-character prefix that leaves 15 hex characters (60 bits), which is still
+	 * far beyond any realistic collision concern for concurrently active sessions.
 	 */
 	public static String sandboxNameFor(String sessionKey) {
 		if (sessionKey == null || sessionKey.trim().isEmpty()) {
 			throw new IllegalArgumentException("sessionKey is required to address an executor sandbox");
 		}
+		int digestChars = MAX_SANDBOX_NAME_LENGTH - NAME_PREFIX.length();
 		String digest;
 		try {
 			java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
 			byte[] hash = md.digest(sessionKey.getBytes(java.nio.charset.StandardCharsets.UTF_8));
 			StringBuilder sb = new StringBuilder();
-			for (int i = 0; i < 8; i++) {
+			for (int i = 0; sb.length() < digestChars; i++) {
 				sb.append(String.format("%02x", hash[i]));
 			}
-			digest = sb.toString();
+			digest = sb.substring(0, digestChars);
 		} catch (java.security.NoSuchAlgorithmException e) {
 			throw new IllegalStateException("SHA-256 unavailable", e);
 		}
-		return "pyworker-" + digest;
+		String name = NAME_PREFIX + digest;
+		if (name.length() > MAX_SANDBOX_NAME_LENGTH) {
+			throw new IllegalStateException("sandbox name exceeds the gateway limit: " + name);
+		}
+		return name;
 	}
 
 	public static OpenShellTransport forSession(String sessionKey) {
@@ -158,21 +179,31 @@ public final class OpenShellTransport {
 			create.add("--template");
 			create.add(template.trim());
 		} else {
-			// No template: use an explicit image. The stock OpenShell base image
-			// carries no python3, so an executor image is mandatory in practice.
+			// An explicit image is REQUIRED, not optional. The stock OpenShell base
+			// image carries no python3, and if --from is omitted the sandbox is still
+			// created and reaches Ready -- only the workload fails to spawn, which
+			// surfaces to the caller as an unrelated null response. Fail loudly here
+			// instead of silently provisioning an image that cannot run the worker.
 			String image = Utility.getDIHelperProperty(IMAGE_PROP);
-			if (image != null && !image.trim().isEmpty()) {
-				create.add("--from");
-				create.add(image.trim());
+			if (image == null || image.trim().isEmpty()) {
+				throw new IOException("no sandbox image: set " + IMAGE_PROP + " (or " + TEMPLATE_PROP
+						+ "). The stock OpenShell image has no python3, so omitting this produces a sandbox"
+						+ " that starts and then cannot run the worker.");
 			}
+			create.add("--from");
+			create.add(image.trim());
 		}
 		// The filesystem/egress policy is applied at creation: Landlock settings are
-		// locked at startup and cannot be widened later, which is the point.
+		// locked at startup and cannot be widened later, which is the point. Omitting
+		// it silently means NO filesystem policy, so require it explicitly too.
 		String policy = Utility.getDIHelperProperty(POLICY_PROP);
-		if (policy != null && !policy.trim().isEmpty()) {
-			create.add("--policy");
-			create.add(policy.trim());
+		if (policy == null || policy.trim().isEmpty()) {
+			throw new IOException("no sandbox policy: set " + POLICY_PROP
+					+ ". Creating a sandbox without a filesystem policy leaves the workload unfenced, which"
+					+ " is never what a deployment intends.");
 		}
+		create.add("--policy");
+		create.add(policy.trim());
 		// The worker is the sandbox's canonical main process. It must be started with
 		// the insight folder it will write {insightFolder}/log.txt into.
 		create.add("--");
@@ -188,7 +219,8 @@ public final class OpenShellTransport {
 		create.add("/opt/semosshome/insight");
 
 		classLogger.info("Starting executor sandbox {} (worker port {})", sandboxName, workerPort);
-		run(create, readyTimeout);
+		String createOut = run(create, readyTimeout);
+		classLogger.info("Sandbox create output for {}: {}", sandboxName, createOut);
 
 		this.forwardedPort = freeLocalPort();
 		List<String> forward = Arrays.asList(cli, "forward", "service", "--target-port", workerPort, "--local",
@@ -197,7 +229,75 @@ public final class OpenShellTransport {
 		ProcessBuilder pb = new ProcessBuilder(forward);
 		pb.redirectErrorStream(true);
 		this.forwardProcess = pb.start();
+		this.forwardLog = new StringBuilder();
+		// A child whose pipe fills up blocks forever. The forward emits periodic
+		// output, so it must be drained continuously or the port never binds.
+		Thread drain = new Thread(() -> {
+			try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.InputStreamReader(
+					forwardProcess.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
+				String line;
+				while ((line = r.readLine()) != null) {
+					synchronized (forwardLog) {
+						forwardLog.append(line).append('\n');
+					}
+				}
+			} catch (IOException e) {
+				// process exited; the readiness check will report it
+			}
+		}, "openshell-forward-" + sandboxName);
+		drain.setDaemon(true);
+		drain.start();
+
+		// The forward binds lazily: the CLI starts, then opens the local listener.
+		// Returning before that produces a connection refused at the socket client
+		// and surfaces as "Received a null PayloadStruct response" -- measured
+		// 2026-09-28. Poll until the port actually accepts, or fail here with a
+		// clear message rather than downstream with a confusing one.
+		if (!awaitForwardReady(this.forwardedPort, readyTimeout)) {
+			String detail = readAvailable(forwardProcess);
+			close();
+			throw new IOException("port forward for sandbox " + sandboxName + " did not become ready on 127.0.0.1:"
+					+ this.forwardedPort + " within " + readyTimeout + "s" + (detail.isEmpty() ? "" : ": " + detail));
+		}
+		classLogger.info("Executor sandbox {} ready; worker reachable on 127.0.0.1:{}", sandboxName,
+				this.forwardedPort);
 		return this.forwardedPort;
+	}
+
+	/**
+	 * Poll the forwarded port until something accepts a connection.
+	 *
+	 * <p>
+	 * A TCP connect is the right probe here and deliberately not a protocol exchange:
+	 * the worker is single-connection ({@code --max_count 1}), so sending anything to
+	 * test readiness would consume its only slot and, on disconnect, end the worker.
+	 */
+	private static boolean awaitForwardReady(int port, int timeoutSeconds) {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+		while (System.nanoTime() < deadline) {
+			try (java.net.Socket probe = new java.net.Socket()) {
+				probe.connect(new java.net.InetSocketAddress("127.0.0.1", port), 1000);
+				return true;
+			} catch (IOException notYet) {
+				try {
+					Thread.sleep(250);
+				} catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					return false;
+				}
+			}
+		}
+		return false;
+	}
+
+	private String readAvailable(Process p) {
+		if (forwardLog == null) {
+			return "";
+		}
+		synchronized (forwardLog) {
+			String s = forwardLog.toString().trim();
+			return s.length() > 600 ? s.substring(s.length() - 600) : s;
+		}
 	}
 
 	public int getForwardedPort() {
@@ -260,7 +360,7 @@ public final class OpenShellTransport {
 		}
 	}
 
-	private static void run(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
+	private static String run(List<String> cmd, int timeoutSeconds) throws IOException, InterruptedException {
 		ProcessBuilder pb = new ProcessBuilder(cmd);
 		pb.redirectErrorStream(true);
 		Process p = pb.start();
@@ -284,5 +384,6 @@ public final class OpenShellTransport {
 						+ out.toString().trim());
 			}
 		}
+		return out.toString().trim();
 	}
 }
