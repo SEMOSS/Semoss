@@ -51,7 +51,6 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
-import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -506,12 +505,6 @@ final class HarnessToolExecutor {
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
-		// a Work thread's assistant has no tools without the thread agent; refuse any it names anyway
-		if (CollaborationUtils.isThreadRoom(ctx.getRoom()) && ctx.getAgentConfig().getWorkspaceId() == null) {
-			logger.warn("HarnessToolExecutor: refused tool in thread room roomId={} toolName={}",
-					ctx.getRoom().getId(), tc.rawToolName);
-			return new ToolExecOutcome("No tools are available in this conversation.", false);
-		}
 		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
 			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),
 					tc.toolParams);

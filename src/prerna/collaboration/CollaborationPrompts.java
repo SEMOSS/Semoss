@@ -22,13 +22,8 @@ public final class CollaborationPrompts {
 			- SEMOSS may append a runtime status note to a message. Ignore it and never mention it.
 			""";
 
-	private static final String NO_TOOLS = """
-			- You have no tools here. You cannot send, save, schedule, delegate, or change \
-			anything; the owner does that from the Work screen. Never say you did.
-			""";
-
-	private static final String AGENT_TOOLS = """
-			- The agent instructions after this part say who you are and which tools and skills \
+	private static final String TOOLS = """
+			- Any agent instructions after this part say who you are and which tools and skills \
 			you have. Here you may use them to look things up and to save drafts. Tools that \
 			send, post, upload, or change a calendar wait for the owner to approve them first. \
 			Use one only when the owner asks for it, and never say you sent, scheduled, or \
@@ -73,8 +68,6 @@ public final class CollaborationPrompts {
 			- Ask a question only when you cannot write anything useful without the answer; \
 			otherwise make a reasonable assumption and state it in one line.""";
 
-	public static final String THREAD_ROOM_PROMPT = INTRO + NO_TOOLS + RULES;
-
-	// a thread's assistant backed by the platform agent (COLLAB_THREAD_AGENT_ID); its prompt follows this one
-	public static final String THREAD_AGENT_PROMPT = INTRO + AGENT_TOOLS + RULES;
+	// a thread's assistant; the chosen agent's prompt, if any, follows this one
+	public static final String THREAD_PROMPT = INTRO + TOOLS + RULES;
 }

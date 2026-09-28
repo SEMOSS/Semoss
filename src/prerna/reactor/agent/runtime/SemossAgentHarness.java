@@ -182,16 +182,6 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
-		// a Work thread's assistant gets the thread agent's tools, or none without it; ask tools pause for
-		// the owner's approval as anywhere else
-		boolean threadRoom = CollaborationUtils.isThreadRoom(room);
-		boolean threadAgent = threadRoom && agentConfig.getWorkspaceId() != null;
-		if (threadRoom) {
-			subAgentTools.clear();
-			if (!threadAgent) {
-				defaultAndExplicitTools.clear();
-			}
-		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -218,28 +208,25 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(threadAgent ? CollaborationPrompts.THREAD_AGENT_PROMPT
-				: threadRoom ? CollaborationPrompts.THREAD_ROOM_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
+				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn && !agentConfig.hasPptxWorkflow() && !threadRoom) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier
 		// in the run) so
 		// the model knows what it can pull in via LoadSkill. Empty when no skills are
 		// present.
-		String availableSkillsBlock = threadRoom && !threadAgent ? ""
-				: buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		if (!threadRoom || threadAgent) {
-			composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
-		}
-		if (agentConfig.hasPptxWorkflow() && !threadRoom) {
+		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
+		if (agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(PptxWorkflow.PROMPT);
 		}
 		opts.put("instructions", composed.toString());
