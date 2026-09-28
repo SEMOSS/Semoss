@@ -43,19 +43,19 @@ public final class BrainSenderTyping {
 	public static final String AUTOMATED = "automated";
 	private static final String SUGGESTED = "suggested";
 
-	// local parts, as a whole word anywhere: noreply1, dte-reminder, weekly-digest, us-va-team, buildbot
+	// local parts, as a whole word anywhere: noreply1, weekly-digest, it-team, buildbot
 	private static final Pattern ADDRESS = Pattern.compile("(^|[-_.])(no-?reply|do-?not-?reply|notifications?|"
 			+ "newsletters?|digest|mailer-daemon|postmaster|bounces?|alerts?|updates|news|marketing|info|support|"
 			+ "promos?|promotions|offers|deals|blast|campaigns?|reminders?|approvals?|automated|automation|appreg|"
 			+ "workflow|system|admin|helpdesk|servicedesk|announcements?|events|surveys?|comms|communications|team|"
 			+ "teams|dl|mailbox|\\w*bot)\\d*([-_.+]|$)", Pattern.CASE_INSENSITIVE);
-	// display names: "DTE-REMINDER", "DTTL IAM AppReg", "US-VA Team", "Deloitte Security Office", "... Daily"
+	// display names: "Expense Reminder", "IAM AppReg", "Sales Team", "Security Office", "... Daily"
 	private static final Pattern NAME = Pattern.compile("(?<![\\p{L}\\p{N}])(no-?reply|do not reply|automated|"
 			+ "automation|reminders?|approvals?|notifications?|alerts?|digest|newsletters?|daily|weekly|monthly|team|"
 			+ "teams|office|services|service ?desk|help ?desk|support|admin|administrator|security|communications|"
 			+ "comms|announcements?|events|survey|mailbox|system|portal|workflow|appreg|calendar|updates|news|"
 			+ "insights|marketing|program office)(?![\\p{L}\\p{N}])|\\s&\\s", Pattern.CASE_INSENSITIVE);
-	// "Last, First" and "Last, First (NIH/NIAID) [C]"
+	// "Last, First" and "Last, First (Dept) [C]"
 	private static final Pattern PERSON_NAME = Pattern.compile("^[\\p{L}'. -]+,\\s*[\\p{L}'. -]+(\\s*[(\\[].*)?$");
 	// calendar replies, auto-replies and delivery reports; invitations stay, they may need an answer
 	private static final Pattern SYSTEM_SUBJECT = Pattern.compile("^\\s*(accepted|declined|tentative|"

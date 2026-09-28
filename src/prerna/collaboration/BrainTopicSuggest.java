@@ -232,7 +232,7 @@ public final class BrainTopicSuggest {
 		CollaborationDbUtils.query("SELECT DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 			String n = CollaborationDbUtils.getString(rs, "DISPLAY_NAME");
 			if (n != null) {
-				// "Sanghvi, Neel" and "Neel Sanghvi" both give neel
+				// "Doe, Jane" and "Jane Doe" both give jane
 				String first = n.contains(",") ? n.substring(n.indexOf(',') + 1).trim() : n.trim();
 				first = first.split("\\s+")[0].toLowerCase();
 				if (!first.isEmpty()) {
@@ -449,7 +449,7 @@ public final class BrainTopicSuggest {
 		return words >= 1 && words <= 5 && !REPLY.matcher(prefix + ":").find() ? prefix : null;
 	}
 
-	// the organisation's domain: mail.adatum.example is adatum.example, comms.deloitte.com is deloitte.com
+	// the organisation's domain: mail.adatum.example is adatum.example
 	static String org(String domain) {
 		return BrainOrgDomains.org(domain);
 	}

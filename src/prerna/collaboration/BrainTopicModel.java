@@ -56,7 +56,7 @@ final class BrainTopicModel {
 
 			Group the threads into the topics this person actually works on: projects, client engagements, deals,
 			proposals, recurring workstreams, hiring, and similar. Name each topic the way a colleague would,
-			2 to 5 words, for example "Northwind Migration" or "FDA Data Platform RFP". Threads the person wrote
+			in 2 to 5 words, after the project, client, or piece of work it is about. Threads the person wrote
 			on, and VIP threads, matter most.
 
 			Leave out: newsletters and digests, announcements to large lists, calendar notices, system and

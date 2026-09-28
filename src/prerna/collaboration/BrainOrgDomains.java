@@ -103,7 +103,7 @@ public final class BrainOrgDomains {
 		}
 	}
 
-	// the organisation's domain: comms.deloitte.com is deloitte.com; government keeps the agency (fda.hhs.gov)
+	// the organisation's domain: mail.adatum.example is adatum.example; .gov and .mil keep the full agency domain
 	static String org(String domain) {
 		if (domain == null || domain.isBlank()) {
 			return null;
