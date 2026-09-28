@@ -317,7 +317,24 @@ public final class OpenShellTransport {
 					+ this.forwardedPort + " within " + readyTimeout + "s (process alive=" + alive + ")"
 					+ (detail.isEmpty() ? "" : ": " + detail));
 		}
-		classLogger.info("Executor sandbox {} ready; worker reachable on 127.0.0.1:{}", sandboxName,
+		// The forward binding is NOT readiness. It binds in ~60ms, but the worker
+		// inside takes ~5s to reach serve_forever(). A client connecting in that
+		// window succeeds at TCP level and then consumes the single-connection
+		// worker's only slot, wedging it -- measured 2026-09-28:
+		//   connect at +0s after "Forwarding"  -> no reply
+		//   connect at +5s after "Forwarding"  -> response=true
+		// The worker's own startup line is the only reliable signal, and it must be
+		// read from the sandbox log rather than by probing the port, for the same
+		// reason awaitForwardReady exists.
+		if (!awaitWorkerListening(readyTimeout)) {
+			String detail = readAvailable(forwardProcess);
+			close();
+			throw new IOException("worker inside sandbox " + sandboxName + " on port " + workerPort
+					+ " did not begin listening within " + readyTimeout + "s (forward alive="
+					+ (forwardProcess != null && forwardProcess.isAlive()) + ")"
+					+ (detail.isEmpty() ? "" : ": " + detail));
+		}
+		classLogger.info("Executor sandbox {} ready; worker listening, local port {}", sandboxName,
 				this.forwardedPort);
 		return this.forwardedPort;
 	}
@@ -356,6 +373,47 @@ public final class OpenShellTransport {
 			}
 			try {
 				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				return false;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Poll until the worker inside the sandbox reports that it is listening, again
+	 * <b>without ever connecting to the forwarded port</b>.
+	 *
+	 * <p>
+	 * This is a second, later gate than {@link #awaitForwardReady}: the forward binds
+	 * in ~60ms, but the worker needs ~5s to reach {@code serve_forever()}. Connecting
+	 * in that window succeeds at TCP level and then wedges the single-connection
+	 * worker, so the distinction matters and was measured directly (see the call site).
+	 *
+	 * <p>
+	 * The signal is the sandbox supervisor's own event line:
+	 * {@code NET:OPEN [INFO] 127.0.0.1:7100/tcp}. It is emitted when the worker's
+	 * socket opens and again on close, so only an OPEN counts.
+	 */
+	private boolean awaitWorkerListening(int timeoutSeconds) {
+		String cli = propOr(CLI_PROP, DEFAULT_CLI);
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeoutSeconds);
+		String needle = "127.0.0.1:" + workerPort + "/tcp";
+		while (System.nanoTime() < deadline) {
+			try {
+				List<String> cmd = Arrays.asList(cli, "logs", sandboxName, "--source", "sandbox");
+				String out = run(cmd, Math.min(20, timeoutSeconds));
+				for (String line : out.split("\n")) {
+					if (line.contains(needle) && line.contains("NET:OPEN")) {
+						return true;
+					}
+				}
+			} catch (Exception e) {
+				classLogger.error("Could not read sandbox log while waiting for the worker to listen: {}", e);
+			}
+			try {
+				Thread.sleep(250);
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
 				return false;

@@ -346,6 +346,9 @@ public class ClientProcessWrapper {
 					this.socketClient = new SocketClient(threadLoggerCtx);
 				}
 				this.socketClient.setCpw(this);
+				classLogger.info(
+						"Connecting socket client: udsPath={} port={} openshell={} nativePyServer={}",
+						this.udsPath, this.port, this.openshell != null, this.nativePyServer);
 				if (this.udsPath != null) {
 					this.socketClient.connectUds(this.udsPath);
 				} else {
