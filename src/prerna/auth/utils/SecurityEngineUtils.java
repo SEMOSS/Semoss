@@ -709,10 +709,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				for (int i = 0; i < requests.size(); i++) {
-						NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
-								requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
-								engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"),
-								NotificationConstants.DisplaySurface.BELL);
+					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+							requests.get(i).get("type"), engineId, NotificationConstants.Type.REQUEST_APPROVAL,
+							engineType, NotificationConstants.Priority.MEDIUM, null, requests.get(i).get("permission"),
+							NotificationConstants.DisplaySurface.BELL);
 					// Adding email notification
 					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
 							engineId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.ENGINE);
@@ -783,11 +783,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromEngineAccessRequest(requestId);
 					String permission = AccessPermissionEnum
 							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-						NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
-								(String) deniedUserDetails.get(i).get("type"), engineId,
-								NotificationConstants.Type.REQUEST_DENIAL, engineType,
-								NotificationConstants.Priority.MEDIUM, null, permission,
-								NotificationConstants.DisplaySurface.BELL);
+					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+							(String) deniedUserDetails.get(i).get("type"), engineId,
+							NotificationConstants.Type.REQUEST_DENIAL, engineType,
+							NotificationConstants.Priority.MEDIUM, null, permission,
+							NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 
@@ -1200,10 +1200,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				for (int i = 0; i < permission.size(); i++) {
-						NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"),
-								(String) permission.get(i).get("type"), engineId, NotificationConstants.Type.USER_ADDITION,
-								engineType, NotificationConstants.Priority.MEDIUM, null,
-								(String) permission.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
+					NotificationDbUtils.createNotification(user, (String) permission.get(i).get("userid"),
+							(String) permission.get(i).get("type"), engineId, NotificationConstants.Type.USER_ADDITION,
+							engineType, NotificationConstants.Priority.MEDIUM, null,
+							(String) permission.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 
@@ -1317,9 +1317,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			if (Utility.isNotificationDatabaseEnabled()) {
 				String engineType = String.valueOf(getEngineType(engineId)).toLowerCase();
 				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-					NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
-							NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
-							existingPermission, newPermission, NotificationConstants.DisplaySurface.BELL);
+				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, engineId,
+						NotificationConstants.Type.PERMISSION_CHANGE, engineType, NotificationConstants.Priority.MEDIUM,
+						existingPermission, newPermission, NotificationConstants.DisplaySurface.BELL);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permission", e);
@@ -1446,10 +1446,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-						NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId,
-								NotificationConstants.Type.PERMISSION_CHANGE, engineType,
-								NotificationConstants.Priority.MEDIUM, existingPermission,
-								(String) thisPermissionMap.get("permission"), NotificationConstants.DisplaySurface.BELL);
+					NotificationDbUtils.createNotification(user, newUserId, newUserType, engineId,
+							NotificationConstants.Type.PERMISSION_CHANGE, engineType,
+							NotificationConstants.Priority.MEDIUM, existingPermission,
+							(String) thisPermissionMap.get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 			ps.executeBatch();
@@ -2541,6 +2541,59 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
 			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
+		return getUserEngineList(user, engineTypes, engineIdFilters, favoritesOnly, engineMetadataFilter,
+				permissionFilters, searchTerm, limit, offset, sortFields, null, null);
+	}
+
+	/**
+	 * Get the engines the user can see: the global ones, and those the user or one
+	 * of their groups holds a grant on, leaving out any the user has hidden.
+	 *
+	 * @param user                 the user; their ids come from every login in the
+	 *                             session
+	 * @param engineTypes          keep only the engines of these types; null or
+	 *                             empty for every type
+	 * @param engineIdFilters      keep only these engine ids; null or empty for
+	 *                             every engine
+	 * @param favoritesOnly        keep only the user's favorites
+	 * @param engineMetadataFilter keep only the engines whose metadata holds each
+	 *                             of these key and value pairs; null or empty for
+	 *                             no filter
+	 * @param permissionFilters    keep only the engines on which the user's own
+	 *                             grant is one of these
+	 *                             {@link prerna.auth.AccessPermissionEnum} ids,
+	 *                             ignoring group grants; null or empty for no
+	 *                             filter
+	 * @param searchTerm           keep only the engines whose id, name, or display
+	 *                             name matches; null or blank for no search
+	 * @param limit                the most engines to return; null or empty for no
+	 *                             limit
+	 * @param offset               how many engines to skip; null or empty for none
+	 * @param sortFields           sort keys and directions: {@code ENGINENAME} or
+	 *                             {@code DATECREATED} mapped to {@code ASC} or
+	 *                             {@code DESC}; null or empty to sort by name
+	 * @param effectivePermissions keep only the engines whose effective permission
+	 *                             is one of these
+	 *                             {@link prerna.auth.AccessPermissionEnum} ids: the
+	 *                             better of the user's own grant and their groups'
+	 *                             grant, with a global engine the user holds no
+	 *                             grant on counting as read only; null or empty for
+	 *                             no filter
+	 * @param createdBy            keep only the engines created by one of these
+	 *                             (login id, login type) pairs, as
+	 *                             {@link User#getUserIdAndType(User)} returns them;
+	 *                             null or empty for no filter
+	 * @return one map per engine, with its details, the user's and their groups'
+	 *         grants, and the effective {@code permission}
+	 * @throws IllegalArgumentException when a level in {@code effectivePermissions}
+	 *                                  is not an
+	 *                                  {@link prerna.auth.AccessPermissionEnum} id
+	 */
+	public static List<Map<String, Object>> getUserEngineList(User user, List<String> engineTypes,
+			List<String> engineIdFilters, Boolean favoritesOnly, Map<String, Object> engineMetadataFilter,
+			List<Integer> permissionFilters, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields, Collection<Integer> effectivePermissions,
+			Collection<Pair<String, String>> createdBy) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
 		String enginePrefix = "ENGINE__";
@@ -2724,6 +2777,14 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if (permissionFilters != null && !permissionFilters.isEmpty()) {
 			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "==",
 					permissionFilters, PixelDataType.CONST_INT));
+		}
+		if (effectivePermissions != null && !effectivePermissions.isEmpty()) {
+			qs1.addExplicitFilter(getEffectivePermissionFilter("USER_PERMISSIONS__PERMISSION",
+					"GROUP_PERMISSIONS__PERMISSION", enginePrefix + "GLOBAL", effectivePermissions));
+		}
+		if (createdBy != null && !createdBy.isEmpty()) {
+			qs1.addExplicitFilter(
+					getCreatedByFilter(enginePrefix + "CREATEDBY", enginePrefix + "CREATEDBYTYPE", createdBy));
 		}
 
 		OrQueryFilter orFilter = new OrQueryFilter();
