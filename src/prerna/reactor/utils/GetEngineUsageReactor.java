@@ -36,10 +36,13 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
+import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
@@ -125,10 +128,12 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static class EngineSelection {
 		private final String engineId;
 		private final IEngine.CATALOG_TYPE engineType;
+		private final boolean engineProvided;
 
-		private EngineSelection(String engineId, IEngine.CATALOG_TYPE engineType) {
+		private EngineSelection(String engineId, IEngine.CATALOG_TYPE engineType, boolean engineProvided) {
 			this.engineId = engineId;
 			this.engineType = engineType;
+			this.engineProvided = engineProvided;
 		}
 	}
 
@@ -142,14 +147,16 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		// get the selectors
 		this.organizeKeys();
 		EngineSelection selection = resolveEngineSelection();
-		List<Map<String, Object>> output = getUsageForEngineType(selection.engineType, selection.engineId);
+		List<Map<String, Object>> output = getUsageForEngineType(selection.engineType, selection.engineId,
+				selection.engineProvided);
 		return new NounMetadata(output, PixelDataType.VECTOR);
 	}
 
 	private EngineSelection resolveEngineSelection() {
 		String engineId = this.keyValue.get(this.keysToGet[0]);
 		IEngine.CATALOG_TYPE engineType = null;
-		if (engineId != null && !engineId.isEmpty()) {
+		boolean engineProvided = engineId != null && !engineId.isEmpty();
+		if (engineProvided) {
 			Object[] typeAndSubtype = SecurityEngineUtils.getEngineTypeAndSubtype(engineId);
 			engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 		} else {
@@ -167,10 +174,11 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		if (engineType == null) {
 			throw new IllegalArgumentException("Must provide a valid engine id or a valid engine type");
 		}
-		return new EngineSelection(engineId, engineType);
+		return new EngineSelection(engineId, engineType, engineProvided);
 	}
 
-	private List<Map<String, Object>> getUsageForEngineType(IEngine.CATALOG_TYPE engineType, String engineId) {
+	private List<Map<String, Object>> getUsageForEngineType(IEngine.CATALOG_TYPE engineType, String engineId,
+			boolean engineProvided) {
 		switch (engineType) {
 		case DATABASE:
 			return getDatabaseUsage(engineId);
@@ -179,7 +187,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		case MODEL:
 			return getModelUsage(engineId);
 		case VECTOR:
-			return getVectorUsage(engineId);
+			return getVectorUsage(engineId, engineProvided);
 		case FUNCTION:
 			return getFunctionUsage(engineId);
 		case GUARDRAIL:
@@ -1748,16 +1756,29 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usage;
 	}
 
-	private List<Map<String, Object>> getVectorUsage(String engineId) {
+	private List<Map<String, Object>> getVectorUsage(String engineId, boolean engineProvided) {
 		List<Map<String, Object>> usage = new ArrayList<>();
+		boolean isAzureAiSearch = false;
+		if (engineProvided) {
+			IVectorDatabaseEngine engine = Utility.getVectorDatabase(engineId);
+			if (engine == null) {
+				throw new SemossPixelException("Unable to find engine");
+			}
+			isAzureAiSearch = engine.getVectorDatabaseType() == VectorDatabaseTypeEnum.AZURE_AI_SEARCH;
+		}
+		String azureIntroductionUsage = isAzureAiSearch ? getAzureAiSearchIntroductionUsage() : "";
+		String azurePixelUsage = isAzureAiSearch ? getAzureAiSearchPixelUsage() : "";
+		String azureJavaScriptUsage = isAzureAiSearch ? getAzureAiSearchJavaScriptUsage() : "";
+		String azureJavaUsage = isAzureAiSearch ? getAzureAiSearchJavaUsage() : "";
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
-				"""
-						A **Vector** engine indexes documents as embeddings so you can search them by meaning rather than by keyword. It is the retrieval half of retrieval-augmented generation (RAG), and it handles the chunking and embedding for you.
+				("""
+						A **Vector** engine indexes documents as embeddings so you can search them by meaning. It is the retrieval half of retrieval-augmented generation (RAG), and it handles the chunking and embedding for you.
 
 						## What you can do
 
 						- **Add documents** - point at uploaded files and the engine chunks, embeds, and indexes them. Pre-chunked VectorCSV files skip the default splitter.
 						- **Search** - run a nearest-neighbor query in natural language, optionally scoped with `filters` (by source document) or `metaFilters` (by metadata attached at embed time).
+						<azuresearchusage>
 						- **List and remove** - see which documents are currently indexed, and drop the ones you no longer want.
 
 						## Key concepts
@@ -1767,7 +1788,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						- **Pair it with a Model engine.** The usual flow is retrieve, then hand the chunk text to an LLM as grounding context. The Pixel and JavaScript tabs show the full chain.
 
 						"""
-						+ PLATFORM_INTRODUCTION,
+						+ PLATFORM_INTRODUCTION).replace("<azuresearchusage>", azureIntroductionUsage),
 				engineId);
 		addUsage(usage, PIXEL, PIXEL_LABEL,
 				"""
@@ -1878,6 +1899,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						}
 						```
 
+						<azuresearchusage>
+
 						Remove files from the vector index
 
 						Use `fileNames` (source identifiers), not file paths.
@@ -1912,7 +1935,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						    ]
 						}
 						```
-						""",
+						""".replace("<azuresearchusage>", azurePixelUsage),
 				engineId);
 
 		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL,
@@ -1945,6 +1968,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 
 						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `runPixel(pixel, insightId)` takes an optional second argument: pass `"new"` to start a fresh insight and reuse the returned `insightId` for the rest of the session, or omit it to run on the app's current insight.
+
+						<azuresearchusage>
 
 						The variations below show only the Pixel string, the one that goes inside the `runPixel` template literal. The surrounding `runPixel(...)` call and the `errors` check are the same as above.
 
@@ -2041,7 +2066,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 
 						`MyEngines` also accepts `filterWord=["policy"]` (substring match on the name), `onlyFavorites=[true]`, and `sort={"ENGINENAME": "ASC"}` (or `DATECREATED`, with `ASC`/`DESC`). Omit `limit` and `offset` to return everything. Read the `engine_*` fields; the `app_*` and `database_*` fields carry the same values but are legacy aliases.
-						""",
+						""".replace("<azuresearchusage>", azureJavaScriptUsage),
 				engineId);
 
 		addUsage(usage, PYTHON, PYTHON_LABEL,
@@ -2210,12 +2235,104 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				vectorEngine.nearestNeighbor("Sample Search Statement", 5, parameters);
 				```
 
+				<azuresearchusage>
+
 				Remove Indexed Documents
 				```java
 				vectorEngine.removeDocument(List.of("fileName1.pdf"), parameters);
 				```
-				""", engineId);
+				""".replace("<azuresearchusage>", azureJavaUsage), engineId);
 		return usage;
+	}
+
+	private String getAzureAiSearchIntroductionUsage() {
+		return """
+				- **Run keyword or hybrid search** - Azure AI Search engines can search indexed text directly or combine text relevance with vector similarity.
+				""";
+	}
+
+	private String getAzureAiSearchPixelUsage() {
+		return """
+				Azure AI Search: keyword search
+
+				`KeywordSearch` performs lexical/full-text search without generating a query embedding. `searchFields` is optional; when omitted, every searchable string field is used.
+				```
+				KeywordSearch(engine = "<engineid>", command = "paid time off", searchFields = ["Content"], limit = 5, filters = [Filter(Source == ["handbook.pdf"])]);
+				```
+
+				Prefix query
+
+				A prefix query is part of the `command`, not a separate parameter. Append `*` to a term after at least one plain-text character. For example, `benef*` matches terms such as `benefit` and `benefits`.
+				```
+				KeywordSearch(engine = "<engineid>", command = "benef*", searchFields = ["Content"], limit = 5);
+				```
+				Prefix matching applies to a single term, cannot start with `*`, and does not perform stemming or synonym expansion. Azure returns prefix matches with a uniform search score, and very short prefixes can be slower on large indexes.
+
+				Azure AI Search: hybrid search
+
+				`HybridSearch` combines full-text relevance with vector similarity. It uses the vector engine's configured embedding model, so the current user must also have access to that model.
+				```
+				HybridSearch(engine = "<engineid>", command = "paid time off", searchFields = ["Content"], limit = 5, filters = [Filter(Source == ["handbook.pdf"])]);
+				```
+
+				Both operations return the same normalized hit shape shown above. `filters` applies to indexed fields. `metaFilters` is accepted for compatibility but is not applied by Azure AI Search.
+				""";
+	}
+
+	private String getAzureAiSearchJavaScriptUsage() {
+		return """
+				Azure AI Search Keyword and Hybrid Search
+
+				These operations are available only when `VECTOR_ID` identifies an Azure AI Search vector engine. `searchFields` may be omitted to search every searchable string field. To run a prefix query, append `*` to a term in the keyword-search command; the prefix must contain at least one plain-text character.
+
+				```typescript
+				const { errors: keywordErrors, pixelReturn: keywordResults } = await runPixel(
+				  `KeywordSearch(engine="${VECTOR_ID}", command="${query}", searchFields=["Content"], limit=5, filters=[]);`,
+				);
+
+				if (keywordErrors.length) throw new Error(keywordErrors[0]);
+				const keywordHits = keywordResults[0].output;
+
+				// Prefix query: "benef*" can match "benefit" and "benefits".
+				const prefix = "benef";
+				const { errors: prefixErrors, pixelReturn: prefixResults } = await runPixel(
+				  `KeywordSearch(engine="${VECTOR_ID}", command="${prefix}*", searchFields=["Content"], limit=5);`,
+				);
+
+				if (prefixErrors.length) throw new Error(prefixErrors[0]);
+				const prefixHits = prefixResults[0].output;
+
+				const { errors: hybridErrors, pixelReturn: hybridResults } = await runPixel(
+				  `HybridSearch(engine="${VECTOR_ID}", command="${query}", searchFields=["Content"], limit=5, filters=[]);`,
+				);
+
+				if (hybridErrors.length) throw new Error(hybridErrors[0]);
+				const hybridHits = hybridResults[0].output;
+				```
+
+				Hybrid search requires access to the vector engine's configured embedding model. Both calls return the `hits` shape shown above.
+				""";
+	}
+
+	private String getAzureAiSearchJavaUsage() {
+		return """
+				Run Azure AI Search Keyword Search
+				```java
+				List<Map<String, Object>> keywordHits = vectorEngine.keywordSearch("paid time off", List.of("Content"), 5, parameters);
+
+				// Prefix query: "benef*" can match "benefit" and "benefits".
+				List<Map<String, Object>> prefixHits = vectorEngine.keywordSearch(
+						"benef*", List.of("Content"), 5, parameters);
+				```
+
+				Run Azure AI Search Hybrid Search
+				```java
+				List<Map<String, Object>> hybridHits = vectorEngine.hybridSearch(
+						"paid time off", List.of("Content"), 5, parameters);
+				```
+
+				A prefix query is supplied in the keyword search statement, not in `parameters`. Append `*` after at least one plain-text character. Prefix queries apply to a single term, cannot begin with `*`, and do not perform stemming or synonym expansion. Pass `null` or an empty list instead of `List.of("Content")` to search every searchable string field. Hybrid search requires access to the configured embedding model.
+				""";
 	}
 
 	private List<Map<String, Object>> getFunctionUsage(String engineId) {
