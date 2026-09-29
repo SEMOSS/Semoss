@@ -48,6 +48,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -56,6 +57,9 @@ import org.mockito.MockedStatic;
 import jakarta.ws.rs.core.Response;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
+import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
 import prerna.util.insight.InsightUtility;
@@ -71,6 +75,7 @@ class CouchStockImageUnitTests {
 	private MockedStatic<Utility> utility;
 	private MockedStatic<ClusterUtil> cluster;
 	private MockedStatic<EngineUtility> engines;
+	private MockedStatic<AssetUtility> assets;
 	private MockedStatic<InsightUtility> images;
 	private MockedStatic<DefaultImageGeneratorUtil> stock;
 	private MockedStatic<MasterDatabaseUtility> databases;
@@ -84,12 +89,29 @@ class CouchStockImageUnitTests {
 		utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
 		cluster = mockStatic(ClusterUtil.class);
 		engines = mockStatic(EngineUtility.class);
+		assets = mockStatic(AssetUtility.class);
 		images = mockStatic(InsightUtility.class);
 		stock = mockStatic(DefaultImageGeneratorUtil.class);
 		databases = mockStatic(MasterDatabaseUtility.class);
 		projects = mockStatic(SecurityProjectUtils.class);
 		databases.when(() -> MasterDatabaseUtility.getDatabaseAliasForId("resource-id")).thenReturn("Example");
 		projects.when(() -> SecurityProjectUtils.getProjectAliasForId("resource-id")).thenReturn("Example");
+		Path databaseCatalog = Files.createDirectories(temp.resolve("catalog").resolve("databases"));
+		Path databaseVersion = Files.createDirectories(databaseCatalog.resolve("Example__resource-id")
+				.resolve(Constants.APP_ROOT_FOLDER).resolve(Constants.VERSION_FOLDER));
+		Path projectCatalog = Files.createDirectories(temp.resolve("catalog").resolve("projects"));
+		Path projectVersion = Files.createDirectories(projectCatalog.resolve("Example__resource-id")
+				.resolve(Constants.APP_ROOT_FOLDER).resolve(Constants.VERSION_FOLDER));
+		engines.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+				.thenReturn(databaseCatalog.toString());
+		engines.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE, "resource-id",
+				"Example")).thenReturn(databaseVersion.toString());
+		engines.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT))
+				.thenReturn(projectCatalog.toString());
+		engines.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT, "resource-id",
+				"Example")).thenReturn(projectVersion.toString());
+		assets.when(() -> AssetUtility.getProjectVersionFolder("Example", "resource-id"))
+				.thenReturn(projectVersion.toString());
 		http = mockStatic(HttpClientBuilder.class);
 		HttpClientBuilder builder = mock(HttpClientBuilder.class);
 		CloseableHttpClient client = mock(CloseableHttpClient.class);
@@ -131,6 +153,7 @@ class CouchStockImageUnitTests {
 		if (databases != null) databases.close();
 		if (stock != null) stock.close();
 		if (images != null) images.close();
+		if (assets != null) assets.close();
 		if (engines != null) engines.close();
 		if (cluster != null) cluster.close();
 		if (utility != null) utility.close();
@@ -152,13 +175,66 @@ class CouchStockImageUnitTests {
 	@ValueSource(strings = {"project", "database"})
 	void localImageStillMigratesToCouch(String partition) throws Exception {
 		File uploaded = Files.write(temp.resolve("image.png"), new byte[] {4, 5, 6}).toFile();
-		images.when(() -> InsightUtility.findImageFile(nullable(String.class))).thenReturn(new File[] {uploaded});
+		images.when(() -> InsightUtility.findImageFile(any(File.class))).thenReturn(new File[] {uploaded});
 		images.when(() -> InsightUtility.findImageFile(nullable(String.class), eq("resource-id")))
 				.thenReturn(new File[] {uploaded});
 		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
 		assertArrayEquals(new byte[] {4, 5, 6}, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "PUT"), methods);
 		stock.verifyNoInteractions();
+	}
+
+	@Test
+	void localInsightImageStillMigratesToCouch() throws Exception {
+		File uploaded = Files.write(temp.resolve("image.png"), new byte[] {4, 5, 6}).toFile();
+		images.when(() -> InsightUtility.findImageFile(any(File.class))).thenReturn(new File[] {uploaded});
+
+		Response response = CouchUtil.download("insight",
+				Map.of("project", "resource-id", "insight", "insight-id"));
+
+		assertArrayEquals(new byte[] {4, 5, 6}, (byte[]) response.getEntity());
+		assertEquals(List.of("POST", "PUT"), methods);
+		stock.verifyNoInteractions();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"database", "project", "insight"})
+	void rejectsTraversalIdentifiersBeforeImageLookup(String partition) {
+		Map<String, String> reference = switch (partition) {
+			case "database" -> Map.of("database", "../outside");
+			case "project" -> Map.of("project", "../outside");
+			default -> Map.of("project", "resource-id", "insight", "../outside");
+		};
+
+		assertThrows(IllegalArgumentException.class, () -> CouchUtil.download(partition, reference));
+		images.verifyNoInteractions();
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"project", "database"})
+	void rejectsVersionFolderOutsideItsCatalog(String partition) throws Exception {
+		IEngine.CATALOG_TYPE type = "project".equals(partition) ? IEngine.CATALOG_TYPE.PROJECT
+				: IEngine.CATALOG_TYPE.DATABASE;
+		Path outsideVersion = Files.createDirectories(temp.resolve("outside").resolve("Example__resource-id")
+				.resolve(Constants.APP_ROOT_FOLDER).resolve(Constants.VERSION_FOLDER));
+		engines.when(() -> EngineUtility.getSpecificEngineVersionFolder(type, "resource-id", "Example"))
+				.thenReturn(outsideVersion.toString());
+
+		assertThrows(IllegalArgumentException.class,
+				() -> CouchUtil.download(partition, Map.of(partition, "resource-id")));
+		images.verifyNoInteractions();
+	}
+
+	@Test
+	void rejectsInsightFolderSymlinkThatEscapesProjectVersion() throws Exception {
+		Path projectVersion = temp.resolve("catalog").resolve("projects").resolve("Example__resource-id")
+				.resolve(Constants.APP_ROOT_FOLDER).resolve(Constants.VERSION_FOLDER);
+		Path outside = Files.createDirectories(temp.resolve("outside-insight"));
+		Files.createSymbolicLink(projectVersion.resolve("insight-id"), outside);
+
+		assertThrows(IllegalArgumentException.class, () -> CouchUtil.download("insight",
+				Map.of("project", "resource-id", "insight", "insight-id")));
+		images.verifyNoInteractions();
 	}
 
 	@ParameterizedTest

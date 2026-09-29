@@ -28,6 +28,7 @@
 package prerna.engine.impl.pipeline;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +50,9 @@ import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
+import prerna.util.Constants;
 import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 
 /**
  * Factory for creating a dynamic proxy that wraps an IEngine instance to apply
@@ -261,13 +264,34 @@ public class EngineProxyFactory {
 	 * @param pipeline
 	 * @return
 	 */
-	private static File getJsonFile(IEngine engine, String pipeline) {
-		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
-				engine.getEngineName());
-		String pipelineFile = assetsFolder + "/" + pipeline.trim();
-		pipelineFile = pipelineFile.replace("\\", "/");
-		File jsonFile = new File(pipelineFile);
-		return jsonFile;
+	static File getJsonFile(IEngine engine, String pipeline) {
+		String pipelineName = PathSecurityUtils.requireSinglePathSegment(pipeline.trim(),
+				"Engine pipeline configuration");
+		try {
+			File catalogRoot = new File(EngineUtility.getLocalEngineBaseDirectory(engine.getCatalogType()))
+					.getCanonicalFile();
+			File assetsFolder = new File(EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(),
+					engine.getEngineId(), engine.getEngineName())).getCanonicalFile();
+			File versionFolder = assetsFolder.getParentFile();
+			File appRootFolder = versionFolder == null ? null : versionFolder.getParentFile();
+			File engineFolder = appRootFolder == null ? null : appRootFolder.getParentFile();
+			if (engineFolder == null || !Constants.ASSETS_FOLDER.equals(assetsFolder.getName())
+					|| !Constants.VERSION_FOLDER.equals(versionFolder.getName())
+					|| !Constants.APP_ROOT_FOLDER.equals(appRootFolder.getName())
+					|| !catalogRoot.equals(engineFolder.getParentFile())
+					|| !assetsFolder.toPath().startsWith(catalogRoot.toPath())) {
+				throw new IllegalArgumentException("Engine assets must remain within the engine catalog directory");
+			}
+
+			File jsonFile = new File(assetsFolder, pipelineName).getCanonicalFile();
+			if (!assetsFolder.equals(jsonFile.getParentFile())
+					|| !jsonFile.toPath().startsWith(assetsFolder.toPath())) {
+				throw new IllegalArgumentException("Engine pipeline configuration must remain in the assets directory");
+			}
+			return PathSecurityUtils.requireDirectChild(assetsFolder, jsonFile);
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the engine pipeline configuration", e);
+		}
 	}
 
 }

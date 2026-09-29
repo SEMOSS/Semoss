@@ -65,6 +65,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 /**
@@ -159,8 +160,7 @@ public final class HumanDelegationService {
 		packet.put("responseFormat", responseFormat);
 		packet.put("dueAt", dueAt);
 		if (!sources.isEmpty()) {
-			packet.put("files", copyFiles(sources,
-					Paths.get(Room.roomFolderPath(assigneeRoomId)).resolve(REQUEST_FILES_FOLDER), assigneeRoomId));
+			packet.put("files", copyFiles(sources, assigneeRoomId, REQUEST_FILES_FOLDER, null));
 		}
 		if (!links.isEmpty()) {
 			packet.put("links", links);
@@ -355,23 +355,33 @@ public final class HumanDelegationService {
 	 */
 	public static List<Map<String, Object>> returnedFiles(String parentRoomId, String childRunId) {
 		List<Map<String, Object>> out = new ArrayList<>();
-		Path roomRoot = Paths.get(Room.roomFolderPath(parentRoomId));
-		Path dir = roomRoot.resolve(FILES_FOLDER).resolve(childRunId);
-		if (!Files.isDirectory(dir)) {
-			return out;
-		}
-		try (Stream<Path> paths = Files.list(dir)) {
-			paths.filter(Files::isRegularFile).sorted().forEach(path -> {
-				Map<String, Object> file = new LinkedHashMap<>();
-				file.put("path", roomRoot.relativize(path).toString().replace('\\', '/'));
-				file.put("name", path.getFileName().toString());
-				try {
-					file.put("size", Files.size(path));
-				} catch (IOException e) {
-					file.put("size", null);
+		childRunId = PathSecurityUtils.requireSinglePathSegment(childRunId, "Delegation child run ID");
+		try {
+			Path roomRoot = Paths.get(Room.roomFolderPath(parentRoomId)).toFile().getCanonicalFile().toPath();
+			Path expectedDir = roomRoot.resolve(FILES_FOLDER).resolve(childRunId).toAbsolutePath().normalize();
+			Path dir = expectedDir.toFile().getCanonicalFile().toPath();
+			if (!dir.equals(expectedDir) || !dir.startsWith(roomRoot) || dir.getParent() == null
+					|| !FILES_FOLDER.equals(dir.getParent().getFileName().toString())
+					|| !roomRoot.equals(dir.getParent().getParent())) {
+				throw new IllegalArgumentException("Delegation files must remain within the room directory");
+			}
+			if (!Files.isDirectory(dir)) {
+				return out;
+			}
+			try (Stream<Path> paths = Files.list(dir)) {
+				for (Path path : paths.sorted().toList()) {
+					Path realPath = path.toRealPath();
+					if (Files.isSymbolicLink(path) || !dir.equals(realPath.getParent())
+							|| !Files.isRegularFile(realPath)) {
+						continue;
+					}
+					Map<String, Object> file = new LinkedHashMap<>();
+					file.put("path", roomRoot.relativize(realPath).toString().replace('\\', '/'));
+					file.put("name", realPath.getFileName().toString());
+					file.put("size", Files.size(realPath));
+					out.add(file);
 				}
-				out.add(file);
-			});
+			}
 		} catch (IOException e) {
 			logger.warn("Unable to list returned files for childRunId={}: {}", childRunId, e.getMessage());
 		}
@@ -388,21 +398,42 @@ public final class HumanDelegationService {
 		List<Path> sources = validateFiles(Paths.get(Room.roomFolderPath(assigneeRoomId)), files);
 
 		ClusterUtil.pullRoom(parentRoomId);
-		copyFiles(sources, Paths.get(Room.roomFolderPath(parentRoomId)).resolve(FILES_FOLDER).resolve(childRunId),
-				parentRoomId);
+		copyFiles(sources, parentRoomId, FILES_FOLDER, childRunId);
 	}
 
 	// Replace target with copies of sources, then push the room; returns paths
 	// relative to the room folder.
-	private static List<String> copyFiles(List<Path> sources, Path target, String roomId) {
-		Path roomRoot = Paths.get(Room.roomFolderPath(roomId));
+	static List<String> copyFiles(List<Path> sources, String roomId, String folder, String childRunId) {
 		List<String> copied = new ArrayList<>();
 		try {
+			Path roomRoot = Paths.get(Room.roomFolderPath(roomId)).toFile().getCanonicalFile().toPath();
+			Path target;
+			if (REQUEST_FILES_FOLDER.equals(folder) && childRunId == null) {
+				target = roomRoot.resolve(REQUEST_FILES_FOLDER).toAbsolutePath().normalize();
+			} else if (FILES_FOLDER.equals(folder)) {
+				childRunId = PathSecurityUtils.requireSinglePathSegment(childRunId, "Delegation child run ID");
+				target = roomRoot.resolve(FILES_FOLDER).resolve(childRunId).toAbsolutePath().normalize();
+			} else {
+				throw new IllegalArgumentException("Unsupported delegation files directory");
+			}
+			Path canonicalTarget = target.toFile().getCanonicalFile().toPath();
+			boolean requesterFolder = REQUEST_FILES_FOLDER.equals(folder) && roomRoot.equals(canonicalTarget.getParent());
+			boolean returnedFolder = FILES_FOLDER.equals(folder) && canonicalTarget.getParent() != null
+					&& FILES_FOLDER.equals(canonicalTarget.getParent().getFileName().toString())
+					&& roomRoot.equals(canonicalTarget.getParent().getParent());
+			if (!canonicalTarget.equals(target) || !canonicalTarget.startsWith(roomRoot)
+					|| (!requesterFolder && !returnedFolder)) {
+				throw new IllegalArgumentException("Delegation files must remain within the room directory");
+			}
+			target = canonicalTarget;
 			// A retry after a failed push starts from a clean folder.
-			deleteRecursively(target);
+			deleteRecursively(target, roomRoot);
 			Files.createDirectories(target);
 			for (Path source : sources) {
 				Path dest = uniqueTarget(target, source.getFileName().toString());
+				if (!target.equals(dest.getParent()) || !dest.startsWith(target)) {
+					throw new IllegalArgumentException("Delegation file must remain within its destination directory");
+				}
 				Files.copy(source, dest, StandardCopyOption.COPY_ATTRIBUTES);
 				copied.add(roomRoot.relativize(dest).toString().replace('\\', '/'));
 			}
@@ -493,23 +524,35 @@ public final class HumanDelegationService {
 	}
 
 	// Two files with the same name from different subfolders keep both copies.
-	private static Path uniqueTarget(Path dir, String name) {
-		Path candidate = dir.resolve(name);
+	private static Path uniqueTarget(Path dir, String name) throws IOException {
+		name = PathSecurityUtils.requireSinglePathSegment(name, "Delegation file name");
+		Path candidate = dir.resolve(name).toAbsolutePath().normalize();
 		int dot = name.lastIndexOf('.');
 		String base = dot > 0 ? name.substring(0, dot) : name;
 		String ext = dot > 0 ? name.substring(dot) : "";
 		for (int i = 2; Files.exists(candidate); i++) {
-			candidate = dir.resolve(base + "-" + i + ext);
+			candidate = dir.resolve(base + "-" + i + ext).toAbsolutePath().normalize();
 		}
-		return candidate;
+		Path canonicalCandidate = candidate.toFile().getCanonicalFile().toPath();
+		if (!canonicalCandidate.equals(candidate) || !dir.equals(canonicalCandidate.getParent())) {
+			throw new IllegalArgumentException("Delegation file must remain within its destination directory");
+		}
+		return canonicalCandidate;
 	}
 
-	private static void deleteRecursively(Path path) throws IOException {
+	private static void deleteRecursively(Path path, Path roomRoot) throws IOException {
+		Path canonicalPath = path.toFile().getCanonicalFile().toPath();
+		if (!canonicalPath.equals(path) || canonicalPath.equals(roomRoot) || !canonicalPath.startsWith(roomRoot)) {
+			throw new IllegalArgumentException("Delegation files must remain within the room directory");
+		}
 		if (!Files.exists(path)) {
 			return;
 		}
-		try (Stream<Path> paths = Files.walk(path)) {
+		try (Stream<Path> paths = Files.walk(canonicalPath)) {
 			for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) {
+				if (!p.toAbsolutePath().normalize().startsWith(canonicalPath)) {
+					throw new IllegalArgumentException("Delegation file must remain within its destination directory");
+				}
 				Files.delete(p);
 			}
 		}

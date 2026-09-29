@@ -93,6 +93,9 @@ import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
+import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZoneIdTypeAdapter;
 import prerna.util.gson.ZoneOffsetTypeAdapter;
@@ -179,7 +182,7 @@ public class PipelineInvocationHandler implements InvocationHandler {
 			}
 		};
 
-		String pipelineJson = getJsonData(jsonFile);
+		String pipelineJson = getJsonData(realEngine, jsonFile);
 		parseAndLoadPipelines(pipelineJson);
 	}
 
@@ -593,22 +596,46 @@ public class PipelineInvocationHandler implements InvocationHandler {
 
 	/**
 	 * 
+	 * @param realEngine
 	 * @param pipelineFile
 	 * @return
 	 */
-	private static String getJsonData(File pipelineFile) {
-		if (pipelineFile == null || !pipelineFile.exists() || !pipelineFile.isFile()) {
+	static String getJsonData(IEngine realEngine, File pipelineFile) {
+		if (pipelineFile == null) {
 			return "";
 		}
-		String jsonString = null;
 		try {
-			jsonString = FileUtils.readFileToString(pipelineFile, "UTF-8");
+			File catalogRoot = new File(EngineUtility.getLocalEngineBaseDirectory(realEngine.getCatalogType()))
+					.getCanonicalFile();
+			File assetsFolder = new File(EngineUtility.getSpecificEngineAssetsFolder(realEngine.getCatalogType(),
+					realEngine.getEngineId(), realEngine.getEngineName())).getCanonicalFile();
+			File versionFolder = assetsFolder.getParentFile();
+			File appRootFolder = versionFolder == null ? null : versionFolder.getParentFile();
+			File engineFolder = appRootFolder == null ? null : appRootFolder.getParentFile();
+			if (engineFolder == null || !Constants.ASSETS_FOLDER.equals(assetsFolder.getName())
+					|| !Constants.VERSION_FOLDER.equals(versionFolder.getName())
+					|| !Constants.APP_ROOT_FOLDER.equals(appRootFolder.getName())
+					|| !catalogRoot.equals(engineFolder.getParentFile())
+					|| !assetsFolder.toPath().startsWith(catalogRoot.toPath())) {
+				throw new IllegalArgumentException("Engine assets must remain within the engine catalog directory");
+			}
+
+			File canonicalPipelineFile = pipelineFile.getCanonicalFile();
+			if (!assetsFolder.equals(canonicalPipelineFile.getParentFile())
+					|| !canonicalPipelineFile.toPath().startsWith(assetsFolder.toPath())) {
+				throw new IllegalArgumentException("Engine pipeline configuration must remain in the assets directory");
+			}
+			canonicalPipelineFile = PathSecurityUtils.requireDirectChild(assetsFolder, canonicalPipelineFile);
+			if (!canonicalPipelineFile.exists() || !canonicalPipelineFile.isFile()) {
+				return "";
+			}
+			return FileUtils.readFileToString(canonicalPipelineFile, "UTF-8");
 		} catch (IOException e) {
 			classLogger.error(
 					"Unable to read pipeline configuration file '{}'; pipeline interceptors will not be loaded.",
 					pipelineFile.getAbsolutePath(), e);
+			return null;
 		}
-		return jsonString;
 	}
 
 	private static boolean isEngineLoggerConfigured() {

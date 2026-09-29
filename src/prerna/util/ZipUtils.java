@@ -39,6 +39,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
@@ -257,30 +258,54 @@ public final class ZipUtils {
 	public static Map<String, List<String>> unzip(String zipFilePath, String destination) throws IOException {
 		// grab list of files that are being unzipped
 		Map<String, List<String>> files = listFilesInZip(Paths.get(zipFilePath));
-		// unzip files
-		ZipFile zipIn = null;
-		try {
-			zipIn = new ZipFile(Utility.normalizePath(zipFilePath));
+		Path destinationRoot = new File(Utility.normalizePath(destination)).getCanonicalFile().toPath();
+
+		// Validate every archive-controlled path before creating any files. This also
+		// prevents a later malicious entry from leaving an earlier entry behind.
+		try (ZipFile zipIn = new ZipFile(Utility.normalizePath(zipFilePath))) {
+			List<ZipEntry> validatedEntries = new ArrayList<>();
+			List<Path> validatedPaths = new ArrayList<>();
 			Enumeration<? extends ZipEntry> entries = zipIn.entries();
 			while (entries.hasMoreElements()) {
 				ZipEntry entry = entries.nextElement();
-				String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
-				if (entry.isDirectory()) {
-					File file = new File(filePath);
-					file.mkdirs();
-				} else {
-					File parent = new File(filePath).getParentFile();
-					if (!parent.exists()) {
-						parent.mkdirs();
-					}
-					InputStream is = zipIn.getInputStream(entry);
-					extractFile(is, filePath);
-					is.close();
+				String entryName = entry.getName().replace('\\', '/');
+				Path relativePath;
+				try {
+					relativePath = Paths.get(entryName);
+				} catch (InvalidPathException e) {
+					throw new IOException("Invalid ZIP entry path: " + entry.getName(), e);
 				}
+				if (entryName.isBlank() || relativePath.isAbsolute() || entryName.matches("^[A-Za-z]:.*")) {
+					throw new IOException("ZIP entry must be a relative path: " + entry.getName());
+				}
+
+				Path filePath = destinationRoot.resolve(relativePath).normalize().toFile().getCanonicalFile().toPath();
+				if (filePath.equals(destinationRoot) || !filePath.startsWith(destinationRoot)) {
+					throw new IOException("ZIP entry escapes the destination directory: " + entry.getName());
+				}
+				validatedEntries.add(entry);
+				validatedPaths.add(filePath);
 			}
-		} finally {
-			if (zipIn != null) {
-				zipIn.close();
+
+			Files.createDirectories(destinationRoot);
+			for (int i = 0; i < validatedEntries.size(); i++) {
+				ZipEntry entry = validatedEntries.get(i);
+				Path filePath = validatedPaths.get(i);
+				if (filePath.equals(destinationRoot) || !filePath.startsWith(destinationRoot)) {
+					throw new IOException("ZIP entry escapes the destination directory: " + entry.getName());
+				}
+				if (entry.isDirectory()) {
+					Files.createDirectories(filePath);
+				} else {
+					Path parent = filePath.getParent();
+					if (parent == null || !parent.startsWith(destinationRoot)) {
+						throw new IOException("ZIP entry has an invalid destination: " + entry.getName());
+					}
+					Files.createDirectories(parent);
+					try (InputStream is = zipIn.getInputStream(entry)) {
+						extractFile(is, filePath);
+					}
+				}
 			}
 		}
 
@@ -294,10 +319,10 @@ public final class ZipUtils {
 	 * @param filePath
 	 * @throws IOException
 	 */
-	private static void extractFile(InputStream zipIn, String filePath) throws IOException {
+	private static void extractFile(InputStream zipIn, Path filePath) throws IOException {
 		BufferedOutputStream bos = null;
 		try {
-			bos = new BufferedOutputStream(new FileOutputStream(Utility.normalizePath(filePath)));
+			bos = new BufferedOutputStream(Files.newOutputStream(filePath));
 			byte[] bytesIn = buffer;
 			int read = 0;
 			while ((read = zipIn.read(bytesIn)) != -1) {

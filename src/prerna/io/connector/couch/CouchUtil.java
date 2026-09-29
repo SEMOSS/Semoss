@@ -77,8 +77,10 @@ import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -494,6 +496,7 @@ public class CouchUtil {
 			byte[] fileContent;
 
 			if (DATABASE.equals(partitionId)) {
+				databaseId = PathSecurityUtils.requireSinglePathSegment(databaseId, "Database ID");
 				String databaseName = MasterDatabaseUtility.getDatabaseAliasForId(databaseId);
 
 				File[] images;
@@ -503,7 +506,19 @@ public class CouchUtil {
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE,
 							databaseId, databaseName);
-					images = InsightUtility.findImageFile(imagePath);
+					File catalogRoot = new File(
+							EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE)).getCanonicalFile();
+					File imageFolder = new File(imagePath).getCanonicalFile();
+					File appRootFolder = imageFolder.getParentFile();
+					File engineFolder = appRootFolder == null ? null : appRootFolder.getParentFile();
+					if (engineFolder == null || !Constants.VERSION_FOLDER.equals(imageFolder.getName())
+							|| !Constants.APP_ROOT_FOLDER.equals(appRootFolder.getName())
+							|| !catalogRoot.equals(engineFolder.getParentFile())
+							|| !imageFolder.toPath().startsWith(catalogRoot.toPath())) {
+						throw new IllegalArgumentException(
+								"Database image folder must remain within the database catalog");
+					}
+					images = InsightUtility.findImageFile(imageFolder);
 				}
 
 				if (images != null && images.length > 0) {
@@ -517,6 +532,7 @@ public class CouchUtil {
 							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName));
 				}
 			} else if (PROJECT.equals(partitionId)) {
+				projectId = PathSecurityUtils.requireSinglePathSegment(projectId, "Project ID");
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
 
 				File[] images;
@@ -526,7 +542,19 @@ public class CouchUtil {
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
 							projectId, projectName);
-					images = InsightUtility.findImageFile(imagePath);
+					File catalogRoot = new File(
+							EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT)).getCanonicalFile();
+					File imageFolder = new File(imagePath).getCanonicalFile();
+					File appRootFolder = imageFolder.getParentFile();
+					File engineFolder = appRootFolder == null ? null : appRootFolder.getParentFile();
+					if (engineFolder == null || !Constants.VERSION_FOLDER.equals(imageFolder.getName())
+							|| !Constants.APP_ROOT_FOLDER.equals(appRootFolder.getName())
+							|| !catalogRoot.equals(engineFolder.getParentFile())
+							|| !imageFolder.toPath().startsWith(catalogRoot.toPath())) {
+						throw new IllegalArgumentException(
+								"Project image folder must remain within the project catalog");
+					}
+					images = InsightUtility.findImageFile(imageFolder);
 				}
 
 				if (images != null && images.length > 0) {
@@ -540,10 +568,18 @@ public class CouchUtil {
 							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName));
 				}
 			} else {
+				projectId = PathSecurityUtils.requireSinglePathSegment(projectId, "Project ID");
+				insightId = PathSecurityUtils.requireSinglePathSegment(insightId, "Insight ID");
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-				String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId) + DIR_SEPARATOR
-						+ insightId;
-				File[] images = InsightUtility.findImageFile(imagePath);
+				File projectVersionFolder = new File(AssetUtility.getProjectVersionFolder(projectName, projectId))
+						.getCanonicalFile();
+				File imageFolder = new File(projectVersionFolder, insightId).getCanonicalFile();
+				if (!projectVersionFolder.equals(imageFolder.getParentFile())
+						|| !imageFolder.toPath().startsWith(projectVersionFolder.toPath())) {
+					throw new IllegalArgumentException(
+							"Insight image folder must remain within the project version directory");
+				}
+				File[] images = InsightUtility.findImageFile(imageFolder);
 
 				File insightImageFile = null;
 				if (images != null && images.length > 0) {
