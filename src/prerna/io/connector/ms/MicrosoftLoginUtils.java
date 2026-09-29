@@ -52,7 +52,7 @@ public final class MicrosoftLoginUtils {
 	private static final String HEADER_CONTENT_TYPE = "Content-Type";
 	private static final String CONTENT_TYPE_JSON = "application/json";
 	private static final String BEARER = "Bearer ";
-	private static final String PROVIDER_TYPE = "microsoft";
+	private static final String PROVIDER_TYPE = AuthProvider.MICROSOFT.getLabel();
 	private static final String LOGIN_MESSAGE = "Please login to your Microsoft account";
 
 	private MicrosoftLoginUtils() {

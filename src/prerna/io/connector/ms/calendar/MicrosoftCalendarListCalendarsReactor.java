@@ -77,7 +77,7 @@ public class MicrosoftCalendarListCalendarsReactor extends AbstractMicrosoftCale
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), 0, Integer.MAX_VALUE);
 		String mailbox = trimToNull(this.keyValue.get(MAILBOX));

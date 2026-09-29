@@ -72,7 +72,7 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		Map<String, Object> event = composeEvent(true, "create a calendar event");

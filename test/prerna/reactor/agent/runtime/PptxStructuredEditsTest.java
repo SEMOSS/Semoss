@@ -145,6 +145,47 @@ class PptxStructuredEditsTest {
 	}
 
 	@Test
+	void buildReadsTheCompleteReportBeyondTheNodeOutputCap() throws Exception {
+		var ctx = mock(prerna.reactor.agent.AgentRunContext.class);
+		when(ctx.getRunId()).thenReturn("run-1");
+		when(ctx.getAgentConfig())
+				.thenReturn(prerna.reactor.agent.config.AgentConfig.builder().workingDir(root.toString()).build());
+		var warnings = new org.json.JSONArray();
+		for (int i = 0; i < 500; i++) {
+			warnings.put("Slide " + (i % 18 + 1)
+					+ ", \"body\": Text includes 12 pt type. Consider shortening the copy or allocating more space.");
+		}
+		String report = new JSONObject().put("ok", true).put("slides", 18).put("warnings", warnings).toString();
+		assertTrue(report.length() > 40_000, "ExecuteNodeCode truncates output beyond 40,000 characters");
+		Map<String, Object> args = Map.of("generator", "build-deck.js", "filePath", "deck.pptx", "expectedSlides", 18);
+		var written = new ArrayList<java.nio.file.Path>();
+		try (var tools = mockStatic(PlatformAgentTools.class)) {
+			tools.when(() -> PlatformAgentTools.executeDefaultTool(eq("ExecuteNodeCode"), anyMap(), eq(ctx)))
+					.thenAnswer(call -> {
+						String code = String.valueOf(((Map<?, ?>) call.getArgument(1)).get("code"));
+						var target = java.util.regex.Pattern
+								.compile("writeFileSync\\(path\\.join\\(ROOT, \"([^\"]+)\"\\)").matcher(code);
+						assertTrue(target.find());
+						written.add(root.resolve(target.group(1)));
+						java.nio.file.Files.writeString(written.getLast(), report);
+						// Generator console output comes first and may itself start with "Error:".
+						return "Error: logo.png not found, using a text mark\n\n=> Structural validation saved";
+					});
+			var result = new PptxWorkflowOperations(ctx).build(args);
+			assertEquals(500, result.getJSONArray("warnings").length());
+			assertTrue(result.getBoolean("ok"));
+			assertTrue(written.getFirst().startsWith(root.resolve(".semoss/pptx-workflow/run-1")));
+			assertFalse(java.nio.file.Files.exists(written.getFirst()), "The transient report is removed");
+
+			tools.when(() -> PlatformAgentTools.executeDefaultTool(eq("ExecuteNodeCode"), anyMap(), eq(ctx)))
+					.thenReturn("Error: Generator did not save the requested PPTX file");
+			String error = assertThrows(IllegalStateException.class, () -> new PptxWorkflowOperations(ctx).build(args))
+					.getMessage();
+			assertTrue(error.contains("did not save the requested PPTX file"));
+		}
+	}
+
+	@Test
 	void boundedContextRetainsOriginalAndRecentRequestsWithoutGeneratorCode() {
 		Room room = new Room();
 		room.setId("context-test");

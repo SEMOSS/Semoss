@@ -2,6 +2,8 @@
 
 SEMOSS facilitates interoperability between its Java backend and Python scripts/environments. This communication is primarily achieved through a TCP-based client-server architecture, allowing Java to invoke Python functions, execute scripts, and exchange data.
 
+For how multiple Insights reuse a user's Python worker while maintaining separate variables, see [Python variable scope within the user's process](../concepts/insight_object.md#python-variable-scope-within-the-users-process). That section explains the `insightId` globals lookup, the separate `executionInsightId`, and namespace cleanup.
+
 ## 1. Overview
 
 ### 1.1. Visual Flow / Diagram
@@ -220,3 +222,11 @@ The communication between Java and Python relies on a TCP socket connection and 
     *   The Java side (`SocketClient` or a listener) receives these interim messages and can process them (e.g., log them or display them in a console). A final "D.O.N.E" marker in the stream often indicates the end of stdout/stderr for a command.
 
 This bidirectional JSON-over-TCP protocol allows SEMOSS to integrate Java and Python execution environments effectively, enabling complex workflows that leverage the strengths of both languages.
+
+## Python execution from the SEMOSS harness
+
+The native agent's `ExecutePythonCode` tool uses the managed Python integration through [AgentCodeExecutionContext](../../src/prerna/reactor/agent/runtime/AgentCodeExecutionContext.java) and the platform tool handler. It is part of the [SEMOSS harness](../agents/semoss_harness.md), not a separate Python agent loop.
+
+Worker variables can persist across calls in the same room during a login session while the worker remains alive. Save durable results in the authorized target's files; a persisted room or run record does not recreate arbitrary Python process memory. The tool supplies runtime paths such as `ROOT` for the run's working target and `USER_ROOT` for user assets. See the current [tool schema and handler](../../src/prerna/reactor/agent/runtime/PlatformAgentToolHandlers.java) for behavior and availability.
+
+The [Python GAAS clients](../python_gaas_tools/README.md) provide Python access to SEMOSS resources. [Skills](../agents/skills/skills_doc.md) can explain how to use those clients, while engine/project permissions still govern the calls.

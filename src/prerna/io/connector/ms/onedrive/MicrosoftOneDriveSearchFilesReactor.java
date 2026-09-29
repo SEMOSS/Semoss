@@ -96,7 +96,7 @@ public class MicrosoftOneDriveSearchFilesReactor extends AbstractMicrosoftOneDri
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String search = trimToNull(this.keyValue.get(ReactorKeysEnum.SEARCH.getKey()));
 		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));

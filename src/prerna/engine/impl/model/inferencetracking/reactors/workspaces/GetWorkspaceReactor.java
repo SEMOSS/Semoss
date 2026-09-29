@@ -28,6 +28,8 @@
 package prerna.engine.impl.model.inferencetracking.reactors.workspaces;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +54,7 @@ import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -148,17 +151,34 @@ public class GetWorkspaceReactor extends AbstractReactor {
 				CATALOG_TYPE resourceType = CATALOG_TYPE.valueOf(rType.toUpperCase());
 				Map<String, String> mcpMap = new HashMap<>();
 				mcpMap.put("id", resourceId);
+				// "name" is the canonical catalog name (e.g. "platform" for every
+				// platform__<id> project); "display_name" is what UIs should render
+				// and falls back to the canonical name when none is set
+				Map<String, Object> meta;
 				if (resourceType == CATALOG_TYPE.PROJECT) {
-					String rName = SecurityProjectUtils.getProjectAliasForId(resourceId);
-					mcpMap.put("name", rName);
+					mcpMap.put("name", SecurityProjectUtils.getProjectAliasForId(resourceId));
+					mcpMap.put("display_name", SecurityProjectUtils.getProjectDisplayNameForId(resourceId));
+					meta = SecurityProjectUtils.getAggregateProjectMetadata(resourceId,
+							Arrays.asList(Constants.DESCRIPTION), true);
 				} else {
-					String rName = SecurityEngineUtils.getEngineAliasForId(resourceId);
-					mcpMap.put("name", rName);
+					mcpMap.put("name", SecurityEngineUtils.getEngineAliasForId(resourceId));
+					mcpMap.put("display_name", SecurityEngineUtils.getEngineDisplayNameForId(resourceId));
+					meta = SecurityEngineUtils.getAggregateEngineMetadata(resourceId,
+							Arrays.asList(Constants.DESCRIPTION), true);
+				}
+				Object description = meta.get(Constants.DESCRIPTION);
+				if (description instanceof String && !((String) description).isEmpty()) {
+					mcpMap.put("description", (String) description);
 				}
 				mcpMap.put("type", rType);
 				mcps.add(mcpMap);
 			}
 		}
+
+		// Names are resolved per resource above, so ordering happens here rather
+		// than in the resources query
+		mcps.sort(byLowercasedName("display_name"));
+		skills.sort(byLowercasedName("display_name"));
 
 		current.put("mcp", mcps);
 		current.put("prompts", prompts);
@@ -196,23 +216,34 @@ public class GetWorkspaceReactor extends AbstractReactor {
 	 * @param workspaceName
 	 * @return
 	 */
-	public static String cleanWorkspaceName(String workspaceName) {
+	public String cleanWorkspaceName(String workspaceName) {
 		if (workspaceName == null || workspaceName.isEmpty()) {
 			return "Unnamed Workspace";
 		}
-
-		// Remove all invalid characters
 		String cleaned = workspaceName.replaceAll("[^a-zA-Z0-9 _-]", "");
-
 		// Remove leading non-letters
 		cleaned = cleaned.replaceAll("^[^a-zA-Z]*", "");
-
-		// If string is empty after cleaning, provide a default
 		if (cleaned.isEmpty()) {
 			return "Unnamed Workspace";
 		}
-
 		return cleaned;
+	}
+
+	/**
+	 * Orders resource maps by the lowercased value of {@code nameKey}, falling back
+	 * to the canonical "name" and then the id so the order is stable.
+	 * 
+	 * @param nameKey
+	 * @return
+	 */
+	private static Comparator<Map<String, String>> byLowercasedName(String nameKey) {
+		return Comparator.comparing((Map<String, String> m) -> {
+			String n = m.get(nameKey);
+			if (n == null || n.isEmpty()) {
+				n = m.get("name");
+			}
+			return n == null ? "" : n.toLowerCase();
+		}).thenComparing(m -> m.get("id") == null ? "" : m.get("id"));
 	}
 
 }

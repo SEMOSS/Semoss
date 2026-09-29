@@ -65,7 +65,7 @@ public class MicrosoftTeamsGetChatReactor extends AbstractMicrosoftTeamsMessageR
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
 

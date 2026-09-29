@@ -77,7 +77,7 @@ public class MicrosoftCalendarListPermissionsReactor extends AbstractMicrosoftCa
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
 		String mailbox = trimToNull(this.keyValue.get(MAILBOX));

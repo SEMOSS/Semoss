@@ -79,7 +79,7 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String uid = requiredUid("answer a message");
 		String comment = this.keyValue.get(COMMENT);
