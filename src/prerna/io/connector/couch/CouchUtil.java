@@ -205,7 +205,9 @@ public class CouchUtil {
 			classLogger.error("Error building byte digest", e);
 		}
 
-		String safeAttachmentId = HttpHelperUtility.requireSafeHeaderValue(attachmentId)
+		// the default image has no stored attachment name; strip header delimiters instead of throwing
+		String safeAttachmentId = (attachmentId == null ? "image" : attachmentId)
+				.replace("\r", "").replace("\n", "").replace("\0", "")
 				.replace("\\", "\\\\").replace("\"", "\\\"");
 		ResponseBuilder builder = Response.ok(attachmentBytes).header("Content-Disposition",
 				"attachment; filename=\"" + safeAttachmentId + "\"");
