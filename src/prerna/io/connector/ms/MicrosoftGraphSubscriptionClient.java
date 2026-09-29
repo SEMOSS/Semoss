@@ -45,8 +45,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
+import prerna.auth.AuthProvider;
+import prerna.io.connector.ConnectorScopeAccess;
 import prerna.security.HttpHelperUtility;
-import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 
 /**
@@ -103,9 +104,6 @@ public class MicrosoftGraphSubscriptionClient {
 	 * </p>
 	 */
 	private static final String MS_PUBLIC_ORIGIN_OVERRIDE = "MS_PUBLIC_ORIGIN_OVERRIDE";
-
-	/** Where the Microsoft scopes this deployment asks for are configured. */
-	private static final String MS_SCOPE_PROPERTY = "ms_scope";
 
 	/** Leave room for clock skew between this process and Graph. */
 	private static final int SAFETY_BUFFER_MINUTES = 5;
@@ -354,15 +352,16 @@ public class MicrosoftGraphSubscriptionClient {
 	 * to a resource.
 	 *
 	 * <p>
-	 * This reads what the deployment <em>requests</em> at sign in, which is the
-	 * thing an administrator controls and the thing that is usually wrong. It
-	 * cannot see what the tenant actually consented to, so a true answer here is
-	 * necessary rather than sufficient: Graph still has the last word, and its
-	 * refusal is what a caller should report.
+	 * This reads what the deployment <em>requests</em> at sign in, the same way the
+	 * sign in and {@link ConnectorScopeAccess} read it, which is the thing an
+	 * administrator controls and the thing that is usually wrong. It cannot see
+	 * what the tenant actually consented to, so a true answer here is necessary
+	 * rather than sufficient: Graph still has the last word, and its refusal is
+	 * what a caller should report.
 	 * </p>
 	 *
 	 * @param resource what is being subscribed to
-	 * @return true when one of the acceptable scopes is configured
+	 * @return true when one of the acceptable scopes is requested
 	 */
 	public static boolean hasScopeFor(String resource) {
 		List<String> acceptable = acceptableScopes(resource);
@@ -370,25 +369,7 @@ public class MicrosoftGraphSubscriptionClient {
 			// nothing known about the resource, so nothing to object to
 			return true;
 		}
-		String configured = configuredScopes();
-		if (configured == null || configured.trim().isEmpty()) {
-			return false;
-		}
-		String haystack = " " + configured.toLowerCase(Locale.ROOT).replace(',', ' ') + " ";
-		for (String scope : acceptable) {
-			if (haystack.contains(" " + scope.toLowerCase(Locale.ROOT) + " ")) {
-				return true;
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * @return the Microsoft scopes this deployment requests at sign in, as
-	 *         configured, or null when none are
-	 */
-	public static String configuredScopes() {
-		return SocialPropertiesUtil.getInstance().getProperty(MS_SCOPE_PROPERTY);
+		return ConnectorScopeAccess.requestsAnyScope(AuthProvider.MICROSOFT, acceptable);
 	}
 
 	/**
