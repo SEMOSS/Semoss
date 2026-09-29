@@ -153,7 +153,7 @@ class SystemAgentSeederUnitTests {
 	}
 
 	@Test
-	void newPptxAuthorSeedsItsSkillAndResolvesTheSystemReviewer() throws Exception {
+	void newPptxAuthorSeedsPixabayAndItsSkillAndResolvesTheSystemReviewer() throws Exception {
 		String id = Constants.AGENT_PPTX;
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(id));
 		try (var registry = mockStatic(SystemEngineRegistry.class);
@@ -161,6 +161,7 @@ class SystemAgentSeederUnitTests {
 				var projects = mockStatic(SecurityProjectUtils.class)) {
 			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+			projects.when(() -> SecurityProjectUtils.getProjectTypeForId(Constants.MCP_PIXABAY)).thenReturn("CODE");
 			SystemAgentSeeder.seed(id);
 
 			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
@@ -169,12 +170,15 @@ class SystemAgentSeederUnitTests {
 			String prompt = config.getString("system_prompt");
 			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(), eq("PPTX Agent"),
 					anyString(), eq(prompt),
-					argThat(resources -> resources.size() == 1
-							&& Constants.SKILL_PPTX.equals(resources.getFirst().get("resource_id"))
-							&& "SKILL".equals(resources.getFirst().get("resource_type")))));
+					argThat(resources -> resources.size() == 2
+							&& resources.stream().anyMatch(resource -> Constants.SKILL_PPTX.equals(resource.get("resource_id"))
+									&& "SKILL".equals(resource.get("resource_type")))
+							&& resources.stream().anyMatch(resource -> Constants.MCP_PIXABAY.equals(resource.get("resource_id"))
+									&& "PROJECT".equals(resource.get("resource_type"))
+									&& "CODE".equals(resource.get("resource_subtype"))))));
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
 					anyString(), eq(prompt)));
-			projects.verifyNoInteractions();
+			projects.verify(() -> SecurityProjectUtils.getProjectTypeForId(Constants.MCP_PIXABAY));
 			assertFalse(config.has("model_id"));
 
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
@@ -187,7 +191,7 @@ class SystemAgentSeederUnitTests {
 			assertEquals(prompt, loaded.getAuthoredPrompt());
 			assertEquals("selected-tool-model", loaded.getModelId());
 			assertTrue(loaded.useDefaultAgentTools());
-			assertTrue(loaded.getMcps().isEmpty());
+			assertEquals(List.of("pixabay"), loaded.getMcps().stream().map(mcp -> mcp.get("id")).toList());
 			assertEquals(List.of(Constants.SKILL_PPTX),
 					loaded.getSkills().stream().map(skill -> skill.get("skill_id")).toList());
 			assertTrue(loaded.hasPptxWorkflow());
@@ -208,14 +212,18 @@ class SystemAgentSeederUnitTests {
 	}
 
 	@Test
-	void existingPptxAuthorRestoresItsSkillAndRemovesUnbundledResources() throws Exception {
+	void existingPptxAuthorRestoresPixabayAndItsSkillAndRemovesUnbundledResources() throws Exception {
 		String id = Constants.AGENT_PPTX;
 		try (var registry = mockStatic(SystemEngineRegistry.class);
-				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class);
+				var projects = mockStatic(SecurityProjectUtils.class)) {
 			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			projects.when(() -> SecurityProjectUtils.getProjectTypeForId(Constants.MCP_PIXABAY)).thenReturn("CODE");
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
 					.thenReturn(Map.of("name", "Drifted author", "system_prompt", "Old prompt"));
 			workspaces.when(() -> ModelInferenceLogsUtils.findWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"))
+					.thenReturn(null);
+			workspaces.when(() -> ModelInferenceLogsUtils.findWorkspaceResource(id, Constants.MCP_PIXABAY, "PROJECT"))
 					.thenReturn(null);
 			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("PROJECT")))
 					.thenReturn(List.of(Map.of("resource_id", "local-image-mcp")));
@@ -228,6 +236,8 @@ class SystemAgentSeederUnitTests {
 					anyString(), anyString(), anyString(), anyList()), never());
 			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceResource(anyString(), eq(id),
 					eq(Constants.SKILL_PPTX), eq("SKILL"), isNull()));
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceResource(anyString(), eq(id),
+					eq(Constants.MCP_PIXABAY), eq("PROJECT"), eq("CODE")));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "local-image-mcp", "PROJECT"));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, "app-bootstrap", "SKILL"));
 			workspaces.verify(() -> ModelInferenceLogsUtils.deleteWorkspaceResource(id, Constants.SKILL_PPTX, "SKILL"),
@@ -237,7 +247,8 @@ class SystemAgentSeederUnitTests {
 			JSONObject config = configCaptor.getValue();
 			assertEquals(Constants.AGENT_PPTX_REVIEWER,
 					config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
-			assertEquals(0, config.getJSONArray("mcps").length());
+			assertEquals(1, config.getJSONArray("mcps").length());
+			assertEquals("pixabay", config.getJSONArray("mcps").getJSONObject(0).getString("id"));
 			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceCoreFields(eq(id), eq("PPTX Agent"),
 					anyString(), eq(config.getString("system_prompt"))));
 		}
