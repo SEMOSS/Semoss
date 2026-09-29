@@ -34,6 +34,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
@@ -195,8 +196,19 @@ final class AgentRunExecutor {
 				workspaceId = meta.getWorkspaceId();
 			}
 		}
+		String displayName = null;
+		if (workspaceId != null && !workspaceId.isBlank()) {
+			try {
+				Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+				Object name = workspace == null ? null : workspace.get("name");
+				displayName = name == null ? null : String.valueOf(name);
+			} catch (RuntimeException e) {
+				logger.warn("Could not resolve display name for subagent workspace '{}': {}", workspaceId,
+						e.getMessage());
+			}
+		}
 		Map<String, Object> item = AgentStreamItems.subagentItem(runId, alias, record.roomId(), workspaceId,
-				status.name());
+				displayName, status.name());
 		if (resultPreview != null && !resultPreview.isBlank()) {
 			item.put("resultPreview",
 					AgentStreamItems.truncate(resultPreview, AgentStreamItems.MAX_RESULT_PREVIEW_CHARS));

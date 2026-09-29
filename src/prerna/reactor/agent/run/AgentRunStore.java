@@ -39,6 +39,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -392,7 +393,9 @@ public final class AgentRunStore {
 				AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
 				boolean human = request != null && request.isHumanExecutor();
 				run.put("executorType", human ? "HUMAN" : "AGENT");
-				run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+				String executorLabel = human ? request.getHumanExecutorLabel()
+						: workspaceName(stringValue(run.get("workspaceId")));
+				run.put("executorLabel", executorLabel);
 				runs.add(run);
 			}
 			return runs;
@@ -403,6 +406,19 @@ public final class AgentRunStore {
 			throw new IllegalStateException("Failed to load subagent AGENT_RUN rows for parentRunId=" + parentRunId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	private static String workspaceName(String workspaceId) {
+		if (workspaceId == null) {
+			return null;
+		}
+		try {
+			Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+			Object name = workspace == null ? null : workspace.get("name");
+			return name == null ? null : String.valueOf(name);
+		} catch (RuntimeException e) {
+			return null;
 		}
 	}
 

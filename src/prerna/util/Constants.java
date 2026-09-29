@@ -1122,6 +1122,7 @@ public class Constants {
 	public static final String AGENT_APP_BUILDER = "app-builder";
 	public static final String AGENT_DATABASE_EXPLORER = "database-explorer";
 	public static final String AGENT_NOTEBOOK_ANALYST = "notebook-analyst";
+	public static final String AGENT_ORCHESTRATOR = "orchestrator-agent";
 	public static final String AGENT_PPTX = "pptx-agent";
 	public static final String AGENT_PPTX_REVIEWER = "pptx-reviewer";
 	public static final String AGENT_WORKFLOW_AUTOMATION_BUILDER = "workflow-automation-builder";

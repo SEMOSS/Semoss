@@ -35,6 +35,7 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 
 public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 
@@ -61,6 +62,16 @@ public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
 		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
+
+		// New Playground rooms start with the platform Orchestrator. An explicit
+		// workspace selection still wins, so existing callers can create a room for a
+		// specialist directly and existing rooms are never rewritten.
+		GenRowStruct workspaceGRS = this.store.getGenRowStruct(ReactorKeysEnum.WORKSPACE_ID.getKey());
+		if (workspaceGRS == null || workspaceGRS.isEmpty()) {
+			workspaceGRS = new GenRowStruct();
+			workspaceGRS.add(new NounMetadata(Constants.AGENT_ORCHESTRATOR, PixelDataType.CONST_STRING));
+			this.store.addNoun(ReactorKeysEnum.WORKSPACE_ID.getKey(), workspaceGRS);
+		}
 		// then we call the normal create room logic
 		return super.execute();
 	}

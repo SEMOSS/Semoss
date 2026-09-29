@@ -33,6 +33,7 @@ An agent is not a model engine, a skill is not a tool, and the agent's workspace
 4. [Agent skills](skills/skills_doc.md): author, catalog, attach, stage, discover, and load skills.
 5. [Workbench default agents](workbench-default-agents.md): how frontend defaults and system agents are deployed and selected.
 6. [PowerPoint visual inspection](pptx-visual-inspection.md): a specialized agent workflow.
+7. [Playground Orchestrator](orchestrator-agent.md): default Playground routing to configured specialists.
 
 ## Requirements
 

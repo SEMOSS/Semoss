@@ -120,7 +120,7 @@ public final class AgentRunService {
 		if (supportsCanonicalStreaming(request.getHarnessType())) {
 			AgentRunStreamService.get().register(runId);
 		}
-		queueLoop.rememberInsight(runId, request.getInsight(), ownsUser);
+		queueLoop.rememberInsight(runId, request.getInsight(), ownsUser, request.getExecutionSessionId());
 		queueLoop.signal();
 		return new AgentRunHandle(runId, request.getRoomId(), AgentRunStatus.SUBMITTED);
 	}

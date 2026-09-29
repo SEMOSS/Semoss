@@ -38,6 +38,13 @@ import org.junit.jupiter.api.Test;
 class SystemDefaultEnginesUnitTests {
 
 	@Test
+	void orchestratorIsAPlatformAgentWithoutDuplicatedCapabilities() {
+		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_ORCHESTRATOR));
+		assertTrue(SystemDefaultEngines.getSystemAgentSkills(Constants.AGENT_ORCHESTRATOR).isEmpty());
+		assertTrue(SystemDefaultEngines.getSystemAgentMCPs(Constants.AGENT_ORCHESTRATOR).isEmpty());
+	}
+
+	@Test
 	void dataWorkbenchAgentsReceiveAnalysisSkillsAndReactorHelp() {
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_DATABASE_EXPLORER));
 		assertTrue(SystemDefaultEngines.getSystemAgents().contains(Constants.AGENT_NOTEBOOK_ANALYST));

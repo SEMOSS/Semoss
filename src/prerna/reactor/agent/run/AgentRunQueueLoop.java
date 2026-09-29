@@ -43,6 +43,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 
 /**
@@ -101,10 +102,14 @@ final class AgentRunQueueLoop {
 	}
 
 	void rememberInsight(String runId, Insight insight, boolean ownsUser) {
+		rememberInsight(runId, insight, ownsUser, ThreadStore.getSessionId());
+	}
+
+	void rememberInsight(String runId, Insight insight, boolean ownsUser, String executionSessionId) {
 		if (runId == null || insight == null) {
 			return;
 		}
-		insightsByRun.put(runId, InsightHandle.capture(runId, insight, ownsUser));
+		insightsByRun.put(runId, InsightHandle.capture(runId, insight, ownsUser, executionSessionId));
 	}
 
 	/**

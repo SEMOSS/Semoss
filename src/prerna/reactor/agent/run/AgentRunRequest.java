@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import prerna.om.Insight;
+import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
 
@@ -74,6 +75,8 @@ public final class AgentRunRequest {
 	private final List<String> mediaInputPaths;
 	private final List<String> mediaUrls;
 	private final Insight insight;
+	// Live request context only. Deliberately excluded from REQUEST_JSON.
+	private final String executionSessionId;
 	private final boolean resumeMode;
 
 	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
@@ -81,7 +84,7 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null, SubAgentRunCompletionMode.WAIT, null,
-				null, 0, null);
+				null, 0, null, currentSessionId());
 	}
 
 	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
@@ -89,14 +92,15 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight, boolean resumeMode) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null, SubAgentRunCompletionMode.WAIT,
-				null, null, 0, null);
+				null, null, 0, null, currentSessionId());
 	}
 
 	private AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType,
 			String workspaceId, int maxTurns, int maxReflections, Map<String, Object> paramMap,
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
 			boolean resumeMode, String parentRunId, SubAgentRunCompletionMode completionMode, String ownerAuthType,
-			String continuationChildRunId, int continuationDepth, String humanExecutorLabel) {
+			String continuationChildRunId, int continuationDepth, String humanExecutorLabel,
+			String executionSessionId) {
 		this.roomId = roomId;
 		this.parentRunId = trimmedStringValue(parentRunId);
 		this.ownerAuthType = ownerAuthType == null ? resolveOwnerAuthType(insight) : trimmedStringValue(ownerAuthType);
@@ -118,6 +122,7 @@ public final class AgentRunRequest {
 			this.paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, workspaceId);
 		}
 		this.insight = insight;
+		this.executionSessionId = trimmedStringValue(executionSessionId);
 		this.resumeMode = resumeMode;
 	}
 
@@ -160,7 +165,7 @@ public final class AgentRunRequest {
 	public AgentRunRequest withParentRunId(String parentRunId) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel);
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, executionSessionId);
 	}
 
 	/**
@@ -169,7 +174,7 @@ public final class AgentRunRequest {
 	public AgentRunRequest withCompletionMode(SubAgentRunCompletionMode completionMode) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel);
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, executionSessionId);
 	}
 
 	/** Builds a fresh same-room run that follows one detached child result. */
@@ -177,14 +182,16 @@ public final class AgentRunRequest {
 			Insight continuationInsight) {
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
 				maxTurns, maxReflections, paramMap, agentParamMap, null, null, continuationInsight, false, null,
-				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null);
+				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null,
+				executionSessionId);
 	}
 
 	/** Returns a copy marking this run as a child answered by a person rather than a model. */
 	AgentRunRequest withHumanExecutor(String executorLabel) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, executorLabel == null ? "" : executorLabel);
+				ownerAuthType, continuationChildRunId, continuationDepth, executorLabel == null ? "" : executorLabel,
+				executionSessionId);
 	}
 
 	public boolean isHumanExecutor() {
@@ -239,6 +246,10 @@ public final class AgentRunRequest {
 		return insight;
 	}
 
+	String getExecutionSessionId() {
+		return executionSessionId;
+	}
+
 	public boolean isResumeMode() {
 		return resumeMode;
 	}
@@ -284,7 +295,12 @@ public final class AgentRunRequest {
 				stringValue(map.get("ownerAuthType")), stringValue(map.get("continuationChildRunId")),
 				intValue(map.get("continuationDepth"), 0),
 				"HUMAN".equals(map.get("executorType")) ? String.valueOf(map.getOrDefault("executorLabel", ""))
-						: null);
+						: null,
+				null);
+	}
+
+	private static String currentSessionId() {
+		return trimmedStringValue(ThreadStore.getSessionId());
 	}
 
 	private static String resolveOwnerAuthType(Insight insight) {

@@ -59,6 +59,60 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 class SystemAgentSeederUnitTests {
 
 	@Test
+	void newOrchestratorSeedsPptxRosterAndAsyncDelegationInstructions() throws Exception {
+		String id = Constants.AGENT_ORCHESTRATOR;
+		try (var registry = mockStatic(SystemEngineRegistry.class);
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
+			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id)).thenReturn(null);
+
+			SystemAgentSeeder.seed(id);
+
+			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+			JSONObject config = configCaptor.getValue();
+			String prompt = config.getString("system_prompt");
+			workspaces.verify(() -> ModelInferenceLogsUtils.createNewWorkspaceEntry(eq(id), isNull(),
+					eq("Orchestrator Agent"), anyString(), eq(prompt), eq(List.of())));
+			assertEquals(Constants.AGENT_PPTX,
+					config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
+			assertEquals(2, config.getJSONObject("spawn_policy").getInt("max_subagent_depth"));
+			assertEquals(1, config.getJSONObject("spawn_policy").getInt("max_spawns_per_turn"));
+			assertTrue(prompt.contains("completionMode=POST"));
+			assertFalse(prompt.contains("completionMode=POST_AND_CONTINUE"));
+			assertTrue(prompt.contains("inherit_parent_workdir=true"));
+		}
+	}
+
+	@Test
+	void existingOrchestratorKeepsEditorManagedRosterAcrossReconciliation() throws Exception {
+		String id = Constants.AGENT_ORCHESTRATOR;
+		JSONObject existingConfig = new JSONObject().put("subagents",
+				new org.json.JSONArray().put(new JSONObject().put("workspaceId", Constants.AGENT_DATABASE_EXPLORER)));
+		try (var registry = mockStatic(SystemEngineRegistry.class);
+				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
+			registry.when(SystemEngineRegistry::isModelInferenceLogsDbLoaded).thenReturn(true);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceEntry(id))
+					.thenReturn(Map.of("name", "Orchestrator Agent", "is_active", true));
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceConfigJson(id)).thenReturn(existingConfig);
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("PROJECT")))
+					.thenReturn(List.of());
+			workspaces.when(() -> ModelInferenceLogsUtils.getWorkspaceResourcesByType(id, List.of("SKILL")))
+					.thenReturn(List.of());
+
+			SystemAgentSeeder.seed(id);
+
+			var configCaptor = ArgumentCaptor.forClass(JSONObject.class);
+			workspaces.verify(() -> ModelInferenceLogsUtils.updateWorkspaceConfigJson(eq(id), configCaptor.capture()));
+			JSONObject reconciled = configCaptor.getValue();
+			assertEquals(Constants.AGENT_DATABASE_EXPLORER,
+					reconciled.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
+			assertEquals(1, reconciled.getJSONArray("subagents").length());
+			assertTrue(reconciled.getString("system_prompt").contains("default Playground Orchestrator"));
+		}
+	}
+
+	@Test
 	void analysisAgentsSeedNamedWorkspacesAndLoadTheirRuntimeSkills() throws Exception {
 		for (var agent : Map.of(Constants.AGENT_DATABASE_EXPLORER, "Database Explorer",
 				Constants.AGENT_NOTEBOOK_ANALYST, "Notebook Analyst").entrySet()) {

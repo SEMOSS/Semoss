@@ -66,7 +66,9 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * and the legacy NAME/DESCRIPTION/SYSTEM_PROMPT columns (the display source
  * surfaced to the Agent UI by GetWorkspace/ListWorkspaces) so a drifted mirror
  * on either side is repaired. Hand-edits to a system agent's prompt are
- * therefore intentionally clobbered on the next boot. If the
+ * therefore intentionally clobbered on the next boot. The Orchestrator is the
+ * one exception: its editor-managed {@code subagents[]} roster is preserved
+ * while the rest of its managed configuration is reconciled. If the
  * ModelInferenceLogsDatabase feature is disabled it no-ops (the project itself
  * still catalogs).
  *
@@ -158,9 +160,13 @@ public class SystemAgentSeeder {
 				pruneStaleResources(agentId, tools, skills);
 			}
 
+			JSONObject existingConfig = existing != null && Constants.AGENT_ORCHESTRATOR.equals(agentId)
+					? ModelInferenceLogsUtils.getWorkspaceConfigJson(agentId)
+					: null;
 			ModelInferenceLogsUtils.updateWorkspaceCoreFields(agentId, displayName(agentId), description(agentId),
 					systemPrompt(agentId));
-			ModelInferenceLogsUtils.updateWorkspaceConfigJson(agentId, buildConfigJson(agentId, tools, skills));
+			ModelInferenceLogsUtils.updateWorkspaceConfigJson(agentId,
+					buildConfigJson(agentId, tools, skills, existingConfig));
 		} catch (Exception e) {
 			classLogger.error("Failed to seed system agent workspace '{}'", agentId, e);
 		}
@@ -244,6 +250,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "Automation Building Agent";
 		}
+		if (Constants.AGENT_ORCHESTRATOR.equals(agentId)) {
+			return "Orchestrator Agent";
+		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return "PPTX Agent";
 		}
@@ -266,6 +275,9 @@ public class SystemAgentSeeder {
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return "System agent for authoring and troubleshooting Automation workflows.";
 		}
+		if (Constants.AGENT_ORCHESTRATOR.equals(agentId)) {
+			return "Default Playground agent that answers directly or delegates work to configured specialist agents.";
+		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return "System agent for creating and editing PowerPoint presentations with validation and visual review.";
 		}
@@ -287,6 +299,9 @@ public class SystemAgentSeeder {
 		}
 		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
 			return WORKFLOW_AUTOMATION_BUILDER_SYSTEM_PROMPT;
+		}
+		if (Constants.AGENT_ORCHESTRATOR.equals(agentId)) {
+			return ORCHESTRATOR_SYSTEM_PROMPT;
 		}
 		if (Constants.AGENT_PPTX.equals(agentId)) {
 			return PPTX_SYSTEM_PROMPT;
@@ -335,7 +350,8 @@ public class SystemAgentSeeder {
 	 * {@code skills[]} of {@code {skill_id}}. Matches
 	 * {@code AbstractWorkspaceReactor.mirrorCoreFieldsIntoConfigJson}.
 	 */
-	private static JSONObject buildConfigJson(String agentId, List<String> tools, List<String> skills) {
+	private static JSONObject buildConfigJson(String agentId, List<String> tools, List<String> skills,
+			JSONObject existingConfig) {
 		JSONObject config = new JSONObject();
 		config.put("schema_version", CONFIG_SCHEMA_VERSION);
 		config.put("system_prompt", systemPrompt(agentId));
@@ -363,6 +379,23 @@ public class SystemAgentSeeder {
 			JSONArray hooks = new JSONArray();
 			hooks.put(new JSONObject().put("kind", GIT_COMMIT_HOOK_KIND));
 			config.put("hooks", hooks);
+		}
+
+		if (Constants.AGENT_ORCHESTRATOR.equals(agentId)) {
+			config.put("use_default_agent_tools", true);
+			config.put("greeting_enabled", false);
+			config.put("hooks", new JSONArray());
+			// Editors own the roster after first seed. Reconciliation refreshes the
+			// managed prompt and limits without clobbering their selected specialists.
+			JSONArray existingRoster = existingConfig == null ? null : existingConfig.optJSONArray("subagents");
+			JSONArray roster = existingRoster != null
+					? new JSONArray(existingRoster.toString())
+					: new JSONArray().put(new JSONObject().put("workspaceId", Constants.AGENT_PPTX));
+			config.put("subagents", roster);
+			// Orchestrator -> specialist -> specialist-owned reviewer is the deepest
+			// supported managed workflow (for example PPTX visual review).
+			config.put("spawn_policy", new JSONObject().put("max_subagent_depth", 2)
+					.put("max_subagents_per_run", 10).put("max_spawns_per_turn", 1));
 		}
 
 		if (Constants.AGENT_PPTX.equals(agentId)) {
@@ -406,6 +439,13 @@ public class SystemAgentSeeder {
 		}
 		return config;
 	}
+
+	private static final String ORCHESTRATOR_SYSTEM_PROMPT = """
+			You are the default Playground Orchestrator. Help with ordinary questions directly. You also have an explicit allowlist of specialist agents exposed as named tools. Delegate only when a specialist clearly matches the user's requested outcome; never invent or call an agent that is not available.
+
+			When delegating, pass the specialist a complete, self-contained task containing the user's requested outcome, constraints, relevant context, filenames, and deliverables. Preserve the user's wording where precision matters. For work that creates or edits files, set inherit_parent_workdir=true so the artifact is delivered in this Playground room. Set completionMode=POST so the user can keep using the parent chat while the specialist runs and only the specialist's completion is posted back. Do not call WaitForSubAgent after using that completion mode.
+
+			Tell the user briefly which specialist is handling the task. When its completion is posted back, assess the actual result, clearly report success or failure, and link or name produced artifacts. Do not claim completion before the specialist finishes. If no available specialist fits, continue helping directly within your own capabilities.""";
 
 	/**
 	 * Keep docs/agents/pptx-author-workflow-prompt.txt in sync with this prompt.

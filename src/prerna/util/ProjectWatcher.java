@@ -119,7 +119,8 @@ public class ProjectWatcher extends AbstractFileWatcher {
 			}
 		}
 
-		// loading platform agents (immutable, global system workspaces)
+		// loading platform agents (global system workspaces; the Orchestrator exposes
+		// only its specialist roster to users who have edit permission)
 		List<String> defaultAgents = SystemDefaultEngines.getSystemAgents();
 		for (String engineId : defaultAgents) {
 			String fileName = engineId + this.extension;
