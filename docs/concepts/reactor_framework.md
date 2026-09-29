@@ -74,11 +74,6 @@ Reactors are designed to be configurable and reusable components. Their inputs a
         // Referencing a previously defined variable (e.g., a frame or a value)
         productFilter = "Electronics";
         FilterData(frame=[$currentFrame], column=["Category"], comparator=["=="], value=[$productFilter]);
-
-        // Passing a map (less common as direct input, often constructed by a preceding reactor)
-        // Conceptual example:
-        // configMap = {"type":"bar", "xAxis":"Month", "yAxis":"Sales"};
-        // UpdatePanelSettings(panelId=["panel1"], settings=[$configMap]);
         ```
 
 *   **Reactor Input Handling via `AbstractReactor`**:
@@ -148,147 +143,43 @@ This system allows for flexible parameter passing from Pixel to Java Reactors, s
 
 ## Reactor Outputs and `NounMetadata`
 
-Just as inputs are standardized, the way Reactors return data is also structured, primarily through the `prerna.sablecc2.om.nounmeta.NounMetadata` class. This class acts as a wrapper around the actual result, providing crucial context about the data's type and the nature of the operation that produced it.
+A reactor's `execute()` method returns a [NounMetadata](../../src/prerna/sablecc2/om/nounmeta/NounMetadata.java) object. It wraps the result with type and operation information used by the execution pipeline and API consumers.
 
-*   **`NounMetadata` as the Standard Return**:
-    *   The `execute()` method of an `IReactor` is declared to return a `NounMetadata` object.
-    *   This object encapsulates the primary output of the Reactor.
-    *   **Key fields of `NounMetadata`**:
-        *   `value`: The actual data being returned (e.g., a String, Integer, Double, Boolean, List, Map, `ITableDataFrame` instance, or even a custom Java object).
-        *   `nounType` (`PixelDataType` enum): Specifies the semantic type of the `value`. This helps SEMOSS and subsequent Reactors understand how to interpret the data.
-        *   `opType` (List of `PixelOperationType` enums): A list of types that describe the operation performed or suggest how the result should be handled, especially by the UI.
+| Accessor | Purpose |
+| --- | --- |
+| `getValue()` | The returned value, such as a string, number, list, map, or `ITableDataFrame` |
+| `getNounType()` | A `PixelDataType` describing the value |
+| `getOpType()` | A list of `PixelOperationType` values describing the operation or outcome |
 
-*   **`PixelDataType` Enum (`prerna.sablecc2.om.PixelDataType`)**:
-    *   This enum provides a classification for the data contained within the `NounMetadata`'s `value`.
-    *   **Common `PixelDataType` values include**:
-        *   `CONST_STRING`, `CONST_INT`, `CONST_DECIMAL`, `CONST_DATE`, `CONST_TIMESTAMP`, `BOOLEAN`: For literal values.
-        *   `COLUMN`: Represents a column name or a reference to a column.
-        *   `FRAME`: The value is an instance of `ITableDataFrame` (e.g., an H2Frame, TinkerFrame).
-        *   `FILTER`: The value is a `prerna.sablecc2.om.Filter` object.
-        *   `TASK_OPTIONS`: The value is a `prerna.sablecc2.om.task.options.TaskOptions` object, often used for configuring data retrieval for visualizations.
-        *   `PANEL`: Represents an `InsightPanel` object or its ID.
-        *   `SHEET`: Represents an `InsightSheet` object or its ID.
-        *   `VARIABLE`: Represents the name of a variable stored in the `VarStore`.
-        *   `LAMBDA`: The value is another `IReactor` instance (for nested or dynamically generated operations).
-        *   `MAP`, `LIST`: For returning structured Java Maps or Lists.
-        *   `ERROR_MESSAGE`, `WARNING_MESSAGE`, `SUCCESS_MESSAGE`: For specific feedback messages.
-    *   **Example**: A reactor that calculates a sum might return:
-        ```java
-        // double sumResult = 105.5;
-        // return new NounMetadata(sumResult, PixelDataType.CONST_DECIMAL);
-        ```
-        (Often, an appropriate `PixelOperationType` is also added).
+### Result types and operation types
 
-*   **`PixelOperationType` Enum (`prerna.sablecc2.om.PixelOperationType`)**:
-    *   This enum (or list of enums in `NounMetadata`) provides crucial information about what kind of operation was performed and/or how the result should be interpreted by the system, especially by the `PixelRunner` and potentially the UI.
-    *   **Key `PixelOperationType` values and their significance**:
-        *   `OPERATION`: A generic successful operation. The `value` in `NounMetadata` is the direct result.
-        *   `FRAME_DATA_CHANGE`, `FRAME_HEADERS_CHANGE`, `FRAME_METADATA_CHANGE`: Indicate that an operation modified an existing data frame's data, headers, or metadata respectively. The UI would typically refresh the view of this frame.
-        *   `NEW_FRAME`: Signals that a new `ITableDataFrame` has been created. The `value` is the new frame.
-        *   `VIZ_DATA`: The `value` contains data specifically formatted or intended for a visualization on the UI. This often triggers a data update for a panel.
-        *   `PANEL_ORNAMENT_CHANGE`: Signals that a panel's visual configuration (ornament) has changed. The `value` might be a Map containing the panel ID and the new ornament settings. The UI updates the panel's appearance.
-        *   `PANEL_VIEW_CHANGE`: Indicates a change in the type of view for a panel (e.g., from a grid to a bar chart).
-        *   `SHEET_ADD_PANEL`, `SHEET_REMOVE_PANEL`: Signals changes to the panels within an insight sheet.
-        *   `ERROR`: An error occurred during the Reactor's execution. The `value` is typically an error message string, and `nounType` would be `PixelDataType.ERROR_MESSAGE`.
-        *   `WARNING`: A warning message.
-        *   `SUCCESS_MESSAGE`: An explicit success message to be shown to the user.
-        *   `FILE_DOWNLOAD`: The result is a file to be downloaded by the client. The `value` might be a path or a `FileReference` object.
-        *   `PARAM_SET`: Indicates a variable has been set in the `VarStore`.
-    *   A single `NounMetadata` can have multiple `PixelOperationType`s to convey complex outcomes.
+[PixelDataType](../../src/prerna/sablecc2/om/PixelDataType.java) includes `CONST_STRING`, `CONST_INT`, `CONST_DECIMAL`, `BOOLEAN`, `MAP`, `VECTOR`, and `FRAME`. Use the type that matches the result; `VECTOR` represents list values and `FRAME` represents an `ITableDataFrame`.
 
-*   **How Pixel and the System Use Reactor Outputs**:
-    *   **Variable Assignment**: If a Pixel command assigns the Reactor's output to a variable (e.g., `myResult = MyReactor();`), the entire `NounMetadata` object returned by `MyReactor` is stored in the `Insight`'s `VarStore` under the key "myResult". Subsequent Pixel commands can then access this variable (e.g., `UseResult(data=[$myResult]);`). The consuming Reactor would then typically access `$myResult.getValue()`.
-    *   **Chaining Operations**: In a piped sequence (`R1() | R2();`), the `NounMetadata` returned by `R1().execute()` is often made available to `R2()` as its primary input context (e.g., accessible via `this.curRow` in `AbstractReactor`, or by `PixelPlanner` setting it as an implicit input). `R2` can then decide how to use this input based on its `PixelDataType` and `value`.
-    *   **`PixelRunner` Interpretation**: The `PixelRunner` inspects the `PixelOperationType` list in the returned `NounMetadata`. Based on these types, it might perform additional actions:
-        *   If `ERROR`, it might halt further execution or log the error.
-        *   If `FRAME_DATA_CHANGE`, it might signal to the UI that a particular frame needs refreshing.
-        *   If `VIZ_DATA` or `PANEL_ORNAMENT_CHANGE`, it packages this information to be sent back in the HTTP response so the frontend can update the UI.
-    *   **Implicit Results**: If a Pixel line is just a Reactor call without assignment (e.g., `ExportFrame(type=["CSV"]);`), its returned `NounMetadata` might be added to a list of results for the overall Pixel execution, potentially for display or logging, depending on the `PixelOperationType`.
+[PixelOperationType](../../src/prerna/sablecc2/om/PixelOperationType.java) describes what the reactor did. Common examples are `OPERATION`, `FRAME`, `FRAME_DATA_CHANGE`, `FRAME_HEADERS_CHANGE`, `SUCCESS`, `WARNING`, and `ERROR`. A result can carry multiple operation types.
 
-*   **Examples of Returning Data**:
-    1.  **Reactor returning a simple success message**:
-        ```java
-        // return NounMetadata.getSuccessNounMessage("Operation completed successfully!");
-        // Equivalent to:
-        // return new NounMetadata("Operation completed successfully!", PixelDataType.SUCCESS_MESSAGE, PixelOperationType.SUCCESS_MESSAGE);
-        ```
-    2.  **Reactor creating and returning a new data frame**:
-        ```java
-        // ITableDataFrame newFrame = createMyFrame();
-        // insight.getVarStore().put(frameName, new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.NEW_FRAME)); // Also store it
-        // return new NounMetadata(newFrame, PixelDataType.FRAME, PixelOperationType.NEW_FRAME);
-        ```
-    3.  **Reactor returning data for a chart on a specific panel**:
-        ```java
-        // Map<String, Object> chartData = new HashMap<>();
-        // chartData.put("panelId", "panel_1");
-        // chartData.put("data", myChartDataList);
-        // chartData.put("layout", "echarts"); // Or whatever charting library is used
-        // return new NounMetadata(chartData, PixelDataType.MAP, PixelOperationType.VIZ_DATA);
-        ```
+These snippets illustrate return values inside a reactor's `execute()` method:
 
-By using `NounMetadata` with its `PixelDataType` and `PixelOperationType`, Reactors provide rich, contextual information about their results, enabling the SEMOSS backend to manage data flow, update state, and interact with the UI effectively.
+```java
+// Return a calculated scalar.
+return new NounMetadata(sumResult, PixelDataType.CONST_DECIMAL);
+```
 
-## Reactor Results and UI Interaction
+```java
+// Return a frame for subsequent Pixel operations.
+return new NounMetadata(resultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
+```
 
-A key aspect of SEMOSS is its interactive nature, where backend operations performed by Pixels and Reactors can dynamically update the user interface. This is achieved through conventions in how Reactors return data, particularly using `PixelOperationType` in `NounMetadata`, and how the `PixelRunner` processes these results.
+```java
+// Return structured data.
+return new NounMetadata(resultMap, PixelDataType.MAP, PixelOperationType.OPERATION);
+```
 
-*   **Signaling UI Updates via `PixelOperationType`**:
-    *   As detailed in the "Reactor Outputs and `NounMetadata`" section, the `opType` (a list of `PixelOperationType` enums) in the returned `NounMetadata` is critical for signaling UI changes.
-    *   When the Java backend (specifically `PixelRunner` or associated components handling the HTTP response) processes the `NounMetadata` from a top-level Pixel/Reactor execution, it inspects these `opType`s.
-    *   Certain `opType`s are specifically designated to indicate that the UI needs to be updated.
+For feedback, use `NounMetadata.getSuccessNounMessage(...)`, `getWarningNounMessage(...)`, or `getErrorNounMessage(...)`. These helpers set the appropriate data and operation types.
 
-*   **Common `PixelOperationType`s for UI Interaction**:
-    *   **`VIZ_DATA`**: This is a primary signal for UI updates related to data in visualizations.
-        *   When a Reactor returns `NounMetadata` with `VIZ_DATA` in its `opType` list, the `value` of the `NounMetadata` is expected to contain the data necessary for a specific UI panel (chart, grid, etc.).
-        *   This data is often structured as a Map or List of Maps, ready for consumption by a frontend charting library (e.g., ECharts, D3) or data grid component.
-        *   The `NounMetadata` might also include additional information, such as the `panelId` the data is for, or task options used to generate the data.
-    *   **`PANEL_ORNAMENT_CHANGE`**: Signals that a panel's visual configuration or settings (its "ornament") have changed.
-        *   The `value` of the `NounMetadata` typically contains a Map with the `panelId` and the new ornament data (e.g., chart title, axis labels, colors, layout options).
-        *   The UI uses this to re-render or update the specified panel's settings without necessarily fetching new data.
-    *   **`PANEL_VIEW_CHANGE`**: Indicates a change in the type of view for a panel (e.g., switching from a grid to a bar chart, or changing chart subtypes).
-        *   The `value` would contain the `panelId` and the new view type identifier.
-    *   **`SHEET_ADD_PANEL`, `SHEET_REMOVE_PANEL`, `SHEET_ORDER_CHANGE`**: These signal structural changes to an `InsightSheet`, such as adding new panels, removing existing ones, or reordering them. The UI updates the sheet layout accordingly.
-    *   **`REFRESH_INSIGHT_VARIABLES`**: Signals that the insight's variables (in `VarStore`) have changed in a way that might be relevant to the UI (e.g., for displaying available variables to the user).
-    *   **`SUCCESS_MESSAGE`, `WARNING_MESSAGE`, `ERROR_MESSAGE`**: While not direct UI component updates, these are often used to display toast notifications or alerts to the user via the UI.
+### Using reactor results
 
-*   **Role of `InsightPanel` and `InsightSheet`**:
-    *   Reactors can directly interact with `InsightPanel` and `InsightSheet` objects stored within the current `Insight`.
-    *   For example, a Reactor might:
-        *   Retrieve an `InsightPanel` using `insight.getInsightPanel(panelId)`.
-        *   Modify its properties (e.g., `panel.set cytologicOptions(...)`, `panel.setPanelView(viewType)`).
-        *   Add or remove panels from an `InsightSheet` using `insightSheet.addPanel(newPanel)`.
-    *   After making such modifications, the Reactor then returns a `NounMetadata` with the appropriate `PixelOperationType` (e.g., `PANEL_ORNAMENT_CHANGE`) to inform the frontend that these server-side changes need to be reflected in the UI.
+- **Variable assignment:** a result assigned in Pixel becomes available through the current Insight's `VarStore` for subsequent operations.
+- **Pipelines:** typed results can become input to the next reactor in a piped expression. The receiving reactor interprets the value according to its input contract.
+- **API responses:** the execution pipeline collects results for serialization and return to the caller, including their data and operation types.
 
-*   **Message Flow to UI (High-Level)**:
-    1.  A Pixel script is executed (e.g., triggered by a user action in the UI).
-    2.  A Reactor performs its logic and returns `NounMetadata` containing data and relevant `PixelOperationType`s (e.g., `VIZ_DATA`, `PANEL_ORNAMENT_CHANGE`).
-    3.  The `PixelRunner` collects these `NounMetadata` objects.
-    4.  The Java servlet handling the HTTP request formats these results (often into a JSON structure) and sends them in the HTTP response. This JSON response will include the data and the operation types.
-    5.  The frontend JavaScript code receives this JSON response.
-    6.  It inspects the operation types and data. Based on this, it dispatches actions to update the corresponding UI elements:
-        *   If `VIZ_DATA`, it updates the data for a specific chart/grid and triggers a re-render.
-        *   If `PANEL_ORNAMENT_CHANGE`, it applies the new settings to the panel.
-        *   If `SUCCESS_MESSAGE`, it displays a notification.
-
-*   **Example Scenario: Updating a Chart**
-    1.  **Pixel**: `Panel("panel_001") | SetChartFilter(column=["Category"], values=["Electronics"]);`
-    2.  **`SetChartFilterReactor` (Conceptual)**:
-        *   Receives `panelId="panel_001"`, filter details.
-        *   Modifies the data query associated with `panel_001` (perhaps stored in its `TaskOptions`).
-        *   Re-fetches data for `panel_001` using the new filter.
-        *   Returns:
-            ```java
-            // Map<String, Object> vizDataPayload = new HashMap<>();
-            // vizDataPayload.put("panelId", "panel_001");
-            // vizDataPayload.put("view", "echarts"); // or other view type
-            // vizDataPayload.put("options", newChartOptions); // updated chart options if any
-            // vizDataPayload.put("data", fetchedDataForChart);
-            // return new NounMetadata(vizDataPayload, PixelDataType.MAP, PixelOperationType.VIZ_DATA);
-            ```
-    3.  **Frontend**:
-        *   Receives the JSON containing the `VIZ_DATA` operation type and the payload.
-        *   Identifies `panel_001`.
-        *   Updates the chart library instance for `panel_001` with `fetchedDataForChart` and `newChartOptions`.
-
-This mechanism allows backend logic (Reactors) to drive dynamic updates and interactions in the SEMOSS user interface by sending structured messages and conventional operation types.
+See [the Insight object](insight_object.md) for execution state and [Monolith integration](../integrations/monolith_interaction.md) for the HTTP request and response path.

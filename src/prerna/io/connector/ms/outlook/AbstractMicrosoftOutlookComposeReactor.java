@@ -36,7 +36,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import prerna.reactor.AbstractReactor;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.Utility;
@@ -57,7 +57,7 @@ import prerna.util.Utility;
  * somebody else.
  * </p>
  */
-public abstract class AbstractMicrosoftOutlookComposeReactor extends AbstractReactor {
+public abstract class AbstractMicrosoftOutlookComposeReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractMicrosoftOutlookComposeReactor.class);
 

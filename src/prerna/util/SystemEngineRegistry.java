@@ -86,8 +86,8 @@ public final class SystemEngineRegistry {
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
 
-	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.scheduler",
-			"prerna.util", "prerna.web.conf");
+	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.automation",
+			"prerna.reactor.scheduler", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> THEMING_DB_ALLOWED = Set.of("prerna.auth", "prerna.theme", "prerna.util",
 			"prerna.web.conf");
@@ -238,6 +238,44 @@ public final class SystemEngineRegistry {
 	/** Returns true if the ModelInferenceLogsDb has been loaded and registered. */
 	public static boolean isModelInferenceLogsDbLoaded() {
 		return modelInferenceLogsDbHolder != null;
+	}
+
+	/** Requires a registered system database for this operation. */
+	public static void requireDatabase(String engineId) {
+		requireDatabase(engineId, null);
+	}
+
+	/**
+	 * Requires a registered system database without retrieving it or granting
+	 * access to it. Like the loaded-state checks, this may be called from any
+	 * package.
+	 *
+	 * @param engineId  canonical system database ID from {@link Constants}
+	 * @param operation description of the operation requiring the database;
+	 *                  defaults to "this operation" when null or blank
+	 * @throws IllegalArgumentException if the ID is unknown or the database is not
+	 *                                  loaded
+	 */
+	public static void requireDatabase(String engineId, String operation) {
+		if (engineId == null) {
+			throw new IllegalArgumentException("System database id is required");
+		}
+		boolean loaded = switch (engineId) {
+		case Constants.SECURITY_DB -> isSecurityDbLoaded();
+		case Constants.LOCAL_MASTER_DB -> isLocalMasterDbLoaded();
+		case Constants.SCHEDULER_DB -> isSchedulerDbLoaded();
+		case Constants.THEMING_DB -> isThemesDbLoaded();
+		case Constants.USER_TRACKING_DB -> isUserTrackingDbLoaded();
+		case Constants.PROMPT_DB -> isPromptDbLoaded();
+		case Constants.NOTIFICATION_DB -> isNotificationDbLoaded();
+		case Constants.AUDIT_LOGS_DB -> isAuditLogsDbLoaded();
+		case Constants.MODEL_INFERENCE_LOGS_DB -> isModelInferenceLogsDbLoaded();
+		default -> throw new IllegalArgumentException("Unknown system database: " + engineId);
+		};
+		if (!loaded) {
+			String description = operation == null || operation.isBlank() ? "this operation" : operation.trim();
+			throw new IllegalArgumentException("System database '" + engineId + "' is required for " + description);
+		}
 	}
 
 	/**

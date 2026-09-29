@@ -48,8 +48,11 @@ import org.jsoup.Jsoup;
  * <p>
  * The shape is the one the IMAP and POP3 engines settled on rather than
  * anything Graph suggests, so a caller reading over Graph sees the same keys it
- * would reading over a protocol. The single visible difference is the uid,
- * which is Graph's opaque id rather than a number.
+ * would reading over a protocol. The visible differences are what only Graph
+ * reports: the uid, which is Graph's opaque id rather than a number; the
+ * conversationId, which ties the messages of one thread together; the sender's
+ * display name; and, when a thread is read, each message's unique body, its
+ * text without the earlier messages it quotes.
  */
 public class MicrosoftOutlookMessageMapper {
 
@@ -77,7 +80,9 @@ public class MicrosoftOutlookMessageMapper {
 		// number. it round trips the same way, which is all a caller does with it
 		output.put("uid", message.get("id"));
 		putIfPresent(output, "messageId", message.get("internetMessageId"));
+		putIfPresent(output, "conversationId", message.get("conversationId"));
 		putIfPresent(output, "from", addressOf(message.get("from")));
+		putIfPresent(output, "fromName", nameOf(message.get("from")));
 		putIfPresent(output, "to", addressList(message.get("toRecipients")));
 		putIfPresent(output, "cc", addressList(message.get("ccRecipients")));
 		putIfPresent(output, "subject", message.get("subject"));
@@ -92,8 +97,55 @@ public class MicrosoftOutlookMessageMapper {
 				output.put("bodyTruncated", true);
 			}
 			output.put("body", body);
+
+			// only asked for by a thread read; the text of this message alone
+			if (message.get("uniqueBody") instanceof Map) {
+				String uniqueBody = textOf((Map<?, ?>) message.get("uniqueBody"));
+				if (maxBodyChars > 0 && uniqueBody.length() > maxBodyChars) {
+					uniqueBody = uniqueBody.substring(0, maxBodyChars) + " ... [truncated]";
+					output.put("uniqueBodyTruncated", true);
+				}
+				output.put("uniqueBody", uniqueBody);
+			}
 		}
 		return output;
+	}
+
+	/**
+	 * Describe one attachment, without its bytes.
+	 *
+	 * <p>
+	 * What an attachment is matters more than it might seem. A file attachment
+	 * carries its own bytes and can be written out. An item attachment is another
+	 * message or event embedded in this one, and a reference attachment is a link
+	 * to a file living in a drive, so neither has bytes here to save. That is what
+	 * {@code isFile} says, and it is what
+	 * {@code MicrosoftOutlookDownloadAttachment} checks before writing anything.
+	 * </p>
+	 *
+	 * @param attachment the attachment as Graph returned it
+	 * @return the attachment as a map
+	 */
+	public static Map<String, Object> toAttachment(Map<String, Object> attachment) {
+		Map<String, Object> output = new LinkedHashMap<>();
+		output.put("id", attachment.get("id"));
+		putIfPresent(output, "name", attachment.get("name"));
+		putIfPresent(output, "contentType", attachment.get("contentType"));
+		putIfPresent(output, "size", attachment.get("size"));
+		putIfPresent(output, "lastModifiedDateTime", attachment.get("lastModifiedDateTime"));
+		output.put("isInline", Boolean.TRUE.equals(attachment.get("isInline")));
+		output.put("type", attachment.get("@odata.type"));
+		output.put("isFile", isFileAttachment(attachment));
+		return output;
+	}
+
+	/**
+	 * @param attachment an attachment as Graph returned it
+	 * @return true when the attachment carries bytes of its own that can be written
+	 *         out
+	 */
+	public static boolean isFileAttachment(Map<String, Object> attachment) {
+		return "#microsoft.graph.fileAttachment".equals(String.valueOf(attachment.get("@odata.type")));
 	}
 
 	/**
@@ -109,9 +161,19 @@ public class MicrosoftOutlookMessageMapper {
 			Object preview = message.get("bodyPreview");
 			return preview == null ? "" : preview.toString().trim();
 		}
-		Map<?, ?> bodyMap = (Map<?, ?>) body;
-		String content = bodyMap.get("content") == null ? "" : bodyMap.get("content").toString();
-		if ("html".equalsIgnoreCase(String.valueOf(bodyMap.get("contentType")))) {
+		return textOf((Map<?, ?>) body);
+	}
+
+	/**
+	 * The readable text of one Graph item body, a {@code body} or a
+	 * {@code uniqueBody}.
+	 *
+	 * @param body the item body as Graph returned it
+	 * @return the text, empty when there is none
+	 */
+	private static String textOf(Map<?, ?> body) {
+		String content = body.get("content") == null ? "" : body.get("content").toString();
+		if ("html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
 			// the markup is noise to whoever asked what the message says
 			return Jsoup.parse(content).text().trim();
 		}
@@ -134,6 +196,24 @@ public class MicrosoftOutlookMessageMapper {
 		}
 		Object address = ((Map<?, ?>) emailAddress).get("address");
 		return address == null ? null : address.toString();
+	}
+
+	/**
+	 * The display name out of a Graph recipient object.
+	 *
+	 * @param recipient the {@code from} or one entry of a recipient collection
+	 * @return the name, or null when there is none
+	 */
+	public static String nameOf(Object recipient) {
+		if (!(recipient instanceof Map)) {
+			return null;
+		}
+		Object emailAddress = ((Map<?, ?>) recipient).get("emailAddress");
+		if (!(emailAddress instanceof Map)) {
+			return null;
+		}
+		Object name = ((Map<?, ?>) emailAddress).get("name");
+		return name == null || name.toString().trim().isEmpty() ? null : name.toString().trim();
 	}
 
 	/**

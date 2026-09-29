@@ -47,7 +47,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.EXECUTION_START;
 import static prerna.reactor.scheduler.SchedulerConstants.EXEC_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.FIRED_TIME;
 import static prerna.reactor.scheduler.SchedulerConstants.INSTANCE_NAME;
-import static prerna.reactor.scheduler.SchedulerConstants.INTEGER;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.INT_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.IS_DURABLE;
@@ -102,7 +101,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_1;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_2;
 import static prerna.reactor.scheduler.SchedulerConstants.STR_PROP_3;
 import static prerna.reactor.scheduler.SchedulerConstants.SUCCESS;
-import static prerna.reactor.scheduler.SchedulerConstants.TIMESTAMP;
 import static prerna.reactor.scheduler.SchedulerConstants.TIMES_TRIGGERED;
 import static prerna.reactor.scheduler.SchedulerConstants.TIME_ZONE_ID;
 import static prerna.reactor.scheduler.SchedulerConstants.TRIGGER_GROUP;
@@ -143,6 +141,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.logging.log4j.LogManager;
@@ -151,6 +150,7 @@ import org.quartz.CronExpression;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
+import org.quartz.impl.matchers.GroupMatcher;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -163,6 +163,15 @@ import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
+/**
+ * Provides scheduler persistence and Quartz lifecycle operations backed by the
+ * SEMOSS scheduler database.
+ *
+ * <p>
+ * Callers use this utility for parameterized recipe, tag, execution, and audit
+ * operations. The logical database schema remains owned by
+ * {@link SchedulerOwlCreator}.
+ */
 public class SchedulerDatabaseUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(SchedulerDatabaseUtility.class);
@@ -228,6 +237,8 @@ public class SchedulerDatabaseUtility {
 			WHERE JOB_ID = ? AND JOB_GROUP = ?""";
 	private static final String DELETE_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
 	private static final String EXISTS_JOB_RECIPES_QUERY = "SELECT COUNT(JOB_ID) FROM SMSS_JOB_RECIPES WHERE JOB_ID =? AND JOB_GROUP=?";
+	private static final String SELECT_PROJECT_JOB_IDS_QUERY = "SELECT JOB_ID FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
+	private static final String DELETE_PROJECT_JOB_RECIPES_QUERY = "DELETE FROM SMSS_JOB_RECIPES WHERE JOB_GROUP=?";
 	private static final String SELECT_TRIGGER_ON_LOAD_QUERY = "SELECT * FROM SMSS_JOB_RECIPES WHERE TRIGGER_ON_LOAD=?";
 
 	// SMSS_JOB_TAGS CRUD
@@ -275,7 +286,7 @@ public class SchedulerDatabaseUtility {
 		try {
 			queryUtil = schedulerDb.getQueryUtil();
 
-			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator();
+			SchedulerOwlCreator owlCreator = new SchedulerOwlCreator(queryUtil);
 			if (owlCreator.needsRemake(schedulerDb)) {
 				owlCreator.remakeOwl(schedulerDb);
 			}
@@ -757,6 +768,90 @@ public class SchedulerDatabaseUtility {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Removes every future Quartz job and stored recipe owned by a project job
+	 * group. Scheduler audit rows remain available for operational history.
+	 *
+	 * @param projectId project id used as the Quartz job group
+	 * @throws IllegalStateException when Quartz or scheduler-database cleanup fails
+	 */
+	public static void removeJobsForProject(String projectId) {
+		if (projectId == null || projectId.isBlank()) {
+			throw new IllegalArgumentException("Project id is required to remove scheduled jobs");
+		}
+
+		String jobGroup = projectId.trim();
+		Scheduler scheduler = SchedulerFactorySingleton.getInstance().getScheduler();
+		try {
+			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.jobGroupEquals(jobGroup));
+			if (!jobKeys.isEmpty() && !scheduler.deleteJobs(new ArrayList<>(jobKeys))) {
+				throw new IllegalStateException("Quartz did not remove every scheduled job for project " + jobGroup);
+			}
+		} catch (SchedulerException e) {
+			classLogger.error("Failed to remove Quartz jobs for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduled jobs for project " + jobGroup, e);
+		}
+
+		removeProjectJobRecords(jobGroup);
+	}
+
+	private static void removeProjectJobRecords(String jobGroup) {
+		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
+		Connection conn = connectToScheduler();
+		boolean originalAutoCommit = true;
+		try {
+			originalAutoCommit = conn.getAutoCommit();
+			conn.setAutoCommit(false);
+
+			List<String> jobIds = new ArrayList<>();
+			try (PreparedStatement select = conn.prepareStatement(SELECT_PROJECT_JOB_IDS_QUERY)) {
+				select.setString(1, jobGroup);
+				try (ResultSet result = select.executeQuery()) {
+					while (result.next()) {
+						jobIds.add(result.getString(1));
+					}
+				}
+			}
+
+			if (!jobIds.isEmpty()) {
+				try (PreparedStatement deleteTags = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
+					for (String jobId : jobIds) {
+						deleteTags.setString(1, jobId);
+						deleteTags.addBatch();
+					}
+					deleteTags.executeBatch();
+				}
+			}
+
+			try (PreparedStatement deleteRecipes = conn.prepareStatement(DELETE_PROJECT_JOB_RECIPES_QUERY)) {
+				deleteRecipes.setString(1, jobGroup);
+				deleteRecipes.executeUpdate();
+			}
+			conn.commit();
+		} catch (SQLException e) {
+			try {
+				conn.rollback();
+			} catch (SQLException rollbackError) {
+				e.addSuppressed(rollbackError);
+			}
+			classLogger.error("Failed to remove scheduler records for project '{}': {}", jobGroup, e.getMessage(), e);
+			throw new IllegalStateException("Failed to remove scheduler records for project " + jobGroup, e);
+		} finally {
+			try {
+				conn.setAutoCommit(originalAutoCommit);
+			} catch (SQLException e) {
+				classLogger.error("Failed to restore scheduler connection auto-commit: {}", e.getMessage(), e);
+			}
+			if (schedulerDb.isConnectionPooling()) {
+				try {
+					conn.close();
+				} catch (SQLException e) {
+					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+				}
+			}
+		}
 	}
 
 	/**
@@ -1426,10 +1521,12 @@ public class SchedulerDatabaseUtility {
 	private static void createQuartzTables(Connection connection, String database, String schema) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
-		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
+
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
+		final String INTEGER_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
+		final String IMAGE_DATATYPE = queryUtil.getImageDataTypeName();
 
 		String[] colNames = null;
 		String[] types = null;
@@ -1473,7 +1570,7 @@ public class SchedulerDatabaseUtility {
 			colNames = new String[] { SCHED_NAME, ENTRY_ID, TRIGGER_NAME, TRIGGER_GROUP, INSTANCE_NAME, FIRED_TIME,
 					SCHED_TIME, PRIORITY, STATE, JOB_NAME, JOB_GROUP, IS_NONCONCURRENT, REQUESTS_RECOVERY };
 			types = new String[] { VARCHAR_120, VARCHAR_95, VARCHAR_200, VARCHAR_200, VARCHAR_200, BIGINT, BIGINT,
-					INTEGER, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, VARCHAR_16, VARCHAR_200, VARCHAR_200, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL,
 					NOT_NULL, null, null, null, null };
 
@@ -1583,7 +1680,8 @@ public class SchedulerDatabaseUtility {
 					INT_PROP_1, INT_PROP_2, LONG_PROP_1, LONG_PROP_2, DEC_PROP_1, DEC_PROP_2, BOOL_PROP_1,
 					BOOL_PROP_2 };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_512, VARCHAR_512, VARCHAR_512,
-					INTEGER, INTEGER, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE, BOOLEAN_DATATYPE };
+					INTEGER_DATATYPE, INTEGER_DATATYPE, BIGINT, BIGINT, NUMERIC_13_4, NUMERIC_13_4, BOOLEAN_DATATYPE,
+					BOOLEAN_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null, null, null, null, null,
 					null, null, null };
 
@@ -1621,7 +1719,8 @@ public class SchedulerDatabaseUtility {
 					NEXT_FIRE_TIME, PREV_FIRE_TIME, PRIORITY, TRIGGER_STATE, TRIGGER_TYPE, START_TIME, END_TIME,
 					CALENDAR_NAME, MISFIRE_INSTR, JOB_DATA };
 			types = new String[] { VARCHAR_120, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_200, VARCHAR_250, BIGINT,
-					BIGINT, INTEGER, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT, IMAGE_DATATYPE };
+					BIGINT, INTEGER_DATATYPE, VARCHAR_16, VARCHAR_8, BIGINT, BIGINT, VARCHAR_200, SMALLINT,
+					IMAGE_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null,
 					NOT_NULL, NOT_NULL, NOT_NULL, null, null, null, null };
 
@@ -1658,10 +1757,11 @@ public class SchedulerDatabaseUtility {
 		AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 		boolean allowIfExistsTable = queryUtil.allowsIfExistsTableSyntax();
 		boolean allowIfExistsIndexs = queryUtil.allowIfExistsIndexSyntax();
-		String dateTimeType = queryUtil.getDateWithTimeDataType();
+		final String TIMESTAMP_DATATYPE = queryUtil.getDateWithTimeDataType();
 		final String BLOB_DATATYPE = queryUtil.getBlobDataTypeName();
 		final String BOOLEAN_DATATYPE = queryUtil.getBooleanDataTypeName();
 		final String CLOB_DATATYPE = queryUtil.getClobDataTypeName();
+
 		String[] colNames = null;
 		String[] types = null;
 		Object[] constraints = null;
@@ -1715,11 +1815,8 @@ public class SchedulerDatabaseUtility {
 			// adding is_latest flag to mark the latest record
 			colNames = new String[] { JOB_ID, JOB_GROUP, EXECUTION_START, EXECUTION_END, EXECUTION_DELTA, SUCCESS,
 					IS_LATEST, SCHEDULER_OUTPUT };
-			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP, TIMESTAMP, VARCHAR_255, BOOLEAN_DATATYPE,
-					BOOLEAN_DATATYPE, CLOB_DATATYPE };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
+			types = new String[] { VARCHAR_200, VARCHAR_200, TIMESTAMP_DATATYPE, TIMESTAMP_DATATYPE, VARCHAR_255,
+					BOOLEAN_DATATYPE, BOOLEAN_DATATYPE, CLOB_DATATYPE };
 			constraints = new String[] { NOT_NULL, NOT_NULL, null, null, null, null, null, null };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExistsWithCustomConstraints(SMSS_AUDIT_TRAIL, colNames, types,
@@ -1740,9 +1837,6 @@ public class SchedulerDatabaseUtility {
 			// SMSS_EXECUTION_SCHEDULE
 			colNames = new String[] { EXEC_ID, JOB_ID, JOB_GROUP };
 			types = new String[] { VARCHAR_200, VARCHAR_200, VARCHAR_200 };
-			if (!dateTimeType.equals(TIMESTAMP)) {
-				types = cleanUpDataType(types, TIMESTAMP, dateTimeType);
-			}
 			if (allowIfExistsTable) {
 				schedulerDb.insertData(queryUtil.createTableIfNotExists(SMSS_EXECUTION, colNames, types));
 			} else {
@@ -1757,25 +1851,6 @@ public class SchedulerDatabaseUtility {
 		} catch (Exception se) {
 			classLogger.error("Failed to create or migrate one or more SMSS scheduler tables: {}", se.getMessage(), se);
 		}
-	}
-
-	/**
-	 * In-place find/replace across a String[]. Used by the table-creation logic to
-	 * swap a generic placeholder type (e.g. {@code TIMESTAMP}) for the
-	 * rdbms-specific equivalent reported by the query util.
-	 *
-	 * @param arrays      array to mutate
-	 * @param value       value to find
-	 * @param replacement value to substitute
-	 * @return the same array reference (for fluent use)
-	 */
-	private static String[] cleanUpDataType(String[] arrays, String value, String replacement) {
-		for (int i = 0; i < arrays.length; i++) {
-			if (arrays[i].equals(value)) {
-				arrays[i] = replacement;
-			}
-		}
-		return arrays;
 	}
 
 	/**

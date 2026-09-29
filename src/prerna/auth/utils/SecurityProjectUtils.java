@@ -1639,10 +1639,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			// Check notificationDb (conditional)
 			if (Utility.isNotificationDatabaseEnabled()) {
-				String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
-				NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId,
-						NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
-						NotificationConstants.Priority.MEDIUM, existingPermission, newPermission);
+					String existingPermission = AccessPermissionEnum.getPermissionValueById(existingUserPermission);
+					NotificationDbUtils.createNotification(user, existingUserId, existingUserType, projectId,
+							NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+							NotificationConstants.Priority.MEDIUM, existingPermission, newPermission,
+							NotificationConstants.DisplaySurface.BELL);
 			}
 		} catch (Exception e) {
 			classLogger.error("Failed to update project user permission", e);
@@ -1739,10 +1740,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 				// Adding Notification
 				if (Utility.isNotificationDatabaseEnabled()) {
-					NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId,
-							NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
-							NotificationConstants.Priority.MEDIUM, existingPermission,
-							requests.get(i).get("permission"));
+						NotificationDbUtils.createNotification(user, newUserId, newUserType, projectId,
+								NotificationConstants.Type.PERMISSION_CHANGE, NotificationConstants.APP_CATALOG,
+								NotificationConstants.Priority.MEDIUM, existingPermission,
+								requests.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 			ps.executeBatch();
@@ -3400,7 +3401,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(
 				new QueryColumnSelector(projectPrefix + "REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		// back to the others
-		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
@@ -3667,6 +3669,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		// always add a secondary sort by project_id
+		qs1.addOrderBy(new QueryColumnOrderBySelector("project_id"));
 
 		Long long_limit = -1L;
 		Long long_offset = -1L;
@@ -3831,7 +3835,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
 		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
 		// for sorting
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, "PROJECT__PROJECTNAME",
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
+				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
 		// back to the others
 		if (projectFilter != null && !projectFilter.isEmpty()) {
@@ -4685,10 +4690,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 				for (int i = 0; i < requests.size(); i++) {
-					NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
-							requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,
-							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
-							requests.get(i).get("permission"));
+						NotificationDbUtils.createNotification(user, requests.get(i).get("userid"),
+								requests.get(i).get("type"), projectId, NotificationConstants.Type.REQUEST_APPROVAL,
+								NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+								requests.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
 					// Adding email notification
 					EmailUtility.sendAccessRequestApprovalEmailNotification(user, requests.get(i).get("userid"),
 							projectId, requests.get(i).get("permission"), EmailUtility.RESOURCE_TYPE.PROJECT);
@@ -4758,10 +4763,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					List<Map<String, Object>> deniedUserDetails = getUserDetailsFromProjectAccessRequest(requestId);
 					String permission = AccessPermissionEnum
 							.getPermissionValueById((Integer) deniedUserDetails.get(i).get("permission"));
-					NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
-							(String) deniedUserDetails.get(i).get("type"), projectId,
-							NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
-							NotificationConstants.Priority.MEDIUM, null, permission);
+						NotificationDbUtils.createNotification(user, (String) deniedUserDetails.get(i).get("userId"),
+								(String) deniedUserDetails.get(i).get("type"), projectId,
+								NotificationConstants.Type.REQUEST_DENIAL, NotificationConstants.APP_CATALOG,
+								NotificationConstants.Priority.MEDIUM, null, permission,
+								NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 
@@ -4845,10 +4851,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			// Adding Notification
 			if (Utility.isNotificationDatabaseEnabled()) {
 				for (int i = 0; i < permission.size(); i++) {
-					NotificationDbUtils.createNotification(user, permission.get(i).get("userid"),
-							permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION,
-							NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
-							permission.get(i).get("permission"));
+						NotificationDbUtils.createNotification(user, permission.get(i).get("userid"),
+								permission.get(i).get("type"), projectId, NotificationConstants.Type.USER_ADDITION,
+								NotificationConstants.APP_CATALOG, NotificationConstants.Priority.MEDIUM, null,
+								permission.get(i).get("permission"), NotificationConstants.DisplaySurface.BELL);
 				}
 			}
 

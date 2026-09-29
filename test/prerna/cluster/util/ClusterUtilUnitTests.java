@@ -2603,7 +2603,7 @@ class ClusterUtilUnitTests {
 		}
 
 		@Test
-		void folderExists_noImage_pullsAgain_stillNoImage_generatesNew() throws Exception {
+		void folderExists_noImage_pullsAgain_returnsSharedStockWithoutPush() throws Exception {
 			// Folder exists but no matching image even after pull
 			Path imgFolder = Files.createDirectory(tempDir.resolve("imgs2"));
 
@@ -2615,20 +2615,58 @@ class ClusterUtilUnitTests {
 				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.VECTOR))
 						.thenReturn(imgFolder.toString());
 
-				// pickRandomImage creates the file
-				dig.when(() -> DefaultImageGeneratorUtil.pickRandomImage(anyString())).thenAnswer(inv -> {
-					String path = inv.getArgument(0);
-					new File(path).createNewFile();
-					return null;
-				});
+				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
+				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(imgFolder.resolve("engNew.png").toString()))
+						.thenReturn(stock);
 
 				File result = ClusterUtil.getEngineAndProjectImage("engNew", IEngine.CATALOG_TYPE.VECTOR);
-				assertNotNull(result);
-				assertTrue(result.getName().startsWith("engNew"));
-				assertTrue(result.getName().endsWith(".png"));
-				// Verify pull was called and new image was pushed
+				assertSame(stock, result);
+				assertEquals(0, imgFolder.toFile().list().length);
 				verify(mockStorage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.VECTOR);
-				verify(mockStorage).pushEngineAndProjectImage(eq(IEngine.CATALOG_TYPE.VECTOR), eq("engNew.png"));
+				verify(mockStorage, never()).pushEngineAndProjectImage(any(), anyString());
+				dig.verify(() -> DefaultImageGeneratorUtil.pickRandomImage(anyString()), never());
+			}
+		}
+
+		@Test
+		void absentFolderAfterPull_returnsSharedStockWithoutCreatingFolder() throws Exception {
+			Path imgFolder = tempDir.resolve("missing");
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
+					MockedStatic<EngineUtility> eu = mockStatic(EngineUtility.class);
+					MockedStatic<DefaultImageGeneratorUtil> dig = mockStatic(DefaultImageGeneratorUtil.class)) {
+				CentralCloudStorage storage = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(storage);
+				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
+						.thenReturn(imgFolder.toString());
+				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
+				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(imgFolder.resolve("project-id.png").toString()))
+						.thenReturn(stock);
+				assertSame(stock, ClusterUtil.getEngineAndProjectImage("project-id", IEngine.CATALOG_TYPE.PROJECT));
+				assertFalse(Files.exists(imgFolder));
+				verify(storage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
+				verify(storage, never()).pushEngineAndProjectImage(any(), anyString());
+			}
+		}
+
+		@Test
+		void stockCardsShareCloudRefreshAndNewLocalUploadTakesPrecedence() throws Exception {
+			Path imgFolder = Files.createDirectory(tempDir.resolve("shared-catalog"));
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
+					MockedStatic<EngineUtility> eu = mockStatic(EngineUtility.class);
+					MockedStatic<DefaultImageGeneratorUtil> dig = mockStatic(DefaultImageGeneratorUtil.class)) {
+				CentralCloudStorage storage = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(storage);
+				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
+						.thenReturn(imgFolder.toString());
+				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
+				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(anyString())).thenReturn(stock);
+				assertSame(stock, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
+				assertSame(stock, ClusterUtil.getEngineAndProjectImage("second", IEngine.CATALOG_TYPE.PROJECT));
+				assertSame(stock, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
+				File uploaded = Files.createFile(imgFolder.resolve("first.png")).toFile();
+				assertEquals(uploaded, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
+				verify(storage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
+				verify(storage, never()).pushEngineAndProjectImage(any(), anyString());
 			}
 		}
 	}

@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.engine.impl.model.Room;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunner;
@@ -82,7 +83,8 @@ final class AgentRunExecutor {
 	 * unregisters the run as it releases the room; the object outlives the registry
 	 * entry and is what still carries the cancel flag.
 	 */
-	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun) {
+	static void execute(AgentRunRecord record, InsightHandle insightHandle, AgentRunRegistry.ActiveRun activeRun,
+			Room automationResumeRoom) {
 		String runId = record.runId();
 		String jobId = runId;
 		String parentRunId = record.request() != null ? record.request().getParentRunId() : null;
@@ -99,10 +101,16 @@ final class AgentRunExecutor {
 			// Detect resume: the persisted request always has resumeMode=false on initial
 			// submission, so fall back to checking for existing AGENT_RUN_ACTION rows.
 			boolean resumeMode = request.isResumeMode() || AgentRunActionStore.hasAnyActions(runId);
-			AgentHarnessResult result = AgentRunner.run(request.getRoomId(), request.getInput(),
-					request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
-					request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
-					request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(), resumeMode);
+			AgentHarnessResult result = automationResumeRoom == null
+					? AgentRunner.run(request.getRoomId(), request.getInput(), request.getEngineIdFallback(),
+							request.getHarnessType(), request.getMaxTurns(), request.getMaxReflections(),
+							request.getParamMap(), request.getAgentParamMap(), request.getMediaInputPaths(),
+							request.getMediaUrls(), runId, insightHandle.insight(), resumeMode)
+					: AgentRunner.resumeAutomationRun(request.getRoomId(), request.getInput(),
+							request.getEngineIdFallback(), request.getHarnessType(), request.getMaxTurns(),
+							request.getMaxReflections(), request.getParamMap(), request.getAgentParamMap(),
+							request.getMediaInputPaths(), request.getMediaUrls(), runId, insightHandle.insight(),
+							automationResumeRoom);
 			if (result != null) {
 				AgentRunStore.markInputMessage(runId, result.getInputMessageId());
 			}
@@ -115,11 +123,15 @@ final class AgentRunExecutor {
 				throw new AgentCancelledException();
 			}
 			String completionError = result == null ? null : result.getCompletionError();
-            if (completionError == null) AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
-            else AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
+			if (completionError == null) {
+				AgentRunStore.markCompleted(runId, jobId, result != null ? result.getFinalText() : null);
+			} else {
+				AgentRunStore.markIncomplete(runId, jobId, result.getFinalText(), completionError);
+			}
 			AgentRunStreamService.get().markTerminal(runId);
 			publishSubagentTerminal(parentRunId, record, runId, completionError == null ? AgentRunStatus.COMPLETED : AgentRunStatus.FAILED,
 					result != null ? result.getFinalText() : null, completionError);
+			queueChildCompletion(parentRunId, record, runId);
 		} catch (Exception e) {
 			// A cancel reaches this thread as an interrupt and the flag is still set.
 			// Clear it before the bookkeeping below, because this thread is virtual and
@@ -133,6 +145,7 @@ final class AgentRunExecutor {
 				AgentRunStore.markCancelled(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.CANCELLED, null, boundedError(e));
+				queueChildCompletion(parentRunId, record, runId);
 				logger.info("AgentRunExecutor: runId={} cancelled: {}", runId, e.getMessage());
 			} else if (e instanceof AgentInputRequiredException) {
 				// The harness already persisted the AGENT_RUN_ACTION rows; only
@@ -144,10 +157,18 @@ final class AgentRunExecutor {
 				AgentRunStore.markFailed(runId, jobId, boundedError(e));
 				AgentRunStreamService.get().markTerminal(runId);
 				publishSubagentTerminal(parentRunId, record, runId, AgentRunStatus.FAILED, null, boundedError(e));
+				queueChildCompletion(parentRunId, record, runId);
 				logger.warn("AgentRunExecutor: runId={} failed: {}", runId, e.getMessage(), e);
 			}
 		} finally {
 			ThreadStore.remove();
+		}
+	}
+
+	private static void queueChildCompletion(String parentRunId, AgentRunRecord record, String childRunId) {
+		if (parentRunId != null && !parentRunId.isBlank() && record.request() != null
+				&& record.request().getCompletionMode() != SubAgentRunCompletionMode.WAIT) {
+			AgentRunService.get().queueChildCompletion(childRunId);
 		}
 	}
 

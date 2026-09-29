@@ -72,7 +72,7 @@ public abstract class AbstractMicrosoftCalendarEventReactor extends AbstractMicr
 	 */
 	protected static final String[] EVENT_KEYS = { SUBJECT, START, END, TIME_ZONE, IS_ALL_DAY, LOCATION, ATTENDEES,
 			OPTIONAL_ATTENDEES, MESSAGE, HTML, IS_ONLINE_MEETING, REMINDER_MINUTES, SHOW_AS, IMPORTANCE, CATEGORIES,
-			CALENDAR_ID };
+			CALENDAR_ID, MAILBOX };
 
 	/** How the time can be made to read on the calendar. */
 	private static final List<String> SHOW_AS_VALUES = Arrays.asList("free", "tentative", "busy", "oof",

@@ -31,6 +31,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import prerna.auth.User;
+import prerna.auth.utils.SecurityAdminUtils;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -39,6 +42,13 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
+/**
+ * Lists persisted scheduler jobs, optionally filtered by project, user, and job tags.
+ *
+ * <p>
+ * Project-scoped requests apply the standard SEMOSS project view-permission check before
+ * scheduler metadata is returned.
+ */
 public class ListAllJobsReactor extends AbstractReactor {
 
 	// inputs
@@ -55,22 +65,18 @@ public class ListAllJobsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Scheduler is not enabled");
 		}
 
-		/**
-		 * 4 POSSIBLE CASES ListAllJobs(); ListAllJobs(app=["sample_app_id"]);
-		 * ListAllJobs(username=["sample_username"]); ListAllJobs(app=["sample_app_id"],
-		 * username=["sample_username"]);
-		 * 
-		 * This reactor will return all jobs based on app and user, if no parameters are
-		 * passed it will check if user has admin permissions, if so it will return all
-		 * jobs, if not it will throw error.
-		 */
-
 		Map<String, Map<String, String>> jobMap = null;
 		organizeKeys();
 
 		String projectId = this.keyValue.get(this.keysToGet[0]);
 		String userId = this.keyValue.get(this.keysToGet[1]);
 		List<String> jobTags = getJobTags();
+		User user = this.insight.getUser();
+		if (projectId != null && !SecurityAdminUtils.userIsAdmin(user)
+				&& !SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have permission to view its scheduled jobs");
+		}
 
 		if (projectId == null && userId == null) {
 			// TODO: check if admin if not admin throw permissions error

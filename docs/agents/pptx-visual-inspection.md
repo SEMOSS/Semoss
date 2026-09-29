@@ -24,6 +24,74 @@ For the dedicated-reviewer workflow, add `InspectPptx` to the author's `tool_pol
 
 The compiled Java changes require an application reload. If deployment replaces default tools using `AGENT_DEFAULT_TOOLS_MCP_ID`, expose the InspectPptx reactor through that MCP instead of relying on the built-in handler.
 
+## Editing existing presentations
+
+Managed author runs capture existing room PPTX inputs before author tools execute.
+`PreparePptxEdit(filePath, slides, outputFilePath?, editType?, additionalParts?)`
+inspects the authoritative input using presentation relationship order and records
+requested slides. Preparation can be corrected before the first build. Text mode
+describes wording edits that should preserve object geometry and formatting. The response includes selected object IDs, names, geometry, local
+colors and text-run indexes. Inherited styles are identified rather than guessed.
+The full package stays on the server; slides are never extracted and reimported.
+
+`ApplyPptxEdits` is an optional helper for supported changes. Its `operations` list accepts:
+
+- `replaceText`: `part`, `objectId`, `index`, `oldText`, `newText`.
+- `setTextColor`: `part`, `objectId`, `color` (all existing runs in an ordinary text shape).
+- `setBackground`: `part`, `color` (a slide-local override).
+
+Colors are six hexadecimal digits without `#`; color operations require
+`editType: "slides"`. A background change should include explicit foreground
+color operations where needed for readability. Operations use the inspected IDs
+and exact old text, and the complete list must be resubmitted on repairs: each
+attempt starts from the protected original. The packaged `structured-edit.js`
+patches XML spans in memory and atomically saves only after every operation succeeds.
+The managed tool uses the existing BuildPptx validation, review and recovery path.
+
+For unsupported changes, the existing `scripts/edit.js`/JSZip path remains:
+save the editing IIFE as `build-deck.js` and call `BuildPptx`. Creation generators
+and direct ExecuteNodeCode are not the managed editing route.
+
+The Office app opts edit runs into bounded provider history using
+`paramValues.pptx_edit_file`, the exact staged input filename. The harness accepts
+this only for a managed workflow with that captured input. The current request,
+original brief and last four prior user-request excerpts replace old generator
+and tool transcripts in the provider view. Full stored chat history and parent
+links remain intact, including on resume. A later ordinary request restores the
+normal history view. This option is removed before model parameters are sent.
+
+BuildPptx compares original and edited package content and uses both relationship
+graphs to identify affected slides, including linked charts, embedded workbooks,
+media, notes and shared resources. New and removed parts are allowed. Namespace
+prefixes, attribute ordering and indentation between elements do not by themselves
+constitute content edits. Added broken internal relationships remain a build error.
+
+Unexpected changes are evidence, not a file whitelist failure. Changes outside the
+requested slides, text-mode formatting changes, altered slide order/count and
+unattributed parts produce an available artifact with `disposition: "proposal"`.
+The Office app imports it under a separate stable ID and filename, preserving the
+accepted library record and bytes even through import retries and reconnects.
+Inspection covers requested and affected slides, or the whole deck when uncertain.
+An unprepared edit of a captured output is assessed against its original snapshot
+and delivered as a proposal because its requested slide scope is unspecified.
+The updated Office page sends `pptx_edit_proposals: true` (removed before provider
+calls). Older cached Office pages must refresh before importing a proposal; the
+backend retains that artifact but prevents their automatic replacement behavior.
+
+Broken output recovers the prior validated output or original. Unchanged content
+is not a successful edit. The original snapshot and saved validation/assessment
+survive resume. Review incompleteness is disclosed independently of saving; passing
+structural checks or a package assessment does not prove the request was fulfilled.
+Original advisory warnings do not authorize unrelated redesign.
+
+The system reviewer checks the selected inspection engine's access and declared
+image-input capability before spawning. Explicit engine, reviewer tool defaults,
+deployment default and reviewer model inheritance retain their existing precedence.
+Missing legacy metadata still lets the provider validate support. Plain-text
+reviewer errors retain their cause instead of surfacing as JSON parse errors.
+Review unavailability still delivers a structurally validated file with a warning;
+the Office app persists and displays that warning with the presentation.
+
 ## Calls and results
 
 Agent tool arguments:
@@ -113,10 +181,10 @@ Call `BuildPptx` alone. Omit `engine` to retain the reviewer's configured defaul
 
 `PptxWorkflow` enforces these transitions:
 
-1. **Save and validate.** Hash the saved PPTX and generator; verify requested count and structural validity. A structural failure allows one bounded repair attempt. A successful save sends advisory warnings directly to review before another author request.
+1. **Save and validate.** Hash the saved PPTX and generator; verify requested count and structural validity. Until a build validates, structural failures are repaired within `repair_turns` rounds counted from the first failure; once a validated deck exists, a failed rebuild delivers that deck instead. An edit is checked only for errors it introduced: errors its input snapshot already had do not block it. A successful save sends advisory warnings directly to review before another author request.
 2. **Review.** Spawn the configured named reviewer with the saved file, original brief, explicit criteria, selected original slide numbers and optional exact engine. Wait in code and verify report status, source hash, filename, count and coverage. A provider/setup error, changed source, inconclusive result or missing coverage leaves the review incomplete. It never triggers layout repair. An inconclusive overview gets one retry with the same image, without repeating individual slide checks. That retry shares the existing per-image two-attempt limit, deck-wide three-retry limit and token/time budgets. Both assessments are retained in the attempt history; continued uncertainty remains inconclusive.
 3. **Repair.** Significant findings permit one visual repair pass, capped at `repair_turns` author tool rounds (default six, configurable 2–12). The author edits its generator and calls BuildPptx again. At the repair/tool-turn limit or when the author stops, the controller reserves one final build of generator code changed since the last attempt. This uses the existing build/review timeouts, consumes no additional author model turn, never retries unchanged broken code, and never opens another repair cycle. There are at most two reviews. Rechecks cover the reported slides plus any other changed slide XML; changes to shared images, charts, layouts, themes or other presentation resources conservatively expand coverage to the whole deck.
-4. **Deliver.** The harness writes a final response from verified artifact and review evidence without requesting another model response. A structurally validated saved deck finishes as COMPLETED even if later refinement, review, a model call, or a runtime/turn limit prevents further work. The controller verifies or restores that file before delivery. Outstanding problems carry workflow status `complete_with_warnings`, phase `delivered_with_warnings`, an explicit final-text warning, and a separate `reviewOutcome`. Failed or incomplete review never claims a visual pass, and unbuilt generator edits are explicitly excluded. This preserves the existing app's COMPLETED-only room-to-user import without an app change. Minor findings remain disclosed on ordinary delivery. If neither the requested file nor its recovery copy can be verified, the run remains FAILED. Cancellation and input-required states retain their existing semantics.
+4. **Deliver.** The harness writes a final response from verified artifact and review evidence without requesting another model response. A structurally validated saved deck finishes as COMPLETED even if later refinement, review, a model call, or a runtime/turn limit prevents further work. The controller verifies or restores that file before delivery. Outstanding problems carry workflow status `complete_with_warnings`, phase `delivered_with_warnings`, an explicit final-text warning, and a separate `reviewOutcome`. Failed or incomplete review never claims a visual pass, and unbuilt generator edits are explicitly excluded. The Office app imports available proposals separately; ordinary revisions continue through its COMPLETED-only room-to-user import. The app imports the delivered artifact's path, even when the author saved it under another name than requested. Minor findings remain disclosed on ordinary delivery. If neither the requested file nor its recovery copy can be verified, the run remains FAILED. Cancellation and input-required states retain their existing semantics.
 
 A failed rebuild or source mutation restores the last validated saved copy when one exists. Generator edits after that build are explicitly excluded from delivery. State, hashes, review history and recovery copy are stored under `.semoss/pptx-workflow/<run-id>/`. A resume retains workflow budgets and evidence; an interrupted build/review is not silently accepted or retried. Cancellation propagates to the child reviewer. Waiting has a configured deadline and does not consume extra author model turns.
 

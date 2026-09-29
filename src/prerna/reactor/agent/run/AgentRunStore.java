@@ -40,8 +40,12 @@ import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
 import prerna.om.Insight;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -78,6 +82,11 @@ public final class AgentRunStore {
 
 	public static void insertSubmitted(String runId, AgentRunRequest request, String userId) {
 		insert(runId, request, userId, AgentRunStatus.SUBMITTED);
+	}
+
+	// Human children start waiting; no worker ever picks them up.
+	static void insertInputRequired(String runId, AgentRunRequest request, String userId) {
+		insert(runId, request, userId, AgentRunStatus.INPUT_REQUIRED);
 	}
 
 	private static void insert(String runId, AgentRunRequest request, String userId, AgentRunStatus status) {
@@ -145,6 +154,49 @@ public final class AgentRunStore {
 		}
 	}
 
+	/**
+	 * Loads an agent run without applying the owning-user predicate.
+	 *
+	 * <p>
+	 * This method is reserved for Automation APIs that have already verified project
+	 * access and the exact persisted Automation run, node, and agent-run trace.
+	 * Generic agent APIs must use {@link #getRun(String, Insight)}.
+	 *
+	 * @param runId agent run identifier
+	 * @param insight current Automation editor insight used to reconstruct the request
+	 * @return matching run, or {@code null} when it does not exist
+	 */
+	public static AgentRunRecord getRunForAutomation(String runId, Insight insight) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__RUN_ID", "runId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__PARENT_RUN_ID", "parentRunId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__ROOM_ID", "roomId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__WORKSPACE_ID", "workspaceId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__MODEL_ID", "modelId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__HARNESS_TYPE", "harnessType"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__STATUS", "status"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__INPUT", "input"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__REQUEST_JSON", "requestJson"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__USER_ID", "userId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__JOB_ID", "jobId"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AGENT_RUN__RUN_ID", "==", runId));
+
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
+			if (rows.isEmpty()) {
+				return null;
+			}
+			Map<String, Object> row = rows.get(0);
+			AgentRunRequest request = requestFromMap(row, insight);
+			return new AgentRunRecord(stringValue(row.get("runId")), stringValue(row.get("roomId")),
+					parseRunStatus(stringValue(row.get("status"))), request, stringValue(row.get("userId")),
+					stringValue(row.get("jobId")));
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN row for runId=" + runId, e);
+		}
+	}
+
 	public static Map<String, Object> getRunMap(String runId, Insight insight) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -168,6 +220,57 @@ public final class AgentRunStore {
 			throw new IllegalStateException("Failed to load AGENT_RUN details for runId=" + runId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/**
+	 * Loads agent-run details without applying the owning-user predicate.
+	 *
+	 * <p>
+	 * This is the detail-map equivalent of {@link #getRunForAutomation(String, Insight)}
+	 * and is only valid after Automation trace authorization succeeds.
+	 *
+	 * @param runId agent run identifier
+	 * @return matching run details, or {@code null} when it does not exist
+	 */
+	public static Map<String, Object> getRunMapForAutomation(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__RUN_ID", "runId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__PARENT_RUN_ID", "parentRunId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__ROOM_ID", "roomId"));
+			qs.addSelector(new QueryColumnSelector("ROOM__ROOM_NAME", "roomName"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__WORKSPACE_ID", "workspaceId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__MODEL_ID", "modelId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__HARNESS_TYPE", "harnessType"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__JOB_ID", "jobId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__STATUS", "status"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__INPUT", "input"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__INPUT_MESSAGE_ID", "inputMessageId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__FINAL_OUTPUT", "finalText"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__FINAL_OUTPUT_MESSAGE_ID", "finalOutputMessageId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__ERROR_MESSAGE", "errorMessage"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__DATE_CREATED", "dateCreated"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__STARTED_AT", "startedAt"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__COMPLETED_AT", "completedAt"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN__USER_ID", "userId"));
+			qs.addRelation("AGENT_RUN__ROOM_ID", "ROOM__ROOM_ID", "left.outer.join");
+			qs.addRelation("AGENT_RUN__USER_ID", "ROOM__USER_ID", "left.outer.join");
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AGENT_RUN__RUN_ID", "==", runId));
+
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
+			if (rows.isEmpty()) {
+				return null;
+			}
+			Map<String, Object> run = rows.get(0);
+			run.put("dateCreated", stringValue(run.get("dateCreated")));
+			run.put("startedAt", stringValue(run.get("startedAt")));
+			run.put("completedAt", stringValue(run.get("completedAt")));
+			run.put("artifacts", new ArrayList<>());
+			return run;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN details for runId=" + runId, e);
 		}
 	}
 
@@ -275,7 +378,7 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
 					+ " WHERE ar.USER_ID = ? AND ar.PARENT_RUN_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, userId);
@@ -284,7 +387,13 @@ public final class AgentRunStore {
 
 			List<Map<String, Object>> runs = new ArrayList<>();
 			while (rs.next()) {
-				runs.add(runMapFromRow(rs));
+				Map<String, Object> run = runMapFromRow(rs);
+				// Lets child cards tell a person's task from an agent's.
+				AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
+				boolean human = request != null && request.isHumanExecutor();
+				run.put("executorType", human ? "HUMAN" : "AGENT");
+				run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+				runs.add(run);
 			}
 			return runs;
 		} catch (Exception e) {
@@ -292,6 +401,96 @@ public final class AgentRunStore {
 				throw (SecurityException) e;
 			}
 			throw new IllegalStateException("Failed to load subagent AGENT_RUN rows for parentRunId=" + parentRunId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/** Internal durable inputs for detached-child delivery and repair. */
+	static List<Map<String, Object>> getTerminalChildCompletions(String childRunId, String parentRunId,
+			String parentRoomId, String userId, long limit) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder(
+					"SELECT child.RUN_ID AS CHILD_RUN_ID, child.PARENT_RUN_ID, child.STATUS, child.FINAL_OUTPUT, "
+							+ "child.ERROR_MESSAGE, child.REQUEST_JSON, child.USER_ID, parent.ROOM_ID AS PARENT_ROOM_ID, "
+							+ "parent.REQUEST_JSON AS PARENT_REQUEST_JSON "
+							+ "FROM AGENT_RUN child JOIN AGENT_RUN parent ON child.PARENT_RUN_ID = parent.RUN_ID "
+							+ "AND child.USER_ID = parent.USER_ID WHERE child.PARENT_RUN_ID IS NOT NULL "
+							+ "AND child.STATUS IN (?, ?, ?)");
+			if (childRunId != null && !childRunId.isBlank()) {
+				query.append(" AND child.RUN_ID = ?");
+			}
+			if (parentRunId != null && !parentRunId.isBlank()) {
+				query.append(" AND child.PARENT_RUN_ID = ?");
+			}
+			if (parentRoomId != null && !parentRoomId.isBlank()) {
+				query.append(" AND parent.ROOM_ID = ?");
+			}
+			if (userId != null && !userId.isBlank()) {
+				query.append(" AND child.USER_ID = ?");
+			}
+			query.append(" ORDER BY child.COMPLETED_AT DESC, child.RUN_ID DESC");
+			if (limit > 0) {
+				db.getQueryUtil().addLimitOffsetToQuery(query, limit, 0);
+			}
+
+			ps = db.getPreparedStatement(query.toString());
+			int idx = 1;
+			ps.setString(idx++, AgentRunStatus.COMPLETED.name());
+			ps.setString(idx++, AgentRunStatus.FAILED.name());
+			ps.setString(idx++, AgentRunStatus.CANCELLED.name());
+			if (childRunId != null && !childRunId.isBlank()) {
+				ps.setString(idx++, childRunId.trim());
+			}
+			if (parentRunId != null && !parentRunId.isBlank()) {
+				ps.setString(idx++, parentRunId.trim());
+			}
+			if (parentRoomId != null && !parentRoomId.isBlank()) {
+				ps.setString(idx++, parentRoomId.trim());
+			}
+			if (userId != null && !userId.isBlank()) {
+				ps.setString(idx++, userId.trim());
+			}
+
+			rs = ps.executeQuery();
+			List<Map<String, Object>> completions = new ArrayList<>();
+			while (rs.next()) {
+				Map<String, Object> completion = new HashMap<>();
+				completion.put("childRunId", rs.getString("CHILD_RUN_ID"));
+				completion.put("parentRunId", rs.getString("PARENT_RUN_ID"));
+				completion.put("parentRoomId", rs.getString("PARENT_ROOM_ID"));
+				completion.put("status", rs.getString("STATUS"));
+				completion.put("finalText", rs.getString("FINAL_OUTPUT"));
+				completion.put("errorMessage", rs.getString("ERROR_MESSAGE"));
+				completion.put("requestJson", rs.getString("REQUEST_JSON"));
+				completion.put("parentRequestJson", rs.getString("PARENT_REQUEST_JSON"));
+				completion.put("userId", rs.getString("USER_ID"));
+				completions.add(completion);
+			}
+			return completions;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load terminal child completions", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	// Unscoped: the assignee answering a delegation is not the owner of either run.
+	static String getParentRoomId(String childRunId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			ps = db.getPreparedStatement("SELECT parent.ROOM_ID FROM AGENT_RUN child JOIN AGENT_RUN parent "
+					+ "ON child.PARENT_RUN_ID = parent.RUN_ID AND child.USER_ID = parent.USER_ID WHERE child.RUN_ID = ?");
+			ps.setString(1, childRunId);
+			rs = ps.executeQuery();
+			return rs.next() ? rs.getString(1) : null;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load parent room for runId=" + childRunId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
@@ -386,8 +585,13 @@ public final class AgentRunStore {
         updateStatus(runId, AgentRunStatus.FAILED, jobId, finalOutput, errorMessage, false, true);
     }
 
-    public static void markFailed(String runId, String jobId, String errorMessage) {
+	public static void markFailed(String runId, String jobId, String errorMessage) {
 		updateStatus(runId, AgentRunStatus.FAILED, jobId, null, errorMessage, false, true);
+	}
+
+	public static boolean markFailedIfSubmitted(String runId, String jobId, String errorMessage) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.SUBMITTED, AgentRunStatus.FAILED, jobId, null,
+				errorMessage, false, true);
 	}
 
 	public static void markCancelled(String runId, String jobId, String errorMessage) {
@@ -411,6 +615,16 @@ public final class AgentRunStore {
 	public static boolean markResumed(String runId, String jobId) {
 		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.SUBMITTED, jobId, null, null,
 				false, false);
+	}
+
+	static boolean markCompletedIfInputRequired(String runId, String finalOutput) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.COMPLETED, runId,
+				finalOutput, null, false, true);
+	}
+
+	static boolean markFailedIfInputRequired(String runId, String errorMessage) {
+		return updateStatusIfCurrent(runId, AgentRunStatus.INPUT_REQUIRED, AgentRunStatus.FAILED, runId, null,
+				errorMessage, false, true);
 	}
 
 	public static boolean markCancelledIfNotTerminal(String runId, String jobId, String errorMessage) {
@@ -594,6 +808,34 @@ public final class AgentRunStore {
 				rs.getString("HARNESS_TYPE"), rs.getString("WORKSPACE_ID"), AgentRunContext.DEFAULT_MAX_TURNS,
 				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight)
 				.withParentRunId(rs.getString("PARENT_RUN_ID"));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static AgentRunRequest requestFromMap(Map<String, Object> row, Insight insight) {
+		String requestJson = stringValue(row.get("requestJson"));
+		if (requestJson != null) {
+			Map<String, Object> persisted = GSON.fromJson(requestJson, Map.class);
+			AgentRunRequest request = AgentRunRequest.fromPersistedMap(persisted, insight);
+			if (request != null) {
+				String parentRunId = stringValue(row.get("parentRunId"));
+				return request.getParentRunId() == null && parentRunId != null ? request.withParentRunId(parentRunId)
+						: request;
+			}
+		}
+		return new AgentRunRequest(stringValue(row.get("roomId")), stringValue(row.get("input")),
+				stringValue(row.get("modelId")), stringValue(row.get("harnessType")),
+				stringValue(row.get("workspaceId")), AgentRunContext.DEFAULT_MAX_TURNS,
+				AgentRunContext.DEFAULT_MAX_REFLECTIONS, null, null, null, null, insight)
+				.withParentRunId(stringValue(row.get("parentRunId")));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static AgentRunRequest requestFromJson(String json) {
+		try {
+			return json == null ? null : AgentRunRequest.fromPersistedMap(GSON.fromJson(json, Map.class), null);
+		} catch (RuntimeException e) {
+			return null;
+		}
 	}
 
 	private static AgentRunStatus parseRunStatus(String value) {

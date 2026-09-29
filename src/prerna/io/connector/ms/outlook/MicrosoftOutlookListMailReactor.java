@@ -39,8 +39,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -62,7 +62,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * whatever reads one can read the other.
  * </p>
  */
-public class MicrosoftOutlookListMailReactor extends AbstractReactor {
+public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookListMailReactor.class);
 
@@ -73,6 +73,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 	private static final String SINCE_DAYS = "sinceDays";
 	private static final String INCLUDE_BODY = "includeBody";
 	private static final String MAX_BODY_CHARS = "maxBodyChars";
+	private static final String CONVERSATION_ID = "conversationId";
 
 	/** The folder read when a caller does not say. */
 	private static final String DEFAULT_FOLDER = "inbox";
@@ -88,12 +89,12 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 
 	public MicrosoftOutlookListMailReactor() {
 		this.keysToGet = new String[] { FOLDER, ReactorKeysEnum.LIMIT.getKey(), SUBJECT, FROM, UNREAD_ONLY, SINCE_DAYS,
-				INCLUDE_BODY, MAX_BODY_CHARS };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+				INCLUDE_BODY, MAX_BODY_CHARS, CONVERSATION_ID };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		MicrosoftOutlookMailHelper.MessageQuery query = new MicrosoftOutlookMailHelper.MessageQuery();
@@ -105,6 +106,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 		query.unreadOnly = Boolean.parseBoolean(this.keyValue.get(UNREAD_ONLY));
 		String includeBody = trimToNull(this.keyValue.get(INCLUDE_BODY));
 		query.includeBody = includeBody == null || Boolean.parseBoolean(includeBody);
+		query.conversationId = trimToNull(this.keyValue.get(CONVERSATION_ID));
 
 		if (trimToNull(this.keyValue.get(SINCE_DAYS)) != null) {
 			query.since = Date
@@ -115,7 +117,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			// null mailbox is what addresses /me, so the signed in user is the only
 			// mailbox this reactor is able to read
@@ -133,6 +135,9 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("folder", query.folder);
+			if (query.conversationId != null) {
+				output.put("conversationId", query.conversationId);
+			}
 			output.put("count", messages.size());
 			output.put("messages", messages);
 			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
@@ -212,6 +217,11 @@ public class MicrosoftOutlookListMailReactor extends AbstractReactor {
 		} else if (key.equals(MAX_BODY_CHARS)) {
 			return "Optional longest body to return before it is truncated. Defaults to " + DEFAULT_MAX_BODY_CHARS
 					+ ".";
+		} else if (key.equals(CONVERSATION_ID)) {
+			return "Optional conversationId of a listed message, to read that whole thread from every folder, "
+					+ "including sent replies, instead of one folder. Each message then also has uniqueBody, its "
+					+ "text without the earlier messages it quotes. The folder, subject, from, unreadOnly, and "
+					+ "sinceDays filters do not apply to it.";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -65,6 +66,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
@@ -126,8 +128,8 @@ final class HarnessToolExecutor {
 		if (toolCalls.isEmpty()) {
 			return toolResponse;
 		}
-		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> PptxWorkflow.TOOL.equals(new ParsedToolCall(c).rawToolName))) {
-            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx must be called alone; no tools in this batch were executed.");
+		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx, PreparePptxEdit and ApplyPptxEdits must each be called alone; no tools in this batch were executed.");
         }
         String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
@@ -311,6 +313,11 @@ final class HarnessToolExecutor {
 		try {
 			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
                 outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
+            } else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
+                outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);
+            } else if (state.pptxWorkflow() != null && PptxStructuredEdits.TOOL.equals(tc.rawToolName)) {
+                var value = state.pptxWorkflow().applyEdits(tc.toolParams, currentIter + 1);
+                outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
             } else if (state.pptxWorkflow() != null && PptxWorkflow.TOOL.equals(tc.rawToolName)) {
                 var value = state.pptxWorkflow().build(tc.toolParams, currentIter + 1);
                 outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
@@ -325,6 +332,12 @@ final class HarnessToolExecutor {
 			publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
 					System.currentTimeMillis() - startMs);
 			throw cancelEx;
+		} catch (IllegalArgumentException invalidEdit) {
+			if (state.pptxWorkflow() == null || !Set.of(PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(tc.rawToolName))
+				throw invalidEdit;
+			// A rejected plan must be a recoverable tool result with a matching call ID.
+			// Let the author correct its arguments without losing the run or saved deck.
+			outcome = new ToolExecOutcome("Edit rejected: " + invalidEdit.getMessage(), false);
 		}
 		long durMs = System.currentTimeMillis() - startMs;
         state.progress().endTool(tc.rawToolName, tc.toolParams, outcome.success, outcome.content, durMs);
@@ -492,6 +505,12 @@ final class HarnessToolExecutor {
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
+			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),
+					tc.toolParams);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
 		if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
 			try {
 				String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
@@ -702,7 +721,8 @@ final class HarnessToolExecutor {
 			reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
 			NounMetadata result = reactor.execute();
-			return result != null && result.getValue() != null ? result.getValue().toString() : "";
+			String output = result != null && result.getValue() != null ? result.getValue().toString() : "";
+			return MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
 		} catch (Exception e) {
 			return "Tool execution error: " + e.getMessage();
 		}
