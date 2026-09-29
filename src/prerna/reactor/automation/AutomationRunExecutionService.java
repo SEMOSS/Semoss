@@ -89,7 +89,7 @@ final class AutomationRunExecutionService {
 	private static final String AUTOMATION_STREAM_TYPE = "automation";
 	private static final String AUTOMATION_RUN_STARTED_KIND = "run-start";
 	private static final String AUTOMATION_NODE_STATUS_KIND = "node-status";
-	private static final String EXECUTION_INSIGHT_PREFIX = "automation-run-";
+	private static final String EXECUTION_INSIGHT_PREFIX = "automation-";
 	private static final long AGENT_RUN_POLL_INTERVAL_MS = 500L;
 	private static final String AGENT_RUN_WAIT_TIMEOUT_PROPERTY = "AGENT_RUN_WAIT_TIMEOUT_MS";
 	private static final long DEFAULT_AGENT_RUN_WAIT_TIMEOUT_MS = 3600000L;
