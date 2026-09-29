@@ -73,6 +73,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 	private static final String SINCE_DAYS = "sinceDays";
 	private static final String INCLUDE_BODY = "includeBody";
 	private static final String MAX_BODY_CHARS = "maxBodyChars";
+	private static final String CONVERSATION_ID = "conversationId";
 
 	/** The folder read when a caller does not say. */
 	private static final String DEFAULT_FOLDER = "inbox";
@@ -88,8 +89,8 @@ public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 
 	public MicrosoftOutlookListMailReactor() {
 		this.keysToGet = new String[] { FOLDER, ReactorKeysEnum.LIMIT.getKey(), SUBJECT, FROM, UNREAD_ONLY, SINCE_DAYS,
-				INCLUDE_BODY, MAX_BODY_CHARS };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+				INCLUDE_BODY, MAX_BODY_CHARS, CONVERSATION_ID };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -105,6 +106,7 @@ public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 		query.unreadOnly = Boolean.parseBoolean(this.keyValue.get(UNREAD_ONLY));
 		String includeBody = trimToNull(this.keyValue.get(INCLUDE_BODY));
 		query.includeBody = includeBody == null || Boolean.parseBoolean(includeBody);
+		query.conversationId = trimToNull(this.keyValue.get(CONVERSATION_ID));
 
 		if (trimToNull(this.keyValue.get(SINCE_DAYS)) != null) {
 			query.since = Date
@@ -133,6 +135,9 @@ public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("folder", query.folder);
+			if (query.conversationId != null) {
+				output.put("conversationId", query.conversationId);
+			}
 			output.put("count", messages.size());
 			output.put("messages", messages);
 			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
@@ -212,6 +217,11 @@ public class MicrosoftOutlookListMailReactor extends AbstractMicrosoftReactor {
 		} else if (key.equals(MAX_BODY_CHARS)) {
 			return "Optional longest body to return before it is truncated. Defaults to " + DEFAULT_MAX_BODY_CHARS
 					+ ".";
+		} else if (key.equals(CONVERSATION_ID)) {
+			return "Optional conversationId of a listed message, to read that whole thread from every folder, "
+					+ "including sent replies, instead of one folder. Each message then also has uniqueBody, its "
+					+ "text without the earlier messages it quotes. The folder, subject, from, unreadOnly, and "
+					+ "sinceDays filters do not apply to it.";
 		}
 		return super.getDescriptionForKey(key);
 	}
