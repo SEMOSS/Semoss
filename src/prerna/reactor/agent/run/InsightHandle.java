@@ -29,6 +29,7 @@ package prerna.reactor.agent.run;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.ThreadContext;
 
@@ -66,13 +67,19 @@ import prerna.om.ThreadStore;
  *                        carry the submitter's request, session, and user
  */
 record InsightHandle(Insight insight, String insightId, String sessionId, String routeId, String localHostname,
-		String localProtocol, Integer localPort, Map<String, String> log4jContextMap) {
+		String localProtocol, Integer localPort, Map<String, String> log4jContextMap, boolean ownsUser,
+		AtomicBoolean released) {
 
 	/**
 	 * Snapshots the caller's context. Must be called on the submitting thread,
 	 * since it reads the ambient {@link ThreadStore} and log4j context.
 	 */
 	static InsightHandle capture(String runId, Insight source) {
+		return capture(runId, source, false);
+	}
+
+	/** Captures a server-created execution Insight whose User this handle owns. */
+	static InsightHandle capture(String runId, Insight source, boolean ownsUser) {
 		Insight clone = new Insight();
 		User user = source.getUser();
 		if (user == null) {
@@ -89,7 +96,8 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 			sessionId = log4jContextMap.get(SemossLogUtils.SESSION_ID);
 		}
 		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(), ThreadStore.getLocalHostname(),
-				ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(), log4jContextMap);
+				ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(), log4jContextMap, ownsUser,
+				new AtomicBoolean());
 	}
 
 	/** Replays the snapshot onto the calling thread, which is the run's thread. */
@@ -108,8 +116,14 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 
 	/** Unregisters the insight copy. Safe to call more than once. */
 	void release() {
+		if (!released.compareAndSet(false, true)) {
+			return;
+		}
 		if (insightId != null) {
 			InsightStore.getInstance().remove(insightId);
+		}
+		if (ownsUser && insight != null && insight.getUser() != null) {
+			insight.getUser().removeUserMemory();
 		}
 	}
 

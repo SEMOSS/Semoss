@@ -59,6 +59,20 @@ public class DefaultImageGeneratorUtil {
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	/**
+	 * Returns the shared stock image that would be selected for a resource's image
+	 * path, without creating the path or copying the image. The path is only used
+	 * as a stable selection key; callers must treat the returned file as read-only.
+	 * Selection stays the same while the resource name, theme, and stock collection
+	 * stay the same.
+	 *
+	 * @param imagePath the resource's conventional image path (it need not exist)
+	 * @return the shared stock image, or {@code null} if none is available
+	 */
+	public static File getStockImageForPath(String imagePath) {
+		return pickStockImage(extractSeedKey(imagePath));
+	}
+
+	/**
 	 * Selects a default stock image for the given output location and copies it
 	 * there. Selection is deterministic: the seed key is derived from
 	 * {@code fileLocation} via {@link #extractSeedKey(String)}, so the same path
@@ -70,7 +84,7 @@ public class DefaultImageGeneratorUtil {
 	 */
 	public static File pickRandomImage(String fileLocation) {
 		File outputFile = new File(fileLocation);
-		File sourceFile = pickStockImage(extractSeedKey(fileLocation));
+		File sourceFile = getStockImageForPath(fileLocation);
 		if (sourceFile == null) {
 			return outputFile;
 		}

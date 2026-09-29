@@ -35,6 +35,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -74,6 +75,9 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		// Preserve server-owned subagent filesystem metadata.
 		preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
 		preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+		for (String key : CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS) {
+			preserveInternalOption(roomOptions, room.getOptionsMap(), key);
+		}
 		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
 
 		room.setOptionsMap(roomOptions);

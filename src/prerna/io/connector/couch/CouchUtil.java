@@ -76,6 +76,7 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.security.HttpHelperUtility;
 import prerna.util.AssetUtility;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
@@ -133,9 +134,8 @@ public class CouchUtil {
 	 * partition with matching field data. The entries of the map are used to form a
 	 * document selector used to query CouchDB for matching documents in the
 	 * partition. If a document is found, the attachment data is retrieved.
-	 * Otherwise, a new document with a default image attachment is created. The
-	 * retrieved or created image data is used to build a JAX-RS Response object to
-	 * download it.
+	 * Otherwise, a local image or shared stock fallback is returned. Stock catalog
+	 * images are served without creating a CouchDB attachment for each resource.
 	 * 
 	 * @param partitionId   The partition of the database to query for document
 	 *                      attachments
@@ -205,8 +205,12 @@ public class CouchUtil {
 			classLogger.error("Error building byte digest", e);
 		}
 
+		// the default image has no stored attachment name; strip header delimiters instead of throwing
+		String safeAttachmentId = (attachmentId == null ? "image" : attachmentId)
+				.replace("\r", "").replace("\n", "").replace("\0", "")
+				.replace("\\", "\\\\").replace("\"", "\\\"");
 		ResponseBuilder builder = Response.ok(attachmentBytes).header("Content-Disposition",
-				"attachment; filename=\"" + attachmentId + "\"");
+				"attachment; filename=\"" + safeAttachmentId + "\"");
 		if (eTag != null) {
 			builder = builder.tag(eTag);
 		}
@@ -449,8 +453,8 @@ public class CouchUtil {
 	 * attachment. The default image is created by first searching for a local image
 	 * in the associated DB, project, and insight image locations. If found, the
 	 * byte array contents are returned. Otherwise, a stock image is selected as the
-	 * default. Before returning, the image is also uploaded to CouchDB for later
-	 * use.
+	 * default. Local images are uploaded to CouchDB for later use; stock catalog
+	 * fallbacks are returned directly without persisting a per-resource copy.
 	 * 
 	 * @param partitionId  The partition of the database that will contain the image
 	 * @param documentData A <a href="#{@link}">{@link ObjectNode}</a> with contents
@@ -514,9 +518,7 @@ public class CouchUtil {
 					contentType = "image/" + extension;
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
-					attachmentName = "image.png";
-					contentType = "image/png";
-					fileContent = DefaultImageGeneratorUtil
+					return DefaultImageGeneratorUtil
 							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName));
 				}
 			} else if (PROJECT.equals(partitionId)) {
@@ -527,7 +529,8 @@ public class CouchUtil {
 					String imagePath = ClusterUtil.IMAGES_FOLDER_PATH + DIR_SEPARATOR + "projects";
 					images = InsightUtility.findImageFile(imagePath, projectId);
 				} else {
-					String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId);
+					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
+							projectId, projectName);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 
@@ -538,9 +541,7 @@ public class CouchUtil {
 					contentType = "image/" + extension;
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
-					attachmentName = "image.png";
-					contentType = "image/png";
-					fileContent = DefaultImageGeneratorUtil
+					return DefaultImageGeneratorUtil
 							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName));
 				}
 			} else {
@@ -794,7 +795,7 @@ public class CouchUtil {
 	 */
 	private static CouchResponse executeRequest(HttpUriRequest request) throws CouchException {
 		try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
-			request.setHeader(HttpHeaders.AUTHORIZATION, COUCH_AUTH);
+			request.setHeader(HttpHeaders.AUTHORIZATION, HttpHelperUtility.requireSafeHeaderValue(COUCH_AUTH));
 
 			HttpResponse response = client.execute(request);
 

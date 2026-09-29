@@ -1,11 +1,13 @@
 ---
 name: database
-description: Use when writing code in an app that queries a relational or graph database on the platform, running SELECTs, inserts, updates, deletes, or fetching schema/table structure. Covers the SqlQuery(), SqlQueryBase64(), and GetDatabaseTableStructure() pixel commands via @semoss/sdk's runPixel, plus listing databases with MyEngines(engineTypes=["DATABASE"]). Do not use for LLM calls (see model-engine) or vector database queries.
+description: Use when exploring or analyzing SQL, RDF/SPARQL, or graph data, inspecting schema, troubleshooting queries, or writing database code in an app. Covers engine-specific query routes, SqlQuery, SqlQueryBase64, SparqlQuery, structured Pixel translated to Gremlin, GetDatabaseTableStructure, and SDK result handling. Read references/exploration.md for choosing an analytical approach, grounding queries, validating results, and adapting to evidence. Do not use for LLM calls or vector search.
 ---
 
 # Database Engine
 
-Query a database on the platform using `runPixel` from `@semoss/sdk`. Use `SqlQuery` only for simple, static SQL that is safe to embed in a Pixel string. Use `SqlQueryBase64` for dynamic SQL, especially inserts, updates, and deletes containing quotes, Unicode, or newlines.
+Identify the engine's actual type before querying. Read [Data analysis and exploration](references/exploration.md) when choosing an analytical approach or working with an unfamiliar database route. Use the provided query tools and their generated engine-specific capability descriptions. Consult reactor-help to resolve a concrete uncertainty and use its answer in the next step of the analysis.
+
+The examples below cover SQL from an app using `runPixel` from `@semoss/sdk`. Use `SqlQuery` only for simple, static SQL that is safe to embed in a Pixel string. Use `SqlQueryBase64` for dynamic SQL, especially inserts, updates, and deletes containing quotes, Unicode, or newlines. RDF uses `SparqlQuery`; Tinker/JanusGraph/DataStax graph engines use structured Pixel translated to Gremlin, with no raw `GremlinQuery` reactor.
 
 ## Usage
 

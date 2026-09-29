@@ -1401,7 +1401,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others) queried behind one consistent interface. The examples below assume SQL; substitute SPARQL, Gremlin, or whichever dialect the underlying database speaks.
+						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others).
+						Choose a supported query route for the actual engine: SqlQuery for relational engines, SparqlQuery for RDF SELECTs, and structured Database | Select | Collect pipelines for Tinker/JanusGraph/DataStax graph engines.
+						Those graph engines translate structured queries to Gremlin/Cypher internally
 
 						## What you can do
 

@@ -47,6 +47,29 @@ public final class AgentLoopState {
 
     /** Counts completed tool-call rounds (not reflection rounds). */
     private int iterations = 0;
+    private PptxWorkflow pptxWorkflow;
+    private String systemPrompt;
+    private AgentRunProgress progress = new AgentRunProgress(30, 0, System::nanoTime);
+
+    void initializeProgress(prerna.reactor.agent.AgentRunContext ctx) {
+        progress = AgentRunProgress.start(ctx);
+        iterations = progress.completedTurns();
+        // Freeze the composed instructions for this run. Dynamic status travels at the conversation tail.
+        systemPrompt = ctx.getRoom() == null ? null : ctx.getRoom().getSystemPromptForModel();
+        if (ctx.getAgentConfig().hasPptxWorkflow()) {
+            pptxWorkflow = PptxWorkflow.create(ctx);
+            pptxWorkflow.onProgress(progress::workflow);
+        }
+    }
+    AgentRunProgress progress() { return progress; }
+    PptxWorkflow pptxWorkflow() { return pptxWorkflow; }
+    String systemPrompt() { return systemPrompt; }
+
+    String runtimeContext() {
+        return "[SEMOSS runtime status]\n" + progress.guidance()
+                + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
+                + "\n[/SEMOSS runtime status]";
+    }
 
     /** Reflection rounds consumed so far. */
     private int reflectionsUsed = 0;
@@ -64,6 +87,7 @@ public final class AgentLoopState {
     private final List<AgentHarnessResult.ToolCallRecord> toolCallRecords = new ArrayList<>();
 
     AgentLoopState() {}
+    AgentLoopState(PptxWorkflow workflow) { this.pptxWorkflow = workflow; }
 
     // Iteration counter
     /** Number of tool-call rounds completed (excludes reflection rounds). */
@@ -74,6 +98,7 @@ public final class AgentLoopState {
     /** Increment after each full tool batch has been submitted and responded to. */
     public void incrementIterations() {
         iterations++;
+        progress.completedTurn(iterations);
     }
 
     // Reflection counter
