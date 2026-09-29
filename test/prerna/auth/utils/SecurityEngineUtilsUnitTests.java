@@ -27,6 +27,13 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
+import prerna.util.NotificationConstants;
+import prerna.util.DIHelper;
+import prerna.notifications.NotificationDbUtils;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -460,6 +467,35 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertFalse(SecurityEngineUtils.userIsOwner(secondUser, "testId"));
 		assertTrue(SecurityEngineUtils.userCanEditEngine(secondUser, "testId"));
 		assertEquals(-1, SecurityEngineUtils.getUserPendingAccessRequest(secondUser, "testId"));
+	}
+
+	@Test
+	void testDenyEngineUserAccessRequests_bulkNotifiesEachRequester() throws Exception {
+		User owner = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		User user3 = UnitTestSecurityAuthUtils.createUser("user3", false);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", owner);
+		SecurityEngineUtils.setUserAccessRequest("user2id", "NATIVE", "testId", "reason", 3, user2);
+		SecurityEngineUtils.setUserAccessRequest("user3id", "NATIVE", "testId", "reason", 3, user3);
+		List<String> requestIds = SecurityEngineUtils.getUserAccessRequestsByEngine("testId").stream()
+				.map(r -> r.get("ID").toString()).toList();
+		assertEquals(2, requestIds.size());
+
+		// with notifications on, denying more than one request used to throw from the
+		// second one: its details were read with the loop index instead of 0
+		Properties coreProp = DIHelper.getInstance().getCoreProp();
+		coreProp.setProperty(Constants.NOTIFICATION_DATABASE_ENABLED, "true");
+		try (MockedStatic<NotificationDbUtils> notifications = mockStatic(NotificationDbUtils.class)) {
+			SecurityEngineUtils.denyEngineUserAccessRequests(owner, "testId", requestIds);
+
+			for (String userId : List.of("user2id", "user3id")) {
+				notifications.verify(() -> NotificationDbUtils.createNotification(eq(owner), eq(userId), eq("NATIVE"),
+						eq("testId"), eq(NotificationConstants.Type.REQUEST_DENIAL), any(), any(), any(), any(), any()));
+			}
+		} finally {
+			coreProp.remove(Constants.NOTIFICATION_DATABASE_ENABLED);
+		}
+		assertTrue(SecurityEngineUtils.getUserAccessRequestsByEngine("testId").isEmpty());
 	}
 
 	///
