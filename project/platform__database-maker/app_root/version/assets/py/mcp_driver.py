@@ -1197,6 +1197,25 @@ def create_ontology_metadata(database_id):
         })
 
 
+def add_to_context(context):
+    """Accept a context string for the calling MCP tool invocation to forward.
+
+    This tool performs no database access and no side effects of its own; the
+    SDK's runMCPTool action is responsible for posting the returned output to
+    the playground when the insight is running in MCP tool mode.
+
+    Args:
+        context (str): Freeform context text (e.g. schema/metamodel summary)
+
+    Returns:
+        str: JSON string with status and the accepted context
+    """
+    context_str = str(context or "").strip()
+    if not context_str:
+        return json.dumps({"status": "error", "error": "context is required."})
+    return json.dumps({"status": "success", "context": context_str})
+
+
 def test():
     """Test function to verify module is loading correctly.
 
