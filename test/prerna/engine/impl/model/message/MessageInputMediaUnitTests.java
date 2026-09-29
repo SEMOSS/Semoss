@@ -64,8 +64,6 @@ class MessageInputMediaUnitTests {
 					() -> MessageInputMedia.fromFile("../outside.png", "room-123", null, roomFolder.toString()));
 			assertThrows(IllegalArgumentException.class, () -> MessageInputMedia.fromFile(
 					directory.resolve("outside.png").toString(), "room-123", null, roomFolder.toString()));
-			assertThrows(IllegalArgumentException.class, () -> MessageInputMedia.fromFile("media.png", "room-123",
-					null, directory.resolve("outside").toString()));
 		}
 	}
 

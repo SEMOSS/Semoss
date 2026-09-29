@@ -44,10 +44,8 @@ import com.google.gson.annotations.SerializedName;
 
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.impl.model.RoomUtils;
-import prerna.util.Constants;
 import prerna.util.MimeTypeUtility;
 import prerna.util.PathSecurityUtils;
-import prerna.util.Utility;
 
 public class MessageInputMedia {
 
@@ -71,41 +69,29 @@ public class MessageInputMedia {
 
 	private transient String roomFolder;
 
+	// canonical path of a file that must stay inside the room folder
+	private static String resolveInRoomFolder(String roomFolder, String fileLocation) {
+		try {
+			return PathSecurityUtils.resolveWithin(new File(roomFolder), fileLocation).getPath();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the room media path", e);
+		}
+	}
+
 	/** Factory method for file-based image */
 	public static MessageInputMedia fromFile(String fileLocation, String roomId, String messageId, String roomFolder) {
 		if (fileLocation == null || fileLocation.isBlank() || roomFolder == null || roomFolder.isBlank()) {
 			throw new IllegalArgumentException("Media file location and room folder are required");
 		}
-		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
-		Path fullFilePath;
-		try {
-			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
-			Path expectedRoomFolder = roomRoot.resolve(roomId).normalize();
-			if (!expectedRoomFolder.startsWith(roomRoot) || !roomRoot.equals(expectedRoomFolder.getParent())) {
-				throw new IllegalArgumentException("Room folder must remain within the room directory");
-			}
-			expectedRoomFolder = expectedRoomFolder.toFile().getCanonicalFile().toPath();
-			Path suppliedRoomFolder = Paths.get(roomFolder).toFile().getCanonicalFile().toPath();
-			if (!expectedRoomFolder.equals(suppliedRoomFolder)) {
-				throw new IllegalArgumentException("Media room folder does not match the room ID");
-			}
-
-			fullFilePath = expectedRoomFolder.resolve(fileLocation).normalize().toFile().getCanonicalFile().toPath();
-			if (fullFilePath.equals(expectedRoomFolder) || !fullFilePath.startsWith(expectedRoomFolder)) {
-				throw new IllegalArgumentException("Media file must remain within the room directory");
-			}
-			roomFolder = expectedRoomFolder.toString();
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to resolve the room media path", e);
-		}
+		String fullFilePath = resolveInRoomFolder(roomFolder, fileLocation);
 
 		MessageInputMedia info = new MessageInputMedia();
 		info.roomFolder = roomFolder; // /opt/semoshome/room-123123123/
 		info.fileLocation = fileLocation;
-		info.fileName = extractFileName(fullFilePath.toString());
+		info.fileName = extractFileName(fullFilePath);
 		info.fileFormat = extractFormat(info.fileName);
-		info.mimeType = guessMimeType(fullFilePath.toString(), info.fileFormat);
-		info.base64Data = encodeFileToBase64(fullFilePath.toString());
+		info.mimeType = guessMimeType(fullFilePath, info.fileFormat);
+		info.base64Data = encodeFileToBase64(fullFilePath);
 		info.mediaInputType = MEDIA_INPUT_TYPE.FILE;
 
 		// Optionally, set imageUrl if you want to expose uploaded images as URLs
@@ -214,8 +200,11 @@ public class MessageInputMedia {
 	public String getBase64Data() {
 		// Lazy load if needed (e.g. restored from DB without base64)
 		if (base64Data == null && roomFolder != null && fileName != null) {
-			String fullImageFilePath = roomFolder + "/" + fileName;
-			base64Data = encodeFileToBase64(fullImageFilePath);
+			try {
+				base64Data = encodeFileToBase64(resolveInRoomFolder(roomFolder, fileName));
+			} catch (IllegalArgumentException e) {
+				classLogger.warn("Rejected media file outside the room folder: {}", fileName);
+			}
 		}
 		return base64Data;
 	}

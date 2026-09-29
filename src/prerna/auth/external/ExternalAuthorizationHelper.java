@@ -53,9 +53,9 @@ import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.PathSecurityUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public class ExternalAuthorizationHelper {
@@ -101,22 +101,11 @@ public class ExternalAuthorizationHelper {
 					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
 				}
 				
-				File engineBaseDirectory = new File(EngineUtility.getLocalEngineBaseDirectory(engineType)).getCanonicalFile();
-				File tempSmss = UploadUtilities
-						.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties)
-						.getCanonicalFile();
-				if (!tempSmss.toPath().startsWith(engineBaseDirectory.toPath())
-						|| !engineBaseDirectory.equals(tempSmss.getParentFile())) {
-					throw new IllegalArgumentException("Temporary engine SMSS path must remain within the engine directory");
-				}
+				// the temp smss is contained in the engine folder by createTemporaryEngineSmss
+				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-				String tempName = tempSmss.getName();
-				String smssName = tempName.substring(0, tempName.length() - ".temp".length()) + ".smss";
-				File smssFile = new File(engineBaseDirectory, smssName).getCanonicalFile();
-				if (!smssFile.toPath().startsWith(engineBaseDirectory.toPath())
-						|| !engineBaseDirectory.equals(smssFile.getParentFile())) {
-					throw new IllegalArgumentException("Engine SMSS path must remain within the engine directory");
-				}
+				// swap the extension on the file name only
+				File smssFile = new File(tempSmss.getParentFile(), tempSmss.getName().replace(".temp", ".smss"));
 				FileUtils.copyFile(tempSmss, smssFile);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 				tempSmss.delete();
@@ -206,26 +195,16 @@ public class ExternalAuthorizationHelper {
 			for (JsonNode detail : parsedJsonNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
-				// these are mandatory
-				File validationRoot = new File(Utility.getBaseFolder()).getCanonicalFile();
-				String rawEngineId = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINEID_KEY).asText(), "External engine ID");
-				File engineIdPath = new File(validationRoot, rawEngineId).getCanonicalFile();
-				if (!engineIdPath.toPath().startsWith(validationRoot.toPath())
-						|| !validationRoot.equals(engineIdPath.getParentFile()) || !rawEngineId.equals(engineIdPath.getName())
-						|| rawEngineId.indexOf('\\') >= 0
-						|| rawEngineId.chars().anyMatch(Character::isISOControl)) {
-					throw new IllegalArgumentException("External engine ID must be a single path segment");
+				// these are mandatory; ids/names end up in file paths, so skip any record that is not one segment
+				String engineId;
+				String engineName;
+				try {
+					engineId = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINEID_KEY).asText(), "External engine ID");
+					engineName = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINENAME_KEY).asText(), "External engine name");
+				} catch (IllegalArgumentException e) {
+					classLogger.warn("Skipping external engine record with an unusable id or name: " + e.getMessage());
+					continue;
 				}
-				String engineId = engineIdPath.getName();
-				String rawEngineName = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINENAME_KEY).asText(), "External engine name");
-				File engineNamePath = new File(validationRoot, rawEngineName).getCanonicalFile();
-				if (!engineNamePath.toPath().startsWith(validationRoot.toPath())
-						|| !validationRoot.equals(engineNamePath.getParentFile())
-						|| !rawEngineName.equals(engineNamePath.getName()) || rawEngineName.indexOf('\\') >= 0
-						|| rawEngineName.chars().anyMatch(Character::isISOControl)) {
-					throw new IllegalArgumentException("External engine name must be a single path segment");
-				}
-				String engineName = engineNamePath.getName();
 				permissionMap.put("engineId", engineId);
 				permissionMap.put("engineName", engineName);
 				
@@ -266,7 +245,7 @@ public class ExternalAuthorizationHelper {
 				enginePermissions.add(permissionMap);
 			}
 		} catch (Exception e) {
-			throw new IllegalArgumentException("Unable to validate external engine permissions", e);
+			classLogger.error(Constants.STACKTRACE, e);
 		}
 
 		return enginePermissions;

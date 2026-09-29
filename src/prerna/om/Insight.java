@@ -28,9 +28,7 @@
 package prerna.om;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
-import java.nio.file.Path;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,7 +80,6 @@ import prerna.util.AssetUtility;
 import prerna.util.ChromeDriverUtility;
 import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
-import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -868,18 +865,8 @@ public class Insight implements Serializable {
 	 * @param room the Room to associate with
 	 */
 	public void setRoomForInsight(Room room) {
-		String roomId = PathSecurityUtils.requireSinglePathSegment(room.getId(), "Room ID");
-		try {
-			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
-			Path roomFolder = roomRoot.resolve(roomId).normalize();
-			if (!roomFolder.startsWith(roomRoot) || !roomRoot.equals(roomFolder.getParent())) {
-				throw new IllegalArgumentException("Room folder must remain within the room directory");
-			}
-			this.roomId = roomId;
-			this.insightFolder = roomFolder.toString();
-		} catch (IOException e) {
-			throw new IllegalArgumentException("Unable to resolve the room folder path", e);
-		}
+		this.insightFolder = Room.roomFolderPath(room.getId());
+		this.roomId = room.getId();
 	}
 
 	////////////////////////////////////////////////////////////////

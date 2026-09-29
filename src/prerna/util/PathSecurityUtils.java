@@ -31,7 +31,10 @@ import java.io.File;
 import java.io.IOException;
 import java.text.Normalizer;
 
-/** Shared validation for identifiers and filesystem containment. */
+/**
+ * Segment checks for ids/names and symlink-aware containment checks.
+ * Complements Utility.normalizePath, which only cleans a path lexically.
+ */
 public final class PathSecurityUtils {
 	private PathSecurityUtils() {
 	}
@@ -60,6 +63,11 @@ public final class PathSecurityUtils {
 			throw new IllegalArgumentException("Path must be a direct child of the destination directory");
 		}
 		return canonicalCandidate;
+	}
+
+	/** Resolves a relative path against root; absolute paths and anything that leaves root are rejected. */
+	public static File resolveWithin(File root, String relativePath) throws IOException {
+		return requireDescendant(root, root.toPath().resolve(relativePath).toFile());
 	}
 
 	/** Returns a canonical descendant; the root itself is not a valid target. */

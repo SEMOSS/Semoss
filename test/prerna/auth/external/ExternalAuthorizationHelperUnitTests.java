@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ExternalAuthorizationHelperUnitTests {
 
     @Test
-    void invalidRecordDoesNotReturnPartialPermissions() throws Exception {
+    void invalidRecordIsSkippedAndOthersSync() throws Exception {
         try (org.mockito.MockedStatic<prerna.util.Utility> utility =
                 org.mockito.Mockito.mockStatic(prerna.util.Utility.class);
              org.mockito.MockedStatic<prerna.util.BeanFiller> filler =
@@ -56,10 +56,8 @@ public class ExternalAuthorizationHelperUnitTests {
             transform.setAccessible(true);
             assertEquals(1, ((java.util.List<?>) transform.invoke(null, new User(), "response")).size());
             records.addObject().put("id", "../outside").put("name", "Invalid Model");
-            java.lang.reflect.InvocationTargetException error = assertThrows(
-                    java.lang.reflect.InvocationTargetException.class,
-                    () -> transform.invoke(null, new User(), "response"));
-            assertInstanceOf(IllegalArgumentException.class, error.getCause());
+            // a record that is not a single path segment is skipped, the rest still sync
+            assertEquals(1, ((java.util.List<?>) transform.invoke(null, new User(), "response")).size());
         }
     }
 

@@ -27,15 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-import prerna.util.Constants;
-import prerna.util.PathSecurityUtils;
-import prerna.util.Utility;
+import prerna.engine.impl.model.Room;
 
 /**
  * Shared helper for locating the Claude Code transcript JSONL file for a given
@@ -61,14 +59,8 @@ public class ClaudeCodeTranscriptLocator {
 		}
 
 		try {
-			roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
-			Path roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile().toPath();
-			Path rootDir = roomRoot.resolve(roomId).normalize();
-			if (!rootDir.startsWith(roomRoot) || !roomRoot.equals(rootDir.getParent())) {
-				return null;
-			}
-			rootDir = rootDir.toFile().getCanonicalFile().toPath();
-			if (!roomRoot.equals(rootDir.getParent()) || !Files.isDirectory(rootDir)) {
+			Path rootDir = Paths.get(Room.roomFolderPath(roomId));
+			if (!Files.isDirectory(rootDir)) {
 				return null;
 			}
 

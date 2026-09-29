@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.tcp.client.workers;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
@@ -44,8 +43,8 @@ import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
-import prerna.util.Utility;
 import prerna.util.PathSecurityUtils;
+import prerna.util.Utility;
 
 public class NativePyEngineWorker implements Runnable {
 
@@ -77,19 +76,7 @@ public class NativePyEngineWorker implements Runnable {
 	public void run() {
 		IRawSelectWrapper wrapper = null;
 		try {
-			String rawEngineId = PathSecurityUtils.requireSinglePathSegment(ps.objId, "Engine ID");
-			if (rawEngineId == null || rawEngineId.isEmpty()) {
-				throw new IllegalArgumentException("Engine ID is required");
-			}
-			File validationRoot = new File(Utility.getBaseFolder()).getCanonicalFile();
-			File engineIdPath = new File(validationRoot, rawEngineId).getCanonicalFile();
-			if (!engineIdPath.toPath().startsWith(validationRoot.toPath())
-					|| !validationRoot.equals(engineIdPath.getParentFile()) || !rawEngineId.equals(engineIdPath.getName())
-					|| rawEngineId.indexOf('\\') >= 0
-					|| rawEngineId.chars().anyMatch(Character::isISOControl)) {
-				throw new IllegalArgumentException("Engine ID must be a single path segment");
-			}
-			String engineId = engineIdPath.getName();
+			String engineId = PathSecurityUtils.requireSinglePathSegment(ps.objId, "Engine ID");
 			boolean canAccess = SecurityEngineUtils.userCanViewEngine(user, engineId); 
 			if(canAccess) {
 				if(ps.engineType.equalsIgnoreCase("DATABASE") && ps.methodName.equalsIgnoreCase("execquery")) {

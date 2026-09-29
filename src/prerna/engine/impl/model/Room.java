@@ -1354,22 +1354,6 @@ public class Room implements Serializable {
 
 		// normal engine/project mcp
 		engineId = PathSecurityUtils.requireSinglePathSegment(engineId, "MCP engine ID");
-		// Keep canonical validation visible here for Snyk interprocedural analysis.
-		if (engineId == null || engineId.isBlank()) {
-			throw new IllegalArgumentException("MCP engine ID is required");
-		}
-		try {
-			File validationRoot = new File(Utility.getBaseFolder()).getCanonicalFile();
-			File engineIdPath = new File(validationRoot, engineId).getCanonicalFile();
-			if (!engineIdPath.toPath().startsWith(validationRoot.toPath())
-					|| !validationRoot.equals(engineIdPath.getParentFile()) || !engineId.equals(engineIdPath.getName())
-					|| engineId.indexOf('\\') >= 0 || engineId.chars().anyMatch(Character::isISOControl)) {
-				throw new IllegalArgumentException("MCP engine ID must be a single path segment");
-			}
-			engineId = engineIdPath.getName();
-		} catch (IOException e) {
-			throw new IllegalStateException("Unable to securely resolve the MCP engine ID", e);
-		}
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -2217,12 +2201,8 @@ public class Room implements Serializable {
 	public static String roomFolderPath(String roomId) {
 		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
 		try {
-			File roomRoot = new File(Utility.getBaseFolder(), "room").getCanonicalFile();
-			File roomFolder = new File(roomRoot, roomId).getCanonicalFile();
-			if (!roomRoot.equals(roomFolder.getParentFile())) {
-				throw new IllegalArgumentException("Room folder must remain within the room directory");
-			}
-			return roomFolder.getAbsolutePath();
+			File roomRoot = new File(Utility.getBaseFolder(), "room");
+			return PathSecurityUtils.requireDirectChild(roomRoot, new File(roomRoot, roomId)).getAbsolutePath();
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Unable to resolve the room folder path", e);
 		}

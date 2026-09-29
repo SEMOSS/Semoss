@@ -53,6 +53,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IEngine.CATALOG_TYPE;
 import prerna.engine.impl.AbstractDatabaseEngine;
 import prerna.engine.impl.SmssUtilities;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.engine.impl.storage.AbstractStorageEngine;
 import prerna.engine.impl.storage.AzureBlobStorageEngine;
@@ -72,7 +73,6 @@ import prerna.util.SMSSNoInitEngineWatcher;
 import prerna.util.SMSSWebWatcher;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
-import prerna.util.PathSecurityUtils;
 import prerna.util.sql.RdbmsTypeEnum;
 
 public final class CentralCloudStorage implements ICloudClient {
@@ -1819,8 +1819,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 * @throws InterruptedException
 	 */
 	public void pullRoomFolderFromCloud(String roomId) throws IOException, InterruptedException {
-		String localFolderPath = Utility.getBaseFolder() + File.separator + Constants.ROOM_FOLDER + File.separator
-				+ roomId;
+		String localFolderPath = Room.roomFolderPath(roomId);
 		// copy, not sync - a sync deletes local files that are missing on the cloud
 		// side, which wipes in-flight session state mid turn when the cloud is empty.
 		storageCopyToLocal(ROOM_CONTAINER_PREFIX + roomId, localFolderPath);
@@ -1833,14 +1832,7 @@ public final class CentralCloudStorage implements ICloudClient {
 	 * @throws InterruptedException
 	 */
 	public void pushRoomFolderToCloud(String roomId) throws IOException, InterruptedException {
-		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
-		File roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER).getCanonicalFile();
-		File roomFolder = new File(roomRoot, roomId).getCanonicalFile();
-		if (!roomFolder.toPath().startsWith(roomRoot.toPath()) || !roomRoot.equals(roomFolder.getParentFile())
-				|| !roomId.equals(roomFolder.getName())) {
-			throw new IllegalArgumentException("Room ID must be a single path segment");
-		}
-		String localFolderPath = roomFolder.getPath();
+		String localFolderPath = Room.roomFolderPath(roomId);
 
 		if (Utility.folderIsNotEmpty(localFolderPath)) {
 			storageSyncLocalToStorage(localFolderPath, ROOM_CONTAINER_PREFIX + roomId);
