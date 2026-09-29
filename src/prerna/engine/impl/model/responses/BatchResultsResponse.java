@@ -42,6 +42,7 @@ public class BatchResultsResponse {
 	private Integer count;
 	private List<BatchResultItem> items = new ArrayList<>();
 	private String rawJsonl;
+	private Map<String, Object> usageRestriction;
 
 	public String getProviderBatchId() {
 		return providerBatchId;
@@ -63,6 +64,10 @@ public class BatchResultsResponse {
 		return rawJsonl;
 	}
 
+	public void setUsageRestriction(Map<String, Object> usageRestriction) {
+		this.usageRestriction = usageRestriction;
+	}
+
 	public Map<String, Object> toMap() {
 		Map<String, Object> out = new HashMap<>();
 		out.put("batchId", providerBatchId);
@@ -73,6 +78,9 @@ public class BatchResultsResponse {
 			itemMaps.add(item.toMap());
 		}
 		out.put("results", itemMaps);
+		if (usageRestriction != null && !usageRestriction.isEmpty()) {
+			out.put("usageRestriction", usageRestriction);
+		}
 		return out;
 	}
 

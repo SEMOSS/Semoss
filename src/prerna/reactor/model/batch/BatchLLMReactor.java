@@ -36,6 +36,7 @@ import com.github.f4b6a3.uuid.alt.GUID;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
@@ -86,6 +87,7 @@ public class BatchLLMReactor extends AbstractModelBatchReactor {
 		}
 
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
+		ModelUsageRestrictionUtility.getModelUsageRestriction(getUser(), engineId);
 
 		// optional: seed every request with a room's history + tools (one-shot, no tool execution)
 		String roomId = this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey());

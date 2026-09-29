@@ -181,6 +181,22 @@ public interface IModelEngine extends IEngine {
 		return false;
 	}
 
+	default Double getInputTokenCredit() {
+		return null;
+	}
+
+	default Double getOutputTokenCredit() {
+		return null;
+	}
+
+	default Double getBatchInputTokenCredit() {
+		return null;
+	}
+
+	default Double getBatchOutputTokenCredit() {
+		return null;
+	}
+
 	/**
 	 * Submit a batch of requests to the provider's batch API.
 	 *

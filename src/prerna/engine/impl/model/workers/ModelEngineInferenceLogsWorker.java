@@ -252,6 +252,30 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 		// RESPONSE row carries assistant-side counts (output + thinking).
 		String messageBody = keepInputOutput ? this.prompt : null;
 		String responseBody = keepInputOutput ? this.response : null;
+
+		Double inputBudget = null;
+		Double responseBudget = null;
+		if (engine instanceof AbstractModelEngine) {
+			AbstractModelEngine ame = (AbstractModelEngine) engine;
+			Double inCredit = ame.getInputTokenCredit();
+			if (inCredit != null && this.inputTokens != null) {
+				int cacheRead     = this.cacheReadTokens     != null ? this.cacheReadTokens     : 0;
+				int cacheCreation = this.cacheCreationTokens != null ? this.cacheCreationTokens : 0;
+				int newTokens     = this.inputTokens - cacheRead - cacheCreation;
+				double readMult   = this.cacheReadMultiplierOrDefault(ame);
+				double writeMult  = this.cacheWriteMultiplierOrDefault(ame);
+				inputBudget = newTokens * inCredit
+						+ cacheRead      * inCredit * readMult
+						+ cacheCreation  * inCredit * writeMult;
+			}
+			Double outCredit = ame.getOutputTokenCredit();
+			if (outCredit != null && (this.outputTokens != null || this.thinkingTokens != null)) {
+				int out      = this.outputTokens  != null ? this.outputTokens  : 0;
+				int thinking = this.thinkingTokens != null ? this.thinkingTokens : 0;
+				responseBudget = (out + thinking) * outCredit;
+			}
+		}
+
 		ModelInferenceLogsUtils.doRecordMessage(
 			this.messageId,
 			this.transactionId,
@@ -272,7 +296,8 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.roomId,
 			userId,
 			userName,
-			userEmail
+			userEmail,
+			inputBudget
 		);
 		ModelInferenceLogsUtils.doRecordMessage(
 			this.transactionId,
@@ -294,8 +319,19 @@ public class ModelEngineInferenceLogsWorker implements Runnable {
 			this.roomId,
 			userId,
 			userName,
-			userEmail
+			userEmail,
+			responseBudget
 		);
 		// @formatter:on
+	}
+
+	private double cacheReadMultiplierOrDefault(AbstractModelEngine ame) {
+		Double m = ame.getCacheReadMultiplier();
+		return m != null ? m : 1.0;
+	}
+
+	private double cacheWriteMultiplierOrDefault(AbstractModelEngine ame) {
+		Double m = ame.getCacheWriteMultiplier();
+		return m != null ? m : 1.0;
 	}
 }

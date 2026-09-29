@@ -30,6 +30,7 @@ package prerna.reactor.model.batch;
 import java.util.Map;
 
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.ModelUsageRestrictionUtility;
 import prerna.engine.impl.model.batch.ModelBatchManager;
 import prerna.engine.impl.model.responses.BatchResultItem;
 import prerna.engine.impl.model.responses.BatchResultsResponse;
@@ -57,6 +58,7 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 		String batchId = this.keyValue.get(ReactorKeysEnum.BATCH_ID.getKey());
 		IModelEngine engine = ModelBatchManager.resolveEngine(getUser(), engineId);
 		ModelBatchManager.assertUserOwnsBatch(getUser(), batchId);
+		Map<String, Object> restrictionMap = ModelUsageRestrictionUtility.getModelUsageRestriction(getUser(), engineId, false);
 		BatchResultsResponse response = engine.getBatchResults(batchId, baseParams());
 		ModelBatchManager.recordBatchResultsUsage(
 				getUser(), engine, batchId, response,
@@ -65,6 +67,17 @@ public class GetModelBatchResultsReactor extends AbstractModelBatchReactor {
 				this.insight.getContextProjectId(),
 				ThreadStore.getSessionId()
 		);
+		if (!restrictionMap.isEmpty() && response.getItems() != null) {
+			int totalInput = 0, totalOutput = 0;
+			for (BatchResultItem item : response.getItems()) {
+				if (item.getInputTokens()  != null) totalInput  += item.getInputTokens();
+				if (item.getOutputTokens() != null) totalOutput += item.getOutputTokens();
+			}
+			ModelUsageRestrictionUtility.updateRestrictionMapCurrentUsageForBatch(
+					restrictionMap, totalInput, totalOutput,
+					engine.getBatchInputTokenCredit(), engine.getBatchOutputTokenCredit());
+			response.setUsageRestriction(restrictionMap);
+		}
 		Map<String, String> inputs = ModelBatchManager.getBatchInputs(getUser(), batchId);
 		if (!inputs.isEmpty() && response.getItems() != null) {
 			for (BatchResultItem item : response.getItems()) {
