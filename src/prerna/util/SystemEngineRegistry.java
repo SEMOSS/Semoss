@@ -255,6 +255,44 @@ public final class SystemEngineRegistry {
 		return modelInferenceLogsDbHolder != null;
 	}
 
+	/** Requires a registered system database for this operation. */
+	public static void requireDatabase(String engineId) {
+		requireDatabase(engineId, null);
+	}
+
+	/**
+	 * Requires a registered system database without retrieving it or granting
+	 * access to it. Like the loaded-state checks, this may be called from any
+	 * package.
+	 *
+	 * @param engineId  canonical system database ID from {@link Constants}
+	 * @param operation description of the operation requiring the database;
+	 *                  defaults to "this operation" when null or blank
+	 * @throws IllegalArgumentException if the ID is unknown or the database is not
+	 *                                  loaded
+	 */
+	public static void requireDatabase(String engineId, String operation) {
+		if (engineId == null) {
+			throw new IllegalArgumentException("System database id is required");
+		}
+		boolean loaded = switch (engineId) {
+		case Constants.SECURITY_DB -> isSecurityDbLoaded();
+		case Constants.LOCAL_MASTER_DB -> isLocalMasterDbLoaded();
+		case Constants.SCHEDULER_DB -> isSchedulerDbLoaded();
+		case Constants.THEMING_DB -> isThemesDbLoaded();
+		case Constants.USER_TRACKING_DB -> isUserTrackingDbLoaded();
+		case Constants.PROMPT_DB -> isPromptDbLoaded();
+		case Constants.NOTIFICATION_DB -> isNotificationDbLoaded();
+		case Constants.AUDIT_LOGS_DB -> isAuditLogsDbLoaded();
+		case Constants.MODEL_INFERENCE_LOGS_DB -> isModelInferenceLogsDbLoaded();
+		default -> throw new IllegalArgumentException("Unknown system database: " + engineId);
+		};
+		if (!loaded) {
+			String description = operation == null || operation.isBlank() ? "this operation" : operation.trim();
+			throw new IllegalArgumentException("System database '" + engineId + "' is required for " + description);
+		}
+	}
+
 	/**
 	 * Returns true if the given engine ID belongs to one of the known system
 	 * engines. Used by Utility.loadEngine() to block the normal load path for these

@@ -207,6 +207,10 @@ public final class AgentToolDecisionHandler {
 				: delegationRequest ? HumanDelegationService.delegateFromTool(this.insight, runId, paramMap)
 				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
+		if (executionRoom != null) {
+			// generated media goes to the room as files, not into history as base64
+			resultStr = MCPUtility.externalizeToolResultMedia(resultStr, executionRoom);
+		}
 		String executedToolStatus = toolResult.getStatusValue();
 		try {
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, resultStr, executedToolStatus, actionId,
