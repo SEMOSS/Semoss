@@ -49,7 +49,8 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 		if (threadId == null) {
 			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		return mapResult(BrainThreadMessages.read(user, threadId, getIntFromKeyOrCurRow(LIMIT), Boolean.parseBoolean(getString("includeDisplayBody")), getString("cursor")));
+		return mapResult(BrainThreadMessages.read(user, threadId, getIntFromKeyOrCurRow(LIMIT),
+				Boolean.parseBoolean(getString("includeDisplayBody")), getString("cursor")));
 	}
 
 	@Override
@@ -59,8 +60,12 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if ("cursor".equals(key)) return "Opaque continuation from the previous page, scoped to this thread.";
-		if ("includeDisplayBody".equals(key)) return "Include bounded source display bodies only after access and ingestion rules pass; defaults to false.";
+		if ("cursor".equals(key)) {
+			return "Opaque continuation from the previous page, scoped to this thread.";
+		}
+		if ("includeDisplayBody".equals(key)) {
+			return "Include bounded source display bodies only after access and ingestion rules pass; defaults to false.";
+		}
 		if (THREAD_ID.equals(key)) {
 			return "Thread id";
 		}

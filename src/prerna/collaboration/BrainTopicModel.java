@@ -76,22 +76,25 @@ final class BrainTopicModel {
 	record Proposal(String name, String organisation, List<String> threadIds, String why) {
 	}
 
-	/** The platform text model, or null when none is set; the caller needs access to it. */
+	/**
+	 * The platform text model, or null when none is set; the caller needs access to
+	 * it.
+	 */
 	static String engine(User user) {
 		String id = Utility.getDIHelperProperty(Constants.COLLAB_LLM_ENGINE_ID);
 		if (id == null || id.isBlank()) {
 			return null;
 		}
 		if (!SecurityEngineUtils.userCanViewEngine(user, id.trim())) {
-			throw new IllegalArgumentException("You do not have access to the topic model (" + id.trim()
-					+ "); ask an admin to share it with you");
+			throw new IllegalArgumentException(
+					"You do not have access to the topic model (" + id.trim() + "); ask an admin to share it with you");
 		}
 		return id.trim();
 	}
 
 	/**
-	 * threads: id, subject, orgs (labels), messages, you, vip; most important first, at most MAX_THREADS.
-	 * Returns checked proposals with real thread ids.
+	 * threads: id, subject, orgs (labels), messages, you, vip; most important
+	 * first, at most MAX_THREADS. Returns checked proposals with real thread ids.
 	 */
 	static List<Proposal> propose(User user, String engineId, List<Map<String, Object>> threads,
 			List<String> organisations, Set<String> takenNames) {

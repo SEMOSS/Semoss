@@ -56,7 +56,8 @@ public final class WorkWorkspaceUtils {
 	private WorkWorkspaceUtils() {
 	}
 
-	// every thread with a goal, step, or fact (or just the one thread), oldest steps and facts first
+	// every thread with a goal, step, or fact (or just the one thread), oldest
+	// steps and facts first
 	public static Map<String, Object> listWorkspaces(User user, String threadId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -116,11 +117,12 @@ public final class WorkWorkspaceUtils {
 
 		if (stepId == null) {
 			stepId = UUID.randomUUID().toString();
-			CollaborationDbUtils.update("INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, THREAD_ID, TEXT, "
-					+ "KIND, STATUS, STEP_OWNER_ID, DUE_AT, ITEM_ID, LINK_TOPIC_ID, CREATED_AT, UPDATED_AT) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, stepId, threadId, text.trim(),
-					kind == null ? "task" : kind, status == null ? "open" : status,
-					blankToNull(step.get("ownerId")), due, itemId, topicId, now, now);
+			CollaborationDbUtils.update(
+					"INSERT INTO WORK_THREAD_STEP (OWNER_ID, OWNER_TYPE, STEP_ID, THREAD_ID, TEXT, "
+							+ "KIND, STATUS, STEP_OWNER_ID, DUE_AT, ITEM_ID, LINK_TOPIC_ID, CREATED_AT, UPDATED_AT) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, stepId, threadId, text.trim(), kind == null ? "task" : kind,
+					status == null ? "open" : status, blankToNull(step.get("ownerId")), due, itemId, topicId, now, now);
 		} else {
 			List<String> sets = new ArrayList<>();
 			List<Object> values = new ArrayList<>();
@@ -152,8 +154,9 @@ public final class WorkWorkspaceUtils {
 				throw new IllegalArgumentException("Step not found");
 			}
 		}
-		return CollaborationDbUtils.queryOne("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED
-				+ " AND STEP_ID = ?", WorkWorkspaceUtils::mapStep, ownerId, ownerType, stepId);
+		return CollaborationDbUtils.queryOne(
+				"SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP" + OWNED + " AND STEP_ID = ?",
+				WorkWorkspaceUtils::mapStep, ownerId, ownerType, stepId);
 	}
 
 	public static Map<String, Object> deleteStep(User user, String threadId, String stepId) {
@@ -202,16 +205,17 @@ public final class WorkWorkspaceUtils {
 				throw new IllegalArgumentException("Fact not found");
 			}
 		}
-		return CollaborationDbUtils.queryOne("SELECT " + FACT_COLUMNS + " FROM WORK_THREAD_FACT" + OWNED
-				+ " AND FACT_ID = ?", WorkWorkspaceUtils::mapFact, ownerId, ownerType, factId);
+		return CollaborationDbUtils.queryOne(
+				"SELECT " + FACT_COLUMNS + " FROM WORK_THREAD_FACT" + OWNED + " AND FACT_ID = ?",
+				WorkWorkspaceUtils::mapFact, ownerId, ownerType, factId);
 	}
 
 	public static Map<String, Object> deleteFact(User user, String threadId, String factId) {
 		return delete(user, "WORK_THREAD_FACT", "FACT_ID", "Fact", threadId, factId);
 	}
 
-	private static Map<String, Object> delete(User user, String table, String idColumn, String label,
-			String threadId, String id) {
+	private static Map<String, Object> delete(User user, String table, String idColumn, String label, String threadId,
+			String id) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		if (CollaborationDbUtils.update("DELETE FROM " + table + OWNED + " AND THREAD_ID = ? AND " + idColumn + " = ?",
 				owner.getValue0(), owner.getValue1(), threadId, id) == 0) {

@@ -91,7 +91,9 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 		if (overrideRecipients && (!asDraft || !html)) {
 			throw new SemossPixelException("Recipient overrides require an HTML draft.");
 		}
-		if (html && !asDraft) throw new SemossPixelException("HTML is supported for draft saving only.");
+		if (html && !asDraft) {
+			throw new SemossPixelException("HTML is supported for draft saving only.");
+		}
 
 		if (comment == null || comment.trim().isEmpty()) {
 			throw new SemossPixelException("A " + COMMENT + " is required to answer a message.");
@@ -116,8 +118,8 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 				if (overrideRecipients) {
 					String[] to = MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients"));
 					String[] cc = MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients"));
-					output.put("recipients", Map.of("to", to == null ? new String[0] : to,
-							"cc", cc == null ? new String[0] : cc));
+					output.put("recipients",
+							Map.of("to", to == null ? new String[0] : to, "cc", cc == null ? new String[0] : cc));
 				}
 				MicrosoftOutlookMessageMapper.putIfPresent(output, "webLink", draft.get("webLink"));
 			}
@@ -147,7 +149,9 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 		if ("to".equals(key) || "cc".equals(key)) {
 			return "Explicit email address list when overrideRecipients=true; an empty list clears these recipients.";
 		}
-		if ("html".equals(key)) return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
+		if ("html".equals(key)) {
+			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
+		}
 		if (key.equals(COMMENT)) {
 			return "What the reply says. Microsoft Outlook quotes the message being answered underneath it.";
 		} else if (key.equals(REPLY_ALL)) {

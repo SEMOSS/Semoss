@@ -46,41 +46,49 @@ public final class BrainMessageText {
 
 	public static final String VERSION = "patterns-v1";
 
-	// Outlook desktop and web, new Outlook, and Gmail mark quoted history and signatures in the HTML
+	// Outlook desktop and web, new Outlook, and Gmail mark quoted history and
+	// signatures in the HTML
 	private static final String QUOTE_MARKERS = "#appendonsend, #divRplyFwdMsg, [id^=x_divRplyFwdMsg], "
 			+ "#mail-editor-reference-message-container, div.gmail_quote, blockquote";
 	private static final String SIGNATURE_MARKERS = "#Signature, [id^=x_Signature], div.gmail_signature";
 
-	private static final Pattern SUBJECT_PREFIX = Pattern.compile("^\\s*(\\[(external|ext)\\]|(re|fw|fwd|aw|wg)\\s*:)\\s*",
-			Pattern.CASE_INSENSITIVE);
+	private static final Pattern SUBJECT_PREFIX = Pattern
+			.compile("^\\s*(\\[(external|ext)\\]|(re|fw|fwd|aw|wg)\\s*:)\\s*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern FORWARD_SUBJECT = Pattern.compile("^\\s*(\\[(external|ext)\\]\\s*)?(fw|fwd)\\s*:",
 			Pattern.CASE_INSENSITIVE);
-	private static final Pattern BANNER = Pattern.compile("^\\s*(\\[(external|ext)( email)?\\]|caution:|external email:)",
-			Pattern.CASE_INSENSITIVE);
+	private static final Pattern BANNER = Pattern
+			.compile("^\\s*(\\[(external|ext)( email)?\\]|caution:|external email:)", Pattern.CASE_INSENSITIVE);
 	private static final Pattern WROTE = Pattern.compile("^\\s*On .{5,250} wrote:\\s*$", Pattern.CASE_INSENSITIVE);
-	private static final Pattern ORIGINAL = Pattern.compile("^\\s*(-{2,}\\s*(original message|forwarded message)\\s*-{2,}"
-			+ "|begin forwarded message:)\\s*$", Pattern.CASE_INSENSITIVE);
-	private static final Pattern HEADER_FROM = Pattern.compile("^\\s*\\*?from:\\*?\\s+\\S.*$", Pattern.CASE_INSENSITIVE);
+	private static final Pattern ORIGINAL = Pattern.compile(
+			"^\\s*(-{2,}\\s*(original message|forwarded message)\\s*-{2,}" + "|begin forwarded message:)\\s*$",
+			Pattern.CASE_INSENSITIVE);
+	private static final Pattern HEADER_FROM = Pattern.compile("^\\s*\\*?from:\\*?\\s+\\S.*$",
+			Pattern.CASE_INSENSITIVE);
 	private static final Pattern HEADER_NEXT = Pattern.compile("^\\s*\\*?(sent|date|to|subject|cc):\\*?\\s.*$",
 			Pattern.CASE_INSENSITIVE);
 	private static final Pattern RULER = Pattern.compile("^\\s*_{10,}\\s*$");
 	private static final Pattern SIG_DELIMITER = Pattern.compile("^-- ?$");
-	private static final Pattern MOBILE = Pattern.compile("^\\s*(sent from my \\w+|get outlook for \\w+|sent from outlook"
-			+ "( for \\w+)?)\\b.*$", Pattern.CASE_INSENSITIVE);
-	private static final Pattern DISCLAIMER = Pattern.compile("^\\s*(confidentiality notice|disclaimer|this (e-?mail|message)"
-			+ " (and any attachments )?(is|are) (intended|for|confidential)|the information (contained )?in this (e-?mail|message))",
+	private static final Pattern MOBILE = Pattern.compile(
+			"^\\s*(sent from my \\w+|get outlook for \\w+|sent from outlook" + "( for \\w+)?)\\b.*$",
 			Pattern.CASE_INSENSITIVE);
-	private static final Pattern UNSUBSCRIBE = Pattern.compile("(unsubscribe|email preferences|update your preferences)",
+	private static final Pattern DISCLAIMER = Pattern.compile(
+			"^\\s*(confidentiality notice|disclaimer|this (e-?mail|message)"
+					+ " (and any attachments )?(is|are) (intended|for|confidential)|the information (contained )?in this (e-?mail|message))",
 			Pattern.CASE_INSENSITIVE);
-	private static final Pattern SIGN_OFF = Pattern.compile("^\\s*(thanks|thank you|many thanks|thx|best|best regards|"
-			+ "regards|kind regards|warm regards|cheers|sincerely|talk soon)[,.!]?\\s*$", Pattern.CASE_INSENSITIVE);
+	private static final Pattern UNSUBSCRIBE = Pattern
+			.compile("(unsubscribe|email preferences|update your preferences)", Pattern.CASE_INSENSITIVE);
+	private static final Pattern SIGN_OFF = Pattern.compile(
+			"^\\s*(thanks|thank you|many thanks|thx|best|best regards|"
+					+ "regards|kind regards|warm regards|cheers|sincerely|talk soon)[,.!]?\\s*$",
+			Pattern.CASE_INSENSITIVE);
 
 	private static final Pattern HEADER_SENT = Pattern.compile("^\\s*\\*?(sent|date):\\*?\\s+(\\S.*)$",
 			Pattern.CASE_INSENSITIVE);
 	// kept history (a forward, or mail from before the thread) can be long
 	private static final int MAX_KEPT_CHARS = 12000;
 
-	// a sign-off counts only near the end, with a short name-and-title block under it
+	// a sign-off counts only near the end, with a short name-and-title block under
+	// it
 	private static final int SIGN_OFF_MAX_LINES = 6;
 	private static final int SIGN_OFF_MAX_CHARS = 80;
 
@@ -88,15 +96,17 @@ public final class BrainMessageText {
 
 	}
 
-	// contentType is "html" or "text", as Graph returns it; uniqueBody wins when present
+	// contentType is "html" or "text", as Graph returns it; uniqueBody wins when
+	// present
 	public static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
 			String bodyType) {
 		return extract(subject, uniqueBody, uniqueType, body, bodyType, false);
 	}
 
 	/**
-	 * keepHistory: the thread holds no earlier message, so quoted history is news, not a repeat. A forward
-	 * always keeps it. uniqueBody leaves that part out, so the full body is read instead.
+	 * keepHistory: the thread holds no earlier message, so quoted history is news,
+	 * not a repeat. A forward always keeps it. uniqueBody leaves that part out, so
+	 * the full body is read instead.
 	 */
 	public static Map<String, Object> extract(String subject, String uniqueBody, String uniqueType, String body,
 			String bodyType, boolean keepHistory) {
@@ -145,7 +155,8 @@ public final class BrainMessageText {
 			cut(cuts, "html-signature", signature.text());
 			signature.remove();
 		}
-		// a forward or earlier history is kept; only its header block is dropped, by the text rules below
+		// a forward or earlier history is kept; only its header block is dropped, by
+		// the text rules below
 		if (!keep) {
 			Element quote = doc.selectFirst(QUOTE_MARKERS);
 			if (quote != null) {
@@ -159,7 +170,8 @@ public final class BrainMessageText {
 		return out.toString();
 	}
 
-	// removes the node and everything after it in the document: its later siblings, then each ancestor's
+	// removes the node and everything after it in the document: its later siblings,
+	// then each ancestor's
 	private static void removeFrom(Node node, Element root, StringBuilder removed) {
 		Element parent = node.parent() instanceof Element e ? e : null;
 		removeSiblingsFrom(node, removed);
@@ -258,7 +270,8 @@ public final class BrainMessageText {
 			}
 		}
 
-		// footers, each cuts to the end, or above kept history only to where it starts ("Sent from my iPhone")
+		// footers, each cuts to the end, or above kept history only to where it starts
+		// ("Sent from my iPhone")
 		for (int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i);
 			String rule = SIG_DELIMITER.matcher(line).matches() ? "signature-delimiter"
@@ -306,7 +319,8 @@ public final class BrainMessageText {
 		return null;
 	}
 
-	// a From: line (or ruler) followed within a few lines by Sent:/Date:/To:/Subject:
+	// a From: line (or ruler) followed within a few lines by
+	// Sent:/Date:/To:/Subject:
 	private static boolean headerFollows(List<String> lines, int from) {
 		for (int j = from; j < Math.min(lines.size(), from + 4); j++) {
 			if (HEADER_NEXT.matcher(lines.get(j)).matches()) {
@@ -325,7 +339,8 @@ public final class BrainMessageText {
 		return i;
 	}
 
-	// "Forwarded from Priya Raman, Monday, August 25, 2026 3:02 PM:"; null when the header names nobody
+	// "Forwarded from Priya Raman, Monday, August 25, 2026 3:02 PM:"; null when the
+	// header names nobody
 	private static String historyLabel(List<String> header, boolean forward) {
 		String author = forwardAuthor(header);
 		if (author == null) {

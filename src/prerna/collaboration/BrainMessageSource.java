@@ -38,18 +38,21 @@ import prerna.util.Utility;
 // where the thread read gets message bodies at call time; nothing behind this stores them
 public interface BrainMessageSource {
 
-	// points at a brain-mail-v1 style mail.json (RDF_Map, else an environment variable); local testing only,
+	// points at a brain-mail-v1 style mail.json (RDF_Map, else an environment
+	// variable); local testing only,
 	// never set in production: mail then comes from the file, not Graph
 	String FIXTURE_SETTING = "COLLABORATION_FIXTURE_MAIL";
 
-	// one message in Graph shape (from, subject, body, uniqueBody, receivedDateTime, conversationId), null if gone
+	// one message in Graph shape (from, subject, body, uniqueBody,
+	// receivedDateTime, conversationId), null if gone
 	Map<String, Object> fetch(User user, String source, String conversationId, String graphId) throws Exception;
 
 	// a message, null when gone, or why it could not be read
 	record Fetched(Map<String, Object> message, Exception error) {
 	}
 
-	// several messages of one conversation, in order; a login problem (SemossPixelException) is thrown
+	// several messages of one conversation, in order; a login problem
+	// (SemossPixelException) is thrown
 	default List<Fetched> fetchAll(User user, String source, String conversationId, List<String> graphIds) {
 		List<Fetched> out = new ArrayList<>();
 		for (String graphId : graphIds) {

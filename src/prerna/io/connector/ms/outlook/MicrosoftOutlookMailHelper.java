@@ -44,13 +44,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.safety.Safelist;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Safelist;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -290,7 +290,10 @@ public class MicrosoftOutlookMailHelper {
 		return asDraft ? readMap(response) : null;
 	}
 
-	/** Save HTML in a native reply draft while keeping Outlook's original quoted body and recipients. */
+	/**
+	 * Save HTML in a native reply draft while keeping Outlook's original quoted
+	 * body and recipients.
+	 */
 	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll) {
 		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html);
 	}
@@ -300,24 +303,28 @@ public class MicrosoftOutlookMailHelper {
 		return fillHtmlDraft(accessToken, forward(accessToken, null, uid, to, null, true), html);
 	}
 
-	/** Save an edited envelope on the same native reply draft as the formatted body. */
+	/**
+	 * Save an edited envelope on the same native reply draft as the formatted body.
+	 */
 	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll,
 			String[] to, String[] cc) {
 		String[] validatedTo = MicrosoftOutlookReplyRecipients.validate(to);
 		String[] validatedCc = MicrosoftOutlookReplyRecipients.validate(cc);
-		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo, validatedCc);
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo,
+				validatedCc);
 	}
 
 	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html) {
 		return fillHtmlDraft(accessToken, draft, html, null, null);
 	}
 
-	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html,
-			String[] to, String[] cc) {
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html, String[] to,
+			String[] cc) {
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
 		}
-		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft : getMessage(accessToken, null, id);
+		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft
+				: getMessage(accessToken, null, id);
 		if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
 			throw new IllegalStateException("The created draft body could not be read. Check Outlook before retrying.");
 		}
@@ -336,19 +343,25 @@ public class MicrosoftOutlookMailHelper {
 		throwOnError(response, "format the draft");
 		Map<String, Object> updated = readMap(response);
 		if (updated == null || !id.equals(updated.get("id"))) {
-			throw new IllegalStateException("The formatted draft could not be confirmed. Check Outlook before retrying.");
+			throw new IllegalStateException(
+					"The formatted draft could not be confirmed. Check Outlook before retrying.");
 		}
-		if (to != null && cc != null &&
-				(!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
-					|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
-					|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
-			throw new IllegalStateException("The saved reply recipients could not be confirmed. Check Outlook before retrying.");
+		if (to != null && cc != null
+				&& (!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
+			throw new IllegalStateException(
+					"The saved reply recipients could not be confirmed. Check Outlook before retrying.");
 		}
-		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) updated.put("webLink", link);
+		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
+			updated.put("webLink", link);
+		}
 		return updated;
 	}
 
-	/** Compose only the newly authored fragment with the draft's native source body. */
+	/**
+	 * Compose only the newly authored fragment with the draft's native source body.
+	 */
 	static String prependHtml(String html, Map<?, ?> body) {
 		String content = body.get("content") instanceof String text ? text : "";
 		Document original;
@@ -358,11 +371,11 @@ public class MicrosoftOutlookMailHelper {
 			original = Jsoup.parse("");
 			original.body().appendElement("pre").text(content);
 		}
-		Safelist allowed = Safelist.relaxed().addTags("span", "h1", "h2", "h3", "s")
-				.addAttributes(":all", "style").addAttributes("td", "colspan", "rowspan")
-				.addAttributes("th", "colspan", "rowspan", "scope");
+		Safelist allowed = Safelist.relaxed().addTags("span", "h1", "h2", "h3", "s").addAttributes(":all", "style")
+				.addAttributes("td", "colspan", "rowspan").addAttributes("th", "colspan", "rowspan", "scope");
 		original.outputSettings().prettyPrint(false);
-		String clean = Jsoup.clean(html == null ? "" : html, "", allowed, new Document.OutputSettings().prettyPrint(false));
+		String clean = Jsoup.clean(html == null ? "" : html, "", allowed,
+				new Document.OutputSettings().prettyPrint(false));
 		original.body().prepend(clean + "<br>");
 		return original.outerHtml();
 	}

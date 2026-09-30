@@ -53,17 +53,17 @@ public interface BrainClassifier {
 	}
 
 	/**
-	 * Scores in [0, 1] (urgency in [0, 3]); topics maps topic id to probability. raw keeps the model's own
-	 * answer for audit and later re-tuning.
+	 * Scores in [0, 1] (urgency in [0, 3]); topics maps topic id to probability.
+	 * raw keeps the model's own answer for audit and later re-tuning.
 	 */
-	record Scores(Map<String, Double> topics, double fyi, double automated, double urgency,
-			Map<String, Object> raw) {
+	record Scores(Map<String, Double> topics, double fyi, double automated, double urgency, Map<String, Object> raw) {
 	}
 
 	/**
-	 * Where scores turn into work: fyi at or above fyiAt is FYI, below asksAt asks the owner, in between the
-	 * owner confirms; automated at or above automatedAt skips the thread. Models score on different scales,
-	 * so RDF_Map can override these per engine (COLLAB_CLASSIFIER_CUTOFFS {engineId: {...}}).
+	 * Where scores turn into work: fyi at or above fyiAt is FYI, below asksAt asks
+	 * the owner, in between the owner confirms; automated at or above automatedAt
+	 * skips the thread. Models score on different scales, so RDF_Map can override
+	 * these per engine (COLLAB_CLASSIFIER_CUTOFFS {engineId: {...}}).
 	 */
 	record Cutoffs(double fyiAt, double asksAt, double automatedAt) {
 	}
@@ -78,7 +78,8 @@ public interface BrainClassifier {
 
 	Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight);
 
-	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any chat model
+	// picks the classifier for an engine by its model type: TypeSafe (Jev) or any
+	// chat model
 	static BrainClassifier forEngine(String engineId, IModelEngine model) {
 		if (model instanceof ITypeSafeEngine jev) {
 			return new JevBrainClassifier(engineId, jev);

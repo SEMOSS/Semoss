@@ -63,12 +63,15 @@ public final class BrainMailOverview {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		BrainMailHeaderSource source = BrainMailHeaderSource.current();
 		Map<String, Object> me = source.me(user);
-		String myAddress = BrainRulesGate.norm(me.get("mail") instanceof String m ? m : (String) me.get("userPrincipalName"));
+		String myAddress = BrainRulesGate
+				.norm(me.get("mail") instanceof String m ? m : (String) me.get("userPrincipalName"));
 		String myDomain = BrainMailImport.domain(myAddress);
 		Map<String, Object> organization = source.organization(user);
 		BrainOrgDomains.save(owner.getValue0(), owner.getValue1(), organization);
-		BrainOrgDomains.Org ownOrg = BrainOrgDomains.of(organization.get("domains") instanceof List<?> d
-				? CollaborationDbUtils.toStringList(new ArrayList<>(d)) : List.of(), myDomain);
+		BrainOrgDomains.Org ownOrg = BrainOrgDomains.of(
+				organization.get("domains") instanceof List<?> d ? CollaborationDbUtils.toStringList(new ArrayList<>(d))
+						: List.of(),
+				myDomain);
 		Instant now = Instant.now();
 		Instant since = now.minus(Duration.ofDays(days));
 
@@ -83,8 +86,10 @@ public final class BrainMailOverview {
 			for (int window : WINDOWS) {
 				if (window <= days) {
 					Instant from = now.minus(Duration.ofDays(window));
-					perWindow.put(String.valueOf(window), (int) headers.stream()
-							.filter(h -> Instant.parse((String) h.get("receivedDateTime")).compareTo(from) >= 0).count());
+					perWindow.put(String.valueOf(window),
+							(int) headers.stream()
+									.filter(h -> Instant.parse((String) h.get("receivedDateTime")).compareTo(from) >= 0)
+									.count());
 				}
 			}
 			perWindow.put(String.valueOf(days), headers.size());
@@ -132,12 +137,14 @@ public final class BrainMailOverview {
 		}
 		List<Map<String, Object>> ranked = new ArrayList<>(senders.values());
 		ranked.sort((x, y) -> (Integer) y.get("count") - (Integer) x.get("count"));
-		// the directory settles the busiest senders: a colleague is never suggested, a mailbox or list always is
-		BrainMailHeaderSource.Directory directory = source.lookup(user, ranked.stream().limit(DIRECTORY_LOOKUPS)
-				.map(r -> (String) r.get("address")).toList());
+		// the directory settles the busiest senders: a colleague is never suggested, a
+		// mailbox or list always is
+		BrainMailHeaderSource.Directory directory = source.lookup(user,
+				ranked.stream().limit(DIRECTORY_LOOKUPS).map(r -> (String) r.get("address")).toList());
 		Map<String, Map<String, Object>> known = directory == null ? Map.of() : directory.entries();
 
-		// keep-out suggestions: shared mailboxes and lists, mail Focused Inbox files as Other, and frequent outside
+		// keep-out suggestions: shared mailboxes and lists, mail Focused Inbox files as
+		// Other, and frequent outside
 		// senders you never wrote to
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(owner.getValue0(), owner.getValue1());
 		List<Map<String, Object>> keepOut = new ArrayList<>();
@@ -150,9 +157,10 @@ public final class BrainMailOverview {
 			}
 			int count = (Integer) s.get("count");
 			int other = (Integer) s.getOrDefault("other", 0);
-			boolean automated = "mailbox".equals(kind) || "list".equals(kind)
-					|| (kind == null && !Boolean.TRUE.equals(s.get("youWrote")) && other >= OTHER_MIN && 2 * other >= count);
-			// never someone who writes to you by name: a client who writes often is still a client
+			boolean automated = "mailbox".equals(kind) || "list".equals(kind) || (kind == null
+					&& !Boolean.TRUE.equals(s.get("youWrote")) && other >= OTHER_MIN && 2 * other >= count);
+			// never someone who writes to you by name: a client who writes often is still a
+			// client
 			boolean ignored = !automated && count >= OFTEN && !Boolean.TRUE.equals(s.get("youWrote"))
 					&& 2 * (Integer) s.getOrDefault("notToYou", 0) >= count
 					&& !ownOrg.isMine(BrainMailImport.domain(a));
@@ -170,8 +178,9 @@ public final class BrainMailOverview {
 			suggestion.put("value", a);
 			suggestion.put("name", s.get("name"));
 			suggestion.put("count", s.get("count"));
-			suggestion.put("reason", "mailbox".equals(kind) ? "shared mailbox" : "list".equals(kind) ? "distribution list"
-					: automated ? "Focused Inbox files it as Other" : "writes often, you never wrote back");
+			suggestion.put("reason", "mailbox".equals(kind) ? "shared mailbox"
+					: "list".equals(kind) ? "distribution list"
+							: automated ? "Focused Inbox files it as Other" : "writes often, you never wrote back");
 			suggestion.put("alreadyKeptOut", BrainRulesGate.neverRule(rules, a, null, null) != null);
 			keepOut.add(suggestion);
 		}
@@ -182,7 +191,8 @@ public final class BrainMailOverview {
 				suggestion.put("value", d.getKey());
 				suggestion.put("count", d.getValue());
 				suggestion.put("reason", d.getValue() + " automated senders from this domain");
-				suggestion.put("alreadyKeptOut", BrainRulesGate.neverRule(rules, "x@" + d.getKey(), null, null) != null);
+				suggestion.put("alreadyKeptOut",
+						BrainRulesGate.neverRule(rules, "x@" + d.getKey(), null, null) != null);
 				keepOut.add(0, suggestion);
 			}
 		}

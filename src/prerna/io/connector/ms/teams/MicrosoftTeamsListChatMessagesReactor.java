@@ -115,7 +115,9 @@ public class MicrosoftTeamsListChatMessagesReactor extends AbstractMicrosoftTeam
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if ("includeDisplayBody".equals(key)) return "Include bounded formatted message bodies and media labels; defaults to false.";
+		if ("includeDisplayBody".equals(key)) {
+			return "Include bounded formatted message bodies and media labels; defaults to false.";
+		}
 		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "Optional maximum number of messages to return. Defaults to " + DEFAULT_LIMIT + " and is capped at "
 					+ MAX_LIMIT + ".";

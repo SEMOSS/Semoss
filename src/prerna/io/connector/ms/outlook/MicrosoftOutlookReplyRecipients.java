@@ -38,11 +38,19 @@ import java.util.Set;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
 
-/** Original reply-all defaults and explicit, verifiable draft envelope overrides. */
+/**
+ * Original reply-all defaults and explicit, verifiable draft envelope
+ * overrides.
+ */
 final class MicrosoftOutlookReplyRecipients {
-	private MicrosoftOutlookReplyRecipients() { }
 
-	/** Reply-To replaces From; To takes precedence over Cc and the connected account is omitted. */
+	private MicrosoftOutlookReplyRecipients() {
+	}
+
+	/**
+	 * Reply-To replaces From; TO takes precedence over CC and the connected account
+	 * is omitted.
+	 */
 	static Map<String, List<String>> defaults(Map<String, Object> message, String account) {
 		if (account == null || account.isBlank()) {
 			throw new IllegalArgumentException(
@@ -71,7 +79,10 @@ final class MicrosoftOutlookReplyRecipients {
 		}
 	}
 
-	/** Validate before any draft is created; null is an explicitly empty list in override mode. */
+	/**
+	 * Validate before any draft is created; null is an explicitly empty list in
+	 * override mode.
+	 */
 	static String[] validate(String[] addresses) {
 		if (addresses == null) {
 			return new String[0];
@@ -84,8 +95,8 @@ final class MicrosoftOutlookReplyRecipients {
 			try {
 				InternetAddress parsed = new InternetAddress(value, true);
 				parsed.validate();
-				if (!value.equals(parsed.getAddress()) || !value.contains("@")
-						|| value.contains("\r") || value.contains("\n")) {
+				if (!value.equals(parsed.getAddress()) || !value.contains("@") || value.contains("\r")
+						|| value.contains("\n")) {
 					throw new AddressException("Expected a bare email address");
 				}
 			} catch (AddressException e) {
@@ -95,7 +106,10 @@ final class MicrosoftOutlookReplyRecipients {
 		}).toArray(String[]::new);
 	}
 
-	/** Graph must explicitly report each recipient collection, including empty lists. */
+	/**
+	 * Graph must explicitly report each recipient collection, including empty
+	 * lists.
+	 */
 	static boolean matches(Object actual, String[] expected) {
 		if (!(actual instanceof List<?> recipients)) {
 			return false;

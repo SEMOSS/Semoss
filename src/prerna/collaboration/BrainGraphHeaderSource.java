@@ -74,7 +74,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<String> aliases(User user) {
-		// "SMTP:primary@x" and "smtp:alias@x"; not every tenant returns them, so none is not an error
+		// "SMTP:primary@x" and "smtp:alias@x"; not every tenant returns them, so none
+		// is not an error
 		List<String> out = new ArrayList<>();
 		try {
 			if (get(user, BASE + "/me?$select=proxyAddresses").get("proxyAddresses") instanceof List<?> list) {
@@ -133,8 +134,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		list: while (url != null) {
 			Map<String, Object> page = get(token, url);
 			for (Map<String, Object> chat : values(page)) {
-				Instant last = instant(chat.get("lastMessagePreview") instanceof Map<?, ?> p ? p.get("createdDateTime")
-						: null);
+				Instant last = instant(
+						chat.get("lastMessagePreview") instanceof Map<?, ?> p ? p.get("createdDateTime") : null);
 				if (last == null) {
 					continue;
 				}
@@ -189,7 +190,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		}
 		String subject = chatSubject(chat, members, selfId);
 		List<Map<String, Object>> out = new ArrayList<>();
-		// createdDateTime only filters with lt; lastModifiedDateTime takes gt with its own order
+		// createdDateTime only filters with lt; lastModifiedDateTime takes gt with its
+		// own order
 		String url = BASE + "/chats/" + encode(chatId) + "/messages?$top=" + CHAT_PAGE + "&$orderby="
 				+ encode("lastModifiedDateTime desc") + "&$filter="
 				+ encode("lastModifiedDateTime gt " + since.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
@@ -208,8 +210,9 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	/**
-	 * One chat message as a header, with members by user id in the recipient shape; null for system and app
-	 * messages, deleted ones, ones before since, and senders without an address.
+	 * One chat message as a header, with members by user id in the recipient shape;
+	 * null for system and app messages, deleted ones, ones before since, and
+	 * senders without an address.
 	 */
 	@SuppressWarnings("unchecked")
 	static Map<String, Object> chatHeader(String chatId, String subject, Map<String, Map<String, Object>> members,
@@ -294,15 +297,22 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	public Directory lookup(User user, List<String> addresses) {
 		Map<String, Map<String, Object>> out = new ConcurrentHashMap<>();
 		try {
-			// people first (User.Read.All), then lists (GroupMember.Read.All) for what is left
-			run(user, addresses, a -> "/users?$filter=" + encode("mail eq '" + quote(a) + "' or userPrincipalName eq '"
-					+ quote(a) + "'") + "&$select=" + USER_SELECT, (a, row) -> out.put(a, person(row)));
+			// people first (User.Read.All), then lists (GroupMember.Read.All) for what is
+			// left
+			run(user, addresses,
+					a -> "/users?$filter="
+							+ encode("mail eq '" + quote(a) + "' or userPrincipalName eq '" + quote(a) + "'")
+							+ "&$select=" + USER_SELECT,
+					(a, row) -> out.put(a, person(row)));
 			List<String> rest = addresses.stream().filter(a -> !out.containsKey(a)).toList();
-			run(user, rest, a -> "/groups?$filter=" + encode("mail eq '" + quote(a) + "'") + "&$select=id,displayName,mail",
+			run(user, rest,
+					a -> "/groups?$filter=" + encode("mail eq '" + quote(a) + "'") + "&$select=id,displayName,mail",
 					(a, row) -> out.put(a, entry("list", row, "Distribution list")));
 		} catch (Exception e) {
-			// a missing scope or a throttled tenant: keep what came back, the rules cover the rest
-			classLogger.warn("Directory lookup stopped after {} of {}: {}", out.size(), addresses.size(), e.getMessage());
+			// a missing scope or a throttled tenant: keep what came back, the rules cover
+			// the rest
+			classLogger.warn("Directory lookup stopped after {} of {}: {}", out.size(), addresses.size(),
+					e.getMessage());
 			return new Directory(out, false);
 		}
 		return new Directory(out, true);
@@ -321,7 +331,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 					}
 				}
 			}
-			for (Map<String, Object> row : values(get(user, BASE + "/me/directReports?$select=mail,userPrincipalName&$top=100"))) {
+			for (Map<String, Object> row : values(
+					get(user, BASE + "/me/directReports?$select=mail,userPrincipalName&$top=100"))) {
 				String a = address(row);
 				if (a != null) {
 					out.put(a, "report");
@@ -333,7 +344,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return out;
 	}
 
-	// person, guest, or a mailbox with no one signing in to it (shared, room, or a system sender)
+	// person, guest, or a mailbox with no one signing in to it (shared, room, or a
+	// system sender)
 	private static Map<String, Object> person(Map<String, Object> row) {
 		if (Boolean.FALSE.equals(row.get("accountEnabled"))) {
 			return entry("mailbox", row, "Shared mailbox");
@@ -357,10 +369,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		void accept(String address, Map<String, Object> row);
 	}
 
-	// $batch, 20 requests a call, a few calls at a time; a 403 stops the run (no scope), other misses are skipped
+	// $batch, 20 requests a call, a few calls at a time; a 403 stops the run (no
+	// scope), other misses are skipped
 	@SuppressWarnings("unchecked")
-	private static void run(User user, List<String> addresses, java.util.function.Function<String, String> url, Found found)
-			throws Exception {
+	private static void run(User user, List<String> addresses, java.util.function.Function<String, String> url,
+			Found found) throws Exception {
 		if (addresses.isEmpty()) {
 			return;
 		}
@@ -378,8 +391,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 					}
 					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
 							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-							null, null));
+							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON,
+							null, null, null));
 					for (Object r : reply.get("responses") instanceof List<?> list ? list : List.of()) {
 						Map<String, Object> response = (Map<String, Object>) r;
 						int status = ((Number) response.getOrDefault("status", 0)).intValue();
@@ -389,7 +402,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 						if (status == 200 && response.get("body") instanceof Map<?, ?> body) {
 							List<Map<String, Object>> rows = values((Map<String, Object>) body);
 							if (!rows.isEmpty()) {
-								found.accept(part.get(Integer.parseInt(String.valueOf(response.get("id")))), rows.get(0));
+								found.accept(part.get(Integer.parseInt(String.valueOf(response.get("id")))),
+										rows.get(0));
 							}
 						}
 					}
@@ -436,8 +450,8 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	private static Map<String, Object> get(String token, String url) throws Exception {
-		return CollaborationDbUtils
-				.parseMap(HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		return CollaborationDbUtils.parseMap(
+				HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 	}
 
 	private static String encode(String value) {

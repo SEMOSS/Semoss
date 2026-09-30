@@ -64,12 +64,18 @@ public final class BrainTopicSuggest {
 	record Thread(String id, String subject, Set<String> people) {
 	}
 
-	/** Account suggestions only; writes nothing. Run before topics so topics can link to saved accounts. */
+	/**
+	 * Account suggestions only; writes nothing. Run before topics so topics can
+	 * link to saved accounts.
+	 */
 	public static Map<String, Object> accounts(User user) {
 		return suggest(user, false);
 	}
 
-	/** Writes suggested topics (linked to saved accounts) and returns them with any unsaved account suggestions. */
+	/**
+	 * Writes suggested topics (linked to saved accounts) and returns them with any
+	 * unsaved account suggestions.
+	 */
 	public static Map<String, Object> topics(User user) {
 		return suggest(user, true);
 	}
@@ -79,37 +85,44 @@ public final class BrainTopicSuggest {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		if (writeTopics) {
-			// each run replaces the last run's undecided suggestions, so coming back to the step shows a fresh set
-			for (String id : CollaborationDbUtils.query("SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? AND STATUS = ? AND ORIGIN = ?", rs -> rs.getString(1), ownerId, ownerType,
-					BrainTopicUtils.SUGGESTED, "brain")) {
+			// each run replaces the last run's undecided suggestions, so coming back to the
+			// step shows a fresh set
+			for (String id : CollaborationDbUtils.query(
+					"SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND "
+							+ "OWNER_TYPE = ? AND STATUS = ? AND ORIGIN = ?",
+					rs -> rs.getString(1), ownerId, ownerType, BrainTopicUtils.SUGGESTED, "brain")) {
 				BrainTopicUtils.deleteTopic(user, id);
 			}
 		}
 
-		String self = CollaborationDbUtils.queryOne("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType, "self");
-		String myDomain = BrainMailImport.domain(CollaborationDbUtils.queryOne("SELECT EMAIL_NORM FROM BRAIN_PERSON "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType,
-				self));
+		String self = CollaborationDbUtils.queryOne(
+				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ? AND RELATIONSHIP = ?",
+				rs -> rs.getString(1), ownerId, ownerType, "self");
+		String myDomain = BrainMailImport.domain(CollaborationDbUtils.queryOne(
+				"SELECT EMAIL_NORM FROM BRAIN_PERSON " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, self));
 		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, String> emails = new HashMap<>();
-		CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+		CollaborationDbUtils.query(
+				"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> emails.put(rs.getString(1), rs.getString(2)), ownerId, ownerType);
 
 		Map<String, Thread> threads = new LinkedHashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 				+ "AND (MUTED IS NULL OR MUTED = ?) AND (AUTOMATED IS NULL OR AUTOMATED = ?) "
-				// a chat named only by who is in it says nothing about a topic; the classifier files it from its text
+				// a chat named only by who is in it says nothing about a topic; the classifier
+				// files it from its text
 				+ "AND NOT (SOURCE = ? AND SUBJECT LIKE ?) ORDER BY LAST_MESSAGE_AT DESC",
-				rs -> threads.put(rs.getString(1), new Thread(rs.getString(1), CollaborationDbUtils.getString(rs, "SUBJECT"),
-						new LinkedHashSet<>())),
+				rs -> threads.put(rs.getString(1),
+						new Thread(rs.getString(1), CollaborationDbUtils.getString(rs, "SUBJECT"),
+								new LinkedHashSet<>())),
 				ownerId, ownerType, false, false, "teams", BrainGraphHeaderSource.CHAT_PREFIX + "%");
 		// automated and list senders, VIPs, and who wrote on each thread
 		Set<String> automated = new HashSet<>();
 		Set<String> vips = new HashSet<>();
-		CollaborationDbUtils.query("SELECT PERSON_ID, RELATIONSHIP, IS_VIP FROM BRAIN_PERSON WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ?", rs -> {
+		CollaborationDbUtils.query(
+				"SELECT PERSON_ID, RELATIONSHIP, IS_VIP FROM BRAIN_PERSON WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
+				rs -> {
 					if (BrainSenderTyping.AUTOMATED.equals(rs.getString(2))) {
 						automated.add(rs.getString(1));
 					}
@@ -119,9 +132,11 @@ public final class BrainTopicSuggest {
 					return null;
 				}, ownerId, ownerType);
 		Map<String, Set<String>> writers = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? AND THREAD_ID IS NOT NULL AND SENDER_PERSON_ID IS NOT NULL", rs -> writers
-						.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId, ownerType);
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID, SENDER_PERSON_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? AND THREAD_ID IS NOT NULL AND SENDER_PERSON_ID IS NOT NULL",
+				rs -> writers.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId,
+				ownerType);
 		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND "
 				+ "OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)", rs -> {
 					Thread t = threads.get(rs.getString(1));
@@ -134,8 +149,9 @@ public final class BrainTopicSuggest {
 		// existing accounts by domain, existing topic names
 		Map<String, String> accountByDomain = new HashMap<>();
 		Map<String, String> accountNames = new HashMap<>();
-		CollaborationDbUtils.query("SELECT ACCOUNT_ID, NAME, DOMAINS_JSON FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ?", rs -> {
+		CollaborationDbUtils.query(
+				"SELECT ACCOUNT_ID, NAME, DOMAINS_JSON FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
+				rs -> {
 					accountNames.put(rs.getString(1), rs.getString(2));
 					for (String d : CollaborationDbUtils.toStringList(
 							CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "DOMAINS_JSON")))) {
@@ -143,8 +159,9 @@ public final class BrainTopicSuggest {
 					}
 					return null;
 				}, ownerId, ownerType);
-		Set<String> topicNames = new HashSet<>(CollaborationDbUtils.query("SELECT LOWER(NAME) FROM BRAIN_TOPIC WHERE "
-				+ "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> rs.getString(1), ownerId, ownerType));
+		Set<String> topicNames = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT LOWER(NAME) FROM BRAIN_TOPIC WHERE " + "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> rs.getString(1),
+				ownerId, ownerType));
 		Set<String> neverDomains = BrainRulesGate.activeRules(ownerId, ownerType).stream()
 				.filter(r -> BrainRuleUtils.NEVER_DOMAIN.equals(r.kind()) && r.value() != null)
 				.map(r -> BrainRulesGate.norm(r.value())).collect(Collectors.toSet());
@@ -188,7 +205,8 @@ public final class BrainTopicSuggest {
 		accounts.sort((x, y) -> {
 			int byVip = (Integer) y.get("vips") - (Integer) x.get("vips");
 			int byTwoWay = (Integer) y.get("twoWayThreads") - (Integer) x.get("twoWayThreads");
-			return byVip != 0 ? byVip : byTwoWay != 0 ? byTwoWay : (Integer) y.get("threads") - (Integer) x.get("threads");
+			return byVip != 0 ? byVip
+					: byTwoWay != 0 ? byTwoWay : (Integer) y.get("threads") - (Integer) x.get("threads");
 		});
 
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -202,8 +220,8 @@ public final class BrainTopicSuggest {
 			String engineId = BrainTopicModel.engine(user);
 			if (engineId == null) {
 				out.put("topics", List.of());
-				out.put("modelError", "No topic model is set up (" + Constants.COLLAB_LLM_ENGINE_ID
-						+ "); ask an admin to set one");
+				out.put("modelError",
+						"No topic model is set up (" + Constants.COLLAB_LLM_ENGINE_ID + "); ask an admin to set one");
 				return out;
 			}
 			candidates = modelCandidates(user, engineId, ownerId, ownerType, threads, writers, vips, emails,
@@ -220,9 +238,9 @@ public final class BrainTopicSuggest {
 				.filter(t -> t.people().stream().anyMatch(vips::contains)
 						|| writers.getOrDefault(t.id(), Set.of()).contains(self))
 				.count();
-		candidates.sort((x, y) -> weight.applyAsInt(y) != weight.applyAsInt(x) ? weight.applyAsInt(y) - weight.applyAsInt(x)
-				: y.threads().size() - x.threads().size());
-
+		candidates.sort(
+				(x, y) -> weight.applyAsInt(y) != weight.applyAsInt(x) ? weight.applyAsInt(y) - weight.applyAsInt(x)
+						: y.threads().size() - x.threads().size());
 
 		List<Map<String, Object>> written = new ArrayList<>();
 		Timestamp now = CollaborationDbUtils.now();
@@ -231,8 +249,9 @@ public final class BrainTopicSuggest {
 				continue;
 			}
 			String topicId = "t-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "suggest", c.key());
-			if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND "
-					+ "TOPIC_ID = ?", ownerId, ownerType, topicId)) {
+			if (CollaborationDbUtils.exists(
+					"SELECT 1 FROM BRAIN_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND " + "TOPIC_ID = ?", ownerId,
+					ownerType, topicId)) {
 				continue;
 			}
 			// the account most of its outside people belong to; internal when none
@@ -250,25 +269,25 @@ public final class BrainTopicSuggest {
 			String accountId = byAccount.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey)
 					.orElse(null);
 			boolean outside = c.threads().stream().flatMap(t -> t.people().stream())
-					.map(p -> org(BrainMailImport.domain(emails.get(p))))
-					.anyMatch(d -> d != null && !ownOrg.isMine(d));
+					.map(p -> org(BrainMailImport.domain(emails.get(p)))).anyMatch(d -> d != null && !ownOrg.isMine(d));
 			List<String> members = byPerson.entrySet().stream()
-					.filter(e -> e.getValue() >= Math.max(2, c.threads().size() / 3)
-							&& !automated.contains(e.getKey()))
+					.filter(e -> e.getValue() >= Math.max(2, c.threads().size() / 3) && !automated.contains(e.getKey()))
 					.sorted((x, y) -> y.getValue() - x.getValue()).limit(MEMBERS).map(Map.Entry::getKey)
 					.collect(Collectors.toList());
 			String kind = outside ? "client" : "internal";
 			CollaborationDbUtils.inTransaction(conn -> {
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, SHORT_NAME, "
-						+ "DESCRIPTION, KIND, ACCOUNT_ID, KEYWORDS_JSON, STATUS, ORIGIN, SUGGEST_REASON, LAST_ACTIVITY_AT, "
-						+ "CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
-						topicId, c.name(), c.name(), description(c), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
-						BrainTopicUtils.SUGGESTED, "brain", c.reason(), now, now, now);
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, SHORT_NAME, "
+								+ "DESCRIPTION, KIND, ACCOUNT_ID, KEYWORDS_JSON, STATUS, ORIGIN, SUGGEST_REASON, LAST_ACTIVITY_AT, "
+								+ "CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, topicId, c.name(), c.name(), description(c), kind, accountId,
+						CollaborationDbUtils.toJson(c.keywords()), BrainTopicUtils.SUGGESTED, "brain", c.reason(), now,
+						now, now);
 				for (String p : members) {
 					CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
 							+ "PERSON_ID, STATE, ORIGIN, REASON, CHANGED_BY, CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-							ownerId, ownerType, topicId, p, "suggested", "brain", "On " + byPerson.get(p) + " of its threads",
-							"brain", now);
+							ownerId, ownerType, topicId, p, "suggested", "brain",
+							"On " + byPerson.get(p) + " of its threads", "brain", now);
 				}
 			});
 			Map<String, Object> row = new LinkedHashMap<>();
@@ -279,9 +298,10 @@ public final class BrainTopicSuggest {
 			row.put("reason", c.reason());
 			row.put("threadIds", c.threads().stream().map(Thread::id).collect(Collectors.toList()));
 			row.put("memberIds", members);
-			row.put("sampleSubjects", c.threads().stream().map(Thread::subject).distinct().limit(3)
-					.collect(Collectors.toList()));
-			int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
+			row.put("sampleSubjects",
+					c.threads().stream().map(Thread::subject).distinct().limit(3).collect(Collectors.toList()));
+			int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self))
+					.count();
 			int withVip = (int) c.threads().stream().filter(t -> t.people().stream().anyMatch(vips::contains)).count();
 			row.put("youWrote", mine);
 			row.put("vipThreads", withVip);
@@ -294,7 +314,8 @@ public final class BrainTopicSuggest {
 		return out;
 	}
 
-	// what the classifier matches threads against: why the topic was suggested and a few of its subjects
+	// what the classifier matches threads against: why the topic was suggested and
+	// a few of its subjects
 	private static String description(Candidate c) {
 		String examples = c.threads().stream().map(Thread::subject).filter(x -> x != null && !x.isBlank()).distinct()
 				.limit(3).collect(Collectors.joining("; "));
@@ -305,14 +326,16 @@ public final class BrainTopicSuggest {
 	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason) {
 	}
 
-	// working threads first (a VIP on it, the owner wrote, more messages), then recent; to the model and back
+	// working threads first (a VIP on it, the owner wrote, more messages), then
+	// recent; to the model and back
 	private static List<Candidate> modelCandidates(User user, String engineId, String ownerId, String ownerType,
 			Map<String, Thread> threads, Map<String, Set<String>> writers, Set<String> vips, Map<String, String> emails,
-			Map<String, String> accountByDomain, Map<String, String> accountNames, BrainOrgDomains.Org ownOrg, String self,
-			Set<String> takenNames) {
+			Map<String, String> accountByDomain, Map<String, String> accountNames, BrainOrgDomains.Org ownOrg,
+			String self, Set<String> takenNames) {
 		Map<String, Integer> counts = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, MESSAGE_COUNT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ?", rs -> counts.put(rs.getString(1), rs.getInt(2)), ownerId, ownerType);
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID, MESSAGE_COUNT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
+				rs -> counts.put(rs.getString(1), rs.getInt(2)), ownerId, ownerType);
 		Set<String> organisations = new LinkedHashSet<>();
 		List<Map<String, Object>> rows = new ArrayList<>();
 		for (Thread t : threads.values()) {

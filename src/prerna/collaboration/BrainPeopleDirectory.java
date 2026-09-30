@@ -43,7 +43,8 @@ import prerna.auth.User;
 final class BrainPeopleDirectory {
 
 	static final String DIRECTORY = "directory";
-	// the people who wrote to the owner come first; the rest of a big mailbox stays with the rules
+	// the people who wrote to the owner come first; the rest of a big mailbox stays
+	// with the rules
 	private static final int MAX_LOOKUPS = 1000;
 	private static final long FRESH_MS = 30L * 24 * 60 * 60 * 1000;
 
@@ -53,12 +54,16 @@ final class BrainPeopleDirectory {
 	private record Candidate(String id, String email) {
 	}
 
-	/** Looks up the people that matter and records what the directory says; returns counts. */
+	/**
+	 * Looks up the people that matter and records what the directory says; returns
+	 * counts.
+	 */
 	static Map<String, Object> apply(User user, BrainMailHeaderSource source, String ownerId, String ownerType,
 			String selfId, Set<String> alsoCheck) {
 		Timestamp now = CollaborationDbUtils.now();
 		Timestamp stale = new Timestamp(now.getTime() - FRESH_MS);
-		// senders first, by how much they wrote; the owner's choices and fresh answers are skipped
+		// senders first, by how much they wrote; the owner's choices and fresh answers
+		// are skipped
 		List<Candidate> candidates = new ArrayList<>();
 		Set<String> seen = new LinkedHashSet<>();
 		CollaborationDbUtils.query("SELECT p.PERSON_ID, p.EMAIL_NORM, p.RELATIONSHIP_STATE, p.DIRECTORY_CHECKED_AT, "

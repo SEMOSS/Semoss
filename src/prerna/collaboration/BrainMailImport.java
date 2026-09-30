@@ -73,7 +73,10 @@ public final class BrainMailImport {
 	}
 
 	/** Starts (or returns the running) import job for the last days of mail. */
-	/** Also Teams chats: true turns them on, false off, null keeps the owner's setting. */
+	/**
+	 * Also Teams chats: true turns them on, false off, null keeps the owner's
+	 * setting.
+	 */
 	public static Map<String, Object> start(User user, int days, Boolean teams) {
 		if (days < 1 || days > MAX_DAYS) {
 			throw new IllegalArgumentException("days must be 1 to " + MAX_DAYS);
@@ -107,7 +110,8 @@ public final class BrainMailImport {
 		if (teams != null) {
 			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, TEAMS, teams);
 		}
-		boolean withTeams = Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
+		boolean withTeams = Boolean.TRUE
+				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 
 		Run run = new Run(ownerId, ownerType);
 		String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
@@ -138,7 +142,8 @@ public final class BrainMailImport {
 						teamsError.contains("403") || teamsError.contains("401"));
 			}
 		}
-		// oldest first so a thread takes its first subject; a message sent to yourself is in both folders once
+		// oldest first so a thread takes its first subject; a message sent to yourself
+		// is in both folders once
 		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
 		Map<String, Map<String, Object>> unique = new LinkedHashMap<>();
 		for (Map<String, Object> h : headers) {
@@ -146,7 +151,8 @@ public final class BrainMailImport {
 		}
 		job.count("messages", unique.size());
 
-		// one connection and one commit per batch; a failed batch rolls back and a re-run picks it up
+		// one connection and one commit per batch; a failed batch rolls back and a
+		// re-run picks it up
 		List<Map<String, Object>> all = new ArrayList<>(unique.values());
 		for (int start = 0; start < all.size(); start += BATCH) {
 			List<Map<String, Object>> part = all.subList(start, Math.min(all.size(), start + BATCH));
@@ -169,11 +175,13 @@ public final class BrainMailImport {
 		job.step("threads", 87);
 		run.refreshThreads();
 
-		// the directory first: who is a colleague, a shared mailbox or a list is a fact, not a guess
+		// the directory first: who is a colleague, a shared mailbox or a list is a
+		// fact, not a guess
 		job.step("directory", 88);
 		BrainOrgDomains.save(ownerId, ownerType, source.organization(user));
 		Map<String, Object> manager = source.manager(user);
-		String managerAddress = manager == null ? null : BrainRulesGate.norm(first(manager, "mail", "userPrincipalName"));
+		String managerAddress = manager == null ? null
+				: BrainRulesGate.norm(first(manager, "mail", "userPrincipalName"));
 		String managerPersonId = managerAddress == null ? null
 				: run.ensurePerson(managerAddress, (String) manager.get("displayName"));
 		Map<String, String> chart = source.orgChart(user, manager == null ? null : (String) manager.get("id"));
@@ -185,7 +193,8 @@ public final class BrainMailImport {
 		directory.forEach(job::count);
 
 		job.step("people", 91);
-		// everyone the directory did not settle is ranked; the classifier later marks automated senders
+		// everyone the directory did not settle is ranked; the classifier later marks
+		// automated senders
 		BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
 		if (managerPersonId != null) {
 			job.count("managerPersonId", managerPersonId);
@@ -213,7 +222,8 @@ public final class BrainMailImport {
 		final String ownerId;
 		final String ownerType;
 		final List<BrainRulesGate.Rule> rules;
-		// address to person, thread key to [id, muted], message key to gate result, "thread|person" to roles
+		// address to person, thread key to [id, muted], message key to gate result,
+		// "thread|person" to roles
 		final Map<String, String> people = new HashMap<>();
 		final Map<String, String[]> threadsByKey = new HashMap<>();
 		final Map<String, Map<String, Object>> messages = new HashMap<>();
@@ -233,25 +243,33 @@ public final class BrainMailImport {
 			this.ownerId = ownerId;
 			this.ownerType = ownerType;
 			this.rules = BrainRulesGate.activeRules(ownerId, ownerType);
-			CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-					+ "AND EMAIL_NORM IS NOT NULL", rs -> people.putIfAbsent(rs.getString(2), rs.getString(1)), ownerId,
-					ownerType);
+			CollaborationDbUtils.query(
+					"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+							+ "AND EMAIL_NORM IS NOT NULL",
+					rs -> people.putIfAbsent(rs.getString(2), rs.getString(1)), ownerId, ownerType);
 			// a known address wins over a main email, as in the gate
-			CollaborationDbUtils.query("SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ? ORDER BY PERSON_ID DESC", rs -> people.put(rs.getString(2), rs.getString(1)),
+			CollaborationDbUtils.query(
+					"SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND "
+							+ "OWNER_TYPE = ? ORDER BY PERSON_ID DESC",
+					rs -> people.put(rs.getString(2), rs.getString(1)), ownerId, ownerType);
+			CollaborationDbUtils.query(
+					"SELECT THREAD_KEY, THREAD_ID, MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
+					rs -> threadsByKey.put(rs.getString(1),
+							new String[] { rs.getString(2),
+									String.valueOf(
+											Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) }),
 					ownerId, ownerType);
-			CollaborationDbUtils.query("SELECT THREAD_KEY, THREAD_ID, MUTED FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
-					+ "OWNER_TYPE = ?", rs -> threadsByKey.put(rs.getString(1), new String[] { rs.getString(2),
-							String.valueOf(Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) }),
-					ownerId, ownerType);
-			CollaborationDbUtils.query("SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM "
-					+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> messages.put(rs.getString(1),
+			CollaborationDbUtils.query(
+					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM "
+							+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					rs -> messages.put(rs.getString(1),
 							BrainRulesGate.result(rs.getString(2), rs.getString(3), rs.getString(4), rs.getString(5))),
 					ownerId, ownerType);
 			CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON FROM BRAIN_THREAD_PARTICIPANT WHERE "
 					+ "OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 						Set<String> roles = new LinkedHashSet<>();
-						for (Object role : CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "ROLES_JSON"))) {
+						for (Object role : CollaborationDbUtils
+								.parseList(CollaborationDbUtils.getString(rs, "ROLES_JSON"))) {
 							roles.add(String.valueOf(role));
 						}
 						return participants.put(rs.getString(1) + "|" + rs.getString(2), roles);
@@ -260,9 +278,10 @@ public final class BrainMailImport {
 
 		BrainRulesGate.Known known(String source) {
 			return known.computeIfAbsent(source, s -> {
-				Boolean enabled = CollaborationDbUtils.queryOne("SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? "
-						+ "AND OWNER_TYPE = ? AND SOURCE = ?", rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"),
-						ownerId, ownerType, s);
+				Boolean enabled = CollaborationDbUtils.queryOne(
+						"SELECT ENABLED FROM SOURCE_CONNECTION WHERE OWNER_ID = ? "
+								+ "AND OWNER_TYPE = ? AND SOURCE = ?",
+						rs -> CollaborationDbUtils.getBoolean(rs, "ENABLED"), ownerId, ownerType, s);
 				return new BrainRulesGate.Known(rules, Boolean.TRUE.equals(enabled), messages::get, people::get,
 						threadsByKey::get);
 			});
@@ -351,32 +370,37 @@ public final class BrainMailImport {
 			String sender = address(header.get("sender"));
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
 					|| (sender != null && !sender.equals(from)) || broadcast;
-			CollaborationDbUtils.update("UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?", threadId, senderId,
-					fromMe ? null : toMe, bulk, ownerId, ownerType, messageKey);
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+					threadId, senderId, fromMe ? null : toMe, bulk, ownerId, ownerType, messageKey);
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
 			threads.add(threadId);
 			imported++;
 		}
 
-		// the owner by any of their addresses, or by their exact display name on an alias we do not know
+		// the owner by any of their addresses, or by their exact display name on an
+		// alias we do not know
 		boolean isSelf(String address, String name) {
 			return selfAddresses.contains(address)
 					|| (selfName != null && name != null && selfName.equalsIgnoreCase(name.trim()));
 		}
 
 		String ensureSelf(String address, String name, String upn, List<String> aliases) {
-			String existing = CollaborationDbUtils.queryOne("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType, "self");
+			String existing = CollaborationDbUtils.queryOne(
+					"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+							+ "AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
+					rs -> rs.getString(1), ownerId, ownerType, "self");
 			int before = newPeople;
 			String personId = existing != null ? existing : ensurePerson(address, name);
 			// the owner is not a new person
 			newPeople = before;
 			if (existing == null) {
-				CollaborationDbUtils.update("UPDATE BRAIN_PERSON SET RELATIONSHIP = ?, RELATIONSHIP_STATE = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", "self", "confirmed", ownerId,
-						ownerType, personId);
+				CollaborationDbUtils.update(
+						"UPDATE BRAIN_PERSON SET RELATIONSHIP = ?, RELATIONSHIP_STATE = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+						"self", "confirmed", ownerId, ownerType, personId);
 			}
 			selfId = personId;
 			selfName = name == null || name.isBlank() ? null : name.trim();
@@ -408,13 +432,16 @@ public final class BrainMailImport {
 			String id = "p-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "person", address);
 			Timestamp now = CollaborationDbUtils.now();
 			CollaborationDbUtils.inTransaction(conn -> {
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, "
-						+ "DISPLAY_NAME, IS_VIP, NEVER_INGEST, STRENGTH, CREATED_AT, UPDATED_AT) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, id, address,
-						name == null || name.isBlank() ? address : name.trim(), false, false, 0, now, now);
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, "
-						+ "KIND, VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)", ownerId, ownerType, id, "email",
-						address, now);
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_PERSON (OWNER_ID, OWNER_TYPE, PERSON_ID, EMAIL_NORM, "
+								+ "DISPLAY_NAME, IS_VIP, NEVER_INGEST, STRENGTH, CREATED_AT, UPDATED_AT) "
+								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, id, address, name == null || name.isBlank() ? address : name.trim(), false,
+						false, 0, now, now);
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, "
+								+ "KIND, VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, id, "email", address, now);
 			});
 			people.put(address, id);
 			newPeople++;
@@ -424,9 +451,10 @@ public final class BrainMailImport {
 		private void addAddress(String personId, String address) {
 			if (!CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND PERSON_ID = ? AND VALUE_NORM = ?", ownerId, ownerType, personId, address)) {
-				CollaborationDbUtils.update("INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, "
-						+ "VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)", ownerId, ownerType, personId, "email",
-						address, CollaborationDbUtils.now());
+				CollaborationDbUtils.update(
+						"INSERT INTO BRAIN_PERSON_ADDRESS (OWNER_ID, OWNER_TYPE, PERSON_ID, KIND, "
+								+ "VALUE_NORM, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, personId, "email", address, CollaborationDbUtils.now());
 			}
 		}
 
@@ -436,10 +464,11 @@ public final class BrainMailImport {
 				return existing[0];
 			}
 			String threadId = "th-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "thread", threadKey);
-			CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, "
-					+ "SUBJECT, MUTED, AUTOMATED, MESSAGE_COUNT, LAST_MESSAGE_AT, CREATED_AT) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, threadId, threadKey, source,
-					cleanSubject(subject), false, false, 0, at, at);
+			CollaborationDbUtils.update(
+					"INSERT INTO BRAIN_THREAD (OWNER_ID, OWNER_TYPE, THREAD_ID, THREAD_KEY, SOURCE, "
+							+ "SUBJECT, MUTED, AUTOMATED, MESSAGE_COUNT, LAST_MESSAGE_AT, CREATED_AT) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, threadId, threadKey, source, cleanSubject(subject), false, false, 0, at, at);
 			threadsByKey.put(threadKey, new String[] { threadId, "false" });
 			return threadId;
 		}
@@ -448,33 +477,38 @@ public final class BrainMailImport {
 			String key = threadId + "|" + personId;
 			Set<String> roles = participants.get(key);
 			if (roles == null) {
-				CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, "
-						+ "PERSON_ID, ROLES_JSON, INCLUDED, HIDDEN_COUNT, FIRST_SEEN_AT, LAST_SEEN_AT) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, threadId, personId,
-						CollaborationDbUtils.toJson(new ArrayList<>(newRoles)), true, 0, at, at);
+				CollaborationDbUtils.update(
+						"INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, "
+								+ "PERSON_ID, ROLES_JSON, INCLUDED, HIDDEN_COUNT, FIRST_SEEN_AT, LAST_SEEN_AT) "
+								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, threadId, personId, CollaborationDbUtils.toJson(new ArrayList<>(newRoles)),
+						true, 0, at, at);
 				participants.put(key, new LinkedHashSet<>(newRoles));
 				return;
 			}
 			roles.addAll(newRoles);
-			CollaborationDbUtils.update("UPDATE BRAIN_THREAD_PARTICIPANT SET ROLES_JSON = ?, LAST_SEEN_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_THREAD_PARTICIPANT SET ROLES_JSON = ?, LAST_SEEN_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
 					CollaborationDbUtils.toJson(new ArrayList<>(roles)), at, ownerId, ownerType, threadId, personId);
 		}
 
 		// counts and latest time from the linked message rows, in one query
 		void refreshThreads() {
 			Map<String, Object[]> agg = new HashMap<>();
-			CollaborationDbUtils.query("SELECT THREAD_ID, COUNT(*) AS N, MAX(RECEIVED_AT) AS LAST FROM BRAIN_MESSAGE "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL GROUP BY THREAD_ID",
+			CollaborationDbUtils.query(
+					"SELECT THREAD_ID, COUNT(*) AS N, MAX(RECEIVED_AT) AS LAST FROM BRAIN_MESSAGE "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL GROUP BY THREAD_ID",
 					rs -> agg.put(rs.getString(1), new Object[] { rs.getInt("N"), rs.getTimestamp("LAST") }), ownerId,
 					ownerType);
 			CollaborationDbUtils.batch(conn -> {
 				for (String threadId : threads) {
 					Object[] a = agg.get(threadId);
 					if (a != null) {
-						CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD SET MESSAGE_COUNT = ?, LAST_MESSAGE_AT = ? "
-								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", a[0], a[1], ownerId, ownerType,
-								threadId);
+						CollaborationDbUtils.update(conn,
+								"UPDATE BRAIN_THREAD SET MESSAGE_COUNT = ?, LAST_MESSAGE_AT = ? "
+										+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+								a[0], a[1], ownerId, ownerType, threadId);
 					}
 				}
 			});

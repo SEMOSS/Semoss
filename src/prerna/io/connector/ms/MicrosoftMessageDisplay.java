@@ -37,14 +37,21 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
-/** Bounded, untrusted source content for a client renderer; never persisted as model context. */
+/**
+ * Bounded, untrusted source content for a client renderer; never persisted as
+ * model context.
+ */
 public final class MicrosoftMessageDisplay {
 
 	public static final int MAX_DISPLAY_CHARS = 128 * 1024;
 
-	private MicrosoftMessageDisplay() {}
+	private MicrosoftMessageDisplay() {
+	}
 
-	/** Keep the original body intact, or fall back to text rather than cutting through HTML. */
+	/**
+	 * Keep the original body intact, or fall back to text rather than cutting
+	 * through HTML.
+	 */
 	public static Map<String, Object> body(Map<String, Object> message, String fallback) {
 		Map<?, ?> body = message.get("body") instanceof Map<?, ?> map ? map : Map.of();
 		String content = body.get("content") instanceof String text ? text : fallback;
@@ -52,7 +59,8 @@ public final class MicrosoftMessageDisplay {
 		boolean truncated = content.length() > MAX_DISPLAY_CHARS;
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("contentType", truncated ? "text" : type);
-		result.put("content", truncated ? fallback.substring(0, Math.min(fallback.length(), MAX_DISPLAY_CHARS)) : content);
+		result.put("content",
+				truncated ? fallback.substring(0, Math.min(fallback.length(), MAX_DISPLAY_CHARS)) : content);
 		result.put("isTruncated", truncated);
 		List<Map<String, String>> attachments = new ArrayList<>();
 		if (message.get("attachments") instanceof List<?> items) {
@@ -63,15 +71,24 @@ public final class MicrosoftMessageDisplay {
 				}
 			}
 		}
-		if (!attachments.isEmpty()) result.put("attachments", attachments);
+		if (!attachments.isEmpty()) {
+			result.put("attachments", attachments);
+		}
 		return result;
 	}
 
-	/** Teams text has no email signatures or quoted-history trimming; preserve code whitespace. */
+	/**
+	 * Teams text has no email signatures or quoted-history trimming; preserve code
+	 * whitespace.
+	 */
 	public static String text(Map<String, Object> message) {
-		if (!(message.get("body") instanceof Map<?, ?> body)) return "";
+		if (!(message.get("body") instanceof Map<?, ?> body)) {
+			return "";
+		}
 		String content = body.get("content") instanceof String text ? text : "";
-		if (!"html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) return content.strip();
+		if (!"html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
+			return content.strip();
+		}
 		Element root = Jsoup.parse(content).body();
 		root.select("script,style,template").remove();
 		StringBuilder out = new StringBuilder();
@@ -84,12 +101,23 @@ public final class MicrosoftMessageDisplay {
 			out.append(pre ? text.getWholeText() : text.getWholeText().replaceAll("\\s+", " "));
 			return;
 		}
-		if (!(node instanceof Element element)) return;
+		if (!(node instanceof Element element)) {
+			return;
+		}
 		String tag = element.normalName();
-		if ("br".equals(tag)) { out.append('\n'); return; }
+		if ("br".equals(tag)) {
+			out.append('\n');
+			return;
+		}
 		boolean block = element.isBlock();
-		if (block && !out.isEmpty() && out.charAt(out.length() - 1) != '\n') out.append('\n');
-		for (Node child : element.childNodes()) append(child, out, pre || "pre".equals(tag) || "code".equals(tag));
-		if (block && !out.isEmpty() && out.charAt(out.length() - 1) != '\n') out.append('\n');
+		if (block && !out.isEmpty() && out.charAt(out.length() - 1) != '\n') {
+			out.append('\n');
+		}
+		for (Node child : element.childNodes()) {
+			append(child, out, pre || "pre".equals(tag) || "code".equals(tag));
+		}
+		if (block && !out.isEmpty() && out.charAt(out.length() - 1) != '\n') {
+			out.append('\n');
+		}
 	}
 }

@@ -51,9 +51,8 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
-
+import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
 
@@ -375,7 +374,10 @@ public class MicrosoftTeamsMessageHelper {
 			List<Map<String, Object>> result = new ArrayList<>();
 			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
 				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
-				if (includeDisplayBody) described.put("displayBody", MicrosoftMessageDisplay.body(message, String.valueOf(described.get("body"))));
+				if (includeDisplayBody) {
+					described.put("displayBody",
+							MicrosoftMessageDisplay.body(message, String.valueOf(described.get("body"))));
+				}
 				result.add(described);
 			}
 			return result;
