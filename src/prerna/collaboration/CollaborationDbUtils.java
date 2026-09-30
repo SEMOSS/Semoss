@@ -72,11 +72,13 @@ public class CollaborationDbUtils {
 
 	static boolean initialized = false;
 
-	// the tables have no unique constraints, so insert-if-absent runs under one lock per owner and area.
+	// the tables have no unique constraints, so insert-if-absent runs under one
+	// lock per owner and area.
 	// Covers one server only.
 	private static final Map<String, Object> OWNER_LOCKS = new ConcurrentHashMap<>();
 
-	// the connection of a batch running on this thread; query, update and inTransaction join it
+	// the connection of a batch running on this thread; query, update and
+	// inTransaction join it
 	private static final ThreadLocal<Connection> BATCH = new ThreadLocal<>();
 
 	private CollaborationDbUtils() {
@@ -186,7 +188,8 @@ public class CollaborationDbUtils {
 		return String.join(", ", Collections.nCopies(count, "?"));
 	}
 
-	// single insert/update/delete; rolls back on failure so a pooled connection goes back clean
+	// single insert/update/delete; rolls back on failure so a pooled connection
+	// goes back clean
 	static int update(String sql, Object... params) {
 		Connection batch = BATCH.get();
 		if (batch != null) {
@@ -218,7 +221,8 @@ public class CollaborationDbUtils {
 		}
 	}
 
-	// several statements on one connection, one commit; needs pooling so the connection is not shared
+	// several statements on one connection, one commit; needs pooling so the
+	// connection is not shared
 	static void inTransaction(TransactionWork work) {
 		Connection batch = BATCH.get();
 		if (batch != null) {
@@ -268,7 +272,8 @@ public class CollaborationDbUtils {
 		}
 	}
 
-	// every query and update this thread runs inside work shares one connection and one commit;
+	// every query and update this thread runs inside work shares one connection and
+	// one commit;
 	// a failure rolls back the whole batch
 	static void batch(TransactionWork work) {
 		if (BATCH.get() != null) {
@@ -320,12 +325,14 @@ public class CollaborationDbUtils {
 		return rs.wasNull() ? null : value;
 	}
 
-	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC), returned as ISO-8601
+	// timestamps are stored as UTC wall time (Utility.getCurrentSqlTimestampUTC),
+	// returned as ISO-8601
 	static String getTimestamp(ResultSet rs, String column) throws SQLException {
 		return toIso(rs.getTimestamp(column));
 	}
 
-	// ISO-8601 instant, offset time, or a plain date (midnight UTC) to UTC wall time; null stays null
+	// ISO-8601 instant, offset time, or a plain date (midnight UTC) to UTC wall
+	// time; null stays null
 	static Timestamp toTimestamp(Object value, String name) {
 		String text = asString(value);
 		if (text == null || text.isBlank()) {
@@ -351,7 +358,8 @@ public class CollaborationDbUtils {
 		return value == null ? null : value.toLocalDateTime().atOffset(ZoneOffset.UTC).toInstant().toString();
 	}
 
-	// ---- partial-save helpers: build "COL = ?" lists from the keys a caller passed ----
+	// ---- partial-save helpers: build "COL = ?" lists from the keys a caller
+	// passed ----
 
 	static void setIfPresent(Map<String, Object> changes, String key, String column, List<String> sets,
 			List<Object> params) {
@@ -405,7 +413,8 @@ public class CollaborationDbUtils {
 		return json == null ? null : GSON.fromJson(json, Map.class);
 	}
 
-	// the first JSON object in a model reply, skipping reasoning blocks, code fences, and stray text; null if none
+	// the first JSON object in a model reply, skipping reasoning blocks, code
+	// fences, and stray text; null if none
 	static Map<String, Object> firstJsonObject(String reply) {
 		if (reply == null) {
 			return null;
@@ -428,7 +437,8 @@ public class CollaborationDbUtils {
 		return null;
 	}
 
-	// index of the brace closing the object that opens at start, or -1; skips braces inside strings
+	// index of the brace closing the object that opens at start, or -1; skips
+	// braces inside strings
 	private static int objectEnd(String text, int start) {
 		int depth = 0;
 		boolean inString = false;
@@ -513,8 +523,7 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_ACCOUNT_ACCOUNT_ID_INDEX", "BRAIN_ACCOUNT", "OWNER_ID", "OWNER_TYPE",
 							"ACCOUNT_ID"),
 					OwlIndex.of("BRAIN_PERSON_OWNER_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_PERSON_PERSON_ID_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE",
-							"PERSON_ID"),
+					OwlIndex.of("BRAIN_PERSON_PERSON_ID_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE", "PERSON_ID"),
 					OwlIndex.of("BRAIN_PERSON_EMAIL_NORM_INDEX", "BRAIN_PERSON", "OWNER_ID", "OWNER_TYPE",
 							"EMAIL_NORM"),
 					OwlIndex.of("BRAIN_PERSON_ADDRESS_OWNER_INDEX", "BRAIN_PERSON_ADDRESS", "OWNER_ID", "OWNER_TYPE"),
@@ -535,8 +544,7 @@ public class CollaborationDbUtils {
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_THREAD_THREAD_ID_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE",
-							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_THREAD_ID_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_THREAD_KEY_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE",
 							"THREAD_KEY"),
 					OwlIndex.of("BRAIN_THREAD_TOPIC_OWNER_INDEX", "BRAIN_THREAD_TOPIC", "OWNER_ID", "OWNER_TYPE"),
@@ -560,8 +568,7 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_RULE_OWNER_INDEX", "BRAIN_RULE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_RULE_RULE_ID_INDEX", "BRAIN_RULE", "OWNER_ID", "OWNER_TYPE", "RULE_ID"),
 					OwlIndex.of("BRAIN_REVIEW_OWNER_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE"),
-					OwlIndex.of("BRAIN_REVIEW_REVIEW_ID_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE",
-							"REVIEW_ID"),
+					OwlIndex.of("BRAIN_REVIEW_REVIEW_ID_INDEX", "BRAIN_REVIEW", "OWNER_ID", "OWNER_TYPE", "REVIEW_ID"),
 					OwlIndex.of("BRAIN_CHANGE_OWNER_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_CHANGE_ENTITY_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE", "ENTITY_TYPE",
 							"ENTITY_ID"),

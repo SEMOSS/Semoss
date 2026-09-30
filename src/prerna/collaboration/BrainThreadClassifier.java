@@ -59,10 +59,12 @@ public final class BrainThreadClassifier {
 	private static final int PARALLEL = 8;
 	private static final int MESSAGES = 2;
 	private static final int TEXT_CHARS = 1500;
-	// a forward, or mail from before the thread: the part that matters is under the note
+	// a forward, or mail from before the thread: the part that matters is under the
+	// note
 	private static final int HISTORY_CHARS = 5000;
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
-	// with this few topics the model also gets a way out, or every thread lands in one of them
+	// with this few topics the model also gets a way out, or every thread lands in
+	// one of them
 	private static final int FEW_TOPICS = 3;
 	static final String OTHER_TOPIC = "other";
 	private static final int FEW_TOPICS_ASK_BAND = 15;
@@ -71,20 +73,23 @@ public final class BrainThreadClassifier {
 	}
 
 	/** One thread's outcome; dry runs return scores and write nothing. */
-	public record Result(String threadId, String topicId, Integer confidence, String band, String work,
-			String priority, Map<String, Object> scores, String error) {
+	public record Result(String threadId, String topicId, Integer confidence, String band, String work, String priority,
+			Map<String, Object> scores, String error) {
 	}
 
 	public static final String JOB_KIND = "classify";
 
-	// the given threads, or every unmuted thread with no work item yet; dryRun scores without writing
+	// the given threads, or every unmuted thread with no work item yet; dryRun
+	// scores without writing
 	public static Map<String, Object> classify(User user, Insight insight, List<String> threadIds, boolean dryRun) {
 		return classify(user, insight, threadIds, dryRun, null);
 	}
 
-	// same as classify, as a background job polled with BrainGetJob(kind=classify); results stay out of the job row
+	// same as classify, as a background job polled with BrainGetJob(kind=classify);
+	// results stay out of the job row
 	public static Map<String, Object> start(User user, List<String> threadIds) {
-		// fail here, not inside the job, when no model is set or the caller cannot use it
+		// fail here, not inside the job, when no model is set or the caller cannot use
+		// it
 		requireEngine(user);
 		var owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> params = new LinkedHashMap<>();
@@ -129,10 +134,12 @@ public final class BrainThreadClassifier {
 			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
 					"Not about the other topics: other work, personal, travel, or automated mail."));
 		}
-		Set<String> vips = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND IS_VIP = ?", rs -> rs.getString(1), ownerId, ownerType, true));
+		Set<String> vips = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND IS_VIP = ?",
+				rs -> rs.getString(1), ownerId, ownerType, true));
 		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
-				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType), vips);
+				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
+				vips);
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
 
 		List<Result> results = new ArrayList<>();
@@ -171,28 +178,29 @@ public final class BrainThreadClassifier {
 	}
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
-			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt, boolean dryRun, Self self,
-			Set<String> vips) {
+			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt,
+			boolean dryRun, Self self, Set<String> vips) {
 	}
 
 	@SuppressWarnings("unchecked")
 	private static Result classifyOne(Context ctx, String threadId) {
-		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId, MESSAGES,
-				BrainMessageSource.current());
+		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
+				MESSAGES, BrainMessageSource.current());
 		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
 		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
 			return new Result(threadId, null, null, null, "skipped", null, null, null);
 		}
 		Map<String, Object> newest = messages.get(messages.size() - 1);
 		boolean fromMe = ctx.self().personId() != null && ctx.self().personId().equals(newest.get("fromId"));
-		Map<String, Object> thread = CollaborationDbUtils.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED FROM BRAIN_THREAD "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
-					Map<String, Object> row = new LinkedHashMap<>();
-					row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
-					row.put("source", CollaborationDbUtils.getString(rs, "SOURCE"));
-					row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
-					return row;
-				}, ctx.ownerId(), ctx.ownerType(), threadId);
+		Map<String, Object> thread = CollaborationDbUtils
+				.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED FROM BRAIN_THREAD "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
+							Map<String, Object> row = new LinkedHashMap<>();
+							row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
+							row.put("source", CollaborationDbUtils.getString(rs, "SOURCE"));
+							row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
+							return row;
+						}, ctx.ownerId(), ctx.ownerType(), threadId);
 		// marked automated by an earlier run: no model call
 		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
@@ -214,7 +222,8 @@ public final class BrainThreadClassifier {
 		Map<String, Object> signals = signals(scores);
 		boolean automated = scores.automated() >= ctx.cutoffs().automatedAt();
 
-		// topic: file, ask, or leave; owner-made links are never touched and automated mail gets no topic
+		// topic: file, ask, or leave; owner-made links are never touched and automated
+		// mail gets no topic
 		// (a dry run scores both anyway)
 		String topicId = null;
 		Integer confidence = null;
@@ -224,15 +233,18 @@ public final class BrainThreadClassifier {
 		if (!ranked.isEmpty() && (ctx.dryRun() || (!automated && !hasOwnerLink(ctx, threadId)))) {
 			String bestId = ranked.get(0).getKey();
 			String nextId = ranked.size() > 1 ? ranked.get(1).getKey() : null;
-			// with a "Something else" choice the probability itself is the confidence (fixture, one topic:
-			// real threads 0.87 and up, others mostly under 0.75), and only near misses are asked
+			// with a "Something else" choice the probability itself is the confidence
+			// (fixture, one topic:
+			// real threads 0.87 and up, others mostly under 0.75), and only near misses are
+			// asked
 			boolean wayOut = scores.topics().containsKey(OTHER_TOPIC);
 			int askAt = wayOut ? Math.max(ctx.askAt(), ctx.fileAt() - FEW_TOPICS_ASK_BAND) : ctx.askAt();
 			if (wayOut) {
 				confidence = (int) Math.round(100 * ranked.get(0).getValue());
 			} else {
 				double margin = ranked.get(0).getValue() - (nextId != null ? ranked.get(1).getValue() : 0);
-				// 0.1 of margin reads as 90 (a top-two gap that size was right every time in the eval); a near
+				// 0.1 of margin reads as 90 (a top-two gap that size was right every time in
+				// the eval); a near
 				// tie reads as no pick, so it stays unassigned instead of suggesting a topic
 				confidence = (int) Math.min(100, Math.round(900 * margin));
 			}
@@ -264,8 +276,9 @@ public final class BrainThreadClassifier {
 		List<String> reasons = new ArrayList<>();
 		if (automated) {
 			if (!ctx.dryRun()) {
-				CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
+				CollaborationDbUtils
+						.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+								+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			}
 			return new Result(threadId, topicId, confidence, band, "automated", null, signals, null);
 		} else if (fromMe) {
@@ -273,7 +286,8 @@ public final class BrainThreadClassifier {
 			askType = "waiting_on";
 			reasons.add("You wrote last; waiting on a reply");
 		} else if (!"to".equals(onIt)) {
-			// copied, or reached through a list or Bcc: worth knowing, not an ask of the owner
+			// copied, or reached through a list or Bcc: worth knowing, not an ask of the
+			// owner
 			work = "fyi";
 			askType = "fyi";
 			reasons.add("cc".equals(onIt) ? "You were copied" : "Not addressed to you");
@@ -320,15 +334,17 @@ public final class BrainThreadClassifier {
 			item.put("reason", "classifier");
 			Map<String, Object> created = WorkItemUtils.createFromIngest(ctx.ownerId(), ctx.ownerType(), item);
 			if (Boolean.TRUE.equals(created.get("created")) && created.get("item") instanceof Map<?, ?> saved) {
-				CollaborationDbUtils.update("UPDATE WORK_ITEM SET SIGNALS_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND ITEM_ID = ?", CollaborationDbUtils.toJson(signals), ctx.ownerId(), ctx.ownerType(),
-						saved.get("id"));
+				CollaborationDbUtils.update(
+						"UPDATE WORK_ITEM SET SIGNALS_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+								+ "AND ITEM_ID = ?",
+						CollaborationDbUtils.toJson(signals), ctx.ownerId(), ctx.ownerType(), saved.get("id"));
 			}
 		}
 		return new Result(threadId, topicId, confidence, band, work, priority, signals, null);
 	}
 
-	// the platform model (COLLAB_CLASSIFIER_ENGINE_ID); the caller needs access to it
+	// the platform model (COLLAB_CLASSIFIER_ENGINE_ID); the caller needs access to
+	// it
 	private static String requireEngine(User user) {
 		String engine = platformEngine();
 		if (engine == null) {
@@ -352,7 +368,8 @@ public final class BrainThreadClassifier {
 	@SuppressWarnings("unchecked")
 	private static BrainClassifier.Cutoffs cutoffs(String engine, BrainClassifier classifier) {
 		BrainClassifier.Cutoffs base = classifier.cutoffs();
-		Map<String, Object> all = CollaborationDbUtils.parseMap(Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFIER_CUTOFFS));
+		Map<String, Object> all = CollaborationDbUtils
+				.parseMap(Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFIER_CUTOFFS));
 		Object mine = all == null ? null : all.get(engine);
 		if (!(mine instanceof Map<?, ?> m)) {
 			return base;
@@ -366,7 +383,8 @@ public final class BrainThreadClassifier {
 		return value instanceof Number n ? n.doubleValue() : fallback;
 	}
 
-	// what gets stored and returned: the scores the policy used, plus the model's own answer
+	// what gets stored and returned: the scores the policy used, plus the model's
+	// own answer
 	private static Map<String, Object> signals(BrainClassifier.Scores scores) {
 		Map<String, Object> signals = new LinkedHashMap<>();
 		signals.put("topics", scores.topics());
@@ -377,7 +395,8 @@ public final class BrainThreadClassifier {
 		return signals;
 	}
 
-	// the owner as a person: id, display name, and every address, to mark "me" in from, to, and cc
+	// the owner as a person: id, display name, and every address, to mark "me" in
+	// from, to, and cc
 	private static Self self(String ownerId, String ownerType) {
 		Map<String, Object> person = CollaborationDbUtils.queryOne("SELECT PERSON_ID, DISPLAY_NAME, EMAIL_NORM "
 				+ "FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> {
@@ -390,9 +409,10 @@ public final class BrainThreadClassifier {
 		if (person == null) {
 			return new Self(null, "the owner", Set.of());
 		}
-		Set<String> addresses = new HashSet<>(CollaborationDbUtils.query("SELECT VALUE_NORM FROM BRAIN_PERSON_ADDRESS "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType,
-				person.get("id")));
+		Set<String> addresses = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT VALUE_NORM FROM BRAIN_PERSON_ADDRESS "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, person.get("id")));
 		if (person.get("email") != null) {
 			addresses.add((String) person.get("email"));
 		}
@@ -410,7 +430,8 @@ public final class BrainThreadClassifier {
 				for (Object r : list) {
 					if (r instanceof Map<?, ?> m && (self.addresses()
 							.contains(BrainRulesGate.norm(CollaborationDbUtils.asString(m.get("address"))))
-							|| (self.name() != null && self.name().equalsIgnoreCase(String.valueOf(m.get("name")).trim())))) {
+							|| (self.name() != null
+									&& self.name().equalsIgnoreCase(String.valueOf(m.get("name")).trim())))) {
 						return field;
 					}
 				}
@@ -436,13 +457,15 @@ public final class BrainThreadClassifier {
 
 	// active and dormant topics with a description the model can match against
 	private static List<BrainClassifier.TopicOption> topics(String ownerId, String ownerType) {
-		return CollaborationDbUtils.query("SELECT t.TOPIC_ID, t.NAME, t.DESCRIPTION, t.SUGGEST_REASON, t.KEYWORDS_JSON, "
-				+ "a.NAME AS ACCOUNT "
-				+ "FROM BRAIN_TOPIC t LEFT JOIN BRAIN_ACCOUNT a ON a.OWNER_ID = t.OWNER_ID AND a.OWNER_TYPE = t.OWNER_TYPE "
-				+ "AND a.ACCOUNT_ID = t.ACCOUNT_ID WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATUS IN (?, ?) "
-				+ "ORDER BY t.TOPIC_ID", rs -> {
+		return CollaborationDbUtils.query(
+				"SELECT t.TOPIC_ID, t.NAME, t.DESCRIPTION, t.SUGGEST_REASON, t.KEYWORDS_JSON, " + "a.NAME AS ACCOUNT "
+						+ "FROM BRAIN_TOPIC t LEFT JOIN BRAIN_ACCOUNT a ON a.OWNER_ID = t.OWNER_ID AND a.OWNER_TYPE = t.OWNER_TYPE "
+						+ "AND a.ACCOUNT_ID = t.ACCOUNT_ID WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.STATUS IN (?, ?) "
+						+ "ORDER BY t.TOPIC_ID",
+				rs -> {
 					StringBuilder describe = new StringBuilder();
-					// a suggested topic has no description yet; why it was suggested is the next best thing
+					// a suggested topic has no description yet; why it was suggested is the next
+					// best thing
 					String description = CollaborationDbUtils.getString(rs, "DESCRIPTION");
 					if (description == null || description.isBlank()) {
 						description = CollaborationDbUtils.getString(rs, "SUGGEST_REASON");
@@ -454,23 +477,27 @@ public final class BrainThreadClassifier {
 					if (account != null) {
 						describe.append(" Account: ").append(account).append('.');
 					}
-					List<Object> keywords = CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "KEYWORDS_JSON"));
+					List<Object> keywords = CollaborationDbUtils
+							.parseList(CollaborationDbUtils.getString(rs, "KEYWORDS_JSON"));
 					if (!keywords.isEmpty()) {
-						describe.append(" Keywords: ").append(String.join(", ", CollaborationDbUtils.toStringList(keywords)))
-								.append('.');
+						describe.append(" Keywords: ")
+								.append(String.join(", ", CollaborationDbUtils.toStringList(keywords))).append('.');
 					}
-					return new BrainClassifier.TopicOption(rs.getString("TOPIC_ID"), CollaborationDbUtils.getString(rs, "NAME"),
-							describe.toString().trim());
+					return new BrainClassifier.TopicOption(rs.getString("TOPIC_ID"),
+							CollaborationDbUtils.getString(rs, "NAME"), describe.toString().trim());
 				}, ownerId, ownerType, BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT);
 	}
 
-	// a dry run looks at every unmuted thread; a real run only at threads with no work item yet
+	// a dry run looks at every unmuted thread; a real run only at threads with no
+	// work item yet
 	private static List<String> pending(String ownerId, String ownerType, boolean all) {
-		return CollaborationDbUtils.query("SELECT t.THREAD_ID FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? "
-				+ "AND (t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?)"
-				+ (all ? "" : " AND NOT EXISTS (SELECT 1 FROM WORK_ITEM w "
-						+ "WHERE w.OWNER_ID = t.OWNER_ID AND w.OWNER_TYPE = t.OWNER_TYPE AND w.THREAD_ID = t.THREAD_ID)")
-				+ " ORDER BY t.LAST_MESSAGE_AT DESC", rs -> rs.getString(1), ownerId, ownerType, false, false);
+		return CollaborationDbUtils
+				.query("SELECT t.THREAD_ID FROM BRAIN_THREAD t WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? "
+						+ "AND (t.MUTED IS NULL OR t.MUTED = ?) AND (t.AUTOMATED IS NULL OR t.AUTOMATED = ?)"
+						+ (all ? ""
+								: " AND NOT EXISTS (SELECT 1 FROM WORK_ITEM w "
+										+ "WHERE w.OWNER_ID = t.OWNER_ID AND w.OWNER_TYPE = t.OWNER_TYPE AND w.THREAD_ID = t.THREAD_ID)")
+						+ " ORDER BY t.LAST_MESSAGE_AT DESC", rs -> rs.getString(1), ownerId, ownerType, false, false);
 	}
 
 	private static List<String> participants(Context ctx, String threadId) {
@@ -494,24 +521,30 @@ public final class BrainThreadClassifier {
 	}
 
 	private static boolean hasOwnerLink(Context ctx, String threadId) {
-		return CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND THREAD_ID = ? AND SOURCE = ?", ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU);
+		return CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND THREAD_ID = ? AND SOURCE = ?",
+				ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU);
 	}
 
-	// a classifier link replaces an earlier classifier link on the same topic; the first link is the primary
+	// a classifier link replaces an earlier classifier link on the same topic; the
+	// first link is the primary
 	private static void link(Context ctx, String threadId, String topicId, String source, int confidence,
 			Map<String, Double> topics) {
 		Timestamp now = CollaborationDbUtils.now();
-		boolean hasPrimary = CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND IS_PRIMARY = ? AND TOPIC_ID <> ?", ctx.ownerId(), ctx.ownerType(),
-				threadId, true, topicId);
+		boolean hasPrimary = CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND IS_PRIMARY = ? AND TOPIC_ID <> ?",
+				ctx.ownerId(), ctx.ownerType(), threadId, true, topicId);
 		CollaborationDbUtils.inTransaction(conn -> {
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND THREAD_ID = ? AND TOPIC_ID = ?", ctx.ownerId(), ctx.ownerType(), threadId, topicId);
-			CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, "
-					+ "SOURCE, CONFIDENCE, IS_PRIMARY, SIGNALS_JSON, CLASSIFIER_VERSION, CHANGED_BY, CHANGED_AT) "
-					+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ctx.ownerId(), ctx.ownerType(), threadId, topicId, source,
-					confidence, !hasPrimary, CollaborationDbUtils.toJson(topics), ctx.classifier().version(), "brain", now);
+			CollaborationDbUtils.update(conn,
+					"INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, THREAD_ID, TOPIC_ID, "
+							+ "SOURCE, CONFIDENCE, IS_PRIMARY, SIGNALS_JSON, CLASSIFIER_VERSION, CHANGED_BY, CHANGED_AT) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ctx.ownerId(), ctx.ownerType(), threadId, topicId, source, confidence, !hasPrimary,
+					CollaborationDbUtils.toJson(topics), ctx.classifier().version(), "brain", now);
 		});
 	}
 

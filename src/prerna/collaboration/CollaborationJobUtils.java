@@ -85,9 +85,11 @@ public final class CollaborationJobUtils {
 		}
 
 		public void step(String step, int progress) {
-			CollaborationDbUtils.update("UPDATE COLLAB_JOB SET STEP = ?, PROGRESS = ?, COUNTS_JSON = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ?", step, Math.max(0, Math.min(100, progress)),
-					CollaborationDbUtils.toJson(counts), ownerId, ownerType, jobId);
+			CollaborationDbUtils.update(
+					"UPDATE COLLAB_JOB SET STEP = ?, PROGRESS = ?, COUNTS_JSON = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ?",
+					step, Math.max(0, Math.min(100, progress)), CollaborationDbUtils.toJson(counts), ownerId, ownerType,
+					jobId);
 		}
 
 		public void count(String key, Object value) {
@@ -109,9 +111,11 @@ public final class CollaborationJobUtils {
 				return latest;
 			}
 			String jobId = UUID.randomUUID().toString();
-			CollaborationDbUtils.update("INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STEP, "
-					+ "PROGRESS, PARAMS_JSON, STARTED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, jobId,
-					kind, RUNNING, "queued", 0, CollaborationDbUtils.toJson(params), CollaborationDbUtils.now());
+			CollaborationDbUtils.update(
+					"INSERT INTO COLLAB_JOB (OWNER_ID, OWNER_TYPE, JOB_ID, KIND, STATUS, STEP, "
+							+ "PROGRESS, PARAMS_JSON, STARTED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					ownerId, ownerType, jobId, kind, RUNNING, "queued", 0, CollaborationDbUtils.toJson(params),
+					CollaborationDbUtils.now());
 			ALIVE.add(jobId);
 			Job job = new Job(ownerId, ownerType, jobId);
 			POOL.submit(() -> {
@@ -134,40 +138,47 @@ public final class CollaborationJobUtils {
 		return latest(owner.getValue0(), owner.getValue1(), kind);
 	}
 
-	// newest job of the kind (any kind when null), with a restart-orphaned RUNNING row marked failed
+	// newest job of the kind (any kind when null), with a restart-orphaned RUNNING
+	// row marked failed
 	public static Map<String, Object> latest(String ownerId, String ownerType, String kind) {
 		String sql = "SELECT " + COLUMNS + " FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ?"
 				+ (kind == null ? "" : " AND KIND = ?") + " ORDER BY STARTED_AT DESC";
-		Object[] params = kind == null ? new Object[] { ownerId, ownerType } : new Object[] { ownerId, ownerType, kind };
+		Object[] params = kind == null ? new Object[] { ownerId, ownerType }
+				: new Object[] { ownerId, ownerType, kind };
 		Map<String, Object> job = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(sql, 1, 0),
 				CollaborationJobUtils::map, params);
 		if (job != null && RUNNING.equals(job.get("status")) && !ALIVE.contains(job.get("id"))) {
-			CollaborationDbUtils.update("UPDATE COLLAB_JOB SET STATUS = ?, ERROR = ?, FINISHED_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ? AND STATUS = ?", FAILED,
-					"Stopped by a server restart; start it again", CollaborationDbUtils.now(), ownerId, ownerType,
-					job.get("id"), RUNNING);
+			CollaborationDbUtils.update(
+					"UPDATE COLLAB_JOB SET STATUS = ?, ERROR = ?, FINISHED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ? AND STATUS = ?",
+					FAILED, "Stopped by a server restart; start it again", CollaborationDbUtils.now(), ownerId,
+					ownerType, job.get("id"), RUNNING);
 			return get(ownerId, ownerType, (String) job.get("id"));
 		}
 		return job;
 	}
 
-	// any job of this owner still running on this server; callers hold the job lock so none can start
+	// any job of this owner still running on this server; callers hold the job lock
+	// so none can start
 	static boolean anyRunning(String ownerId, String ownerType) {
-		return CollaborationDbUtils.query("SELECT JOB_ID FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND STATUS = ?", rs -> rs.getString("JOB_ID"), ownerId, ownerType, RUNNING).stream()
-				.anyMatch(ALIVE::contains);
+		return CollaborationDbUtils
+				.query("SELECT JOB_ID FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND STATUS = ?",
+						rs -> rs.getString("JOB_ID"), ownerId, ownerType, RUNNING)
+				.stream().anyMatch(ALIVE::contains);
 	}
 
 	static Map<String, Object> get(String ownerId, String ownerType, String jobId) {
-		return CollaborationDbUtils.queryOne("SELECT " + COLUMNS + " FROM COLLAB_JOB WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? AND JOB_ID = ?", CollaborationJobUtils::map, ownerId, ownerType, jobId);
+		return CollaborationDbUtils.queryOne(
+				"SELECT " + COLUMNS + " FROM COLLAB_JOB WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ? AND JOB_ID = ?",
+				CollaborationJobUtils::map, ownerId, ownerType, jobId);
 	}
 
 	private static void finish(Job job, String status, String error) {
 		Timestamp now = CollaborationDbUtils.now();
-		CollaborationDbUtils.update("UPDATE COLLAB_JOB SET STATUS = ?, STEP = ?, PROGRESS = ?, COUNTS_JSON = ?, "
-				+ "ERROR = ?, FINISHED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ?", status,
-				DONE.equals(status) ? DONE : "stopped", DONE.equals(status) ? 100 : null,
+		CollaborationDbUtils.update(
+				"UPDATE COLLAB_JOB SET STATUS = ?, STEP = ?, PROGRESS = ?, COUNTS_JSON = ?, "
+						+ "ERROR = ?, FINISHED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ?",
+				status, DONE.equals(status) ? DONE : "stopped", DONE.equals(status) ? 100 : null,
 				CollaborationDbUtils.toJson(job.counts), error, now, job.ownerId, job.ownerType, job.jobId);
 	}
 

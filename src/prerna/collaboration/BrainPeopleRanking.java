@@ -52,45 +52,47 @@ public final class BrainPeopleRanking {
 	public static void rank(String ownerId, String ownerType, String selfId, String myDomain) {
 		BrainOrgDomains.Org org = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		// automated and list senders are not ranked
-		Set<String> automated = new HashSet<>(CollaborationDbUtils.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE "
-				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?", rs -> rs.getString(1), ownerId, ownerType,
-				BrainSenderTyping.AUTOMATED));
+		Set<String> automated = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE " + "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
+				rs -> rs.getString(1), ownerId, ownerType, BrainSenderTyping.AUTOMATED));
 		// messages per thread and sender
 		Map<String, Map<String, Integer>> sent = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, COUNT(*) AS N FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL AND SENDER_PERSON_ID IS NOT NULL "
 				+ "GROUP BY THREAD_ID, SENDER_PERSON_ID", rs -> {
-					sent.computeIfAbsent(rs.getString("THREAD_ID"), k -> new HashMap<>()).put(rs.getString("SENDER_PERSON_ID"),
-							rs.getInt("N"));
+					sent.computeIfAbsent(rs.getString("THREAD_ID"), k -> new HashMap<>())
+							.put(rs.getString("SENDER_PERSON_ID"), rs.getInt("N"));
 					return null;
 				}, ownerId, ownerType);
 
 		Map<String, int[]> twoWayAndTheirs = new HashMap<>();
 		Map<String, Double> mine = new HashMap<>();
 		Map<String, Timestamp> last = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON, LAST_SEEN_AT FROM BRAIN_THREAD_PARTICIPANT "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)", rs -> {
-					String person = rs.getString("PERSON_ID");
-					if (person.equals(selfId) || automated.contains(person)) {
-						return null;
-					}
-					Map<String, Integer> bySender = sent.getOrDefault(rs.getString("THREAD_ID"), Map.of());
-					int theirs = bySender.getOrDefault(person, 0);
-					int myCount = selfId == null ? 0 : bySender.getOrDefault(selfId, 0);
-					int[] tt = twoWayAndTheirs.computeIfAbsent(person, k -> new int[2]);
-					if (theirs > 0 && myCount > 0) {
-						tt[0]++;
-					}
-					tt[1] += Math.min(theirs, THEIR_CAP_PER_THREAD);
-					String roles = String.valueOf(CollaborationDbUtils.getString(rs, "ROLES_JSON"));
-					double weight = roles.contains("\"to\"") ? 1 : roles.contains("\"cc\"") ? I_CC / I_WROTE_TO : 0;
-					mine.merge(person, weight * myCount, Double::sum);
-					Timestamp seen = rs.getTimestamp("LAST_SEEN_AT");
-					if (seen != null && (last.get(person) == null || seen.after(last.get(person)))) {
-						last.put(person, seen);
-					}
-					return null;
-				}, ownerId, ownerType, true);
+		CollaborationDbUtils
+				.query("SELECT THREAD_ID, PERSON_ID, ROLES_JSON, LAST_SEEN_AT FROM BRAIN_THREAD_PARTICIPANT "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)", rs -> {
+							String person = rs.getString("PERSON_ID");
+							if (person.equals(selfId) || automated.contains(person)) {
+								return null;
+							}
+							Map<String, Integer> bySender = sent.getOrDefault(rs.getString("THREAD_ID"), Map.of());
+							int theirs = bySender.getOrDefault(person, 0);
+							int myCount = selfId == null ? 0 : bySender.getOrDefault(selfId, 0);
+							int[] tt = twoWayAndTheirs.computeIfAbsent(person, k -> new int[2]);
+							if (theirs > 0 && myCount > 0) {
+								tt[0]++;
+							}
+							tt[1] += Math.min(theirs, THEIR_CAP_PER_THREAD);
+							String roles = String.valueOf(CollaborationDbUtils.getString(rs, "ROLES_JSON"));
+							double weight = roles.contains("\"to\"") ? 1
+									: roles.contains("\"cc\"") ? I_CC / I_WROTE_TO : 0;
+							mine.merge(person, weight * myCount, Double::sum);
+							Timestamp seen = rs.getTimestamp("LAST_SEEN_AT");
+							if (seen != null && (last.get(person) == null || seen.after(last.get(person)))) {
+								last.put(person, seen);
+							}
+							return null;
+						}, ownerId, ownerType, true);
 
 		Timestamp now = CollaborationDbUtils.now();
 		Map<String, Double> raw = new HashMap<>();
@@ -106,9 +108,11 @@ public final class BrainPeopleRanking {
 			max = Math.max(max, score);
 		}
 
-		List<String[]> people = CollaborationDbUtils.query("SELECT PERSON_ID, EMAIL_NORM, RELATIONSHIP, RELATIONSHIP_STATE "
-				+ "FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> new String[] { rs.getString(1),
-						rs.getString(2), rs.getString(3), rs.getString(4) }, ownerId, ownerType);
+		List<String[]> people = CollaborationDbUtils.query(
+				"SELECT PERSON_ID, EMAIL_NORM, RELATIONSHIP, RELATIONSHIP_STATE "
+						+ "FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4) }, ownerId,
+				ownerType);
 		Set<String> seenPeople = new HashSet<>(raw.keySet());
 		double top = max;
 		CollaborationDbUtils.inTransaction(conn -> {
@@ -125,8 +129,10 @@ public final class BrainPeopleRanking {
 				List<Object> params = new ArrayList<>(List.of(strength));
 				String sql = "UPDATE BRAIN_PERSON SET STRENGTH = ?, LAST_CONTACT_AT = ?";
 				params.add(last.get(p[0]));
-				// a suggestion is redone each time (the org's domains may have changed); the owner's choice stays
-				if (p[2] == null || ("suggested".equals(p[3]) && ("colleague".equals(p[2]) || "external".equals(p[2])))) {
+				// a suggestion is redone each time (the org's domains may have changed); the
+				// owner's choice stays
+				if (p[2] == null
+						|| ("suggested".equals(p[3]) && ("colleague".equals(p[2]) || "external".equals(p[2])))) {
 					sql += ", RELATIONSHIP = ?, RELATIONSHIP_STATE = ?";
 					params.add(org.isMine(BrainMailImport.domain(p[1])) ? "colleague" : "external");
 					params.add("suggested");

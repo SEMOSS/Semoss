@@ -77,7 +77,8 @@ final class ChatBrainClassifier implements BrainClassifier {
 				.getStringResponse();
 		Map<String, Object> answer = parse(reply);
 
-		// a reply missing any score is an error for this thread, never a default that files it
+		// a reply missing any score is an error for this thread, never a default that
+		// files it
 		Map<String, Double> topicScores = new LinkedHashMap<>();
 		double total = 0;
 		if (!topics.isEmpty()) {
@@ -93,7 +94,8 @@ final class ChatBrainClassifier implements BrainClassifier {
 			if (total <= 0) {
 				throw new IllegalStateException("The classifier model scored no topic");
 			}
-			// models do not always sum to 1; normalize so the margin means the same as for Jev
+			// models do not always sum to 1; normalize so the margin means the same as for
+			// Jev
 			for (Map.Entry<String, Double> e : topicScores.entrySet()) {
 				e.setValue(e.getValue() / total);
 			}

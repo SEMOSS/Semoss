@@ -65,18 +65,20 @@ public final class BrainProfileUtils {
 	}
 
 	public static Map<String, Object> getProfile(String ownerId, String ownerType) {
-		Map<String, Object> profile = CollaborationDbUtils.queryOne(
-				"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
-						+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-				BrainProfileUtils::mapProfile, ownerId, ownerType);
+		Map<String, Object> profile = CollaborationDbUtils
+				.queryOne(
+						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
+								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+						BrainProfileUtils::mapProfile, ownerId, ownerType);
 		if (profile != null) {
 			profile.put("vips", getVipIds(ownerId, ownerType));
 		}
 		return profile;
 	}
 
-	// partial Profile: only keys present are written; a field the owner types becomes source "you"
+	// partial Profile: only keys present are written; a field the owner types
+	// becomes source "you"
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> saveProfile(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -102,16 +104,20 @@ public final class BrainProfileUtils {
 		if (changes.get("style") instanceof Map) {
 			Map<String, Object> style = (Map<String, Object>) changes.get("style");
 			if (style.containsKey("summary")) {
-				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY", CollaborationDbUtils.asString(style.get("summary")));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
+						CollaborationDbUtils.asString(style.get("summary")));
 				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
 			} else if (style.containsKey("confirmed")) {
-				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
+						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
 			}
 			if (style.containsKey("examples")) {
-				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON", CollaborationDbUtils.toJson(style.get("examples")));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON",
+						CollaborationDbUtils.toJson(style.get("examples")));
 			}
 		}
-		List<String> vips = changes.get("vips") instanceof List ? CollaborationDbUtils.toStringList((List<Object>) changes.get("vips"))
+		List<String> vips = changes.get("vips") instanceof List
+				? CollaborationDbUtils.toStringList((List<Object>) changes.get("vips"))
 				: null;
 
 		CollaborationDbUtils.inTransaction(conn -> {
@@ -142,7 +148,8 @@ public final class BrainProfileUtils {
 			return;
 		}
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-		// time zone comes from the browser (runPixel tz), so no MailboxSettings.Read is needed
+		// time zone comes from the browser (runPixel tz), so no MailboxSettings.Read is
+		// needed
 		CollaborationDbUtils.update(
 				"INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, DISPLAY_NAME, EMAIL, TIMEZONE, ROLE_STATE, "
 						+ "STYLE_STATE, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -161,13 +168,15 @@ public final class BrainProfileUtils {
 			role.put("note", roleNote);
 		}
 
-		// learned = suggested, confirmed = learned and accepted, you = typed by the owner
+		// learned = suggested, confirmed = learned and accepted, you = typed by the
+		// owner
 		String styleState = CollaborationDbUtils.getString(rs, "STYLE_STATE");
 		Map<String, Object> style = new LinkedHashMap<>();
 		style.put("summary", CollaborationDbUtils.getString(rs, "STYLE_SUMMARY"));
 		style.put("source", YOU.equals(styleState) ? YOU : LEARNED);
 		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
-		style.put("examples", CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+		style.put("examples",
+				CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
 
 		Map<String, Object> profile = new LinkedHashMap<>();
 		profile.put("id", "me");
@@ -182,10 +191,9 @@ public final class BrainProfileUtils {
 	}
 
 	private static List<String> getVipIds(String ownerId, String ownerType) {
-		return CollaborationDbUtils.query(
-				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND IS_VIP = ? "
-						+ "ORDER BY PERSON_ID",
-				rs -> rs.getString("PERSON_ID"), ownerId, ownerType, true);
+		return CollaborationDbUtils
+				.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND IS_VIP = ? "
+						+ "ORDER BY PERSON_ID", rs -> rs.getString("PERSON_ID"), ownerId, ownerType, true);
 	}
 
 	// ---- settings ----
@@ -193,7 +201,8 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> settings = getSettings(owner.getValue0(), owner.getValue1());
-		// read-only: the platform agent behind each thread's assistant, when this user can use it
+		// read-only: the platform agent behind each thread's assistant, when this user
+		// can use it
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
 		return settings;
 	}
@@ -202,8 +211,7 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					// read-only: one platform classifier (RDF_Map)
@@ -225,7 +233,8 @@ public final class BrainProfileUtils {
 		String ownerType = owner.getValue1();
 		Map<String, Object> current = getSettings(ownerId, ownerType);
 		int currentVersion = (Integer) current.get("version");
-		if (changes.containsKey("version") && CollaborationDbUtils.toInt(changes.get("version"), "version") != currentVersion) {
+		if (changes.containsKey("version")
+				&& CollaborationDbUtils.toInt(changes.get("version"), "version") != currentVersion) {
 			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
 		}
 

@@ -61,7 +61,8 @@ public final class BrainReviewUtils {
 	public static final Set<String> DECISIONS = Set.of("accept", DISMISS, "both", "choose", "merge");
 
 	private static final String LOCK = "review";
-	// DETAIL_JSON keys shown as the entry's own fields; the rest is returned as data
+	// DETAIL_JSON keys shown as the entry's own fields; the rest is returned as
+	// data
 	private static final Set<String> DISPLAY_KEYS = Set.of("text", "detail", "actions");
 
 	private static final String REVIEW_COLUMNS = "REVIEW_ID, KIND, REF_TYPE, REF_ID, DETAIL_JSON, STATUS, CREATED_AT, "
@@ -82,13 +83,13 @@ public final class BrainReviewUtils {
 		String where = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ?";
 		String order = OPEN.equals(want) ? " ORDER BY CREATED_AT DESC, REVIEW_ID"
 				: " ORDER BY RESOLVED_AT DESC, REVIEW_ID";
-		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page(
-				"SELECT " + REVIEW_COLUMNS + " FROM BRAIN_REVIEW" + where + order, limit, offset),
+		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils
+				.page("SELECT " + REVIEW_COLUMNS + " FROM BRAIN_REVIEW" + where + order, limit, offset),
 				rs -> mapReview(rs, ownerId, ownerType), ownerId, ownerType, want);
 		Map<String, Object> page = new LinkedHashMap<>();
 		page.put("items", items);
-		page.put("total", CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_REVIEW" + where, ownerId, ownerType,
-				want));
+		page.put("total",
+				CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_REVIEW" + where, ownerId, ownerType, want));
 		return page;
 	}
 
@@ -99,8 +100,10 @@ public final class BrainReviewUtils {
 
 	// ---- write ----
 
-	// Brain asks once per kind, ref, and key: a repeat returns the first entry, even one the owner already
-	// answered. detail may carry text, detail, actions (display) and anything else (returned as data).
+	// Brain asks once per kind, ref, and key: a repeat returns the first entry,
+	// even one the owner already
+	// answered. detail may carry text, detail, actions (display) and anything else
+	// (returned as data).
 	public static Map<String, Object> addReview(String ownerId, String ownerType, String kind, String refType,
 			String refId, String key, Map<String, Object> detail) {
 		check(KINDS, kind, "review kind");
@@ -111,9 +114,10 @@ public final class BrainReviewUtils {
 			Map<String, Object> result = new LinkedHashMap<>();
 			Map<String, Object> existing = findReview(ownerId, ownerType, reviewId);
 			if (existing == null) {
-				CollaborationDbUtils.update("INSERT INTO BRAIN_REVIEW (OWNER_ID, OWNER_TYPE, REVIEW_ID, KIND, REF_TYPE, "
-						+ "REF_ID, DETAIL_JSON, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId,
-						ownerType, reviewId, kind, refType, refId,
+				CollaborationDbUtils.update(
+						"INSERT INTO BRAIN_REVIEW (OWNER_ID, OWNER_TYPE, REVIEW_ID, KIND, REF_TYPE, "
+								+ "REF_ID, DETAIL_JSON, STATUS, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, reviewId, kind, refType, refId,
 						CollaborationDbUtils.toJson(detail == null ? Map.of() : detail), OPEN,
 						CollaborationDbUtils.now());
 			}
@@ -131,7 +135,8 @@ public final class BrainReviewUtils {
 				BrainProfileUtils.YOU);
 	}
 
-	// records the answer: a label from actions or a decision; dismissed for "dismiss" or the last label (its
+	// records the answer: a label from actions or a decision; dismissed for
+	// "dismiss" or the last label (its
 	// "Ignore"), accepted otherwise
 	public static Map<String, Object> resolveReview(String ownerId, String ownerType, String reviewId, String action,
 			Map<String, Object> paramValues, String actor) {
@@ -155,15 +160,17 @@ public final class BrainReviewUtils {
 			if (paramValues != null && !paramValues.isEmpty()) {
 				resolution.put("paramValues", paramValues);
 			}
-			CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ?, "
-					+ "RESOLUTION_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?", status,
-					CollaborationDbUtils.now(), actor, CollaborationDbUtils.toJson(resolution), ownerId, ownerType,
-					reviewId);
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ?, "
+							+ "RESOLUTION_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
+					status, CollaborationDbUtils.now(), actor, CollaborationDbUtils.toJson(resolution), ownerId,
+					ownerType, reviewId);
 			return findReview(ownerId, ownerType, reviewId);
 		}
 	}
 
-	// undo: the entry goes back to open; the answer it had is returned as undone so the caller can reverse
+	// undo: the entry goes back to open; the answer it had is returned as undone so
+	// the caller can reverse
 	// what it applied
 	public static Map<String, Object> reopenReview(User user, String reviewId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -174,21 +181,24 @@ public final class BrainReviewUtils {
 			if (OPEN.equals(review.get("status"))) {
 				throw new IllegalArgumentException("Review is already open");
 			}
-			CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = NULL, RESOLVED_BY = NULL, "
-					+ "RESOLUTION_JSON = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?", OPEN, ownerId,
-					ownerType, reviewId);
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = NULL, RESOLVED_BY = NULL, "
+							+ "RESOLUTION_JSON = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
+					OPEN, ownerId, ownerType, reviewId);
 			Map<String, Object> reopened = findReview(ownerId, ownerType, reviewId);
 			reopened.put("undone", review.get("resolution"));
 			return reopened;
 		}
 	}
 
-	// open questions about a ref that went away (a thread, person, or topic) no longer apply
+	// open questions about a ref that went away (a thread, person, or topic) no
+	// longer apply
 	public static int dismissForRef(String ownerId, String ownerType, String refType, String refId) {
 		check(REF_TYPES, refType, "review refType");
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			return CollaborationDbUtils.update("UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = ? AND REF_ID = ? AND STATUS = ?",
+			return CollaborationDbUtils.update(
+					"UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ?, RESOLVED_BY = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = ? AND REF_ID = ? AND STATUS = ?",
 					DISMISSED, CollaborationDbUtils.now(), WorkItemUtils.BRAIN, ownerId, ownerType, refType, refId,
 					OPEN);
 		}
@@ -197,9 +207,10 @@ public final class BrainReviewUtils {
 	// ---- helpers ----
 
 	private static Map<String, Object> findReview(String ownerId, String ownerType, String reviewId) {
-		return CollaborationDbUtils.queryOne("SELECT " + REVIEW_COLUMNS + " FROM BRAIN_REVIEW "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?", rs -> mapReview(rs, ownerId, ownerType),
-				ownerId, ownerType, reviewId);
+		return CollaborationDbUtils.queryOne(
+				"SELECT " + REVIEW_COLUMNS + " FROM BRAIN_REVIEW "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
+				rs -> mapReview(rs, ownerId, ownerType), ownerId, ownerType, reviewId);
 	}
 
 	private static Map<String, Object> requireReview(String ownerId, String ownerType, String reviewId) {
@@ -260,9 +271,10 @@ public final class BrainReviewUtils {
 			Map<String, Object> data) {
 		return switch (kind) {
 		case NEW_TOPIC -> "New topic suggested: " + topicName(ownerId, ownerType, data.get("candidate"));
-		case TOPIC_CHOICE -> threadSubject(ownerId, ownerType, refId)
-				+ (data.get("candidates") instanceof List<?> l && l.size() == 1 ? " may belong to "
-						+ topicName(ownerId, ownerType, l.get(0)) : " fits more than one topic");
+		case TOPIC_CHOICE ->
+			threadSubject(ownerId, ownerType, refId) + (data.get("candidates") instanceof List<?> l && l.size() == 1
+					? " may belong to " + topicName(ownerId, ownerType, l.get(0))
+					: " fits more than one topic");
 		case ADD_PERSON -> "Add " + personName(ownerId, ownerType, refId) + " to "
 				+ topicName(ownerId, ownerType, data.get("suggestedTopic")) + "?";
 		default -> threadSubject(ownerId, ownerType, refId) + " has no topic";
@@ -291,21 +303,24 @@ public final class BrainReviewUtils {
 	}
 
 	private static String topicName(String ownerId, String ownerType, Object topicId) {
-		String name = topicId == null ? null : CollaborationDbUtils.queryOne("SELECT NAME FROM BRAIN_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> rs.getString(1), ownerId, ownerType,
-				String.valueOf(topicId));
+		String name = topicId == null ? null
+				: CollaborationDbUtils.queryOne(
+						"SELECT NAME FROM BRAIN_TOPIC " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+						rs -> rs.getString(1), ownerId, ownerType, String.valueOf(topicId));
 		return name != null ? name : topicId == null ? "a topic" : String.valueOf(topicId);
 	}
 
 	private static String threadSubject(String ownerId, String ownerType, String threadId) {
-		String subject = CollaborationDbUtils.queryOne("SELECT SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> rs.getString(1), ownerId, ownerType, threadId);
+		String subject = CollaborationDbUtils.queryOne(
+				"SELECT SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, threadId);
 		return subject == null || subject.isBlank() ? "A thread" : "\"" + subject + "\"";
 	}
 
 	private static String personName(String ownerId, String ownerType, String personId) {
-		String name = CollaborationDbUtils.queryOne("SELECT DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> rs.getString(1), ownerId, ownerType, personId);
+		String name = CollaborationDbUtils.queryOne(
+				"SELECT DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> rs.getString(1), ownerId, ownerType, personId);
 		return name == null ? "this person" : name;
 	}
 

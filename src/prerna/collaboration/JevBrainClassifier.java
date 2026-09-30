@@ -55,33 +55,36 @@ final class JevBrainClassifier implements BrainClassifier {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
 		Map<String, Object> questions = new LinkedHashMap<>();
-		// choice labels are topic names; a repeated name gets its id so labels stay unique
+		// choice labels are topic names; a repeated name gets its id so labels stay
+		// unique
 		Map<String, String> labelToId = new LinkedHashMap<>();
 		if (topics.size() > 1) {
 			Map<String, Object> criteria = new LinkedHashMap<>();
 			for (TopicOption topic : topics) {
-				String label = labelToId.containsKey(topic.name()) ? topic.name() + " (" + topic.id() + ")" : topic.name();
+				String label = labelToId.containsKey(topic.name()) ? topic.name() + " (" + topic.id() + ")"
+						: topic.name();
 				labelToId.put(label, topic.id());
 				criteria.put(label, topic.description());
 			}
-			questions.put("topic", question("choice", "Which of these work topics is this email thread about?", criteria));
+			questions.put("topic",
+					question("choice", "Which of these work topics is this email thread about?", criteria));
 		}
 		questions.put("fyi", question("noul", "Is the newest message only informing (an update, heads-up, approval, "
 				+ "or sign-off) with nothing for anyone to do?", null));
 		questions.put("automated", question("noul", "Is this an automated or bulk message (newsletter, notification, "
 				+ "no-reply, alert) rather than a person writing?", null));
-		questions.put("urgency", question("score", "How urgently does the newest message need a response?",
-				List.of(URGENCY)));
+		questions.put("urgency",
+				question("score", "How urgently does the newest message need a response?", List.of(URGENCY)));
 
-		Map<String, Object> answers = map(engine.evaluate(state(thread), questions, insight, null).getResponse()
-				.get("answers"));
+		Map<String, Object> answers = map(
+				engine.evaluate(state(thread), questions, insight, null).getResponse().get("answers"));
 		if (answers == null) {
 			throw new IllegalStateException("The classifier model returned no answers");
 		}
-		// an answer missing any score is an error for this thread, never a default that files it
+		// an answer missing any score is an error for this thread, never a default that
+		// files it
 		Map<String, Double> topicScores = new LinkedHashMap<>();
 		if (!labelToId.isEmpty()) {
 			Map<String, Object> topic = map(answers.get("topic"));
@@ -104,7 +107,8 @@ final class JevBrainClassifier implements BrainClassifier {
 		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
-	// the thread as Jev state; Jev did best on the newest message alone (two messages and the owner's name
+	// the thread as Jev state; Jev did best on the newest message alone (two
+	// messages and the owner's name
 	// dropped topic accuracy in the fixture eval), so earlier messages stay out
 	static Map<String, Object> state(ThreadInput thread) {
 		Map<String, Object> state = new LinkedHashMap<>();

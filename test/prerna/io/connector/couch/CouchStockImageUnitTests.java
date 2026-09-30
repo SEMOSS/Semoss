@@ -140,7 +140,7 @@ class CouchStockImageUnitTests {
 	@ValueSource(strings = {"project", "database"})
 	void missingImageReturnsStockWithoutWritingCouchDocument(String partition) throws Exception {
 		byte[] bytes = {1, 2, 3};
-		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes(partition + "|Example__resource-id"))
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes(partition + "|Example__resource-id", null))
 				.thenReturn(bytes);
 		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
 		assertEquals(200, response.getStatus());
@@ -150,12 +150,28 @@ class CouchStockImageUnitTests {
 
 	@ParameterizedTest
 	@ValueSource(strings = {"project", "database"})
+	void themeChangesUseMatchingStockWithoutPersistingAnAttachment(String partition) throws Exception {
+		byte[] light = {1, 2, 3};
+		byte[] dark = {4, 5, 6};
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes(partition + "|Example__resource-id", "light"))
+				.thenReturn(light);
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes(partition + "|Example__resource-id", "dark"))
+				.thenReturn(dark);
+		Response lightResponse = CouchUtil.download(partition, Map.of(partition, "resource-id"), "light");
+		assertArrayEquals(light, (byte[]) lightResponse.getEntity());
+		Response darkResponse = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
+		assertArrayEquals(dark, (byte[]) darkResponse.getEntity());
+		assertEquals(List.of("POST", "POST"), methods);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"project", "database"})
 	void localImageStillMigratesToCouch(String partition) throws Exception {
 		File uploaded = Files.write(temp.resolve("image.png"), new byte[] {4, 5, 6}).toFile();
 		images.when(() -> InsightUtility.findImageFile(nullable(String.class))).thenReturn(new File[] {uploaded});
 		images.when(() -> InsightUtility.findImageFile(nullable(String.class), eq("resource-id")))
 				.thenReturn(new File[] {uploaded});
-		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
+		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
 		assertArrayEquals(new byte[] {4, 5, 6}, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "PUT"), methods);
 		stock.verifyNoInteractions();
@@ -165,7 +181,7 @@ class CouchStockImageUnitTests {
 	@ValueSource(strings = {"project", "database"})
 	void existingAttachmentTakesPrecedenceOverStock(String partition) throws Exception {
 		findBody = "{\"docs\":[{\"_id\":\"existing\",\"_attachments\":{\"image.png\":{}}}]}";
-		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
+		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
 		assertArrayEquals(new byte[] {7, 8, 9}, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "GET"), methods);
 		stock.verifyNoInteractions();

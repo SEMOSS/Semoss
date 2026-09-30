@@ -75,8 +75,8 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 	private static final String REPLY_ALL = "replyAll";
 
 	public MicrosoftOutlookReplyMailReactor() {
-		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT, "html", "overrideRecipients", "to", "cc" };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -86,6 +86,14 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 		String comment = this.keyValue.get(COMMENT);
 		boolean replyAll = Boolean.parseBoolean(this.keyValue.get(REPLY_ALL));
 		boolean asDraft = Boolean.parseBoolean(this.keyValue.get(AS_DRAFT));
+		boolean html = Boolean.parseBoolean(this.keyValue.get("html"));
+		boolean overrideRecipients = Boolean.parseBoolean(this.keyValue.get("overrideRecipients"));
+		if (overrideRecipients && (!asDraft || !html)) {
+			throw new SemossPixelException("Recipient overrides require an HTML draft.");
+		}
+		if (html && !asDraft) {
+			throw new SemossPixelException("HTML is supported for draft saving only.");
+		}
 
 		if (comment == null || comment.trim().isEmpty()) {
 			throw new SemossPixelException("A " + COMMENT + " is required to answer a message.");
@@ -94,8 +102,11 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			Map<String, Object> draft = new MicrosoftOutlookMailHelper().reply(accessToken, null, uid, comment,
-					replyAll, asDraft);
+			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+			Map<String, Object> draft = overrideRecipients
+					? helper.replyHtmlDraft(accessToken, uid, comment, replyAll, values("to"), values("cc"))
+					: html ? helper.replyHtmlDraft(accessToken, uid, comment, replyAll)
+							: helper.reply(accessToken, null, uid, comment, replyAll, asDraft);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("repliedTo", uid);
@@ -104,6 +115,12 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 			if (draft != null) {
 				// the draft's own id, which is what MicrosoftOutlookSendDraft takes
 				output.put(UID, draft.get("id"));
+				if (overrideRecipients) {
+					String[] to = MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients"));
+					String[] cc = MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients"));
+					output.put("recipients",
+							Map.of("to", to == null ? new String[0] : to, "cc", cc == null ? new String[0] : cc));
+				}
 				MicrosoftOutlookMessageMapper.putIfPresent(output, "webLink", draft.get("webLink"));
 			}
 			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
@@ -126,6 +143,15 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("overrideRecipients".equals(key)) {
+			return "Replace the native To and Cc lists with the supplied lists, including empty lists. Requires html=true and asDraft=true.";
+		}
+		if ("to".equals(key) || "cc".equals(key)) {
+			return "Explicit email address list when overrideRecipients=true; an empty list clears these recipients.";
+		}
+		if ("html".equals(key)) {
+			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
+		}
 		if (key.equals(COMMENT)) {
 			return "What the reply says. Microsoft Outlook quotes the message being answered underneath it.";
 		} else if (key.equals(REPLY_ALL)) {

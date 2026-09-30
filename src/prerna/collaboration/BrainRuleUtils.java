@@ -70,8 +70,9 @@ public final class BrainRuleUtils {
 	// active rules only; a deleted rule keeps its row with DISABLED_AT
 	public static Map<String, Object> listRules(User user) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		List<Map<String, Object>> items = CollaborationDbUtils.query("SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
+		List<Map<String, Object>> items = CollaborationDbUtils.query(
+				"SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND DISABLED_AT IS NULL ORDER BY CREATED_AT, RULE_ID",
 				BrainRuleUtils::mapRule, owner.getValue0(), owner.getValue1());
 		Map<String, Object> page = new LinkedHashMap<>();
 		page.put("items", items);
@@ -80,9 +81,10 @@ public final class BrainRuleUtils {
 	}
 
 	static Map<String, Object> getRule(String ownerId, String ownerType, String ruleId) {
-		Map<String, Object> rule = CollaborationDbUtils.queryOne("SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?", BrainRuleUtils::mapRule, ownerId, ownerType,
-				ruleId);
+		Map<String, Object> rule = CollaborationDbUtils.queryOne(
+				"SELECT " + RULE_COLUMNS + " FROM BRAIN_RULE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?",
+				BrainRuleUtils::mapRule, ownerId, ownerType, ruleId);
 		if (rule == null) {
 			throw new IllegalArgumentException("Rule not found");
 		}
@@ -91,7 +93,8 @@ public final class BrainRuleUtils {
 
 	// ---- write ----
 
-	// no id creates; an id edits the note or value only (delete and re-create to change the rest)
+	// no id creates; an id edits the note or value only (delete and re-create to
+	// change the rest)
 	public static Map<String, Object> saveRule(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -101,7 +104,8 @@ public final class BrainRuleUtils {
 			Map<String, Object> current = getRule(ownerId, ownerType, ruleId);
 			for (String key : List.of("kind", "topicId", "personId", "channel")) {
 				if (changes.containsKey(key) && !Objects.equals(changes.get(key), current.get(key))) {
-					throw new IllegalArgumentException("A rule's " + key + " cannot change; delete it and add a new one");
+					throw new IllegalArgumentException(
+							"A rule's " + key + " cannot change; delete it and add a new one");
 				}
 			}
 			String kind = (String) current.get("kind");
@@ -110,9 +114,11 @@ public final class BrainRuleUtils {
 					: (String) current.get("value");
 			checkRule(ownerId, ownerType, kind, value, (String) current.get("topicId"),
 					(String) current.get("personId"), (String) current.get("channel"));
-			CollaborationDbUtils.update("UPDATE BRAIN_RULE SET VALUE = ?, NOTE = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?", value,
-					changes.containsKey("note") ? CollaborationDbUtils.asString(changes.get("note")) : current.get("note"),
+			CollaborationDbUtils.update(
+					"UPDATE BRAIN_RULE SET VALUE = ?, NOTE = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ?",
+					value, changes.containsKey("note") ? CollaborationDbUtils.asString(changes.get("note"))
+							: current.get("note"),
 					ownerId, ownerType, ruleId);
 			return getRule(ownerId, ownerType, ruleId);
 		}
@@ -139,8 +145,10 @@ public final class BrainRuleUtils {
 		CollaborationDbUtils.inTransaction(conn -> {
 			CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, VALUE, "
 					+ "TOPIC_ID, PERSON_ID, CHANNEL, NOTE, CREATED_BY, CREATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-					ownerId, ownerType, ruleId, kind, value, topicId, personId, channel, note, BrainProfileUtils.YOU, now);
-			// exclusions cover past messages too: flip the person's current rows on matching threads
+					ownerId, ownerType, ruleId, kind, value, topicId, personId, channel, note, BrainProfileUtils.YOU,
+					now);
+			// exclusions cover past messages too: flip the person's current rows on
+			// matching threads
 			if (EXCLUDE_TOPIC.equals(kind) || EXCLUDE_CHANNEL.equals(kind)) {
 				String threads = EXCLUDE_TOPIC.equals(kind)
 						? "SELECT THREAD_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?"
@@ -170,18 +178,21 @@ public final class BrainRuleUtils {
 	static void disable(String ownerId, String ownerType, String ruleId) {
 		Timestamp now = CollaborationDbUtils.now();
 		CollaborationDbUtils.inTransaction(conn -> {
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_RULE SET DISABLED_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ? AND DISABLED_AT IS NULL", now, ownerId,
-					ownerType, ruleId);
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_RULE SET DISABLED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND RULE_ID = ? AND DISABLED_AT IS NULL",
+					now, ownerId, ownerType, ruleId);
 			reinclude(conn, ownerId, ownerType, ruleId);
 		});
 	}
 
 	private static void reinclude(Connection conn, String ownerId, String ownerType, String ruleId)
 			throws SQLException {
-		CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_PARTICIPANT SET INCLUDED = ?, EXCLUDED_BY = NULL, "
-				+ "EXCLUDED_RULE_ID = NULL, EXCLUDED_AT = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND EXCLUDED_BY = ? AND EXCLUDED_RULE_ID = ?", true, ownerId, ownerType, BrainThreadUtils.RULE, ruleId);
+		CollaborationDbUtils.update(conn,
+				"UPDATE BRAIN_THREAD_PARTICIPANT SET INCLUDED = ?, EXCLUDED_BY = NULL, "
+						+ "EXCLUDED_RULE_ID = NULL, EXCLUDED_AT = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND EXCLUDED_BY = ? AND EXCLUDED_RULE_ID = ?",
+				true, ownerId, ownerType, BrainThreadUtils.RULE, ruleId);
 	}
 
 	// active person-scoped rules of these kinds, for the person drawer's flags
@@ -231,13 +242,15 @@ public final class BrainRuleUtils {
 		if (EXCLUDE_CHANNEL.equals(kind) && (channel == null || !RULE_CHANNELS.contains(channel))) {
 			throw new IllegalArgumentException("exclude_channel needs a channel, one of " + RULE_CHANNELS);
 		}
-		if (personId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? "
-				+ "AND OWNER_TYPE = ? AND PERSON_ID = ?", ownerId, ownerType, personId)) {
+		if (personId != null && !CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND PERSON_ID = ?", ownerId,
+				ownerType, personId)) {
 			throw new IllegalArgumentException("Person not found");
 		}
 	}
 
-	// addresses and domains compare lower-cased; folder ids are opaque and kept as given
+	// addresses and domains compare lower-cased; folder ids are opaque and kept as
+	// given
 	private static String normValue(String kind, String value) {
 		if (value == null || value.isBlank()) {
 			return null;

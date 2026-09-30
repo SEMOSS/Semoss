@@ -77,12 +77,68 @@ class DefaultImageGeneratorUtilUnitTests {
 	}
 
 	@Test
+	void requestThemeSelectsMatchingArtworkWithoutChangingTheDefault() throws Exception {
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		String path = temp.resolve("project/Example__id/app_root/version/image.png").toString();
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			File defaultImage = DefaultImageGeneratorUtil.getStockImageForPath(path);
+			File light = DefaultImageGeneratorUtil.getStockImageForPath(path, "light");
+			File dark = DefaultImageGeneratorUtil.getStockImageForPath(path, "dark");
+			assertEquals(temp.resolve("images/stock-engines-light"), light.toPath().getParent());
+			assertEquals(temp.resolve("images/stock-engines-dark"), dark.toPath().getParent());
+			assertEquals(light.getName(), dark.getName());
+			assertEquals(light, DefaultImageGeneratorUtil.getStockImageForPath(path, "light"));
+			assertEquals(dark, DefaultImageGeneratorUtil.getStockImageForPath(path, " DARK "));
+			assertEquals(defaultImage, DefaultImageGeneratorUtil.getStockImageForPath(path));
+			for (String unsupported : new String[] {"", "system", "blue"}) {
+				assertEquals(defaultImage, DefaultImageGeneratorUtil.getStockImageForPath(path, unsupported));
+			}
+			assertFalse(Files.exists(temp.resolve("project")));
+		}
+	}
+
+	@Test
+	void byteDownloadsUseTheRequestedTheme() throws Exception {
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			for (String theme : new String[] {"light", "dark"}) {
+				File file = DefaultImageGeneratorUtil.getStockImageForPath("Example.png", theme);
+				assertArrayEquals(Files.readAllBytes(file.toPath()),
+						DefaultImageGeneratorUtil.pickRandomImageBytes("Example", theme));
+			}
+		}
+	}
+
+	@Test
+	void missingRequestedCollectionFallsBackToConfiguredTheme() throws Exception {
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			File configured = DefaultImageGeneratorUtil.getStockImageForPath("Example.png");
+			String missingTheme = configured.getParentFile().getName().endsWith("light") ? "dark" : "light";
+			Path missingDirectory = temp.resolve("images/stock-engines-" + missingTheme);
+			try (var files = Files.list(missingDirectory)) {
+				for (Path file : files.toList()) {
+					Files.delete(file);
+				}
+			}
+			assertEquals(configured, DefaultImageGeneratorUtil.getStockImageForPath("Example.png", missingTheme));
+		}
+	}
+
+	@Test
 	void fallsBackToUnthemedCollection() throws Exception {
 		createStockImages("stock-engines");
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
 			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
 			File reference = DefaultImageGeneratorUtil.getStockImageForPath(temp.resolve("engine.png").toString());
 			assertEquals(temp.resolve("images/stock-engines"), reference.toPath().getParent());
+			assertEquals(reference, DefaultImageGeneratorUtil.getStockImageForPath(temp.resolve("engine.png").toString(), "dark"));
 			assertFalse(Files.exists(temp.resolve("engine.png")));
 		}
 	}
@@ -100,7 +156,7 @@ class DefaultImageGeneratorUtilUnitTests {
 	private void createStockImages(String directory) throws Exception {
 		Path stock = Files.createDirectories(temp.resolve("images").resolve(directory));
 		for (int i = 0; i < 12; i++) {
-			Files.writeString(stock.resolve(i + ".png"), "stock-image-" + i);
+			Files.writeString(stock.resolve(i + ".png"), directory + "-image-" + i);
 		}
 	}
 }

@@ -40,7 +40,8 @@ import com.google.common.net.InternetDomainName;
 // with any subdomain of those. Nothing is guessed from names or configured by hand.
 public final class BrainOrgDomains {
 
-	// sending subdomains of an organisation that the public suffix list does not know about
+	// sending subdomains of an organisation that the public suffix list does not
+	// know about
 	private static final Set<String> MAIL_SUBDOMAINS = Set.of("mail", "email", "e", "offers", "news", "info", "mkt",
 			"marketing", "notifications", "reply", "promo", "promotions", "campaign", "lists", "bounce");
 
@@ -55,7 +56,9 @@ public final class BrainOrgDomains {
 			this.domains = domains;
 		}
 
-		/** The domain, or one it is a subdomain of, belongs to the owner's organisation. */
+		/**
+		 * The domain, or one it is a subdomain of, belongs to the owner's organisation.
+		 */
 		public boolean isMine(String domain) {
 			if (domain == null || domain.isBlank()) {
 				return false;
@@ -70,7 +73,10 @@ public final class BrainOrgDomains {
 		}
 	}
 
-	/** The owner's organisation from their own domain and the tenant's verified domains. */
+	/**
+	 * The owner's organisation from their own domain and the tenant's verified
+	 * domains.
+	 */
 	static Org of(Collection<String> verified, String myDomain) {
 		Set<String> domains = new LinkedHashSet<>();
 		String own = org(myDomain);
@@ -87,23 +93,30 @@ public final class BrainOrgDomains {
 
 	/** The owner's organisation as saved at the last import. */
 	static Org load(String ownerId, String ownerType, String myDomain) {
-		String json = CollaborationDbUtils.queryOne("SELECT ORG_DOMAINS_JSON FROM COLLAB_OWNER WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ?", rs -> CollaborationDbUtils.getString(rs, "ORG_DOMAINS_JSON"), ownerId, ownerType);
+		String json = CollaborationDbUtils.queryOne(
+				"SELECT ORG_DOMAINS_JSON FROM COLLAB_OWNER WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
+				rs -> CollaborationDbUtils.getString(rs, "ORG_DOMAINS_JSON"), ownerId, ownerType);
 		return of(json == null ? List.of() : CollaborationDbUtils.toStringList(CollaborationDbUtils.parseList(json)),
 				myDomain);
 	}
 
-	/** Saves what the directory returned (name, domains); an empty answer keeps the last one. */
+	/**
+	 * Saves what the directory returned (name, domains); an empty answer keeps the
+	 * last one.
+	 */
 	@SuppressWarnings("unchecked")
 	static void save(String ownerId, String ownerType, Map<String, Object> organization) {
 		if (organization.get("domains") instanceof List<?> domains && !domains.isEmpty()) {
-			CollaborationDbUtils.update("UPDATE COLLAB_OWNER SET ORG_NAME = ?, ORG_DOMAINS_JSON = ?, UPDATED_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?", organization.get("name"),
-					CollaborationDbUtils.toJson((List<Object>) domains), CollaborationDbUtils.now(), ownerId, ownerType);
+			CollaborationDbUtils.update(
+					"UPDATE COLLAB_OWNER SET ORG_NAME = ?, ORG_DOMAINS_JSON = ?, UPDATED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+					organization.get("name"), CollaborationDbUtils.toJson(domains), CollaborationDbUtils.now(), ownerId,
+					ownerType);
 		}
 	}
 
-	// the organisation's domain: mail.adatum.example is adatum.example; .gov and .mil keep the full agency domain
+	// the organisation's domain: mail.adatum.example is adatum.example; .gov and
+	// .mil keep the full agency domain
 	static String org(String domain) {
 		if (domain == null || domain.isBlank()) {
 			return null;

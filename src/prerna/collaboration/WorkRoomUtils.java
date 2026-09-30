@@ -70,7 +70,8 @@ public final class WorkRoomUtils {
 		return page;
 	}
 
-	// the owner opened (or came back to) a thread's workspace: one tab per thread; a later room id replaces the
+	// the owner opened (or came back to) a thread's workspace: one tab per thread;
+	// a later room id replaces the
 	// first, a null one keeps it
 	public static Map<String, Object> openRoom(User user, String threadId, String roomId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -79,13 +80,15 @@ public final class WorkRoomUtils {
 		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
 		Timestamp now = CollaborationDbUtils.now();
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			int updated = CollaborationDbUtils.update("UPDATE WORK_OPEN_ROOM SET ROOM_ID = COALESCE(?, ROOM_ID), "
-					+ "LAST_ACTIVE_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", roomId, now, ownerId,
-					ownerType, threadId);
+			int updated = CollaborationDbUtils.update(
+					"UPDATE WORK_OPEN_ROOM SET ROOM_ID = COALESCE(?, ROOM_ID), "
+							+ "LAST_ACTIVE_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+					roomId, now, ownerId, ownerType, threadId);
 			if (updated == 0) {
-				CollaborationDbUtils.update("INSERT INTO WORK_OPEN_ROOM (OWNER_ID, OWNER_TYPE, THREAD_ID, ROOM_ID, "
-						+ "OPENED_AT, LAST_ACTIVE_AT, PINNED) VALUES (?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
-						threadId, roomId, now, now, false);
+				CollaborationDbUtils.update(
+						"INSERT INTO WORK_OPEN_ROOM (OWNER_ID, OWNER_TYPE, THREAD_ID, ROOM_ID, "
+								+ "OPENED_AT, LAST_ACTIVE_AT, PINNED) VALUES (?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, threadId, roomId, now, now, false);
 			}
 		}
 		Map<String, Object> result = new LinkedHashMap<>();
@@ -102,8 +105,9 @@ public final class WorkRoomUtils {
 		String ownerType = owner.getValue1();
 		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
 		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
-			CollaborationDbUtils.update("DELETE FROM WORK_OPEN_ROOM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-					+ "AND THREAD_ID = ?", ownerId, ownerType, threadId);
+			CollaborationDbUtils.update(
+					"DELETE FROM WORK_OPEN_ROOM WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND THREAD_ID = ?", ownerId,
+					ownerType, threadId);
 		}
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("threadId", threadId);
@@ -118,8 +122,9 @@ public final class WorkRoomUtils {
 		String ownerType = owner.getValue1();
 		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
 		String value = goal == null || goal.isBlank() ? null : goal.trim();
-		CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET GOAL = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND THREAD_ID = ?", value, ownerId, ownerType, threadId);
+		CollaborationDbUtils.update(
+				"UPDATE BRAIN_THREAD SET GOAL = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND THREAD_ID = ?", value,
+				ownerId, ownerType, threadId);
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("threadId", threadId);
 		result.put("goal", value);

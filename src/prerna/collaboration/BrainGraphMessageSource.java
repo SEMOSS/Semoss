@@ -51,15 +51,14 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			+ "conversationId,webLink";
 
 	@Override
-	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId)
-			throws Exception {
+	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId) throws Exception {
 		String path = path(source, conversationId, graphId);
 		if (path == null) {
 			return null;
 		}
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
-		Map<String, Object> message = CollaborationDbUtils.parseMap(
-				HttpHelperUtility.getRequest(BASE + path, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		Map<String, Object> message = CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(BASE + path,
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
 		return "teams".equals(source) ? fromChat(message) : message;
 	}
 
@@ -127,7 +126,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		return list;
 	}
 
-	// the message's path under the Graph base, or null when the source cannot be read
+	// the message's path under the Graph base, or null when the source cannot be
+	// read
 	private static String path(String source, String conversationId, String graphId) {
 		if (graphId == null) {
 			return null;
@@ -141,7 +141,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		return null;
 	}
 
-	// a chat message has no subject, uniqueBody, or sender address; map it onto the mail shape
+	// a chat message has no subject, uniqueBody, or sender address; map it onto the
+	// mail shape
 	@SuppressWarnings("unchecked")
 	static Map<String, Object> fromChat(Map<String, Object> chat) {
 		if (chat == null) {
@@ -154,6 +155,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		Map<String, Object> message = new LinkedHashMap<>();
 		message.put("from", Map.of("emailAddress", sender));
 		message.put("body", chat.get("body"));
+		message.put("attachments", chat.get("attachments"));
 		message.put("receivedDateTime", chat.get("createdDateTime"));
 		message.put("conversationId", chat.get("chatId"));
 		message.put("webLink", chat.get("webUrl"));

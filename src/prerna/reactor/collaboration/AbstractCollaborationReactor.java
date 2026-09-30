@@ -39,7 +39,8 @@ import prerna.util.Utility;
 // Shared checks for Brain and Work reactors: Collaboration is on and the caller is signed in
 public abstract class AbstractCollaborationReactor extends AbstractReactor {
 
-	// the signed-in user; Collaboration owner is always the session user, never a parameter
+	// the signed-in user; Collaboration owner is always the session user, never a
+	// parameter
 	protected User getUser() {
 		if (!Utility.isCollaborationDatabaseEnabled() || !CollaborationDbUtils.isInitalized()) {
 			throw new IllegalArgumentException("Collaboration is not enabled on this instance");
@@ -52,6 +53,7 @@ public abstract class AbstractCollaborationReactor extends AbstractReactor {
 	}
 
 	// true or false param, or null when absent
+	@Override
 	protected Boolean getBoolean(String key) {
 		String value = getString(key);
 		return value == null ? null : Boolean.parseBoolean(value.trim());

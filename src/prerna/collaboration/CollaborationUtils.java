@@ -54,7 +54,8 @@ public final class CollaborationUtils {
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
-	// Set by Work on a thread's assistant room (threadId, contextRevision, modelId).
+	// Set by Work on a thread's assistant room (threadId, contextRevision,
+	// modelId).
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
 
 	private CollaborationUtils() {
@@ -88,8 +89,8 @@ public final class CollaborationUtils {
 	}
 
 	/**
-	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name, modelId}; null when none is set,
-	 * the user cannot view it, or it is disabled.
+	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name,
+	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
 	 */
 	public static Map<String, Object> threadAgent(User user) {
 		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);

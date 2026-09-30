@@ -102,9 +102,8 @@ public final class BrainTopicUtils {
 
 		Map<String, Integer> threads = countThreadsByTopic(ownerId, ownerType);
 		Map<String, Integer> openItems = countOpenItemsByTopic(ownerId, ownerType);
-		List<Map<String, Object>> items = CollaborationDbUtils.query(
-				CollaborationDbUtils.page("SELECT " + SUMMARY_COLUMNS + " FROM BRAIN_TOPIC" + where
-						+ " ORDER BY NAME, TOPIC_ID", limit, offset),
+		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page(
+				"SELECT " + SUMMARY_COLUMNS + " FROM BRAIN_TOPIC" + where + " ORDER BY NAME, TOPIC_ID", limit, offset),
 				rs -> mapSummary(rs, threads, openItems), params.toArray());
 
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -122,12 +121,14 @@ public final class BrainTopicUtils {
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
 		Map<String, Integer> threads = Map.of(topicId, countThreads(ownerId, ownerType, topicId));
 		Map<String, Integer> openItems = Map.of(topicId, countOpenItems(ownerId, ownerType, topicId));
-		Map<String, Object> topic = CollaborationDbUtils.queryOne("SELECT " + SUMMARY_COLUMNS
-				+ ", DESCRIPTION, KEYWORDS_JSON, CALENDAR_SERIES_JSON FROM BRAIN_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> {
+		Map<String, Object> topic = CollaborationDbUtils.queryOne(
+				"SELECT " + SUMMARY_COLUMNS + ", DESCRIPTION, KEYWORDS_JSON, CALENDAR_SERIES_JSON FROM BRAIN_TOPIC "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+				rs -> {
 					Map<String, Object> row = mapSummary(rs, threads, openItems);
 					row.put("description", CollaborationDbUtils.getString(rs, "DESCRIPTION"));
-					row.put("keywords", CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "KEYWORDS_JSON")));
+					row.put("keywords",
+							CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "KEYWORDS_JSON")));
 					row.put("calendarSeries",
 							CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "CALENDAR_SERIES_JSON")));
 					return row;
@@ -173,7 +174,8 @@ public final class BrainTopicUtils {
 
 	// ---- write ----
 
-	// partial Topic: no id creates, an id edits; saving a suggested topic accepts it
+	// partial Topic: no id creates, an id edits; saving a suggested topic accepts
+	// it
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> saveTopic(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -205,9 +207,10 @@ public final class BrainTopicUtils {
 				{ "calendarSeries", "CALENDAR_SERIES_JSON" } }) {
 			if (changes.containsKey(json[0])) {
 				Object value = changes.get(json[0]);
-				CollaborationDbUtils.addSet(sets, params, json[1], value instanceof List
-						? CollaborationDbUtils.toJson(CollaborationDbUtils.toStringList((List<Object>) value))
-						: null);
+				CollaborationDbUtils.addSet(sets, params, json[1],
+						value instanceof List
+								? CollaborationDbUtils.toJson(CollaborationDbUtils.toStringList((List<Object>) value))
+								: null);
 			}
 		}
 
@@ -254,15 +257,16 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("A topic cannot be set back to suggested");
 		}
 		requireTopic(ownerId, ownerType, topicId);
-		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", status, CollaborationDbUtils.now(), ownerId,
-				ownerType, topicId);
+		CollaborationDbUtils.update(
+				"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+				status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
 	// goals take open|done, notes take draft|confirmed; no noteId creates
-	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind,
-			String text, String state) {
+	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind, String text,
+			String state) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -279,20 +283,22 @@ public final class BrainTopicUtils {
 
 		Timestamp now = CollaborationDbUtils.now();
 		String id = noteId == null ? UUID.randomUUID().toString() : noteId;
-		if (noteId != null && !CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_TOPIC_NOTE "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?", ownerId, ownerType, topicId,
-				noteId)) {
+		if (noteId != null && !CollaborationDbUtils.exists(
+				"SELECT 1 FROM BRAIN_TOPIC_NOTE "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?",
+				ownerId, ownerType, topicId, noteId)) {
 			throw new IllegalArgumentException("Note not found");
 		}
 		CollaborationDbUtils.inTransaction(conn -> {
 			if (noteId == null) {
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_NOTE (OWNER_ID, OWNER_TYPE, NOTE_ID, TOPIC_ID, "
-						+ "KIND, TEXT, STATE, ORIGIN, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_TOPIC_NOTE (OWNER_ID, OWNER_TYPE, NOTE_ID, TOPIC_ID, "
+								+ "KIND, TEXT, STATE, ORIGIN, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 						ownerId, ownerType, id, topicId, kind, text, state, BrainProfileUtils.YOU, now, now);
 			} else {
 				CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_NOTE SET KIND = ?, TEXT = ?, STATE = ?, "
-						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?",
-						kind, text, state, now, ownerId, ownerType, topicId, id);
+						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?", kind,
+						text, state, now, ownerId, ownerType, topicId, id);
 			}
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
@@ -310,9 +316,10 @@ public final class BrainTopicUtils {
 		Timestamp now = CollaborationDbUtils.now();
 		int[] deleted = new int[1];
 		CollaborationDbUtils.inTransaction(conn -> {
-			deleted[0] = CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_NOTE "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?", ownerId, ownerType,
-					topicId, noteId);
+			deleted[0] = CollaborationDbUtils.update(conn,
+					"DELETE FROM BRAIN_TOPIC_NOTE "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?",
+					ownerId, ownerType, topicId, noteId);
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
 		if (deleted[0] == 0) {
@@ -326,7 +333,8 @@ public final class BrainTopicUtils {
 
 	// ---- people ----
 
-	// owner sets member, suggested (undo), or removed; a removed row stays so Brain never re-suggests it
+	// owner sets member, suggested (undo), or removed; a removed row stays so Brain
+	// never re-suggests it
 	public static Map<String, Object> setTopicPerson(User user, String topicId, String personId, String state,
 			String role) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -336,8 +344,9 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("Person state must be one of " + PERSON_STATES);
 		}
 		requireTopic(ownerId, ownerType, topicId);
-		Map<String, Object> person = CollaborationDbUtils.queryOne("SELECT JOB_TITLE FROM BRAIN_PERSON "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?", rs -> {
+		Map<String, Object> person = CollaborationDbUtils.queryOne(
+				"SELECT JOB_TITLE FROM BRAIN_PERSON " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+				rs -> {
 					Map<String, Object> row = new HashMap<>();
 					row.put("jobTitle", CollaborationDbUtils.getString(rs, "JOB_TITLE"));
 					return row;
@@ -347,7 +356,8 @@ public final class BrainTopicUtils {
 		}
 		Map<String, Object> current = getTopicPerson(ownerId, ownerType, topicId, personId);
 
-		// accepting a Brain suggestion keeps origin brain; anything else is the owner's call
+		// accepting a Brain suggestion keeps origin brain; anything else is the owner's
+		// call
 		String origin = current != null && SUGGESTED.equals(current.get("state")) && MEMBER.equals(state)
 				? (String) current.get("origin")
 				: BrainProfileUtils.YOU;
@@ -356,15 +366,18 @@ public final class BrainTopicUtils {
 		CollaborationDbUtils.inTransaction(conn -> {
 			if (current == null) {
 				// a new member's role defaults to their job title
-				CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
-						+ "PERSON_ID, STATE, ORIGIN, ROLE_LABEL, REASON, CHANGED_BY, CHANGED_AT) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, topicId, personId, state, origin,
+				CollaborationDbUtils.update(conn,
+						"INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
+								+ "PERSON_ID, STATE, ORIGIN, ROLE_LABEL, REASON, CHANGED_BY, CHANGED_AT) "
+								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						ownerId, ownerType, topicId, personId, state, origin,
 						role != null ? role : person.get("jobTitle"), reason, BrainProfileUtils.YOU, now);
 			} else {
-				CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, ORIGIN = ?, "
-						+ "ROLE_LABEL = COALESCE(?, ROLE_LABEL), REASON = ?, CHANGED_BY = ?, CHANGED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND PERSON_ID = ?", state, origin,
-						role, reason, BrainProfileUtils.YOU, now, ownerId, ownerType, topicId, personId);
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, ORIGIN = ?, "
+								+ "ROLE_LABEL = COALESCE(?, ROLE_LABEL), REASON = ?, CHANGED_BY = ?, CHANGED_AT = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND PERSON_ID = ?",
+						state, origin, role, reason, BrainProfileUtils.YOU, now, ownerId, ownerType, topicId, personId);
 			}
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
@@ -381,7 +394,8 @@ public final class BrainTopicUtils {
 
 	// ---- merge ----
 
-	// moves thread links, people, notes, keywords, rules, and work-item links into the target, then drops the source
+	// moves thread links, people, notes, keywords, rules, and work-item links into
+	// the target, then drops the source
 	public static Map<String, Object> mergeTopics(User user, String sourceTopicId, String targetTopicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -412,15 +426,18 @@ public final class BrainTopicUtils {
 		CollaborationDbUtils.inTransaction(conn -> {
 			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType,
 					sourceTopicId, targetTopicId);
-			// threads on both topics: the target link inherits primary, the source link goes
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, "
-					+ "CHANGED_AT = ?" + owned + threadOnTopic + " AND IS_PRIMARY = ?)", true, BrainProfileUtils.YOU,
-					now, ownerId, ownerType, targetTopicId, ownerId, ownerType, sourceTopicId, true);
-			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC" + owned + threadOnTopic + ")",
-					ownerId, ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET TOPIC_ID = ?, CHANGED_BY = ?, "
-					+ "CHANGED_AT = ?" + owned, targetTopicId, BrainProfileUtils.YOU, now, ownerId, ownerType,
-					sourceTopicId);
+			// threads on both topics: the target link inherits primary, the source link
+			// goes
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, " + "CHANGED_AT = ?" + owned
+							+ threadOnTopic + " AND IS_PRIMARY = ?)",
+					true, BrainProfileUtils.YOU, now, ownerId, ownerType, targetTopicId, ownerId, ownerType,
+					sourceTopicId, true);
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_THREAD_TOPIC" + owned + threadOnTopic + ")", ownerId,
+					ownerType, sourceTopicId, ownerId, ownerType, targetTopicId);
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_THREAD_TOPIC SET TOPIC_ID = ?, CHANGED_BY = ?, " + "CHANGED_AT = ?" + owned,
+					targetTopicId, BrainProfileUtils.YOU, now, ownerId, ownerType, sourceTopicId);
 
 			// people already on the target keep the target's row
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_TOPIC_PERSON" + owned + personOnTarget, ownerId,
@@ -430,13 +447,15 @@ public final class BrainTopicUtils {
 						ownerId, ownerType, sourceTopicId);
 			}
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
-				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET LINK_TOPIC_ID = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", targetTopicId, ownerId,
-						ownerType, sourceTopicId);
+				CollaborationDbUtils.update(conn,
+						"UPDATE " + table + " SET LINK_TOPIC_ID = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?",
+						targetTopicId, ownerId, ownerType, sourceTopicId);
 			}
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?", ownerId, ownerType,
-					sourceTopicId);
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?",
+					ownerId, ownerType, sourceTopicId);
 
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET KEYWORDS_JSON = ?, UPDATED_AT = ?" + owned,
 					CollaborationDbUtils.toJson(keywords), now, ownerId, ownerType, targetTopicId);
@@ -455,14 +474,15 @@ public final class BrainTopicUtils {
 	}
 
 	private static List<Object> getKeywords(String ownerId, String ownerType, String topicId) {
-		return CollaborationDbUtils.parseList(CollaborationDbUtils.queryOne("SELECT KEYWORDS_JSON FROM BRAIN_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+		return CollaborationDbUtils.parseList(CollaborationDbUtils.queryOne(
+				"SELECT KEYWORDS_JSON FROM BRAIN_TOPIC " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
 				rs -> CollaborationDbUtils.getString(rs, "KEYWORDS_JSON"), ownerId, ownerType, topicId));
 	}
 
 	// ---- delete ----
 
-	// removes the topic with its notes, people, thread links, and topic rules; a thread that loses
+	// removes the topic with its notes, people, thread links, and topic rules; a
+	// thread that loses
 	// its primary link gets its next most confident link as primary
 	public static Map<String, Object> deleteTopic(User user, String topicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -476,9 +496,8 @@ public final class BrainTopicUtils {
 				+ "AND o.OWNER_TYPE = tt.OWNER_TYPE AND o.THREAD_ID = tt.THREAD_ID AND o.TOPIC_ID <> tt.TOPIC_ID "
 				+ "ORDER BY o.CONFIDENCE DESC, o.TOPIC_ID FETCH FIRST 1 ROWS ONLY) AS NEXT_TOPIC_ID "
 				+ "FROM BRAIN_THREAD_TOPIC tt WHERE tt.OWNER_ID = ? AND tt.OWNER_TYPE = ? AND tt.TOPIC_ID = ? "
-				+ "AND tt.IS_PRIMARY = ?",
-				rs -> Pair.with(rs.getString("THREAD_ID"), rs.getString("NEXT_TOPIC_ID")), ownerId, ownerType,
-				topicId, true);
+				+ "AND tt.IS_PRIMARY = ?", rs -> Pair.with(rs.getString("THREAD_ID"), rs.getString("NEXT_TOPIC_ID")),
+				ownerId, ownerType, topicId, true);
 		Timestamp now = CollaborationDbUtils.now();
 		String owned = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?";
 
@@ -488,9 +507,11 @@ public final class BrainTopicUtils {
 					null);
 			for (Pair<String, String> thread : newPrimaries) {
 				if (thread.getValue1() != null) {
-					CollaborationDbUtils.update(conn, "UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, "
-							+ "CHANGED_AT = ?" + owned + " AND THREAD_ID = ?", true, BrainProfileUtils.YOU, now,
-							ownerId, ownerType, thread.getValue1(), thread.getValue0());
+					CollaborationDbUtils.update(conn,
+							"UPDATE BRAIN_THREAD_TOPIC SET IS_PRIMARY = ?, CHANGED_BY = ?, " + "CHANGED_AT = ?" + owned
+									+ " AND THREAD_ID = ?",
+							true, BrainProfileUtils.YOU, now, ownerId, ownerType, thread.getValue1(),
+							thread.getValue0());
 				}
 			}
 			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
@@ -498,15 +519,21 @@ public final class BrainTopicUtils {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
-				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET LINK_TOPIC_ID = NULL "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?", ownerId, ownerType, topicId);
+				CollaborationDbUtils.update(conn,
+						"UPDATE " + table + " SET LINK_TOPIC_ID = NULL "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND LINK_TOPIC_ID = ?",
+						ownerId, ownerType, topicId);
 			}
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?", ownerId, ownerType, topicId);
-			// an open review about this topic (e.g. a new-topic suggestion) no longer applies
-			CollaborationDbUtils.update(conn, "UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ? "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_ID = ? AND STATUS = ?", "dismissed", now, ownerId,
-					ownerType, topicId, "open");
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_TOPIC SET MERGE_CANDIDATE_ID = NULL "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MERGE_CANDIDATE_ID = ?",
+					ownerId, ownerType, topicId);
+			// an open review about this topic (e.g. a new-topic suggestion) no longer
+			// applies
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_REVIEW SET STATUS = ?, RESOLVED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_ID = ? AND STATUS = ?",
+					"dismissed", now, ownerId, ownerType, topicId, "open");
 			changeId[0] = BrainTopicChangeUtils.record(conn, snapshot, BrainTopicChangeUtils.DELETE, topicId, null,
 					now);
 		});
@@ -522,14 +549,15 @@ public final class BrainTopicUtils {
 	// an owner edit counts as activity for the dormant rule
 	private static void touchTopic(Connection conn, String ownerId, String ownerType, String topicId, Timestamp now)
 			throws SQLException {
-		CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET UPDATED_AT = ? "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", now, ownerId, ownerType, topicId);
+		CollaborationDbUtils.update(conn,
+				"UPDATE BRAIN_TOPIC SET UPDATED_AT = ? " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+				now, ownerId, ownerType, topicId);
 	}
 
 	// current status, or "Topic not found"
 	static String requireTopic(String ownerId, String ownerType, String topicId) {
-		String status = CollaborationDbUtils.queryOne("SELECT STATUS FROM BRAIN_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+		String status = CollaborationDbUtils.queryOne(
+				"SELECT STATUS FROM BRAIN_TOPIC " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
 				rs -> CollaborationDbUtils.getString(rs, "STATUS"), ownerId, ownerType, topicId);
 		if (status == null) {
 			throw new IllegalArgumentException("Topic not found");
@@ -539,21 +567,24 @@ public final class BrainTopicUtils {
 
 	// ---- dormant ----
 
-	// flips stale active topics to dormant; an owner edit (UPDATED_AT) counts as activity
+	// flips stale active topics to dormant; an owner edit (UPDATED_AT) counts as
+	// activity
 	static void markDormant(String ownerId, String ownerType) {
 		Timestamp now = CollaborationDbUtils.now();
 		Timestamp cutoff = Timestamp.valueOf(now.toLocalDateTime().minusDays(DORMANT_AFTER_DAYS));
-		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ? "
-				+ "AND COALESCE(LAST_ACTIVITY_AT, CREATED_AT) < ? AND (UPDATED_AT IS NULL OR UPDATED_AT < ?)",
+		CollaborationDbUtils.update(
+				"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND STATUS = ? "
+						+ "AND COALESCE(LAST_ACTIVITY_AT, CREATED_AT) < ? AND (UPDATED_AT IS NULL OR UPDATED_AT < ?)",
 				DORMANT, now, ownerId, ownerType, ACTIVE, cutoff, cutoff);
 	}
 
 	// ---- stats ----
 
 	private static int countThreads(String ownerId, String ownerType, String topicId) {
-		return CollaborationDbUtils.count("SELECT COUNT(*) FROM BRAIN_THREAD_TOPIC "
-				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", ownerId, ownerType, topicId);
+		return CollaborationDbUtils.count(
+				"SELECT COUNT(*) FROM BRAIN_THREAD_TOPIC " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+				ownerId, ownerType, topicId);
 	}
 
 	private static Map<String, Integer> countThreadsByTopic(String ownerId, String ownerType) {
@@ -578,8 +609,8 @@ public final class BrainTopicUtils {
 
 	private static Map<String, Integer> countByTopic(String sql, Object... params) {
 		Map<String, Integer> counts = new HashMap<>();
-		for (Pair<String, Integer> row : CollaborationDbUtils.query(sql,
-				rs -> Pair.with(rs.getString(1), rs.getInt(2)), params)) {
+		for (Pair<String, Integer> row : CollaborationDbUtils.query(sql, rs -> Pair.with(rs.getString(1), rs.getInt(2)),
+				params)) {
 			counts.put(row.getValue0(), row.getValue1());
 		}
 		return counts;
