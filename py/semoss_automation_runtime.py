@@ -9,8 +9,9 @@ import base64
 import json
 import re
 import uuid
+from collections.abc import Callable, Iterator
 from itertools import islice
-from typing import Any, Iterator
+from typing import Any
 
 
 _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
@@ -111,6 +112,43 @@ class AutomationDataset(list[dict[str, Any]]):
     def __repr__(self) -> str:
         return f"AutomationDataset(rows={len(self)})"
 
+    def __eq__(self, other: object) -> bool:
+        return self.to_list() == _materialized_dataset(other)
+
+    def __ne__(self, other: object) -> bool:
+        return self.to_list() != _materialized_dataset(other)
+
+    def __lt__(self, other: object) -> bool:
+        return self.to_list() < _materialized_dataset(other)
+
+    def __le__(self, other: object) -> bool:
+        return self.to_list() <= _materialized_dataset(other)
+
+    def __gt__(self, other: object) -> bool:
+        return self.to_list() > _materialized_dataset(other)
+
+    def __ge__(self, other: object) -> bool:
+        return self.to_list() >= _materialized_dataset(other)
+
+    def __add__(self, other: object) -> list[Any]:
+        if not isinstance(other, list):
+            return NotImplemented
+        return self.to_list() + _materialized_dataset(other)
+
+    def __radd__(self, other: object) -> list[Any]:
+        if not isinstance(other, list):
+            return NotImplemented
+        return _materialized_dataset(other) + self.to_list()
+
+    def __mul__(self, count: int) -> list[dict[str, Any]]:
+        return self.to_list() * count
+
+    def __rmul__(self, count: int) -> list[dict[str, Any]]:
+        return self.to_list() * count
+
+    def __reversed__(self) -> Iterator[dict[str, Any]]:
+        return reversed(self.to_list())
+
     def copy(self) -> list[dict[str, Any]]:
         return list(self)
 
@@ -159,6 +197,10 @@ class AutomationDataset(list[dict[str, Any]]):
         if self._known_total is not None and self._known_total != total:
             raise ValueError("Automation dataset row count changed during the run.")
         self._known_total = total
+
+
+def _materialized_dataset(value: object) -> Any:
+    return value.to_list() if isinstance(value, AutomationDataset) else value
 
 
 class AutomationScope(dict[str, Any]):
@@ -352,7 +394,10 @@ def read_data_page(
     entry = entries.get(metadata["referenceId"]) if metadata and isinstance(entries, dict) else None
     if not isinstance(entry, dict) or "value" not in entry:
         raise ValueError("Automation data is no longer available in this run workspace.")
-    return _json_result(_data_page(entry["value"], offset, limit), max_output_bytes)
+    return _json_result(
+        _data_page(entry["value"], offset, limit, max_output_bytes),
+        max_output_bytes,
+    )
 
 
 def _prepare_result(
@@ -542,37 +587,96 @@ def _pixel_value(name: str, value: Any) -> str:
     return name + "=[" + json.dumps(value) + "]"
 
 
-def _data_page(value: Any, offset: int, limit: int) -> dict[str, Any]:
+def _data_page(
+    value: Any, offset: int, limit: int, max_output_bytes: int
+) -> dict[str, Any]:
     if offset < 0 or limit < 1:
         raise ValueError("Automation data page bounds are invalid.")
+    collection = _record_collection(value)
+    if collection is not None:
+        collection_key, rows = collection
+
+        def nested_page(selected: list[Any]) -> dict[str, Any]:
+            selected_value = dict(value)
+            selected_value[collection_key] = selected
+            return _page(
+                "json",
+                offset,
+                limit,
+                len(selected),
+                len(rows),
+                value=selected_value,
+                collectionKey=collection_key,
+            )
+
+        return _bounded_sequence_page(
+            rows, offset, limit, max_output_bytes, nested_page
+        )
     table = _table_data(value)
     if table is not None:
-        headers, rows, rows_are_objects = table
-        selected = rows[offset : offset + limit]
-        page_rows = (
-            [[row.get(header) for header in headers] for row in selected]
-            if rows_are_objects
-            else selected
-        )
-        return _page(
-            "table",
-            offset,
-            limit,
-            len(page_rows),
-            len(rows),
-            headers=headers,
-            rows=page_rows,
+        headers, rows = table
+
+        def table_page(selected: list[Any]) -> dict[str, Any]:
+            if not all(isinstance(row, list) for row in selected):
+                raise ValueError("Automation table page has an invalid row shape.")
+            return _page(
+                "table",
+                offset,
+                limit,
+                len(selected),
+                len(rows),
+                headers=headers,
+                rows=selected,
+            )
+
+        return _bounded_sequence_page(
+            rows, offset, limit, max_output_bytes, table_page
         )
     if isinstance(value, list):
-        selected = value[offset : offset + limit]
-        return _page("json", offset, limit, len(selected), len(value), value=selected)
+        def list_page(selected: list[Any]) -> dict[str, Any]:
+            if selected and all(isinstance(row, dict) for row in selected):
+                headers = _object_headers(selected)
+                rows = [[row.get(header) for header in headers] for row in selected]
+                return _page(
+                    "table",
+                    offset,
+                    limit,
+                    len(rows),
+                    len(value),
+                    headers=headers,
+                    rows=rows,
+                )
+            return _page(
+                "json",
+                offset,
+                limit,
+                len(selected),
+                len(value),
+                value=selected,
+            )
+
+        return _bounded_sequence_page(
+            value, offset, limit, max_output_bytes, list_page
+        )
     if isinstance(value, dict):
-        selected = list(islice(value.items(), offset, offset + limit))
-        return _page("json", offset, limit, len(selected), len(value), value=dict(selected))
+        items = list(value.items())
+
+        def mapping_page(selected: list[Any]) -> dict[str, Any]:
+            return _page(
+                "json",
+                offset,
+                limit,
+                len(selected),
+                len(items),
+                value=dict(selected),
+            )
+
+        return _bounded_sequence_page(
+            items, offset, limit, max_output_bytes, mapping_page
+        )
     if isinstance(value, str):
-        selected = value[offset : offset + limit * 1000]
-        return _page("text", offset, limit * 1000, len(selected), len(value), value=selected)
-    return _page(
+        return _bounded_text_page(value, offset, limit * 1000, max_output_bytes)
+    page = _page(
         "json",
         offset,
         limit,
@@ -580,16 +684,12 @@ def _data_page(value: Any, offset: int, limit: int) -> dict[str, Any]:
         1,
         value=value if offset == 0 else None,
     )
+    if not _page_fits(page, max_output_bytes):
+        raise ValueError("Automation data item exceeds the maximum page size.")
+    return page
 
 
-def _table_data(value: Any) -> tuple[list[str], list[Any], bool] | None:
-    if isinstance(value, list) and all(isinstance(row, dict) for row in value):
-        headers: list[str] = []
-        for row in value:
-            for key in row:
-                if isinstance(key, str) and key not in headers:
-                    headers.append(key)
-        return headers, value, True
+def _table_data(value: Any) -> tuple[list[str], list[Any]] | None:
     candidate = value.get("data") if isinstance(value, dict) else None
     if not isinstance(candidate, dict) and isinstance(value, dict):
         candidate = value
@@ -599,9 +699,99 @@ def _table_data(value: Any) -> tuple[list[str], list[Any], bool] | None:
     rows = candidate.get("values")
     if not isinstance(headers, list) or not all(isinstance(header, str) for header in headers):
         return None
-    if not isinstance(rows, list) or not all(isinstance(row, list) for row in rows):
+    if not isinstance(rows, list):
         return None
-    return headers, rows, False
+    return headers, rows
+
+
+def _record_collection(
+    value: Any,
+) -> tuple[str, list[Any]] | None:
+    """Return one unambiguous nested record collection for bounded JSON pages."""
+    if not isinstance(value, dict):
+        return None
+    candidates = [
+        (key, item)
+        for key, item in value.items()
+        if isinstance(key, str)
+        and isinstance(item, list)
+        and item
+    ]
+    if len(candidates) != 1:
+        return None
+    return candidates[0]
+
+
+def _object_headers(rows: list[Any]) -> list[str]:
+    headers: list[str] = []
+    for row in rows:
+        for key in row:
+            if isinstance(key, str) and key not in headers:
+                headers.append(key)
+    return headers
+
+
+def _bounded_sequence_page(
+    values: list[Any],
+    offset: int,
+    limit: int,
+    max_output_bytes: int,
+    build_page: Callable[[list[Any]], dict[str, Any]],
+) -> dict[str, Any]:
+    available = min(limit, max(len(values) - offset, 0))
+    return _largest_fitting_page(
+        available,
+        max_output_bytes,
+        lambda count: build_page(values[offset : offset + count]),
+    )
+
+
+def _bounded_text_page(
+    value: str, offset: int, limit: int, max_output_bytes: int
+) -> dict[str, Any]:
+    def build_page(count: int) -> dict[str, Any]:
+        selected = value[offset : offset + count]
+        return _page(
+            "text",
+            offset,
+            limit,
+            len(selected),
+            len(value),
+            value=selected,
+        )
+
+    available = min(limit, max(len(value) - offset, 0))
+    return _largest_fitting_page(available, max_output_bytes, build_page)
+
+
+def _largest_fitting_page(
+    available: int,
+    max_output_bytes: int,
+    build_page: Callable[[int], dict[str, Any]],
+) -> dict[str, Any]:
+    if available == 0:
+        page = build_page(0)
+        if _page_fits(page, max_output_bytes):
+            return page
+        raise ValueError("Automation data page metadata exceeds the maximum page size.")
+    lower = 1
+    upper = available
+    selected_page: dict[str, Any] | None = None
+    while lower <= upper:
+        count = (lower + upper) // 2
+        page = build_page(count)
+        if _page_fits(page, max_output_bytes):
+            selected_page = page
+            lower = count + 1
+        else:
+            upper = count - 1
+    if selected_page is None:
+        raise ValueError("Automation data item exceeds the maximum page size.")
+    return selected_page
+
+
+def _page_fits(page: dict[str, Any], max_output_bytes: int) -> bool:
+    return len(json.dumps(page, allow_nan=False).encode("utf-8")) <= max_output_bytes
 
 
 def _page(
