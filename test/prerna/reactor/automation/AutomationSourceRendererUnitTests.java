@@ -61,10 +61,13 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
-	void readsGoThroughExecQuery() {
+	void readsCreateRunOwnedQueryData() {
 		String source = AutomationSourceRenderer.renderNode(
 				node(AutomationConstants.NODE_DATABASE_QUERY, databaseConfig()));
 		assertTrue(source.contains("def run(scope):"), "every node source defines the run entry point");
+		assertTrue(source.contains("CreateAutomationQueryData("));
+		assertTrue(source.contains("scope[\"run_id\"]"));
+		assertFalse(source.contains("SqlQuery("));
 		assertFalse(source.contains("insertData"));
 		assertFalse(source.contains("removeData"));
 	}

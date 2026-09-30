@@ -27,17 +27,13 @@
  ******************************************************************************/
 package prerna.reactor.automation;
 
-import java.io.File;
 import java.util.Map;
 
-import prerna.ds.py.PyTranslator;
-import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.AssetUtility;
 
 /**
  * Returns one bounded page from a node value retained by an Automation run's
@@ -73,54 +69,9 @@ public class GetAutomationRunNodeDataReactor extends AbstractReactor {
 		int limit = integerValue(ReactorKeysEnum.LIMIT.getKey(), AutomationConstants.DEFAULT_DATA_PAGE_LIMIT, 1,
 				AutomationConstants.MAX_DATA_PAGE_LIMIT);
 
-		projectId = AutomationProjectUtils.getViewableAutomationProject(this.insight.getUser(), projectId).getProjectId();
-		Map<String, Object> run = AutomationDatabaseUtility.getRunDetail(runId);
-		if (run == null || !projectId.equals(run.get(AutomationConstants.PROJECT_ID))) {
-			throw new IllegalArgumentException("Automation run was not found for this project.");
-		}
-
-		Map<String, Object> nodeOutput = AutomationDatabaseUtility.getNodeOutputForRun(runId, nodeId);
-		AutomationDataReference reference = referenceFrom(nodeOutput);
-		if (reference == null) {
-			throw new IllegalArgumentException("This Automation node has no retained data to view.");
-		}
-
-		Insight executionInsight = AutomationRunExecutionService.getAvailableExecutionInsight(runId);
-		if (executionInsight == null || !projectId.equals(executionInsight.getProjectId())) {
-			throw new IllegalStateException("Run data is no longer available. Run the automation again.");
-		}
-		PyTranslator translator = executionInsight.getPyTranslator();
-		if (translator == null) {
-			throw new IllegalStateException("Python runtime is not available for this run.");
-		}
-
-		Object createdByValue = run.get(AutomationConstants.CREATED_BY);
-		String createdBy = createdByValue == null || createdByValue.toString().isBlank()
-				? AutomationConstants.SYSTEM_USER_ID
-				: createdByValue.toString();
-		Map<String, String> owner = Map.of("projectId", projectId, "runId", runId, "userId", createdBy);
-		String assetsFolder = AssetUtility.getProjectAssetsFolder(projectId);
-		Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-				AutomationRuntime.buildDataPageInvocationScript(reference, owner, offset, limit), assetsFolder,
-				new String[] { assetsFolder + File.separator + "py" });
-		Object result = AutomationRuntime.normalizeNodeResult(raw);
-		if (!(result instanceof Map<?, ?>)) {
-			throw new IllegalStateException("Automation run data returned an invalid page.");
-		}
+		Map<String, Object> result = AutomationRunDataService.getNodeDataPage(this.insight.getUser(), projectId, runId,
+				nodeId, offset, limit);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static AutomationDataReference referenceFrom(Map<String, Object> nodeOutput) {
-		if (nodeOutput == null || !(nodeOutput.get(AutomationConstants.OUTPUT_VALUE) instanceof String value)
-				|| value.isBlank()) {
-			return null;
-		}
-		try {
-			return AutomationDataReference.fromValue(
-					prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.fromJson(value, Object.class));
-		} catch (RuntimeException ignored) {
-			return null;
-		}
 	}
 
 	private String requiredValue(String key, String label) {

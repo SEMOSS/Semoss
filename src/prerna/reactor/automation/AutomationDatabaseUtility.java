@@ -1419,13 +1419,16 @@ public final class AutomationDatabaseUtility {
 	 * Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
 	 * (falls back from outputValue when blank), outputValue, errorMessage, and an
 	 * optional trace map. Outputs containing run-private data references expose only
-	 * their bounded preview; the reference identifier remains server-side.
+	 * their bounded preview; the reference identifier remains server-side. A retained
+	 * output is marked available only while its execution Insight remains live.
 	 *
 	 * @param nodeOutputs ordered rows from {@link #getNodeOutputsForRun(String)}
+	 * @param runDataAvailable whether the owning execution Insight is currently live
 	 * @return mutable list of node result maps (empty when {@code nodeOutputs} is
 	 *         null)
 	 */
-	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs) {
+	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs,
+			boolean runDataAvailable) {
 		List<Map<String, Object>> nodeResults = new ArrayList<>();
 		if (nodeOutputs == null) {
 			return nodeResults;
@@ -1456,7 +1459,8 @@ public final class AutomationDatabaseUtility {
 			}
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
 			nodeResult.put(AutomationConstants.OUTPUT_VALUE, !containsReference ? persistedOutput : null);
-			nodeResult.put(AutomationConstants.RESULT_DATA_AVAILABLE, dataReference != null);
+			nodeResult.put(AutomationConstants.RESULT_DATA_AVAILABLE,
+					dataReference != null && runDataAvailable);
 			if (dataReference != null) {
 				nodeResult.put(AutomationConstants.RESULT_DATA_VALUE_TYPE, dataReference.valueType().getValue());
 			}

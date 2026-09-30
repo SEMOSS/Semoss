@@ -53,7 +53,7 @@ public record AutomationDataReference(int schemaVersion, String referenceId, Aut
 	/** Marker wrapping a reference inside an ordinary JSON scope value. */
 	public static final String MARKER = "__automationDataReference";
 	/** Bounded text shown to clients instead of the private reference payload. */
-	public static final String CLIENT_PREVIEW = "Output is available from this run.";
+	public static final String CLIENT_PREVIEW = "Large output is not included in run history.";
 
 	public AutomationDataReference {
 		if (schemaVersion != CURRENT_SCHEMA_VERSION) {
