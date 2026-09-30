@@ -38,11 +38,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-/**
- * Covers how the trigger node contributes to a run. The trigger is the only node
- * whose Python lives inside the definition rather than in its own file, so the
- * accessors that read it out of config are the whole contract.
- */
+/** Covers trigger setup and the run-local retained-data response contract. */
 public class AutomationRuntimeUnitTests {
 
 	private static Map<String, Object> triggerNode(Map<String, Object> config) {
@@ -60,7 +56,6 @@ public class AutomationRuntimeUnitTests {
 				.triggerSource(triggerNode(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, source))));
 	}
 
-	/** A blank or absent source means the trigger contributes no computed globals. */
 	@Test
 	void treatsBlankSetupSourceAsAbsent() {
 		assertNull(AutomationRuntime.triggerSource(triggerNode(Map.of())));
@@ -80,7 +75,6 @@ public class AutomationRuntimeUnitTests {
 		assertEquals("east", defaults.get("region"));
 	}
 
-	/** A global with no declared default must not seed a null into scope. */
 	@Test
 	void skipsGlobalsWithNoDeclaredDefault() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_GLOBALS, List.of(Map.of("name", "region")));
@@ -94,10 +88,6 @@ public class AutomationRuntimeUnitTests {
 				.triggerGlobalDefaults(triggerNode(Map.of(AutomationConstants.CONFIG_GLOBALS, "nonsense"))).isEmpty());
 	}
 
-	/**
-	 * execute_node looks up a module-level run, so only an unindented binding
-	 * counts. A run nested in a class or another function is not the entry point.
-	 */
 	@Test
 	void recognisesTopLevelRunBindings() {
 		assertTrue(AutomationDefinitionService.definesRunEntryPoint("def run(scope):\n    return {}\n"));
@@ -114,5 +104,37 @@ public class AutomationRuntimeUnitTests {
 		assertFalse(AutomationDefinitionService
 				.definesRunEntryPoint("class Job:\n    def run(self, scope):\n        return {}\n"));
 		assertFalse(AutomationDefinitionService.definesRunEntryPoint("def outer():\n    run = 1\n    return run\n"));
+	}
+
+	@Test
+	void retainedReferenceRoundTripsWithoutBackingDetails() {
+		AutomationDataReference expected = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "opaque-reference");
+		Map<String, Object> value = expected.toMap();
+
+		assertEquals(expected, AutomationDataReference.fromValue(value));
+		assertEquals(expected, AutomationDataReference.find(Map.of("nested", List.of(value))));
+		String serialized = prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(value);
+		assertFalse(serialized.contains("engine"));
+		assertFalse(serialized.contains("query"));
+	}
+
+	@Test
+	void retainedResultIsViewableOnlyWhileItsExecutionInsightIsLive() {
+		AutomationDataReference reference = new AutomationDataReference(
+				AutomationDataReference.CURRENT_SCHEMA_VERSION, "private-reference");
+		Map<String, Object> row = new LinkedHashMap<>();
+		row.put(AutomationConstants.NODE_ID, "query");
+		row.put(AutomationConstants.OUTPUT_VALUE,
+				prerna.reactor.automation.utils.AutomationRuntimeUtils.GSON.toJson(reference.toMap()));
+		row.put(AutomationConstants.OUTPUT_PREVIEW, AutomationDataReference.CLIENT_PREVIEW);
+
+		Map<String, Object> live = AutomationDatabaseUtility.buildNodeResults(List.of(row), true).get(0);
+		Map<String, Object> closed = AutomationDatabaseUtility.buildNodeResults(List.of(row), false).get(0);
+
+		assertTrue((Boolean) live.get(AutomationConstants.RESULT_HAS_RETAINED_DATA));
+		assertTrue((Boolean) live.get(AutomationConstants.RESULT_DATA_AVAILABLE));
+		assertFalse((Boolean) closed.get(AutomationConstants.RESULT_DATA_AVAILABLE));
+		assertNull(live.get(AutomationConstants.OUTPUT_VALUE));
 	}
 }
