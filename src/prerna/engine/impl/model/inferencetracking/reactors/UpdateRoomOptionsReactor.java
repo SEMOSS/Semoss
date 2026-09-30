@@ -41,6 +41,7 @@ import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.transfer.RoomAgentRoster;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -71,6 +72,14 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		Map<String, Object> roomOptions = getRoomOptionsMap();
 		if (roomOptions == null) {
 			roomOptions = new HashMap<>();
+		}
+		if (roomOptions.containsKey(RoomAgentRoster.ROOM_OPTION_AGENTS)) {
+			String defaultAgentId = RoomAgentRoster.defaultAgentId(roomOptions);
+			if (defaultAgentId == null) {
+				defaultAgentId = RoomAgentRoster.defaultAgentId(room.getOptionsMap());
+			}
+			roomOptions.put(RoomAgentRoster.ROOM_OPTION_AGENTS,
+					RoomAgentRoster.normalize(user, roomOptions.get(RoomAgentRoster.ROOM_OPTION_AGENTS), defaultAgentId));
 		}
 		// Preserve server-owned subagent filesystem metadata.
 		preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);

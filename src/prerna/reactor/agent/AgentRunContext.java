@@ -83,6 +83,7 @@ public final class AgentRunContext {
      * already been written to the room by {@code RunMCPToolReactor}.
      */
     private final boolean       resumeMode;
+	private final boolean       transferredRun;
 
     private AgentRunContext(Builder b) {
         this.room          = b.room;
@@ -98,6 +99,7 @@ public final class AgentRunContext {
         this.spawnDepth    = b.spawnDepth;
         this.agentConfig   = b.agentConfig;
         this.resumeMode    = b.resumeMode;
+		this.transferredRun = b.transferredRun;
     }
 
     // Live per-call state
@@ -183,6 +185,11 @@ public final class AgentRunContext {
         return resumeMode;
     }
 
+	/** Whether this top-level run took over the room through an agent transfer. */
+	public boolean isTransferredRun() {
+		return transferredRun;
+	}
+
     // Compatibility accessors (delegate to AgentConfig)
     /**
      * @return working directory; equivalent to {@code getAgentConfig().getWorkingDir()}.
@@ -254,6 +261,7 @@ public final class AgentRunContext {
         private AgentConfig   agentConfig;
 
         private boolean       resumeMode = false;
+		private boolean       transferredRun = false;
 
         // Legacy field holders (used only when agentConfig is not supplied directly)
         private String              legacyFilePath;
@@ -275,6 +283,7 @@ public final class AgentRunContext {
         public Builder spawnDepth(int spawnDepth)            { this.spawnDepth = spawnDepth;       return this; }
 
         public Builder resumeMode(boolean resumeMode)        { this.resumeMode = resumeMode;       return this; }
+		public Builder transferredRun(boolean value)             { this.transferredRun = value;       return this; }
 
         /** Sets the canonical agent spec. Preferred path. */
         public Builder agentConfig(AgentConfig agentConfig)  { this.agentConfig = agentConfig;     return this; }

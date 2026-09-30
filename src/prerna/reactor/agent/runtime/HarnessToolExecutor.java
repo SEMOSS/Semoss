@@ -71,6 +71,9 @@ import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
+import prerna.reactor.agent.transfer.AgentTransferService;
+import prerna.reactor.agent.transfer.AgentTransferToolSynthesizer;
+import prerna.reactor.agent.transfer.RoomAgentRoster;
 import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
@@ -145,6 +148,20 @@ final class HarnessToolExecutor {
 		if (returnsToolResult && toolCalls.size() != 1) {
 			throw new IllegalArgumentException("The final result tool " + resultTool + " must be called alone");
 		}
+		List<RoomAgentRoster.Target> transferTargets = RoomAgentRoster.transferTargets(ctx.getRoom(),
+				ctx.getAgentConfig());
+		RoomAgentRoster.Target transferTarget = null;
+		for (Map<String, Object> call : toolCalls) {
+			RoomAgentRoster.Target candidate = AgentTransferToolSynthesizer.find(transferTargets,
+					new ParsedToolCall(call).rawToolName);
+			if (candidate != null) {
+				transferTarget = candidate;
+				break;
+			}
+		}
+		if (transferTarget != null && toolCalls.size() != 1) {
+			throw new IllegalArgumentException("An agent transfer must be called alone");
+		}
 
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
@@ -177,8 +194,28 @@ final class HarnessToolExecutor {
 			return finalResponse;
 		}
 
-        executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
-        state.incrementIterations();
+		if (transferTarget != null) {
+			ParsedToolCall tc = new ParsedToolCall(toolCalls.getFirst());
+			ToolExecResult result = executeOneTool(tc, state, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+					spawnsRemainingInBatch);
+			state.addToolCallRecord(result.record);
+			state.incrementIterations();
+			if (result.record.isSuccess()) {
+				ResponseMessage delivery = ResponseMessage.text("Transferring this task to " + transferTarget.name() + ".");
+				delivery.setPlatformGenerated(true);
+				ctx.getRoom().continueAfterToolExecutionResults(new HashMap<>(paramMap), parentMsgId,
+						ctx.getModelEngine(), ctx.getInsight(), null, delivery);
+				ResponseMessage finalResponse = (ResponseMessage) ctx.getRoom().getMessages().getLast();
+				state.setFinalText(finalResponse.getContent());
+				state.setTerminal(true);
+				return finalResponse;
+			}
+		}
+
+		if (transferTarget == null) {
+			executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+			state.incrementIterations();
+		}
         if (state.pptxWorkflow() != null) {
             var workflow = state.pptxWorkflow();
             workflow.afterRound(state.getIterations(), ctx.getMaxTurns());
@@ -505,6 +542,17 @@ final class HarnessToolExecutor {
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+		RoomAgentRoster.Target transferTarget = AgentTransferToolSynthesizer.find(
+				RoomAgentRoster.transferTargets(ctx.getRoom(), ctx.getAgentConfig()), tc.rawToolName);
+		if (transferTarget != null) {
+			try {
+				return new ToolExecOutcome(AgentTransferService.transfer(ctx, transferTarget, tc.toolParams), true);
+			} catch (Exception e) {
+				String message = "Agent transfer error: " + e.getMessage();
+				logger.warn("HarnessToolExecutor: transfer tool '{}' failed: {}", tc.rawToolName, e.getMessage(), e);
+				return new ToolExecOutcome(message, false);
+			}
+		}
 		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
 			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),
 					tc.toolParams);

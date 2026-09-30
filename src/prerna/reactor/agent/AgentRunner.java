@@ -53,6 +53,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.AgentConfigLoader;
 import prerna.reactor.agent.run.AgentRoomNamer;
+import prerna.reactor.agent.run.AgentRunRequest;
 import prerna.reactor.agent.sandbox.EnforcementMode;
 import prerna.reactor.agent.sandbox.SandboxPolicy;
 import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
@@ -235,6 +236,7 @@ public final class AgentRunner {
 
 		Map<String, Object> params = paramMap != null ? new HashMap<>(paramMap) : new HashMap<>();
 		Map<String, Object> agentParams = agentParamMap != null ? new HashMap<>(agentParamMap) : new HashMap<>();
+		boolean transferredRun = trimToNull(params.get(AgentRunRequest.PARAM_TRANSFER_FROM_RUN_ID)) != null;
 
 		// Resolve and strip any per-run workspace override before model + working-dir
 		// lookup.
@@ -287,7 +289,7 @@ public final class AgentRunner {
 		AgentRunContext ctx = AgentRunContext.builder().room(room).modelEngine(modelEngine).insight(insight)
 				.userId(room.getUserId()).input(input).runId(runId).sandboxPolicy(sandboxPolicy)
 				.mediaInputPaths(mediaInputPaths).mediaUrls(mediaUrls).spawnDepth(resolveSpawnDepth())
-				.resumeMode(resumeMode).agentTarget(target).agentConfig(agentConfig).build();
+				.resumeMode(resumeMode).transferredRun(transferredRun).agentTarget(target).agentConfig(agentConfig).build();
 
 		IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
 		logger.info("AgentRunner: using harness '{}' for room={}", harness.getName(), roomId);

@@ -54,6 +54,8 @@ import prerna.reactor.agent.AgentRunner;
  * is handed the executing node's insight instead.
  */
 public final class AgentRunRequest {
+	public static final String PARAM_TRANSFER_FROM_RUN_ID = "_agent_transfer_from_run_id";
+	public static final String PARAM_TRANSFER_ROOT_RUN_ID = "_agent_transfer_root_run_id";
 
 	private final String roomId;
 	private final String parentRunId;
@@ -63,6 +65,10 @@ public final class AgentRunRequest {
 	private final int continuationDepth;
 	// Display name of the person answering a HUMAN child; null for agent runs.
 	private final String humanExecutorLabel;
+	// Same-room ownership transfer metadata. These runs remain top-level runs;
+	// parentRunId is deliberately reserved for true subagents.
+	private final String transferFromRunId;
+	private final String transferRootRunId;
 	private final SubAgentRunCompletionMode completionMode;
 	private final String input;
 	private final String engineIdFallback;
@@ -84,7 +90,7 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, false, null, SubAgentRunCompletionMode.WAIT, null,
-				null, 0, null, currentSessionId());
+				null, 0, null, null, null, currentSessionId());
 	}
 
 	public AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType, String workspaceId,
@@ -92,7 +98,7 @@ public final class AgentRunRequest {
 			List<String> mediaInputPaths, List<String> mediaUrls, Insight insight, boolean resumeMode) {
 		this(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections, paramMap,
 				agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, null, SubAgentRunCompletionMode.WAIT,
-				null, null, 0, null, currentSessionId());
+				null, null, 0, null, null, null, currentSessionId());
 	}
 
 	private AgentRunRequest(String roomId, String input, String engineIdFallback, String harnessType,
@@ -100,13 +106,15 @@ public final class AgentRunRequest {
 			Map<String, Object> agentParamMap, List<String> mediaInputPaths, List<String> mediaUrls, Insight insight,
 			boolean resumeMode, String parentRunId, SubAgentRunCompletionMode completionMode, String ownerAuthType,
 			String continuationChildRunId, int continuationDepth, String humanExecutorLabel,
-			String executionSessionId) {
+			String transferFromRunId, String transferRootRunId, String executionSessionId) {
 		this.roomId = roomId;
 		this.parentRunId = trimmedStringValue(parentRunId);
 		this.ownerAuthType = ownerAuthType == null ? resolveOwnerAuthType(insight) : trimmedStringValue(ownerAuthType);
 		this.continuationChildRunId = trimmedStringValue(continuationChildRunId);
 		this.continuationDepth = Math.max(0, continuationDepth);
 		this.humanExecutorLabel = humanExecutorLabel == null ? null : humanExecutorLabel.trim();
+		this.transferFromRunId = trimmedStringValue(transferFromRunId);
+		this.transferRootRunId = trimmedStringValue(transferRootRunId);
 		this.completionMode = completionMode == null ? SubAgentRunCompletionMode.WAIT : completionMode;
 		this.input = input;
 		this.engineIdFallback = engineIdFallback;
@@ -120,6 +128,12 @@ public final class AgentRunRequest {
 		this.mediaUrls = immutableStringList(mediaUrls);
 		if (workspaceId != null && !workspaceId.trim().isEmpty()) {
 			this.paramMap.put(AgentRunner.PARAM_WORKSPACE_ID, workspaceId);
+		}
+		if (this.transferFromRunId != null) {
+			this.paramMap.put(PARAM_TRANSFER_FROM_RUN_ID, this.transferFromRunId);
+		}
+		if (this.transferRootRunId != null) {
+			this.paramMap.put(PARAM_TRANSFER_ROOT_RUN_ID, this.transferRootRunId);
 		}
 		this.insight = insight;
 		this.executionSessionId = trimmedStringValue(executionSessionId);
@@ -165,7 +179,8 @@ public final class AgentRunRequest {
 	public AgentRunRequest withParentRunId(String parentRunId) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, executionSessionId);
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, transferFromRunId,
+				transferRootRunId, executionSessionId);
 	}
 
 	/**
@@ -174,7 +189,8 @@ public final class AgentRunRequest {
 	public AgentRunRequest withCompletionMode(SubAgentRunCompletionMode completionMode) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
-				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, executionSessionId);
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, transferFromRunId,
+				transferRootRunId, executionSessionId);
 	}
 
 	/** Builds a fresh same-room run that follows one detached child result. */
@@ -182,7 +198,7 @@ public final class AgentRunRequest {
 			Insight continuationInsight) {
 		return new AgentRunRequest(parentRoomId, continuationInput, engineIdFallback, harnessType, workspaceId,
 				maxTurns, maxReflections, paramMap, agentParamMap, null, null, continuationInsight, false, null,
-				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null,
+				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null, null, null,
 				executionSessionId);
 	}
 
@@ -191,6 +207,23 @@ public final class AgentRunRequest {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
 				ownerAuthType, continuationChildRunId, continuationDepth, executorLabel == null ? "" : executorLabel,
+				transferFromRunId, transferRootRunId, executionSessionId);
+	}
+
+	/** Builds a top-level successor run that temporarily owns the same room. */
+	public AgentRunRequest forTransfer(String targetWorkspaceId, String transferInput, String fromRunId,
+			String rootRunId) {
+		return new AgentRunRequest(roomId, transferInput, engineIdFallback, harnessType, targetWorkspaceId, maxTurns,
+				maxReflections, paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, false, null,
+				SubAgentRunCompletionMode.WAIT, ownerAuthType, null, 0, null, fromRunId, rootRunId,
+				executionSessionId);
+	}
+
+	/** Returns a copy linked to the run that transferred room ownership. */
+	public AgentRunRequest withTransferMetadata(String fromRunId, String rootRunId) {
+		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
+				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
+				ownerAuthType, continuationChildRunId, continuationDepth, humanExecutorLabel, fromRunId, rootRunId,
 				executionSessionId);
 	}
 
@@ -200,6 +233,18 @@ public final class AgentRunRequest {
 
 	public String getHumanExecutorLabel() {
 		return humanExecutorLabel;
+	}
+
+	public String getTransferFromRunId() {
+		return transferFromRunId;
+	}
+
+	public String getTransferRootRunId() {
+		return transferRootRunId;
+	}
+
+	public boolean isTransferredRun() {
+		return transferFromRunId != null;
 	}
 
 	public String getInput() {
@@ -263,6 +308,8 @@ public final class AgentRunRequest {
 		map.put("continuationDepth", continuationDepth);
 		map.put("executorType", humanExecutorLabel == null ? "AGENT" : "HUMAN");
 		map.put("executorLabel", humanExecutorLabel);
+		map.put("transferFromRunId", transferFromRunId);
+		map.put("transferRootRunId", transferRootRunId);
 		map.put("completionMode", completionMode.name());
 		map.put("input", input);
 		map.put("engineIdFallback", engineIdFallback);
@@ -296,6 +343,7 @@ public final class AgentRunRequest {
 				intValue(map.get("continuationDepth"), 0),
 				"HUMAN".equals(map.get("executorType")) ? String.valueOf(map.getOrDefault("executorLabel", ""))
 						: null,
+				stringValue(map.get("transferFromRunId")), stringValue(map.get("transferRootRunId")),
 				null);
 	}
 
