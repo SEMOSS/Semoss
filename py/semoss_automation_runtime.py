@@ -11,7 +11,7 @@ import base64
 import json
 import re
 import uuid
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator
 from itertools import islice
 from typing import Any
 
@@ -205,12 +205,14 @@ class AutomationDataService:
             return value.reference
         return self._provider.reference_for(value, owner)
 
-class AutomationDataset(Sequence[dict[str, Any]]):
-    """Lazy row sequence backed by a task in the Automation execution Insight.
+class AutomationDataset(list[dict[str, Any]]):
+    """Read-only lazy row list backed by an Automation execution Insight task.
 
-    Iteration, length, integer indexes, slices, and list comprehensions work
-    without exposing a task identifier to the node author. Rows cross the bridge
-    only in bounded pages.
+    The list interface keeps database output compatible with ordinary custom
+    Python, including ``json.dumps``, iteration, length, integer indexes, slices,
+    and list comprehensions. Rows still cross the bridge only in bounded pages;
+    mutating the virtual list is rejected because the underlying query task is
+    owned by the execution Insight.
     """
 
     DEFAULT_PAGE_SIZE = 1_000
@@ -218,6 +220,7 @@ class AutomationDataset(Sequence[dict[str, Any]]):
     def __init__(
         self, reference: dict[str, Any], owner: dict[str, str], page_size: int = 1_000
     ) -> None:
+        list.__init__(self)
         _validate_owner(owner)
         metadata = _data_reference_metadata(reference)
         if metadata is None or metadata["valueType"] != "dataset":
@@ -236,6 +239,48 @@ class AutomationDataset(Sequence[dict[str, Any]]):
         self.page_size = page_size
         self._known_total: int | None = None
         self._prefetched_page: dict[str, Any] | None = None
+
+    def _raise_read_only(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("Automation datasets are read-only.")
+
+    __setitem__ = _raise_read_only
+    __delitem__ = _raise_read_only
+    __iadd__ = _raise_read_only
+    __imul__ = _raise_read_only
+    append = _raise_read_only
+    clear = _raise_read_only
+    extend = _raise_read_only
+    insert = _raise_read_only
+    pop = _raise_read_only
+    remove = _raise_read_only
+    reverse = _raise_read_only
+    sort = _raise_read_only
+
+    def __bool__(self) -> bool:
+        return len(self) > 0
+
+    def __contains__(self, value: object) -> bool:
+        return any(row == value for row in self)
+
+    def __repr__(self) -> str:
+        return repr(list(self))
+
+    def copy(self) -> list[dict[str, Any]]:
+        """Return an explicitly materialized copy of the dataset rows."""
+        return list(self)
+
+    def count(self, value: object) -> int:
+        return sum(1 for row in self if row == value)
+
+    def index(
+        self, value: object, start: int = 0, stop: int | None = None
+    ) -> int:
+        if start < 0 or (stop is not None and stop < 0):
+            return list(self).index(value, start, len(self) if stop is None else stop)
+        for index, row in enumerate(islice(self, start, stop), start):
+            if row == value:
+                return index
+        raise ValueError(f"{value!r} is not in AutomationDataset")
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         offset = 0
