@@ -1442,12 +1442,10 @@ public final class AutomationDatabaseUtility {
 			String persistedOutput = (String) output.get(AutomationConstants.OUTPUT_VALUE);
 			Object persistedValue = null;
 			boolean containsReference = false;
-			AutomationDataReference dataReference = null;
 			if (persistedOutput != null && !persistedOutput.isBlank()) {
 				try {
 					persistedValue = AutomationRuntimeUtils.GSON.fromJson(persistedOutput, Object.class);
-					containsReference = AutomationDataReference.containsReference(persistedValue);
-					dataReference = AutomationDataReference.fromValue(persistedValue);
+					containsReference = AutomationDataReference.find(persistedValue) != null;
 				} catch (RuntimeException ignored) {
 					// Ordinary node output is allowed to be any valid persisted JSON value.
 				}
@@ -1459,11 +1457,8 @@ public final class AutomationDatabaseUtility {
 			}
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
 			nodeResult.put(AutomationConstants.OUTPUT_VALUE, !containsReference ? persistedOutput : null);
-			nodeResult.put(AutomationConstants.RESULT_DATA_AVAILABLE,
-					dataReference != null && runDataAvailable);
-			if (dataReference != null) {
-				nodeResult.put(AutomationConstants.RESULT_DATA_VALUE_TYPE, dataReference.valueType().getValue());
-			}
+			nodeResult.put(AutomationConstants.RESULT_HAS_RETAINED_DATA, containsReference);
+			nodeResult.put(AutomationConstants.RESULT_DATA_AVAILABLE, containsReference && runDataAvailable);
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 			Map<String, Object> trace = new LinkedHashMap<>();
 			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID, output.get(AutomationConstants.RUN_ID));

@@ -24,7 +24,7 @@
  * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
- *******************************************************************************/
+ ******************************************************************************/
 package prerna.reactor.automation;
 
 import java.util.ArrayList;
@@ -33,27 +33,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Opaque pointer to a value owned by an Automation execution Insight.
+ * Opaque pointer to a value retained by one Automation execution Insight.
  *
  * <p>
- * The serialized reference deliberately contains no engine identifier, query,
- * frame name, filesystem path, or runtime representation. Resolution is
- * possible only inside the authenticated execution Insight that created it. The
- * reference is not an authorization token: every resolver must independently
- * enforce the owning Automation project's permissions and immutable run owner.
+ * The reference is only a locator. Callers must authorize the Automation
+ * project and run before resolving it inside that run's execution Insight.
  *
  * @param schemaVersion serialized contract version
- * @param referenceId   opaque run-local identifier
- * @param valueType     provider-independent compatibility category
+ * @param referenceId run-local identifier
  */
-public record AutomationDataReference(int schemaVersion, String referenceId, AutomationValueType valueType) {
+public record AutomationDataReference(int schemaVersion, String referenceId) {
 
-	/** Current serialized reference schema. */
 	public static final int CURRENT_SCHEMA_VERSION = 1;
-	/** Marker wrapping a reference inside an ordinary JSON scope value. */
 	public static final String MARKER = "__automationDataReference";
-	/** Bounded text shown to clients instead of the private reference payload. */
-	public static final String CLIENT_PREVIEW = "Large output is not included in run history.";
+	public static final String CLIENT_PREVIEW = "Large output is retained in this run workspace.";
 
 	public AutomationDataReference {
 		if (schemaVersion != CURRENT_SCHEMA_VERSION) {
@@ -62,81 +55,55 @@ public record AutomationDataReference(int schemaVersion, String referenceId, Aut
 		if (referenceId == null || referenceId.isBlank()) {
 			throw new IllegalArgumentException("Automation data reference ID is required.");
 		}
-		if (valueType == null || valueType == AutomationValueType.UNKNOWN) {
-			throw new IllegalArgumentException("Automation data reference value type is required.");
-		}
 	}
 
-	/**
-	 * @return JSON-shaped value stored in run scope and node history
-	 */
+	/** @return JSON-shaped value stored in run scope and node history */
 	public Map<String, Object> toMap() {
-		Map<String, Object> metadata = new LinkedHashMap<>();
-		metadata.put("schemaVersion", this.schemaVersion);
-		metadata.put("referenceId", this.referenceId);
-		metadata.put("valueType", this.valueType.getValue());
-		return Map.of(MARKER, metadata);
+		return Map.of(MARKER, Map.of("schemaVersion", this.schemaVersion, "referenceId", this.referenceId));
 	}
 
-	/**
-	 * Reads a reference from a runtime value. Invalid or unrelated maps are not
-	 * treated as references.
-	 *
-	 * @param value possible serialized reference
-	 * @return parsed reference, or {@code null}
-	 */
+	/** Returns a reference when the supplied value is a valid reference marker. */
 	public static AutomationDataReference fromValue(Object value) {
 		if (!(value instanceof Map<?, ?> outer) || !(outer.get(MARKER) instanceof Map<?, ?> metadata)) {
 			return null;
 		}
 		Object schema = metadata.get("schemaVersion");
 		Object reference = metadata.get("referenceId");
-		Object type = metadata.get("valueType");
-		if (!(schema instanceof Number) || !(reference instanceof String) || !(type instanceof String)) {
+		if (!(schema instanceof Number) || !(reference instanceof String)) {
 			return null;
 		}
 		try {
-			return new AutomationDataReference(((Number) schema).intValue(), (String) reference,
-					AutomationValueType.fromValue((String) type));
+			return new AutomationDataReference(((Number) schema).intValue(), (String) reference);
 		} catch (IllegalArgumentException ignored) {
 			return null;
 		}
 	}
 
-	/**
-	 * Returns whether a JSON-shaped value contains a private data reference at any
-	 * depth.
-	 *
-	 * @param value possible runtime value
-	 * @return {@code true} when the value contains a reference
-	 */
-	public static boolean containsReference(Object value) {
-		if (fromValue(value) != null) {
-			return true;
+	/** Returns the first retained-data reference found at any JSON depth. */
+	public static AutomationDataReference find(Object value) {
+		AutomationDataReference reference = fromValue(value);
+		if (reference != null) {
+			return reference;
 		}
 		if (value instanceof Map<?, ?> map) {
 			for (Object item : map.values()) {
-				if (containsReference(item)) {
-					return true;
+				reference = find(item);
+				if (reference != null) {
+					return reference;
 				}
 			}
 		} else if (value instanceof List<?> list) {
 			for (Object item : list) {
-				if (containsReference(item)) {
-					return true;
+				reference = find(item);
+				if (reference != null) {
+					return reference;
 				}
 			}
 		}
-		return false;
+		return null;
 	}
 
-	/**
-	 * Replaces private reference payloads with a bounded client-facing message.
-	 * Ordinary JSON values retain their existing shape.
-	 *
-	 * @param value runtime value
-	 * @return client-safe JSON-shaped value
-	 */
+	/** Replaces private references with a bounded message for client responses. */
 	public static Object forClient(Object value) {
 		if (fromValue(value) != null) {
 			return CLIENT_PREVIEW;

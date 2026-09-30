@@ -58,7 +58,7 @@ public final class AutomationNodeCatalog {
 
 	private static final Port CONTROL_INPUT = port("in", "In", PortKind.CONTROL, PortDirection.INPUT, null);
 	private static final Port CONTROL_OUTPUT = port("out", "Next", PortKind.CONTROL, PortDirection.OUTPUT, null);
-	private static final Port RESULT_OUTPUT = resultOutput(AutomationValueType.UNKNOWN);
+	private static final Port RESULT_OUTPUT = port("result", "Result", PortKind.DATA, PortDirection.OUTPUT, "unknown");
 	private static final List<AutomationNodeDefinition> DEFINITIONS = createDefinitions();
 
 	static {
@@ -73,28 +73,6 @@ public final class AutomationNodeCatalog {
 	 */
 	public static List<AutomationNodeDefinition> getDefinitions() {
 		return DEFINITIONS;
-	}
-
-	/**
-	 * Returns the provider-independent value category published by a node's
-	 * canonical result port.
-	 *
-	 * @param nodeType supported node type
-	 * @return declared result category, or {@link AutomationValueType#UNKNOWN}
-	 */
-	static AutomationValueType getResultValueType(AutomationNodeType nodeType) {
-		for (AutomationNodeDefinition definition : DEFINITIONS) {
-			if (definition.nodeType() != nodeType) {
-				continue;
-			}
-			for (Port output : definition.outputs()) {
-				if (output.kind() == PortKind.DATA && "result".equals(output.id()) && output.dataType() != null) {
-					return output.dataType();
-				}
-			}
-			break;
-		}
-		return AutomationValueType.UNKNOWN;
 	}
 
 	/**
@@ -126,7 +104,7 @@ public final class AutomationNodeCatalog {
 						field("query", ConfigFieldType.CODE, "Query", true, ""),
 						boundedIntegerField("limit", "Result limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
 								AutomationConstants.DB_QUERY_MIN_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT)),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.DATASET)));
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(databaseWriteDefinition(AutomationNodeType.DATABASE_INSERT, "Insert database rows",
 				"Add records to a database table."));
 		definitions.add(databaseWriteDefinition(AutomationNodeType.DATABASE_UPDATE, "Update database rows",
@@ -141,24 +119,24 @@ public final class AutomationNodeCatalog {
 								field("systemPrompt", ConfigFieldType.TEXT, "Instructions for the model", false, ""),
 								field("prompt", ConfigFieldType.TEXT, "Prompt", true, ""),
 								field("paramValues", ConfigFieldType.JSON, "Model parameters", false, Map.of())),
-						controlInputs(), controlAndResultOutputs(AutomationValueType.VALUE)));
+						controlInputs(), controlAndResultOutputs()));
 		definitions.add(definition(AutomationNodeType.MODEL_EMBEDDINGS, "Create embeddings",
 				"Turn text into vectors with a model engine.", orderedConfig("engineId", "", "text", ""),
 				List.of(engineField(IEngine.CATALOG_TYPE.MODEL),
 						field("text", ConfigFieldType.TEXT, "Text to embed", true, "")),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.COLLECTION)));
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(definition(AutomationNodeType.MODEL_VISION, "Analyze image",
 				"Ask a vision model about an image.", orderedConfig("engineId", "", "image", "", "prompt", ""),
 				List.of(engineField(IEngine.CATALOG_TYPE.MODEL),
 						field("image", ConfigFieldType.STRING, "Image path or URL", true, ""),
 						field("prompt", ConfigFieldType.TEXT, "Question about the image", true, "")),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.VALUE)));
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(definition(AutomationNodeType.MODEL_NER, "Extract entities", "Find named entities in text.",
 				orderedConfig("engineId", "", "text", "", "entities", List.of()),
 				List.of(engineField(IEngine.CATALOG_TYPE.MODEL),
 						field("text", ConfigFieldType.TEXT, "Text to analyze", true, ""),
 						field("entities", ConfigFieldType.STRING_LIST, "Entity types", true, List.of())),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.COLLECTION)));
+				controlInputs(), controlAndResultOutputs()));
 
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_LIST, "List files",
 				"List files in connected storage.", false, false));
@@ -182,25 +160,25 @@ public final class AutomationNodeCatalog {
 				"Call a reusable function engine.", orderedConfig("engineId", "", "arguments", Map.of()),
 				List.of(engineField(IEngine.CATALOG_TYPE.FUNCTION),
 						field("arguments", ConfigFieldType.JSON, "Input parameters", true, Map.of())),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.UNKNOWN)));
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(definition(AutomationNodeType.APP_PIXEL, "Run an app action",
 				"Run a static Pixel action in an optional app context.", orderedConfig("appId", "", "pixel", ""),
 				List.of(field("appId", ConfigFieldType.STRING, "App", false, ""),
 						field("pixel", ConfigFieldType.CODE, "Pixel", true, "")),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.UNKNOWN)));
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(
 				definition(AutomationNodeType.AGENT_RUN, "Run agent", "Run a configured SEMOSS agent with a prompt.",
 						orderedConfig("workspaceId", "", "engineId", "", "command", ""),
 						List.of(field("workspaceId", ConfigFieldType.STRING, "Agent", true, ""),
 								engineField(IEngine.CATALOG_TYPE.MODEL),
 								field("command", ConfigFieldType.TEXT, "Instruction", true, "")),
-						controlInputs(), controlAndResultOutputs(AutomationValueType.VALUE)));
+						controlInputs(), controlAndResultOutputs()));
 
 		definitions.add(definition(AutomationNodeType.CONTROL_WAIT, "Wait", "Pause the automation before continuing.",
 				Map.of("durationSeconds", 5),
 				List.of(boundedIntegerField("durationSeconds", "Wait for (seconds)", 5,
 						AutomationConstants.WAIT_MIN_SECONDS, AutomationConstants.WAIT_MAX_SECONDS)),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.VALUE)));
+				controlInputs(), List.of(CONTROL_OUTPUT)));
 		definitions.add(definition(AutomationNodeType.CONTROL_IF, "Decision",
 				"Evaluate ordered conditions and route to the first matching path.",
 				Map.of("clauses", List.of(Map.of("id", "initial", "condition", ""))),
@@ -238,7 +216,7 @@ public final class AutomationNodeCatalog {
 		return definition(nodeType, label, description, orderedConfig("engineId", "", "query", ""),
 				List.of(engineField(IEngine.CATALOG_TYPE.DATABASE),
 						field("query", ConfigFieldType.CODE, "Query", true, "")),
-				controlInputs(), controlAndResultOutputs(AutomationValueType.VALUE));
+				controlInputs(), List.of(CONTROL_OUTPUT));
 	}
 
 	private static AutomationNodeDefinition storageDefinition(AutomationNodeType nodeType, String label,
@@ -269,13 +247,8 @@ public final class AutomationNodeCatalog {
 						outputField("filePath", OutputFieldType.STRING, "Single file path",
 								"The file path when the destination contains exactly one file.", false))
 				: List.of();
-		AutomationValueType valueType = switch (nodeType) {
-		case STORAGE_LIST -> AutomationValueType.COLLECTION;
-		case STORAGE_READ, STORAGE_DOWNLOAD -> AutomationValueType.FILE;
-		default -> AutomationValueType.VALUE;
-		};
 		return definition(nodeType, label, description, defaultConfig, fields, outputFields, controlInputs(),
-				controlAndResultOutputs(valueType));
+				controlAndResultOutputs());
 	}
 
 	private static AutomationNodeDefinition vectorDefinition(AutomationNodeType nodeType, String label,
@@ -290,11 +263,8 @@ public final class AutomationNodeCatalog {
 			fields.add(boundedIntegerField("limit", "Result limit", AutomationConstants.DEFAULT_VECTOR_SEARCH_LIMIT, 1,
 					null));
 		}
-		AutomationValueType valueType = nodeType == AutomationNodeType.VECTOR_SEARCH
-				? AutomationValueType.COLLECTION
-				: AutomationValueType.VALUE;
 		return definition(nodeType, label, description, defaultConfig, fields, controlInputs(),
-				controlAndResultOutputs(valueType));
+				controlAndResultOutputs());
 	}
 
 	private static AutomationNodeDefinition definition(AutomationNodeType nodeType, String label, String description,
@@ -328,13 +298,8 @@ public final class AutomationNodeCatalog {
 		return new ConfigField(key, ConfigFieldType.INTEGER, label, true, defaultValue, minimum, maximum, null);
 	}
 
-	private static Port port(String id, String label, PortKind kind, PortDirection direction,
-			AutomationValueType dataType) {
+	private static Port port(String id, String label, PortKind kind, PortDirection direction, String dataType) {
 		return new Port(id, label, kind, direction, dataType);
-	}
-
-	private static Port resultOutput(AutomationValueType dataType) {
-		return port("result", "Result", PortKind.DATA, PortDirection.OUTPUT, dataType);
 	}
 
 	private static List<Port> controlInputs() {
@@ -343,10 +308,6 @@ public final class AutomationNodeCatalog {
 
 	private static List<Port> controlAndResultOutputs() {
 		return List.of(CONTROL_OUTPUT, RESULT_OUTPUT);
-	}
-
-	private static List<Port> controlAndResultOutputs(AutomationValueType dataType) {
-		return List.of(CONTROL_OUTPUT, resultOutput(dataType));
 	}
 
 	/**

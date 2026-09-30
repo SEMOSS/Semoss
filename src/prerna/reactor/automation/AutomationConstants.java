@@ -219,12 +219,12 @@ public final class AutomationConstants {
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	/** Largest node value kept inline before its execution Insight retains it by reference. */
 	public static final int DATA_REFERENCE_INLINE_MAX_BYTES = 512 * 1024;
-	/** Largest single value retained by the run-memory Automation data provider. */
-	public static final int RUN_MEMORY_DATA_MAX_VALUE_BYTES = 64 * 1024 * 1024;
-	/** Aggregate run-memory ceiling for one Automation execution owner. */
-	public static final int RUN_MEMORY_DATA_MAX_RUN_BYTES = 256 * 1024 * 1024;
-	/** Largest number of run-memory values owned by one Automation execution. */
-	public static final int RUN_MEMORY_DATA_MAX_RUN_VALUES = 256;
+	/** Largest single value retained by an Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_VALUE_BYTES = 64 * 1024 * 1024;
+	/** Aggregate retained-value ceiling for one Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_RUN_BYTES = 256 * 1024 * 1024;
+	/** Largest number of values retained by one Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_RUN_VALUES = 256;
 	/** Default number of retained data rows or entries returned to a client. */
 	public static final int DEFAULT_DATA_PAGE_LIMIT = 50;
 	/** Largest retained data page a client may request. */
@@ -298,8 +298,8 @@ public final class AutomationConstants {
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
 	/** Whether the live execution Insight can currently page a retained node result. */
 	public static final String RESULT_DATA_AVAILABLE = "dataAvailable";
-	/** Provider-independent category of a retained node result, including an expired one. */
-	public static final String RESULT_DATA_VALUE_TYPE = "dataValueType";
+	/** Whether the node produced a value retained in its execution Insight. */
+	public static final String RESULT_HAS_RETAINED_DATA = "hasRetainedData";
 	public static final String RESULT_TRACE = "trace";
 	/**
 	 * Internal generated-node envelope value; removed before history/scope

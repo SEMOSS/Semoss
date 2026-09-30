@@ -55,11 +55,22 @@ public class CreateAutomationQueryDataReactor extends AbstractReactor {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Automation database query limit must be an integer.", e);
 		}
-		String runId = this.keyValue.get(RUN_ID_KEY);
-		AutomationDataOwner owner = AutomationRunExecutionService.dataOwner(this.insight.getProjectId(), runId);
-		AutomationDataReference reference = AutomationTaskDataService.createQuery(this.insight,
-				owner, this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()),
+		AutomationDataReference reference = AutomationTaskData.createQuery(this.insight,
+				this.keyValue.get(RUN_ID_KEY), this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()),
 				this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()), limit);
 		return new NounMetadata(reference.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Runs a guarded SQL read and keeps its lazy result in the current Automation execution workspace.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (RUN_ID_KEY.equals(key)) {
+			return "Automation run identifier that owns the current execution workspace.";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

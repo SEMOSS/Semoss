@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -51,27 +52,22 @@ import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.TaskUtility;
 
 /**
- * Owns task-backed data used by Automation nodes.
+ * Adapts guarded SQL query tasks to Automation's run-local reference contract.
  *
  * <p>
- * Query authorization and SQL routing remain in {@link SqlQueryReactor}. This
- * service changes only the transport: the resulting {@link ITask} stays in the
- * run Insight and downstream Python receives an opaque
- * {@link AutomationDataReference} instead of a materialized result set.
+ * The task remains owned by the execution Insight's existing TaskStore. This
+ * class adds no cache, registry, or independent lifecycle.
  */
-final class AutomationTaskDataService {
-	private static final Logger classLogger = LogManager.getLogger(AutomationTaskDataService.class);
+final class AutomationTaskData {
+	private static final Logger classLogger = LogManager.getLogger(AutomationTaskData.class);
 
-	private AutomationTaskDataService() {
+	private AutomationTaskData() {
 	}
 
-	/**
-	 * Executes one guarded SQL read and retains its lazy task in the execution
-	 * Insight.
-	 */
-	static AutomationDataReference createQuery(Insight insight, AutomationDataOwner owner, String databaseId,
-			String query, int maxRows) {
-		validateExecutionInsight(insight, owner.runId());
+	/** Executes a guarded SQL read and stores its lazy task in the run Insight. */
+	static AutomationDataReference createQuery(Insight insight, String runId, String databaseId, String query,
+			int maxRows) {
+		validateExecutionInsight(insight, runId);
 		if (maxRows < AutomationConstants.DB_QUERY_MIN_LIMIT
 				|| maxRows > AutomationConstants.DB_QUERY_MAX_LIMIT) {
 			throw new IllegalArgumentException("Automation database query limit must be between "
@@ -89,23 +85,18 @@ final class AutomationTaskDataService {
 
 		String referenceId = UUID.randomUUID().toString();
 		try {
-			// The configured limit remains the owner-visible maximum. Disabling the
-			// iterator's one-shot collect counter lets bounded page reads reset safely.
 			task.setNumCollect(maxRows);
+			// This adapter enforces maxRows while paging. Disabling the task's monotonic
+			// collect counter also allows a bounded previous-page request after reset().
 			task.setCollectLimit(-1);
 			long availableRows = TaskUtility.getNumRows(task);
 			if (availableRows < 0 || (availableRows == 0 && task.hasNext())) {
-				throw new IllegalStateException("Unable to determine the Automation query row count.");
+				throw new IllegalStateException("Automation query task did not provide a reliable row count.");
 			}
-			task.setNumRows(Math.min(availableRows, maxRows));
+			task.setNumRows(Math.min(Math.max(availableRows, 0), maxRows));
 			task.setId(referenceId);
 			insight.getTaskStore().addTask(referenceId, task);
-			AutomationDataReference reference = new AutomationDataReference(
-					AutomationDataReference.CURRENT_SCHEMA_VERSION, referenceId,
-					AutomationValueType.DATASET);
-			AutomationRunDataRegistry.register(insight, reference, owner, AutomationRunDataRegistry.Backing.TASK,
-					referenceId);
-			return reference;
+			return new AutomationDataReference(AutomationDataReference.CURRENT_SCHEMA_VERSION, referenceId);
 		} catch (Exception e) {
 			if (insight.getTaskStore().getTask(referenceId) == task) {
 				insight.getTaskStore().removeTask(referenceId);
@@ -119,33 +110,21 @@ final class AutomationTaskDataService {
 		}
 	}
 
-	/** Returns one deterministic, bounded page from a retained query task. */
-	static AutomationDataPage readPage(Insight insight, AutomationDataOwner owner, AutomationDataReference reference,
-			int offset,
+	/** Returns one deterministic, bounded page from a task in the run Insight. */
+	static Map<String, Object> readPage(Insight insight, String runId, AutomationDataReference reference, int offset,
 			int limit) {
-		validateExecutionInsight(insight, owner.runId());
-		if (reference.valueType() != AutomationValueType.DATASET) {
-			throw new IllegalArgumentException("Automation task data must be a dataset.");
-		}
+		validateExecutionInsight(insight, runId);
 		if (offset < 0 || limit < 1 || limit > AutomationConstants.INTERNAL_DATA_PAGE_LIMIT) {
 			throw new IllegalArgumentException("Automation task data page has invalid bounds.");
 		}
-
-		AutomationRunDataRegistry.Entry entry = AutomationRunDataRegistry.require(insight, reference, owner);
-		if (entry.backing() != AutomationRunDataRegistry.Backing.TASK) {
-			throw new IllegalArgumentException("Automation data reference is not backed by a query task.");
-		}
-		ITask stored = insight.getTaskStore().getTask(entry.resourceId());
+		ITask stored = insight.getTaskStore().getTask(reference.referenceId());
 		if (!(stored instanceof BasicIteratorTask task)) {
 			throw new IllegalStateException("Automation task data is no longer available in this run workspace.");
 		}
-		return readPage(task, offset, limit);
-	}
 
-	private static AutomationDataPage readPage(BasicIteratorTask task, int offset, int limit) {
 		synchronized (task) {
-			long total = task.getNumRows();
-			int maxRows = (int) Math.min(task.getNumCollect(), total);
+			long total = Math.min(Math.max(task.getNumRows(), 0), task.getNumCollect());
+			int maxRows = (int) total;
 			if (offset > maxRows) {
 				throw new IllegalArgumentException("Automation task data offset exceeds the configured query limit.");
 			}
@@ -170,13 +149,27 @@ final class AutomationTaskDataService {
 					}
 					rows.add(new ArrayList<>(Arrays.asList(row.getValues())));
 				}
-				boolean hasMore = offset + rows.size() < maxRows && task.hasNext();
-				return new AutomationDataPage(AutomationDataPage.Kind.TABLE, AutomationValueType.DATASET, offset, limit,
-						rows.size(), total, hasMore, headers, rows, null);
+				Map<String, Object> page = basePage("table", offset, limit, rows.size(), total,
+						offset + rows.size() < maxRows && task.hasNext());
+				page.put("headers", headers);
+				page.put("rows", rows);
+				return page;
 			} catch (Exception e) {
 				throw new IllegalStateException("Unable to read Automation query data.", e);
 			}
 		}
+	}
+
+	static Map<String, Object> basePage(String kind, int offset, int limit, int count, long total, boolean hasMore) {
+		Map<String, Object> page = new LinkedHashMap<>();
+		page.put("available", true);
+		page.put("kind", kind);
+		page.put("offset", offset);
+		page.put("limit", limit);
+		page.put("count", count);
+		page.put("total", total);
+		page.put("hasMore", hasMore);
+		return page;
 	}
 
 	private static NounStore queryStore(String databaseId, String query, int maxRows) {
@@ -194,8 +187,8 @@ final class AutomationTaskDataService {
 	}
 
 	private static void validateExecutionInsight(Insight insight, String runId) {
-		if (runId == null || runId.isBlank() || !AutomationRunExecutionService.isExecutionInsight(insight, runId)) {
-			throw new IllegalArgumentException("Automation task data is available only inside its execution run.");
+		if (!AutomationRunExecutionService.isExecutionInsight(insight, runId)) {
+			throw new IllegalArgumentException("Automation data is available only inside its execution run.");
 		}
 		Map<String, Object> run = AutomationDatabaseUtility.getRunDetail(runId);
 		if (run == null || !String.valueOf(run.get(AutomationConstants.PROJECT_ID)).equals(insight.getProjectId())) {

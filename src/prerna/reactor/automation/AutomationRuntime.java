@@ -155,9 +155,8 @@ final class AutomationRuntime {
 	/**
 	 * Runs one node module with the workflow scope supplied by the Java scheduler.
 	 */
-	static String buildNodeInvocationScript(String source, Map<String, Object> scope, AutomationValueType valueType,
-			AutomationDataOwner dataOwner) {
-		return buildPythonInvocation("execute_node", source, scope, valueType, dataOwner);
+	static String buildNodeInvocationScript(String source, Map<String, Object> scope, String runId) {
+		return buildPythonInvocation("execute_node", source, scope, runId);
 	}
 
 	/**
@@ -165,52 +164,42 @@ final class AutomationRuntime {
 	 * JSON-compatible globals. A trigger may also return a map from
 	 * {@code run(scope)} to define computed globals.
 	 */
-	static String buildTriggerInvocationScript(String source, Map<String, Object> scope,
-			AutomationDataOwner dataOwner) {
-		return buildPythonInvocation("execute_trigger", source, scope, AutomationValueType.UNKNOWN, dataOwner);
+	static String buildTriggerInvocationScript(String source, Map<String, Object> scope, String runId) {
+		return buildPythonInvocation("execute_trigger", source, scope, runId);
 	}
 
 	/**
 	 * Applies the same retained-value boundary to a result completed by Java after
 	 * the node's initial Python call, such as a monitored agent run.
 	 */
-	static String buildPreparedNodeResultScript(Object value, AutomationValueType valueType,
-			AutomationDataOwner dataOwner) {
+	static String buildPreparedNodeResultScript(Object value) {
 		String encodedValue = encode(AutomationRuntimeUtils.toBoundedRuntimeJson(value,
-				AutomationConstants.RUN_MEMORY_DATA_MAX_VALUE_BYTES, "Automation node result"));
+				AutomationConstants.RETAINED_DATA_MAX_VALUE_BYTES, "Automation node result"));
 		String invocation = """
 				_automation_data_state = globals().setdefault("_automation_data_state", {})
-				_automation_data_service = _automation_runtime.create_data_service(
-				    _automation_data_state, %d, %d, %d)
 				_automation_runtime.prepare_node_result(
-				    "%s", %d, %s, %d, %s, _automation_data_service)
-				""".formatted(AutomationConstants.RUN_MEMORY_DATA_MAX_VALUE_BYTES,
-				AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_BYTES, AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_VALUES,
-				encodedValue, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
-				AutomationRuntimeUtils.GSON.toJson(valueType.getValue()),
+				    "%s", %d, %d, %d, %d, %d, _automation_data_state)
+				""".formatted(encodedValue, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
 				AutomationConstants.DATA_REFERENCE_INLINE_MAX_BYTES,
-				AutomationRuntimeUtils.GSON.toJson(dataOwner.toMap()));
+				AutomationConstants.RETAINED_DATA_MAX_VALUE_BYTES,
+				AutomationConstants.RETAINED_DATA_MAX_RUN_BYTES,
+				AutomationConstants.RETAINED_DATA_MAX_RUN_VALUES);
 		return runtimeModuleScript(invocation);
 	}
 
 	/** Builds the Python call that reads one bounded page from run-owned data. */
-	static String buildDataPageInvocationScript(AutomationDataReference reference, AutomationDataOwner owner, int offset,
-			int limit) {
+	static String buildDataPageInvocationScript(AutomationDataReference reference, int offset, int limit) {
 		String invocation = """
 				_automation_data_state = globals().setdefault("_automation_data_state", {})
-				_automation_data_service = _automation_runtime.create_data_service(
-				    _automation_data_state, %d, %d, %d)
 				_automation_runtime.read_data_page(
-				    %s, %s, %d, %d, %d, _automation_data_service)
-				""".formatted(AutomationConstants.RUN_MEMORY_DATA_MAX_VALUE_BYTES,
-				AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_BYTES, AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_VALUES,
-				AutomationRuntimeUtils.GSON.toJson(reference.toMap()), AutomationRuntimeUtils.GSON.toJson(owner.toMap()), offset,
-				limit, AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				    %s, %d, %d, %d, _automation_data_state)
+				""".formatted(AutomationRuntimeUtils.GSON.toJson(reference.toMap()), offset, limit,
+				AutomationConstants.NODE_OUTPUT_MAX_BYTES);
 		return runtimeModuleScript(invocation);
 	}
 
 	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
-			AutomationValueType valueType, AutomationDataOwner dataOwner) {
+			String runId) {
 		String encodedScope = encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 				AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope"));
 		String encodedSource = encode(source != null ? source : "");
@@ -218,30 +207,25 @@ final class AutomationRuntime {
 		if ("execute_node".equals(function)) {
 			invocation = """
 					_automation_data_state = globals().setdefault("_automation_data_state", {})
-					_automation_data_service = _automation_runtime.create_data_service(
-					    _automation_data_state, %d, %d, %d)
 					_automation_runtime.execute_node(
-					    "%s", "%s", %d, %s, %d, %s, _automation_data_service)
-					""".formatted(AutomationConstants.RUN_MEMORY_DATA_MAX_VALUE_BYTES,
-						AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_BYTES,
-						AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_VALUES, encodedScope, encodedSource,
-						AutomationConstants.NODE_OUTPUT_MAX_BYTES,
-						AutomationRuntimeUtils.GSON.toJson(valueType.getValue()),
+					    "%s", "%s", %d, %d, %d, %d, %d, %s, _automation_data_state)
+					""".formatted(encodedScope, encodedSource, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
 						AutomationConstants.DATA_REFERENCE_INLINE_MAX_BYTES,
-						AutomationRuntimeUtils.GSON.toJson(dataOwner.toMap()));
+						AutomationConstants.RETAINED_DATA_MAX_VALUE_BYTES,
+						AutomationConstants.RETAINED_DATA_MAX_RUN_BYTES,
+						AutomationConstants.RETAINED_DATA_MAX_RUN_VALUES,
+						AutomationRuntimeUtils.GSON.toJson(runId));
 		} else {
 			invocation = """
 					_automation_data_state = globals().setdefault("_automation_data_state", {})
-					_automation_data_service = _automation_runtime.create_data_service(
-					    _automation_data_state, %d, %d, %d)
 					_automation_runtime.execute_trigger(
-					    "%s", "%s", %d, %d, %s, _automation_data_service)
-					""".formatted(AutomationConstants.RUN_MEMORY_DATA_MAX_VALUE_BYTES,
-						AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_BYTES,
-						AutomationConstants.RUN_MEMORY_DATA_MAX_RUN_VALUES, encodedScope, encodedSource,
-						AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+					    "%s", "%s", %d, %d, %d, %d, %d, %s, _automation_data_state)
+					""".formatted(encodedScope, encodedSource, AutomationConstants.NODE_OUTPUT_MAX_BYTES,
 						AutomationConstants.DATA_REFERENCE_INLINE_MAX_BYTES,
-						AutomationRuntimeUtils.GSON.toJson(dataOwner.toMap()));
+						AutomationConstants.RETAINED_DATA_MAX_VALUE_BYTES,
+						AutomationConstants.RETAINED_DATA_MAX_RUN_BYTES,
+						AutomationConstants.RETAINED_DATA_MAX_RUN_VALUES,
+						AutomationRuntimeUtils.GSON.toJson(runId));
 		}
 		return runtimeModuleScript(invocation);
 	}
@@ -260,22 +244,6 @@ final class AutomationRuntime {
 				_automation_spec.loader.exec_module(_automation_runtime)
 				%s
 				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), invocation);
-	}
-
-	/**
-	 * Returns the canonical result category for generated source. Custom source is
-	 * unknown because its return value is author-defined even when it is attached to
-	 * a typed palette node.
-	 */
-	static AutomationValueType resultValueType(Map<String, Object> node) {
-		if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
-			return AutomationValueType.UNKNOWN;
-		}
-		Object rawType = node.get(AutomationConstants.NODE_FIELD_TYPE);
-		if (!(rawType instanceof String type) || !AutomationNodeType.isSupported(type)) {
-			return AutomationValueType.UNKNOWN;
-		}
-		return AutomationNodeCatalog.getResultValueType(AutomationNodeType.fromType(type));
 	}
 
 	/**
