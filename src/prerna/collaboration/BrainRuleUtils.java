@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -160,7 +161,33 @@ public final class BrainRuleUtils {
 						EXCLUDE_TOPIC.equals(kind) ? topicId : channel);
 			}
 		});
+		// a sender kept out leaves Work too; deleting the rule brings the items back
+		WorkItemUtils.dismissForRule(ownerId, ownerType, keptOutPeople(ownerId, ownerType, kind, value, personId),
+				ruleId);
 		return getRule(ownerId, ownerType, ruleId);
+	}
+
+	// people a sender, domain, or never-ingest rule covers
+	private static List<String> keptOutPeople(String ownerId, String ownerType, String kind, String value,
+			String personId) {
+		Set<String> out = new LinkedHashSet<>();
+		if (EXCLUDE_EVERYWHERE.equals(kind)) {
+			out.add(personId != null ? personId : value);
+		} else if (NEVER_SENDER.equals(kind) || NEVER_DOMAIN.equals(kind)) {
+			// the gate's own matching, so Work and import agree
+			BrainRulesGate.Rule rule = new BrainRulesGate.Rule(null, kind, normValue(kind, value), null, personId, null);
+			CollaborationDbUtils.query("SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? UNION SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ?", rs -> {
+						String a = rs.getString(2);
+						if (a != null && a.contains("@") && BrainRulesGate.matchesNever(rule, a, rs.getString(1), null)) {
+							out.add(rs.getString(1));
+						}
+						return null;
+					}, ownerId, ownerType, ownerId, ownerType);
+		}
+		out.remove(null);
+		return new ArrayList<>(out);
 	}
 
 	// soft delete; people this rule excluded on a thread are included again
@@ -184,6 +211,7 @@ public final class BrainRuleUtils {
 					now, ownerId, ownerType, ruleId);
 			reinclude(conn, ownerId, ownerType, ruleId);
 		});
+		WorkItemUtils.reopenForRule(ownerId, ownerType, ruleId);
 	}
 
 	private static void reinclude(Connection conn, String ownerId, String ownerType, String ruleId)

@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -109,7 +110,8 @@ public final class BrainThreadClassifier {
 				job.count("total", total);
 				job.step("classifying", total == 0 ? 99 : Math.max(1, 99 * done / total));
 			});
-			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors", "automatedPeople" }) {
+			for (String key : new String[] { "classifier", "threads", "topics", "work", "errors", "automatedPeople",
+					"automatedSenders", "senderVoteCalls" }) {
 				job.count(key, summary.get(key));
 			}
 		});
@@ -145,12 +147,25 @@ public final class BrainThreadClassifier {
 				rs -> rs.getString(1), ownerId, ownerType, BrainFollow.FOLLOWING));
 		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
 				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
-				vips, followed);
+				vips, followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>());
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
 
 		List<Result> results = new ArrayList<>();
 		ExecutorService pool = Executors.newFixedThreadPool(parallel());
+		BrainSenderVote.Outcome vote = null;
 		try {
+			// senders first: an automated one's threads then need no model call
+			if (!dryRun) {
+				vote = BrainSenderVote.run(ownerId, ownerType, ctx.self().personId(), new HashSet<>(ids), threadId -> {
+					BrainClassifier.Scores scores = scoreOnly(ctx, threadId);
+					if (scores == null) {
+						return null;
+					}
+					ctx.scored().put(threadId, scores);
+					return scores.automated();
+				}, pool);
+				ctx.automatedSenders().addAll(vote.automated());
+			}
 			List<Future<Result>> futures = new ArrayList<>();
 			for (String threadId : ids) {
 				futures.add(pool.submit(() -> classifyOne(ctx, threadId)));
@@ -173,6 +188,10 @@ public final class BrainThreadClassifier {
 			pool.shutdown();
 		}
 		Map<String, Object> summary = summary(classifier.version(), dryRun, results);
+		if (vote != null) {
+			summary.put("automatedSenders", vote.typed());
+			summary.put("senderVoteCalls", vote.calls());
+		}
 		if (!dryRun) {
 			// senders of only automated threads leave People, Topics and Follow
 			summary.put("automatedPeople", BrainSenderTyping.fromThreads(ownerId, ownerType));
@@ -185,7 +204,8 @@ public final class BrainThreadClassifier {
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
 			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt,
-			boolean dryRun, Self self, Set<String> vips, Set<String> followed) {
+			boolean dryRun, Self self, Set<String> vips, Set<String> followed, Set<String> automatedSenders,
+			Map<String, BrainClassifier.Scores> scored) {
 	}
 
 	@SuppressWarnings("unchecked")
@@ -211,22 +231,21 @@ public final class BrainThreadClassifier {
 		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
 		}
+		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call
+		if (!ctx.dryRun() && machineOnly(ctx, threadId)) {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
+			ctx.scored().remove(threadId);
+			return new Result(threadId, null, null, null, "automated", null, null, null);
+		}
 		String onIt = recipientRole(ctx.self(), newest);
 		// filed by the owner or by onboarding: no topic question, the link stays
 		boolean kept = !ctx.dryRun() && hasKeptLink(ctx, threadId);
 
-		List<BrainClassifier.Message> input = new ArrayList<>();
-		for (Map<String, Object> m : messages) {
-			String text = m.get("text") == null ? "" : String.valueOf(m.get("text"));
-			int max = Boolean.TRUE.equals(m.get("history")) ? HISTORY_CHARS : TEXT_CHARS;
-			input.add(new BrainClassifier.Message(
-					Objects.equals(ctx.self().personId(), m.get("fromId")) ? "me" : (String) m.get("fromName"),
-					names(ctx.self(), m.get("to")), names(ctx.self(), m.get("cc")), (String) m.get("at"),
-					text.length() > max ? text.substring(0, max) : text));
-		}
-		BrainClassifier.Scores scores = ctx.classifier().score(new BrainClassifier.ThreadInput(threadId,
-				ctx.self().name(), (String) thread.get("subject"), participants(ctx, threadId), input),
-				kept ? List.of() : ctx.topics(), ctx.insight());
+		// a sender vote may have scored it already
+		BrainClassifier.Scores cached = ctx.scored().remove(threadId);
+		BrainClassifier.Scores scores = cached != null ? cached
+				: modelScores(ctx, threadId, (String) thread.get("subject"), messages, kept);
 		Map<String, Object> signals = signals(scores);
 		boolean automated = scores.automated() >= ctx.cutoffs().automatedAt();
 
@@ -368,6 +387,54 @@ public final class BrainThreadClassifier {
 			}
 		}
 		return new Result(threadId, topicId, confidence, band, work, priority, signals, null);
+	}
+
+	private static BrainClassifier.Scores modelScores(Context ctx, String threadId, String subject,
+			List<Map<String, Object>> messages, boolean kept) {
+		List<BrainClassifier.Message> input = new ArrayList<>();
+		for (Map<String, Object> m : messages) {
+			String text = m.get("text") == null ? "" : String.valueOf(m.get("text"));
+			int max = Boolean.TRUE.equals(m.get("history")) ? HISTORY_CHARS : TEXT_CHARS;
+			input.add(new BrainClassifier.Message(
+					Objects.equals(ctx.self().personId(), m.get("fromId")) ? "me" : (String) m.get("fromName"),
+					names(ctx.self(), m.get("to")), names(ctx.self(), m.get("cc")), (String) m.get("at"),
+					text.length() > max ? text.substring(0, max) : text));
+		}
+		return ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
+				participants(ctx, threadId), input), kept ? List.of() : ctx.topics(), ctx.insight());
+	}
+
+	// the same scores classifyOne would ask for, without writing anything; null for a muted or empty thread
+	@SuppressWarnings("unchecked")
+	private static BrainClassifier.Scores scoreOnly(Context ctx, String threadId) {
+		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
+				MESSAGES, BrainMessageSource.current());
+		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
+		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
+			return null;
+		}
+		String subject = CollaborationDbUtils.queryOne("SELECT SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND "
+				+ "OWNER_TYPE = ? AND THREAD_ID = ?", rs -> CollaborationDbUtils.getString(rs, "SUBJECT"), ctx.ownerId(),
+				ctx.ownerType(), threadId);
+		return modelScores(ctx, threadId, subject, messages, hasKeptLink(ctx, threadId));
+	}
+
+	// every other sender on the thread is automated or sent it as machine mail, and the owner never wrote
+	private static boolean machineOnly(Context ctx, String threadId) {
+		List<Object[]> rows = CollaborationDbUtils.query("SELECT SENDER_PERSON_ID, AUTO FROM BRAIN_MESSAGE WHERE "
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND SENDER_PERSON_ID IS NOT NULL",
+				rs -> new Object[] { rs.getString(1), CollaborationDbUtils.getBoolean(rs, "AUTO") }, ctx.ownerId(),
+				ctx.ownerType(), threadId);
+		boolean allSenders = true;
+		boolean allAuto = true;
+		for (Object[] r : rows) {
+			if (r[0].equals(ctx.self().personId())) {
+				return false;
+			}
+			allSenders &= ctx.automatedSenders().contains(r[0]);
+			allAuto &= Boolean.TRUE.equals(r[1]);
+		}
+		return !rows.isEmpty() && (allSenders || allAuto);
 	}
 
 	// the platform model (COLLAB_CLASSIFIER_ENGINE_ID); the caller needs access to

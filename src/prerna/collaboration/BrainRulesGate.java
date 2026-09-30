@@ -286,7 +286,7 @@ public final class BrainRulesGate {
 		return null;
 	}
 
-	private static boolean matchesNever(Rule rule, String from, String personId, String folderId) {
+	static boolean matchesNever(Rule rule, String from, String personId, String folderId) {
 		switch (rule.kind()) {
 		case "never_sender":
 			return matchesSender(rule, from, personId);

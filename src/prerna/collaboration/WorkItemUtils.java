@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +58,7 @@ public final class WorkItemUtils {
 	public static final Set<String> PRIORITIES = Set.of("P0", "P1", "P2", "P3");
 	public static final Set<String> CHANNELS = Set.of("email", "teams", "calendar", "room", "task");
 	public static final Set<String> CLOSED_REASONS = Set.of("replied", "responded", "deleted", "by_owner", "by_agent",
-			"expired");
+			"expired", "kept_out", "automated");
 
 	public static final String YOU = BrainProfileUtils.YOU;
 	public static final String BRAIN = "brain";
@@ -378,6 +379,48 @@ public final class WorkItemUtils {
 	public static List<String> dismissForMessage(String ownerId, String ownerType, String sourceRef) {
 		return closeWhere(ownerId, ownerType, " AND SOURCE_REF = ?", List.of(sourceRef), DISMISSED, "deleted",
 				"message deleted");
+	}
+
+	// a keep-out rule now covers these senders: dismiss what they raised, remembering the rule
+	public static List<String> dismissForRule(String ownerId, String ownerType, List<String> personIds, String ruleId) {
+		if (personIds.isEmpty()) {
+			return List.of();
+		}
+		List<String> ids = closeWhere(ownerId, ownerType,
+				" AND ACTOR_ID IN (" + String.join(", ", Collections.nCopies(personIds.size(), "?")) + ")",
+				new ArrayList<>(personIds), DISMISSED, "kept_out", "kept out by a rule");
+		for (String itemId : ids) {
+			CollaborationDbUtils.update("UPDATE WORK_ITEM SET CLOSED_RULE_ID = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND ITEM_ID = ?", ruleId, ownerId, ownerType, itemId);
+		}
+		return ids;
+	}
+
+	// the rule was deleted: what it dismissed comes back
+	public static List<String> reopenForRule(String ownerId, String ownerType, String ruleId) {
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			List<String> ids = CollaborationDbUtils.query("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND CLOSED_RULE_ID = ? AND STATUS = ? ORDER BY ITEM_ID",
+					rs -> rs.getString(1), ownerId, ownerType, ruleId, DISMISSED);
+			for (String itemId : ids) {
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", OPEN), BRAIN), BRAIN, "keep-out rule removed");
+			}
+			CollaborationDbUtils.update("UPDATE WORK_ITEM SET CLOSED_RULE_ID = NULL WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND CLOSED_RULE_ID = ?", ownerId, ownerType, ruleId);
+			return ids;
+		}
+	}
+
+	// the sender turned out to be automated: dismiss what their threads raised
+	public static List<String> dismissAutomated(String ownerId, String ownerType, List<String> threadIds) {
+		if (threadIds.isEmpty()) {
+			return List.of();
+		}
+		return closeWhere(ownerId, ownerType,
+				" AND THREAD_ID IN (" + String.join(", ", Collections.nCopies(threadIds.size(), "?")) + ")",
+				new ArrayList<>(threadIds), DISMISSED, "automated", "sender is automated");
 	}
 
 	// snoozed items whose time has come go back to open

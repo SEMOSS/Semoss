@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -121,7 +122,9 @@ public final class BrainMailImport {
 		List<Map<String, Object>> headers = new ArrayList<>();
 		for (String folder : BrainMailHeaderSource.FOLDERS) {
 			job.step("reading " + folder, 5 + 10 * BrainMailHeaderSource.FOLDERS.indexOf(folder));
-			headers.addAll(source.list(user, folder, since, MAX_PER_FOLDER));
+			// received mail carries the sender's own machine-sent headers; Sent is the owner's
+			headers.addAll(BrainMailHeaderSource.SENT.equals(folder) ? source.list(user, folder, since, MAX_PER_FOLDER)
+					: source.topicHeaders(user, folder, since, MAX_PER_FOLDER));
 		}
 		// a chat failure (no Chat.Read yet, throttled) leaves the mail import whole
 		String teamsError = null;
@@ -300,6 +303,12 @@ public final class BrainMailImport {
 			String messageKey = CollaborationDbUtils.deterministicId(ownerId, ownerType, source, messageId);
 			Map<String, Object> prior = messages.get(messageKey);
 			if (prior != null && prior.get("threadId") != null) {
+				// imported before these headers were read: fill them in once
+				Boolean auto = autoSent(header);
+				if (auto != null) {
+					CollaborationDbUtils.update("UPDATE BRAIN_MESSAGE SET AUTO = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+							+ "AND MESSAGE_KEY = ? AND AUTO IS NULL", auto, ownerId, ownerType, messageKey);
+				}
 				skipped++;
 				return;
 			}
@@ -372,11 +381,12 @@ public final class BrainMailImport {
 			// Focused Inbox "Other", sent on behalf of another mailbox, or a big mailing
 			String sender = address(header.get("sender"));
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
-					|| (sender != null && !sender.equals(from)) || broadcast;
+					|| (sender != null && !sender.equals(from)) || broadcast || toList(header);
 			CollaborationDbUtils.update(
-					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ? "
-							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
-					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), ownerId, ownerType, messageKey);
+					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ?, "
+							+ "AUTO = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
+					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), autoSent(header), ownerId,
+					ownerType, messageKey);
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
 			threads.add(threadId);
@@ -544,6 +554,44 @@ public final class BrainMailImport {
 	}
 
 	// Graph types calendar mail as eventMessage (request, response, cancellation)
+	// the sending system says a machine sent it: Auto-Submitted (RFC 3834) other than "no", a List-Unsubscribe
+	// link, or Precedence bulk/junk; null when the headers were not read
+	static Boolean autoSent(Map<String, Object> header) {
+		if (!(header.get("internetMessageHeaders") instanceof List<?> list)) {
+			return null;
+		}
+		for (Object o : list) {
+			String name = headerName(o);
+			String value = headerValue(o);
+			if (("auto-submitted".equals(name) && !value.isEmpty() && !"no".equals(value))
+					|| "list-unsubscribe".equals(name)
+					|| ("precedence".equals(name) && ("bulk".equals(value) || "junk".equals(value)))) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// posted to a mailing list (List-Id, Precedence list): a hint only, people write to lists too
+	static boolean toList(Map<String, Object> header) {
+		if (header.get("internetMessageHeaders") instanceof List<?> list) {
+			for (Object o : list) {
+				if ("list-id".equals(headerName(o)) || ("precedence".equals(headerName(o)) && "list".equals(headerValue(o)))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static String headerName(Object h) {
+		return h instanceof Map<?, ?> m && m.get("name") instanceof String n ? n.trim().toLowerCase(Locale.ROOT) : "";
+	}
+
+	private static String headerValue(Object h) {
+		return h instanceof Map<?, ?> m && m.get("value") instanceof String v ? v.trim().toLowerCase(Locale.ROOT) : "";
+	}
+
 	static boolean meeting(Map<String, Object> message) {
 		return message != null && message.get("@odata.type") instanceof String type
 				&& type.startsWith("#microsoft.graph.eventMessage");

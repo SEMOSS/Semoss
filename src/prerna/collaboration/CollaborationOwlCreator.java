@@ -261,7 +261,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// Focused Inbox put it in Other, or it was sent on behalf of another mailbox
 				Pair.with("BULK", BOOLEAN_DATATYPE_NAME),
 				// a calendar message: invite, reply, or cancellation
-				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME),
+				// the sending system marked it machine-sent (Auto-Submitted, List-Unsubscribe, Precedence bulk)
+				Pair.with("AUTO", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(
@@ -323,6 +325,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("PROCESSED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("STATUS", VARCHAR_20),
 				Pair.with("CLOSED_REASON", VARCHAR_20),
+				// the keep-out rule that closed it; deleting the rule reopens it
+				Pair.with("CLOSED_RULE_ID", VARCHAR_50),
 				Pair.with("SNOOZE_UNTIL", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("ASSIGNEE_PERSON_ID", VARCHAR_50),

@@ -88,10 +88,19 @@ public final class BrainSenderTyping {
 			}
 			Set<String> threads = threadsOf.getOrDefault(id, Set.of());
 			boolean fits = !youWrote.contains(id) && !threads.isEmpty() && automatedThreads.containsAll(threads);
-			automated += fits ? 1 : 0;
+			// a sender vote typed them: their own threads are automated, even if they also wrote on someone's thread
+			Set<String> solo = new HashSet<>();
+			for (String thread : threads) {
+				if (sendersOf.getOrDefault(thread, Set.of()).size() == 1) {
+					solo.add(thread);
+				}
+			}
+			boolean keeps = isAutomated && !youWrote.contains(id) && solo.size() >= BrainSenderVote.MIN_THREADS
+					&& automatedThreads.containsAll(solo);
+			automated += fits || keeps ? 1 : 0;
 			if (fits && !isAutomated) {
 				changes.add(new Object[] { AUTOMATED, SUGGESTED, id });
-			} else if (!fits && isAutomated) {
+			} else if (!fits && !keeps && isAutomated) {
 				// ranking sets colleague or external again
 				changes.add(new Object[] { null, null, id });
 			}
