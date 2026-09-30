@@ -30,22 +30,32 @@ package prerna.reactor.collaboration;
 import prerna.collaboration.BrainTopicSuggest;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSuggestTopics();
+// BrainSuggestTopics(strategy=["candidate_a1"], dryRun=[true]); unset strategy uses the instance default.
 public class BrainSuggestTopicsReactor extends AbstractCollaborationReactor {
 
 	public BrainSuggestTopicsReactor() {
-		this.keysToGet = new String[] {};
+		this.keysToGet = new String[] { "strategy", "dryRun" };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		return mapResult(BrainTopicSuggest.topics(getUser()));
+		return mapResult(BrainTopicSuggest.topics(getUser(), getString("strategy"), Boolean.TRUE.equals(getBoolean("dryRun"))));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Onboarding: writes suggested topics (and members) that the platform text model groups from imported "
-				+ "headers, linked to saved accounts; accept one by saving it with status active. No text model set means "
-				+ "no topics and a modelError. Also returns unsaved account suggestions";
+		return "Onboarding topic proposals from imported headers. strategy uses the instance default (legacy when unset); candidate_a1 uses "
+				+ "engagement, structure clustering and three complete model votes. dryRun returns proposals without "
+				+ "writing topics. A successful write replaces undecided brain suggestions; owner-accepted topics remain. "
+				+ "Accept by saving with status active. Model or header failure returns modelError";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		return switch (key) {
+		case "strategy" -> "legacy or candidate_a1 (opt-in prototype); overrides COLLAB_TOPIC_ONBOARDING_STRATEGY";
+		case "dryRun" -> "true to preview without replacing or writing topics; default false";
+		default -> super.getDescriptionForKey(key);
+		};
 	}
 }

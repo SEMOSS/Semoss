@@ -103,10 +103,19 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	@Override
-	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception {
+		return list(user, folder, since, max, SELECT);
+	}
+
+	@Override
+	public List<Map<String, Object>> topicHeaders(User user, String folder, Instant since, int max) throws Exception {
+		return list(user, folder, since, max, SELECT + ",internetMessageHeaders");
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
 		List<Map<String, Object>> out = new ArrayList<>();
-		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + SELECT + "&$top=" + PAGE
+		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
 				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since);
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(user, url);

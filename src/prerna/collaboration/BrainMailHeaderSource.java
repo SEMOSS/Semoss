@@ -80,6 +80,11 @@ public interface BrainMailHeaderSource {
 	// headers received at or after since, newest first, at most max
 	List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception;
 
+	// Topic discovery additionally needs unsubscribe headers; fixtures already retain those when supplied.
+	default List<Map<String, Object>> topicHeaders(User user, String folder, Instant since, int max) throws Exception {
+		return list(user, folder, since, max);
+	}
+
 	/**
 	 * Teams chat messages sent at or after since, in the header shape: id (the
 	 * message), internetMessageId (chat and message), conversationId (the chat),
