@@ -59,7 +59,7 @@ import prerna.reactor.agent.config.AgentConfigLoader;
 class SystemAgentSeederUnitTests {
 
 	@Test
-	void newOrchestratorSeedsPptxRosterAndTransferPolicy() throws Exception {
+	void newOrchestratorSeedsDefaultTransferRosterAndPolicy() throws Exception {
 		String id = Constants.AGENT_ORCHESTRATOR;
 		try (var registry = mockStatic(SystemEngineRegistry.class);
 				var workspaces = mockStatic(ModelInferenceLogsUtils.class)) {
@@ -76,6 +76,9 @@ class SystemAgentSeederUnitTests {
 					eq("Orchestrator Agent"), anyString(), eq(prompt), eq(List.of())));
 			assertEquals(Constants.AGENT_PPTX,
 					config.getJSONArray("subagents").getJSONObject(0).getString("workspaceId"));
+			assertEquals(Constants.AGENT_APP_BUILDER,
+					config.getJSONArray("subagents").getJSONObject(1).getString("workspaceId"));
+			assertEquals(2, config.getJSONArray("subagents").length());
 			assertEquals(2, config.getJSONObject("spawn_policy").getInt("max_subagent_depth"));
 			assertEquals(1, config.getJSONObject("spawn_policy").getInt("max_spawns_per_turn"));
 			assertFalse(prompt.contains("completionMode"));

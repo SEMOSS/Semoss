@@ -391,7 +391,9 @@ public class SystemAgentSeeder {
 			JSONArray existingRoster = existingConfig == null ? null : existingConfig.optJSONArray("subagents");
 			JSONArray roster = existingRoster != null
 					? new JSONArray(existingRoster.toString())
-					: new JSONArray().put(new JSONObject().put("workspaceId", Constants.AGENT_PPTX));
+					: new JSONArray()
+							.put(new JSONObject().put("workspaceId", Constants.AGENT_PPTX))
+							.put(new JSONObject().put("workspaceId", Constants.AGENT_APP_BUILDER));
 			config.put("subagents", roster);
 			// Orchestrator -> specialist -> specialist-owned reviewer is the deepest
 			// supported managed workflow (for example PPTX visual review).

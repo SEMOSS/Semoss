@@ -2,7 +2,7 @@
 
 The built-in **Orchestrator Agent** has workspace ID `orchestrator-agent`. New Playground rooms select it when the caller does not explicitly choose another workspace. Existing rooms and explicit workspace selections are unchanged.
 
-The Orchestrator answers ordinary requests itself. Each room has an `options.agents[]` participant roster, and the harness gives the room's default agent one named `transfer_to_*` tool for every eligible participant. New Orchestrator rooms initially copy `pptx-agent` from the Orchestrator workspace's configured default roster into `options.agents[]`.
+The Orchestrator answers ordinary requests itself. Each room has an `options.agents[]` participant roster, and the harness gives the room's default agent one named `transfer_to_*` tool for every eligible participant. New Orchestrator rooms initially copy `pptx-agent` and `app-builder` from the Orchestrator workspace's configured default roster into `options.agents[]`.
 
 A transfer is not a subagent run. Calling a transfer tool starts a linked, top-level successor run in the same room and working directory. The receiving agent responds directly in the conversation. After that run finishes, the next user request is handled by the room's default Orchestrator again.
 
