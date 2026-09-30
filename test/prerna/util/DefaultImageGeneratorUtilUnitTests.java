@@ -27,12 +27,19 @@
  *******************************************************************************/
 package prerna.util;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mockStatic;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -42,6 +49,50 @@ class DefaultImageGeneratorUtilUnitTests {
 
 	@TempDir
 	Path temp;
+
+	@Test
+	void registeredSystemProjectsShareAThemeAwareBadgeOutsideTheStockCollection() throws Exception {
+		Path directory = Files.createDirectories(temp.resolve("images/system-projects"));
+		Path light = Files.writeString(directory.resolve("instance-managed-light.svg"), "light badge");
+		Path dark = Files.writeString(directory.resolve("instance-managed-dark.svg"), "dark badge");
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			for (String id : new String[] { Constants.APP_REACT_TEMPLATE, Constants.SKILL_DATABASE,
+					Constants.MCP_APP_FILESYSTEM, Constants.AGENT_APP_BUILDER }) {
+				assertEquals(light.toFile(), DefaultImageGeneratorUtil.getSystemProjectImage(id, "light"));
+				assertEquals(dark.toFile(), DefaultImageGeneratorUtil.getSystemProjectImage(id, " DARK "));
+				File defaultImage = DefaultImageGeneratorUtil.getSystemProjectImage(id, null);
+				assertEquals(defaultImage, DefaultImageGeneratorUtil.getSystemProjectImage(id, "system"));
+				assertEquals(defaultImage, DefaultImageGeneratorUtil.getSystemProjectImage(id, "../../other"));
+			}
+			for (String id : new String[] { null, "", "user-project", "app-builder-copy", "platform__app-builder" }) {
+				assertNull(DefaultImageGeneratorUtil.getSystemProjectImage(id, "light"));
+			}
+			assertEquals("stock-engines-light", DefaultImageGeneratorUtil
+					.getStockImageForPath("user-project.png", "light").getParentFile().getName());
+			assertFalse(Files.exists(temp.resolve("project")));
+		}
+	}
+
+	@Test
+	void systemBadgeFallsBackToAvailableThemeAndThenNormalProjectImages() throws Exception {
+		Path directory = Files.createDirectories(temp.resolve("images/system-projects"));
+		Path light = Files.writeString(directory.resolve("instance-managed-light.svg"), "light badge");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			assertEquals(light.toFile(),
+					DefaultImageGeneratorUtil.getSystemProjectImage(Constants.SKILL_DATABASE, "dark"));
+			Files.delete(light);
+			Path dark = Files.writeString(directory.resolve("instance-managed-dark.svg"), "dark badge");
+			assertEquals(dark.toFile(),
+					DefaultImageGeneratorUtil.getSystemProjectImage(Constants.SKILL_DATABASE, "light"));
+			Files.delete(dark);
+			assertNull(DefaultImageGeneratorUtil.getSystemProjectImage(Constants.SKILL_DATABASE, "light"));
+			assertFalse(Files.exists(temp.resolve("project")));
+		}
+	}
 
 	@Test
 	void repeatedLookupsReturnSharedFileWithoutCreatingProjectAssets() throws Exception {
@@ -61,11 +112,11 @@ class DefaultImageGeneratorUtilUnitTests {
 	}
 
 	@Test
-	void referenceMatchesLegacySelectionAndDoesNotDependOnProjectId() throws Exception {
+	void referenceMatchesCopiedSelectionAndSurvivesProjectRename() throws Exception {
 		createStockImages("stock-engines-light");
 		createStockImages("stock-engines-dark");
 		Path firstPath = temp.resolve("project/Example__first/app_root/version/image.png");
-		Path secondPath = temp.resolve("project/Example__second/app_root/version/image.png");
+		Path secondPath = temp.resolve("project/Renamed__first/app_root/version/image.png");
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
 			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
 			File reference = DefaultImageGeneratorUtil.getStockImageForPath(firstPath.toString());
@@ -73,6 +124,63 @@ class DefaultImageGeneratorUtilUnitTests {
 			File legacyCopy = DefaultImageGeneratorUtil.pickRandomImage(firstPath.toString());
 			assertArrayEquals(Files.readAllBytes(reference.toPath()), Files.readAllBytes(legacyCopy.toPath()));
 			assertFalse(Files.exists(secondPath.getParent()));
+		}
+	}
+
+	@Test
+	void commonPrefixesAndSharedInternalAliasesReceiveDifferentArtwork() throws Exception {
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			for (String prefix : new String[] { "MCP ", "platform__project-" }) {
+				Set<String> selected = new HashSet<>();
+				for (String suffix : new String[] { "A", "B", "C" }) {
+					String path = temp.resolve("project/" + prefix + suffix + "/app_root/version/image.png").toString();
+					File light = DefaultImageGeneratorUtil.getStockImageForPath(path, "light");
+					File dark = DefaultImageGeneratorUtil.getStockImageForPath(path, "dark");
+					selected.add(light.getName());
+					assertEquals(light.getName(), dark.getName());
+					assertEquals(light, DefaultImageGeneratorUtil.getStockImageForPath(path, "light"));
+				}
+				assertEquals(3, selected.size(), "The A/B/C examples should not collapse for prefix " + prefix);
+			}
+			assertFalse(Files.exists(temp.resolve("project")));
+		}
+	}
+
+	@Test
+	void projectsSharingAnInternalAliasUseTheWholeStockCollection() throws Exception {
+		createStockImages("stock-engines-light");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			Set<String> selected = new HashSet<>();
+			for (int i = 0; i < 120; i++) {
+				String path = temp.resolve("project/platform__project-" + i + "/app_root/version/image.png").toString();
+				selected.add(DefaultImageGeneratorUtil.getStockImageForPath(path, "light").getName());
+			}
+			assertEquals(12, selected.size(), "Shared aliases must not force one stock image for every project");
+		}
+	}
+
+	@Test
+	void localClusterAndByteLookupsUseTheSameResourceIdentity() throws Exception {
+		createStockImages("stock-engines-light");
+		createStockImages("stock-engines-dark");
+		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
+			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
+			for (String theme : new String[] { "light", "dark" }) {
+				for (String alias : new String[] { "MCP A", "MCP B", "platform", "MCP__nested" }) {
+					String path = temp.resolve("project/" + alias + "__resource-id/app_root/version/image.png")
+							.toString();
+					File local = DefaultImageGeneratorUtil.getStockImageForPath(path, theme);
+					File cluster = DefaultImageGeneratorUtil
+							.getStockImageForPath(temp.resolve("images/projects/resource-id.png").toString(), theme);
+					assertEquals(local, cluster);
+					assertArrayEquals(Files.readAllBytes(local.toPath()),
+							DefaultImageGeneratorUtil.pickRandomImageBytes("resource-id", theme));
+				}
+			}
 		}
 	}
 
@@ -92,7 +200,7 @@ class DefaultImageGeneratorUtilUnitTests {
 			assertEquals(light, DefaultImageGeneratorUtil.getStockImageForPath(path, "light"));
 			assertEquals(dark, DefaultImageGeneratorUtil.getStockImageForPath(path, " DARK "));
 			assertEquals(defaultImage, DefaultImageGeneratorUtil.getStockImageForPath(path));
-			for (String unsupported : new String[] {"", "system", "blue"}) {
+			for (String unsupported : new String[] { "", "system", "blue" }) {
 				assertEquals(defaultImage, DefaultImageGeneratorUtil.getStockImageForPath(path, unsupported));
 			}
 			assertFalse(Files.exists(temp.resolve("project")));
@@ -105,7 +213,7 @@ class DefaultImageGeneratorUtilUnitTests {
 		createStockImages("stock-engines-dark");
 		try (MockedStatic<Utility> utility = mockStatic(Utility.class)) {
 			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
-			for (String theme : new String[] {"light", "dark"}) {
+			for (String theme : new String[] { "light", "dark" }) {
 				File file = DefaultImageGeneratorUtil.getStockImageForPath("Example.png", theme);
 				assertArrayEquals(Files.readAllBytes(file.toPath()),
 						DefaultImageGeneratorUtil.pickRandomImageBytes("Example", theme));
@@ -138,7 +246,8 @@ class DefaultImageGeneratorUtilUnitTests {
 			utility.when(Utility::getBaseFolder).thenReturn(temp.toString());
 			File reference = DefaultImageGeneratorUtil.getStockImageForPath(temp.resolve("engine.png").toString());
 			assertEquals(temp.resolve("images/stock-engines"), reference.toPath().getParent());
-			assertEquals(reference, DefaultImageGeneratorUtil.getStockImageForPath(temp.resolve("engine.png").toString(), "dark"));
+			assertEquals(reference,
+					DefaultImageGeneratorUtil.getStockImageForPath(temp.resolve("engine.png").toString(), "dark"));
 			assertFalse(Files.exists(temp.resolve("engine.png")));
 		}
 	}

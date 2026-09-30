@@ -66,8 +66,7 @@ public class SystemDefaultEngines {
 			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN,
 			Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
 			Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
-			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR,
-			Constants.SKILL_WORKFLOW_AUTOMATION);
+			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, Constants.SKILL_WORKFLOW_AUTOMATION);
 
 	/**
 	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
@@ -167,6 +166,15 @@ public class SystemDefaultEngines {
 
 	public static List<String> getSystemAgents() {
 		return SYSTEM_AGENTS;
+	}
+
+	/**
+	 * Identifies projects seeded and managed by the instance. Use the registered
+	 * IDs rather than editable tags, display names, or a missing creator field.
+	 */
+	public static boolean isSystemProject(String projectId) {
+		return projectId != null && (SYSTEM_APPS.contains(projectId) || SYSTEM_SKILLS.contains(projectId)
+				|| SYSTEM_MCPS.contains(projectId) || SYSTEM_AGENTS.contains(projectId));
 	}
 
 	/**
