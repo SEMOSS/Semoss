@@ -100,18 +100,19 @@ class CouchStockImageUnitTests {
 			HttpUriRequest request = invocation.getArgument(0);
 			methods.add(request.getMethod());
 			String body = switch (request.getMethod()) {
-				case "POST" -> findBody;
-				case "GET" -> "{\"_attachments\":{\"image.png\":{\"data\":\""
-						+ Base64.getEncoder().encodeToString(new byte[] {7, 8, 9}) + "\"}}}";
-				case "PUT" -> "{\"ok\":true}";
-				default -> throw new AssertionError("Unexpected Couch request: " + request.getMethod());
+			case "POST" -> findBody;
+			case "GET" -> "{\"_attachments\":{\"image.png\":{\"data\":\""
+					+ Base64.getEncoder().encodeToString(new byte[] { 7, 8, 9 }) + "\"}}}";
+			case "PUT" -> "{\"ok\":true}";
+			default -> throw new AssertionError("Unexpected Couch request: " + request.getMethod());
 			};
 			CloseableHttpResponse response = mock(CloseableHttpResponse.class);
 			when(response.getStatusLine()).thenReturn(new BasicStatusLine(HttpVersion.HTTP_1_1, 200, "OK"));
 			when(response.getEntity()).thenReturn(new StringEntity(body));
 			return response;
 		});
-		// Core includes the JAX-RS API; the runtime response provider lives in Monolith.
+		// Core includes the JAX-RS API; the runtime response provider lives in
+		// Monolith.
 		responses = mockStatic(Response.class);
 		Response.ResponseBuilder responseBuilder = mock(Response.ResponseBuilder.class, RETURNS_SELF);
 		Response downloaded = mock(Response.class);
@@ -125,23 +126,31 @@ class CouchStockImageUnitTests {
 
 	@AfterEach
 	void tearDown() {
-		if (responses != null) responses.close();
-		if (http != null) http.close();
-		if (projects != null) projects.close();
-		if (databases != null) databases.close();
-		if (stock != null) stock.close();
-		if (images != null) images.close();
-		if (engines != null) engines.close();
-		if (cluster != null) cluster.close();
-		if (utility != null) utility.close();
+		if (responses != null)
+			responses.close();
+		if (http != null)
+			http.close();
+		if (projects != null)
+			projects.close();
+		if (databases != null)
+			databases.close();
+		if (stock != null)
+			stock.close();
+		if (images != null)
+			images.close();
+		if (engines != null)
+			engines.close();
+		if (cluster != null)
+			cluster.close();
+		if (utility != null)
+			utility.close();
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"project", "database"})
+	@ValueSource(strings = { "project", "database" })
 	void missingImageReturnsStockWithoutWritingCouchDocument(String partition) throws Exception {
-		byte[] bytes = {1, 2, 3};
-		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes(partition + "|Example__resource-id"))
-				.thenReturn(bytes);
+		byte[] bytes = { 1, 2, 3 };
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes("resource-id", null)).thenReturn(bytes);
 		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
 		assertEquals(200, response.getStatus());
 		assertArrayEquals(bytes, (byte[]) response.getEntity());
@@ -149,24 +158,60 @@ class CouchStockImageUnitTests {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"project", "database"})
+	@ValueSource(strings = { "project", "database" })
+	void themeChangesUseMatchingStockWithoutPersistingAnAttachment(String partition) throws Exception {
+		byte[] light = { 1, 2, 3 };
+		byte[] dark = { 4, 5, 6 };
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes("resource-id", "light")).thenReturn(light);
+		stock.when(() -> DefaultImageGeneratorUtil.pickRandomImageBytes("resource-id", "dark")).thenReturn(dark);
+		Response lightResponse = CouchUtil.download(partition, Map.of(partition, "resource-id"), "light");
+		assertArrayEquals(light, (byte[]) lightResponse.getEntity());
+		Response darkResponse = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
+		assertArrayEquals(dark, (byte[]) darkResponse.getEntity());
+		assertEquals(List.of("POST", "POST"), methods);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "light", "dark" })
+	void stockAssignmentMatchesLocalAndClusterPathsAcrossRenames(String theme) throws Exception {
+		stock.close();
+		stock = mockStatic(DefaultImageGeneratorUtil.class, CALLS_REAL_METHODS);
+		Path directory = Files.createDirectories(temp.resolve("images/stock-engines-" + theme));
+		for (int i = 0; i < 12; i++) {
+			Files.writeString(directory.resolve(i + ".png"), theme + "-image-" + i);
+		}
+		String localPath = temp.resolve("project/platform__resource-id/app_root/version/image.png").toString();
+		String clusterPath = temp.resolve("images/projects/resource-id.png").toString();
+		File local = DefaultImageGeneratorUtil.getStockImageForPath(localPath, theme);
+		assertNotNull(local);
+		assertEquals(local, DefaultImageGeneratorUtil.getStockImageForPath(clusterPath, theme));
+		for (String alias : new String[] { "MCP A", "MCP B", "platform" }) {
+			projects.when(() -> SecurityProjectUtils.getProjectAliasForId("resource-id")).thenReturn(alias);
+			Response response = CouchUtil.download("project", Map.of("project", "resource-id"), theme);
+			assertArrayEquals(Files.readAllBytes(local.toPath()), (byte[]) response.getEntity());
+		}
+		assertEquals(List.of("POST", "POST", "POST"), methods);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = { "project", "database" })
 	void localImageStillMigratesToCouch(String partition) throws Exception {
-		File uploaded = Files.write(temp.resolve("image.png"), new byte[] {4, 5, 6}).toFile();
-		images.when(() -> InsightUtility.findImageFile(nullable(String.class))).thenReturn(new File[] {uploaded});
+		File uploaded = Files.write(temp.resolve("image.png"), new byte[] { 4, 5, 6 }).toFile();
+		images.when(() -> InsightUtility.findImageFile(nullable(String.class))).thenReturn(new File[] { uploaded });
 		images.when(() -> InsightUtility.findImageFile(nullable(String.class), eq("resource-id")))
-				.thenReturn(new File[] {uploaded});
-		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
-		assertArrayEquals(new byte[] {4, 5, 6}, (byte[]) response.getEntity());
+				.thenReturn(new File[] { uploaded });
+		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
+		assertArrayEquals(new byte[] { 4, 5, 6 }, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "PUT"), methods);
 		stock.verifyNoInteractions();
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"project", "database"})
+	@ValueSource(strings = { "project", "database" })
 	void existingAttachmentTakesPrecedenceOverStock(String partition) throws Exception {
 		findBody = "{\"docs\":[{\"_id\":\"existing\",\"_attachments\":{\"image.png\":{}}}]}";
-		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"));
-		assertArrayEquals(new byte[] {7, 8, 9}, (byte[]) response.getEntity());
+		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
+		assertArrayEquals(new byte[] { 7, 8, 9 }, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "GET"), methods);
 		stock.verifyNoInteractions();
 	}

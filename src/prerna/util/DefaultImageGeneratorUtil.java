@@ -52,6 +52,7 @@ public class DefaultImageGeneratorUtil {
 	private static final String STOCK_ENGINES_DIR = "stock-engines";
 	private static final String STOCK_ENGINES_LIGHT_DIR = "stock-engines-light";
 	private static final String STOCK_ENGINES_DARK_DIR = "stock-engines-dark";
+	private static final String SYSTEM_PROJECTS_DIR = "system-projects";
 	private static final String GENERIC_IMAGE_NAME = "image";
 	private static final String CONFIGURED_THEME = resolveConfiguredTheme();
 	private static final Set<String> PATH_SEGMENT_IGNORE = Set.of("version", "app_root", "project_root", "images");
@@ -62,14 +63,43 @@ public class DefaultImageGeneratorUtil {
 	 * Returns the shared stock image that would be selected for a resource's image
 	 * path, without creating the path or copying the image. The path is only used
 	 * as a stable selection key; callers must treat the returned file as read-only.
-	 * Selection stays the same while the resource name, theme, and stock collection
-	 * stay the same.
+	 * Selection stays the same while the resource ID and stock collection stay the
+	 * same. Matching light/dark collections use the same artwork in each theme.
 	 *
 	 * @param imagePath the resource's conventional image path (it need not exist)
 	 * @return the shared stock image, or {@code null} if none is available
 	 */
 	public static File getStockImageForPath(String imagePath) {
-		return pickStockImage(extractSeedKey(imagePath));
+		return getStockImageForPath(imagePath, null);
+	}
+
+	/**
+	 * Resolves stock artwork for a request's UI theme without changing the server
+	 * default or creating a resource image. Only light and dark are accepted;
+	 * omitted or unsupported values use the configured default.
+	 */
+	public static File getStockImageForPath(String imagePath, String theme) {
+		return pickStockImage(extractSeedKey(imagePath), theme);
+	}
+
+	/**
+	 * Returns the shared instance-managed badge for a registered system project.
+	 * The caller must authorize access before using it. Returns null for ordinary
+	 * projects or when the badge assets are unavailable, allowing normal fallback.
+	 * No project files or database records are created or modified.
+	 */
+	public static File getSystemProjectImage(String projectId, String theme) {
+		if (!SystemDefaultEngines.isSystemProject(projectId)) {
+			return null;
+		}
+		Path directory = Paths.get(Utility.getBaseFolder(), "images", SYSTEM_PROJECTS_DIR);
+		for (String candidate : new String[] { resolveTheme(theme), CONFIGURED_THEME, LIGHT_THEME, DARK_THEME }) {
+			File image = directory.resolve("instance-managed-" + candidate + ".svg").toFile();
+			if (image.isFile()) {
+				return image;
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -108,9 +138,16 @@ public class DefaultImageGeneratorUtil {
 	 * @throws IOException if no stock image exists or read fails
 	 */
 	public static byte[] pickRandomImageBytes(String seedKey) throws IOException {
-		File sourceFile = pickStockImage(seedKey);
+		return pickRandomImageBytes(seedKey, null);
+	}
+
+	/**
+	 * Returns stock bytes for a request's UI theme, preserving the selection key.
+	 */
+	public static byte[] pickRandomImageBytes(String seedKey, String theme) throws IOException {
+		File sourceFile = pickStockImage(seedKey, theme);
 		if (sourceFile == null) {
-			String imageDir = getStockImageDir().getAbsolutePath();
+			String imageDir = getStockImageDir(theme).getAbsolutePath();
 			throw new IOException("No stock engine images are available in " + imageDir);
 		}
 		return Files.readAllBytes(sourceFile.toPath());
@@ -128,16 +165,16 @@ public class DefaultImageGeneratorUtil {
 
 	/**
 	 * Resolves the stock image to use for the given seed key. Candidate images are
-	 * read from the themed stock directory ({@link #getStockImageDir()}) and sorted
-	 * by name for stable indexing. A null/blank seed selects an image at random;
-	 * otherwise selection is deterministic via
+	 * read from the themed stock directory ({@link #getStockImageDir(String)}) and
+	 * sorted by name for stable indexing. A null/blank seed selects an image at
+	 * random; otherwise selection is deterministic via
 	 * {@link #computeStableIndex(String, int)}.
 	 *
 	 * @param seedKey deterministic selection key; null/blank selects at random
 	 * @return the selected stock image, or {@code null} if none are available
 	 */
-	private static File pickStockImage(String seedKey) {
-		File stockDir = getStockImageDir();
+	private static File pickStockImage(String seedKey, String theme) {
+		File stockDir = getStockImageDir(theme);
 		File[] stockImages = stockDir.listFiles(DefaultImageGeneratorUtil::isImageFile);
 		if (stockImages == null || stockImages.length == 0) {
 			classLogger.warn("No stock engine images are available at '{}'.", stockDir.getAbsolutePath());
@@ -203,8 +240,10 @@ public class DefaultImageGeneratorUtil {
 
 	/**
 	 * Maps a seed key to a stable index in {@code [0, size)}. The key is first
-	 * reduced to its alias via {@link #normalizeSeedKey(String)}, then hashed with
-	 * FNV-1a (64-bit) for good spread across similarly-named seeds.
+	 * reduced to its resource ID via {@link #normalizeSeedKey(String)}, then hashed
+	 * with FNV-1a (64-bit). The entire key participates, including suffixes in
+	 * similarly-named resources when no ID is available. Different keys can still
+	 * collide because the stock collection is finite.
 	 *
 	 * @param seedKey selection key
 	 * @param size    number of available images (must be positive)
@@ -223,46 +262,63 @@ public class DefaultImageGeneratorUtil {
 
 	/**
 	 * Engine and project identifiers are formatted as {@code <alias>__<uuid>}.
-	 * Selection should be driven by the human alias rather than the random id
-	 * suffix, otherwise two differently-named entities (e.g. "TestCSV" and
-	 * "TestDB1") can share a stock image purely because their ids hash alike.
-	 * Strips everything from the last {@code "__"} onward (the id), keeping the
-	 * alias - aliases that themselves contain {@code "__"} are preserved.
+	 * Prefer the ID so resources sharing an internal alias do not all receive the
+	 * same stock image. This also keeps selection stable after a rename and matches
+	 * cluster/Couch lookups, which use the ID directly. The last separator allows
+	 * aliases that themselves contain {@code "__"}. Plain IDs and names are kept
+	 * whole; a missing ID suffix keeps the original key.
 	 *
 	 * @param seedKey raw seed key; may be null
-	 * @return alias-only seed key
+	 * @return resource ID when present, otherwise the original seed key
 	 */
 	private static String normalizeSeedKey(String seedKey) {
 		if (seedKey == null) {
 			return "";
 		}
 		int separatorIndex = seedKey.lastIndexOf("__");
-		if (separatorIndex > 0) {
-			return seedKey.substring(0, separatorIndex);
+		if (separatorIndex > 0 && separatorIndex + 2 < seedKey.length()) {
+			return seedKey.substring(separatorIndex + 2);
 		}
 		return seedKey;
 	}
 
 	/**
 	 * Resolves the directory stock images are read from. Prefers the themed
-	 * directory for the configured theme ({@link #CONFIGURED_THEME}) when it
-	 * contains images, otherwise falls back to the default
-	 * {@value #STOCK_ENGINES_DIR} directory under {@code <baseFolder>/images}.
+	 * directory for the requested theme when it contains images, then the
+	 * configured theme ({@link #CONFIGURED_THEME}), otherwise falls back to the
+	 * default {@value #STOCK_ENGINES_DIR} directory under
+	 * {@code <baseFolder>/images}.
 	 *
 	 * @return the stock image directory to use
 	 */
-	private static File getStockImageDir() {
+	private static File getStockImageDir(String theme) {
 		String baseDirectory = Utility.getBaseFolder().replace("\\", "/");
 		if (!baseDirectory.endsWith("/")) {
 			baseDirectory = baseDirectory + "/";
 		}
 		String imageBasePath = baseDirectory + "images" + File.separator;
-		String themedDirectoryName = getThemedDirectoryName(CONFIGURED_THEME);
+		String resolvedTheme = resolveTheme(theme);
+		String themedDirectoryName = getThemedDirectoryName(resolvedTheme);
 		File themedDirectory = new File(imageBasePath + themedDirectoryName);
 		if (hasImageFiles(themedDirectory)) {
 			return themedDirectory;
 		}
+		if (!resolvedTheme.equals(CONFIGURED_THEME)) {
+			File configuredDirectory = new File(imageBasePath + getThemedDirectoryName(CONFIGURED_THEME));
+			if (hasImageFiles(configuredDirectory)) {
+				return configuredDirectory;
+			}
+		}
 		return new File(imageBasePath + STOCK_ENGINES_DIR);
+	}
+
+	/**
+	 * Resolves only supported request themes, otherwise keeping the server default.
+	 */
+	private static String resolveTheme(String theme) {
+		String requestedTheme = theme == null ? "" : theme.trim();
+		return DARK_THEME.equalsIgnoreCase(requestedTheme) ? DARK_THEME
+				: LIGHT_THEME.equalsIgnoreCase(requestedTheme) ? LIGHT_THEME : CONFIGURED_THEME;
 	}
 
 	/**
