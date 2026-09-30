@@ -195,9 +195,10 @@ final class AutomationRunExecutionService {
 					"Automation run '" + runId + "' no longer exists for project '" + projectId + "'.");
 		}
 		Map<String, Object> result = new LinkedHashMap<>(persisted);
-		result.put(AutomationConstants.RESULT_NODE_RESULTS,
-				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId)));
 		String executionInsightId = getAvailableExecutionInsightId(runId);
+		result.put(AutomationConstants.RESULT_NODE_RESULTS,
+				AutomationDatabaseUtility.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId),
+						executionInsightId != null));
 		if (executionInsightId != null) {
 			result.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
 		}
@@ -284,8 +285,8 @@ final class AutomationRunExecutionService {
 			} else if (AutomationConstants.NODE_CONTROL_JOIN.equals(type)) {
 				nodeResult = executeControlMarkerNode(runId, node, Map.of("joined", true));
 			} else {
-				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
-						traceRoomIds.get(nodeId),
+				nodeResult = executeNodeSource(executionInsight, projectId, runId, node,
+						nodeSources.get(nodeId), scope, traceRoomIds.get(nodeId),
 						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
 			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
@@ -768,7 +769,8 @@ final class AutomationRunExecutionService {
 				throw new IllegalStateException("Python runtime is not available for this insight.");
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildTriggerInvocationScript(source, scope), getProjectAssetsFolder(projectId),
+					AutomationRuntime.buildTriggerInvocationScript(source, scope, runId),
+					getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			Map<String, Object> sourceGlobals = normalizeScope(value);
@@ -781,12 +783,13 @@ final class AutomationRunExecutionService {
 			for (String name : declaredGlobals.keySet()) {
 				globals.put(name, scope.get(name));
 			}
+			AutomationRunData.registerPythonReferences(executionInsight, runId, globals);
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(globals,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
 			AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
 					"Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
-			String preview = AutomationRuntimeUtils.generatePreview(output);
+			String preview = outputPreview(globals, output);
 			AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
 					null);
 			AutomationPythonRunRegistry.nodeCompleted(runId);
@@ -813,7 +816,8 @@ final class AutomationRunExecutionService {
 	 * to ask for human input before the result is persisted.
 	 */
 	private Map<String, Object> executeNodeSource(Insight executionInsight, String projectId, String runId,
-			Map<String, Object> node, String source, Map<String, Object> scope, String traceRoomId,
+			Map<String, Object> node, String source, Map<String, Object> scope,
+			String traceRoomId,
 			String resumeNodeId) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException(
@@ -837,12 +841,19 @@ final class AutomationRunExecutionService {
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildNodeInvocationScript(source, nodeScope), getProjectAssetsFolder(projectId),
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, runId),
+					getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
 			value = awaitGeneratedAgentRun(executionInsight, runId, node, value, traceRoomId, scope);
-			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
-					scope);
+			if (isGeneratedAgentRunNode(node)) {
+				Object prepared = translator.runScriptWithExplicitAssetPaths(executionInsight,
+						AutomationRuntime.buildPreparedNodeResultScript(value),
+						getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
+				value = AutomationRuntime.normalizeNodeResult(prepared);
+			}
+			return persistNativeNodeResult(executionInsight, runId, projectId, node, value, started, startedMs,
+					traceRoomId, resumeNodeId, scope);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -1217,6 +1228,26 @@ final class AutomationRunExecutionService {
 		return InsightStore.getInstance().containsKey(executionInsightId) ? executionInsightId : null;
 	}
 
+	/**
+	 * Returns the live run-owned Insight, or {@code null} after standard cleanup.
+	 */
+	static Insight getAvailableExecutionInsight(String runId) {
+		return InsightStore.getInstance().get(executionInsightId(runId));
+	}
+
+	/**
+	 * Returns whether an Insight is the run-owned execution workspace for the given
+	 * Automation run. Internal data reactors use this check so an opaque run-data
+	 * reference cannot be resolved from an unrelated Insight.
+	 */
+	static boolean isExecutionInsight(Insight insight, String runId) {
+		if (insight == null) {
+			return false;
+		}
+		String expectedId = executionInsightId(runId);
+		return expectedId.equals(insight.getInsightId()) && InsightStore.getInstance().get(expectedId) == insight;
+	}
+
 	private static String executionInsightId(String runId) {
 		return EXECUTION_INSIGHT_PREFIX + runId;
 	}
@@ -1288,7 +1319,7 @@ final class AutomationRunExecutionService {
 			classLogger.warn("Unable to retain the output of cancelled automation node '{}': {}", nodeId,
 					e.getMessage());
 		}
-		String preview = AutomationRuntimeUtils.generatePreview(output);
+		String preview = outputPreview(persistedValue, output);
 		if (output == null) {
 			AutomationDatabaseUtility.updateNodeFailed(runId, nodeId, started, duration, message);
 		} else {
@@ -1312,9 +1343,9 @@ final class AutomationRunExecutionService {
 	 * size-checked before a success is recorded, so a node cannot succeed into a
 	 * scope the next node could not carry.
 	 */
-	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
-			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
-			Map<String, Object> scope) {
+	private Map<String, Object> persistNativeNodeResult(Insight executionInsight, String runId, String projectId,
+			Map<String, Object> node, Object value, Timestamp started, long startedMs, String traceRoomId,
+			String resumeNodeId, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId);
@@ -1322,6 +1353,7 @@ final class AutomationRunExecutionService {
 		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
 		Object persistedValue = generatedResult.value();
 		Object traceMetadata = generatedResult.metadata();
+		AutomationRunData.registerPythonReferences(executionInsight, runId, persistedValue);
 		String agentRunId = null;
 		String agentFailure = null;
 		boolean generatedAgentNode = isGeneratedAgentRunNode(node);
@@ -1332,7 +1364,7 @@ final class AutomationRunExecutionService {
 				String output = AutomationRuntimeUtils.toBoundedRuntimeJson(persistedValue,
 						AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation node '" + nodeId + "' waiting output");
 				long duration = System.currentTimeMillis() - startedMs;
-				String preview = AutomationRuntimeUtils.generatePreview(output);
+				String preview = outputPreview(persistedValue, output);
 				AutomationDatabaseUtility.persistAgentWait(runId, projectId, nodeId,
 						(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, agentRunId,
 						traceRoomId, resumeNodeId, currentUserId(),
@@ -1355,7 +1387,7 @@ final class AutomationRunExecutionService {
 					"Automation run scope");
 		}
 		long duration = System.currentTimeMillis() - startedMs;
-		String preview = AutomationRuntimeUtils.generatePreview(output);
+		String preview = outputPreview(persistedValue, output);
 		String modelMessageId = generatedAgentNode ? null : extractModelMessageId(node, traceMetadata, traceRoomId);
 		if (agentFailure != null) {
 			AutomationDatabaseUtility.updateNodeFailedWithResult(runId, nodeId, started, duration,
@@ -1495,8 +1527,9 @@ final class AutomationRunExecutionService {
 					AutomationRuntime.startNodeId(definition));
 			String resumeNodeId = stringValue(wait.get(AutomationConstants.RESUME_NODE_ID));
 			if (resumeNodeId != null) {
-				continuation = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
-						AutomationDatabaseUtility.getRunNodeSources(runId), scope, traceRoomIds(runId), resumeNodeId);
+				continuation = executeInControlOrder(executionInsight, projectId, runId,
+						definition, runNodes, AutomationDatabaseUtility.getRunNodeSources(runId), scope,
+						traceRoomIds(runId), resumeNodeId);
 			} else {
 				continuation.put("scope", scope);
 			}
@@ -2000,14 +2033,22 @@ final class AutomationRunExecutionService {
 			detail.put(AutomationConstants.RUN_ID, runId);
 			detail.put(AutomationConstants.PROJECT_ID, projectId);
 		}
-		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility
-				.buildNodeResults(AutomationDatabaseUtility.getNodeOutputsForRun(runId));
-		detail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
-		detail.put("scope", normalizeScope(pythonResult.get("scope")));
-		detail.put(AutomationConstants.RESULT_GLOBALS,
-				normalizeScope(pythonResult.get(AutomationConstants.RESULT_GLOBALS)));
-		detail.put("pythonResult", pythonResult);
 		String executionInsightId = getAvailableExecutionInsightId(runId);
+		List<Map<String, Object>> nodeResults = AutomationDatabaseUtility.buildNodeResults(
+				AutomationDatabaseUtility.getNodeOutputsForRun(runId), executionInsightId != null);
+		detail.put(AutomationConstants.RESULT_NODE_RESULTS, nodeResults);
+		Map<String, Object> responseScope = scopeForResponse(pythonResult.get("scope"));
+		detail.put("scope", responseScope);
+		Map<String, Object> responseGlobals = scopeForResponse(pythonResult.get(AutomationConstants.RESULT_GLOBALS));
+		detail.put(AutomationConstants.RESULT_GLOBALS, responseGlobals);
+		Map<String, Object> responseResult = new LinkedHashMap<>(pythonResult);
+		if (responseResult.containsKey("scope")) {
+			responseResult.put("scope", responseScope);
+		}
+		if (responseResult.containsKey(AutomationConstants.RESULT_GLOBALS)) {
+			responseResult.put(AutomationConstants.RESULT_GLOBALS, responseGlobals);
+		}
+		detail.put("pythonResult", responseResult);
 		if (executionInsightId != null && !executionInsightId.isBlank()) {
 			detail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsightId);
 		}
@@ -2046,6 +2087,27 @@ final class AutomationRunExecutionService {
 			}
 		}
 		return scope;
+	}
+
+	/**
+	 * Removes opaque execution-workspace identifiers from the reactor response
+	 * while
+	 * leaving the in-memory scope used by downstream nodes untouched.
+	 */
+	private static Map<String, Object> scopeForResponse(Object value) {
+		Map<String, Object> scope = normalizeScope(value);
+		for (Map.Entry<String, Object> entry : scope.entrySet()) {
+			entry.setValue(AutomationDataReference.forClient(entry.getValue()));
+		}
+		return scope;
+	}
+
+	/**
+	 * Returns a bounded preview without exposing a private reference identifier.
+	 */
+	private static String outputPreview(Object value, String serializedValue) {
+		return AutomationDataReference.find(value) != null ? AutomationDataReference.CLIENT_PREVIEW
+				: AutomationRuntimeUtils.generatePreview(serializedValue);
 	}
 
 	/**
