@@ -100,8 +100,8 @@ public final class AutomationSourceRenderer {
 
 	private static String databaseQuerySource(Map<String, Object> config) {
 		return """
-				# Keep the guarded SQL task in the run Insight. Downstream Python sees a
-				# lazy, row-oriented value instead of receiving the full result payload.
+				# SqlQuery owns SQL routing, permissions, guardrails, and the row limit.
+				# Retain only its task handle in this Automation execution Insight.
 				from semoss import Insight
 				import json
 
@@ -113,10 +113,11 @@ public final class AutomationSourceRenderer {
 				    return name + "=[" + json.dumps(value) + "]"
 
 				def run(scope):
-				    pixel = "CreateAutomationQueryData(" + ", ".join([
+				    pixel = "SqlQuery(" + ", ".join([
 				        _pixel_value("database", scope.resolve(ENGINE_ID)),
 				        _pixel_value("query", scope.resolve(QUERY)),
 				        _pixel_value("limit", int(scope.resolve(LIMIT))),
+				    ]) + ") | RetainAutomationRunData(" + ", ".join([
 				        _pixel_value("runId", scope["run_id"]),
 				    ]) + ");"
 				    response = Insight().run_pixel(pixel, raw=True)

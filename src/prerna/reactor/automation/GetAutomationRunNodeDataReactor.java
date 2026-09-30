@@ -74,8 +74,8 @@ public class GetAutomationRunNodeDataReactor extends AbstractReactor {
 
 		ResolvedData resolved = resolve(runId, internalReference);
 		Map<String, Object> page;
-		if (resolved.insight().getTaskStore().getTask(resolved.reference().referenceId()) != null) {
-			page = AutomationTaskData.readPage(resolved.insight(), runId, resolved.reference(), offset, limit);
+		if (AutomationRunData.isTaskBacked(resolved.insight(), runId, resolved.reference())) {
+			page = AutomationRunData.readTaskPage(resolved.insight(), runId, resolved.reference(), offset, limit);
 		} else {
 			page = readPythonPage(resolved.insight(), resolved.reference(), offset, limit);
 		}

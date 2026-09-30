@@ -547,6 +547,7 @@ final class AutomationRunExecutionService {
 			for (String name : declaredGlobals.keySet()) {
 				globals.put(name, scope.get(name));
 			}
+			AutomationRunData.registerPythonReferences(executionInsight, runId, globals);
 			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(globals,
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation trigger output");
 			AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
@@ -615,8 +616,8 @@ final class AutomationRunExecutionService {
 						getProjectAssetsFolder(projectId), new String[] { getProjectPyFolder(projectId) });
 				value = AutomationRuntime.normalizeNodeResult(prepared);
 			}
-			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
-					scope);
+			return persistNativeNodeResult(executionInsight, runId, projectId, node, value, started, startedMs,
+					traceRoomId, resumeNodeId, scope);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -1098,9 +1099,9 @@ final class AutomationRunExecutionService {
 	 * size-checked before a success is recorded, so a node cannot succeed into a
 	 * scope the next node could not carry.
 	 */
-	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
-			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
-			Map<String, Object> scope) {
+	private Map<String, Object> persistNativeNodeResult(Insight executionInsight, String runId, String projectId,
+			Map<String, Object> node, Object value, Timestamp started, long startedMs, String traceRoomId,
+			String resumeNodeId, Map<String, Object> scope) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
 			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId);
@@ -1108,6 +1109,7 @@ final class AutomationRunExecutionService {
 		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
 		Object persistedValue = generatedResult.value();
 		Object traceMetadata = generatedResult.metadata();
+		AutomationRunData.registerPythonReferences(executionInsight, runId, persistedValue);
 		String agentRunId = null;
 		String agentFailure = null;
 		boolean generatedAgentNode = isGeneratedAgentRunNode(node);

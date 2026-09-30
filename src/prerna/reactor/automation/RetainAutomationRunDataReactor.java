@@ -24,46 +24,80 @@
  * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
- ******************************************************************************/
+ *******************************************************************************/
 package prerna.reactor.automation;
 
+import java.util.List;
+
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.ITask;
 
 /**
- * Creates an opaque, task-backed Automation dataset from a guarded SQL read.
+ * Retains an upstream task in the current Automation execution Insight.
+ *
+ * <p>
+ * This reactor is intentionally policy-neutral. The upstream reactor remains
+ * responsible for authorization, guardrails, query construction, and limits.
  */
-public class CreateAutomationQueryDataReactor extends AbstractReactor {
+public class RetainAutomationRunDataReactor extends AbstractReactor {
 
 	private static final String RUN_ID_KEY = "runId";
 
-	public CreateAutomationQueryDataReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.DATABASE.getKey(), ReactorKeysEnum.QUERY_KEY.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), RUN_ID_KEY };
-		this.keyRequired = new int[] { 1, 1, 1, 1 };
+	public RetainAutomationRunDataReactor() {
+		this.keysToGet = new String[] { RUN_ID_KEY };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		int limit;
-		try {
-			limit = Integer.parseInt(this.keyValue.get(ReactorKeysEnum.LIMIT.getKey()));
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Automation database query limit must be an integer.", e);
-		}
-		AutomationDataReference reference = AutomationTaskData.createQuery(this.insight,
-				this.keyValue.get(RUN_ID_KEY), this.keyValue.get(ReactorKeysEnum.DATABASE.getKey()),
-				this.keyValue.get(ReactorKeysEnum.QUERY_KEY.getKey()), limit);
+		String runId = this.keyValue.get(RUN_ID_KEY);
+		AutomationDataReference reference = AutomationRunData.retainTask(this.insight, runId, task());
 		return new NounMetadata(reference.toMap(), PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	private ITask task() {
+		ITask task = taskFromStore(PixelDataType.FORMATTED_DATA_SET);
+		if (task == null) {
+			task = taskFromStore(PixelDataType.TASK);
+		}
+		if (task == null) {
+			task = taskFromRow(PixelDataType.FORMATTED_DATA_SET);
+		}
+		if (task == null) {
+			task = taskFromRow(PixelDataType.TASK);
+		}
+		if (task == null) {
+			throw new IllegalArgumentException("RetainAutomationRunData requires an upstream task.");
+		}
+		return task;
+	}
+
+	private ITask taskFromStore(PixelDataType type) {
+		GenRowStruct values = this.store.getGenRowStruct(type.getKey());
+		if (values == null || values.isEmpty()) {
+			return null;
+		}
+		Object value = values.get(0);
+		return value instanceof ITask task ? task : null;
+	}
+
+	private ITask taskFromRow(PixelDataType type) {
+		List<Object> values = this.curRow.getValuesOfType(type);
+		if (values == null || values.isEmpty()) {
+			return null;
+		}
+		Object value = values.get(0);
+		return value instanceof ITask task ? task : null;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Runs a guarded SQL read and keeps its lazy result in the current Automation execution workspace.";
+		return "Keeps an upstream task in the current Automation execution workspace and returns an opaque reference.";
 	}
 
 	@Override
