@@ -28,10 +28,12 @@
 package prerna.reactor.automation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
- * Covers how the trigger node contributes to a run. The trigger is the only node
+ * Covers how the trigger node contributes to a run. The trigger is the only
+ * node
  * whose Python lives inside the definition rather than in its own file, so the
  * accessors that read it out of config are the whole contract.
  */
@@ -60,7 +63,9 @@ public class AutomationRuntimeUnitTests {
 				.triggerSource(triggerNode(Map.of(AutomationConstants.CONFIG_PYTHON_SOURCE, source))));
 	}
 
-	/** A blank or absent source means the trigger contributes no computed globals. */
+	/**
+	 * A blank or absent source means the trigger contributes no computed globals.
+	 */
 	@Test
 	void treatsBlankSetupSourceAsAbsent() {
 		assertNull(AutomationRuntime.triggerSource(triggerNode(Map.of())));
@@ -114,5 +119,18 @@ public class AutomationRuntimeUnitTests {
 		assertFalse(AutomationDefinitionService
 				.definesRunEntryPoint("class Job:\n    def run(self, scope):\n        return {}\n"));
 		assertFalse(AutomationDefinitionService.definesRunEntryPoint("def outer():\n    run = 1\n    return run\n"));
+	}
+
+	@Test
+	void pythonInvocationUsesUniqueTemporaryNamesForConcurrentNodes() {
+		String source = "def run(scope):\n    return {}\n";
+		String first = AutomationRuntime.buildPythonInvocation("execute_node", source, Map.of(),
+				Path.of("semoss_automation_runtime.py"));
+		String second = AutomationRuntime.buildPythonInvocation("execute_node", source, Map.of(),
+				Path.of("semoss_automation_runtime.py"));
+
+		assertTrue(first.contains("globals().pop(\"_automation_result_"));
+		assertNotEquals(first.substring(first.indexOf("def _automation_run_"), first.indexOf('(')),
+				second.substring(second.indexOf("def _automation_run_"), second.indexOf('(')));
 	}
 }

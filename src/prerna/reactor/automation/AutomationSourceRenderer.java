@@ -61,30 +61,31 @@ public final class AutomationSourceRenderer {
 				? (Map<String, Object>) map
 				: Map.of();
 		String source = switch (nodeType) {
-		case TRIGGER_START -> triggerSource();
-		case CONTROL_IF, CONTROL_JEV ->
-			throw new IllegalArgumentException("Routing nodes are evaluated by Java and do not have Python source.");
-		case DATABASE_QUERY -> databaseQuerySource(config);
-		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
-		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
-		case DATABASE_DELETE -> databaseWriteSource(config, "removeData");
-		case MODEL_CHAT -> modelChatSource(config);
-		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
-		case MODEL_VISION -> modelVisionSource(config);
-		case MODEL_NER -> modelNerSource(config);
-		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
-		case STORAGE_READ -> storageReadSource(config);
-		case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
-		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
-		case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
-		case VECTOR_SEARCH -> vectorSearchSource(config);
-		case VECTOR_ADD -> vectorAddSource(config);
-		case VECTOR_DELETE -> vectorDeleteSource(config);
-		case FUNCTION_EXECUTE -> functionSource(config);
-		case APP_PIXEL -> appPixelSource(config);
-		case AGENT_RUN -> agentRunSource(config);
-		case CONTROL_WAIT -> waitSource(config);
-		case DEVELOPER_PYTHON -> defaultDeveloperSource();
+			case TRIGGER_START -> triggerSource();
+			case CONTROL_IF, CONTROL_JEV, CONTROL_PARALLEL, CONTROL_JOIN ->
+				throw new IllegalArgumentException(
+						"Routing nodes are evaluated by Java and do not have Python source.");
+			case DATABASE_QUERY -> databaseQuerySource(config);
+			case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
+			case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
+			case DATABASE_DELETE -> databaseWriteSource(config, "removeData");
+			case MODEL_CHAT -> modelChatSource(config);
+			case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
+			case MODEL_VISION -> modelVisionSource(config);
+			case MODEL_NER -> modelNerSource(config);
+			case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
+			case STORAGE_READ -> storageReadSource(config);
+			case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
+			case STORAGE_DOWNLOAD -> storageDownloadSource(config);
+			case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
+			case VECTOR_SEARCH -> vectorSearchSource(config);
+			case VECTOR_ADD -> vectorAddSource(config);
+			case VECTOR_DELETE -> vectorDeleteSource(config);
+			case FUNCTION_EXECUTE -> functionSource(config);
+			case APP_PIXEL -> appPixelSource(config);
+			case AGENT_RUN -> agentRunSource(config);
+			case CONTROL_WAIT -> waitSource(config);
+			case DEVELOPER_PYTHON -> defaultDeveloperSource();
 		};
 		return source;
 	}

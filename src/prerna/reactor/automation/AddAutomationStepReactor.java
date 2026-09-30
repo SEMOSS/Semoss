@@ -121,7 +121,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 
 		List<Map<String, Object>> updatedNodes = new ArrayList<>(nodes);
 		updatedNodes.add(node);
-		List<Map<String, Object>> updatedEdges = insertAfter(edges, parentId, nodeId, nodeType, config, sourcePort);
+		List<Map<String, Object>> updatedEdges = insertAfter(nodes, edges, parentId, nodeId, nodeType, config,
+				sourcePort);
 		Map<String, Object> updatedGraph = new LinkedHashMap<>(graph);
 		updatedGraph.put(AutomationConstants.DOC_NODES, updatedNodes);
 		updatedGraph.put(AutomationConstants.DOC_EDGES, updatedEdges);
@@ -158,7 +159,8 @@ public class AddAutomationStepReactor extends AbstractReactor {
 	}
 
 	private static String outputVariable(String nodeType, String value) {
-		if (isRoutingNode(nodeType)) {
+		if (isRoutingNode(nodeType) || AutomationConstants.NODE_CONTROL_PARALLEL.equals(nodeType)
+				|| AutomationConstants.NODE_CONTROL_JOIN.equals(nodeType)) {
 			if (value != null && !value.isBlank()) {
 				throw new IllegalArgumentException(nodeType + " does not produce an outputVar.");
 			}
@@ -265,21 +267,41 @@ public class AddAutomationStepReactor extends AbstractReactor {
 		return false;
 	}
 
-	private static List<Map<String, Object>> insertAfter(List<Map<String, Object>> edges, String parentId,
-			String nodeId, String nodeType, Map<String, Object> config, String sourcePort) {
+	private static List<Map<String, Object>> insertAfter(List<Map<String, Object>> nodes,
+			List<Map<String, Object>> edges, String parentId, String nodeId, String nodeType,
+			Map<String, Object> config, String sourcePort) {
+		Map<String, Object> parent = nodes.stream()
+				.filter(candidate -> parentId.equals(candidate.get(AutomationConstants.NODE_FIELD_ID))).findFirst()
+				.orElseThrow();
+		boolean parallelBranch = AutomationConstants.NODE_CONTROL_PARALLEL
+				.equals(parent.get(AutomationConstants.NODE_FIELD_TYPE))
+				&& AutomationNodeType.fromType(nodeType).supportsOutput()
+				&& AutomationNodeType.fromType(nodeType) != AutomationNodeType.AGENT_RUN
+				&& AutomationNodeType.fromType(nodeType) != AutomationNodeType.CONTROL_WAIT;
+		String joinId = null;
+		if (parallelBranch) {
+			@SuppressWarnings("unchecked")
+			Map<String, Object> parentConfig = (Map<String, Object>) parent.get(AutomationConstants.NODE_FIELD_CONFIG);
+			joinId = (String) parentConfig.get(AutomationConstants.CONFIG_JOIN_NODE_ID);
+		}
 		List<Map<String, Object>> updated = new ArrayList<>();
 		Map<String, Object> replaced = null;
 		for (Map<String, Object> edge : edges) {
 			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))
 					&& parentId.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE))
 					&& sourcePort.equals(edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT))) {
-				replaced = edge;
-				continue;
+				if (!parallelBranch
+						|| (joinId != null && joinId.equals(edge.get(AutomationConstants.EDGE_FIELD_TARGET)))) {
+					replaced = edge;
+					continue;
+				}
 			}
 			updated.add(edge);
 		}
 		updated.add(controlEdge(parentId, nodeId, sourcePort));
-		if (replaced != null) {
+		if (parallelBranch && joinId != null) {
+			updated.add(controlEdge(nodeId, joinId, AutomationConstants.CONTROL_PORT_OUT));
+		} else if (!parallelBranch && replaced != null) {
 			String nodePort = isRoutingNode(nodeType) ? firstCasePort(config)
 					: AutomationConstants.CONTROL_PORT_OUT;
 			updated.add(controlEdge(nodeId, replaced.get(AutomationConstants.EDGE_FIELD_TARGET).toString(), nodePort));

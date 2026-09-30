@@ -292,9 +292,10 @@ public final class AutomationMcpSync {
 				GetAutomationNodeDefinitions. Discover and use exact engine, project, reactor, and function \
 				identifiers before supplying resource-backed fields."""));
 		properties.put("label", stringProperty("Short user-facing action label."));
-		properties.put("outputVar", stringProperty("""
-				Required unique Python-style variable name for this node's business output. Omit it for \
-				control.if and control.jev, which route control flow instead of producing an output."""));
+		properties.put("outputVar", stringProperty(
+				"""
+						Required unique Python-style variable name for this node's business output. Omit it for \
+								control.if, control.jev, control.parallel, and control.join, which do not produce business output."""));
 		properties.put("afterNodeId", stringProperty("Optional existing node ID after which to insert this node."));
 		properties.put("branchPort", stringProperty("""
 				Required only when afterNodeId identifies a routing node. Use 'case:<clause-id>' for one \
@@ -381,10 +382,12 @@ public final class AutomationMcpSync {
 				values.put(definition.nodeType().getType());
 			}
 		}
-		return stringProperty("""
-				The typed action to add. control.if and control.jev are standalone routing nodes with an ordered \
-				config.clauses array. control.jev requires a TYPESAFE engine. Use questionType=choice for arbitrary described routes, or questionType=noul for exactly two described routes with explicit boolean answer values. Route edges use case:<stable-route-id>; the fallback edge uses else. Add each case child and the final else child in later calls using \
-				afterNodeId and branchPort.""").put("enum", values);
+		return stringProperty(
+				"""
+						The typed action to add. control.if and control.jev are standalone routing nodes with an ordered \
+						config.clauses array. control.jev requires a TYPESAFE engine. Use questionType=choice for arbitrary described routes, or questionType=noul for exactly two described routes with explicit boolean answer values. Route edges use case:<stable-route-id>; the fallback edge uses else. Add each case child and the final else child in later calls using \
+						afterNodeId and branchPort. For parallel work, add at least two synchronous output-producing nodes after control.parallel; there is no server-enforced upper branch-count limit. Set config.joinNodeId to a control.join ID when later nodes need branch outputs; leave it blank for terminal fire-and-forget side effects. In joined mode each branch is wired directly to the join. Return evaluation-level failures as JSON data rather than throwing an execution error.""")
+				.put("enum", values);
 	}
 
 	private static String description(String definitionJson) {

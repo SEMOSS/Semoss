@@ -33,12 +33,17 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
@@ -73,7 +78,8 @@ import prerna.util.insight.InsightUtility;
  * The triggering reactor performs access checks and atomically creates
  * submitted run history before entering this boundary. This class claims that
  * individual run, creates a run-local {@link Insight}, traverses the validated
- * control path, executes the immutable source snapshot one node at a time,
+ * control path, executes the immutable source snapshot serially except for
+ * explicit bounded parallel blocks,
  * persists each transition, and binds interactive run Insights to the caller's
  * session lifecycle. Python receives only the selected node source and a
  * read-only scope; it does not own graph traversal or persistence.
@@ -135,6 +141,7 @@ final class AutomationRunExecutionService {
 		Map<String, Object> result;
 		ExecutionInsightLease executionInsightLease = null;
 		Insight executionInsight = null;
+		boolean executionOwnershipTransferred = false;
 		try {
 			executionInsightLease = openExecutionInsight(projectId, runId);
 			executionInsight = executionInsightLease.insight();
@@ -149,7 +156,15 @@ final class AutomationRunExecutionService {
 			Map<String, String> runNodeSources = AutomationDatabaseUtility.getRunNodeSources(runId);
 			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes, runNodeSources,
 					scope, traceRoomIds, AutomationRuntime.startNodeId(definition));
-			if (!Boolean.TRUE.equals(result.get("waitingForInput"))) {
+			if (Boolean.TRUE.equals(result.get("fireAndForget"))) {
+				String splitId = (String) result.get("fireAndForgetNodeId");
+				List<String> branchIds = ((List<?>) result.get("fireAndForgetBranchIds")).stream()
+						.map(String.class::cast).toList();
+				Map<String, Object> detachedScope = normalizeScope(result.get("scope"));
+				startFireAndForgetBranches(executionInsight, projectId, runId, runNodes,
+						runNodeSources, detachedScope, traceRoomIds, splitId, branchIds);
+				executionOwnershipTransferred = true;
+			} else if (!Boolean.TRUE.equals(result.get("waitingForInput"))) {
 				finishRun(runId, projectId);
 			}
 		} catch (Exception e) {
@@ -157,9 +172,11 @@ final class AutomationRunExecutionService {
 			finishFailedRun(runId, projectId, e);
 			result = Map.of("error", safeMessage(e));
 		} finally {
-			AutomationPythonRunRegistry.unregister(runId);
-			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
-				cleanupExecutionInsight(executionInsight);
+			if (!executionOwnershipTransferred) {
+				AutomationPythonRunRegistry.unregister(runId);
+				if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
+					cleanupExecutionInsight(executionInsight);
+				}
 			}
 		}
 		return buildResult(runId, projectId, result);
@@ -192,9 +209,10 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Walks the control path one node at a time starting at {@code initialNodeId},
-	 * publishing each node's output into scope and following the port that node
-	 * selected.
+	 * Walks the control path starting at {@code initialNodeId}, publishing each
+	 * node's output into scope and following the port that node selected. Parallel
+	 * blocks execute their direct work nodes concurrently and merge outputs at the
+	 * matching join.
 	 *
 	 * <p>
 	 * The loop ends when the path runs out of edges, a node does not reach SUCCESS,
@@ -212,6 +230,7 @@ final class AutomationRunExecutionService {
 			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
 		}
 		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
+		Map<String, List<String>> controlOutgoingTargets = AutomationRuntime.controlOutgoingTargets(definition);
 		Set<String> visited = new HashSet<>();
 		String currentNodeId = initialNodeId;
 		boolean pathCompleted = true;
@@ -230,6 +249,30 @@ final class AutomationRunExecutionService {
 			}
 			String type = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			if (AutomationConstants.NODE_CONTROL_PARALLEL.equals(type)) {
+				List<String> branchIds = controlOutgoingTargets.getOrDefault(nodeId, List.of());
+				Object configuredJoinId = ((Map<?, ?>) node.get(AutomationConstants.NODE_FIELD_CONFIG))
+						.get(AutomationConstants.CONFIG_JOIN_NODE_ID);
+				String joinId = configuredJoinId instanceof String value && !value.isBlank() ? value : null;
+				if (joinId == null) {
+					executeControlMarkerNode(runId, node,
+							Map.of("submitted", true, "branchCount", branchIds.size(), "mode", "fire-and-forget"));
+					result.put("fireAndForget", true);
+					result.put("fireAndForgetNodeId", nodeId);
+					result.put("fireAndForgetBranchIds", branchIds);
+					pathCompleted = false;
+					break;
+				}
+				executeParallelBranches(executionInsight, projectId, runId, node, branchIds, joinId, nodesById,
+						nodeSources, scope, traceRoomIds);
+				if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
+					pathCompleted = false;
+					break;
+				}
+				visited.addAll(branchIds);
+				currentNodeId = joinId;
+				continue;
+			}
 			Map<String, Object> nodeResult;
 			if (AutomationConstants.NODE_START.equals(type)) {
 				nodeResult = executeStartNode(executionInsight, projectId, runId, node,
@@ -238,6 +281,8 @@ final class AutomationRunExecutionService {
 				nodeResult = executeConditionNode(runId, node, scope);
 			} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
 				nodeResult = executeJevDecisionNode(executionInsight, runId, node, scope);
+			} else if (AutomationConstants.NODE_CONTROL_JOIN.equals(type)) {
+				nodeResult = executeControlMarkerNode(runId, node, Map.of("joined", true));
 			} else {
 				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
 						traceRoomIds.get(nodeId),
@@ -274,6 +319,193 @@ final class AutomationRunExecutionService {
 		}
 		result.put("scope", scope);
 		return result;
+	}
+
+	private void startFireAndForgetBranches(Insight executionInsight, String projectId, String runId,
+			List<Map<String, Object>> runNodes, Map<String, String> nodeSources,
+			Map<String, Object> scope, Map<String, String> traceRoomIds, String splitId, List<String> branchIds) {
+		String sessionId = ThreadStore.getSessionId();
+		if (sessionId != null && !sessionId.isBlank()) {
+			InsightStore.getInstance().removeFromSessionHash(sessionId, executionInsight.getInsightId());
+		}
+		AutomationDatabaseUtility.updateRunSummary(runId, "Automation is running in the background.");
+		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
+		for (Map<String, Object> node : runNodes) {
+			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
+		}
+		Map<String, Object> threadContext = ThreadStore.getTheadMapObject() == null ? Map.of()
+				: new LinkedHashMap<>(ThreadStore.getTheadMapObject());
+		Thread.ofVirtual().name("automation-fire-and-forget-" + runId).start(() -> {
+			ThreadStore.setThreadMapObject(threadContext);
+			try {
+				executeFireAndForgetBranches(executionInsight, projectId, runId, branchIds, nodesById, nodeSources,
+						scope, traceRoomIds, threadContext);
+				finishRun(runId, projectId);
+			} catch (Exception e) {
+				classLogger.error("Fire-and-forget Automation branches failed for project {}, run {}", projectId, runId,
+						e);
+				finishFailedRun(runId, projectId, e);
+			} finally {
+				try {
+					buildResult(runId, projectId, Map.of("scope", scope));
+				} catch (Exception e) {
+					classLogger.warn("Unable to refresh fire-and-forget Automation summary for run {}", runId, e);
+				}
+				AutomationPythonRunRegistry.unregister(runId);
+				cleanupExecutionInsight(executionInsight);
+			}
+		});
+	}
+
+	private void executeFireAndForgetBranches(Insight executionInsight, String projectId, String runId,
+			List<String> branchIds, Map<String, Map<String, Object>> nodesById, Map<String, String> nodeSources,
+			Map<String, Object> scope, Map<String, String> traceRoomIds, Map<String, Object> threadContext)
+			throws InterruptedException {
+		List<Future<Map<String, Object>>> futures = new ArrayList<>();
+		RuntimeException firstFailure = null;
+		boolean interrupted = false;
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			for (String branchId : branchIds) {
+				Map<String, Object> branchNode = nodesById.get(branchId);
+				futures.add(executor.submit(() -> {
+					ThreadStore.setThreadMapObject(threadContext);
+					if (streamJobId != null) {
+						ThreadStore.setJobId(streamJobId);
+					}
+					if (AutomationPythonRunRegistry.isCancellationRequested(runId)) {
+						return nodeResult(branchId, AutomationConstants.STATUS_CANCELLED, null, null);
+					}
+					return executeNodeSource(executionInsight, projectId, runId, branchNode, nodeSources.get(branchId),
+							new LinkedHashMap<>(scope), traceRoomIds.get(branchId), null);
+				}));
+			}
+			for (Future<Map<String, Object>> future : futures) {
+				boolean complete = false;
+				while (!complete) {
+					try {
+						future.get();
+						complete = true;
+					} catch (InterruptedException e) {
+						interrupted = true;
+					} catch (ExecutionException e) {
+						Throwable cause = e.getCause();
+						if (firstFailure == null) {
+							firstFailure = cause instanceof RuntimeException runtimeException ? runtimeException
+									: new RuntimeException(cause);
+						}
+						complete = true;
+					}
+				}
+			}
+		}
+		if (interrupted) {
+			Thread.currentThread().interrupt();
+			throw new InterruptedException("Fire-and-forget Automation branches were interrupted.");
+		}
+		if (firstFailure != null) {
+			throw firstFailure;
+		}
+	}
+
+	private void executeParallelBranches(Insight executionInsight, String projectId, String runId,
+			Map<String, Object> splitNode, List<String> branchIds, String joinId,
+			Map<String, Map<String, Object>> nodesById, Map<String, String> nodeSources, Map<String, Object> scope,
+			Map<String, String> traceRoomIds) {
+		String splitId = (String) splitNode.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationDatabaseUtility.markNodeRunning(runId, splitId);
+		streamNodeProgress(runId, splitNode, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		Map<String, Object> threadContext = ThreadStore.getTheadMapObject() == null ? Map.of()
+				: new LinkedHashMap<>(ThreadStore.getTheadMapObject());
+		List<Future<Map<String, Object>>> futures = new ArrayList<>();
+		RuntimeException firstFailure = null;
+		boolean interrupted = false;
+		try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
+			for (String branchId : branchIds) {
+				Map<String, Object> branchNode = nodesById.get(branchId);
+				futures.add(executor.submit(() -> {
+					ThreadStore.setThreadMapObject(threadContext);
+					if (streamJobId != null) {
+						ThreadStore.setJobId(streamJobId);
+					}
+					Map<String, Object> branchScope = new LinkedHashMap<>(scope);
+					return executeNodeSource(executionInsight, projectId, runId, branchNode,
+							nodeSources.get(branchId), branchScope, traceRoomIds.get(branchId), null);
+				}));
+			}
+			List<Map<String, Object>> branchResults = new ArrayList<>(futures.size());
+			for (Future<Map<String, Object>> future : futures) {
+				boolean complete = false;
+				while (!complete) {
+					try {
+						branchResults.add(future.get());
+						complete = true;
+					} catch (InterruptedException e) {
+						interrupted = true;
+					} catch (ExecutionException e) {
+						Throwable cause = e.getCause();
+						if (firstFailure == null) {
+							firstFailure = cause instanceof RuntimeException runtimeException ? runtimeException
+									: new RuntimeException(cause);
+						}
+						complete = true;
+					}
+				}
+			}
+			if (interrupted && firstFailure == null) {
+				firstFailure = new RuntimeException("Parallel evaluation was interrupted.");
+			}
+			if (firstFailure != null) {
+				throw firstFailure;
+			}
+			for (int index = 0; index < branchIds.size(); index++) {
+				Map<String, Object> branchNode = nodesById.get(branchIds.get(index));
+				String outputVar = (String) branchNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+				if (outputVar != null) {
+					scope.put(outputVar, branchResults.get(index).get(AutomationConstants.RESULT_OUTPUT_VALUE));
+				}
+			}
+			AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
+					"Automation run scope after parallel evaluations");
+			String output = AutomationRuntimeUtils.toBoundedRuntimeJson(Map.of("joinNodeId", joinId,
+					"branchCount", branchIds.size()), AutomationConstants.NODE_OUTPUT_MAX_BYTES,
+					"Automation parallel split result");
+			long duration = System.currentTimeMillis() - startedMs;
+			AutomationDatabaseUtility.updateNodeSuccess(runId, splitId, started, duration, null, output,
+					AutomationRuntimeUtils.generatePreview(output), null, null);
+			AutomationPythonRunRegistry.nodeCompleted(runId);
+			streamNodeProgress(runId, splitNode, AutomationConstants.NODE_STATUS_SUCCESS, duration,
+					AutomationRuntimeUtils.generatePreview(output), null);
+		} catch (RuntimeException e) {
+			long duration = System.currentTimeMillis() - startedMs;
+			String message = safeMessage(e);
+			AutomationDatabaseUtility.updateNodeFailed(runId, splitId, started, duration, message);
+			streamNodeProgress(runId, splitNode, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
+			throw e;
+		} finally {
+			if (interrupted) {
+				Thread.currentThread().interrupt();
+			}
+		}
+	}
+
+	private Map<String, Object> executeControlMarkerNode(String runId, Map<String, Object> node,
+			Map<String, Object> outputValue) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
+		long startedMs = System.currentTimeMillis();
+		AutomationDatabaseUtility.markNodeRunning(runId, nodeId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_RUNNING, null, null, null);
+		String output = AutomationRuntimeUtils.toBoundedRuntimeJson(outputValue,
+				AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation control node '" + nodeId + "' output");
+		long duration = System.currentTimeMillis() - startedMs;
+		String preview = AutomationRuntimeUtils.generatePreview(output);
+		AutomationDatabaseUtility.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
+				null);
+		AutomationPythonRunRegistry.nodeCompleted(runId);
+		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
+		return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, outputValue, null);
 	}
 
 	/**
@@ -317,9 +549,10 @@ final class AutomationRunExecutionService {
 			routeQuestion.put("instructions", resolveJevText(config.get(AutomationConstants.CONFIG_QUESTION), scope));
 			routeQuestion.put("criteria", criteria);
 			Map<String, Object> questions = Map.of("route", routeQuestion);
-			Map<String, Object> parameters = config.get(AutomationConstants.CONFIG_PARAM_VALUES) instanceof Map<?, ?> map
-					? (Map<String, Object>) map
-					: Map.of();
+			Map<String, Object> parameters = config
+					.get(AutomationConstants.CONFIG_PARAM_VALUES) instanceof Map<?, ?> map
+							? (Map<String, Object>) map
+							: Map.of();
 			Object state = resolveJevState(config.get(AutomationConstants.CONFIG_STATE), scope);
 			TypeSafeModelEngineResponse response = engine.evaluate(state, questions, executionInsight, parameters);
 			Map<String, Object> decision = jevDecision(response, clauses, config);
@@ -352,7 +585,8 @@ final class AutomationRunExecutionService {
 			if (reference.matches()) {
 				String name = reference.group(1);
 				if (!scope.containsKey(name)) {
-					throw new IllegalArgumentException("Jev decision state references unavailable scope value: " + name);
+					throw new IllegalArgumentException(
+							"Jev decision state references unavailable scope value: " + name);
 				}
 				return scope.get(name);
 			}
@@ -453,7 +687,9 @@ final class AutomationRunExecutionService {
 		return decision;
 	}
 
-	/** Returns the canonical Jev question type, defaulting older graphs to choice. */
+	/**
+	 * Returns the canonical Jev question type, defaulting older graphs to choice.
+	 */
 	private static String jevQuestionType(Map<String, Object> config) {
 		Object value = config.get(AutomationConstants.CONFIG_QUESTION_TYPE);
 		return value instanceof String questionType ? questionType : AutomationConstants.JEV_QUESTION_TYPE_CHOICE;
@@ -920,14 +1156,16 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Opens the deterministic run-local Insight that owns this run's Python session.
+	 * Opens the deterministic run-local Insight that owns this run's Python
+	 * session.
 	 * Interactive runs are registered with the current session so the standard
 	 * session cleanup owns their lifetime. Scheduler and other sessionless runs are
 	 * returned with completion cleanup enabled.
 	 *
 	 * @param projectId Automation project identifier
 	 * @param runId     durable run identifier
-	 * @return execution Insight and whether this service must clean it on completion
+	 * @return execution Insight and whether this service must clean it on
+	 *         completion
 	 */
 	private ExecutionInsightLease openExecutionInsight(String projectId, String runId) {
 		InsightStore insightStore = InsightStore.getInstance();
@@ -1026,10 +1264,14 @@ final class AutomationRunExecutionService {
 	 * Records a node whose work finished after cancellation was requested.
 	 *
 	 * <p>
-	 * The node is terminal rather than successful, because the run is no longer proceeding, but
-	 * its output is retained: the node already produced whatever side effects it produces, and
-	 * this row is the only record of what they were. The value is kept out of scope, since no
-	 * later node runs. A value that cannot be serialized is dropped rather than losing the
+	 * The node is terminal rather than successful, because the run is no longer
+	 * proceeding, but
+	 * its output is retained: the node already produced whatever side effects it
+	 * produces, and
+	 * this row is the only record of what they were. The value is kept out of
+	 * scope, since no
+	 * later node runs. A value that cannot be serialized is dropped rather than
+	 * losing the
 	 * cancellation record itself.
 	 */
 	private Map<String, Object> persistCancelledNodeResult(String runId, Map<String, Object> node, String nodeId,
@@ -1307,13 +1549,18 @@ final class AutomationRunExecutionService {
 	 * successful node output is replayed under the name that node publishes it as.
 	 *
 	 * <p>
-	 * The trigger is the one node that publishes many names at once, so its map is spread back
-	 * as individual globals. It is identified by node ID rather than by an absent output name,
-	 * because {@code control.if} rows also carry no name: their routing decision is consumed by
-	 * the control loop and must stay out of scope, exactly as it does on a straight-through run.
+	 * The trigger is the one node that publishes many names at once, so its map is
+	 * spread back
+	 * as individual globals. It is identified by node ID rather than by an absent
+	 * output name,
+	 * because {@code control.if} rows also carry no name: their routing decision is
+	 * consumed by
+	 * the control loop and must stay out of scope, exactly as it does on a
+	 * straight-through run.
 	 *
 	 * @param runId       run being resumed
-	 * @param user        user the run executes as, for timezone-local runtime values
+	 * @param user        user the run executes as, for timezone-local runtime
+	 *                    values
 	 * @param startNodeId trigger node ID taken from this run's definition snapshot
 	 * @return scope equivalent to the one the run held before it paused
 	 */
@@ -1459,14 +1706,15 @@ final class AutomationRunExecutionService {
 			return "Agent run '" + runId + "' returned no durable status.";
 		}
 		return switch (status.toUpperCase()) {
-		case "COMPLETED" -> null;
-		case "INPUT_REQUIRED" -> "Agent run '" + runId + "' requires user input before the automation can continue.";
-		case "FAILED" -> {
-			String error = stringValue(result.get("errorMessage"));
-			yield error != null ? error : "Agent run '" + runId + "' failed.";
-		}
-		case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
-		default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
+			case "COMPLETED" -> null;
+			case "INPUT_REQUIRED" ->
+				"Agent run '" + runId + "' requires user input before the automation can continue.";
+			case "FAILED" -> {
+				String error = stringValue(result.get("errorMessage"));
+				yield error != null ? error : "Agent run '" + runId + "' failed.";
+			}
+			case "CANCELLED" -> "Agent run '" + runId + "' was cancelled.";
+			default -> "Agent run '" + runId + "' did not reach COMPLETED status (" + status + ").";
 		};
 	}
 
@@ -1765,13 +2013,17 @@ final class AutomationRunExecutionService {
 		}
 		String summary = AutomationConstants.STATUS_SUCCESS.equals(detail.get(AutomationConstants.STATUS))
 				? "Automation completed successfully (" + nodeResults.size() + " nodes)."
-				: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))
-						? "Automation paused for agent approval or input."
-						: AutomationConstants.STATUS_CANCELLED.equals(detail.get(AutomationConstants.STATUS))
-								? "Automation cancelled."
-								: buildFailureSummary(detail);
+				: AutomationConstants.STATUS_RUNNING.equals(detail.get(AutomationConstants.STATUS))
+						? "Automation is running in the background."
+						: AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(detail.get(AutomationConstants.STATUS))
+								? "Automation paused for agent approval or input."
+								: AutomationConstants.STATUS_CANCELLED.equals(detail.get(AutomationConstants.STATUS))
+										? "Automation cancelled."
+										: buildFailureSummary(detail);
 		detail.put(AutomationConstants.RESULT_SUMMARY, summary);
-		AutomationDatabaseUtility.updateRunSummary(runId, summary);
+		if (!AutomationConstants.STATUS_RUNNING.equals(detail.get(AutomationConstants.STATUS))) {
+			AutomationDatabaseUtility.updateRunSummary(runId, summary);
+		}
 		return detail;
 	}
 

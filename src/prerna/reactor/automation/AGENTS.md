@@ -66,7 +66,7 @@ TriggerAutomation (virtual thread)
 
 Authoring may persist an acyclic draft with detached or incomplete control paths. Execution accepts
 only a connected graph rooted at `trigger.start`; each run follows one deterministic path through
-its routing nodes.
+its routing nodes, except for explicit parallel split/join blocks.
 Supported native-Python runtime types are:
 
 - `database.query`, `database.insert`, `database.update`, `database.delete`
@@ -83,8 +83,20 @@ expression evaluator. The first match selects its `case:<clause-id>` edge; other
 `questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
 model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
 Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
-below the configured threshold. Arbitrary fan-out from one port, loops, and parallel execution are
-rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
+below the configured threshold. `control.parallel` names its matching `control.join` in
+`config.joinNodeId` to wait for the matching `control.join`; omit it for terminal fire-and-forget
+side effects. A split must have at least two direct branches, each a synchronous output-producing node;
+there is no server-enforced upper branch-count limit.
+Joined branches connect directly to the join, receive independent copies of the same scope, and
+their output variables are merged after every branch completes. Fire-and-forget branches must be
+terminal leaves; the trigger returns while the durable run remains `RUNNING`, and the background
+coordinator finalizes it when every branch settles. Human-wait agent nodes and control nodes are not
+supported inside the block. Fire-and-forget branches are not automatically retried after a worker
+failure; manually rerunning side-effecting branches may repeat an action. Evaluation-level failure should be returned as ordinary JSON
+data (for example, `{"status":"failed","reason":"..."}`), not raised as a Python exception, so
+the join and final report can inspect every result. Execution exceptions still fail the automation.
+Arbitrary fan-out outside `control.parallel`, loops, and nested parallel blocks are rejected before
+execution; nonselected conditional branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional
 setup source. Java puts defaults in the runtime scope unless

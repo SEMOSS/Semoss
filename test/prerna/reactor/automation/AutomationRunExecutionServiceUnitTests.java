@@ -33,12 +33,14 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.FutureTask;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.om.ThreadStore;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
@@ -112,5 +114,16 @@ public class AutomationRunExecutionServiceUnitTests {
 		}
 
 		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+	}
+
+	@Test
+	void initializesThreadStoreContextOnFreshVirtualThread() throws Exception {
+		FutureTask<String> task = new FutureTask<>(() -> {
+			ThreadStore.setThreadMapObject(Map.of("jobId", "automation-job"));
+			return ThreadStore.getJobId();
+		});
+		Thread.ofVirtual().start(task);
+
+		assertEquals("automation-job", task.get());
 	}
 }

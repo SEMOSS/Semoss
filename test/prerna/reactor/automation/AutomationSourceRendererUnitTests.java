@@ -39,7 +39,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Covers the Python each generated node renders. The renderer is the only place
- * a node's behavior is defined, so a wrong SDK call here is a silent data bug at
+ * a node's behavior is defined, so a wrong SDK call here is a silent data bug
+ * at
  * run time rather than a failure the validator can catch.
  */
 public class AutomationSourceRendererUnitTests {
@@ -165,14 +166,17 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	/**
-	 * resolve is a method on the scope mapping the runtime passes in, not a builtin.
-	 * A module-level resolve(...) call raises NameError the moment the node runs, so
+	 * resolve is a method on the scope mapping the runtime passes in, not a
+	 * builtin.
+	 * A module-level resolve(...) call raises NameError the moment the node runs,
+	 * so
 	 * every occurrence has to be reached through scope.
 	 */
 	@Test
 	void everyNodeSourceResolvesThroughScope() {
 		for (AutomationNodeType type : AutomationNodeType.values()) {
-			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV) {
+			if (type.getCategory() == AutomationNodeType.Category.CONTROL
+					&& type != AutomationNodeType.CONTROL_WAIT) {
 				continue;
 			}
 			String source = AutomationSourceRenderer.renderNode(node(type.getType(), databaseConfig()));
@@ -195,5 +199,9 @@ public class AutomationSourceRendererUnitTests {
 				.renderNode(node(AutomationConstants.NODE_CONTROL_IF, Map.of())));
 		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
 				.renderNode(node(AutomationConstants.NODE_CONTROL_JEV, Map.of())));
+		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_CONTROL_PARALLEL, Map.of())));
+		assertThrows(IllegalArgumentException.class, () -> AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_CONTROL_JOIN, Map.of())));
 	}
 }

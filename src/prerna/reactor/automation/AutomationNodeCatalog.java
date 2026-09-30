@@ -205,6 +205,16 @@ public final class AutomationNodeCatalog {
 				controlInputs(),
 				List.of(port("case:<clause-id>", "Route", PortKind.CONTROL, PortDirection.OUTPUT, null),
 						port("else", "Fallback", PortKind.CONTROL, PortDirection.OUTPUT, null))));
+		definitions.add(definition(AutomationNodeType.CONTROL_PARALLEL, "Parallel split",
+				"Run each connected branch concurrently; optionally wait at a matching join.",
+				Map.of(AutomationConstants.CONFIG_JOIN_NODE_ID, ""),
+				List.of(field(AutomationConstants.CONFIG_JOIN_NODE_ID, ConfigFieldType.STRING, "Matching join node",
+						false,
+						"")),
+				List.of(), controlInputs(), List.of(CONTROL_OUTPUT)));
+		definitions.add(definition(AutomationNodeType.CONTROL_JOIN, "Parallel join",
+				"Wait for every evaluation branch from its matching parallel split.", Map.of(), List.of(), List.of(),
+				controlInputs(), List.of(CONTROL_OUTPUT)));
 		definitions.add(new AutomationNodeDefinition(AutomationNodeType.DEVELOPER_PYTHON, "Python",
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
@@ -273,7 +283,8 @@ public final class AutomationNodeCatalog {
 	}
 
 	private static AutomationNodeDefinition definition(AutomationNodeType nodeType, String label, String description,
-			Map<String, Object> defaultConfig, List<ConfigField> fields, List<OutputField> outputFields, List<Port> inputs,
+			Map<String, Object> defaultConfig, List<ConfigField> fields, List<OutputField> outputFields,
+			List<Port> inputs,
 			List<Port> outputs) {
 		return new AutomationNodeDefinition(nodeType, label, description, AutomationConstants.NODE_CODE_MODE_GENERATED,
 				defaultConfig, fields, outputFields, inputs, outputs);

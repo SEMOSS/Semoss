@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.util.Constants;
@@ -61,8 +62,7 @@ final class AutomationRuntime {
 			Map<String, Object> node = new LinkedHashMap<>(original);
 			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL, node.get(AutomationConstants.NODE_FIELD_ID));
 			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
-			if (AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
-					|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType)) {
+			if (AutomationNodeType.fromType((String) nodeType).getCategory() == AutomationNodeType.Category.CONTROL) {
 				node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
 			} else if (!AutomationConstants.NODE_START.equals(nodeType)) {
 				node.putIfAbsent(AutomationConstants.NODE_FIELD_OUTPUT_VAR, defaultOutputVariable(node));
@@ -152,6 +152,19 @@ final class AutomationRuntime {
 		return targets;
 	}
 
+	static Map<String, List<String>> controlOutgoingTargets(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		Map<String, List<String>> targets = new LinkedHashMap<>();
+		for (Map<String, Object> edge : definition.edges()) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				String source = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE);
+				String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
+				targets.computeIfAbsent(source, ignored -> new ArrayList<>()).add(target);
+			}
+		}
+		return targets;
+	}
+
 	/**
 	 * Runs one node module with the workflow scope supplied by the Java scheduler.
 	 */
@@ -174,17 +187,36 @@ final class AutomationRuntime {
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
+		return buildPythonInvocation(function, source, scope, runtimePath);
+	}
+
+	static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
+			Path runtimePath) {
+		String suffix = UUID.randomUUID().toString().replace("-", "");
+		String invocation = "_automation_run_" + suffix;
+		String importer = "_automation_importlib_" + suffix;
+		String spec = "_automation_spec_" + suffix;
+		String runtime = "_automation_runtime_" + suffix;
+		String result = "_automation_result_" + suffix;
 		return """
-				import importlib.util as _automation_importlib
-				_automation_spec = _automation_importlib.spec_from_file_location(
-				    "_semoss_automation_runtime", %s)
-				_automation_runtime = _automation_importlib.module_from_spec(_automation_spec)
-				_automation_spec.loader.exec_module(_automation_runtime)
-				_automation_runtime.%s("%s", "%s", %d)
-				""".formatted(AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), function,
+				def %s():
+				    import importlib.util as %s
+				    %s = %s.spec_from_file_location("_semoss_automation_runtime", %s)
+				    %s = %s.module_from_spec(%s)
+				    %s.loader.exec_module(%s)
+				    return %s.%s("%s", "%s", %d)
+				try:
+				    %s = %s()
+				finally:
+				    del %s
+				globals().pop("%s")
+				""".formatted(invocation, importer, spec, importer,
+				AutomationRuntimeUtils.GSON.toJson(runtimePath.toString()), runtime, importer, spec, spec, runtime,
+				runtime, function,
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
-				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES);
+				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES, result, invocation,
+				invocation, result);
 	}
 
 	/**

@@ -170,6 +170,8 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
+	public static final String NODE_CONTROL_PARALLEL = "control.parallel";
+	public static final String NODE_CONTROL_JOIN = "control.join";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors)
@@ -183,6 +185,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_QUESTION = "question";
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
+	public static final String CONFIG_JOIN_NODE_ID = "joinNodeId";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
 	public static final String CONFIG_PARAM_VALUES = "paramValues";
@@ -277,7 +280,9 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
-	/** Ephemeral Insight workspace for an active or recently completed local run. */
+	/**
+	 * Ephemeral Insight workspace for an active or recently completed local run.
+	 */
 	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
