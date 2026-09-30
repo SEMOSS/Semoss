@@ -1,7 +1,14 @@
 from typing import List, Dict, Any, Optional, Tuple, Union
 import json
+import mimetypes
 from pydantic import BaseModel
-from ...utils import get_image_extension, string_to_bool
+from ...utils import string_to_bool
+from ..semoss_base.media_types import (
+    decode_base64_text,
+    is_text_mime_type,
+    normalize_text_mime_type,
+    prepare_base64_media,
+)
 from ..semoss_base.builtin_tools import (
     built_in_tool_request_fields,
     normalize_built_in_tools,
@@ -207,7 +214,9 @@ class OpenAIMessageBuilder:
                             OpenAIResponsesToolCallOutput(
                                 type="function_call_output",
                                 call_id=p.tool_result.id,
-                                output=self._build_responses_tool_output(output, blocks),
+                                output=self._build_responses_tool_output(
+                                    output, blocks
+                                ),
                             )
                         )
 
@@ -1050,14 +1059,23 @@ class OpenAIMessageBuilder:
             elif not b.data:
                 continue  # unresolved file ref - Java should have inlined this
             elif b.type == "image":
-                mime = b.mime_type or "image/png"
-                result.append({"type": "input_image",
-                               "image_url": f"data:{mime};base64,{b.data}"})
+                data, mime = prepare_base64_media(b, "image/png")
+                result.append(
+                    {"type": "input_image", "image_url": f"data:{mime};base64,{data}"}
+                )
             else:
-                mime = b.mime_type or "application/pdf"
-                result.append({"type": "input_file",
-                               "filename": "document.pdf",
-                               "file_data": f"data:{mime};base64,{b.data}"})
+                data, mime = prepare_base64_media(b, "application/pdf")
+                mime = normalize_text_mime_type(
+                    mime, preserve={"text/csv", "text/tab-separated-values"}
+                )
+                result.append(
+                    {
+                        "type": "input_file",
+                        "filename": "document"
+                        + (mimetypes.guess_extension(mime) or ""),
+                        "file_data": f"data:{mime};base64,{data}",
+                    }
+                )
         return result if result else (output or "Tool executed successfully.")
 
     def _build_text_content_part(
@@ -1073,6 +1091,7 @@ class OpenAIMessageBuilder:
         self, media_content: List[SEMOSSMediaContent] = []
     ) -> List[
         Union[
+            OpenAITextContentPart,
             OpenAIImageContentPart,
             OpenAIFileContentPart,
             OpenAIResponsesImageContentPart,
@@ -1089,6 +1108,7 @@ class OpenAIMessageBuilder:
     def _build_media_content_single_part(
         self, media: SEMOSSMediaContent = None
     ) -> Union[
+        OpenAITextContentPart,
         OpenAIImageContentPart,
         OpenAIFileContentPart,
         OpenAIResponsesImageContentPart,
@@ -1121,6 +1141,7 @@ class OpenAIMessageBuilder:
             return OpenAIImageContentPart(image_url=image_url)
 
     def _build_base64_media_content(self, media_content: SEMOSSMediaContent) -> Union[
+        OpenAITextContentPart,
         OpenAIImageContentPart,
         OpenAIFileContentPart,
         OpenAIResponsesImageContentPart,
@@ -1132,23 +1153,29 @@ class OpenAIMessageBuilder:
                 "The media type was specified as base64 but no data was provided."
             )
 
-        if not media_content.mime_type:
-            media_content.mime_type = get_image_extension(media_content.data)
+        data, mime_type = prepare_base64_media(media_content)
+        if self.chat_type != "responses" and is_text_mime_type(mime_type):
+            # Chat Completions accepts PDF files only; send textual attachments
+            # as text content while retaining the filename as context.
+            text = decode_base64_text(data)
+            if media_content.file_name:
+                text = f"Attached file: {media_content.file_name}\n\n{text}"
+            return self._build_text_content_part(text)
 
-        if media_content.mime_type == "image/jpg":
-            media_content.mime_type = "image/jpeg"
-
-        data_uri = f"data:{media_content.mime_type};base64,{media_content.data}"
+        mime_type = normalize_text_mime_type(
+            mime_type, preserve={"text/csv", "text/tab-separated-values"}
+        )
+        data_uri = f"data:{mime_type};base64,{data}"
 
         if self.chat_type == "responses":
-            if media_content.mime_type.startswith("image"):
+            if mime_type.startswith("image/"):
                 return OpenAIResponsesImageContentPart(image_url=data_uri)
             else:
                 return OpenAIResponsesFileContentPart(
                     filename=media_content.file_name, file_data=data_uri
                 )
         else:
-            if media_content.mime_type.startswith("image"):
+            if mime_type.startswith("image/"):
                 image_url = OpenAIImageURL(
                     url=data_uri, detail=OpenAIImageDetail.AUTO.value
                 )

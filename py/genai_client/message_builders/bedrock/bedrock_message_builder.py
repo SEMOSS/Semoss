@@ -1,10 +1,8 @@
 from typing import List, Dict, Any, Tuple, Union
 import base64
 import json
-from ...utils import (
-    get_image_extension,
-    fetch_and_encode_image,
-)
+from ...utils import fetch_and_encode_image
+from ..semoss_base.media_types import bedrock_document_format, prepare_base64_media
 from ..semoss_base.builtin_tools import built_in_tool_names
 from ..semoss_base.reasoning import normalize_reasoning
 from ..semoss_base.semoss_models import (
@@ -58,7 +56,9 @@ class BedrockMessageBuilder:
                         if is_assistant:
                             # Bedrock does not allow image blocks in assistant turns;
                             # add a text placeholder and queue the image for a synthetic user message.
-                            file_name = getattr(p.media_info, "file_name", None) or "image"
+                            file_name = (
+                                getattr(p.media_info, "file_name", None) or "image"
+                            )
                             content_blocks.append(
                                 self._build_text_content_block(
                                     f"[Generated image: {file_name}]"
@@ -153,20 +153,26 @@ class BedrockMessageBuilder:
                         )
 
                     last_message_tools = message.param_map.get("tools")
-                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
+                    last_message_built_in_tools = message.param_map.pop(
+                        "built_in_tools", None
+                    )
                     tool_choice = message.param_map.pop("tool_choice", None)
                     if last_message_tools:
                         mcp_tools = self._convert_mcp_to_bedrock_tools(
                             last_message_tools
                         )
                         if last_message_built_in_tools:
-                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            built_in = self._build_built_in_tools(
+                                last_message_built_in_tools
+                            )
                             mcp_tools["tools"].extend(built_in)
                         tools = self._build_tool_config_for_bedrock(
                             mcp_tools, tool_choice
                         )
                     elif last_message_built_in_tools:
-                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        built_in = self._build_built_in_tools(
+                            last_message_built_in_tools
+                        )
                         tools = self._build_tool_config_for_bedrock(
                             {"tools": built_in}, tool_choice
                         )
@@ -192,7 +198,9 @@ class BedrockMessageBuilder:
                     if is_assistant:
                         # Bedrock does not allow image blocks in assistant turns;
                         # add a text placeholder and queue the images for a synthetic user message.
-                        assistant_media_blocks = self._build_media_blocks(message.media_content)
+                        assistant_media_blocks = self._build_media_blocks(
+                            message.media_content
+                        )
                         for media in message.media_content:
                             file_name = getattr(media, "file_name", None) or "image"
                             content_blocks.append(
@@ -247,9 +255,15 @@ class BedrockMessageBuilder:
                         )
 
                     # Inject a synthetic user message with the images so the model can reference them
-                    if is_assistant and message.media_content and assistant_media_blocks:
+                    if (
+                        is_assistant
+                        and message.media_content
+                        and assistant_media_blocks
+                    ):
                         synthetic_content = [
-                            self._build_text_content_block("Here is the generated image:")
+                            self._build_text_content_block(
+                                "Here is the generated image:"
+                            )
                         ] + assistant_media_blocks
                         bedrock_messages.append(
                             BedrockMessage(
@@ -285,20 +299,26 @@ class BedrockMessageBuilder:
                         )
 
                     last_message_tools = message.param_map.get("tools")
-                    last_message_built_in_tools = message.param_map.pop("built_in_tools", None)
+                    last_message_built_in_tools = message.param_map.pop(
+                        "built_in_tools", None
+                    )
                     tool_choice = message.param_map.pop("tool_choice", None)
                     if last_message_tools:
                         mcp_tools = self._convert_mcp_to_bedrock_tools(
                             last_message_tools
                         )
                         if last_message_built_in_tools:
-                            built_in = self._build_built_in_tools(last_message_built_in_tools)
+                            built_in = self._build_built_in_tools(
+                                last_message_built_in_tools
+                            )
                             mcp_tools["tools"].extend(built_in)
                         tools = self._build_tool_config_for_bedrock(
                             mcp_tools, tool_choice
                         )
                     elif last_message_built_in_tools:
-                        built_in = self._build_built_in_tools(last_message_built_in_tools)
+                        built_in = self._build_built_in_tools(
+                            last_message_built_in_tools
+                        )
                         tools = self._build_tool_config_for_bedrock(
                             {"tools": built_in}, tool_choice
                         )
@@ -540,19 +560,28 @@ class BedrockMessageBuilder:
                 continue  # unresolved file ref - Java should have inlined this
             else:
                 try:
-                    data_bytes = base64.b64decode(b.data)
+                    data, mime = prepare_base64_media(
+                        b, "image/png" if b.type == "image" else "application/pdf"
+                    )
+                    data_bytes = base64.b64decode(data)
                 except (ValueError, TypeError):
                     continue  # malformed base64 - skip this block
                 if b.type == "image":
-                    fmt = (b.mime_type or "image/png").split("/")[-1]
-                    if fmt == "jpg":
-                        fmt = "jpeg"
-                    result.append({"image": {"format": fmt,
-                                             "source": {"bytes": data_bytes}}})
+                    fmt = mime.split("/")[-1]
+                    result.append(
+                        {"image": {"format": fmt, "source": {"bytes": data_bytes}}}
+                    )
                 else:
-                    fmt = (b.mime_type or "application/pdf").split("/")[-1]
-                    result.append({"document": {"format": fmt, "name": "document",
-                                                "source": {"bytes": data_bytes}}})
+                    fmt = bedrock_document_format(mime)
+                    result.append(
+                        {
+                            "document": {
+                                "format": fmt,
+                                "name": "document",
+                                "source": {"bytes": data_bytes},
+                            }
+                        }
+                    )
         return result or [{"text": output or "Tool executed successfully."}]
 
     def _build_tool_result_block(
@@ -643,32 +672,15 @@ class BedrockMessageBuilder:
 
     def _build_url_media_content(
         self, media_content: SEMOSSMediaContent
-    ) -> BedrockImageContentBlock:
+    ) -> Union[BedrockImageContentBlock, BedrockDocumentContentBlock]:
         """Build a Bedrock media block from a URL."""
 
-        # TODO: this utility methods needs to be expanded for non-images
         image_bytes, media_type = fetch_and_encode_image(media_content.url)
-        if media_type == "image/jpg":
-            media_type = "image/jpeg"
-
-        media_type = media_type.split("/")[-1].lower()
-
-        try:
-            decoded_bytes = base64.b64decode(image_bytes)
-        except Exception as e:
-            raise ValueError(f"Could not decode base64 image data: {e}")
-
-        if media_type.startswith("image"):
-            media_source = BedrockImageSource(bytes=decoded_bytes)
-            block = BedrockImageBlock(source=media_source, format=media_type)
-            return BedrockImageContentBlock(image=block)
-        else:
-            media_source = BedrockDocumentSource(bytes=decoded_bytes)
-            # TODO: should add into fetch_and_encode to predict filename from url
-            block = BedrockDocumentBlock(
-                source=media_source, format=media_type, name=media_content.file_name
+        return self._build_base64_media_content(
+            media_content.model_copy(
+                update={"data": image_bytes, "mime_type": media_type}
             )
-            return BedrockDocumentContentBlock(document=block)
+        )
 
     def _build_base64_media_content(
         self, media_content: SEMOSSMediaContent
@@ -677,37 +689,26 @@ class BedrockMessageBuilder:
         if not media_content.data:
             raise ValueError("Base64 media content requires 'data' field.")
 
-        if not media_content.mime_type:
-            media_content.mime_type = get_image_extension(media_content.data)
-
-        if media_content.mime_type == "image/jpg":
-            media_content.mime_type = "image/jpeg"
-        media_type = media_content.mime_type.split("/")[-1].lower()
-
-        if media_content.data.startswith("data:"):
-            base64_data = media_content.data.split(",")[1]
-        else:
-            base64_data = media_content.data
+        base64_data, mime_type = prepare_base64_media(media_content)
 
         try:
             decoded_bytes = base64.b64decode(base64_data)
         except Exception as e:
             raise ValueError(f"Could not decode base64 media data: {e}")
 
-        if media_content.mime_type.startswith("image"):
+        if mime_type.startswith("image/"):
             media_source = BedrockImageSource(bytes=decoded_bytes)
-            block = BedrockImageBlock(source=media_source, format=media_type)
+            block = BedrockImageBlock(
+                source=media_source, format=mime_type.split("/")[-1]
+            )
             return BedrockImageContentBlock(image=block)
         else:
-            print(f"Original filename: {repr(media_content.file_name)}")
-
             media_source = BedrockDocumentSource(bytes=decoded_bytes)
             block = BedrockDocumentBlock(
-                source=media_source, format=media_type, name=media_content.file_name
+                source=media_source,
+                format=bedrock_document_format(mime_type),
+                name=media_content.file_name or "document",
             )
-
-            # Debug after validation
-            print(f"Cleaned filename: {repr(block.name)}")
 
             return BedrockDocumentContentBlock(document=block)
 
@@ -766,7 +767,10 @@ class BedrockMessageBuilder:
         if reasoning_config:
             param_map["reasoning_config"] = reasoning_config
             budget = reasoning_config.get("budget_tokens", 0)
-            if inference_config.maxTokens is None or inference_config.maxTokens <= budget:
+            if (
+                inference_config.maxTokens is None
+                or inference_config.maxTokens <= budget
+            ):
                 inference_config.maxTokens = budget + 4096
             inference_config.temperature = None
             inference_config.topP = None

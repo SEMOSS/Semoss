@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -44,6 +45,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +64,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -72,7 +75,10 @@ import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -179,6 +185,7 @@ public final class MCPUtility {
 
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
+	public static final int OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH = 128;
 
 	// SMSS property key to override tool name length per engine instance
 	public static final String MAX_TOOL_NAME_CHAR = "MAX_TOOL_NAME_CHAR";
@@ -674,6 +681,11 @@ public final class MCPUtility {
 			}
 		}
 		ModelTypeEnum modelType = modelEngine.getModelType();
+		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at 64
+		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
+				&& "responses".equalsIgnoreCase(smssProp.getProperty("CHAT_TYPE", "").trim())) {
+			return OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH;
+		}
 		return getMaxToolNameLength(modelType != null ? modelType.name() : null);
 	}
 
@@ -1520,6 +1532,163 @@ public final class MCPUtility {
 			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
 			return ToolExecutionResult.error(message, message);
 		}
+	}
+
+	/**
+	 * Moves inline media out of a tool result and into the room that records it.
+	 * <p>
+	 * A tool can hand back a model response that carries generated media, such as
+	 * an image model called through the LLM reactor. Left as is, that result is
+	 * megabytes of base64 text: too large for the browser to post back, far more
+	 * than the calling model should read, and replayed with every later turn of
+	 * the room.
+	 * <p>
+	 * Each MEDIA part holding base64 data is written to the room folder, and the
+	 * result is replaced by a {@code SEMOSSMultimodalToolResponse} envelope that
+	 * names those files relative to the room. Image and PDF references are
+	 * expanded back into inline data only in the payload sent to the model (see
+	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
+	 * text only.
+	 *
+	 * @param toolOutput the tool result, as returned by
+	 *                   {@link #executeTool(String, String, Map, Insight)}
+	 * @param room       the room the result is recorded in
+	 * @return the envelope JSON when media was moved, otherwise {@code toolOutput}
+	 *         unchanged
+	 */
+	public static String externalizeToolResultMedia(String toolOutput, Room room) {
+		// cheap guard so ordinary results are never parsed
+		if (toolOutput == null || room == null || !toolOutput.contains("\"base64Data\"")) {
+			return toolOutput;
+		}
+		JSONObject result;
+		try {
+			result = new JSONObject(toolOutput);
+		} catch (JSONException e) {
+			return toolOutput;
+		}
+		JSONArray parts = result.optJSONArray(AskModelEngineResponse.PARTS);
+		if (parts == null) {
+			return toolOutput;
+		}
+
+		String roomFolder = room.getRoomFolderPath() != null ? room.getRoomFolderPath()
+				: Room.roomFolderPath(room.getId());
+		List<String> textChunks = new ArrayList<>();
+		List<String> savedFiles = new ArrayList<>();
+		List<String> modelVisibleFiles = new ArrayList<>();
+		int unsaved = 0;
+		for (int i = 0; i < parts.length(); i++) {
+			JSONObject part = parts.optJSONObject(i);
+			if (part == null) {
+				continue;
+			}
+			String partType = part.optString("type");
+			if ("TEXT".equals(partType)) {
+				String text = part.optString("text", "");
+				if (!text.isBlank()) {
+					textChunks.add(text.trim());
+				}
+				continue;
+			}
+			if (!"MEDIA".equals(partType)) {
+				continue;
+			}
+			JSONObject media = part.optJSONObject("mediaInfo");
+			if (media == null) {
+				media = part.optJSONObject("media_info");
+			}
+			String base64Data = media == null ? null : media.optString("base64Data", null);
+			if (base64Data == null || base64Data.isBlank()) {
+				continue;
+			}
+			try {
+				String fileName = writeToolMediaToRoom(roomFolder, media, base64Data);
+				String mimeType = media.optString("mimeType", "");
+				if (mimeType.isBlank()) {
+					mimeType = MessageInputMedia.guessMimeType(fileName, MessageInputMedia.extractFormat(fileName));
+				}
+				savedFiles.add(fileName + " (" + mimeType + ")");
+				if (mimeType.startsWith("image/") || "application/pdf".equals(mimeType)) {
+					modelVisibleFiles.add(fileName);
+				}
+			} catch (IOException | RuntimeException e) {
+				unsaved++;
+				classLogger.warn("Could not save media from a tool result to room {}", room.getId(), e);
+			}
+		}
+		if (savedFiles.isEmpty() && unsaved == 0) {
+			return toolOutput;
+		}
+		if (!savedFiles.isEmpty()) {
+			ClusterUtil.pushRoomAsync(room.getId());
+		}
+
+		// the model's own words come first, then what became of the media
+		Object response = result.opt(AskModelEngineResponse.RESPONSE);
+		String responseText = response instanceof String ? ((String) response).trim() : "";
+		StringBuilder text = new StringBuilder(responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
+		if (text.length() > 0) {
+			text.append("\n\n");
+		}
+		if (!savedFiles.isEmpty()) {
+			text.append("Media output saved to this room: ").append(String.join(", ", savedFiles)).append('.');
+		}
+		if (unsaved > 0) {
+			text.append(savedFiles.isEmpty() ? "" : " ").append(unsaved)
+					.append(" media output(s) could not be saved and were left out of this result.");
+		}
+
+		List<Map<String, Object>> blocks = new ArrayList<>();
+		blocks.add(MCPResponseBuilder.textPart(text.toString()));
+		if (!modelVisibleFiles.isEmpty()) {
+			blocks.add(MCPResponseBuilder.imagePart(modelVisibleFiles.toArray(new String[0])));
+		}
+		classLogger.info("Moved {} media file(s) from a tool result into room {}", savedFiles.size(), room.getId());
+		return GSON.toJson(MCPResponseBuilder.response(blocks));
+	}
+
+	/**
+	 * Writes one tool media part into the room folder under its own file name, or
+	 * a generated one when it has none. An existing file is never replaced, since
+	 * earlier turns may still reference it.
+	 *
+	 * @param roomFolder the room folder
+	 * @param media      the part's media info
+	 * @param base64Data the part's base64 payload, optionally as a data URI
+	 * @return the room-relative name the file was written under
+	 * @throws IOException when the file cannot be written
+	 */
+	private static String writeToolMediaToRoom(String roomFolder, JSONObject media, String base64Data)
+			throws IOException {
+		Path roomDir = Path.of(roomFolder).toAbsolutePath().normalize();
+		Files.createDirectories(roomDir);
+
+		String fileName = MessageInputMedia.extractFileName(media.optString("fileName", "")).trim();
+		if (fileName.isEmpty() || ".".equals(fileName) || "..".equals(fileName)) {
+			String format = media.optString("fileFormat", "").trim();
+			fileName = "media_" + UUID.randomUUID().toString().substring(0, 8) + "."
+					+ (format.isEmpty() ? "bin" : format);
+		}
+		Path target = roomDir.resolve(fileName).normalize();
+		if (!roomDir.equals(target.getParent())) {
+			throw new IllegalArgumentException("Unsafe media file name: " + fileName);
+		}
+		if (Files.exists(target)) {
+			int dot = fileName.lastIndexOf('.');
+			String stem = dot > 0 ? fileName.substring(0, dot) : fileName;
+			String extension = dot > 0 ? fileName.substring(dot) : "";
+			fileName = stem + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
+			target = roomDir.resolve(fileName);
+		}
+
+		String payload = base64Data.trim();
+		int comma = payload.indexOf(',');
+		if (payload.startsWith("data:") && comma > 0) {
+			payload = payload.substring(comma + 1);
+		}
+		Files.write(target, Base64.getMimeDecoder().decode(payload), StandardOpenOption.CREATE_NEW);
+		return fileName;
 	}
 
 	private static void checkEngineAccess(IEngine engine, User user) {
