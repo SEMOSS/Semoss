@@ -172,12 +172,14 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 				    SELECT 1
 				    FROM pg_proc p
 				    JOIN pg_namespace n ON p.pronamespace = n.oid
-				    WHERE p.proname = '<functionName>'
-				    AND n.nspname = '<schema>'
+				    WHERE p.proname = ?
+				    AND n.nspname = ?
 				) AS function_exists
-				""".replace("<functionName>", functionName).replace("<schema>", schema);
+				""";
 
 		try (PreparedStatement stmt = con.prepareStatement(query)) {
+			stmt.setString(1, functionName);
+			stmt.setString(2, schema);
 			try (ResultSet rs = stmt.executeQuery()) {
 				if (rs.next()) {
 					return rs.getBoolean("function_exists");

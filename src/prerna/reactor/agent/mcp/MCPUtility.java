@@ -185,6 +185,7 @@ public final class MCPUtility {
 
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
+	public static final int OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH = 128;
 
 	// SMSS property key to override tool name length per engine instance
 	public static final String MAX_TOOL_NAME_CHAR = "MAX_TOOL_NAME_CHAR";
@@ -671,6 +672,11 @@ public final class MCPUtility {
 			}
 		}
 		ModelTypeEnum modelType = modelEngine.getModelType();
+		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at 64
+		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
+				&& "responses".equalsIgnoreCase(smssProp.getProperty("CHAT_TYPE", "").trim())) {
+			return OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH;
+		}
 		return getMaxToolNameLength(modelType != null ? modelType.name() : null);
 	}
 

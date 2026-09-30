@@ -58,11 +58,13 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
@@ -74,9 +76,13 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -3188,6 +3194,135 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return filters;
+	}
+
+	/**
+	 * Keep the rows whose effective permission is one of the given levels. The
+	 * effective permission is the better (lower) of the user's own grant and their
+	 * groups' grant, the same value the list queries select as {@code permission}.
+	 * Built from query struct filters only, so every security database dialect gets
+	 * its own SQL.
+	 *
+	 * A global resource the user holds no grant on counts as read only, as the UI
+	 * shows it, when a global column is given.
+	 *
+	 * @param userPermCol  the user's own grant, such as
+	 *                     {@code USER_PERMISSIONS__PERMISSION}
+	 * @param groupPermCol the best grant of the user's groups, such as
+	 *                     {@code GROUP_PERMISSIONS__PERMISSION}; null when the
+	 *                     query has no group grants
+	 * @param globalCol    the resource's global flag, such as
+	 *                     {@code PROJECT__GLOBAL}; null to leave global resources
+	 *                     without a grant out
+	 * @param permissions  the levels to keep, as {@link AccessPermissionEnum} ids
+	 * @return the filter
+	 * @throws IllegalArgumentException when a level is not an
+	 *                                  {@link AccessPermissionEnum} id
+	 */
+	static IQueryFilter getEffectivePermissionFilter(String userPermCol, String groupPermCol, String globalCol,
+			Collection<Integer> permissions) {
+		List<Integer> levels = new ArrayList<>(permissions);
+		for (Integer level : levels) {
+			if (level == null || level < AccessPermissionEnum.OWNER.getId()
+					|| level > AccessPermissionEnum.READ_ONLY.getId()) {
+				throw new IllegalArgumentException(
+						"Permission filters take 1 (owner), 2 (edit), or 3 (read only); got " + level);
+			}
+		}
+		if (groupPermCol == null) {
+			return SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT);
+		}
+
+		// the user's own grant decides: it is one of the levels, and no group
+		// grant is better
+		AndQueryFilter userDecides = new AndQueryFilter();
+		userDecides.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterGroup = new OrQueryFilter();
+		noBetterGroup
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterGroup.addFilter(SimpleQueryFilter.makeColToColFilter(userPermCol, "<=", groupPermCol));
+		userDecides.addFilter(noBetterGroup);
+
+		// a group grant decides: it is one of the levels, and the user's own
+		// grant is worse or missing
+		AndQueryFilter groupDecides = new AndQueryFilter();
+		groupDecides
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterUser = new OrQueryFilter();
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToColFilter(groupPermCol, "<", userPermCol));
+		groupDecides.addFilter(noBetterUser);
+
+		OrQueryFilter effective = new OrQueryFilter();
+		effective.addFilter(userDecides);
+		effective.addFilter(groupDecides);
+
+		if (globalCol != null && levels.contains(AccessPermissionEnum.READ_ONLY.getId())) {
+			AndQueryFilter globalWithoutGrant = new AndQueryFilter();
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(globalCol, "==", true, PixelDataType.BOOLEAN));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+			effective.addFilter(globalWithoutGrant);
+		}
+		return effective;
+	}
+
+	/**
+	 * Keep the rows created by any of the given creators. A creator matches only
+	 * when both its login id and its login type match, the pairs
+	 * {@link User#getUserIdAndType(User)} returns.
+	 *
+	 * @param createdByCol     the creator's id column, such as
+	 *                         {@code PROJECT__CREATEDBY}
+	 * @param createdByTypeCol the creator's login type column, such as
+	 *                         {@code PROJECT__CREATEDBYTYPE}
+	 * @param creators         the creators to keep, as (id, login type) pairs; must
+	 *                         not be empty
+	 * @return the filter
+	 */
+	static IQueryFilter getCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue0())));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Read creator filters from reactor input: maps with the creator's login
+	 * {@code id} and login {@code type}.
+	 *
+	 * @param values the input values, each expected to be a map; may be null
+	 * @return (id, login type) pairs, in input order; empty without input
+	 * @throws IllegalArgumentException when a value is not a map, or lacks an id or
+	 *                                  a type
+	 */
+	public static List<Pair<String, String>> getCreatorPairs(Collection<?> values) {
+		List<Pair<String, String>> creators = new ArrayList<>();
+		if (values == null) {
+			return creators;
+		}
+		for (Object value : values) {
+			Object id = value instanceof Map ? ((Map<?, ?>) value).get("id") : null;
+			Object type = value instanceof Map ? ((Map<?, ?>) value).get("type") : null;
+			if (id == null || id.toString().trim().isEmpty() || type == null || type.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Each creator filter must be a map with an \"id\" and a \"type\"");
+			}
+			creators.add(Pair.with(id.toString().trim(), type.toString().trim()));
+		}
+		return creators;
 	}
 
 	/**
