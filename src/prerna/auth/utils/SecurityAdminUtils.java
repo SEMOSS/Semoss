@@ -1404,6 +1404,55 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
 			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
+		return getAllEngineSettings(engineFilter, engineTypes, engineMetadataFilter, searchTerm, limit, offset,
+				sortFields, null, null, null);
+	}
+
+	/**
+	 * Get every engine on the server, for an admin.
+	 *
+	 * @param engineFilter         keep only these engine ids; null or empty for
+	 *                             every engine
+	 * @param engineTypes          keep only the engines of these types; null or
+	 *                             empty for every type
+	 * @param engineMetadataFilter keep only the engines whose metadata holds each
+	 *                             of these key and value pairs; null or empty for
+	 *                             no filter
+	 * @param searchTerm           keep only the engines whose id, name, or display
+	 *                             name matches; null or blank for no search
+	 * @param limit                the most engines to return; null or empty for no
+	 *                             limit
+	 * @param offset               how many engines to skip; null or empty for none
+	 * @param sortFields           sort keys and directions: {@code ENGINENAME} or
+	 *                             {@code DATECREATED} mapped to {@code ASC} or
+	 *                             {@code DESC}; null or empty to sort by name
+	 * @param permissionUser       the id of the user whose grants
+	 *                             {@code effectivePermissions} checks; when set,
+	 *                             each row also reports that user's direct grant as
+	 *                             {@code permission_user_permission} and their
+	 *                             custom groups' best grant as
+	 *                             {@code permission_user_group_permission}
+	 * @param effectivePermissions keep only the engines on which
+	 *                             {@code permissionUser} holds one of these
+	 *                             {@link prerna.auth.AccessPermissionEnum} ids,
+	 *                             counting direct and custom group grants (identity
+	 *                             provider groups are known only while that user is
+	 *                             signed in), with a global engine counting as read
+	 *                             only; null or empty for no filter
+	 * @param createdBy            keep only the engines created by one of these
+	 *                             (login id, login type) pairs, as
+	 *                             {@link User#getUserIdAndType(User)} returns them;
+	 *                             null or empty for no filter
+	 * @return one map per engine, with its details
+	 * @throws IllegalArgumentException when {@code effectivePermissions} is given
+	 *                                  without {@code permissionUser}, or holds a
+	 *                                  level that is not an
+	 *                                  {@link prerna.auth.AccessPermissionEnum} id
+	 */
+	public List<Map<String, Object>> getAllEngineSettings(List<String> engineFilter, List<String> engineTypes,
+			Map<String, Object> engineMetadataFilter, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields, String permissionUser, Collection<Integer> effectivePermissions,
+			Collection<Pair<String, String>> createdBy) {
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
@@ -1438,6 +1487,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		if (engineTypes != null && !engineTypes.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
+		}
+		addPermissionUserFilters(qs, "ENGINE__ENGINEID", "ENGINE__GLOBAL", "ENGINEPERMISSION", "GROUPENGINEPERMISSION",
+				"ENGINEID", permissionUser, effectivePermissions);
+		if (createdBy != null && !createdBy.isEmpty()) {
+			qs.addExplicitFilter(getCreatedByFilter("ENGINE__CREATEDBY", "ENGINE__CREATEDBYTYPE", createdBy));
 		}
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();
@@ -1505,6 +1559,87 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	 * @param offset
 	 * @return
 	 */
+	/**
+	 * Join one user's grants onto an admin resource list and, when levels are
+	 * given, keep only the resources on which that user holds one of them. The
+	 * user's direct grant and their custom groups' best grant are joined as
+	 * {@code permission_user_permission} and
+	 * {@code permission_user_group_permission}. Identity provider groups are only
+	 * known while that user is signed in, so they are not counted. Nothing is
+	 * joined without a permission user.
+	 *
+	 * @param qs                   the admin list query
+	 * @param resourceIdCol        the resource id column, such as
+	 *                             {@code PROJECT__PROJECTID}
+	 * @param globalCol            the resource's global flag, such as
+	 *                             {@code PROJECT__GLOBAL}
+	 * @param permissionTable      the user grant table, such as
+	 *                             {@code PROJECTPERMISSION}
+	 * @param groupPermissionTable the group grant table, such as
+	 *                             {@code GROUPPROJECTPERMISSION}
+	 * @param idColumn             the resource id column in both grant tables, such
+	 *                             as {@code PROJECTID}
+	 * @param permissionUser       the user whose grants to check; may be null
+	 * @param effectivePermissions the levels to keep; null or empty to only join
+	 * @throws IllegalArgumentException when levels are given without a permission
+	 *                                  user
+	 */
+	private static void addPermissionUserFilters(SelectQueryStruct qs, String resourceIdCol, String globalCol,
+			String permissionTable, String groupPermissionTable, String idColumn, String permissionUser,
+			Collection<Integer> effectivePermissions) {
+		boolean hasUser = permissionUser != null && !permissionUser.trim().isEmpty();
+		boolean hasLevels = effectivePermissions != null && !effectivePermissions.isEmpty();
+		if (!hasUser) {
+			if (hasLevels) {
+				throw new IllegalArgumentException("A permission filter needs the user whose permission it checks");
+			}
+			return;
+		}
+		String userId = Utility.inputSQLSanitizer(permissionUser.trim());
+		String userAlias = "PERMISSION_USER_GRANTS";
+		String groupAlias = "PERMISSION_USER_GROUP_GRANTS";
+
+		// the user's best direct grant per resource
+		{
+			SelectQueryStruct userQs = new SelectQueryStruct();
+			userQs.addSelector(new QueryColumnSelector(permissionTable + "__" + idColumn, idColumn));
+			userQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					permissionTable + "__PERMISSION", "PERMISSION"));
+			userQs.addGroupBy(new QueryColumnSelector(permissionTable + "__" + idColumn, idColumn));
+			userQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(permissionTable + "__USERID", "==", userId));
+			qs.addRelation(new SubqueryRelationship(userQs, userAlias, "left.outer.join",
+					new String[] { userAlias + "__" + idColumn, resourceIdCol, "=" }));
+		}
+
+		// the best grant of the custom groups the user belongs to, per resource
+		{
+			SelectQueryStruct membershipQs = new SelectQueryStruct();
+			membershipQs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
+			membershipQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", userId));
+
+			SelectQueryStruct groupQs = new SelectQueryStruct();
+			groupQs.addSelector(new QueryColumnSelector(groupPermissionTable + "__" + idColumn, idColumn));
+			groupQs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
+					groupPermissionTable + "__PERMISSION", "PERMISSION"));
+			groupQs.addGroupBy(new QueryColumnSelector(groupPermissionTable + "__" + idColumn, idColumn));
+			groupQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter(groupPermissionTable + "__TYPE", "==", "CUSTOM"));
+			groupQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToSubQuery(groupPermissionTable + "__ID", "==", membershipQs));
+			qs.addRelation(new SubqueryRelationship(groupQs, groupAlias, "left.outer.join",
+					new String[] { groupAlias + "__" + idColumn, resourceIdCol, "=" }));
+		}
+
+		qs.addSelector(new QueryColumnSelector(userAlias + "__PERMISSION", "permission_user_permission"));
+		qs.addSelector(new QueryColumnSelector(groupAlias + "__PERMISSION", "permission_user_group_permission"));
+
+		if (hasLevels) {
+			qs.addExplicitFilter(getEffectivePermissionFilter(userAlias + "__PERMISSION", groupAlias + "__PERMISSION",
+					globalCol, effectivePermissions));
+		}
+	}
+
 	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset) {
 		return getAllProjectSettings(projectFilter, typeFilter, projectMetadataFilter, searchTerm, limit, offset, null);
@@ -1513,6 +1648,59 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
 			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset,
 			Map<String, String> sortFields) {
+		return getAllProjectSettings(projectFilter, typeFilter, projectMetadataFilter, searchTerm, limit, offset,
+				sortFields, null, null, null);
+	}
+
+	/**
+	 * Get every project on the server, for an admin.
+	 *
+	 * @param projectFilter         keep only these project ids; null or empty for
+	 *                              every project
+	 * @param typeFilter            keep only the projects of these types; null or
+	 *                              empty for every type
+	 * @param projectMetadataFilter keep only the projects whose metadata holds each
+	 *                              of these key and value pairs; null or empty for
+	 *                              no filter
+	 * @param searchTerm            keep only the projects whose id, name, or
+	 *                              display name matches; null or blank for no
+	 *                              search
+	 * @param limit                 the most projects to return; null or empty for
+	 *                              no limit
+	 * @param offset                how many projects to skip; null or empty for
+	 *                              none
+	 * @param sortFields            sort keys and directions: {@code PROJECTNAME},
+	 *                              {@code DATECREATED}, or {@code DATELASTEDITED}
+	 *                              mapped to {@code ASC} or {@code DESC}; null or
+	 *                              empty to sort by name
+	 * @param permissionUser        the id of the user whose grants
+	 *                              {@code effectivePermissions} checks; when set,
+	 *                              each row also reports that user's direct grant
+	 *                              as {@code permission_user_permission} and their
+	 *                              custom groups' best grant as
+	 *                              {@code permission_user_group_permission}
+	 * @param effectivePermissions  keep only the projects on which
+	 *                              {@code permissionUser} holds one of these
+	 *                              {@link prerna.auth.AccessPermissionEnum} ids,
+	 *                              counting direct and custom group grants
+	 *                              (identity provider groups are known only while
+	 *                              that user is signed in), with a global project
+	 *                              counting as read only; null or empty for no
+	 *                              filter
+	 * @param createdBy             keep only the projects created by one of these
+	 *                              (login id, login type) pairs, as
+	 *                              {@link User#getUserIdAndType(User)} returns
+	 *                              them; null or empty for no filter
+	 * @return one map per project, with its details
+	 * @throws IllegalArgumentException when {@code effectivePermissions} is given
+	 *                                  without {@code permissionUser}, or holds a
+	 *                                  level that is not an
+	 *                                  {@link prerna.auth.AccessPermissionEnum} id
+	 */
+	public List<Map<String, Object>> getAllProjectSettings(List<String> projectFilter, List<String> typeFilter,
+			Map<String, Object> projectMetadataFilter, String searchTerm, String limit, String offset,
+			Map<String, String> sortFields, String permissionUser, Collection<Integer> effectivePermissions,
+			Collection<Pair<String, String>> createdBy) {
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 
@@ -1552,6 +1740,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		if (typeFilter != null && !typeFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__TYPE", "==", typeFilter));
+		}
+		addPermissionUserFilters(qs, "PROJECT__PROJECTID", "PROJECT__GLOBAL", "PROJECTPERMISSION",
+				"GROUPPROJECTPERMISSION", "PROJECTID", permissionUser, effectivePermissions);
+		if (createdBy != null && !createdBy.isEmpty()) {
+			qs.addExplicitFilter(getCreatedByFilter("PROJECT__CREATEDBY", "PROJECT__CREATEDBYTYPE", createdBy));
 		}
 		if (hasSearchTerm) {
 			OrQueryFilter searchFilter = new OrQueryFilter();

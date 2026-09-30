@@ -293,7 +293,8 @@ public class MicrosoftCalendarHelper {
 			String url = String.format(CALENDAR_VIEW, calendarPath(mailbox, calendarId), encode(windowStart),
 					encode(windowEnd), includeBody ? EVENT_FIELDS : EVENT_FIELDS_NO_BODY, encode("start/dateTime"),
 					pageSize);
-			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone), null, null, null);
+			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone, includeBody), null, null,
+					null);
 
 			String wanted = narrowing ? subject.trim().toLowerCase(Locale.ROOT) : null;
 			List<Map<String, Object>> events = new ArrayList<>();
@@ -340,7 +341,7 @@ public class MicrosoftCalendarHelper {
 
 			String url = calendarPath(mailbox, calendarId) + EVENTS + "/" + encode(eventId.trim()) + "?$select="
 					+ EVENT_FIELDS;
-			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone), null, null, null);
+			String response = HttpHelperUtility.getRequest(url, headers(accessToken, timeZone, true), null, null, null);
 			Map<String, Object> event = readMap(response);
 			if (event == null) {
 				throw new IllegalStateException("Microsoft Graph returned no event for event id = " + eventId);
@@ -873,9 +874,33 @@ public class MicrosoftCalendarHelper {
 	 * @return the headers
 	 */
 	private static Map<String, String> headers(String accessToken, String timeZone) {
+		return headers(accessToken, timeZone, false);
+	}
+
+	/**
+	 * The headers a call carries, asking for the times in a zone and, for a read
+	 * that returns bodies, for Outlook's own plain text rendering of them. It keeps
+	 * the paragraphs and line breaks of an invitation, and writes a link as its
+	 * text followed by the address in angle brackets, where reducing the markup
+	 * here would run everything into one line.
+	 *
+	 * @param accessToken the token to send
+	 * @param timeZone    optional zone the times are answered in
+	 * @param textBody    whether bodies come back as plain text
+	 * @return the headers
+	 */
+	private static Map<String, String> headers(String accessToken, String timeZone, boolean textBody) {
 		Map<String, String> headers = new HashMap<>(MicrosoftLoginUtils.getBearerHeader(accessToken));
+		List<String> preferences = new ArrayList<>();
 		if (timeZone != null && !timeZone.trim().isEmpty()) {
-			headers.put(PREFER_HEADER, "outlook.timezone=\"" + timeZone.trim() + "\"");
+			preferences.add("outlook.timezone=\"" + timeZone.trim() + "\"");
+		}
+		if (textBody) {
+			preferences.add("outlook.body-content-type=\"text\"");
+		}
+		if (!preferences.isEmpty()) {
+			// Graph reads several preferences from one header, comma separated
+			headers.put(PREFER_HEADER, String.join(", ", preferences));
 		}
 		return headers;
 	}
