@@ -29,7 +29,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -61,6 +60,7 @@ import prerna.engine.api.VectorDatabaseTypeEnum;
 import prerna.om.Insight;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -445,16 +445,16 @@ public class PineConeVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 		List<Map<String, Object>> fileList = new ArrayList<>();
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ AbstractVectorDatabaseEngine.DOCUMENTS_FOLDER_NAME);
-		Path documentsRoot = documentsDir.toPath().toAbsolutePath().normalize();
 		if (documentsDir.exists() && documentsDir.isDirectory()) {
 			for (String fileName : sources) {
-				Path documentPath = documentsRoot.resolve(fileName).normalize();
-				if (documentPath.equals(documentsRoot) || !documentPath.startsWith(documentsRoot)) {
+				File thisF;
+				try {
+					thisF = PathSecurityUtils.requireDescendant(documentsDir, new File(documentsDir, fileName));
+				} catch (IOException | IllegalArgumentException e) {
 					continue;
 				}
 				Map<String, Object> fileInfo = new HashMap<>();
 				fileInfo.put("fileName", fileName);
-				File thisF = documentPath.toFile();
 				if (thisF.exists() && thisF.isFile()) {
 					long fileSizeInBytes = thisF.length();
 					double fileSizeInMB = (double) fileSizeInBytes / (1024);

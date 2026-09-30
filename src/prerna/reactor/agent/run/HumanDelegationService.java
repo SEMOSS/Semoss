@@ -370,16 +370,22 @@ public final class HumanDelegationService {
 			}
 			try (Stream<Path> paths = Files.list(dir)) {
 				for (Path path : paths.sorted().toList()) {
-					Path realPath = path.toRealPath();
-					if (Files.isSymbolicLink(path) || !dir.equals(realPath.getParent())
-							|| !Files.isRegularFile(realPath)) {
+					if (Files.isSymbolicLink(path)) {
 						continue;
 					}
-					Map<String, Object> file = new LinkedHashMap<>();
-					file.put("path", roomRoot.relativize(realPath).toString().replace('\\', '/'));
-					file.put("name", realPath.getFileName().toString());
-					file.put("size", Files.size(realPath));
-					out.add(file);
+					try {
+						Path realPath = path.toRealPath();
+						if (!dir.equals(realPath.getParent()) || !Files.isRegularFile(realPath)) {
+							continue;
+						}
+						Map<String, Object> file = new LinkedHashMap<>();
+						file.put("path", roomRoot.relativize(realPath).toString().replace('\\', '/'));
+						file.put("name", realPath.getFileName().toString());
+						file.put("size", Files.size(realPath));
+						out.add(file);
+					} catch (IOException e) {
+						logger.debug("Skipping unreadable delegation artifact '{}': {}", path, e.getMessage());
+					}
 				}
 			}
 		} catch (IOException e) {

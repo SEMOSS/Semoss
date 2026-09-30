@@ -38,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -51,11 +52,22 @@ import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
 
 class EngineProxyFactoryUnitTests {
+	private static Properties previousCoreProperties;
+
 	@BeforeAll
 	static void initializeEngineUtilityBaseFolder() {
+		previousCoreProperties = DIHelper.getInstance().getCoreProp();
 		Properties properties = new Properties();
-		properties.setProperty(Constants.BASE_FOLDER, System.getProperty("java.io.tmpdir"));
+		if (previousCoreProperties != null) {
+			properties.putAll(previousCoreProperties);
+		}
+		properties.putIfAbsent(Constants.BASE_FOLDER, System.getProperty("java.io.tmpdir"));
 		DIHelper.getInstance().setCoreProp(properties);
+	}
+
+	@AfterAll
+	static void restoreCoreProperties() {
+		DIHelper.getInstance().setCoreProp(previousCoreProperties);
 	}
 
 	@TempDir

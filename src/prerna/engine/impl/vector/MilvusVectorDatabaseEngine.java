@@ -29,7 +29,6 @@ package prerna.engine.impl.vector;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -65,6 +64,7 @@ import prerna.om.Insight;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
@@ -419,8 +419,6 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ DOCUMENTS_FOLDER_NAME);
-		Path documentsRoot = documentsDir.toPath().toAbsolutePath().normalize();
-
 		List<Map<String, Object>> filesInMilvus = new ArrayList<>();
 
 		JsonObject queryRequest = new JsonObject();
@@ -453,14 +451,15 @@ public class MilvusVectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 				if (!uniqueFileNames.contains(source)) {
 					uniqueFileNames.add(source);
 
-					Path documentPath = documentsRoot.resolve(source).normalize();
-					if (documentPath.equals(documentsRoot) || !documentPath.startsWith(documentsRoot)) {
+					File thisF;
+					try {
+						thisF = PathSecurityUtils.requireDescendant(documentsDir, new File(documentsDir, source));
+					} catch (IOException | IllegalArgumentException e) {
 						continue;
 					}
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
-					File thisF = documentPath.toFile();
 					if (thisF.exists() && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);

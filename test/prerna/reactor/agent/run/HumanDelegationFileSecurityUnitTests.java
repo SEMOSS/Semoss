@@ -57,6 +57,7 @@ class HumanDelegationFileSecurityUnitTests {
 		Path artifact = Files.writeString(directory.resolve("answer.txt"), "answer");
 		Path outside = Files.writeString(baseFolder.resolve("outside.txt"), "outside");
 		Files.createSymbolicLink(directory.resolve("outside-link.txt"), outside);
+		Files.createSymbolicLink(directory.resolve("dangling-link.txt"), baseFolder.resolve("missing.txt"));
 
 		try (MockedStatic<Utility> utility = baseFolder()) {
 			List<Map<String, Object>> files = HumanDelegationService.returnedFiles("room-1", "child-1");

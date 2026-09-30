@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -67,6 +66,7 @@ import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.security.HttpHelperUtility;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.signer.Aws4Signer;
@@ -470,8 +470,6 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 
 		File documentsDir = new File(this.schemaFolder.getAbsolutePath() + FILE_SEPARATOR + indexClass + FILE_SEPARATOR
 				+ DOCUMENTS_FOLDER_NAME);
-		Path documentsRoot = documentsDir.toPath().toAbsolutePath().normalize();
-
 		List<Map<String, Object>> filesInS3Vector = new ArrayList<>();
 		Set<String> uniqueSources = new HashSet<>();
 
@@ -499,14 +497,15 @@ public class AwsS3VectorDatabaseEngine extends AbstractVectorDatabaseEngine {
 						continue;
 					uniqueSources.add(source);
 
-					Path documentPath = documentsRoot.resolve(source).normalize();
-					if (documentPath.equals(documentsRoot) || !documentPath.startsWith(documentsRoot)) {
+					File thisF;
+					try {
+						thisF = PathSecurityUtils.requireDescendant(documentsDir, new File(documentsDir, source));
+					} catch (IOException | IllegalArgumentException e) {
 						continue;
 					}
 
 					Map<String, Object> fileInfo = new HashMap<>();
 					fileInfo.put("fileName", source);
-					File thisF = documentPath.toFile();
 					if (thisF.exists() && thisF.isFile()) {
 						long fileSizeInBytes = thisF.length();
 						double fileSizeInMB = (double) fileSizeInBytes / (1024);
