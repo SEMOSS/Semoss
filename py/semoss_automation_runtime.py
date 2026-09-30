@@ -9,7 +9,7 @@ import base64
 import json
 import re
 import uuid
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator
 from itertools import islice
 from typing import Any
 
@@ -23,11 +23,12 @@ _INTERNAL_RESULT_VALUE = "__automation_value__"
 _INTERNAL_RESULT_METADATA = "__automation_metadata__"
 
 
-class AutomationDataset(Sequence[dict[str, Any]]):
-    """Read-only sequence over a query task owned by the run Insight.
+class AutomationDataset(list[dict[str, Any]]):
+    """Read-only JSON-array view over a query task owned by the run Insight.
 
-    Iteration, indexing, and slicing load bounded pages. Call ``materialize``
-    only when intentionally loading rows into the Python process.
+    The list base is intentional: Python's standard JSON encoder only treats
+    list and tuple instances as JSON arrays. Iteration, indexing, and slicing
+    still load bounded pages from Java instead of storing rows in this object.
     """
 
     __slots__ = ("reference", "run_id", "page_size", "_known_total", "_page")
@@ -38,11 +39,28 @@ class AutomationDataset(Sequence[dict[str, Any]]):
         run_id: str,
         page_size: int = 1_000,
     ) -> None:
+        list.__init__(self)
         self.reference = reference
         self.run_id = run_id
         self.page_size = page_size
         self._known_total: int | None = None
         self._page: dict[str, Any] | None = None
+
+    def _raise_read_only(self, *args: Any, **kwargs: Any) -> None:
+        raise TypeError("Automation dataset is read-only.")
+
+    __setitem__ = _raise_read_only
+    __delitem__ = _raise_read_only
+    __iadd__ = _raise_read_only
+    __imul__ = _raise_read_only
+    append = _raise_read_only
+    clear = _raise_read_only
+    extend = _raise_read_only
+    insert = _raise_read_only
+    pop = _raise_read_only
+    remove = _raise_read_only
+    reverse = _raise_read_only
+    sort = _raise_read_only
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         offset = 0
@@ -95,6 +113,9 @@ class AutomationDataset(Sequence[dict[str, Any]]):
     def __repr__(self) -> str:
         return f"AutomationDataset(rows={len(self)})"
 
+    def __contains__(self, value: object) -> bool:
+        return any(item == value for item in self)
+
     def __reversed__(self) -> Iterator[dict[str, Any]]:
         """Reverse one materialized snapshot instead of issuing one read per row."""
         return reversed(self.materialize())
@@ -109,6 +130,14 @@ class AutomationDataset(Sequence[dict[str, Any]]):
             if item == value:
                 return index
         raise ValueError(f"{value!r} is not in AutomationDataset")
+
+    def count(self, value: object) -> int:
+        """Count matching rows through bounded page iteration."""
+        return sum(1 for item in self if item == value)
+
+    def copy(self) -> list[dict[str, Any]]:
+        """Return an explicit in-memory list copy."""
+        return list(self)
 
     def materialize(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Materialize rows explicitly, optionally with a caller-owned bound."""
