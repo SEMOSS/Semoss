@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
@@ -45,6 +47,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.Constants;
 import prerna.util.SystemDefaultEngines;
 
 public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
@@ -104,7 +107,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
 		boolean isActive = !"false".equalsIgnoreCase(this.keyValue.get(IS_ACTIVE));
 
-		if (SystemDefaultEngines.getSystemAgents().contains(workspaceId)) {
+		boolean isOrchestrator = Constants.AGENT_ORCHESTRATOR.equals(workspaceId);
+		if (SystemDefaultEngines.getSystemAgents().contains(workspaceId) && !isOrchestrator) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " is a built-in system agent and cannot be edited");
 		}
@@ -119,6 +123,10 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		if (!SecurityProjectUtils.userCanEditProject(user, workspaceId)) {
 			throw new IllegalArgumentException(
 					"Workspace " + workspaceId + " does not exist or user does not have access to the workspace");
+		}
+
+		if (isOrchestrator) {
+			return updateOrchestratorRoster(user, workspaceId, current);
 		}
 
 		if (!currentlyActive && isActive) {
@@ -244,6 +252,53 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		}
 
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	/**
+	 * The platform Orchestrator is managed like every other system agent except for
+	 * its specialist allowlist. Editors may replace that list, while the seeded
+	 * identity, prompt, resources, policies, and active state remain immutable.
+	 */
+	private NounMetadata updateOrchestratorRoster(User user, String workspaceId, Map<String, Object> current) {
+		if (getGenRowStruct(SUBAGENTS) == null) {
+			return getError("The Orchestrator edit must include subagents");
+		}
+
+		String currentName = current.get("name") == null ? null : String.valueOf(current.get("name"));
+		String requestedName = this.keyValue.get(NAME);
+		if (currentName == null || !currentName.equals(requestedName)) {
+			return getError("The built-in Orchestrator name cannot be changed");
+		}
+
+		String[] protectedKeys = { DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS,
+				SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH, MAX_REFLECTIONS, MAX_SECONDS,
+				MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, HOOKS, USE_DEFAULT_AGENT_TOOLS,
+				DISABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
+		for (String key : protectedKeys) {
+			if (getGenRowStruct(key) != null) {
+				return getError("Only the built-in Orchestrator subagent roster may be edited");
+			}
+		}
+
+		try {
+			List<Map<String, Object>> roster = validateAndNormalizeSubagents(user, workspaceId, getSubagentMapList());
+			JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
+			if (config == null) {
+				config = new JSONObject();
+			}
+			JSONArray subagents = new JSONArray();
+			for (Map<String, Object> entry : roster) {
+				subagents.put(new JSONObject().put("workspaceId", entry.get("workspaceId")));
+			}
+			config.put("subagents", subagents);
+			ModelInferenceLogsUtils.updateWorkspaceConfigJson(workspaceId, config);
+			return new NounMetadata(true, PixelDataType.BOOLEAN);
+		} catch (IllegalArgumentException e) {
+			return getError(e.getMessage());
+		} catch (Exception e) {
+			classLogger.error("Failed to update Orchestrator specialist roster", e);
+			return getError("Error updating Orchestrator roster: " + e.getMessage());
+		}
 	}
 
 }

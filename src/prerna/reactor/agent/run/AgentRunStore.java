@@ -39,6 +39,7 @@ import java.util.Map;
 import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
@@ -70,7 +71,7 @@ public final class AgentRunStore {
 
 	private static final Gson GSON = new Gson();
 	private static final String ACTIVITY_LOG_COLUMNS = "ar.RUN_ID, ar.PARENT_RUN_ID, ar.ROOM_ID, ar.WORKSPACE_ID, ar.MODEL_ID, "
-			+ "ar.HARNESS_TYPE, ar.JOB_ID, ar.STATUS, ar.INPUT, ar.INPUT_MESSAGE_ID, ar.FINAL_OUTPUT, ar.FINAL_OUTPUT_MESSAGE_ID, "
+			+ "ar.HARNESS_TYPE, ar.JOB_ID, ar.STATUS, ar.INPUT, ar.REQUEST_JSON, ar.INPUT_MESSAGE_ID, ar.FINAL_OUTPUT, ar.FINAL_OUTPUT_MESSAGE_ID, "
 			+ "ar.ERROR_MESSAGE, ar.PROGRESS_JSON, ar.DATE_CREATED, ar.STARTED_AT, ar.COMPLETED_AT, ar.USER_ID, r.ROOM_NAME";
 	// Rooms are keyed per user, so the name join must match on both columns.
 	private static final String ACTIVITY_LOG_FROM = "FROM AGENT_RUN ar "
@@ -203,7 +204,7 @@ public final class AgentRunStore {
 		ResultSet rs = null;
 		try {
 			String userId = resolveInsightUserId(insight);
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
 					+ " WHERE ar.RUN_ID = ? AND ar.USER_ID = ?";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
@@ -378,7 +379,7 @@ public final class AgentRunStore {
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		try {
-			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + ", ar.REQUEST_JSON " + ACTIVITY_LOG_FROM
+			String query = "SELECT " + ACTIVITY_LOG_COLUMNS + " " + ACTIVITY_LOG_FROM
 					+ " WHERE ar.USER_ID = ? AND ar.PARENT_RUN_ID = ? ORDER BY ar.DATE_CREATED DESC, ar.RUN_ID DESC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, userId);
@@ -392,7 +393,9 @@ public final class AgentRunStore {
 				AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
 				boolean human = request != null && request.isHumanExecutor();
 				run.put("executorType", human ? "HUMAN" : "AGENT");
-				run.put("executorLabel", human ? request.getHumanExecutorLabel() : null);
+				String executorLabel = human ? request.getHumanExecutorLabel()
+						: workspaceName(stringValue(run.get("workspaceId")));
+				run.put("executorLabel", executorLabel);
 				runs.add(run);
 			}
 			return runs;
@@ -403,6 +406,19 @@ public final class AgentRunStore {
 			throw new IllegalStateException("Failed to load subagent AGENT_RUN rows for parentRunId=" + parentRunId, e);
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	private static String workspaceName(String workspaceId) {
+		if (workspaceId == null) {
+			return null;
+		}
+		try {
+			Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+			Object name = workspace == null ? null : workspace.get("name");
+			return name == null ? null : String.valueOf(name);
+		} catch (RuntimeException e) {
+			return null;
 		}
 	}
 
@@ -894,6 +910,15 @@ public final class AgentRunStore {
 		map.put("jobId", rs.getString("JOB_ID"));
 		map.put("status", rs.getString("STATUS"));
 		map.put("input", rs.getString("INPUT"));
+		AgentRunRequest request = requestFromJson(rs.getString("REQUEST_JSON"));
+		if (request != null) {
+			if (request.getTransferFromRunId() != null) {
+				map.put("transferFromRunId", request.getTransferFromRunId());
+			}
+			if (request.getTransferRootRunId() != null) {
+				map.put("transferRootRunId", request.getTransferRootRunId());
+			}
+		}
 		map.put("inputMessageId", rs.getString("INPUT_MESSAGE_ID"));
 		map.put("finalText", rs.getString("FINAL_OUTPUT"));
 		map.put("finalOutputMessageId", rs.getString("FINAL_OUTPUT_MESSAGE_ID"));

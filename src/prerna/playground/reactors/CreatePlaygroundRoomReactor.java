@@ -61,6 +61,7 @@ public class CreatePlaygroundRoomReactor extends CreateRoomReactor {
 		String mode = modeGRS == null || modeGRS.isEmpty() ? null : String.valueOf(modeGRS.get(0));
 		projectGRS.add(new NounMetadata(CollaborationUtils.projectIdForMode(mode), PixelDataType.CONST_STRING));
 		this.store.addNoun(ReactorKeysEnum.PROJECT.getKey(), projectGRS);
+
 		// then we call the normal create room logic
 		return super.execute();
 	}

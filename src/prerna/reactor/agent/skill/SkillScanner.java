@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -124,6 +125,17 @@ public final class SkillScanner {
 	 * @param includeAll     whether to also crawl the rest of each skill folder
 	 */
 	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent, boolean includeAll) {
+		return scan(workingDir, includeContent, includeAll, null);
+	}
+
+	/**
+	 * Scans skills while hiding registry-managed skills that are not attached to
+	 * the current agent. Unmanaged skills authored directly in the room remain
+	 * shared room capabilities. A {@code null} allowlist preserves the legacy
+	 * unfiltered behavior for non-agent callers.
+	 */
+	public static List<DiscoveredSkill> scan(String workingDir, boolean includeContent, boolean includeAll,
+			Set<String> allowedManagedSkillIds) {
 		List<DiscoveredSkill> result = new ArrayList<>();
 		if (workingDir == null || workingDir.trim().isEmpty()) {
 			return result;
@@ -150,6 +162,9 @@ public final class SkillScanner {
 					if (!skillMd.isFile()) {
 						continue;
 					}
+					if (!isVisibleToAgent(child, allowedManagedSkillIds)) {
+						continue;
+					}
 					String relPath = toRelative(root, skillMd.getAbsolutePath());
 					String relDir  = toRelative(root, child.getAbsolutePath());
 					String description = readDescription(skillMd);
@@ -162,6 +177,25 @@ public final class SkillScanner {
 		}
 		result.addAll(found.values());
 		return result;
+	}
+
+	/** Returns whether a skill directory is visible under an agent's skill policy. */
+	public static boolean isVisibleToAgent(File skillDir, Set<String> allowedManagedSkillIds) {
+		if (allowedManagedSkillIds == null) {
+			return true;
+		}
+		File metadata = new File(skillDir, ".skill-meta");
+		if (!metadata.isFile()) {
+			return true;
+		}
+		try {
+			org.json.JSONObject json = new org.json.JSONObject(
+					new String(Files.readAllBytes(metadata.toPath()), StandardCharsets.UTF_8));
+			String skillId = json.optString("skill_id", null);
+			return skillId != null && allowedManagedSkillIds.contains(skillId);
+		} catch (Exception e) {
+			return false;
+		}
 	}
 
 	/**
