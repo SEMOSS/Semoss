@@ -80,11 +80,6 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 
 	/** Captures a server-created execution Insight whose User this handle owns. */
 	static InsightHandle capture(String runId, Insight source, boolean ownsUser) {
-		return capture(runId, source, ownsUser, ThreadStore.getSessionId());
-	}
-
-	/** Captures context with the real session recorded when the run request was built. */
-	static InsightHandle capture(String runId, Insight source, boolean ownsUser, String executionSessionId) {
 		Insight clone = new Insight();
 		User user = source.getUser();
 		if (user == null) {
@@ -96,9 +91,10 @@ record InsightHandle(Insight insight, String insightId, String sessionId, String
 		clone.setContextProjectId(source.getContextProjectId());
 		String insightId = InsightStore.getInstance().put(clone);
 		Map<String, String> log4jContextMap = captureLog4jContext(runId, user);
-		String sessionId = executionSessionId == null || executionSessionId.isBlank() ? null
-				: executionSessionId.trim();
-		putIfBlank(log4jContextMap, SemossLogUtils.SESSION_ID, sessionId);
+		String sessionId = ThreadStore.getSessionId();
+		if (sessionId == null || sessionId.trim().isEmpty()) {
+			sessionId = log4jContextMap.get(SemossLogUtils.SESSION_ID);
+		}
 		return new InsightHandle(clone, insightId, sessionId, ThreadStore.getRouteId(), ThreadStore.getLocalHostname(),
 				ThreadStore.getLocalProtocol(), ThreadStore.getLocalPort(), log4jContextMap, ownsUser,
 				new AtomicBoolean());

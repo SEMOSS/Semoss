@@ -336,17 +336,15 @@ public final class AgentSubAgentRegistry {
 				String childStatus = runHandle.status() == null
 						? prerna.reactor.agent.run.AgentRunStatus.SUBMITTED.name()
 						: runHandle.status().name();
-				String specialistName = workspaceName(req.workspaceId);
 				prerna.reactor.agent.stream.AgentRunStreamService.get().publishSubagentStarted(req.parentJobId,
 						prerna.reactor.agent.stream.AgentStreamItems.subagentItem(childRunId, req.alias, childRoomId,
-								req.workspaceId, specialistName, childStatus));
+								req.workspaceId, childStatus));
 				Map<String, Object> data = new LinkedHashMap<>();
 				data.put("kind", "subagent-spawned");
 				data.put("jobId", childRunId);
 				data.put("runId", childRunId);
 				data.put("alias", req.alias);
 				data.put("workspaceId", req.workspaceId);
-				data.put("displayName", specialistName);
 				data.put("roomId", childRoomId);
 				data.put("spawnedAt", meta.getSpawnedAt());
 				data.put("status", runHandle.status() == null ? null : runHandle.status().name());
@@ -379,20 +377,6 @@ public final class AgentSubAgentRegistry {
 				rootCtx.spawnBudgetRemaining.incrementAndGet();
 			}
 			throw e;
-		}
-	}
-
-	private static String workspaceName(String workspaceId) {
-		if (workspaceId == null || workspaceId.isBlank()) {
-			return null;
-		}
-		try {
-			Map<String, Object> workspace = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
-			Object name = workspace == null ? null : workspace.get("name");
-			return name == null ? null : String.valueOf(name);
-		} catch (RuntimeException e) {
-			logger.warn("Could not resolve display name for subagent workspace '{}': {}", workspaceId, e.getMessage());
-			return null;
 		}
 	}
 

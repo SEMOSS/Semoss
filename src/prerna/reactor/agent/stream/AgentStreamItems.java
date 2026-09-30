@@ -115,11 +115,6 @@ public final class AgentStreamItems {
 
 	public static Map<String, Object> subagentItem(String childRunId, String alias, String roomId, String workspaceId,
 			String status) {
-		return subagentItem(childRunId, alias, roomId, workspaceId, null, status);
-	}
-
-	public static Map<String, Object> subagentItem(String childRunId, String alias, String roomId, String workspaceId,
-			String displayName, String status) {
 		Map<String, Object> item = new LinkedHashMap<>();
 		item.put("id", childRunId);
 		item.put("kind", KIND_SUBAGENT);
@@ -130,9 +125,6 @@ public final class AgentStreamItems {
 		item.put("roomId", roomId);
 		if (workspaceId != null && !workspaceId.isBlank()) {
 			item.put("workspaceId", workspaceId);
-		}
-		if (displayName != null && !displayName.isBlank()) {
-			item.put("displayName", displayName);
 		}
 		item.put("status", status);
 		return item;

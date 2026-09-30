@@ -106,6 +106,9 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 		String alias = String.valueOf(cfg.getOrDefault("reviewer_alias", "agent_pptx_reviewer"));
 		var spec = ctx.getAgentConfig().getSubagents().stream().filter(s -> alias.equals(s.getAlias())).findFirst()
 				.orElseThrow(() -> new IllegalStateException("Configured PPTX reviewer is not attached: " + alias));
+		if (ctx.getSpawnDepth() >= ctx.getAgentConfig().getSpawnPolicy().getMaxSubagentDepth()) {
+			throw new IllegalStateException("PPTX reviewer exceeds this agent's configured spawn depth");
+		}
 		JSONObject parameters = new JSONObject().put("filePath", file).put("slides", new JSONArray(slides))
 				.put("instructions", bounded(instructions, 11000)).put("context", bounded(ctx.getInput(), 11000));
 		// The system reviewer has a known InspectPptx contract. Custom reviewers retain their own routing.

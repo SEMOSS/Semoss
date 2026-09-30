@@ -109,9 +109,7 @@ public final class AgentRunStreamService {
 		private final StringBuilder messageText = new StringBuilder();
 		private String activeReasoningId = null;
 		private final StringBuilder reasoningText = new StringBuilder();
-		private final Set<String> activeSubagents = new HashSet<>();
 		private final Set<String> completedSubagents = new HashSet<>();
-		private boolean terminal = false;
 		private volatile Long expiresAtMs = null;
 
 		private Session(String runId) {
@@ -259,23 +257,7 @@ public final class AgentRunStreamService {
 	}
 
 	public void publishSubagentStarted(String parentRunId, Map<String, Object> subagentItem) {
-		Session session = sessionFor(parentRunId);
-		if (session == null || subagentItem == null) {
-			return;
-		}
-		String childRunId = String.valueOf(subagentItem.get("childRunId"));
-		session.lock.lock();
-		try {
-			if (childRunId != null && !childRunId.isBlank() && !"null".equals(childRunId)) {
-				session.activeSubagents.add(childRunId);
-				// A terminal parent must remain addressable until its deferred children
-				// settle; otherwise their completion events have nowhere to be published.
-				session.expiresAtMs = null;
-			}
-			emitLocked(session, TYPE_ITEM_STARTED, Map.of("item", subagentItem));
-		} finally {
-			session.lock.unlock();
-		}
+		publishItemEvent(parentRunId, TYPE_ITEM_STARTED, subagentItem);
 	}
 
 	public void publishSubagentUpdated(String parentRunId, String childRunId, Map<String, Object> patch) {
@@ -309,11 +291,7 @@ public final class AgentRunStreamService {
 			if (!session.completedSubagents.add(childRunId)) {
 				return;
 			}
-			session.activeSubagents.remove(childRunId);
 			emitLocked(session, TYPE_ITEM_COMPLETED, Map.of("item", subagentItem));
-			if (session.terminal && session.activeSubagents.isEmpty()) {
-				session.expiresAtMs = System.currentTimeMillis() + TERMINAL_GRACE_MS;
-			}
 		} finally {
 			session.lock.unlock();
 		}
@@ -342,14 +320,8 @@ public final class AgentRunStreamService {
 		if (session == null) {
 			return;
 		}
-		session.lock.lock();
-		try {
-			session.terminal = true;
-			if (session.activeSubagents.isEmpty() && session.expiresAtMs == null) {
-				session.expiresAtMs = System.currentTimeMillis() + TERMINAL_GRACE_MS;
-			}
-		} finally {
-			session.lock.unlock();
+		if (session.expiresAtMs == null) {
+			session.expiresAtMs = System.currentTimeMillis() + TERMINAL_GRACE_MS;
 		}
 	}
 
