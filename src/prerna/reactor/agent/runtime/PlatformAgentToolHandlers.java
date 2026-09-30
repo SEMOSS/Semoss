@@ -935,7 +935,7 @@ final class PlatformAgentToolHandlers {
 	}
 
 	private static String listSkill(Map<String, Object> params, ToolContext tc) {
-		List<DiscoveredSkill> skills = SkillScanner.scan(tc.root);
+		List<DiscoveredSkill> skills = SkillScanner.scan(tc.root, false, false, tc.allowedManagedSkillIds());
 		if (skills.isEmpty()) {
 			return """
 					No skills found.
@@ -993,8 +993,10 @@ final class PlatformAgentToolHandlers {
 				String candidatePath = candidateDir + "/" + relativeFile;
 				attempted.add(candidatePath);
 				File candidate = tc.resolve(candidatePath);
-				if (candidate.isFile()) {
-					skillDir = tc.resolve(candidateDir);
+				File candidateSkillDir = tc.resolve(candidateDir);
+				if (candidate.isFile()
+						&& SkillScanner.isVisibleToAgent(candidateSkillDir, tc.allowedManagedSkillIds())) {
+					skillDir = candidateSkillDir;
 					skillFile = candidate;
 					break;
 				}
@@ -1528,6 +1530,17 @@ final class PlatformAgentToolHandlers {
 				return ".";
 			}
 			return normalized;
+		}
+
+		private Set<String> allowedManagedSkillIds() {
+			Set<String> ids = new HashSet<>();
+			for (Map<String, String> skill : ctx.getAgentConfig().getSkills()) {
+				String id = skill == null ? null : skill.get("skill_id");
+				if (id != null && !id.isBlank()) {
+					ids.add(id.trim());
+				}
+			}
+			return ids;
 		}
 	}
 }

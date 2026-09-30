@@ -29,6 +29,7 @@ package prerna.reactor.agent.runtime;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -225,7 +226,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		// in the run) so
 		// the model knows what it can pull in via LoadSkill. Empty when no skills are
 		// present.
-		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir());
+		String availableSkillsBlock = buildAvailableSkillsPromptBlock(agentConfig.getWorkingDir(),
+				configuredSkillIds(agentConfig));
 		if (!availableSkillsBlock.isEmpty()) {
 			composed.append("\n\n").append(availableSkillsBlock);
 		}
@@ -1294,8 +1296,8 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * domain-neutral and names no tools, and it ships only when at least one skill
 	 * is present.
 	 */
-	private static String buildAvailableSkillsPromptBlock(String workingDir) {
-		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir);
+	private static String buildAvailableSkillsPromptBlock(String workingDir, Set<String> allowedManagedSkillIds) {
+		List<DiscoveredSkill> skills = SkillScanner.scan(workingDir, false, false, allowedManagedSkillIds);
 		logger.info("SemossAgentHarness: discovered {} skill(s) for available_skills block workingDir={}",
 				skills.size(), workingDir);
 		if (skills.isEmpty()) {
@@ -1328,6 +1330,17 @@ public class SemossAgentHarness implements IAgentHarness {
 				need ListSkill to discover these.\
 				""");
 		return sb.toString();
+	}
+
+	private static Set<String> configuredSkillIds(AgentConfig agentConfig) {
+		Set<String> ids = new HashSet<>();
+		for (Map<String, String> skill : agentConfig.getSkills()) {
+			String id = skill == null ? null : skill.get("skill_id");
+			if (id != null && !id.isBlank()) {
+				ids.add(id.trim());
+			}
+		}
+		return ids;
 	}
 
 	/**

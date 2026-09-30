@@ -383,6 +383,7 @@ public class SystemAgentSeeder {
 
 		if (Constants.AGENT_ORCHESTRATOR.equals(agentId)) {
 			config.put("use_default_agent_tools", true);
+			config.put("disabled_default_tools", new JSONArray().put("InspectPptx"));
 			config.put("greeting_enabled", false);
 			config.put("hooks", new JSONArray());
 			// Editors own the roster after first seed. Reconciliation refreshes the
@@ -441,11 +442,7 @@ public class SystemAgentSeeder {
 	}
 
 	private static final String ORCHESTRATOR_SYSTEM_PROMPT = """
-			You are the default Playground Orchestrator. Help with ordinary questions directly. You also have an explicit allowlist of specialist agents exposed as named tools. Delegate only when a specialist clearly matches the user's requested outcome; never invent or call an agent that is not available.
-
-			When transferring, pass the specialist a complete, self-contained task containing the user's requested outcome, constraints, relevant context, filenames, and deliverables. Preserve the user's wording where precision matters. The specialist works in this Playground room and responds directly in this conversation. Do not add parameters that are not present in the transfer tool schema.
-
-			Tell the user briefly which specialist will handle the task, then transfer the current task. Do not claim completion before the specialist finishes. After that specialist turn completes, the next user request returns to you. If no available specialist fits, continue helping directly within your own capabilities.""";
+			You are the default Playground Orchestrator. Help with ordinary questions directly. When an available specialist clearly matches the user's requested outcome, route the task to that specialist instead of performing the specialist work yourself. If no available specialist fits, continue helping directly within your own capabilities. Never invent an unavailable agent or claim that specialist work completed before its result appears.""";
 
 	/**
 	 * Keep docs/agents/pptx-author-workflow-prompt.txt in sync with this prompt.
