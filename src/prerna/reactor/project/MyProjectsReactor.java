@@ -35,12 +35,16 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import prerna.auth.User;
+import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.reactor.AbstractReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -50,13 +54,18 @@ public class MyProjectsReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MyProjectsReactor.class);
 
+	private static final String EFFECTIVE_PERMISSIONS = "effectivePermissions";
+	private static final String CREATED_BY = "createdBy";
+	private static final String CREATED_BY_ME = "createdByMe";
+
 	public MyProjectsReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.FILTER_WORD.getKey(), ReactorKeysEnum.LIMIT.getKey(),
 				ReactorKeysEnum.OFFSET.getKey(), ReactorKeysEnum.ONLY_FAVORITES.getKey(),
 				ReactorKeysEnum.META_KEYS.getKey(), ReactorKeysEnum.META_FILTERS.getKey(),
 				ReactorKeysEnum.PERMISSION_FILTERS.getKey(), ReactorKeysEnum.NO_META.getKey(),
 				ReactorKeysEnum.PROJECT_TYPE.getKey(), ReactorKeysEnum.INCLUDE_USERTRACKING_KEY.getKey(),
-				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.ONLY_TEMPLATES.getKey() };
+				ReactorKeysEnum.SORT.getKey(), ReactorKeysEnum.ONLY_TEMPLATES.getKey(), EFFECTIVE_PERMISSIONS,
+				CREATED_BY, CREATED_BY_ME };
 	}
 
 	@Override
@@ -73,12 +82,19 @@ public class MyProjectsReactor extends AbstractReactor {
 		boolean onlyTemplates = getBoolean(ReactorKeysEnum.ONLY_TEMPLATES.getKey(), false);
 		Map<String, Object> projectMetadataFilter = getMap(ReactorKeysEnum.META_FILTERS.getKey());
 		Map<String, String> sortFields = getMap(ReactorKeysEnum.SORT.getKey());
+		List<Integer> effectivePermissions = getListInteger(EFFECTIVE_PERMISSIONS);
+		GenRowStruct createdByGrs = getGenRowStruct(CREATED_BY);
+		List<Pair<String, String>> createdBy = AbstractSecurityUtils
+				.getCreatorPairs(createdByGrs == null ? null : createdByGrs.getAllValues());
+		if (getBoolean(CREATED_BY_ME, false)) {
+			createdBy.addAll(User.getUserIdAndType(this.insight.getUser()));
+		}
 
 		// for right now, do not apply filter on project type since it is not properly
 		// in some smss files
 		List<Map<String, Object>> projectInfo = SecurityProjectUtils.getUserProjectList(this.insight.getUser(),
 				projectTypeFilters, projectIdFilters, favoritesOnly, projectMetadataFilter, permissionFilters,
-				searchTerm, limit, offset, sortFields, onlyTemplates);
+				searchTerm, limit, offset, sortFields, onlyTemplates, effectivePermissions, createdBy);
 
 		if (!projectInfo.isEmpty() && (!noMeta || includeUserT)) {
 			Map<String, Integer> index = new HashMap<>(projectInfo.size());
@@ -188,6 +204,17 @@ public class MyProjectsReactor extends AbstractReactor {
 			return "The sort is a map with key and direction. Supported keys are 'PROJECTNAME', 'DATECREATED', and 'DATELASTEDITED' (or 'DATE_LAST_EDITED').";
 		} else if (key.equals(ReactorKeysEnum.PROJECT.getKey())) {
 			return "This is an optional project filter";
+		} else if (key.equals(EFFECTIVE_PERMISSIONS)) {
+			return """
+					Keep only the resources whose effective permission is one of these levels: 1 (owner), 2 (edit), \
+					or 3 (read only). The effective permission is the better of the user's own grant and their \
+					groups' grant; a global resource without a grant counts as read only.""";
+		} else if (key.equals(CREATED_BY)) {
+			return """
+					Keep only the resources created by one of these creators. Each is a map with the creator's \
+					login "id" and login "type", such as {"id": "abc", "type": "MICROSOFT"}; both must match.""";
+		} else if (key.equals(CREATED_BY_ME)) {
+			return "When true, keep only the resources the calling user created, under any login in their session.";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -75,7 +75,7 @@ public class SystemDefaultEngines {
 	 */
 	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_APP_FILESYSTEM,
 			Constants.MCP_BROWSER_AUTOMATION, Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER,
-			Constants.MCP_REACTOR_HELP, Constants.MCP_ROOM_FILESYSTEM);
+			Constants.MCP_PIXABAY, Constants.MCP_REACTOR_HELP, Constants.MCP_ROOM_FILESYSTEM);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
@@ -131,6 +131,9 @@ public class SystemDefaultEngines {
 		}
 		if (Constants.AGENT_DATABASE_EXPLORER.equals(agentId) || Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
 			return List.of(Constants.MCP_REACTOR_HELP);
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of(Constants.MCP_PIXABAY);
 		}
 		return List.of();
 	}

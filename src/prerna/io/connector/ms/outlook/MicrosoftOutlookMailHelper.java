@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -93,11 +94,17 @@ public class MicrosoftOutlookMailHelper {
 
 	/** The fields a message listing asks for when the caller wants the body. */
 	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,receivedDateTime,"
-			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink";
+			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,conversationId";
+
+	/**
+	 * What a thread asks for: the body, and the part of it that is the message's
+	 * own, without the earlier messages it quotes.
+	 */
+	private static final String CONVERSATION_FIELDS = MESSAGE_FIELDS + ",uniqueBody";
 
 	/** The same without the body, for a listing that only wants headers. */
 	private static final String MESSAGE_FIELDS_NO_BODY = "id,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId";
+			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId";
 
 	// graph refuses a message over this size on the simple send, and the limit is
 	// on the encoded form rather than the file, so it is checked after encoding
@@ -472,6 +479,10 @@ public class MicrosoftOutlookMailHelper {
 	 * @return the messages, newest first, as Graph returned them
 	 */
 	public List<Map<String, Object>> listMessages(String accessToken, String mailbox, MessageQuery query) {
+		if (query.conversationId != null) {
+			return listConversation(accessToken, mailbox, query);
+		}
+
 		StringBuilder url = new StringBuilder(userPath(mailbox));
 		if (query.folder != null && !query.folder.isEmpty()) {
 			url.append("/mailFolders/").append(encode(query.folder));
@@ -505,7 +516,8 @@ public class MicrosoftOutlookMailHelper {
 			url.append("&$orderby=").append(encode("receivedDateTime desc"));
 		}
 
-		String response = HttpHelperUtility.getRequest(url.toString(), headers(accessToken), null, null, null);
+		String response = HttpHelperUtility.getRequest(url.toString(),
+				query.includeBody ? textBodyHeaders(accessToken) : headers(accessToken), null, null, null);
 		throwOnError(response, "read the mailbox");
 		List<Map<String, Object>> messages = readList(response);
 
@@ -527,6 +539,42 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Find the messages of one conversation, in every folder, so a thread holds the
+	 * replies the user sent as well as the ones they received.
+	 *
+	 * <p>
+	 * The conversation filter is sent without an ordering, which Graph can reject
+	 * alongside it as too complex, so the messages are put newest first here.
+	 * Bodies are asked for as text, which Graph writes out keeping the lines of the
+	 * message, and each message also comes back with its unique body, the part that
+	 * is not quoted from the messages before it.
+	 * </p>
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox to read, or null for the signed in user
+	 * @param query       the conversation, how many messages, and whether bodies
+	 *                    come back
+	 * @return the messages, newest first, as Graph returned them
+	 */
+	private List<Map<String, Object>> listConversation(String accessToken, String mailbox, MessageQuery query) {
+		StringBuilder url = new StringBuilder(userPath(mailbox));
+		url.append("/messages?$select=").append(query.includeBody ? CONVERSATION_FIELDS : MESSAGE_FIELDS_NO_BODY);
+		url.append("&$top=").append(Math.max(1, query.top));
+		// a quote inside an OData string is written twice
+		String conversationId = query.conversationId.replace("'", "''");
+		url.append("&$filter=").append(encode("conversationId eq '" + conversationId + "'"));
+
+		String response = HttpHelperUtility.getRequest(url.toString(), textBodyHeaders(accessToken), null, null, null);
+		throwOnError(response, "read the conversation");
+		List<Map<String, Object>> messages = new ArrayList<>(readList(response));
+		messages.sort(Comparator
+				.comparing(
+						(Map<String, Object> message) -> String.valueOf(message.getOrDefault("receivedDateTime", "")))
+				.reversed());
+		return messages;
+	}
+
+	/**
 	 * Read one message.
 	 *
 	 * @param accessToken the token to read with
@@ -536,7 +584,7 @@ public class MicrosoftOutlookMailHelper {
 	 */
 	public Map<String, Object> getMessage(String accessToken, String mailbox, String messageId) {
 		String url = userPath(mailbox) + "/messages/" + encode(messageId) + "?$select=" + MESSAGE_FIELDS;
-		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		String response = HttpHelperUtility.getRequest(url, textBodyHeaders(accessToken), null, null, null);
 		throwOnError(response, "read a message");
 		return readMap(response);
 	}
@@ -662,6 +710,21 @@ public class MicrosoftOutlookMailHelper {
 	private static Map<String, String> headers(String accessToken) {
 		Map<String, String> headers = new HashMap<>();
 		headers.put("Authorization", "Bearer " + accessToken);
+		return headers;
+	}
+
+	/**
+	 * The headers for a read that returns bodies, asking Graph for Outlook's own
+	 * plain text rendering. It keeps the paragraphs and line breaks, and writes a
+	 * link as its text followed by the address in angle brackets, where reducing
+	 * the markup here would run everything into one line.
+	 *
+	 * @param accessToken the token to read with
+	 * @return the headers
+	 */
+	private static Map<String, String> textBodyHeaders(String accessToken) {
+		Map<String, String> headers = headers(accessToken);
+		headers.put("Prefer", "outlook.body-content-type=\"text\"");
 		return headers;
 	}
 
@@ -796,6 +859,12 @@ public class MicrosoftOutlookMailHelper {
 
 		/** Whether the body comes back with each message. */
 		public boolean includeBody = true;
+
+		/**
+		 * The conversation to read, from every folder. When set, the folder, the text
+		 * search, the date, and the unread filter are not applied.
+		 */
+		public String conversationId = null;
 
 	}
 

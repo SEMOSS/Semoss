@@ -1,287 +1,161 @@
 # Agent Skills
 
-A skill is a **Project of type `SKILL`**. There is no separate skill registry: the securitydb
-`PROJECT` table is the catalog (with a `PROJECTMETA` row `tag = SKILL` as a secondary marker),
-and the skill's content lives in the project's assets folder. This includes the built-in
-**platform skills** (`agent-run`, `app-bootstrap`, `build-and-publish`, `database`, `file-uploads`,
-`model`, `python`, `room`, `vector`), which ship as `project/platform__<id>` project folders and
-are loaded at startup as global projects - their project id IS the old slug (e.g. `database`).
+A skill is a **project of type `SKILL`** containing `SKILL.md` and optional reference files, scripts, and assets. The security database's project catalog supplies its identity and access controls. Skill contents live in project assets; there is no separate skill registry table.
 
-Two ways to see skills, answering different questions:
+Skills provide reusable instructions. They do not execute automatically, grant permissions, or replace tool schemas. The [SEMOSS harness](../semoss_harness.md) advertises discovered skills and lets the model load the relevant material with `LoadSkill`.
 
-- **`MyProjects(type=["SKILL"])`** - the catalog listing. Skills come back as ordinary project
-  rows with `project_type = "SKILL"`.
-- **`ListSkills`** - reads the **physical skill files on disk** for a room, project, or the
-  current insight. It does **not** read the database, so any skill files that were copied or
-  added manually are picked up and returned.
+## Identity and content layout
 
-Once you have a skill's project id, attach it to a workspace with **`AttachSkillToWorkspace`** /
-**`DetachSkillFromWorkspace`**, or set a workspace's whole skill set with **`EditWorkspace`** -
-see [Managing skills on a workspace](#managing-skills-on-a-workspace).
+New skills use this structure beneath their project assets folder:
 
+```text
+version/assets/
+└── public/
+    ├── SKILL.md
+    ├── references/
+    │   └── workflow.md
+    ├── scripts/
+    └── assets/
+```
+
+The concrete project layout can contain an `app_root` prefix; resolve it through project asset utilities rather than constructing host paths. [CreateSkillReactor](../../../src/prerna/reactor/agent/skill/CreateSkillReactor.java) writes `public/SKILL.md`. The older `assets/skill/` location remains a compatibility fallback, not the location for new content.
+
+Frontmatter supplies the skill's name and description. The staged slug is derived from the name. When resolving older projects, the name can fall back to the project display name and then the project ID. A missing description is not invented from catalog metadata.
+
+```markdown
+---
+name: dataset-review
+description: Use when profiling a dataset and explaining data quality findings.
 ---
 
-## Skill identity
+# Dataset review
 
-The **SKILL.md frontmatter is the source of truth** for a skill's name and description. They are
-read on demand wherever needed (GetWorkspace enrichment, staging, clone); nothing is mirrored
-into a registry table.
-
-- **Content location**: `<project>/version/assets/skill/SKILL.md` (written by `CreateSkill`).
-  The shipped platform skill projects keep theirs under `version/assets/public/SKILL.md`; both
-  locations are probed.
-- **Name**: frontmatter `name`, falling back to the project display name, then the project id.
-- **Slug**: the slugified name (lowercase, dashes). Used as the staged folder name under
-  `.claude/skills/<slug>/` at agent run time.
-- **Description**: frontmatter `description`; absent when the frontmatter has none.
-
-Note: project-list views (`MyProjects`) do not carry the frontmatter description - fetch it
-per-skill via `ListSkills(project=...)` or `GetWorkspace` when you need it.
-
----
-
-## ListSkills
-
-Lists the physical skill files discovered on disk under the conventional skill-host directories
-(`.skills/`, `.agents/skills/`, `.claude/skills/`, and the `client/`, `java/`, `py/` variants),
-deduplicated by name. Because it reads the filesystem rather than the database, manually copied
-or added skill files are included.
-
-The directory it scans is chosen by the inputs below; if neither `project` nor `roomId` is given
-it falls back to the current insight's working directory.
-
-### Parameters
-
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `project` | string | - | Project id whose assets folder to scan. Requires view access to the project. |
-| `roomId` | string | - | Room id whose folder to scan. Must be a room you own. |
-| `includeContent` | boolean | `false` | Adds a `content` key to each skill holding the `SKILL.md` body (everything after the frontmatter). |
-| `includeAll` | boolean | `false` | Crawls each skill folder and adds a `files` array of every other file. Forces `includeContent` to `true`. |
-
-**Notes**
-
-- `project` and `roomId` are mutually exclusive - passing both is an error.
-- When neither `project` nor `roomId` is given, the current insight is scanned.
-- Setting `includeAll=true` always turns on `includeContent`, even if `includeContent=false` is passed.
-- In the `files` array, the skill's own top-level `SKILL.md` is omitted (it is already in
-  `content`), and genuinely empty directories are not represented.
-
-### Examples
-
-```
-# project
-ListSkills(project="b7787bb4-f543-44fa-bc4e-a2e5edf25171");
-
-# room
-ListSkills(roomId="a9059a32-c6ed-4495-9f09-3303022a35be");
-
-# current insight
-ListSkills();
-
-# include the content after the frontmatter for each skill
-ListSkills(project="b7787bb4-f543-44fa-bc4e-a2e5edf25171", includeContent=true);
-
-# include every file and folder inside each skill folder (implies includeContent)
-ListSkills(roomId="a9059a32-c6ed-4495-9f09-3303022a35be", includeAll=true);
+Inspect the available schema and establish the population being analyzed.
+Use the configured database tools for queries and report the query scope.
+Read references/workflow.md for the detailed review procedure.
 ```
 
-### Response
+Keep the main file focused on when to use the skill, the workflow, expected outputs, and validation. Put substantial reference material in linked files and load it as needed. Scripts and reference files should use paths relative to the skill package.
 
-Every skill is a map with `name`, `path`, `directory`, and `description`. `path` and `directory`
-are relative to the scanned working directory. With `includeContent=true` each skill also
-carries a `content` key; with `includeAll=true` each additionally carries a `files` array (every
-file has its own `path` and `directory`, so the folder structure can be recreated).
+## Catalog, content, and staged discovery
 
-```json
-[
-  {
-    "name": "database",
-    "path": ".claude/skills/database/SKILL.md",
-    "directory": ".claude/skills/database",
-    "description": "Use when writing code in an app that queries a relational or graph database on the platform...",
-    "content": "# Database Engine\nQuery a database on the..."
-  }
-]
-```
+These operations answer different questions:
 
----
+| Operation | What it reads |
+| --- | --- |
+| `MyProjects(type=["SKILL"])` | Skill projects the user can view in the catalog |
+| `ListSkillFiles(project=["<skill-id>"])` | Files in one skill project's content folder |
+| `ReadSkillFile(project=["<skill-id>"], filePath=["SKILL.md"])` | One file from that skill package |
+| `GetWorkspace(workspaceId=["<workspace-id>"])` | Agent attachments and enriched skill identity |
+| `ListSkills(...)` | Physical skill folders discovered under a room/project/insight working directory |
+| Native tool `ListSkill` | The current run's discovered skill summaries |
+| Native tool `LoadSkill` | A staged skill's instructions or supporting file |
 
-## Listing skill projects: MyProjects
+`ListSkills` is not a way to read a skill project's own `public/SKILL.md`; use `ListSkillFiles` and `ReadSkillFile` for that. `MyProjects` does not include the frontmatter body or guarantee the skill has been staged into any room. The old `GetSkills` catalog API has been removed.
 
-`GetSkills` has been removed. List skills through the standard project catalog:
+## Create, update, clone, and delete
 
-```
-# every skill project you can view (platform skills are global, so always included)
+| Reactor | Inputs and behavior |
+| --- | --- |
+| `CreateSkill` | `skillContent` required. `name` and `description` supply metadata when absent from frontmatter. Creates a SKILL project and `public/SKILL.md`. |
+| `UpdateSkill` | `skillId` plus `skillContent` and/or `description`. Requires edit access; the name is immutable. |
+| `CloneSkill` | `skillId`, optional new `name`. Copies content into a new skill project owned by the caller. |
+| `DeleteSkill` | `skillId`. Owner-only; removes workspace references and the project. Built-in platform skills cannot be deleted through this path. |
+
+Creation returns `skill_id`, `project_id`, `slug`, and `name`; the two IDs refer to the same project. Cloning also identifies the source skill. See the [skill reactors](../../../src/prerna/reactor/agent/skill/) for exact validation and response fields.
+
+To inspect an existing package before attaching it:
+
+```pixel
 MyProjects(type=["SKILL"]);
+ListSkillFiles(project=["<skill-id>"]);
+ReadSkillFile(project=["<skill-id>"], filePath=["SKILL.md"]);
+ReadSkillFile(project=["<skill-id>"], filePath=["references/workflow.md"]);
 ```
 
-Each row is a normal `MyProjects` project row; skills are the ones with
-`project_type = "SKILL"`. The platform skills have their old slug as the project id
-(e.g. `project_id = "database"`).
-
----
-
-## Creating and editing skills
-
-- **`CreateSkill(skillContent=[...], name=[...], description=[...])`** - creates a SKILL-type
-  project and writes `SKILL.md` into `version/assets/skill/`. `name`/`description` are required
-  only when the frontmatter omits them (frontmatter wins). Returns
-  `{skill_id, project_id, slug, name}` (skill_id == project_id).
-- **`UpdateSkill(skillId=[...], skillContent=[...], description=[...])`** - rewrites the
-  SKILL.md body and/or description. The name is immutable. At least one of
-  `skillContent`/`description` is required. Requires edit permission on the skill project.
-- **`CloneSkill(skillId=[...], name=[...])`** - copies a skill (including a platform skill) into
-  a new skill-project owned by the caller. Returns
-  `{skill_id, project_id, name, slug, source_skill_id}`.
-- **`DeleteSkill(skillId=[...])`** - detaches the skill from every workspace (WORKSPACE_RESOURCE
-  rows + `CONFIG_JSON.skills[]` mirrors) and deletes the underlying project. Owner only.
-  **Built-in platform skills cannot be deleted** (they reload from the distribution at boot);
-  `DeleteProject` enforces the same guard.
-
----
+Read operations enforce project access. View-only users read public assets; access to legacy non-public content can require edit permission. Supporting files can be managed through the project's normal asset operations.
 
 ## Managing skills on a workspace
 
-There are two ways to change which skills a workspace uses:
+Attach or detach one skill without replacing the agent's other attachments:
 
-- **Incremental** - `AttachSkillToWorkspace` / `DetachSkillFromWorkspace` add or remove **one**
-  skill at a time.
-- **Bulk** - `EditWorkspace` sets the **whole** configuration (name, MCPs, skills) at once.
-
-Every skill is identified by its **project id** (`skillId`). Attachment is stored as a
-`WORKSPACE_RESOURCE__` row (`RESOURCE_TYPE='SKILL'`), mirrored into `CONFIG_JSON.skills[]` as
-`{"skill_id": "..."}`, and recorded in `PROJECTDEPENDENCIES`.
-
-All of these reactors require **edit** permission on the workspace.
-
-> **Legacy note**: `CONFIG_JSON.platform_skills[]` (slug arrays from when platform skills were
-> disk-backed built-ins) is no longer honored anywhere and is stripped the next time the
-> workspace config is rewritten. Re-attach platform skills by project id, e.g.
-> `AttachSkillToWorkspace(workspaceId=[...], skillId=["database"])`. The `slug` input and the
-> `platformSkills` EditWorkspace key are gone, as is `room.options.platform_skills[]`.
-
----
-
-## AttachSkillToWorkspace
-
-Attaches a single skill to a workspace and keeps `WORKSPACE.CONFIG_JSON` in sync. Idempotent
-(re-attaching the same skill is a no-op).
-
-### Parameters
-
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `workspaceId` | string | - | Target workspace. **Required.** |
-| `skillId` | string | - | Skill project to attach. **Required.** Requires view access to the skill. |
-
-### Examples
-
-```
-# user skill (by project id)
-AttachSkillToWorkspace(workspaceId=["0146f913-2ae3-4f6b-8b04-0e7a53a36145"], skillId=["019e4687-e52c-718a-8460-27cb795896ac"]);
-
-# platform skill (its project id is the old slug)
-AttachSkillToWorkspace(workspaceId=["0146f913-2ae3-4f6b-8b04-0e7a53a36145"], skillId=["database"]);
+```pixel
+AttachSkillToWorkspace(workspaceId=["<workspace-id>"], skillId=["database"]);
+DetachSkillFromWorkspace(workspaceId=["<workspace-id>"], skillId=["database"]);
+GetWorkspace(workspaceId=["<workspace-id>"]);
 ```
 
-### Response
+The caller needs workspace edit access and view access to a skill being attached. Attachment is idempotent and uses the skill's **project ID**. It is stored in `WORKSPACE_RESOURCE` with `RESOURCE_TYPE='SKILL'`, mirrored into `CONFIG_JSON.skills` as `{"skill_id":"..."}`, and recorded in project dependencies.
+
+`EditWorkspace` can replace the entire skill set through `skills=["<id>", "database"]`. Both `skills` and `mcp` are full replacement lists; preserve the complete intended configuration when editing. See [agent configuration](../agent_configuration.md#update-configuration).
+
+Detaching does not delete the source skill. Legacy `platform_skills` and `platformSkills` forms are no longer the attachment mechanism; platform skills use project IDs just like user-created skills.
+
+`GetWorkspace` enriches attached skills with `type="SKILL"`, name, slug, and description when available, alongside the configuration JSON. Use it to check catalog attachments before inspecting the staged files.
+
+## ListSkills
+
+`ListSkills` scans a selected working directory for conventional skill folders. It reads files rather than catalog rows, so manually copied skills can also appear.
+
+| Key | Default | Behavior |
+| --- | --- | --- |
+| `project` | Unset | Scan that project's assets; requires view access |
+| `roomId` | Unset | Scan the caller-owned room's folder |
+| `includeContent` | `false` | Include the `SKILL.md` body after frontmatter |
+| `includeAll` | `false` | Include supporting file contents as well; implies `includeContent` |
+
+`project` and `roomId` are mutually exclusive. With neither, the reactor scans the current insight folder. For a run targeting a project or subdirectory, scanning the room folder is not necessarily scanning the run's actual working target; the native tools use that target directly.
+
+```pixel
+ListSkills(project=["<target-project-id>"]);
+ListSkills(roomId=["<room-id>"], includeContent=[true]);
+ListSkills(includeAll=[true]);
+```
+
+Discovery checks base directories in this order: the working root, `client/`, `java/`, and `py/`. Under each, it checks `.skills/`, `.agents/skills/`, `.agents/skill/`, `.claude/skills/`, and `.claude/skill/`. The first matching folder name wins. Plural paths and singular compatibility aliases are both recognized.
+
+Results contain `name`, `path`, `directory`, and `description`. Paths are relative to the scanned root. Optional `content` contains the main body; optional `files` contains supporting file records. Empty directories are not represented. See [SkillScanner](../../../src/prerna/reactor/agent/skill/SkillScanner.java).
+
+## Runtime staging and loading
+
+[AgentConfigLoader](../../../src/prerna/reactor/agent/config/AgentConfigLoader.java) merges attached skill IDs from workspace resources, configuration JSON, and room additions. [SkillStager](../../../src/prerna/reactor/agent/skill/SkillStager.java) then resolves each package and copies its content to:
+
+```text
+<working-directory>/.claude/skills/<slug>/
+```
+
+The first attached skill resolving to a slug wins; duplicates are skipped with a warning. A `.skill-meta` sidecar records source identity and a modification-time fingerprint. On a detected source change, staging replaces the existing copy. Treat the project package as the source; edits to a staged copy can be overwritten.
+
+Staging is best effort: failures are logged and do not automatically fail the run. Detachment is not a filesystem cleanup operation, and the scanner can still discover copies already present in a target. Check both attachments and physical files when investigating stale skill behavior. Although configuration references can carry `pinned_version`, the current stager resolves the available project content; do not assume it checks out a historical version.
+
+The harness advertises discovered skill summaries. The native tool calls use the discovered folder name:
 
 ```json
-{ "workspace_resource_id": "0d3...", "workspace_id": "0146f913-...", "skill_id": "database", "created": true }
+{"skill_name":"dataset-review"}
 ```
 
----
-
-## DetachSkillFromWorkspace
-
-Removes a single skill from a workspace: deletes the `WORKSPACE_RESOURCE__` row, the
-`CONFIG_JSON.skills[]` mirror entry, and the `PROJECTDEPENDENCIES` entry. No-op when the skill
-is not attached. Does **not** delete the skill itself (use `DeleteSkill`).
-
-### Parameters
-
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `workspaceId` | string | - | Target workspace. **Required.** |
-| `skillId` | string | - | Skill project to detach. **Required.** |
-
-### Example
-
-```
-DetachSkillFromWorkspace(workspaceId=["0146f913-2ae3-4f6b-8b04-0e7a53a36145"], skillId=["database"]);
-```
-
----
-
-## EditWorkspace
-
-Sets a workspace's configuration in **bulk** - name, description, system prompt, active state,
-the full MCP list, and the full skill list. Use it to declare the complete state rather than
-nudge one item.
-
-### Parameters
-
-| Key | Type | Default | Description |
-| --- | --- | --- | --- |
-| `workspaceId` | string | - | Target workspace. **Required.** |
-| `name` | string | - | Display name. **Required.** |
-| `description` | string | - | Workspace description. |
-| `systemPrompt` | string | - | Workspace system prompt (mirrored into `CONFIG_JSON.system_prompt`). |
-| `isActive` | boolean | `true` | Active/inactive state (owner only to change). |
-| `mcp` | list of maps | - | Full MCP set. Each entry is `{id, name, type}`; `type` is the catalog type (`PROJECT` for project/MCP tools, or an engine type such as `MODEL`). |
-| `skills` | list of strings | - | Full skill set, as a flat list of skill project ids. |
-| `modelId` | string | - | Default model engine (`CONFIG_JSON.model_id`). Omit to leave unchanged; pass blank to clear. |
-
-### Example
-
-```
-EditWorkspace(
-  workspaceId=["0146f913-2ae3-4f6b-8b04-0e7a53a36145"],
-  name=["Ryan's Agent47"],
-  description=["Builds React/TypeScript apps"],
-  systemPrompt=["You are Agent 47..."],
-  isActive=[true],
-  mcp=[
-    {"id":"ce722163-2a8c-4667-b504-ce8732d77123","name":"NodeBuilderMCP","type":"PROJECT"},
-    {"id":"394404bf-02e5-44b2-bc7c-e93d9b698f58","name":"Database Maker","type":"PROJECT"}
-  ],
-  skills=["019e4687-e52c-718a-8460-27cb795896ac", "database", "model"]
-);
-```
-
-**Notes**
-
-- `skills` and `mcp` are **full replaces** - the resulting set is exactly what you pass.
-  `skills=[]` removes every skill.
-- Platform skills go in `skills` like any other skill, identified by project id.
-- Any legacy `CONFIG_JSON.platform_skills[]` key is removed on write.
-
----
-
-## Reading back what is attached: GetWorkspace
-
-`GetWorkspace(workspaceId=["..."])` returns the workspace, including a `skills[]` array. Every
-entry has `type = "SKILL"`; `name`, `slug`, and `description` are resolved from the skill
-project's SKILL.md frontmatter (`description` is omitted when the frontmatter has none; `name`
-falls back to the project display name for stale attachments so they stay detachable):
+The same `LoadSkill` tool reads a reference by appending its package-relative path:
 
 ```json
-"skills": [
-  { "id": "019e4687-...", "type": "SKILL", "name": "csv-cleaner", "slug": "csv-cleaner", "description": "..." },
-  { "id": "database", "type": "SKILL", "name": "database", "slug": "database", "description": "Use when writing code..." }
-]
+{"skill_name":"dataset-review/references/workflow.md","offset":0,"max_bytes":8192}
 ```
 
-The full `config_json` is returned alongside, so you can read `skills[]` directly if you prefer
-the raw form.
+`LoadSkill` defaults to an 8 KiB chunk and reports when more content remains. Continue at the returned offset when a file is truncated. Loading a script as text does not execute it.
 
----
+## Platform skills
 
-## Run-time staging
+Platform skills ship as `project/platform__<id>` assets and are cataloged as global SKILL projects. Their project IDs are stable names such as `database`, `python`, and `agent-run`.
 
-At agent run time, `SkillStager` copies each attached skill's content folder into
-`<workingDir>/.claude/skills/<slug>/`. The slug is derived from the frontmatter name; when two
-attached skills resolve to the same slug, the first one staged wins and the duplicate is skipped
-with a warning. A `.skill-meta` sidecar caches the source fingerprint so unchanged skills are
-not re-copied.
+The current catalog includes skills for application bootstrap and data, building/publishing, database access, exports, file uploads, frontend design, functions, MCP, models, pagination, permissions, presentations, Python, rooms, storage, users, vectors, and workflow automation. [SystemDefaultEngines](../../../src/prerna/util/SystemDefaultEngines.java) is the authoritative list; [SystemAgentSeeder](../../../src/prerna/util/SystemAgentSeeder.java) assigns subsets to platform agents.
+
+Deploy the project folders and descriptors with the backend. A platform skill in the distribution is not automatically attached to every agent. Clone a skill when you need an independently maintained variant.
+
+## Verification
+
+1. Confirm the skill appears in the project catalog and its files can be read.
+2. Confirm the workspace attachment and effective skill ID.
+3. Start a run against the intended target and inspect the discovered skill list.
+4. Load the main instructions and a reference file; check chunk continuation when applicable.
+5. Verify the resulting task output and actual tool results. A correctly staged package alone does not prove the model followed the workflow.
+
+Return to [agents](../README.md), [agent configuration](../agent_configuration.md), or [the SEMOSS harness](../semoss_harness.md).
