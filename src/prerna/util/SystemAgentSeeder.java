@@ -78,8 +78,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
  * {@link SystemDefaultEngines#getSystemAgentSkills(String)}. The PPTX Reviewer
  * uses only built-in tools, with file mutations and further delegation
  * disabled. Its InspectPptx result ends the run directly. The PPTX Agent uses
- * the platform pptx skill and the managed BuildPptx workflow, with the system
- * PPTX Reviewer attached for visual inspection.
+ * the platform pptx skill, Pixabay image-search MCP, and the managed BuildPptx
+ * workflow, with the system PPTX Reviewer attached for visual inspection.
  */
 public class SystemAgentSeeder {
 
@@ -225,8 +225,8 @@ public class SystemAgentSeeder {
 	}
 
 	/**
-	 * The App Building Agent uses the headless system MCP apps. The PPTX agents
-	 * need only built-in tools; installation-specific MCPs are not seeded.
+	 * MCP projects assigned to this system agent. The PPTX author receives the
+	 * platform Pixabay MCP; the reviewer uses only built-in tools.
 	 */
 	private static List<String> toolIds(String agentId) {
 		return new ArrayList<>(SystemDefaultEngines.getSystemAgentMCPs(agentId));

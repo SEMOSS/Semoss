@@ -67,6 +67,7 @@ social.properties
 /model/**
 /project/*
 !/project/platform__*
+/project/platform__pixabay.smss.local
 /room/**
 /storage/**
 /user/**

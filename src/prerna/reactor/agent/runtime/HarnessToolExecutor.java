@@ -769,7 +769,8 @@ final class HarnessToolExecutor {
 			reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
 			NounMetadata result = reactor.execute();
-			return result != null && result.getValue() != null ? result.getValue().toString() : "";
+			String output = result != null && result.getValue() != null ? result.getValue().toString() : "";
+			return MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
 		} catch (Exception e) {
 			return "Tool execution error: " + e.getMessage();
 		}
