@@ -9,20 +9,26 @@ import base64
 import json
 import re
 import uuid
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from itertools import islice
 from typing import Any
 
 
 _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
+# Serialized bridge keys mirrored by AutomationDataReference and
+# AutomationConstants on the Java side.
 _DATA_REFERENCE_MARKER = "__automationDataReference"
 _DATA_REFERENCE_SCHEMA_VERSION = 1
 _INTERNAL_RESULT_VALUE = "__automation_value__"
 _INTERNAL_RESULT_METADATA = "__automation_metadata__"
 
 
-class AutomationDataset(list[dict[str, Any]]):
-    """Read-only, list-compatible view over a query task in the run Insight."""
+class AutomationDataset(Sequence[dict[str, Any]]):
+    """Read-only sequence over a query task owned by the run Insight.
+
+    Iteration, indexing, and slicing load bounded pages. Call ``materialize``
+    only when intentionally loading rows into the Python process.
+    """
 
     __slots__ = ("reference", "run_id", "page_size", "_known_total", "_page")
 
@@ -32,28 +38,11 @@ class AutomationDataset(list[dict[str, Any]]):
         run_id: str,
         page_size: int = 1_000,
     ) -> None:
-        list.__init__(self)
         self.reference = reference
         self.run_id = run_id
         self.page_size = page_size
         self._known_total: int | None = None
         self._page: dict[str, Any] | None = None
-
-    def _read_only(self, *args: Any, **kwargs: Any) -> None:
-        raise TypeError("Automation dataset is read-only.")
-
-    append = _read_only
-    clear = _read_only
-    extend = _read_only
-    insert = _read_only
-    pop = _read_only
-    remove = _read_only
-    reverse = _read_only
-    sort = _read_only
-    __delitem__ = _read_only
-    __iadd__ = _read_only
-    __imul__ = _read_only
-    __setitem__ = _read_only
 
     def __iter__(self) -> Iterator[dict[str, Any]]:
         offset = 0
@@ -103,65 +92,25 @@ class AutomationDataset(list[dict[str, Any]]):
             raise ValueError("Automation dataset page has an invalid row shape.")
         return dict(zip(headers, row))
 
-    def __bool__(self) -> bool:
-        return len(self) > 0
-
-    def __contains__(self, value: object) -> bool:
-        return any(item == value for item in self)
-
     def __repr__(self) -> str:
         return f"AutomationDataset(rows={len(self)})"
 
-    def __eq__(self, other: object) -> bool:
-        return self.to_list() == _materialized_dataset(other)
-
-    def __ne__(self, other: object) -> bool:
-        return self.to_list() != _materialized_dataset(other)
-
-    def __lt__(self, other: object) -> bool:
-        return self.to_list() < _materialized_dataset(other)
-
-    def __le__(self, other: object) -> bool:
-        return self.to_list() <= _materialized_dataset(other)
-
-    def __gt__(self, other: object) -> bool:
-        return self.to_list() > _materialized_dataset(other)
-
-    def __ge__(self, other: object) -> bool:
-        return self.to_list() >= _materialized_dataset(other)
-
-    def __add__(self, other: object) -> list[Any]:
-        if not isinstance(other, list):
-            return NotImplemented
-        return self.to_list() + _materialized_dataset(other)
-
-    def __radd__(self, other: object) -> list[Any]:
-        if not isinstance(other, list):
-            return NotImplemented
-        return _materialized_dataset(other) + self.to_list()
-
-    def __mul__(self, count: int) -> list[dict[str, Any]]:
-        return self.to_list() * count
-
-    def __rmul__(self, count: int) -> list[dict[str, Any]]:
-        return self.to_list() * count
-
     def __reversed__(self) -> Iterator[dict[str, Any]]:
-        return reversed(self.to_list())
-
-    def copy(self) -> list[dict[str, Any]]:
-        return list(self)
-
-    def count(self, value: object) -> int:
-        return sum(1 for item in self if item == value)
+        """Reverse one materialized snapshot instead of issuing one read per row."""
+        return reversed(self.materialize())
 
     def index(self, value: object, start: int = 0, stop: int | None = None) -> int:
+        """Search through page iteration instead of issuing one read per row."""
+        if start < 0:
+            start = max(len(self) + start, 0)
+        if stop is not None and stop < 0:
+            stop = max(len(self) + stop, 0)
         for index, item in enumerate(islice(self, start, stop), start):
             if item == value:
                 return index
         raise ValueError(f"{value!r} is not in AutomationDataset")
 
-    def to_list(self, limit: int | None = None) -> list[dict[str, Any]]:
+    def materialize(self, limit: int | None = None) -> list[dict[str, Any]]:
         """Materialize rows explicitly, optionally with a caller-owned bound."""
         if limit is not None and limit < 0:
             raise ValueError("Automation dataset materialization limit cannot be negative.")
@@ -197,10 +146,6 @@ class AutomationDataset(list[dict[str, Any]]):
         if self._known_total is not None and self._known_total != total:
             raise ValueError("Automation dataset row count changed during the run.")
         self._known_total = total
-
-
-def _materialized_dataset(value: object) -> Any:
-    return value.to_list() if isinstance(value, AutomationDataset) else value
 
 
 class AutomationScope(dict[str, Any]):
@@ -242,7 +187,7 @@ class AutomationScope(dict[str, Any]):
         value = _resolve_reference(value, self._run_id, self._state)
         if isinstance(value, dict):
             return {key: self.resolve(item) for key, item in value.items()}
-        if isinstance(value, list) and not isinstance(value, AutomationDataset):
+        if isinstance(value, list):
             return [self.resolve(item) for item in value]
         if not isinstance(value, str):
             return value
@@ -273,7 +218,7 @@ class AutomationScope(dict[str, Any]):
             if isinstance(value, dict) and part in value:
                 value = _resolve_reference(value[part], self._run_id, self._state)
                 continue
-            if isinstance(value, list) and part.isdigit():
+            if isinstance(value, (list, AutomationDataset)) and part.isdigit():
                 index = int(part)
                 if index < len(value):
                     value = value[index]
