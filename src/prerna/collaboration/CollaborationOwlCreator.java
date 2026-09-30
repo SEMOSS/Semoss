@@ -259,7 +259,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the owner was on To or Cc; null for their own messages
 				Pair.with("TO_ME", BOOLEAN_DATATYPE_NAME),
 				// Focused Inbox put it in Other, or it was sent on behalf of another mailbox
-				Pair.with("BULK", BOOLEAN_DATATYPE_NAME)));
+				Pair.with("BULK", BOOLEAN_DATATYPE_NAME),
+				// a calendar message: invite, reply, or cancellation
+				Pair.with("MEETING", BOOLEAN_DATATYPE_NAME)));
 
 		// --- Brain: control ---
 		addTable("BRAIN_RULE", Arrays.asList(

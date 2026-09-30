@@ -76,10 +76,9 @@ final class BrainTopicOnboarding {
 			String name = uniqueName(votes.names().get(i), names);
 			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
 			String key = STRATEGY + ":" + CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
-			String reason = members.size() + " engaged threads grouped from people, subject words and dates; "
-					+ "three complete work-topic votes";
+			// the card shows threads, people and your part; how it was grouped stays in diagnostics
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members,
-					List.of(name.toLowerCase(Locale.ROOT).split("\\s+")), reason));
+					List.of(name.toLowerCase(Locale.ROOT).split("\\s+")), null));
 		}
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());

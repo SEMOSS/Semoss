@@ -205,7 +205,13 @@ public final class BrainMailOverview {
 		out.put("days", days);
 		out.put("counts", counts);
 		out.put("truncated", truncated);
-		out.put("topSenders", ranked.subList(0, Math.min(TOP, ranked.size())));
+		// people only: a directory colleague or someone you wrote to; notifications and receipts stay out
+		out.put("topSenders", ranked.stream()
+				.filter(r -> Boolean.TRUE.equals(r.get("youWrote"))
+						|| (known.get(r.get("address")) != null && "person".equals(String.valueOf(known.get(r.get("address")).get("kind")))))
+				.limit(TOP).toList());
+		wroteTo.removeAll(mine);
+		out.put("wroteTo", wroteTo.size());
 		out.put("keepOut", keepOut.subList(0, Math.min(SUGGESTIONS, keepOut.size())));
 		out.put("lastImport", CollaborationJobUtils.latest(owner.getValue0(), owner.getValue1(), BrainMailImport.KIND));
 		return out;

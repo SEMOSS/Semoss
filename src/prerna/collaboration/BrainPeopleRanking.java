@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// STRENGTH (0-100, relative to your strongest contact) and LAST_CONTACT_AT from stored headers, plus a suggested
+// STRENGTH (0-100, log scale relative to your strongest contact) and LAST_CONTACT_AT from stored headers, plus a suggested
 // relationship (same domain as you: colleague, else external) where you have not set one. Rules only, no model.
 public final class BrainPeopleRanking {
 
@@ -55,15 +55,15 @@ public final class BrainPeopleRanking {
 		Set<String> automated = new HashSet<>(CollaborationDbUtils.query(
 				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE " + "OWNER_ID = ? AND OWNER_TYPE = ? AND RELATIONSHIP = ?",
 				rs -> rs.getString(1), ownerId, ownerType, BrainSenderTyping.AUTOMATED));
-		// messages per thread and sender
+		// messages per thread and sender; calendar replies are not writing to someone
 		Map<String, Map<String, Integer>> sent = new HashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SENDER_PERSON_ID, COUNT(*) AS N FROM BRAIN_MESSAGE "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID IS NOT NULL AND SENDER_PERSON_ID IS NOT NULL "
-				+ "GROUP BY THREAD_ID, SENDER_PERSON_ID", rs -> {
+				+ "AND (MEETING IS NULL OR MEETING = ?) GROUP BY THREAD_ID, SENDER_PERSON_ID", rs -> {
 					sent.computeIfAbsent(rs.getString("THREAD_ID"), k -> new HashMap<>())
 							.put(rs.getString("SENDER_PERSON_ID"), rs.getInt("N"));
 					return null;
-				}, ownerId, ownerType);
+				}, ownerId, ownerType, false);
 
 		Map<String, int[]> twoWayAndTheirs = new HashMap<>();
 		Map<String, Double> mine = new HashMap<>();
@@ -125,7 +125,8 @@ public final class BrainPeopleRanking {
 				if (p[0].equals(selfId) || !seenPeople.contains(p[0])) {
 					continue;
 				}
-				int strength = top <= 0 ? 0 : (int) Math.round(100 * raw.get(p[0]) / top);
+				// log scale: one very busy contact no longer pushes everyone else to the bottom
+				int strength = top <= 0 ? 0 : (int) Math.round(100 * Math.log1p(raw.get(p[0])) / Math.log1p(top));
 				List<Object> params = new ArrayList<>(List.of(strength));
 				String sql = "UPDATE BRAIN_PERSON SET STRENGTH = ?, LAST_CONTACT_AT = ?";
 				params.add(last.get(p[0]));

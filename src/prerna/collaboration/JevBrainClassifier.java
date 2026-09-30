@@ -36,7 +36,7 @@ import prerna.om.Insight;
 
 // Jev (TypeSafe) models: typed choice / noul / score questions. Tuned on brain-mail-v1: no "none of these"
 // choice (it drew most answers), and "is this only informing?" beats "does it ask me?".
-// With one or two topics the policy adds a "Something else" choice itself; one topic alone is never scored.
+// The policy always adds a "Something else" choice itself (real mail is mostly not about any topic).
 final class JevBrainClassifier implements BrainClassifier {
 
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };

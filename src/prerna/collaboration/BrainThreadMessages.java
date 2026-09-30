@@ -194,6 +194,9 @@ public final class BrainThreadMessages {
 				}
 				entry.put("to", recipients(message.get("toRecipients")));
 				entry.put("cc", recipients(message.get("ccRecipients")));
+				if (BrainMailImport.meeting(message)) {
+					entry.put("meeting", true);
+				}
 				// opens the message in Outlook or Teams
 				if (message.get("webLink") instanceof String link && link.startsWith("https://")) {
 					entry.put("webLink", link);

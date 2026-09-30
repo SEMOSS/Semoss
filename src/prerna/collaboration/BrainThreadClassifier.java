@@ -56,18 +56,21 @@ public final class BrainThreadClassifier {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainThreadClassifier.class);
 
+	// threads classified at once; RDF_Map COLLAB_CLASSIFY_PARALLEL raises it for a model that keeps up
 	private static final int PARALLEL = 8;
+	private static final int MAX_PARALLEL = 32;
 	private static final int MESSAGES = 2;
 	private static final int TEXT_CHARS = 1500;
 	// a forward, or mail from before the thread: the part that matters is under the
 	// note
 	private static final int HISTORY_CHARS = 5000;
 	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
-	// with this few topics the model also gets a way out, or every thread lands in
-	// one of them
-	private static final int FEW_TOPICS = 3;
+	// the model always gets a way out, or every thread lands in one of the topics
 	static final String OTHER_TOPIC = "other";
-	private static final int FEW_TOPICS_ASK_BAND = 15;
+	// urgency is about the newest message now: older mail caps at Today, then This week
+	private static final int TODAY_DAYS = 1;
+	private static final int WEEK_DAYS = 7;
+	private static final int WAY_OUT_ASK_BAND = 15;
 
 	private BrainThreadClassifier() {
 	}
@@ -130,20 +133,23 @@ public final class BrainThreadClassifier {
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
 		List<BrainClassifier.TopicOption> topics = new ArrayList<>(topics(ownerId, ownerType));
-		if (!topics.isEmpty() && topics.size() < FEW_TOPICS) {
+		if (!topics.isEmpty()) {
 			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
 					"Not about the other topics: other work, personal, travel, or automated mail."));
 		}
 		Set<String> vips = new HashSet<>(CollaborationDbUtils.query(
 				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND IS_VIP = ?",
 				rs -> rs.getString(1), ownerId, ownerType, true));
+		Set<String> followed = new HashSet<>(CollaborationDbUtils.query(
+				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND FOLLOW_STATE = ?",
+				rs -> rs.getString(1), ownerId, ownerType, BrainFollow.FOLLOWING));
 		Context ctx = new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
 				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
-				vips);
+				vips, followed);
 		List<String> ids = threadIds == null || threadIds.isEmpty() ? pending(ownerId, ownerType, dryRun) : threadIds;
 
 		List<Result> results = new ArrayList<>();
-		ExecutorService pool = Executors.newFixedThreadPool(PARALLEL);
+		ExecutorService pool = Executors.newFixedThreadPool(parallel());
 		try {
 			List<Future<Result>> futures = new ArrayList<>();
 			for (String threadId : ids) {
@@ -179,7 +185,7 @@ public final class BrainThreadClassifier {
 
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
 			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt,
-			boolean dryRun, Self self, Set<String> vips) {
+			boolean dryRun, Self self, Set<String> vips, Set<String> followed) {
 	}
 
 	@SuppressWarnings("unchecked")
@@ -206,6 +212,8 @@ public final class BrainThreadClassifier {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
 		}
 		String onIt = recipientRole(ctx.self(), newest);
+		// filed by the owner or by onboarding: no topic question, the link stays
+		boolean kept = !ctx.dryRun() && hasKeptLink(ctx, threadId);
 
 		List<BrainClassifier.Message> input = new ArrayList<>();
 		for (Map<String, Object> m : messages) {
@@ -217,8 +225,8 @@ public final class BrainThreadClassifier {
 					text.length() > max ? text.substring(0, max) : text));
 		}
 		BrainClassifier.Scores scores = ctx.classifier().score(new BrainClassifier.ThreadInput(threadId,
-				ctx.self().name(), (String) thread.get("subject"), participants(ctx, threadId), input), ctx.topics(),
-				ctx.insight());
+				ctx.self().name(), (String) thread.get("subject"), participants(ctx, threadId), input),
+				kept ? List.of() : ctx.topics(), ctx.insight());
 		Map<String, Object> signals = signals(scores);
 		boolean automated = scores.automated() >= ctx.cutoffs().automatedAt();
 
@@ -230,7 +238,7 @@ public final class BrainThreadClassifier {
 		String band = null;
 		List<Map.Entry<String, Double>> ranked = new ArrayList<>(scores.topics().entrySet());
 		ranked.sort((a, b) -> Double.compare(b.getValue(), a.getValue()));
-		if (!ranked.isEmpty() && (ctx.dryRun() || (!automated && !hasOwnerLink(ctx, threadId)))) {
+		if (!ranked.isEmpty() && (ctx.dryRun() || (!automated && !kept))) {
 			String bestId = ranked.get(0).getKey();
 			String nextId = ranked.size() > 1 ? ranked.get(1).getKey() : null;
 			// with a "Something else" choice the probability itself is the confidence
@@ -238,7 +246,7 @@ public final class BrainThreadClassifier {
 			// real threads 0.87 and up, others mostly under 0.75), and only near misses are
 			// asked
 			boolean wayOut = scores.topics().containsKey(OTHER_TOPIC);
-			int askAt = wayOut ? Math.max(ctx.askAt(), ctx.fileAt() - FEW_TOPICS_ASK_BAND) : ctx.askAt();
+			int askAt = wayOut ? Math.max(ctx.askAt(), ctx.fileAt() - WAY_OUT_ASK_BAND) : ctx.askAt();
 			if (wayOut) {
 				confidence = (int) Math.round(100 * ranked.get(0).getValue());
 			} else {
@@ -261,6 +269,10 @@ public final class BrainThreadClassifier {
 				if (!ctx.dryRun()) {
 					link(ctx, threadId, bestId, "suggested", confidence, scores.topics());
 					List<String> candidates = OTHER_TOPIC.equals(nextId) ? List.of(bestId) : List.of(bestId, nextId);
+					// the runner-up is linked too, so the owner can pick either one or both
+					if (candidates.size() > 1) {
+						link(ctx, threadId, nextId, "suggested", confidence, scores.topics());
+					}
 					BrainReviewUtils.addReview(ctx.ownerId(), ctx.ownerType(), BrainReviewUtils.TOPIC_CHOICE, "thread",
 							threadId, ctx.classifier().version(), Map.of("candidates", candidates));
 				}
@@ -281,6 +293,11 @@ public final class BrainThreadClassifier {
 								+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			}
 			return new Result(threadId, topicId, confidence, band, "automated", null, signals, null);
+		} else if (Boolean.TRUE.equals(newest.get("meeting"))) {
+			// an invite, reply, or cancellation: the calendar has it, nothing to wait on or answer here
+			work = "fyi";
+			askType = "fyi";
+			reasons.add("Calendar message");
 		} else if (fromMe) {
 			work = "waiting";
 			askType = "waiting_on";
@@ -302,11 +319,21 @@ public final class BrainThreadClassifier {
 			reasons.add(suggested ? "Might need you; confirm" : "Asks you to act");
 		}
 		double urgency = scores.urgency();
-		// a VIP's ask moves up one level
+		// a VIP's ask moves up one level, someone you follow half a level
 		boolean fromVip = newest.get("fromId") != null && ctx.vips().contains(newest.get("fromId"));
+		boolean fromFollowed = newest.get("fromId") != null && ctx.followed().contains(newest.get("fromId"));
 		if (fromVip && !"fyi".equals(work)) {
 			urgency = Math.min(3, urgency + 0.8);
 			reasons.add("From a VIP");
+		} else if (fromFollowed && !"fyi".equals(work) && !"waiting".equals(work)) {
+			urgency = Math.min(3, urgency + 0.4);
+			reasons.add("From someone you follow");
+		}
+		long age = ageDays((String) newest.get("at"));
+		if (age > WEEK_DAYS) {
+			urgency = Math.min(urgency, 1);
+		} else if (age > TODAY_DAYS) {
+			urgency = Math.min(urgency, 2);
 		}
 		String priority = urgency >= 2.5 ? "P0" : urgency >= 1.8 ? "P1" : urgency >= 1.0 ? "P2" : "P3";
 		reasons.add("Urgency: " + URGENCY[(int) Math.max(0, Math.min(3, Math.round(urgency)))]);
@@ -520,11 +547,32 @@ public final class BrainThreadClassifier {
 				}, ctx.ownerId(), ctx.ownerType(), threadId).stream().filter(Objects::nonNull).toList();
 	}
 
-	private static boolean hasOwnerLink(Context ctx, String threadId) {
+	// a link the owner made, or one onboarding filed from the topic's own threads
+	private static boolean hasKeptLink(Context ctx, String threadId) {
 		return CollaborationDbUtils.exists(
 				"SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND THREAD_ID = ? AND SOURCE = ?",
-				ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU);
+						+ "AND THREAD_ID = ? AND (SOURCE = ? OR CLASSIFIER_VERSION = ?)",
+				ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU, BrainTopicOnboarding.STRATEGY);
+	}
+
+	private static int parallel() {
+		String value = Utility.getDIHelperProperty(Constants.COLLAB_CLASSIFY_PARALLEL);
+		try {
+			return value == null || value.isBlank() ? PARALLEL
+					: Math.max(1, Math.min(MAX_PARALLEL, Integer.parseInt(value.trim())));
+		} catch (NumberFormatException e) {
+			classLogger.warn("{} is not a number; using {}", Constants.COLLAB_CLASSIFY_PARALLEL, PARALLEL);
+			return PARALLEL;
+		}
+	}
+
+	// whole days since an ISO time; 0 when unknown
+	private static long ageDays(String at) {
+		try {
+			return at == null ? 0 : java.time.Duration.between(java.time.Instant.parse(at), java.time.Instant.now()).toDays();
+		} catch (java.time.format.DateTimeParseException e) {
+			return 0;
+		}
 	}
 
 	// a classifier link replaces an earlier classifier link on the same topic; the

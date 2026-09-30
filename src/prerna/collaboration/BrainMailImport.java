@@ -169,6 +169,8 @@ public final class BrainMailImport {
 		job.count("imported", run.imported);
 		job.count("alreadyImported", run.skipped);
 		job.count("keptOut", run.keptOut);
+		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
+		job.count("meetingMessages", run.meetings);
 		job.count("threads", run.threads.size());
 		job.count("newPeople", run.newPeople);
 
@@ -237,6 +239,7 @@ public final class BrainMailImport {
 		int imported;
 		int skipped;
 		int keptOut;
+		int meetings;
 		int newPeople;
 
 		Run(String ownerId, String ownerType) {
@@ -371,13 +374,16 @@ public final class BrainMailImport {
 			boolean bulk = "other".equals(header.get("inferenceClassification"))
 					|| (sender != null && !sender.equals(from)) || broadcast;
 			CollaborationDbUtils.update(
-					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ? "
+					"UPDATE BRAIN_MESSAGE SET THREAD_ID = ?, SENDER_PERSON_ID = ?, TO_ME = ?, BULK = ?, MEETING = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND MESSAGE_KEY = ?",
-					threadId, senderId, fromMe ? null : toMe, bulk, ownerId, ownerType, messageKey);
+					threadId, senderId, fromMe ? null : toMe, bulk, meeting(header), ownerId, ownerType, messageKey);
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
 			threads.add(threadId);
 			imported++;
+			if (meeting(header)) {
+				meetings++;
+			}
 		}
 
 		// the owner by any of their addresses, or by their exact display name on an
@@ -535,6 +541,12 @@ public final class BrainMailImport {
 			return BrainRulesGate.norm(a);
 		}
 		return null;
+	}
+
+	// Graph types calendar mail as eventMessage (request, response, cancellation)
+	static boolean meeting(Map<String, Object> message) {
+		return message != null && message.get("@odata.type") instanceof String type
+				&& type.startsWith("#microsoft.graph.eventMessage");
 	}
 
 	static String messageId(Map<String, Object> header) {
