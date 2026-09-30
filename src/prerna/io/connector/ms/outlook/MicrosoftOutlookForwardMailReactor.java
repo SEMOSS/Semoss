@@ -66,8 +66,8 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 	private static final String TO = "to";
 
 	public MicrosoftOutlookForwardMailReactor() {
-		this.keysToGet = new String[] { UID, TO, COMMENT, AS_DRAFT };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { UID, TO, COMMENT, AS_DRAFT, "html" };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
@@ -77,6 +77,8 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 		String[] to = values(TO);
 		String comment = this.keyValue.get(COMMENT);
 		boolean asDraft = Boolean.parseBoolean(this.keyValue.get(AS_DRAFT));
+		boolean html = Boolean.parseBoolean(this.keyValue.get("html"));
+		if (html && !asDraft) throw new SemossPixelException("HTML is supported for draft saving only.");
 
 		if (to == null) {
 			throw new SemossPixelException("At least one recipient in " + TO + " is required to forward a message.");
@@ -85,8 +87,7 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 		try {
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			Map<String, Object> draft = new MicrosoftOutlookMailHelper().forward(accessToken, null, uid, to, comment,
-					asDraft);
+			Map<String, Object> draft = html ? new MicrosoftOutlookMailHelper().forwardHtmlDraft(accessToken, uid, to, comment) : new MicrosoftOutlookMailHelper().forward(accessToken, null, uid, to, comment, asDraft);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("forwarded", uid);
@@ -117,6 +118,7 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("html".equals(key)) return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
 		if (key.equals(TO)) {
 			return "Who to forward the message to, passed as several values or as one comma separated value.";
 		} else if (key.equals(COMMENT)) {

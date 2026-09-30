@@ -154,6 +154,7 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 		Map<String, Object> message = new LinkedHashMap<>();
 		message.put("from", Map.of("emailAddress", sender));
 		message.put("body", chat.get("body"));
+		message.put("attachments", chat.get("attachments"));
 		message.put("receivedDateTime", chat.get("createdDateTime"));
 		message.put("conversationId", chat.get("chatId"));
 		message.put("webLink", chat.get("webUrl"));

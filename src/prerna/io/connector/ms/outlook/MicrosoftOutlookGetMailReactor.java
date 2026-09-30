@@ -35,6 +35,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.MicrosoftMessageDisplay;
+
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -67,8 +69,8 @@ public class MicrosoftOutlookGetMailReactor extends AbstractMicrosoftOutlookMess
 	private static final String INCLUDE_ATTACHMENTS = "includeAttachments";
 
 	public MicrosoftOutlookGetMailReactor() {
-		this.keysToGet = new String[] { UID, MAX_BODY_CHARS, INCLUDE_ATTACHMENTS };
-		this.keyRequired = new int[] { 1, 0, 0 };
+		this.keysToGet = new String[] { UID, MAX_BODY_CHARS, INCLUDE_ATTACHMENTS, "includeDisplayBody", "includeReplyRecipients" };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -91,6 +93,14 @@ public class MicrosoftOutlookGetMailReactor extends AbstractMicrosoftOutlookMess
 				throw new SemossPixelException("No message exists in your mailbox with uid: " + uid);
 			}
 			Map<String, Object> described = MicrosoftOutlookMessageMapper.toMessage(message, true, maxBodyChars);
+			if (Boolean.parseBoolean(this.keyValue.get("includeDisplayBody"))) {
+				described.put("displayBody", MicrosoftMessageDisplay.body(message, String.valueOf(described.get("body"))));
+				described.put("webLink", message.get("webLink"));
+			}
+			if (Boolean.parseBoolean(this.keyValue.get("includeReplyRecipients"))) {
+				described.put("replyRecipients",
+						MicrosoftOutlookReplyRecipients.defaults(message, MicrosoftLoginUtils.getMicrosoftEmail(user)));
+			}
 			boolean hasAttachments = Boolean.TRUE.equals(message.get("hasAttachments"));
 			described.put("hasAttachments", hasAttachments);
 
@@ -121,6 +131,8 @@ public class MicrosoftOutlookGetMailReactor extends AbstractMicrosoftOutlookMess
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("includeReplyRecipients".equals(key)) return "Include reply-all To and Cc defaults, excluding the connected Microsoft address; defaults to false.";
+		if ("includeDisplayBody".equals(key)) return "Include the original bounded display body, with explicit content type; defaults to false.";
 		if (key.equals(INCLUDE_ATTACHMENTS)) {
 			return "Optional boolean for whether what is attached to the message is listed by name and id. Defaults to true.";
 		}

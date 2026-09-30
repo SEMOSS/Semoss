@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +41,8 @@ import java.util.Set;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.MicrosoftMessageDisplay;
+
 
 // The filtered thread read behind brain_get_thread. Today's rules run before any body is
 // fetched; bodies come from the source at call time, go through BrainMessageText, and are never stored.
@@ -47,7 +51,7 @@ public final class BrainThreadMessages {
 	private static final int DEFAULT_LIMIT = 20;
 	private static final int MAX_LIMIT = 100;
 
-	private record Row(String graphId, String personId, String folder, String at, String decision) {
+	private record Row(String messageKey, String graphId, String personId, String folder, String at, String decision) {
 	}
 
 	private BrainThreadMessages() {
@@ -59,8 +63,29 @@ public final class BrainThreadMessages {
 		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current());
 	}
 
+	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current(), includeDisplayBody);
+	}
+
+ /** Read the next older page without changing legacy callers' first-page behavior. */
+ public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody, String cursor) {
+  Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+  return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current(), includeDisplayBody, cursor);
+ }
+
 	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
 			BrainMessageSource messages) {
+		return read(user, ownerId, ownerType, threadId, limit, messages, false);
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages, boolean includeDisplayBody) {
+  return read(user, ownerId, ownerType, threadId, limit, messages, includeDisplayBody, null);
+ }
+
+ static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+   BrainMessageSource messages, boolean includeDisplayBody, String cursor) {
 		String[] thread = CollaborationDbUtils.queryOne("SELECT SOURCE, THREAD_KEY, MUTED FROM BRAIN_THREAD "
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
 				rs -> new String[] { rs.getString("SOURCE"), rs.getString("THREAD_KEY"),
@@ -76,10 +101,10 @@ public final class BrainThreadMessages {
 		int max = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(MAX_LIMIT, limit));
 
 		// newest first, so the limit keeps the latest messages
-		List<Row> rows = CollaborationDbUtils.query("SELECT GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION "
+		List<Row> rows = CollaborationDbUtils.query("SELECT MESSAGE_KEY, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION "
 				+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
 				+ "ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
-				rs -> new Row(rs.getString("GRAPH_ID"), rs.getString("SENDER_PERSON_ID"), rs.getString("FOLDER"),
+				rs -> new Row(rs.getString("MESSAGE_KEY"), rs.getString("GRAPH_ID"), rs.getString("SENDER_PERSON_ID"), rs.getString("FOLDER"),
 						CollaborationDbUtils.getTimestamp(rs, "RECEIVED_AT"), rs.getString("DECISION")),
 				ownerId, ownerType, threadId);
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
@@ -93,10 +118,12 @@ public final class BrainThreadMessages {
 				ownerType, threadId);
 		Map<String, List<String>> addresses = addresses(ownerId, ownerType, rows);
 
+		int start = pageStart(rows, threadId, cursor);
+
 		// pass 1, no fetch: drop what today's never-ingest rules cover
 		int hidden = 0;
 		List<Row> candidates = new ArrayList<>();
-		for (Row row : rows) {
+		for (Row row : rows.subList(start, rows.size())) {
 			if (BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
 					|| isNever(rules, addresses.getOrDefault(row.personId(), List.of()), row)) {
 				hidden++;
@@ -141,12 +168,15 @@ public final class BrainThreadMessages {
 					continue;
 				}
 				// the oldest message we hold: its quoted history is mail the thread does not have
-				Map<String, Object> clean = clean(message, row == rows.get(rows.size() - 1));
+				Map<String, Object> clean = "teams".equals(source)
+						? Map.of("body", MicrosoftMessageDisplay.text(message))
+						: clean(message, row == rows.get(rows.size() - 1));
 				if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
 					hidden++;
 					continue;
 				}
 				Map<String, Object> entry = entry(row, clean, sender, rules, topicIds, source, included);
+				if (includeDisplayBody) entry.put("displayBody", MicrosoftMessageDisplay.body(message, (String) clean.get("body")));
 				entry.put("to", recipients(message.get("toRecipients")));
 				entry.put("cc", recipients(message.get("ccRecipients")));
 				// opens the message in Outlook or Teams
@@ -171,7 +201,30 @@ public final class BrainThreadMessages {
 		result.put("hiddenCount", hidden);
 		result.put("unavailableCount", unavailable);
 		result.put("hasMore", next < candidates.size());
+		if (next > 0 && next < candidates.size()) {
+			result.put("nextCursor", Base64.getUrlEncoder().withoutPadding().encodeToString(
+					(threadId + "\n" + candidates.get(next - 1).messageKey()).getBytes(StandardCharsets.UTF_8)));
+		}
 		return result;
+	}
+
+	/** Locate the last scanned record before applying today's rules, including when it is now hidden. */
+	private static int pageStart(List<Row> rows, String threadId, String cursor) {
+		if (cursor == null || cursor.isBlank()) return 0;
+		if (cursor.length() > 8192) throw new IllegalArgumentException("Invalid thread history cursor");
+		String decoded;
+		try {
+			decoded = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("Invalid thread history cursor", e);
+		}
+		String prefix = threadId + "\n";
+		if (!decoded.startsWith(prefix)) throw new IllegalArgumentException("Cursor belongs to a different thread");
+		String key = decoded.substring(prefix.length());
+		for (int i = 0; i < rows.size(); i++) {
+			if (key.equals(rows.get(i).messageKey())) return i + 1;
+		}
+		throw new IllegalArgumentException("Thread history changed. Reload the thread before loading older messages.");
 	}
 
 	private static boolean isNever(List<BrainRulesGate.Rule> rules, List<String> known, Row row) {
@@ -202,6 +255,7 @@ public final class BrainThreadMessages {
 		entry.put("id", row.graphId());
 		entry.put("fromId", row.personId());
 		entry.put("fromName", sender.get("name"));
+		entry.put("fromAddress", sender.get("address"));
 		entry.put("at", row.at());
 		entry.put("subject", clean.get("subject"));
 		entry.put("text", clean.get("body"));

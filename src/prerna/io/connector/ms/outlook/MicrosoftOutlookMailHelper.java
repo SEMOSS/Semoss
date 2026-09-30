@@ -43,6 +43,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Safelist;
 
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
@@ -89,8 +92,8 @@ public class MicrosoftOutlookMailHelper {
 	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 	/** The fields a message listing asks for when the caller wants the body. */
-	private static final String MESSAGE_FIELDS = "id,subject,from,toRecipients,ccRecipients,receivedDateTime,"
-			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId";
+	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,receivedDateTime,"
+			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink";
 
 	/** The same without the body, for a listing that only wants headers. */
 	private static final String MESSAGE_FIELDS_NO_BODY = "id,subject,from,toRecipients,ccRecipients,"
@@ -278,6 +281,83 @@ public class MicrosoftOutlookMailHelper {
 				ContentType.APPLICATION_JSON, null, null, null);
 		throwOnError(response, "forward an email");
 		return asDraft ? readMap(response) : null;
+	}
+
+	/** Save HTML in a native reply draft while keeping Outlook's original quoted body and recipients. */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll) {
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html);
+	}
+
+	/** Save an HTML note above the native forwarded message and its attachments. */
+	public Map<String, Object> forwardHtmlDraft(String accessToken, String uid, String[] to, String html) {
+		return fillHtmlDraft(accessToken, forward(accessToken, null, uid, to, null, true), html);
+	}
+
+	/** Save an edited envelope on the same native reply draft as the formatted body. */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll,
+			String[] to, String[] cc) {
+		String[] validatedTo = MicrosoftOutlookReplyRecipients.validate(to);
+		String[] validatedCc = MicrosoftOutlookReplyRecipients.validate(cc);
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo, validatedCc);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html) {
+		return fillHtmlDraft(accessToken, draft, html, null, null);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html,
+			String[] to, String[] cc) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
+		}
+		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft : getMessage(accessToken, null, id);
+		if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
+			throw new IllegalStateException("The created draft body could not be read. Check Outlook before retrying.");
+		}
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("body", Map.of("contentType", "HTML", "content", prependHtml(html, body)));
+		if (to != null && cc != null) {
+			// Empty lists are intentional removals, not omitted properties.
+			request.put("toRecipients", List.of());
+			request.put("ccRecipients", List.of());
+			request.put("bccRecipients", List.of());
+			putRecipients(request, "toRecipients", to);
+			putRecipients(request, "ccRecipients", cc);
+		}
+		String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
+				headers(accessToken), GSON.toJson(request), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "format the draft");
+		Map<String, Object> updated = readMap(response);
+		if (updated == null || !id.equals(updated.get("id"))) {
+			throw new IllegalStateException("The formatted draft could not be confirmed. Check Outlook before retrying.");
+		}
+		if (to != null && cc != null &&
+				(!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
+					|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
+					|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
+			throw new IllegalStateException("The saved reply recipients could not be confirmed. Check Outlook before retrying.");
+		}
+		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) updated.put("webLink", link);
+		return updated;
+	}
+
+	/** Compose only the newly authored fragment with the draft's native source body. */
+	static String prependHtml(String html, Map<?, ?> body) {
+		String content = body.get("content") instanceof String text ? text : "";
+		Document original;
+		if ("html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
+			original = Jsoup.parse(content);
+		} else {
+			original = Jsoup.parse("");
+			original.body().appendElement("pre").text(content);
+		}
+		Safelist allowed = Safelist.relaxed().addTags("span", "h1", "h2", "h3", "s")
+				.addAttributes(":all", "style").addAttributes("td", "colspan", "rowspan")
+				.addAttributes("th", "colspan", "rowspan", "scope");
+		original.outputSettings().prettyPrint(false);
+		String clean = Jsoup.clean(html == null ? "" : html, "", allowed, new Document.OutputSettings().prettyPrint(false));
+		original.body().prepend(clean + "<br>");
+		return original.outerHtml();
 	}
 
 	/**

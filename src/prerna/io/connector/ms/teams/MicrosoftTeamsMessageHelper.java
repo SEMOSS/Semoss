@@ -52,6 +52,8 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
+import prerna.io.connector.ms.MicrosoftMessageDisplay;
+
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveHelper;
 import prerna.security.HttpHelperUtility;
 
@@ -360,11 +362,23 @@ public class MicrosoftTeamsMessageHelper {
 	 */
 	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
 			int limit) throws Exception {
+		return listChatMessages(accessToken, chatId, maxBodyChars, limit, false);
+	}
+
+	/** Opt-in original bodies are for UI display only. */
+	public static List<Map<String, Object>> listChatMessages(String accessToken, String chatId, int maxBodyChars,
+			int limit, boolean includeDisplayBody) throws Exception {
 		try {
 			requireValue(chatId, "Chat ID is required to read Microsoft Teams chat messages.");
 
 			String url = chatPath(chatId) + "/messages?$top=" + pageSize(limit);
-			return describeAll(getPagedValues(accessToken, url, limit), maxBodyChars);
+			List<Map<String, Object>> result = new ArrayList<>();
+			for (Map<String, Object> message : getPagedValues(accessToken, url, limit)) {
+				Map<String, Object> described = MicrosoftTeamsMessageMapper.toMessage(message, maxBodyChars, false);
+				if (includeDisplayBody) described.put("displayBody", MicrosoftMessageDisplay.body(message, String.valueOf(described.get("body"))));
+				result.add(described);
+			}
+			return result;
 		} catch (Exception e) {
 			classLogger.error("Failed to read the messages of Microsoft Teams chat '{}'.", chatId, e);
 			throw e;
