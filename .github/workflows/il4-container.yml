@@ -21,6 +21,8 @@ jobs:
   build:
     if: github.ref == 'refs/heads/IL4-dev' || github.event_name == 'schedule'
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind@sha256:5711ae2ade8db7de5e95f16bee23a89addd5d9aeb5b905c41c7ccca183ecda20
     timeout-minutes: 180
     permissions:
       contents: read
@@ -130,10 +132,17 @@ jobs:
             'python /opt/python-check/validate.py
              python /opt/python-check/python_check.py
              python /opt/python-check/check_audio.py'
-          docker run "${restrictions[@]}" \
-            --mount "type=bind,src=$GITHUB_WORKSPACE/docker/il4/integrations/bedrock,dst=/checks,readonly" \
-            --entrypoint /opt/semoss-python/bin/python "$IMAGE_REF" \
-            -m unittest discover -s /checks -v
+          # Stream the checks because the job container and Docker host use different workspace paths.
+          tar -C integrations/bedrock -cf - check_bedrock.py test_check_bedrock.py |
+            docker run "${restrictions[@]}" --interactive \
+              --entrypoint /opt/semoss-python/bin/python "$IMAGE_REF" -c '
+          import sys, tarfile, unittest
+          with tarfile.open(fileobj=sys.stdin.buffer, mode="r|") as archive:
+              archive.extractall("/tmp/bedrock-checks", filter="data")
+          suite = unittest.defaultTestLoader.discover("/tmp/bedrock-checks")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(not result.wasSuccessful())
+          '
 
       - name: Log in to GHCR after validation
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3

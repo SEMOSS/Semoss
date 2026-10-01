@@ -286,13 +286,16 @@ Provision these prerequisites in the destination repository:
    label `codebuild-semoss-github-runner-<run-id>-<run-attempt>`.
    Its webhook must accept this repository's queued workflow jobs. It must not
    share a Docker daemon with production workloads or execute untrusted pull
-   requests. The workflow runs directly in the CodeBuild project image, without
-   the Quay job container used by some other SEMOSS workflows. That project
-   image must provide current organization-approved GitHub runner software
-   supporting Node 24 actions (at least 2.327.1), Bash, Git, Python 3.10+,
-   Docker Engine, and Buildx, with a working local Docker daemon and a workspace
-   path accessible to its bind mounts. Preflight fails if tooling is missing;
-   no unapproved packages or runner images are silently substituted.
+   requests. The job uses the same `quay.io/semoss/test-quay:ubuntu-dind`
+   tooling container as existing SEMOSS builds, pinned to digest
+   `sha256:5711ae2ade8db7de5e95f16bee23a89addd5d9aeb5b905c41c7ccca183ecda20`.
+   The CodeBuild host's older glibc cannot run checkout's Node 24 directly;
+   the Ubuntu job container supplies the compatible userland. This tooling
+   container is not an application base or part of the published image.
+   The runner must support Node 24 actions (at least 2.327.1); the job needs
+   Bash, Git, Python 3.10+, Docker Engine access, and Buildx. Bedrock checks
+   are streamed over stdin rather than bind-mounting job-container paths into
+   the host daemon. Preflight fails if required tooling is missing.
    The `default` Buildx builder must use the `docker` driver; the workflow uses
    that daemon's embedded BuildKit rather than downloading a builder image.
    Its BuildKit must support `ADD --checksum`. Provision x86-64-v3 CPU support,
