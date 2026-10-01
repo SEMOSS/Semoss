@@ -419,6 +419,20 @@ obtain the applicable approvals before using those services.
 
 ## TLS and runtime
 
+See [HTTPS certificate staging and replacement](./TLS.md) for explicit
+development-only generation of a unique seven-day self-signed certificate,
+organization-issued chain/private-key packaging, and controlled certificate
+rotation. No shared private key or automatic runtime fallback is built in.
+Outbound [AWS GovCloud RDS trust](./RDS.md) is a separate configuration surface.
+
+Use the [portable configuration baseline and deployment checklist](./DEPLOYMENT-CHECKLIST.md)
+to separate reusable container safeguards from site-specific identity, network,
+storage, audit, and authorization requirements. It includes prerequisites,
+post-deployment acceptance, evidence ownership, and recurring checks; completion
+does not itself establish IL4 authorization. FIPS alternatives are being
+evaluated, but the default cryptographic stack is unchanged and its evidence
+gaps remain open.
+
 Provision these read-only secret files, readable by UID 10001:
 
 | File inside container | Contents |
@@ -431,7 +445,7 @@ private key is not part of the image. Tomcat reads its password from the file,
 not a JVM argument. Missing TLS secrets cause startup to fail explicitly.
 
 The generated `/opt/fips/cacerts.bcfks` contains the builder JDK's public trust
-anchors; `changeit` is the integrity password for this **public-certificate-only**
+anchors plus six pinned GovCloud RDS roots; `changeit` is the integrity password for this **public-certificate-only**
 store, not a private-key password. Replace it with an approved, appropriately
 limited BCFKS truststore at that path when enterprise/internal CAs are needed;
 keep its integrity password consistent with [setenv.sh](./conf/setenv.sh).
@@ -483,10 +497,9 @@ external databases, backup, audit retention, and network policy for your deploym
 ### Opt-in hardened development deployment
 
 [compose.dev.yml](./compose.dev.yml) provides a separate `hardened-dev` profile.
-It does not change the image or any running container. FIPS work remains on
-hold: Java, providers, cipher settings, and existing TLS requirements are
-unchanged. Authentication, existing data, repository permissions, and outbound
-connectivity are also unchanged.
+It does not change the image or any running container. Java, providers, cipher
+settings, and existing TLS requirements are unchanged. Authentication, existing
+data, repository permissions, and outbound connectivity are also unchanged.
 
 From this directory, with already-provisioned TLS and CA files:
 
@@ -543,7 +556,195 @@ context; the full host-side test suite includes them.
 `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `JAVA_OPTS` injection. Treat all
 deployment-controlled JVM flags as trusted configuration.
 
+### Read-only runtime configuration and drift audit
+
+[audit_runtime.py](./audit_runtime.py) is a host-side, standard-library Python
+3.9+ helper for Docker deployments. It only inspects an existing container and
+an already-local expected image; it does not pull, start, stop, modify, or repair
+anything. The caller needs Docker inspection access. Other orchestrators need
+equivalent runtime-specific inspection rather than fabricated Docker metadata.
+
+```sh
+umask 077
+python3 audit_runtime.py \
+  --container semoss-hardened-dev-semoss-1 \
+  --expected-image "$SEMOSS_IMAGE" \
+  > /secure/evidence/runtime-current.json
+```
+
+Use a repository-qualified `@sha256:` image reference, not a tag. The audit
+compares the container's actual image ID to the inspected expected image and
+checks that image's repository digests; a matching configured tag is not enough.
+The expected image must already be available to the Docker daemon.
+
+The 17 named checks cover image identity, running/healthy state, numeric
+non-root identity, no privileged mode, dropped capabilities, no new privileges,
+read-only root, positive memory/CPU/PID limits, namespace isolation, device and
+runtime-socket exposure, writable home, allowed writable mounts, hardened
+temporary mounts, read-only TLS mounts, bounded local logs, and a health check.
+The filesystem/logging checks target this template's reference layout and
+Docker `local` logging pattern, not every valid production architecture.
+Loopback/non-loopback publication counts are recorded, not treated as a
+universal ingress policy. Resource sizes remain workload-specific.
+
+Default output is **report-only**: inspect `checks` even when exit status is 0.
+Use `--strict` to opt into exit 1 for a failed check or detected drift. Invalid
+input, malformed inspection/baseline data, unavailable Docker resources, or
+inspection failure returns 2 with a concise diagnostic, never a clean report.
+Each Docker inspection has a 10-second timeout.
+
+After reviewing a successful report and the deployment manifest, save that
+report as the approved baseline in the site's controlled evidence repository.
+Compare later without overwriting that baseline:
+
+```sh
+python3 audit_runtime.py \
+  --container semoss-hardened-dev-semoss-1 \
+  --expected-image "$SEMOSS_IMAGE" \
+  --baseline /secure/evidence/runtime-approved.json --strict \
+  > /secure/evidence/runtime-current.json
+```
+
+Reports contain `schema_version`, `scope`, `image_id`, named boolean `checks`,
+a normalized `snapshot`, and `drift` with `compared`, `detected`, and changed
+field names. Baselines must be valid versioned reports; they cannot waive the
+built-in checks. Snapshots exclude environment values, host paths, secret
+contents, raw health output, and publication addresses. Comparison covers
+only this normalized subset, including observed health/running state; it will
+not detect every manifest difference, changed mounted file content, credential
+rotation, or application configuration change. Compare reviewed manifests and
+appropriate content evidence separately. Keep reports controlled.
+
+This metadata audit cannot prove effective kernel enforcement, actual file
+permissions, certificate trust, readiness endpoint identity, FIPS validation,
+or authorization. Test those separately using the deployment checklist.
+It does not impose egress policy, schedule checks, or send alerts.
+
+Run all host-side hermetic tests from this directory:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+The audit, readiness helper, and their tests remain excluded from the image
+build context. Adding them does not change the built image or existing data.
+
+### Isolated portable acceptance result
+
+On 2026-10-01, the published image
+`ghcr.io/semoss/semoss-il4@sha256:cad8db15ce6704e728f5a23a4a75b86a0b543aead097585000fdb9ab70358b1f`
+was pulled by digest and tested with the opt-in Compose profile on Docker
+Desktop, running `linux/amd64` on an Apple Silicon development host. Tests used
+a new, disposable home and short-lived synthetic localhost TLS material, not
+an existing deployment or organization-issued production credentials.
+
+- All 76 host-side unit tests passed, including 19 audit tests. Audit
+  executable-line coverage was 98.2%.
+- All 17 live metadata checks passed. Unchanged-baseline and synthetic-drift
+  comparisons verified report-only and strict exit behavior.
+- Verified HTTPS UI and backend readiness passed; wrong hostname and untrusted
+  certificate connections were rejected. The readiness helper's positive and
+  wrong-hostname paths were exercised against the live instance.
+- Effective UID/GID, zero capabilities, no-new-privileges, seccomp filtering,
+  denied root writes, denied execution from temporary storage, temporary mount
+  options, required writable paths, and restricted TLS file permissions passed.
+  HTTP TRACE was rejected and the synthetic query canary was absent from logs.
+- Existing Java/provider/JDBC checks, the Python worker/data-science checks,
+  audio integration, and eight mocked Bedrock adapter tests passed under the
+  hardened profile. These were not external-service or FIPS certification tests.
+- A measured SIGTERM shutdown completed in about 6 seconds with Java exit 143
+  (not forced SIGKILL/OOM), and restart became healthy in about 47 seconds.
+  Synthetic data in the isolated home survived. Tomcat emitted application
+  thread/ThreadLocal cleanup warnings; this was not a warning-free shutdown.
+- Local Trivy 0.74.0 report generation and CycloneDX 1.7 conversion completed
+  for the exact digest, with 1,366 SBOM components and vulnerability findings.
+  Detailed reports remain outside source control. This was not a clean scan or
+  production acceptance, and the GitHub artifact-upload path was not exercised.
+  Conversion also reported some unrecognized license expressions.
+
+Repeat acceptance on the actual host/orchestrator, ingress, IdP, and storage.
+This local exercise does not complete site checklist items, test SSO/production
+login, approve vulnerability dispositions, or resolve the FIPS evidence hold.
+
 ## FIPS boundaries
+
+### Alternative-provider feasibility (2026-10-01)
+
+No provider migration has been applied to this image or the publishing workflow.
+Two alternatives were investigated separately from the working deployment:
+
+| Candidate | Evidence | Disposition |
+| --- | --- | --- |
+| Red Hat OpenJDK 25 / NSS on RHEL 9 | Certificate #5022 identifies NSS module `3.90.0-4408e3bb8a34af3a`, supplied in `nss-softokn` and `nss-softokn-freebl` `3.90.0-6.el9_2`. The current public UBI9/OpenJDK25 image inspected contains NSS `3.124.0-5.el9_6`, not this documented baseline. Red Hat Java25 support starts at RHEL9.7; the validated RPMs are from the RHEL9.2 EUS stream. | Paused: no supported public package/runtime combination was established. Do not blindly downgrade NSS or assume the newest package is validated. |
+| ACCP-FIPS / AWS-LC | Maven Central's published `2.5.0` Linux x86-64 artifact was checksum-verified and reports AWS-LC-FIPS `3.0.0` at runtime. Isolated Java25 compatibility checks passed, but required PBKDF2 operations fell back to SunJCE. | Evaluation only: neither complete cryptographic routing nor exact certificate coverage was established. Do not promote it as a compliant replacement. |
+
+The inspected Red Hat base was
+`registry.access.redhat.com/ubi9/openjdk-25@sha256:68f712c440bccc81af8a1935dda4beff4fbed6466f4037f6d1437c0f455328bc`.
+Its existence does not establish NSS certificate applicability. Exact validated
+RPMs were absent from the current public UBI repositories checked; Red Hat
+documents subscription access for superseded packages. A historical public image
+containing the exact binaries was not verified. Acquisition and support for the
+combined Java/module/container/host environment remain unresolved.
+
+Compatibility constraints discovered during this investigation:
+
+- Trino JDBC 476 contains base class files at version 66 and needs Java 22+.
+  A Java21 downgrade would break that connector without a reviewed driver change.
+- The current Python3.14 donor uses RHEL10 RPMs. A RHEL9 migration needs a new
+  Python/dependency build; public RHEL9 Python3.12 packages were located but not
+  integrated or tested with the full dependency set.
+- CAC certificate parsing and GitHub App private-key parsing reference Bouncy
+  Castle APIs. Removing all BC libraries would break those features. Replacing
+  the registered cryptographic provider is distinct from removing parsing APIs.
+
+The isolated ACCP probe used the existing published Java25/UBI10 image, not a new
+SEMOSS release. The public artifact was
+`software.amazon.cryptools:AmazonCorrettoCryptoProvider-FIPS:2.5.0:linux-x86_64`,
+SHA-256 `55f20ce012de076137c35bb6d505ac87334e8315b4c762289bf1a225a4da3796`.
+It demonstrated:
+
+- Non-experimental FIPS-build reporting and passing provider self-tests.
+- Default random, SHA-256, AES key generation, and AES-GCM routing to ACCP.
+- PKCS12 in-memory key handling and hostname-verified SunJSSE TLS1.2/TLS1.3
+  loopback handshakes.
+- Native loading from a fixed read-only mount with non-root execution, dropped
+  capabilities, read-only root, and noexec temporary storage.
+- Explicit rejection when the native library was missing.
+- **Missing ACCP PBKDF2WithHmacSHA256/SHA512 implementations** in this release;
+  default calls selected SunJCE. A first-priority provider is not a complete
+  approved-cryptography enforcement policy.
+
+BC certificate-encoding APIs were used for the synthetic in-memory certificate;
+BCFIPS/BCJSSE providers were not registered in the probe. This was not a full
+Tomcat, JDBC, login/SSO, Python, or approved-service validation test.
+
+The ACCP main-branch documentation describes `2.6.0` using AWS-LC-FIPS `3.1.0`,
+but that release was not available from Maven Central when checked. Certificate
+#5314 covers the static `3.1.0` module; it must not be attributed to the tested
+`3.0.0` binary without separate evidence. Its listed operating environment is
+Amazon Linux 2023 on specified hardware, not UBI10. Any applicable CMVP
+user-affirmation portability route requires a documented, accepted assessment;
+a local compatibility pass does not supply it. Python cryptography remains a
+separate assessment regardless of Java provider.
+
+Before another candidate is promoted, resolve exact module/build/certificate
+mapping, approved-service routing (including PBKDF2 and keystores), operating
+environment applicability, and the deployment's cryptographic boundary. Preserve
+the current image while those gates remain unresolved.
+
+Sources:
+
+- [Red Hat compliance matrix](https://access.redhat.com/compliance/fips),
+  [NSS certificate #5022](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5022),
+  and [validated-package advisory](https://access.redhat.com/errata/RHSA-2024:0791).
+- [Red Hat OpenJDK support matrix](https://access.redhat.com/articles/1299013)
+  and [UBI content availability](https://access.redhat.com/support/policy/updates/ubi).
+- [Published ACCP-FIPS versions](https://repo.maven.apache.org/maven2/software/amazon/cryptools/AmazonCorrettoCryptoProvider-FIPS/maven-metadata.xml)
+  and [ACCP 2.5.0 documentation](https://github.com/corretto/amazon-corretto-crypto-provider/blob/2.5.0/README.md).
+- [AWS-LC certificate #5314](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314)
+  and [its security policy](https://csrc.nist.gov/CSRC/media/projects/cryptographic-module-validation-program/documents/security-policies/140sp5314.pdf).
+
+### Current BC-based image
 
 The startup and build check exercises BC self-tests and approved-only mode,
 provider ordering, secure random, SHA-256, AES-256-GCM, PBKDF2, BCFKS trust loading,

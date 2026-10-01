@@ -8,6 +8,7 @@
 !FipsCheck.java
 !JdbcCheck.java
 !JdbcTls.java
+!RdsTrust.java
 !entrypoint.sh
 !conf/
 conf/**
@@ -25,6 +26,7 @@ tests/**
 !tests/test_functional_smoke.py
 !tests/check_audio.py
 !tests/JdbcTlsTest.java
+!tests/RdsTrustTest.java
 !python-dependencies/
 python-dependencies/**
 !python-dependencies/*.in

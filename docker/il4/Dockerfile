@@ -80,6 +80,11 @@ COPY --from=assembly --chown=10001:10001 /out/semosshome/ /opt/semosshome/
 COPY conf/server.xml conf/context.xml conf/logging.properties /opt/tomcat/conf/
 COPY conf/setenv.sh /opt/tomcat/bin/setenv.sh
 COPY entrypoint.sh /usr/local/bin/semoss-entrypoint
+COPY RdsTrust.java tests/RdsTrustTest.java /opt/rds-check/
+ADD --checksum=sha256:cffb079b116f6bb731b10b1dc3e026287758b0c2fdc81144e218da0a58650454 \
+    https://truststore.pki.us-gov-west-1.rds.amazonaws.com/us-gov-west-1/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-west-1-bundle.pem
+ADD --checksum=sha256:701cd34b338d4199cd09a669bbc3d11000febe52393d08a689d0b21c50ea3974 \
+    https://truststore.pki.us-gov-west-1.rds.amazonaws.com/us-gov-east-1/us-gov-east-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem
 
 RUN java -version && \
     keytool -importkeystore -noprompt \
@@ -96,7 +101,7 @@ RUN java -version && \
       'security.provider.3=SUN' \
       'ssl.KeyManagerFactory.algorithm=PKIX' \
       'ssl.TrustManagerFactory.algorithm=PKIX' \
-      'jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA' \
+      'jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA, DHE, CBC, CHACHA20-POLY1305, TLS_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256' \
       'jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1, RSA keySize < 2048, DSA, EC keySize < 224' \
       'keystore.type=BCFKS' >> /opt/fips/java.security && \
     chmod 0555 /usr/local/bin/semoss-entrypoint && \
@@ -104,6 +109,13 @@ RUN java -version && \
       /opt/tomcat/conf/Catalina/localhost && \
     chown -R 10001:10001 /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs && \
     rpm -qa | sort > /opt/provenance/rpm-packages.txt
+
+RUN --network=none javac -d /opt/rds-check /opt/rds-check/RdsTrust.java /opt/rds-check/RdsTrustTest.java && \
+    java -cp /opt/rds-check RdsTrustTest /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
+    java -Dorg.bouncycastle.native.cpu_variant=java -cp '/opt/rds-check:/opt/fips/*' RdsTrust /opt/fips/cacerts.bcfks BCFKS \
+      /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
+    chmod 0644 /opt/semoss-ca/* && \
+    cp /opt/semoss-ca/roots-sha256.txt /opt/provenance/aws-rds-govcloud-roots.txt
 
 USER 10001:10001
 WORKDIR /opt/semosshome
