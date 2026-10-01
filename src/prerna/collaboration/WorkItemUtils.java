@@ -57,8 +57,10 @@ public final class WorkItemUtils {
 	public static final Set<String> STATUSES = Set.of("open", "waiting", "done", "dismissed", "snoozed");
 	public static final Set<String> PRIORITIES = Set.of("P0", "P1", "P2", "P3");
 	public static final Set<String> CHANNELS = Set.of("email", "teams", "calendar", "room", "task");
+	// the owner's "this never needed me", kept apart from done as a correction for the classifier
+	public static final String NO_RESPONSE_NEEDED = "no_response_needed";
 	public static final Set<String> CLOSED_REASONS = Set.of("replied", "responded", "deleted", "by_owner", "by_agent",
-			"expired", "kept_out", "automated");
+			"expired", "kept_out", "automated", NO_RESPONSE_NEEDED);
 
 	public static final String YOU = BrainProfileUtils.YOU;
 	public static final String BRAIN = "brain";
@@ -365,6 +367,146 @@ public final class WorkItemUtils {
 		}
 	}
 
+	private static String followUp(String status, String closedReason) {
+		if ("replied".equals(closedReason)) {
+			return "Follow-up after your reply";
+		} else if (NO_RESPONSE_NEEDED.equals(closedReason)) {
+			return "Follow-up; you said the last one needed no response";
+		} else if (DONE.equals(status)) {
+			return "Follow-up; you marked the last one done";
+		}
+		return "Follow-up on a closed item";
+	}
+
+	// a classifier verdict on a thread's newest message, against the Work the thread already has: open and waiting
+	// items update in place (room link kept), a snoozed item keeps its snooze, a closed thread gets a new item only
+	// for a new ask, and a thread with no item gets one as before. Same item fields as createFromIngest
+	public static Map<String, Object> ingestOnThread(String ownerId, String ownerType, Map<String, Object> item) {
+		String dedupeKey = required(item, "dedupeKey");
+		String threadId = required(item, "threadId");
+		String askType = check(ASK_TYPES, required(item, "askType"), "askType");
+		boolean ask = !"fyi".equals(askType) && !"waiting_on".equals(askType);
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			result.put("created", false);
+			// a replay of the same newest message changes nothing
+			String seen = CollaborationDbUtils.queryOne("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND DEDUPE_KEY = ?", rs -> rs.getString(1), ownerId, ownerType, dedupeKey);
+			if (seen != null) {
+				result.put("item", getItem(ownerId, ownerType, seen));
+				return result;
+			}
+			String[] active = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+					"SELECT ITEM_ID, STATUS, ASK_TYPE FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+							+ "AND THREAD_ID = ? AND STATUS IN (?, ?, ?) ORDER BY RECEIVED_AT DESC, ITEM_ID",
+					1, 0), rs -> new String[] { rs.getString(1), rs.getString(2), rs.getString(3) }, ownerId,
+					ownerType, threadId, OPEN, WAITING, SNOOZED);
+			if (active == null) {
+				String[] closed = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+						"SELECT STATUS, CLOSED_REASON FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+								+ "AND THREAD_ID = ? ORDER BY RECEIVED_AT DESC, ITEM_ID",
+						1, 0), rs -> new String[] { rs.getString(1), rs.getString(2) }, ownerId, ownerType, threadId);
+				if (closed == null) {
+					return createFromIngest(ownerId, ownerType, item);
+				}
+				// done or dismissed: a thanks or an update is context, not new work
+				if (!ask) {
+					result.put("skipped", "closed");
+					return result;
+				}
+				// a new ask after a closed one says so, so it doesn't read as a duplicate
+				Map<String, Object> followUp = new LinkedHashMap<>(item);
+				List<Object> reasons = new ArrayList<>();
+				reasons.add(followUp(closed[0], closed[1]));
+				if (item.get("reasons") instanceof List<?> given) {
+					reasons.addAll(given);
+				}
+				followUp.put("reasons", reasons);
+				return createFromIngest(ownerId, ownerType, followUp);
+			}
+			String itemId = active[0];
+			String status = active[1];
+			boolean wasAsk = !"fyi".equals(active[2]) && !"waiting_on".equals(active[2]);
+			result.put("item", getItem(ownerId, ownerType, itemId));
+			if (SNOOZED.equals(status)) {
+				result.put("skipped", SNOOZED);
+				return result;
+			}
+			if (WAITING.equals(status) && "fyi".equals(askType)) {
+				// they answered with nothing more to do
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", DONE, "closedReason", "responded"), BRAIN),
+						BRAIN, "they replied");
+				result.put("closed", true);
+				result.put("item", getItem(ownerId, ownerType, itemId));
+				return result;
+			}
+			// an open ask is not turned into an update or a wait by a later message
+			if (OPEN.equals(status) && wasAsk && !ask) {
+				result.put("skipped", OPEN);
+				return result;
+			}
+			updateInPlace(ownerId, ownerType, itemId, item, ask ? OPEN : WAITING.equals(item.get("status")) ? WAITING
+					: status);
+			result.put("updated", true);
+			result.put("item", getItem(ownerId, ownerType, itemId));
+			return result;
+		}
+	}
+
+	// the item now stands for the newest message: its source, time, ask, actor and score follow the verdict; the
+	// owner's own priority and a confirmed suggestion stay, and a topic is only filled in when missing
+	private static void updateInPlace(String ownerId, String ownerType, String itemId, Map<String, Object> item,
+			String status) {
+		Map<String, Object> before = CollaborationDbUtils.queryOne("SELECT SOURCE_REF, LINK_TOPIC_ID "
+				+ "FROM WORK_ITEM WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?", rs -> {
+					Map<String, Object> row = new LinkedHashMap<>();
+					row.put("sourceRef", CollaborationDbUtils.getString(rs, "SOURCE_REF"));
+					row.put("linkTopicId", CollaborationDbUtils.getString(rs, "LINK_TOPIC_ID"));
+					return row;
+				}, ownerId, ownerType, itemId);
+		String sourceRef = CollaborationDbUtils.asString(item.get("sourceRef"));
+		Integer score = item.get("score") == null ? null : CollaborationDbUtils.toInt(item.get("score"), "score");
+		Timestamp now = CollaborationDbUtils.now();
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn,
+					"UPDATE WORK_ITEM SET SOURCE_REF = ?, RECEIVED_AT = ?, ASK_TYPE = ?, ACTOR_TYPE = ?, ACTOR_ID = ?, "
+							+ "ACTOR_NAME = ?, SCORE = ?, REASONS_JSON = ?, CLASSIFIER_VERSION = ?, DEDUPE_KEY = ?, "
+							+ "PROCESSED_AT = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ITEM_ID = ?",
+					sourceRef, CollaborationDbUtils.toTimestamp(required(item, "receivedAt"), "receivedAt"),
+					required(item, "askType"), CollaborationDbUtils.asString(item.get("actorType")),
+					CollaborationDbUtils.asString(item.get("actorId")),
+					CollaborationDbUtils.asString(item.get("actorName")), score,
+					CollaborationDbUtils.toJson(reasons(item.get("reasons"))),
+					CollaborationDbUtils.asString(item.get("classifierVersion")), required(item, "dedupeKey"), now, now,
+					ownerId, ownerType, itemId);
+			insertHistory(conn, ownerId, ownerType, itemId, UUID.randomUUID().toString(), BRAIN, now, "sourceRef",
+					(String) before.get("sourceRef"), sourceRef, "new message");
+		});
+		Map<String, Object> changes = new LinkedHashMap<>();
+		changes.put("status", status);
+		if (!ownerSet(ownerId, ownerType, itemId, "priority")) {
+			changes.put("priority", item.get("priority"));
+		}
+		// a suggestion the owner confirmed or rejected stays theirs
+		if (!ownerSet(ownerId, ownerType, itemId, "suggested")) {
+			changes.put("suggested", Boolean.TRUE.equals(item.get("suggested")));
+		}
+		if (before.get("linkTopicId") == null && item.get("linkTopicId") != null) {
+			changes.put("linkTopicId", item.get("linkTopicId"));
+		}
+		Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+		apply(ownerId, ownerType, itemId, current, next(ownerId, ownerType, current, changes, BRAIN), BRAIN,
+				"new message");
+	}
+
+	// the owner changed this field themselves at some point
+	private static boolean ownerSet(String ownerId, String ownerType, String itemId, String field) {
+		return CollaborationDbUtils.exists("SELECT 1 FROM WORK_ITEM_HISTORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+				+ "AND ITEM_ID = ? AND FIELD = ? AND CHANGED_BY = ?", ownerId, ownerType, itemId, field, YOU);
+	}
+
 	// ---- ingest events ----
 
 	// the owner replied on the thread: close open reply items received at or before
@@ -527,12 +669,16 @@ public final class WorkItemUtils {
 			next.put("snoozeUntil", null);
 		}
 		boolean closing = DONE.equals(status) || DISMISSED.equals(status);
+		if (NO_RESPONSE_NEEDED.equals(changes.get("closedReason")) && !DISMISSED.equals(status)) {
+			throw new IllegalArgumentException("no_response_needed goes with dismissed");
+		}
 		boolean wasClosed = DONE.equals(current.get("status")) || DISMISSED.equals(current.get("status"));
 		if (closing) {
 			if (!wasClosed) {
 				next.put("closedAt", CollaborationDbUtils.toIso(CollaborationDbUtils.now()));
 			}
-			if (!changes.containsKey("closedReason") && (!wasClosed || next.get("closedReason") == null)) {
+			if (!changes.containsKey("closedReason") && (!wasClosed || next.get("closedReason") == null
+					|| !Objects.equals(status, current.get("status")))) {
 				next.put("closedReason", YOU.equals(actor) ? "by_owner" : "by_agent");
 			}
 		} else {

@@ -55,8 +55,8 @@ import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-// Reads each thread through the rules gate, asks a pluggable BrainClassifier for scores, and turns the scores
-// into topic links and work items. Thresholds were tuned on the fixture mailbox.
+// Sorts permitted thread content into Work state. Onboarding discovers topics afterward, then startTopics files
+// against the accepted profiles without changing Work state. Thresholds were tuned on the fixture mailbox.
 public final class BrainThreadClassifier {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainThreadClassifier.class);
@@ -232,7 +232,7 @@ public final class BrainThreadClassifier {
 		void report(int done, int total);
 	}
 
-	private static Map<String, Object> classify(User user, Insight insight, List<String> threadIds, boolean dryRun,
+	static Map<String, Object> classify(User user, Insight insight, List<String> threadIds, boolean dryRun,
 			Progress progress) {
 		Context ctx = context(user, insight, dryRun);
 		String ownerId = ctx.ownerId();
@@ -444,8 +444,10 @@ public final class BrainThreadClassifier {
 			item.put("linkTopicId", topicId);
 			item.put("classifierVersion", ctx.classifier().version());
 			item.put("reason", "classifier");
-			Map<String, Object> created = WorkItemUtils.createFromIngest(ctx.ownerId(), ctx.ownerType(), item);
-			if (Boolean.TRUE.equals(created.get("created")) && created.get("item") instanceof Map<?, ?> saved) {
+			// the thread's existing Work decides whether this is a new card, an update, or nothing
+			Map<String, Object> created = WorkItemUtils.ingestOnThread(ctx.ownerId(), ctx.ownerType(), item);
+			boolean wrote = Boolean.TRUE.equals(created.get("created")) || Boolean.TRUE.equals(created.get("updated"));
+			if (wrote && created.get("item") instanceof Map<?, ?> saved) {
 				CollaborationDbUtils.update(
 						"UPDATE WORK_ITEM SET SIGNALS_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 								+ "AND ITEM_ID = ?",
@@ -597,7 +599,7 @@ public final class BrainThreadClassifier {
 
 	// the platform model (COLLAB_CLASSIFIER_ENGINE_ID); the caller needs access to
 	// it
-	private static String requireEngine(User user) {
+	static String requireEngine(User user) {
 		String engine = platformEngine();
 		if (engine == null) {
 			throw new IllegalArgumentException("No classifier model is set; an admin sets "

@@ -119,63 +119,7 @@ public final class BrainMailImport {
 				source.aliases(user));
 
 		Instant since = Instant.now().minus(Duration.ofDays(days));
-		List<Map<String, Object>> headers = new ArrayList<>();
-		for (String folder : BrainMailHeaderSource.FOLDERS) {
-			job.step("reading " + folder, 5 + 10 * BrainMailHeaderSource.FOLDERS.indexOf(folder));
-			// received mail carries the sender's own machine-sent headers; Sent is the owner's
-			headers.addAll(BrainMailHeaderSource.SENT.equals(folder) ? source.list(user, folder, since, MAX_PER_FOLDER)
-					: source.topicHeaders(user, folder, since, MAX_PER_FOLDER));
-		}
-		// a chat failure (no Chat.Read yet, throttled) leaves the mail import whole
-		String teamsError = null;
-		if (withTeams) {
-			job.step("reading Teams chats", 22);
-			try {
-				List<Map<String, Object>> chats = source.chats(user, since, MAX_CHATS, MAX_PER_CHAT);
-				for (Map<String, Object> chat : chats) {
-					chat.put(SOURCE_KEY, TEAMS);
-				}
-				headers.addAll(chats);
-				job.count("teamsMessages", chats.size());
-			} catch (Exception e) {
-				teamsError = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-				classLogger.warn("Teams chats were not read for the import: {}", teamsError);
-				job.count("teamsError", teamsError);
-				CollaborationSourceUtils.recordSourceError(ownerId, ownerType, TEAMS, teamsError,
-						teamsError.contains("403") || teamsError.contains("401"));
-			}
-		}
-		// oldest first so a thread takes its first subject; a message sent to yourself
-		// is in both folders once
-		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
-		Map<String, Map<String, Object>> unique = new LinkedHashMap<>();
-		for (Map<String, Object> h : headers) {
-			unique.putIfAbsent(messageId(h), h);
-		}
-		job.count("messages", unique.size());
-
-		// one connection and one commit per batch; a failed batch rolls back and a
-		// re-run picks it up
-		List<Map<String, Object>> all = new ArrayList<>(unique.values());
-		for (int start = 0; start < all.size(); start += BATCH) {
-			List<Map<String, Object>> part = all.subList(start, Math.min(all.size(), start + BATCH));
-			CollaborationDbUtils.batch(conn -> {
-				for (Map<String, Object> header : part) {
-					run.importOne(header);
-				}
-			});
-			job.count("imported", run.imported);
-			job.count("threads", run.threads.size());
-			job.count("newPeople", run.newPeople);
-			job.step("importing", 25 + 60 * (start + part.size()) / Math.max(1, all.size()));
-		}
-		job.count("imported", run.imported);
-		job.count("alreadyImported", run.skipped);
-		job.count("keptOut", run.keptOut);
-		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
-		job.count("meetingMessages", run.meetings);
-		job.count("threads", run.threads.size());
-		job.count("newPeople", run.newPeople);
+		String teamsError = importSince(user, source, job, run, since, withTeams ? since : null);
 
 		job.step("threads", 87);
 		run.refreshThreads();
@@ -222,8 +166,72 @@ public final class BrainMailImport {
 		}
 	}
 
+	// Inbox and Sent since a time (and Teams since teamsSince, null to skip), through the gate in batches; shared
+	// by onboarding and BrainSync. Returns the Teams error, null when Teams was read or skipped
+	static String importSince(User user, BrainMailHeaderSource source, CollaborationJobUtils.Job job, Run run,
+			Instant since, Instant teamsSince) throws Exception {
+		List<Map<String, Object>> headers = new ArrayList<>();
+		for (String folder : BrainMailHeaderSource.FOLDERS) {
+			job.step("reading " + folder, 5 + 10 * BrainMailHeaderSource.FOLDERS.indexOf(folder));
+			// received mail carries the sender's own machine-sent headers; Sent is the owner's
+			headers.addAll(BrainMailHeaderSource.SENT.equals(folder) ? source.list(user, folder, since, MAX_PER_FOLDER)
+					: source.topicHeaders(user, folder, since, MAX_PER_FOLDER));
+		}
+		// a chat failure (no Chat.Read yet, throttled) leaves the mail import whole
+		String teamsError = null;
+		if (teamsSince != null) {
+			job.step("reading Teams chats", 22);
+			try {
+				List<Map<String, Object>> chats = source.chats(user, teamsSince, MAX_CHATS, MAX_PER_CHAT);
+				for (Map<String, Object> chat : chats) {
+					chat.put(SOURCE_KEY, TEAMS);
+				}
+				headers.addAll(chats);
+				job.count("teamsMessages", chats.size());
+			} catch (Exception e) {
+				teamsError = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+				classLogger.warn("Teams chats were not read for the import: {}", teamsError);
+				job.count("teamsError", teamsError);
+				CollaborationSourceUtils.recordSourceError(run.ownerId, run.ownerType, TEAMS, teamsError,
+						teamsError.contains("403") || teamsError.contains("401"));
+			}
+		}
+		// oldest first so a thread takes its first subject; a message sent to yourself
+		// is in both folders once
+		headers.sort(Comparator.comparing(h -> String.valueOf(h.get("receivedDateTime"))));
+		Map<String, Map<String, Object>> unique = new LinkedHashMap<>();
+		for (Map<String, Object> h : headers) {
+			unique.putIfAbsent(messageId(h), h);
+		}
+		job.count("messages", unique.size());
+
+		// one connection and one commit per batch; a failed batch rolls back and a
+		// re-run picks it up
+		List<Map<String, Object>> all = new ArrayList<>(unique.values());
+		for (int start = 0; start < all.size(); start += BATCH) {
+			List<Map<String, Object>> part = all.subList(start, Math.min(all.size(), start + BATCH));
+			CollaborationDbUtils.batch(conn -> {
+				for (Map<String, Object> header : part) {
+					run.importOne(header);
+				}
+			});
+			job.count("imported", run.imported);
+			job.count("threads", run.threads.size());
+			job.count("newPeople", run.newPeople);
+			job.step("importing", 25 + 60 * (start + part.size()) / Math.max(1, all.size()));
+		}
+		job.count("imported", run.imported);
+		job.count("alreadyImported", run.skipped);
+		job.count("keptOut", run.keptOut);
+		// calendar mail seen; 0 on a real mailbox means Graph gave no @odata.type
+		job.count("meetingMessages", run.meetings);
+		job.count("threads", run.threads.size());
+		job.count("newPeople", run.newPeople);
+		return teamsError;
+	}
+
 	// per-run state, loaded once so a message costs only its own writes
-	private static final class Run {
+	static final class Run {
 		final String ownerId;
 		final String ownerType;
 		final List<BrainRulesGate.Rule> rules;
@@ -236,6 +244,8 @@ public final class BrainMailImport {
 		// the gate's lookups per source; only whether the source is on differs
 		final Map<String, BrainRulesGate.Known> known = new HashMap<>();
 		final Set<String> threads = new LinkedHashSet<>();
+		// [threadId, sent time] of each newly imported message the owner sent, so a sync can close answered work
+		final List<String[]> ownerSent = new ArrayList<>();
 		final Set<String> selfAddresses = new HashSet<>();
 		String selfId;
 		String selfName;
@@ -390,6 +400,9 @@ public final class BrainMailImport {
 			messages.put(messageKey, BrainRulesGate.result((String) decision.get("decision"),
 					(String) decision.get("ruleId"), threadId, senderId));
 			threads.add(threadId);
+			if (fromMe) {
+				ownerSent.add(new String[] { threadId, (String) header.get("receivedDateTime") });
+			}
 			imported++;
 			if (meeting(header)) {
 				meetings++;
@@ -616,7 +629,7 @@ public final class BrainMailImport {
 		return at < 0 ? null : address.substring(at + 1);
 	}
 
-	private static String first(Map<String, Object> map, String... keys) {
+	static String first(Map<String, Object> map, String... keys) {
 		for (String key : keys) {
 			if (map != null && map.get(key) instanceof String s && !s.isBlank()) {
 				return s;
