@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Context useHttpOnly="true">
-  <Manager pathname="" secureRandomProvider="BCFIPS" secureRandomAlgorithm="DEFAULT"/>
+  <Manager pathname="" secureRandomProvider="AmazonCorrettoCryptoProvider" secureRandomAlgorithm="LibCryptoRng"/>
   <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor"
                    sameSiteCookies="lax"/>
 </Context>

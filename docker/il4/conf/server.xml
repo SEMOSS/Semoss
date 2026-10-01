@@ -8,12 +8,12 @@
                maxThreads="200" connectionTimeout="20000" allowTrace="false"
                maxParameterCount="1000" maxPostSize="10485760">
       <SSLHostConfig protocols="TLSv1.2,+TLSv1.3" sslProtocol="TLS"
-                     keyManagerAlgorithm="PKIX"
+                     keyManagerAlgorithm="SunX509"
                      groups="secp256r1,secp384r1,secp521r1,ffdhe2048,ffdhe3072"
                      cipherSuites="TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256"
                      ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">
-        <Certificate certificateKeystoreFile="/run/secrets/server.bcfks"
-                     certificateKeystoreType="BCFKS" certificateKeystoreProvider="BCFIPS"
+        <Certificate certificateKeystoreFile="/run/secrets/server.p12"
+                     certificateKeystoreType="PKCS12" certificateKeystoreProvider="SUN"
                      certificateKeystorePasswordFile="/run/secrets/server.password"/>
       </SSLHostConfig>
     </Connector>

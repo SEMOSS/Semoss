@@ -11,6 +11,7 @@ import zipfile
 
 from assemble import archive_path, has_bc_classes, linux_paths, configure_web, set_properties
 from assemble import extract, main, resolve, overlay_jdbc, JDBC_OVERLAYS
+from accp_support import ACCP_COORDINATE, NATIVE_ENTRY
 
 
 def zip_bytes(entries):
@@ -221,6 +222,9 @@ class AssemblyTests(unittest.TestCase):
             fips = base / "bc-fips-2.1.3.jar"
             fips.write_bytes(standard)
             files["org.bouncycastle:bc-fips:2.1.3:jar"] = fips
+            accp = base / "accp.jar"
+            accp.write_bytes(zip_bytes({NATIVE_ENTRY: b"accp native fixture"}))
+            files[ACCP_COORDINATE] = accp
             with patch("assemble.resolve", return_value=files), \
                     patch("assemble.patch_audio", return_value={"change": "tested separately"}) as audio_patch:
                 output = base / "out"
@@ -231,7 +235,12 @@ class AssemblyTests(unittest.TestCase):
                 self.assertEqual(report["excluded_connectors"], ["snowflake-jdbc-3.22.0.jar"])
                 self.assertEqual(len(report["jdbc_overlays"]), 2)
                 self.assertFalse((output / "tomcat/webapps/ROOT").exists())
-                self.assertEqual((output / "fips/bc-fips-2.1.3.jar").read_bytes(), standard)
+                self.assertEqual((output / "accp/bc-fips-2.1.3.jar").read_bytes(), standard)
+                self.assertEqual((output / "accp/accp.jar").read_bytes(), accp.read_bytes())
+                self.assertEqual((output / "accp/lib/libamazonCorrettoCryptoProvider.so").read_bytes(),
+                                 b"accp native fixture")
+                self.assertEqual(report["accp_native"]["runtime_path"],
+                                 "/opt/accp/lib/libamazonCorrettoCryptoProvider.so")
                 self.assertEqual((output / "sqlite/libsqlitejdbc.so").read_bytes(), b"native fixture")
                 properties = (output / "semosshome/RDF_Map.prop").read_text()
                 self.assertIn("USE_PYTHON\ttrue", properties)

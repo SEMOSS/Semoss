@@ -5,16 +5,17 @@ import java.util.Properties;
 import javax.net.ssl.SSLContext;
 
 public final class JdbcTls {
-    static final String TRUST = "/opt/fips/cacerts.bcfks";
+    static final String TRUST = "/opt/accp/cacerts.p12";
 
     enum Database {
         POSTGRES("org.postgresql.Driver", 42, 7, 5432,
                 Map.of("sslmode", "verify-full", "sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory")),
+        // No validated JSSE path here. fips=false also retains the driver's hostname-checking wrapper.
         SQL_SERVER("com.microsoft.sqlserver.jdbc.SQLServerDriver", 13, 6, 1433,
                 Map.of("encrypt", "true", "trustServerCertificate", "false",
-                       "fips", "true", "trustStoreType", "BCFKS")),
+                       "fips", "false", "trustStoreType", "PKCS12")),
         MARIA_DB("org.mariadb.jdbc.Driver", 3, 5, 3306,
-                Map.of("sslMode", "verify-full", "trustStoreType", "BCFKS",
+                Map.of("sslMode", "verify-full", "trustStoreType", "PKCS12",
                        "allowLocalInfile", "false"));
 
         final String driver;
@@ -49,20 +50,22 @@ public final class JdbcTls {
                     + "?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
                     + "&connectTimeout=10&socketTimeout=30";
             case SQL_SERVER -> "jdbc:sqlserver://" + address + ";databaseName=" + database
-                    + ";encrypt=true;trustServerCertificate=false;fips=true;trustStoreType=BCFKS"
+                    + ";encrypt=true;trustServerCertificate=false;fips=false;trustStoreType=PKCS12"
                     + ";trustStore=" + TRUST + ";trustStorePassword=changeit"
                     + ";sslProtocol=TLSv1.2;loginTimeout=10;socketTimeout=30000";
             case MARIA_DB -> "jdbc:mariadb://" + address + "/" + database
-                    + "?sslMode=verify-full&trustStoreType=BCFKS&trustStore=" + TRUST
+                    + "?sslMode=verify-full&trustStoreType=PKCS12&trustStore=" + TRUST
                     + "&trustStorePassword=changeit&enabledSslProtocolSuites=TLSv1.2,TLSv1.3"
                     + "&allowLocalInfile=false&connectTimeout=10000&socketTimeout=30000";
         };
     }
 
     static void checkProfiles() throws Exception {
-        if (!SSLContext.getDefault().getProvider().getName().equals("BCJSSE")) {
-            throw new IllegalStateException("JDBC checks require the BCJSSE default TLS context");
+        if (!SSLContext.getDefault().getProvider().getName().equals("SunJSSE")) {
+            throw new IllegalStateException("Experimental/nonvalidated JDBC checks require SunJSSE");
         }
+        System.err.println("WARNING: Experimental/nonvalidated JDBC TLS; SQL Server fips=false "
+                + "because SunJSSE/PKCS12 is not a validated FIPS path. Certificate and hostname checks remain enabled.");
         for (Database type : Database.values()) {
             Class.forName(type.driver);
             String url = url(type, "database.example.invalid", type.port, "semoss");

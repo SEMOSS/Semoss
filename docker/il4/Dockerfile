@@ -6,7 +6,9 @@ ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:eb433
 FROM ${MAVEN_IMAGE} AS assembly
 USER 0
 WORKDIR /build
-COPY artifacts.lock.json assemble.py audio_compat.py python_check.py refresh_bases.py ./
+COPY artifacts.lock.json assemble.py accp_support.py audio_compat.py python_check.py refresh_bases.py ./
+COPY entrypoint.sh ./
+COPY conf/ conf/
 COPY tests/ tests/
 RUN python3 -m unittest discover -s tests -v
 RUN --mount=type=cache,target=/root/.m2 \
@@ -14,9 +16,9 @@ RUN --mount=type=cache,target=/root/.m2 \
     python3 assemble.py
 # Dereference the RPM JDK's external truststore symlink before changing distributions.
 RUN mkdir -p /out/java && cp -aL "${JAVA_HOME}/." /out/java/
-COPY FipsCheck.java JdbcCheck.java JdbcTls.java /build/
-RUN mkdir -p /out/fips-check && \
-    javac -cp '/out/fips/*' -d /out/fips-check /build/FipsCheck.java /build/JdbcCheck.java /build/JdbcTls.java \
+COPY AccpCheck.java JdbcCheck.java JdbcTls.java /build/
+RUN mkdir -p /out/accp-check && \
+    javac -cp '/out/accp/*' -d /out/accp-check /build/AccpCheck.java /build/JdbcCheck.java /build/JdbcTls.java \
       /build/tests/JdbcTlsTest.java
 
 FROM ${PYTHON_IMAGE} AS python-runtime
@@ -72,8 +74,9 @@ COPY python-dependencies/validate.py /opt/python-check/validate.py
 COPY tests/check_audio.py /opt/python-check/check_audio.py
 COPY --from=assembly /out/java/ /opt/java/
 COPY --from=assembly /out/tomcat/ /opt/tomcat/
-COPY --from=assembly /out/fips/ /opt/fips/
-COPY --from=assembly /out/fips-check/ /opt/fips-check/
+COPY --from=assembly /out/accp/ /opt/accp/
+COPY --from=assembly /out/accp-check/ /opt/accp-check/
+COPY accp_support.py /opt/accp-check/accp_support.py
 COPY --from=assembly /out/sqlite/ /opt/sqlite/
 COPY --from=assembly /out/provenance/ /opt/provenance/
 COPY --from=assembly --chown=10001:10001 /out/semosshome/ /opt/semosshome/
@@ -84,21 +87,10 @@ COPY entrypoint.sh /usr/local/bin/semoss-entrypoint
 RUN java -version && \
     keytool -importkeystore -noprompt \
       -srckeystore /opt/java/lib/security/cacerts -srcstorepass changeit \
-      -destkeystore /opt/fips/cacerts.bcfks -deststoretype BCFKS \
-      -deststorepass changeit -providername BCFIPS \
-      -providerclass org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider \
-      -providerpath /opt/fips/bc-fips-2.1.3.jar && \
-    sed '/^security\.provider\.[0-9]*=/d; /^ssl\.KeyManagerFactory\.algorithm=/d; /^ssl\.TrustManagerFactory\.algorithm=/d; /^keystore\.type=/d' \
-      /opt/java/conf/security/java.security > /opt/fips/java.security && \
-    printf '%s\n' \
-      'security.provider.1=org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider' \
-      'security.provider.2=org.bouncycastle.jsse.provider.BouncyCastleJsseProvider fips:BCFIPS' \
-      'security.provider.3=SUN' \
-      'ssl.KeyManagerFactory.algorithm=PKIX' \
-      'ssl.TrustManagerFactory.algorithm=PKIX' \
-      'jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA' \
-      'jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1, RSA keySize < 2048, DSA, EC keySize < 224' \
-      'keystore.type=BCFKS' >> /opt/fips/java.security && \
+      -destkeystore /opt/accp/cacerts.p12 -deststoretype PKCS12 \
+      -deststorepass changeit && \
+    python3.14 /opt/accp-check/accp_support.py \
+      /opt/java/conf/security/java.security /opt/accp/java.security && \
     chmod 0555 /usr/local/bin/semoss-entrypoint && \
     mkdir -p /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs \
       /opt/tomcat/conf/Catalina/localhost && \
@@ -109,11 +101,12 @@ USER 10001:10001
 WORKDIR /opt/semosshome
 RUN /usr/local/bin/semoss-entrypoint --check
 RUN --network=none . /opt/tomcat/bin/setenv.sh && \
-    java $CATALINA_OPTS -cp '/opt/fips/*:/opt/fips-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*' JdbcTlsTest
+    java $CATALINA_OPTS -cp '/opt/accp/*:/opt/accp-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*' JdbcTlsTest
 RUN --network=none /opt/semoss-python/bin/python /opt/python-check/python_check.py
 RUN --network=none cd /tmp && /opt/semoss-python/bin/python /opt/python-check/check_audio.py && \
     rm /tmp/pipecat.log
-LABEL org.opencontainers.image.title="SEMOSS 5.4.0 UBI10 BC FIPS template" \
+LABEL org.opencontainers.image.title="SEMOSS 5.4.0 UBI10 experimental nonvalidated ACCP development variant" \
+      org.opencontainers.image.description="ACCP 2.5.0 with AWS-LC FIPS 3.0.0, SunJSSE, PKCS12 and nonvalidated SunJCE PBKDF2 fallback; no certificate coverage or compliance claim" \
       org.opencontainers.image.version="5.4.0" \
       org.opencontainers.image.source="https://github.com/SEMOSS/Semoss" \
       org.opencontainers.image.revision="565b2c1825011304a93eabcb21cf2cd33135a42a"

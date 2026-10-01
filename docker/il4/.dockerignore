@@ -2,10 +2,11 @@
 !Dockerfile
 !artifacts.lock.json
 !assemble.py
+!accp_support.py
 !audio_compat.py
 !python_check.py
 !refresh_bases.py
-!FipsCheck.java
+!AccpCheck.java
 !JdbcCheck.java
 !JdbcTls.java
 !entrypoint.sh
@@ -18,6 +19,8 @@ conf/**
 !tests/
 tests/**
 !tests/test_assemble.py
+!tests/test_accp_support.py
+!tests/test_accp_runtime.py
 !tests/test_python_check.py
 !tests/test_refresh_bases.py
 !tests/test_audio_compat.py

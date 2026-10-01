@@ -6,12 +6,15 @@
 !README.md
 !artifacts.lock.json
 !assemble.py
+!accp_support.py
 !audio_compat.py
 !python_check.py
 !refresh_bases.py
 !readiness.py
 !compose.dev.yml
-!FipsCheck.java
+!compare_containers.py
+!database_fixtures.py
+!AccpCheck.java
 !JdbcCheck.java
 !JdbcTls.java
 !entrypoint.sh

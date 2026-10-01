@@ -13,16 +13,22 @@ SEMOSS started as a visualization and analytics tool for RDF data (semantic web)
 
 For Detailed Commit messages please look [here](hooks/README.md)
 
-### IL4-oriented test container
+### Experimental ACCP comparison container
 
-The `IL4-dev` branch includes a separate, digest-pinned Iron Bank / BC-FIPS
-container build for the published SEMOSS 5.4.0 release. See
+The `IL4-dev-ACCP` branch builds an experimental ACCP-FIPS / SunJSSE container
+for the published SEMOSS 5.4.0 release, independently of the BC-FIPS image on
+`IL4-dev`. See
 [the build and deployment guide](docker/il4/README.md) for the CodeBuild runner,
 repository secrets, GHCR image, and acceptance requirements.
-Development builds refresh the existing Iron Bank version tags; a weekly
-Monday schedule becomes active once the workflow is also merged into `dev`.
+Development builds refresh the existing Iron Bank version tags and publish to
+`ghcr.io/semoss/semoss-il4-accp`. This branch has no weekly schedule.
 The guide also includes an opt-in hardened development Compose profile,
 CA-verified readiness checks, bounded local logs, and optional report-only
-SBOM/vulnerability artifacts. Existing deployments and FIPS settings are unchanged.
-This build does not establish IL4 authorization or replace the existing
-application source builds.
+SBOM/vulnerability artifacts. A concurrent, isolated BC/ACCP comparison must
+pass before publication, including native administrator login and real SEMOSS
+registration/query checks against disposable TLS PostgreSQL and MariaDB servers.
+Existing `IL4-dev` deployments are unchanged.
+This candidate is **NONVALIDATED**: PBKDF2/PKCS12 use SunJCE fallback and exact
+module certificate coverage remains unresolved. Startup requires explicit
+development acknowledgment. It does not establish FIPS compliance or IL4
+authorization, and it does not replace the existing application source builds.

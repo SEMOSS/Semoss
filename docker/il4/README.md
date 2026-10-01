@@ -1,4 +1,16 @@
-# SEMOSS 5.4.0 / UBI 10.2 / Java 25 / Python 3.14 / BC FIPS template
+# SEMOSS 5.4.0 / UBI 10.2 / Java 25 / Python 3.14 / experimental ACCP
+
+**This branch is an experimental, NONVALIDATED comparison candidate.**
+`IL4-dev-ACCP` publishes to `ghcr.io/semoss/semoss-il4-accp`; `IL4-dev` and its
+`ghcr.io/semoss/semoss-il4` BC-FIPS image remain unchanged. ACCP-FIPS 2.5.0
+contains AWS-LC-FIPS 3.0.0, whose exact certificate coverage is unresolved here.
+PBKDF2 and PKCS12 use SunJCE fallback. Do not interpret successful startup,
+self-tests, TLS handshakes, or the artifact's FIPS name as compliance.
+
+Actual startup requires `SEMOSS_ALLOW_NONVALIDATED_ACCP=true`; the development
+Compose profile sets it explicitly. Missing acknowledgment, native-library or
+provider failures, and missing TLS secrets prevent startup. `--check` is an
+offline compatibility check, not a deployment or certification approval.
 
 This template assembles the **published SEMOSS 5.4.0 release**, including Monolith,
 SemossWeb, and semosshome. It does not rebuild the Java/web release.
@@ -20,7 +32,8 @@ when comparing it with the assessed application baseline.
 | Final OS | `registry1.dso.mil/ironbank/redhat/ubi/ubi10:10.2` |
 | Python runtime donor | `registry1.dso.mil/ironbank/opensource/python:v3.14` (Python 3.14.7, UBI 10.2) |
 | Tomcat | 9.0.119 (SEMOSS 5.4 uses `javax.servlet`, not Tomcat 10/11's Jakarta API) |
-| BC FIPS | bc-fips 2.1.3, bctls-fips 2.1.24, bcpkix-fips 2.1.12, bcutil-fips 2.1.7 |
+| Registered crypto provider | ACCP-FIPS 2.5.0, Linux x86-64, with SunJSSE TLS and explicit nonvalidated SunJCE fallback |
+| BC API compatibility | Existing BC libraries retained for CAC ASN.1 and GitHub PEM parsing; BCFIPS/BCJSSE are not registered crypto providers |
 
 All three images have **digest-pinned defaults** in [Dockerfile](./Dockerfile).
 The development GitHub build resolves fresh digests behind those same version
@@ -31,7 +44,7 @@ each newly resolved base. The final base
 has moved from UBI 9.8 to UBI 10.2. The template retains the selected Maven
 image's Corretto Java 25 JDK, dereferencing its external CA-store link, rather
 than changing the OS and JDK source simultaneously. The build executes that
-JDK and the FIPS crypto probe on the final UBI base.
+JDK and the experimental ACCP compatibility probe on the final UBI base.
 
 The Python donor's `v3.14` tag was verified as **Compliant** in the authenticated
 Iron Bank catalog (98.3% findings verified, 76% overall score at observation).
@@ -42,11 +55,13 @@ not the donor's complete filesystem or user environment. Native library
 dependencies come from the final UBI repositories.
 
 Maven is used only to resolve official release artifacts. It is **not copied into
-the final image**. [artifacts.lock.json](./artifacts.lock.json) pins all eleven
-application, Tomcat, FIPS, and JDBC payloads with SHA-256. A mismatch aborts before
+the final image**. [artifacts.lock.json](./artifacts.lock.json) pins the
+application, Tomcat, crypto, and JDBC payloads with SHA-256. A mismatch aborts before
 extraction. Archive traversal and links are rejected. Ordinary BC JARs are removed,
 and remaining Tomcat/application JARs are scanned for bundled BC classes, including
-relocated copies. FIPS JARs themselves are never unpacked or rewritten.
+relocated copies. Signed crypto JARs are not rewritten. ACCP's native library
+is extracted separately into immutable `/opt/accp/lib` to preserve noexec
+temporary storage.
 
 The checksums were obtained from the upstream publishers and compared with
 SEMOSS's FIPS recipe where available. They prevent later drift; they do not
@@ -55,7 +70,9 @@ Review them against your approved artifact inventory before promotion.
 
 ### Important scope and baseline changes
 
-- Three standard BC 1.78.1 JARs are replaced by the system-classloader FIPS suite.
+- Three standard BC 1.78.1 JARs are replaced by the existing BC API compatibility
+  libraries. They remain on the classloader, but ACCP/SunJSSE replace the
+  registered BCFIPS/BCJSSE providers.
 - Approved JDBC overlay: MariaDB 1.1.9 -> 3.5.10 and SQL Server
   11.2.4.jre11 -> 13.6.0.jre11. PostgreSQL 42.7.11 remains unchanged.
   Original/replacement hashes are recorded; duplicate or unexpected originals
@@ -86,10 +103,23 @@ check; application cryptographic routing still needs review.
 
 ## Functional validation and integration status
 
-The localhost-only deployment has passed native administrator login, CSRF-protected
+The **BC baseline** localhost-only deployment passed native administrator login, CSRF-protected
 Pixel execution (`1+1`), a real Python/pandas calculation through the SEMOSS worker,
 and browser login into the rendered workspace. These checks do not establish that
-every connector or external service is operational.
+every connector or external service is operational. These historical results
+are distinct from the concurrent ACCP acceptance below; browser interaction,
+live Python workloads and production external services were not repeated by
+the new comparison.
+
+On 2026-10-01, the locally built ACCP candidate
+`sha256:2dcfd501fc2cf19a1b415b9730e520a64d9b0c44e038508e25d7533675adba8d`
+and pinned published BC baseline both passed the concurrent acceptance gate:
+HTTPS UI/backend readiness, native administrator login, an administrator-only
+operation, wrong-password rejection, registration disabled after bootstrap, and
+actual SEMOSS registration/query/TLS/read-only checks against PostgreSQL 15.19
+and MariaDB 11.8.9. Both returned three synthetic rows with sum `12`. All fixture
+resources were removed. This is local evidence, not proof of a published GitHub
+build; CI repeats the same gate before publishing its independently built image.
 
 - New homes use `https://localhost:8443/SemossWeb/` as the absolute application
   redirect and `DEFAULT_SCRIPTING_LANGUAGE=PY`. Configure the actual absolute
@@ -108,15 +138,16 @@ every connector or external service is operational.
   4.5 request in GovCloud using the HTTPS FIPS endpoint with certificate
   verification enabled. See [Bedrock checks and deployment requirements](./integrations/bedrock/README.md).
   Persistent ModelEngine registration and a UI conversation remain unverified.
-- **PostgreSQL:** a local TLS/SCRAM PostgreSQL 15.19 fixture is registered as
+- **PostgreSQL (historical BC fixture):** a local TLS/SCRAM PostgreSQL 15.19 fixture was registered as
   `LocalPostgresTLS` and visible in the authenticated Database Catalog.
   Persisted connector reload, raw SQL aggregation (3 rows, total 12), and
   metadata-driven selection passed. Wrong CA, hostname and password were rejected;
   the read-only account cannot insert rows. This uses a test-only upstream
   PostgreSQL image, not an approved production Iron Bank server.
-- **SQL Server and MariaDB:** drivers are present, but live connections remain
-  unverified. Production connections to the owner's existing PostgreSQL servers
-  also remain unverified.
+- **PostgreSQL and MariaDB (concurrent comparison):** actual SEMOSS registration,
+  aggregate queries, TLS sessions and SELECT-only accounts passed on both images.
+- **SQL Server:** driver loading/profile checks pass, but live connections remain
+  unverified. Production connections to existing database servers remain unverified.
   Selected versions are PostgreSQL 42.7.11, SQL Server 13.6.0.jre11, and MariaDB
   3.5.10 following the owner's approval. Strict profiles and a credential-safe
   standalone validation command are documented in the
@@ -208,9 +239,9 @@ native SEMOSS dependencies support arm64 without a separate test.
 ```sh
 docker login registry1.dso.mil
 docker build --platform linux/amd64 \
-  --tag semoss:5.4.0-ubi10-python314-bcfips .
+  --tag semoss:5.4.0-ubi10-python314-accp .
 docker run --rm --platform linux/amd64 \
-  semoss:5.4.0-ubi10-python314-bcfips --check
+  semoss:5.4.0-ubi10-python314-accp --check
 ```
 
 For a controlled Maven mirror, supply Maven settings as a **BuildKit secret**:
@@ -218,7 +249,7 @@ For a controlled Maven mirror, supply Maven settings as a **BuildKit secret**:
 ```sh
 docker build --platform linux/amd64 \
   --secret id=maven_settings,src=/secure/maven-settings.xml \
-  --tag semoss:5.4.0-ubi10-python314-bcfips .
+  --tag semoss:5.4.0-ubi10-python314-accp .
 ```
 
 Do not pass credentials in build arguments or copy them into the build context.
@@ -244,22 +275,19 @@ For higher assurance:
 ### GitHub Actions test-image build
 
 [il4-container.yml](../../.github/workflows/il4-container.yml) builds on the
-`SEMOSS/Semoss` **`IL4-dev` branch** using the existing
+`SEMOSS/Semoss` **`IL4-dev-ACCP` branch** using the existing
 `codebuild-semoss-github-runner` project. It publishes the tested image to
-`ghcr.io/semoss/semoss-il4`, separate from other SEMOSS images.
+`ghcr.io/semoss/semoss-il4-accp`, separate from the BC baseline and other images.
 Changes under `docker/il4` or to the workflow trigger a build on that branch;
 manual dispatch is also supported when the workflow is available for dispatch.
-Once the workflow is merged into the default `dev` branch, GitHub also schedules
-it **every Monday at 09:23 UTC**, checking out `IL4-dev` rather than building
-the default branch. GitHub may delay scheduled runs; this is not an exact-time
-service guarantee. Keeping the workflow only on `IL4-dev` does not activate
-the weekly schedule.
+This experimental branch has no scheduled trigger and does not alter the
+separate weekly BC-baseline proposal.
 It does not deploy or auto-promote. Run the local build commands in this guide
 from `docker/il4`, not from the repository root.
 
 For this initial test build, the owner explicitly approved using the existing
-repository secrets **without a GitHub environment approval gate**. `IL4-dev`
-was unprotected when prepared. This is not a production promotion pipeline;
+repository secrets **without a GitHub environment approval gate**. This
+experimental branch is not a production promotion pipeline;
 add branch protection and an approved environment before production use.
 
 Before uploading, review the allowlisted [.gitignore](./.gitignore) and the
@@ -273,12 +301,12 @@ Provision these prerequisites in the destination repository:
 1. This destination is the public `SEMOSS/Semoss` repository. Include only
    approved public source and build metadata, never CUI or operational secrets.
    Restrict Actions and CodeBuild webhook access to reviewed workflows.
-   Protect `IL4-dev` and require review of workflow changes. No PR event starts
+   Protect `IL4-dev-ACCP` and require review of workflow changes. No PR event starts
    this workflow; pushes and manual runs on other branches are excluded.
-   Scheduled events from the default branch explicitly check out `IL4-dev`.
+   There is no scheduled or default-branch checkout in this variant.
 2. Before production use, create the `container-build` **GitHub environment** with required reviewers,
    prevent self-review where supported, and allow deployments from the protected
-   `IL4-dev` branch only. Ensure your GitHub plan supports and enforces these
+   approved branch only. Ensure your GitHub plan supports and enforces these
    protections and add `environment: container-build` to the workflow job.
    The initial test workflow intentionally does not reference this absent
    environment, rather than silently creating an unprotected one.
@@ -324,11 +352,11 @@ Provision these prerequisites in the destination repository:
    job end and the unique local image tag is removed, but those operations do
    not erase the Docker build cache, workspace, or all credential remnants.
 
-Push reviewed build changes to `IL4-dev`. No environment approval is requested
+Push reviewed build changes to `IL4-dev-ACCP`. No environment approval is requested
 by this initial test workflow. The push trigger supports the first branch-only run
 without modifying `dev` or `main`. GitHub normally exposes **Run workflow** only
 when the workflow also exists on the default branch; when available, choose
-**Build IL4 test container** and select `IL4-dev`.
+**Build IL4 experimental ACCP container** and select `IL4-dev-ACCP`.
 The workflow:
 
 - Runs isolated assembly, HTTP-client, and Python/audio unit tests plus
@@ -341,27 +369,34 @@ The workflow:
   and `--no-cache`, passing these newly resolved immutable references. This
   refreshes the development bases and RPM installation without automatically
   changing the SEMOSS release or locked application/Python artifacts.
-- Loads the candidate locally and repeats the FIPS/JDBC startup probe and Python
+- Loads the candidate locally and repeats the ACCP/JDBC compatibility probe and Python
   dependency/worker/audio checks without network access, with a read-only root,
   no capabilities, and a noexec temporary filesystem. Bedrock checker unit tests
   run under the same restrictions inside the candidate, where their required
   packaged SEMOSS Python modules are available; no AWS request is made.
-- Only after those checks pass, logs in to GHCR and pushes **that same image**,
+- Logs in to GHCR, pulls the pinned BC baseline, and runs both images
+  concurrently through [compare_containers.py](./compare_containers.py).
+  Both must pass synthetic HTTPS readiness/UI, wrong-CA/hostname rejection,
+  provider startup checks, effective runtime-isolation checks, real native
+  administrator login, an administrator-only operation, wrong-password rejection,
+  and real SEMOSS registration/query checks against pinned PostgreSQL and MariaDB
+  fixtures. Queries verify fixture data, encrypted sessions, and read-only grants.
+- Only after those checks pass, pushes **that same candidate image**,
   without rebuilding. The tag is
   `sha-<full-commit>-<run-id>-<run-attempt>`; no `latest` tag is produced.
-- Records the published `ghcr.io/semoss/semoss-il4@sha256:...` reference in the
+- Records the published `ghcr.io/semoss/semoss-il4-accp@sha256:...` reference in the
   run summary. Use that digest for test deployment, with separately provisioned
-  BCFKS TLS secrets as described below.
+  PKCS12 TLS secrets as described below.
 
 Action revisions are SHA-pinned. The image source/revision labels identify the
-build repository and the actual checked-out `IL4-dev` commit, including for
-scheduled runs; the SEMOSS source reference remains documented
+build repository and the actual checked-out `IL4-dev-ACCP` commit;
+the SEMOSS source reference remains documented
 above and release artifact hashes remain in the artifact lock. Registry
 credentials use a job-specific Docker config.
 The three resolved base references are recorded in the run summary and the
 `org.semoss.base.maven`, `org.semoss.base.ubi`, and `org.semoss.base.python` image
 labels. Record the published application image digest for rollback; a later
-weekly build intentionally may use different base contents.
+development build intentionally may use different base contents.
 The load/test/push path deliberately disables BuildKit attestations because they
 are not reliably preserved by a classic local Docker image-store round trip.
 The image still contains `/opt/provenance`, but this is **not a signed registry
@@ -380,10 +415,10 @@ service is required.
 
 ### Optional SBOM and vulnerability reports
 
-Reporting is **off by default**. For an individual manual run on `IL4-dev`,
-select the `image_reports` input. To opt in for push and scheduled builds, set
-the repository Actions variable `IL4_IMAGE_REPORTS` to the exact value `true`.
-This change does not set that variable or activate the still-pending schedule.
+Reporting is **off by default**. For an individual manual run on `IL4-dev-ACCP`,
+select the `image_reports` input. To opt in for push builds, set the repository
+Actions variable `IL4_ACCP_IMAGE_REPORTS` to the exact value `true`.
+This change does not set that variable or change the baseline reporting policy.
 
 Reports run **after successful publication**, inspect the same local image,
 and never gate publishing on vulnerability severity. Trivy 0.74.0 is downloaded
@@ -392,7 +427,7 @@ on the build runner, not through a hosted scanning service. It requires egress
 for the release, vulnerability databases, and Java metadata; image contents
 are not uploaded to a third-party scanner.
 
-The optional GitHub artifact `il4-image-reports-<run-id>-<run-attempt>` contains:
+The optional GitHub artifact `il4-accp-image-reports-<run-id>-<run-attempt>` contains:
 
 - `vulnerabilities.json`: OS/library vulnerability matches, including unfixed
   findings; only the vulnerability scanner is enabled, not secret scanning.
@@ -409,11 +444,12 @@ reported in the run summary and warnings, while remaining non-blocking. A
 partial artifact or a green publishing job must not be treated as a clean scan.
 Disabling the input/variable returns to the existing publishing-only behavior.
 
-This build gate does **not** start Tomcat or exercise a live HTTPS handshake,
-backend readiness, administrator login, or live connectors. Follow the runtime
-and acceptance procedures below on the published digest. BC-FIPS/BCJSSE TLS
-configuration is preserved; successful offline checks alone do not prove an
-IL4-authorized deployment. A self-hosted runner and Iron Bank base also do not
+The comparison gate starts Tomcat and exercises HTTPS/backend readiness, native
+administrator login and actual SEMOSS PostgreSQL/MariaDB connections in both
+images. It does **not** exercise production SSO, SQL Server, or operational
+endpoints/credentials. Repeat deployment-specific acceptance on the
+published digest. This experimental ACCP/SunJSSE stack is NONVALIDATED.
+A self-hosted runner and Iron Bank base also do not
 authorize GitHub/GHCR to hold CUI, sensitive build inputs, or operational secrets;
 obtain the applicable approvals before using those services.
 
@@ -423,17 +459,17 @@ Provision these read-only secret files, readable by UID 10001:
 
 | File inside container | Contents |
 | --- | --- |
-| `/run/secrets/server.bcfks` | BCFKS private-key entry and complete server certificate chain |
+| `/run/secrets/server.p12` | PKCS12 private-key entry and complete server certificate chain |
 | `/run/secrets/server.password` | Keystore/key password (use the same password for both) |
 
 Use organization-issued certificates and approved key sizes/algorithms. The
 private key is not part of the image. Tomcat reads its password from the file,
 not a JVM argument. Missing TLS secrets cause startup to fail explicitly.
 
-The generated `/opt/fips/cacerts.bcfks` contains the builder JDK's public trust
+The generated `/opt/accp/cacerts.p12` contains the builder JDK's public trust
 anchors; `changeit` is the integrity password for this **public-certificate-only**
 store, not a private-key password. Replace it with an approved, appropriately
-limited BCFKS truststore at that path when enterprise/internal CAs are needed;
+limited PKCS12 truststore at that path when enterprise/internal CAs are needed;
 keep its integrity password consistent with [setenv.sh](./conf/setenv.sh).
 
 Example, after provisioning `./tls` with the two secret files:
@@ -441,6 +477,7 @@ Example, after provisioning `./tls` with the two secret files:
 ```sh
 docker volume create semoss-home
 docker run --detach --name semoss --platform linux/amd64 \
+  --env SEMOSS_ALLOW_NONVALIDATED_ACCP=true \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges \
   --pids-limit=512 --memory=8g --cpus=4 \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
@@ -450,7 +487,7 @@ docker run --detach --name semoss --platform linux/amd64 \
   --mount type=volume,src=semoss-home,dst=/opt/semosshome \
   --mount type=bind,src="$(pwd)/tls",dst=/run/secrets,readonly \
   --publish 127.0.0.1:8443:8443 \
-  semoss:5.4.0-ubi10-python314-bcfips
+  semoss:5.4.0-ubi10-python314-accp
 ```
 
 Docker initializes a **new named volume** from the image's semosshome payload.
@@ -483,27 +520,28 @@ external databases, backup, audit retention, and network policy for your deploym
 ### Opt-in hardened development deployment
 
 [compose.dev.yml](./compose.dev.yml) provides a separate `hardened-dev` profile.
-It does not change the image or any running container. FIPS work remains on
-hold: Java, providers, cipher settings, and existing TLS requirements are
-unchanged. Authentication, existing data, repository permissions, and outbound
-connectivity are also unchanged.
+It is separate from existing deployments and explicitly acknowledges this
+branch's nonvalidated ACCP experiment. Use only a fresh, separate project/home;
+do not repoint an existing BC deployment at this image or share its home volume.
+Authentication policy and outbound connectivity are otherwise unchanged.
 
 From this directory, with already-provisioned TLS and CA files:
 
 ```sh
-export SEMOSS_IMAGE='ghcr.io/semoss/semoss-il4@sha256:060aa47f04e5f6c69c8fc6e6d020f0beae5e9ab0469df6f1ebc5eb3091ec73ae'
-export SEMOSS_TLS_KEYSTORE='/absolute/path/server.bcfks'
+export SEMOSS_IMAGE='semoss:5.4.0-ubi10-python314-accp'
+export SEMOSS_TLS_KEYSTORE='/absolute/path/server.p12'
 export SEMOSS_TLS_PASSWORD='/absolute/path/server.password'
 export SEMOSS_READINESS_CA='/absolute/path/approved-ca.pem'
 
-docker compose -p semoss-hardened-dev -f compose.dev.yml \
+docker compose -p semoss-accp-dev -f compose.dev.yml \
   --profile hardened-dev config --quiet
-docker compose -p semoss-hardened-dev -f compose.dev.yml \
+docker compose -p semoss-accp-dev -f compose.dev.yml \
   --profile hardened-dev up -d
 ```
 
-Use an approved image digest; the example identifies the previously tested
-development image, not an automatically updated tag. The host paths must exist;
+Use the exact candidate digest from its build summary for reproducible testing;
+the example uses your locally built tag. It is not a production approval.
+The host paths must exist;
 missing files are not silently created. The configuration command validates
 Compose structure, not file readability or certificate validity.
 Bind mounts do **not** fix ownership or permissions: provision files readable
@@ -543,34 +581,73 @@ context; the full host-side test suite includes them.
 `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `JAVA_OPTS` injection. Treat all
 deployment-controlled JVM flags as trusted configuration.
 
-## FIPS boundaries
+## Cryptographic boundaries: NONVALIDATED experiment
 
-The startup and build check exercises BC self-tests and approved-only mode,
-provider ordering, secure random, SHA-256, AES-256-GCM, PBKDF2, BCFKS trust loading,
-and default BCJSSE key/trust managers and TLS context.
+ACCP is first in the provider list and SunJSSE supplies TLS. Native loading and
+provider self-tests must succeed; the candidate must not silently start without
+ACCP. BCFIPS and BCJSSE are not registered. Their API-compatible libraries remain
+available for existing CAC/PEM parsing dependencies, which need separate review.
 
-BC native acceleration is explicitly disabled using its supported pure-Java
-selector so no native BC library must be loaded from executable temporary
-storage. Tomcat session randomness uses `BCFIPS/DEFAULT`. BCJSSE-compatible
-algorithm restrictions disallow SHA-1 signatures and weak keys rather than
-silently relying on unsupported JDK constraint syntax.
+ACCP-FIPS 2.5.0 lacks the required PBKDF2 implementations, so PBKDF2 and PKCS12
+handling retain explicit SunJCE fallback. The startup acknowledgment allows
+compatibility testing; it is not an exception approval or a FIPS mode switch.
+Successful TLS handshakes do not prove every cryptographic operation uses a
+validated implementation.
 
-**This does not certify the whole application or make the host FIPS-enabled.**
-Python's OpenSSL and cryptography packages do not route through Java's BCFIPS
-provider. The Python donor's catalog status and a successful Python smoke test
-do not establish FIPS operation for Python TLS, cryptography, or AI libraries.
-Only the cryptographic module has a CMVP validation boundary. `SUN` remains
-registered for JVM functionality and can still supply algorithms outside BCFIPS;
-pure-Java algorithms and explicitly selected providers need separate analysis.
-Java 25 + this OS/module combination must be checked against the module's
-applicable security policy and your authorization requirements. The
-[certificate 4943 page](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/4943)
-reviewed for this template lists Java 8/11/17/21 test environments, not Java 25.
-Do not infer Java 25 validation from a successful runtime test.
+The bundled AWS-LC-FIPS 3.0.0 is not established here as covered by
+[certificate #5314](https://csrc.nist.gov/projects/cryptographic-module-validation-program/certificate/5314),
+which identifies the static 3.1.0 module. Resolve exact binary/build/certificate
+mapping and actual operating-environment applicability before promotion.
+Python TLS, cryptography, AI libraries, and embedded private implementations
+remain outside this Java-provider assessment. No IL4 authorization is implied.
 
-FIPS-mode PBKDF2 has password/key-strength constraints (commonly at least 112 bits
-of password input). Test real database authentication, stored encrypted data,
-SSO, and enabled connectors; a provider swap can expose compatibility issues.
+### Concurrent baseline comparison
+
+Pull the BC baseline and build/load the ACCP candidate first. Also pull the
+immutable, public, test-only database fixtures. From this directory:
+
+```sh
+python3 -c 'from database_fixtures import POSTGRES_IMAGE, MARIA_IMAGE; print(POSTGRES_IMAGE); print(MARIA_IMAGE)' |
+  while IFS= read -r image; do docker pull "$image" || exit; done
+python3 compare_containers.py \
+  --baseline ghcr.io/semoss/semoss-il4@sha256:cad8db15ce6704e728f5a23a4a75b86a0b543aead097585000fdb9ab70358b1f \
+  --candidate semoss:5.4.0-ubi10-python314-accp
+```
+
+The helper requires distinct local images. It starts both concurrently with
+separate, uniquely named homes and test-only TLS material. No host ports are
+published; the applications and databases share a uniquely named **internal**
+Docker network with no external route. The TLS-seeding helper has no networking.
+Each receives 4 GiB RAM, 2 CPUs, 512 PIDs, a 1536 MiB Java heap ceiling, read-only
+root, dropped capabilities, no-new-privileges, noexec temporary storage and
+bounded local logs. These are fixture sizes, not production requirements.
+Readiness is bounded to 300 seconds. Cleanup verifies ownership labels and
+removes only the helper's labeled containers, volumes and network, including
+synthetic TLS keys, credentials, administrator accounts and saved engines.
+Failures are nonzero and cleanup failures are explicit.
+
+The report checks HTTPS UI/readiness, wrong CA/hostname rejection, expected
+provider startup, non-root identity, capabilities, no-new-privileges, root write
+denial and temporary exec denial. Each fresh fixture home temporarily enables
+native registration to create a random-password test administrator. Real HTTPS
+login, CSRF-protected calculation, and an administrator-only property reload must
+pass; registration is disabled again before database tests. A separate session
+must reject the wrong password. Default image settings and existing homes are
+never changed.
+
+Each administrator registers private PostgreSQL and MariaDB engines through
+`RdbmsExternalUpload`, discovers `measurements`, and queries three synthetic rows
+(sum `12`) through SEMOSS. Additional queries require server-confirmed session
+encryption and SELECT-only database privileges. Driver-specific PEM trust options
+provide the fixture CA with full hostname verification; these are not tests of
+the production JVM-global truststore profiles. Database passwords may be saved
+in the disposable `.smss` files, never in the report. The public upstream database
+images are test fixtures, not Iron Bank/FIPS-approved deployment recommendations.
+The fixture deliberately shares one test-only certificate between local services;
+deployments need their own service identities, approved CAs and secret delivery.
+No SSO, SQL Server, or production endpoint is tested. Interactive parallel deployments additionally
+need distinct endpoints, isolated cookie sessions, and correctly configured
+absolute application URLs; do not share existing data volumes.
 
 ## Validation and release notes
 
@@ -580,13 +657,14 @@ sh -n entrypoint.sh conf/setenv.sh python-dependencies/install.sh
 docker run --rm --platform linux/amd64 --network none \
   --read-only --cap-drop=ALL --security-opt=no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid,nodev --workdir /tmp \
-  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-bcfips -c \
+  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-accp -c \
   'python /opt/python-check/validate.py &&
    python /opt/python-check/python_check.py &&
    python /opt/python-check/check_audio.py'
 ```
 
-Verified after Python integration on `linux/amd64`:
+Historical **BC baseline** results after Python integration on `linux/amd64`
+(not a claim of ACCP feature acceptance):
 
 - Runtime OS reports RHEL/UBI 10.2 with glibc 2.39.
 - Full image build and non-root Java 25/FIPS crypto probe passed.
@@ -612,7 +690,7 @@ No production SSO, user login, external connector, or application workload has
 been certified by these smoke tests. The config API on a fresh home redirects
 to initial-admin setup, as expected.
 
-The latest local JDBC-overlay image is
+The historical BC local JDBC-overlay image was
 `sha256:e1d25218b3a0e87415d05b7501378374e6b7f55ef22f072afedf3a45af59a4ed`
 (local image index, not a published registry reference). The existing
 localhost-only test deployment was recreated from it with its home/TLS volumes

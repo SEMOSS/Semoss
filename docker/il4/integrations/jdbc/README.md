@@ -3,7 +3,10 @@
 This configures **clients of existing servers**, not PostgreSQL, SQL Server, or
 MariaDB servers. Live connections still need approved endpoints, certificates and
 authentication. No production server endpoint or credential has been supplied.
-A local synthetic PostgreSQL fixture has now been tested as described below.
+The concurrent comparison gate uses disposable PostgreSQL and MariaDB fixtures
+with native administrator login and real SEMOSS registration/query checks.
+The older BC PostgreSQL results below are historical, not ACCP evidence.
+This branch is **experimental/NONVALIDATED**, not a FIPS-certified replacement.
 
 ## Reviewed dependency overlay
 
@@ -41,9 +44,9 @@ Print the exact URLs without making a network connection:
 docker run --rm --platform linux/amd64 --network none --read-only \
   --cap-drop=ALL --security-opt=no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
-  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-bcfips -c \
+  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-accp -c \
   '. /opt/tomcat/bin/setenv.sh
-   java $CATALINA_OPTS -cp "/opt/fips/*:/opt/fips-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*" JdbcTls --templates'
+   java $CATALINA_OPTS -cp "/opt/accp/*:/opt/accp-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*" JdbcTls --templates'
 ```
 
 Each line identifies the SEMOSS `RDBMS_TYPE` and corresponding `CONNECTION_URL`.
@@ -51,14 +54,16 @@ Replace `database.example.invalid`, the port and database name with approved
 values; keep all strict TLS options. Do not put passwords in URLs.
 
 - PostgreSQL: `sslmode=verify-full` with `DefaultJavaSSLFactory`, deliberately
-  using the JVM BCFKS truststore/BCJSSE context rather than pgjdbc's default
-  libpq-style PEM truststore. SCRAM-SHA-256 is recommended; test existing password
-  strength against BC approved-mode PBKDF2 constraints.
-- SQL Server: `encrypt=true`, `trustServerCertificate=false`, `fips=true`,
-  BCFKS truststore, TLS 1.2. No hostname override is used: the endpoint DNS name
+  using the JVM PKCS12 truststore/SunJSSE context rather than pgjdbc's default
+  libpq-style PEM truststore. SCRAM-SHA-256 is recommended; ACCP 2.5.0 does not
+  implement PBKDF2, so the experimental runtime falls back to SunJCE.
+- SQL Server: `encrypt=true`, `trustServerCertificate=false`, explicit `fips=false`,
+  PKCS12 truststore, TLS 1.2. No hostname override is used: the endpoint DNS name
   must match the certificate. TLS 1.2 is selected for server compatibility, not
-  because TLS 1.3 is inherently unsafe.
-- MariaDB: `sslMode=verify-full`, explicit BCFKS truststore, TLS 1.2/1.3 and
+  because TLS 1.3 is inherently unsafe. The Microsoft driver FIPS flag is not
+  proof of cryptographic validation; this experimental profile retains its
+  ordinary hostname-verification path rather than asserting a validated path.
+- MariaDB: `sslMode=verify-full`, explicit PKCS12 truststore, TLS 1.2/1.3 and
   `allowLocalInfile=false`. Supplying explicit trust material avoids depending on
   MariaDB's server-version-specific zero-configuration TLS authentication.
 - All profiles have connection and socket timeouts; the standalone probe also
@@ -71,7 +76,7 @@ creation/configuration permissions and audit saved connection properties.
 ## Trust and secrets
 
 Provision approved database CA certificates in the public-certificate-only
-BCFKS truststore mounted read-only at `/opt/fips/cacerts.bcfks` in **both** the
+PKCS12 truststore mounted read-only at `/opt/accp/cacerts.p12` in **both** the
 application and the probe. The integrity password `changeit` in these profiles
 is not a database or private-key password. Verify CA fingerprints out of band.
 Use dedicated, least-privilege accounts and an appropriate server-side TLS policy.
@@ -113,10 +118,10 @@ your approved secret system, or feed its output directly to stdin.
 docker run --rm -i --platform linux/amd64 --read-only \
   --cap-drop=ALL --security-opt=no-new-privileges \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
-  --mount type=bind,src=/secure/database-ca.bcfks,dst=/opt/fips/cacerts.bcfks,readonly \
-  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-bcfips -c \
+  --mount type=bind,src=/secure/database-ca.p12,dst=/opt/accp/cacerts.p12,readonly \
+  --entrypoint /bin/sh semoss:5.4.0-ubi10-python314-accp -c \
   '. /opt/tomcat/bin/setenv.sh
-   exec java $CATALINA_OPTS -cp "/opt/fips/*:/opt/fips-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*" JdbcTls --live' \
+   exec java $CATALINA_OPTS -cp "/opt/accp/*:/opt/accp-check:/opt/tomcat/webapps/Monolith/WEB-INF/lib/*" JdbcTls --live' \
   < /secure/validation.properties
 ```
 
@@ -137,13 +142,32 @@ Required acceptance tests before declaring an integration usable:
    SEMOSS metadata discovery and a user-authorized read-only query.
 
 Offline startup checks validate real driver loading, versions, strict URL
-property parsing and the default BCJSSE context. Build tests additionally check
+property parsing and the default SunJSSE context. Build tests additionally check
 input injection rejection, the SQL/encryption-result checks and resource cleanup
 using fakes. **They are not database TLS handshakes or live SEMOSS connector tests.**
 
-## Verified local PostgreSQL fixture
+## Concurrent BC/ACCP PostgreSQL and MariaDB gate
 
-Live validation completed on 2026-09-26 UTC:
+Run [compare_containers.py](../../compare_containers.py) as described in the
+[comparison instructions](../../README.md#concurrent-baseline-comparison).
+It requires HTTPS readiness, native administrator login, an administrator-only
+operation, private engine registration, metadata discovery, and actual aggregate
+queries against both database servers in both SEMOSS variants. Server-side
+queries confirm TLS and read-only privileges. The fixtures use `sslrootcert`
+(PostgreSQL) and `serverSslCert` (MariaDB) with `verify-full` and the test CA PEM,
+not the JVM-global truststore profiles above. No production credentials are used.
+All fixture resources, including saved credential-bearing engines, are removed.
+
+These checks do not test SQL Server, SSO, or the production secrets backend.
+Wrong-CA/hostname rejection in the shared harness currently exercises HTTPS,
+not independent database negative handshakes; the complete deployment acceptance
+list above remains applicable.
+
+## Historical BC baseline PostgreSQL fixture
+
+Historical live validation completed on 2026-09-26 UTC. The names, paths and
+commands in this section describe that BC-only fixture, not resources created
+or retained by the ACCP comparison gate:
 
 | Item | Value |
 | --- | --- |
@@ -212,7 +236,7 @@ not validated. Do not grant broad schema-creation privileges to suppress the
 warning; review the helper provisioning/detection with the DBA before using it
 in production. No application-binary patch was made for this behavior.
 
-The containers and data remain available locally. Stop the fixture explicitly
-when no longer needed with `docker stop semoss-postgres-74b77ed9`; this does not
-delete its data volume. The SEMOSS catalog entry will then be unavailable until
-PostgreSQL is restarted.
+The historical fixture was retained at the time of testing; its continued
+availability is not implied by this branch. In contrast, the concurrent
+comparison always removes its own test resources, including credentials and
+data volumes, and never stops or deletes pre-existing deployments.

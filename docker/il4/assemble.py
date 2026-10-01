@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from audio_compat import patch_audio
+from accp_support import ACCP_COORDINATE, install_accp
 
 
 JDBC_OVERLAYS = (
@@ -174,8 +175,8 @@ def main(output=Path("/out")):
     files = resolve(manifest, Path("/build/downloads"))
     tomcat = output / "tomcat"
     home = output / "semosshome"
-    fips = output / "fips"
-    fips.mkdir(parents=True)
+    accp = output / "accp"
+    accp.mkdir(parents=True)
     extract(files["org.apache.tomcat:tomcat:9.0.119:tar.gz"], tomcat, "apache-tomcat-9.0.119")
     shutil.rmtree(tomcat / "webapps")
     extract(files["org.semoss:semoss:5.4.0:tar.gz:semosshome"], home, "semoss-5.4.0")
@@ -210,7 +211,9 @@ def main(output=Path("/out")):
     sqlite_library.chmod(0o555)
     for coordinate, file in files.items():
         if coordinate.startswith("org.bouncycastle:"):
-            shutil.copy2(file, fips)
+            # Retain ASN.1/PEM feature dependencies, not registered JCA/JSSE providers.
+            shutil.copy2(file, accp)
+    accp_native = install_accp(files[ACCP_COORDINATE], accp)
     for file in home.rglob("*"):
         if file.is_file() and file.suffix in (".prop", ".properties", ".smss", ".xml"):
             text = file.read_text(encoding="cp1252")
@@ -246,6 +249,9 @@ def main(output=Path("/out")):
         "removed_standard_bc_jars": removed,
         "excluded_connectors": excluded_connectors,
         "jdbc_overlays": jdbc_overlays,
+        "crypto_status": "experimental/nonvalidated; no certificate coverage claimed",
+        "accp_native": accp_native,
+        "bc_feature_dependencies": "ASN.1/PEM only; BCFIPS and BCJSSE are not registered",
         "runtime_flags": runtime_flags,
         "audio_compatibility_patch": audio_patch,
         "sqlite_native": {
@@ -257,7 +263,7 @@ def main(output=Path("/out")):
         },
         "native_registration": False,
         "login_redirect": "https://localhost:8443/SemossWeb/",
-        "changes": ["BC FIPS system-classloader overlay", "Linux home paths",
+        "changes": ["Experimental/nonvalidated ACCP + SunJSSE + PKCS12 overlay", "Linux home paths",
                     "15-minute sessions; Secure and HttpOnly cookies"]
     }, indent=2) + "\n")
 

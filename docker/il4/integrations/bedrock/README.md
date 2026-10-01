@@ -35,7 +35,7 @@ docker run --rm --platform linux/amd64 --network none --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=$PWD/integrations/bedrock,dst=/checks,readonly" \
   --entrypoint /opt/semoss-python/bin/python \
-  semoss:5.4.0-ubi10-python314-bcfips \
+  semoss:5.4.0-ubi10-python314-accp \
   -m unittest discover -s /checks -p 'test_*.py'
 
 docker run --rm --platform linux/amd64 --network none --read-only \
@@ -43,7 +43,7 @@ docker run --rm --platform linux/amd64 --network none --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=$PWD/integrations/bedrock,dst=/checks,readonly" \
   --entrypoint /opt/semoss-python/bin/python \
-  semoss:5.4.0-ubi10-python314-bcfips /checks/check_bedrock.py
+  semoss:5.4.0-ubi10-python314-accp /checks/check_bedrock.py
 ```
 
 The following makes **one billable request** using the current AWS CLI profile.
@@ -59,7 +59,7 @@ docker run --rm -i --platform linux/amd64 --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,nodev \
   --mount "type=bind,src=$PWD/integrations/bedrock,dst=/checks,readonly" \
   --entrypoint /opt/semoss-python/bin/python \
-  semoss:5.4.0-ubi10-python314-bcfips /checks/check_bedrock.py --live
+  semoss:5.4.0-ubi10-python314-accp /checks/check_bedrock.py --live
 ```
 
 The checker fails for adapter error objects, unexpected response content, disabled

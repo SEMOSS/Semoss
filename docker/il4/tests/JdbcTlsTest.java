@@ -88,8 +88,20 @@ public final class JdbcTlsTest {
     public static void main(String[] args) throws Exception {
         testSessionChecks();
         for (var type : JdbcTls.Database.values()) {
-            require(JdbcTls.url(type, "db.example.test", type.port, "semoss")
-                    .contains("db.example.test:" + type.port));
+            String url = JdbcTls.url(type, "db.example.test", type.port, "semoss");
+            require(url.equals(switch (type) {
+                case POSTGRES -> "jdbc:postgresql://db.example.test:5432/semoss"
+                        + "?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+                        + "&connectTimeout=10&socketTimeout=30";
+                case SQL_SERVER -> "jdbc:sqlserver://db.example.test:1433;databaseName=semoss"
+                        + ";encrypt=true;trustServerCertificate=false;fips=false;trustStoreType=PKCS12"
+                        + ";trustStore=/opt/accp/cacerts.p12;trustStorePassword=changeit"
+                        + ";sslProtocol=TLSv1.2;loginTimeout=10;socketTimeout=30000";
+                case MARIA_DB -> "jdbc:mariadb://db.example.test:3306/semoss"
+                        + "?sslMode=verify-full&trustStoreType=PKCS12&trustStore=/opt/accp/cacerts.p12"
+                        + "&trustStorePassword=changeit&enabledSslProtocolSuites=TLSv1.2,TLSv1.3"
+                        + "&allowLocalInfile=false&connectTimeout=10000&socketTimeout=30000";
+            }));
         }
         for (String host : new String[]{null, "", "host;encrypt=false", "host/x", "host?sslmode=disable"}) {
             try {

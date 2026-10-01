@@ -1,8 +1,8 @@
-name: Build IL4 test container
+name: Build IL4 experimental ACCP container
 
 on:
   push:
-    branches: [IL4-dev]
+    branches: [IL4-dev-ACCP]
     paths:
       - docker/il4/**
       - .github/workflows/il4-container.yml
@@ -12,19 +12,17 @@ on:
         description: Generate report-only SBOM and vulnerability artifacts
         type: boolean
         default: false
-  schedule:
-    - cron: '23 9 * * 1'
 
 permissions:
   contents: read
 
 concurrency:
-  group: il4-container-${{ github.repository }}
+  group: il4-accp-container-${{ github.repository }}
   cancel-in-progress: false
 
 jobs:
   build:
-    if: github.ref == 'refs/heads/IL4-dev' || github.event_name == 'schedule'
+    if: github.ref == 'refs/heads/IL4-dev-ACCP'
     runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
     container:
       image: quay.io/semoss/test-quay:ubuntu-dind@sha256:5711ae2ade8db7de5e95f16bee23a89addd5d9aeb5b905c41c7ccca183ecda20
@@ -41,7 +39,7 @@ jobs:
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
-          ref: ${{ github.event_name == 'schedule' && 'IL4-dev' || github.sha }}
+          ref: ${{ github.sha }}
 
       - name: Install Python for build orchestration
         run: |
@@ -73,7 +71,7 @@ jobs:
             echo "::error::The default Buildx builder must use the docker driver."
             exit 1
           fi
-          image_repository="ghcr.io/${GITHUB_REPOSITORY,,}-il4"
+          image_repository="ghcr.io/${GITHUB_REPOSITORY,,}-il4-accp"
           source_sha="$(git rev-parse HEAD)"
           {
             echo "DOCKER_CONFIG=$DOCKER_CONFIG"
@@ -155,12 +153,32 @@ jobs:
           sys.exit(not result.wasSuccessful())
           '
 
-      - name: Log in to GHCR after validation
+      - name: Log in to GHCR for baseline comparison and publication
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compare baseline and candidate concurrently
+        timeout-minutes: 25
+        env:
+          BASELINE_IMAGE: ghcr.io/semoss/semoss-il4@sha256:cad8db15ce6704e728f5a23a4a75b86a0b543aead097585000fdb9ab70358b1f
+        run: |
+          set -euo pipefail
+          docker pull --platform linux/amd64 "$BASELINE_IMAGE"
+          python3 -c 'from database_fixtures import POSTGRES_IMAGE, MARIA_IMAGE; print(POSTGRES_IMAGE); print(MARIA_IMAGE)' \
+            > "$RUNNER_TEMP/il4-database-images.txt"
+          while IFS= read -r image; do
+            docker pull "$image"
+          done < "$RUNNER_TEMP/il4-database-images.txt"
+          python3 compare_containers.py --baseline "$BASELINE_IMAGE" --candidate "$IMAGE_REF" \
+            > "$RUNNER_TEMP/il4-accp-comparison.json"
+          {
+            printf '## Concurrent baseline / ACCP comparison\n\n```json\n'
+            cat "$RUNNER_TEMP/il4-accp-comparison.json"
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish the tested image
         id: publish
@@ -178,18 +196,24 @@ jobs:
           if len(matches) != 1:
               sys.exit("Expected exactly one published GHCR digest.")
           with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
-              summary.write("## IL4 test image published\n\n")
+              summary.write("## Experimental ACCP image published\n\n")
               summary.write("Tag: `" + os.environ["IMAGE_REF"] + "`\n\n")
               summary.write("Deploy by digest: `" + matches[0] + "`\n\n")
-              summary.write("Offline FIPS/JDBC/Python checks passed. HTTPS readiness, "
-                            "deployment acceptance, scanning, signing, and IL4 "
-                            "authorization remain separate gates.\n")
+              summary.write("Offline ACCP/JDBC/Python compatibility checks passed. "
+                            "This image is NONVALIDATED: PBKDF2/PKCS12 use SunJCE "
+                            "fallback and the bundled AWS-LC module's certificate "
+                            "coverage is unresolved. It does not replace IL4-dev. "
+                            "Concurrent HTTPS/readiness/isolation, native administrator "
+                            "login, and real SEMOSS PostgreSQL/MariaDB TLS registration "
+                            "and query checks passed against the pinned BC baseline. Production "
+                            "acceptance, scanning, signing, and authorization "
+                            "remain separate gates.\n")
           print(matches[0])
           PY
 
       - name: Generate optional image reports
         id: reports
-        if: inputs.image_reports || vars.IL4_IMAGE_REPORTS == 'true'
+        if: inputs.image_reports || vars.IL4_ACCP_IMAGE_REPORTS == 'true'
         continue-on-error: true
         timeout-minutes: 20
         run: |
@@ -223,7 +247,7 @@ jobs:
         continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: il4-image-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          name: il4-accp-image-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/il4-image-reports/
           if-no-files-found: error
           retention-days: 14

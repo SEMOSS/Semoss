@@ -8,6 +8,9 @@ services:
     image: ${SEMOSS_IMAGE:?Set SEMOSS_IMAGE (an immutable digest is recommended)}
     platform: linux/amd64
     user: "10001:10001"
+    environment:
+      # Explicit development acknowledgement: experimental/nonvalidated, not a compliance profile.
+      SEMOSS_ALLOW_NONVALIDATED_ACCP: "true"
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
@@ -29,8 +32,8 @@ services:
         source: hardened-dev-home
         target: /opt/semosshome
       - type: bind
-        source: ${SEMOSS_TLS_KEYSTORE:?Set an absolute path to server.bcfks}
-        target: /run/secrets/server.bcfks
+        source: ${SEMOSS_TLS_KEYSTORE:?Set an absolute path to server.p12}
+        target: /run/secrets/server.p12
         read_only: true
         bind:
           create_host_path: false
