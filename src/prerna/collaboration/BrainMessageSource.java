@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,6 +66,27 @@ public interface BrainMessageSource {
 			}
 		}
 		return out;
+	}
+
+	// what is attached to messages already known to have attachments, by message id, as
+	// BrainAttachments.describe maps (no bytes, inline images left out); a source that
+	// cannot tell returns nothing
+	default Map<String, List<Map<String, Object>>> attachments(User user, String source, List<String> graphIds)
+			throws Exception {
+		return Map.of();
+	}
+
+	// one attachment described without its bytes, null when it is gone
+	default Map<String, Object> attachment(User user, String source, String graphId, String attachmentId)
+			throws Exception {
+		return null;
+	}
+
+	// writes one file attachment's bytes into dir (fileName, or a unique variant of it)
+	// and returns the file written
+	default Path download(User user, String source, String graphId, String attachmentId, Path dir,
+			String fileName) throws Exception {
+		throw new UnsupportedOperationException("This source cannot read attachments");
 	}
 
 	static BrainMessageSource current() {

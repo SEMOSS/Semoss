@@ -27,8 +27,10 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -48,7 +50,9 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
-			+ "conversationId,webLink";
+			+ "conversationId,webLink,hasAttachments";
+	// the base attachment properties only, so a listing never carries file bytes
+	private static final String ATTACHMENT_SELECT = "id,name,contentType,size,isInline";
 
 	@Override
 	public Map<String, Object> fetch(User user, String source, String conversationId, String graphId) throws Exception {
@@ -124,6 +128,87 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			list.add(f == null ? new Fetched(null, new IllegalStateException("No reply from Graph")) : f);
 		}
 		return list;
+	}
+
+	// one $batch of attachment listings per 20 messages; a message Graph cannot list is left out
+	@Override
+	@SuppressWarnings("unchecked")
+	public Map<String, List<Map<String, Object>>> attachments(User user, String source, List<String> graphIds)
+			throws Exception {
+		Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+		if (!"email".equals(source) || graphIds.isEmpty()) {
+			return out;
+		}
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		for (int start = 0; start < graphIds.size(); start += BATCH) {
+			List<Map<String, Object>> requests = new ArrayList<>();
+			for (int i = start; i < Math.min(graphIds.size(), start + BATCH); i++) {
+				requests.add(Map.of("id", String.valueOf(i), "method", "GET", "url",
+						"/me/messages/" + encode(graphIds.get(i)) + "/attachments?$select=" + ATTACHMENT_SELECT));
+			}
+			Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+					BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+					CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null, null,
+					null));
+			List<Object> responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
+			for (Object r : responses) {
+				Map<String, Object> response = (Map<String, Object>) r;
+				int status = response.get("status") instanceof Number n ? n.intValue() : 0;
+				if (status != 200 || !(response.get("body") instanceof Map<?, ?> body)
+						|| !(body.get("value") instanceof List<?> items)) {
+					continue;
+				}
+				List<Map<String, Object>> described = new ArrayList<>();
+				for (Object item : items) {
+					if (item instanceof Map<?, ?> attachment) {
+						Map<String, Object> entry = BrainAttachments.describe((Map<String, Object>) attachment);
+						if (!Boolean.TRUE.equals(entry.get("isInline"))) {
+							described.add(entry);
+						}
+					}
+				}
+				out.put(graphIds.get(Integer.parseInt(String.valueOf(response.get("id")))), described);
+			}
+		}
+		return out;
+	}
+
+	@Override
+	public Map<String, Object> attachment(User user, String source, String graphId, String attachmentId)
+			throws Exception {
+		if (!"email".equals(source) || graphId == null || attachmentId == null) {
+			return null;
+		}
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		String url = BASE + attachmentPath(graphId, attachmentId) + "?$select=" + ATTACHMENT_SELECT;
+		try {
+			return CollaborationDbUtils.parseMap(
+					HttpHelperUtility.getRequest(url, MicrosoftLoginUtils.getBearerHeader(token), null, null, null));
+		} catch (IllegalArgumentException e) {
+			// HttpHelperUtility reports a status as "... returned HTTP <code>"
+			if (String.valueOf(e.getMessage()).contains("returned HTTP 404")) {
+				return null;
+			}
+			throw e;
+		}
+	}
+
+	// streams the raw bytes ($value), so a file is never held as base64 in memory;
+	// HttpHelperUtility runs the platform virus scan when that is on
+	@Override
+	public Path download(User user, String source, String graphId, String attachmentId, Path dir, String fileName)
+			throws Exception {
+		if (!"email".equals(source)) {
+			throw new IllegalArgumentException("Only email attachments can be read");
+		}
+		String token = MicrosoftLoginUtils.getValidAccessToken(user);
+		File file = HttpHelperUtility.getRequestFileDownload(BASE + attachmentPath(graphId, attachmentId) + "/$value",
+				MicrosoftLoginUtils.getBearerHeader(token), null, null, null, dir.toString(), fileName);
+		return file.toPath();
+	}
+
+	private static String attachmentPath(String graphId, String attachmentId) {
+		return "/me/messages/" + encode(graphId) + "/attachments/" + encode(attachmentId);
 	}
 
 	// the message's path under the Graph base, or null when the source cannot be

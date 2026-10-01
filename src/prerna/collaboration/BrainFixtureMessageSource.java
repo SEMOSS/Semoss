@@ -31,7 +31,10 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -84,5 +87,71 @@ final class BrainFixtureMessageSource implements BrainMessageSource {
 			return chat == null ? null : BrainGraphMessageSource.fromChat(chat);
 		}
 		return "email".equals(source) && graphId != null ? byId.get(graphId) : null;
+	}
+
+	// a mail.json message may carry "attachments" in Graph shape, with base64 contentBytes
+	@Override
+	public Map<String, List<Map<String, Object>>> attachments(User user, String source, List<String> graphIds) {
+		Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+		if (!"email".equals(source)) {
+			return out;
+		}
+		for (String graphId : graphIds) {
+			List<Map<String, Object>> described = new ArrayList<>();
+			for (Map<String, Object> attachment : attached(graphId)) {
+				Map<String, Object> entry = BrainAttachments.describe(attachment);
+				if (!Boolean.TRUE.equals(entry.get("isInline"))) {
+					described.add(entry);
+				}
+			}
+			out.put(graphId, described);
+		}
+		return out;
+	}
+
+	@Override
+	public Map<String, Object> attachment(User user, String source, String graphId, String attachmentId) {
+		Map<String, Object> attachment = "email".equals(source) ? find(graphId, attachmentId) : null;
+		if (attachment == null) {
+			return null;
+		}
+		Map<String, Object> copy = new LinkedHashMap<>(attachment);
+		copy.remove("contentBytes");
+		return copy;
+	}
+
+	@Override
+	public Path download(User user, String source, String graphId, String attachmentId, Path dir, String fileName)
+			throws Exception {
+		Map<String, Object> attachment = "email".equals(source) ? find(graphId, attachmentId) : null;
+		if (attachment == null || !(attachment.get("contentBytes") instanceof String bytes)) {
+			throw new IllegalArgumentException("The fixture has no bytes for this attachment");
+		}
+		Path file = dir.resolve(fileName);
+		Files.write(file, Base64.getDecoder().decode(bytes));
+		return file;
+	}
+
+	private Map<String, Object> find(String graphId, String attachmentId) {
+		for (Map<String, Object> attachment : attached(graphId)) {
+			if (attachmentId != null && attachmentId.equals(attachment.get("id"))) {
+				return attachment;
+			}
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<Map<String, Object>> attached(String graphId) {
+		Map<String, Object> message = graphId == null ? null : byId.get(graphId);
+		List<Map<String, Object>> out = new ArrayList<>();
+		if (message != null && message.get("attachments") instanceof List<?> items) {
+			for (Object item : items) {
+				if (item instanceof Map<?, ?> attachment) {
+					out.add((Map<String, Object>) attachment);
+				}
+			}
+		}
+		return out;
 	}
 }

@@ -38,19 +38,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 // The filtered thread read behind brain_get_thread. Today's rules run before any body is
 // fetched; bodies come from the source at call time, go through BrainMessageText, and are never stored.
 public final class BrainThreadMessages {
 
+	private static final Logger classLogger = LogManager.getLogger(BrainThreadMessages.class);
+
 	private static final int DEFAULT_LIMIT = 20;
 	private static final int MAX_LIMIT = 100;
 
 	private record Row(String messageKey, String graphId, String personId, String folder, String at, String decision) {
+	}
+
+	// one message that today's rules still show, as the source returned it
+	record Readable(String source, Map<String, Object> message, Map<String, Object> sender, String at) {
 	}
 
 	private BrainThreadMessages() {
@@ -74,9 +83,18 @@ public final class BrainThreadMessages {
 	 */
 	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody,
 			String cursor) {
+		return read(user, threadId, limit, includeDisplayBody, cursor, false);
+	}
+
+	/**
+	 * Same read, and with includeAttachments each email that has attachments lists
+	 * them (no bytes, inline images left out).
+	 */
+	public static Map<String, Object> read(User user, String threadId, Integer limit, boolean includeDisplayBody,
+			String cursor, boolean includeAttachments) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		return read(user, owner.getValue0(), owner.getValue1(), threadId, limit, BrainMessageSource.current(),
-				includeDisplayBody, cursor);
+				includeDisplayBody, cursor, includeAttachments);
 	}
 
 	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
@@ -91,6 +109,11 @@ public final class BrainThreadMessages {
 
 	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
 			BrainMessageSource messages, boolean includeDisplayBody, String cursor) {
+		return read(user, ownerId, ownerType, threadId, limit, messages, includeDisplayBody, cursor, false);
+	}
+
+	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
+			BrainMessageSource messages, boolean includeDisplayBody, String cursor, boolean includeAttachments) {
 		String[] thread = CollaborationDbUtils.queryOne(
 				"SELECT SOURCE, THREAD_KEY, MUTED FROM BRAIN_THREAD "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
@@ -144,6 +167,8 @@ public final class BrainThreadMessages {
 		// pass 2: fetch newest first until the limit, re-checking the sender address
 		// and keyword rules
 		List<Map<String, Object>> out = new ArrayList<>();
+		// shown emails that Graph says carry attachments; listed once the page is known
+		List<String> withAttachments = new ArrayList<>();
 		int unavailable = 0;
 		int next = 0;
 		Exception firstError = null;
@@ -198,8 +223,14 @@ public final class BrainThreadMessages {
 				if (message.get("webLink") instanceof String link && link.startsWith("https://")) {
 					entry.put("webLink", link);
 				}
+				if (includeAttachments && "email".equals(source) && Boolean.TRUE.equals(message.get("hasAttachments"))) {
+					withAttachments.add(row.graphId());
+				}
 				out.add(entry);
 			}
+		}
+		if (!withAttachments.isEmpty()) {
+			attach(user, source, out, withAttachments, messages);
 		}
 		// every fetch failed: surface why (for example no Microsoft login) instead of
 		// an empty thread
@@ -222,6 +253,94 @@ public final class BrainThreadMessages {
 					(threadId + "\n" + candidates.get(next - 1).messageKey()).getBytes(StandardCharsets.UTF_8)));
 		}
 		return result;
+	}
+
+	// the listing is extra: when it fails the page still reads, the emails just list no attachments
+	private static void attach(User user, String source, List<Map<String, Object>> entries, List<String> graphIds,
+			BrainMessageSource messages) {
+		Map<String, List<Map<String, Object>>> listed;
+		try {
+			listed = messages.attachments(user, source, graphIds);
+		} catch (Exception e) {
+			classLogger.warn("Could not list the attachments of {} emails", graphIds.size(), e);
+			return;
+		}
+		for (Map<String, Object> entry : entries) {
+			List<Map<String, Object>> attachments = listed.get(entry.get("id"));
+			if (attachments != null && !attachments.isEmpty()) {
+				entry.put("attachments", attachments);
+			}
+		}
+	}
+
+	/**
+	 * One email of the owner's thread, fetched live, only when today's rules still
+	 * show it the way {@link #read} would: never rules before the fetch, the real
+	 * sender and keyword rules after. Null when a rule hides it or it is gone; a
+	 * login problem is thrown so the UI can prompt.
+	 */
+	static Readable readable(User user, String ownerId, String ownerType, String threadId, String graphId,
+			BrainMessageSource messages) {
+		String[] thread = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE, THREAD_KEY FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> new String[] { rs.getString("SOURCE"), rs.getString("THREAD_KEY") }, ownerId, ownerType,
+				threadId);
+		if (thread == null) {
+			throw new IllegalArgumentException("Thread not found");
+		}
+		String source = thread[0];
+		String conversationId = thread[1] != null && thread[1].startsWith(source + ":")
+				? thread[1].substring(source.length() + 1)
+				: null;
+		// newest first, as the read orders them, so the oldest is last
+		List<Row> rows = CollaborationDbUtils.query(
+				"SELECT MESSAGE_KEY, GRAPH_ID, SENDER_PERSON_ID, FOLDER, RECEIVED_AT, DECISION "
+						+ "FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
+						+ "ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+				rs -> new Row(rs.getString("MESSAGE_KEY"), rs.getString("GRAPH_ID"), rs.getString("SENDER_PERSON_ID"),
+						rs.getString("FOLDER"), CollaborationDbUtils.getTimestamp(rs, "RECEIVED_AT"),
+						rs.getString("DECISION")),
+				ownerId, ownerType, threadId);
+		Row row = null;
+		for (Row candidate : rows) {
+			if (graphId != null && graphId.equals(candidate.graphId())) {
+				row = candidate;
+				break;
+			}
+		}
+		if (row == null) {
+			return null;
+		}
+		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
+		if (BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
+				|| isNever(rules, addresses(ownerId, ownerType, List.of(row)).getOrDefault(row.personId(), List.of()),
+						row)) {
+			return null;
+		}
+		Map<String, Object> message;
+		try {
+			message = messages.fetch(user, source, conversationId, graphId);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("Could not read this email: " + e.getMessage(), e);
+		}
+		Object messageConversation = message == null ? null : message.get("conversationId");
+		if (message == null || (messageConversation != null && conversationId != null
+				&& !conversationId.equals(messageConversation))) {
+			return null;
+		}
+		Map<String, Object> sender = sender(message);
+		String from = BrainRulesGate.norm(CollaborationDbUtils.asString(sender.get("address")));
+		if (from != null && BrainRulesGate.neverRule(rules, from, row.personId(), row.folder()) != null) {
+			return null;
+		}
+		Map<String, Object> clean = "teams".equals(source) ? Map.of("body", MicrosoftMessageDisplay.text(message))
+				: clean(message, row == rows.get(rows.size() - 1));
+		if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
+			return null;
+		}
+		return new Readable(source, message, sender, row.at());
 	}
 
 	/**
