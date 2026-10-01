@@ -29,6 +29,7 @@ package prerna.engine.impl.model;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,6 +49,7 @@ import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MediaMessagePart;
 import prerna.engine.impl.model.message.MessageIO;
 import prerna.engine.impl.model.message.MessageInputMedia;
+import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
@@ -71,8 +73,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void acceptsImageWhenModelAllowsImageInput() {
-		TestModelEngine engine = new TestModelEngine(
-				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
 		message.addPart(new TextMessagePart("describe this"));
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
@@ -82,8 +83,7 @@ class AbstractModelEngineInputModalityUnitTests {
 
 	@Test
 	void rejectsPdfWhenModelDoesNotAllowPdfInput() {
-		TestModelEngine engine = new TestModelEngine(
-				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
 		message.addPart(new MediaMessagePart(pdfMedia()));
 
@@ -94,9 +94,52 @@ class AbstractModelEngineInputModalityUnitTests {
 	}
 
 	@Test
-	void classifiesPdfUrlsAsPdfInput() {
+	void rejectsGenericFileWhenModelHasNoDocumentSupport() {
+		// text+image only, attachment not flagged: a pptx has nowhere to go
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> engine.validateInputModalities(List.of(), message));
+
+		assertTrue(exception.getMessage().contains("does not allow FILE input"));
+	}
+
+	@Test
+	void allowsGenericFileWhenModelAcceptsPdfInput() {
+		// the static catalog never declares "file"; pdf is its document modality
 		TestModelEngine engine = new TestModelEngine(
-				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
+				EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE, ModelModalityEnum.PDF));
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void allowsGenericFileWhenMetadataFlagsAttachmentSupport() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE),
+				Boolean.TRUE);
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(pptxMedia()));
+
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void attachmentFlagDoesNotUnlockOtherModalities() {
+		// attachment support only widens FILE; an image is still gated by the list
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT), Boolean.TRUE);
+		InputMessage message = newMessage();
+		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/image.png")));
+
+		assertThrows(IllegalArgumentException.class, () -> engine.validateInputModalities(List.of(), message));
+	}
+
+	@Test
+	void classifiesPdfUrlsAsPdfInput() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT, ModelModalityEnum.IMAGE));
 		InputMessage message = newMessage();
 		message.addPart(new MediaMessagePart(MessageInputMedia.fromUrl("https://example.com/report.pdf")));
 
@@ -140,8 +183,7 @@ class AbstractModelEngineInputModalityUnitTests {
 		followUp.setParentMessageId(audioResponse.getMessageId());
 		followUp.addPart(new TextMessagePart("say it again"));
 
-		assertDoesNotThrow(
-				() -> engine.validateInputModalities(List.of(root, audioResponse), followUp));
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(root, audioResponse), followUp));
 	}
 
 	@Test
@@ -165,8 +207,7 @@ class AbstractModelEngineInputModalityUnitTests {
 		textBranch.setParentMessageId(root.getMessageId());
 		textBranch.addPart(new TextMessagePart("continue here"));
 
-		assertDoesNotThrow(
-				() -> engine.validateInputModalities(List.of(root, imageBranch), textBranch));
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(root, imageBranch), textBranch));
 	}
 
 	@Test
@@ -186,6 +227,44 @@ class AbstractModelEngineInputModalityUnitTests {
 	}
 
 	@Test
+	void usesFinalFullPromptInputAsCurrentTurn() {
+		InputMessage earlierInput = newMessage();
+		ResponseMessage response = ResponseMessage.builder().withText("response").build();
+		InputMessage finalInput = newMessage();
+
+		InputMessage result = AbstractModelEngine.requireFinalInputMessage(List.of(earlierInput, response, finalInput));
+
+		assertSame(finalInput, result);
+	}
+
+	@Test
+	void rejectsFullPromptEndingWithResponse() {
+		InputMessage input = newMessage();
+		ResponseMessage response = ResponseMessage.builder().withText("response").build();
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> AbstractModelEngine.requireFinalInputMessage(List.of(input, response)));
+
+		assertEquals("Full prompt must end with an input message", exception.getMessage());
+	}
+
+	@Test
+	@SuppressWarnings("deprecation")
+	void legacyAskCallRoutesToInputMessageAskCall() {
+		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
+		Object fullPrompt = List.of(Map.of("role", "user", "content", "question"));
+		Map<String, Object> parameters = Map.of("temperature", 0.2);
+
+		engine.askCall("question", fullPrompt, "system prompt", null, "legacy-room", parameters);
+
+		assertEquals("question", engine.lastInputMessage.getFullInputPrompt());
+		assertEquals("system prompt", engine.lastInputMessage.getSystemPrompt());
+		assertEquals("legacy-room", engine.lastInputMessage.getRoomId());
+		assertSame(fullPrompt, engine.lastInputMessage.getParamMap().get(AbstractModelEngine.FULL_PROMPT));
+		assertSame(parameters, engine.lastHyperParameters);
+	}
+
+	@Test
 	void branchValidationWithoutNewMessageCoversOnlyTheCurrentTailBranch() {
 		TestModelEngine engine = new TestModelEngine(EnumSet.of(ModelModalityEnum.TEXT));
 		InputMessage root = newMessage();
@@ -197,8 +276,7 @@ class AbstractModelEngineInputModalityUnitTests {
 		textBranch.setParentMessageId(root.getMessageId());
 		textBranch.addPart(new TextMessagePart("continue here"));
 
-		assertDoesNotThrow(
-				() -> engine.validateInputModalities(List.of(root, imageBranch, textBranch), null));
+		assertDoesNotThrow(() -> engine.validateInputModalities(List.of(root, imageBranch, textBranch), null));
 	}
 
 	private static InputMessage newMessage() {
@@ -215,16 +293,31 @@ class AbstractModelEngineInputModalityUnitTests {
 		return new Gson().fromJson("{\"mimeType\":\"audio/mp3\"}", MessageInputMedia.class);
 	}
 
+	private static MessageInputMedia pptxMedia() {
+		return new Gson().fromJson(
+				"{\"mimeType\":\"application/vnd.openxmlformats-officedocument.presentationml.presentation\"}",
+				MessageInputMedia.class);
+	}
+
 	private static class TestModelEngine extends AbstractModelEngine {
+		private InputMessage lastInputMessage;
+		private Map<String, Object> lastHyperParameters;
 
 		private TestModelEngine(Set<ModelModalityEnum> inputModalities) {
+			this(inputModalities, null);
+		}
+
+		private TestModelEngine(Set<ModelModalityEnum> inputModalities, Boolean attachmentSupported) {
 			this.inputModalities = inputModalities;
+			this.attachmentSupported = attachmentSupported;
 			setEngineName("test-model");
 		}
 
 		@Override
-		protected AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-				String roomId, Map<String, Object> hyperParameters) {
+		protected AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+				Map<String, Object> hyperParameters) {
+			this.lastInputMessage = inputMessage;
+			this.lastHyperParameters = hyperParameters;
 			return null;
 		}
 

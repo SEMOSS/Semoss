@@ -156,7 +156,7 @@ public class MimeTypeUtility {
 	/**
 	 * Detect the mime type of a file and fall back to the file format when the
 	 * contents of the file cannot be read
-	 * 
+	 *
 	 * @param filePath
 	 * @param format   the file extension, i.e. png, jpeg
 	 * @return the base mime type, never null

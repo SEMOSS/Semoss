@@ -58,11 +58,13 @@ import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
@@ -74,9 +76,13 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -1104,10 +1110,10 @@ public abstract class AbstractSecurityUtils {
 				securityDb.insertData(
 						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
 
-			   try (PreparedStatement ps = conn
-				  .prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
-				 ps.setBoolean(1, false);
-				 ps.executeUpdate();
+				try (PreparedStatement ps = conn
+						.prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
+					ps.setBoolean(1, false);
+					ps.executeUpdate();
 				}
 			}
 			if (allowIfExistsIndexs) {
@@ -2622,6 +2628,52 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// MS_GRAPH_SUBSCRIPTION
+			// the Microsoft Graph change notification subscriptions this deployment
+			// created. A notification carries a subscription id and nothing else, and any
+			// container behind the load balancer can be the one that receives it, so what
+			// is needed to recognize it and to act as the user it belongs to is held here
+			// rather than in the memory of whichever container created it
+			colNames = new String[] { "SUBSCRIPTION_ID", "USER_ID", "USER_PROVIDER", "USER_EMAIL", "CLIENT_STATE",
+					"RESOURCE", "CHANGE_TYPE", "NOTIFICATION_URL", "EXPIRATION", "ACCESS_TOKEN", "REFRESH_TOKEN",
+					"TOKEN_EXPIRATION", "CREATED_ON", "UPDATED_ON" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_500,
+					VARCHAR_255, VARCHAR_500, TIMESTAMP_DATATYPE_NAME, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MS_GRAPH_SUBSCRIPTION", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("MS_GRAPH_SUBSCRIPTION", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MS_GRAPH_SUBSCRIPTION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MS_GRAPH_SUBSCRIPTION", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// index for listing what one user is watching, which is the only read that
+			// is not already by subscription id
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					String sql = queryUtil.createIndex("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -3142,6 +3194,135 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return filters;
+	}
+
+	/**
+	 * Keep the rows whose effective permission is one of the given levels. The
+	 * effective permission is the better (lower) of the user's own grant and their
+	 * groups' grant, the same value the list queries select as {@code permission}.
+	 * Built from query struct filters only, so every security database dialect gets
+	 * its own SQL.
+	 *
+	 * A global resource the user holds no grant on counts as read only, as the UI
+	 * shows it, when a global column is given.
+	 *
+	 * @param userPermCol  the user's own grant, such as
+	 *                     {@code USER_PERMISSIONS__PERMISSION}
+	 * @param groupPermCol the best grant of the user's groups, such as
+	 *                     {@code GROUP_PERMISSIONS__PERMISSION}; null when the
+	 *                     query has no group grants
+	 * @param globalCol    the resource's global flag, such as
+	 *                     {@code PROJECT__GLOBAL}; null to leave global resources
+	 *                     without a grant out
+	 * @param permissions  the levels to keep, as {@link AccessPermissionEnum} ids
+	 * @return the filter
+	 * @throws IllegalArgumentException when a level is not an
+	 *                                  {@link AccessPermissionEnum} id
+	 */
+	static IQueryFilter getEffectivePermissionFilter(String userPermCol, String groupPermCol, String globalCol,
+			Collection<Integer> permissions) {
+		List<Integer> levels = new ArrayList<>(permissions);
+		for (Integer level : levels) {
+			if (level == null || level < AccessPermissionEnum.OWNER.getId()
+					|| level > AccessPermissionEnum.READ_ONLY.getId()) {
+				throw new IllegalArgumentException(
+						"Permission filters take 1 (owner), 2 (edit), or 3 (read only); got " + level);
+			}
+		}
+		if (groupPermCol == null) {
+			return SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT);
+		}
+
+		// the user's own grant decides: it is one of the levels, and no group
+		// grant is better
+		AndQueryFilter userDecides = new AndQueryFilter();
+		userDecides.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterGroup = new OrQueryFilter();
+		noBetterGroup
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterGroup.addFilter(SimpleQueryFilter.makeColToColFilter(userPermCol, "<=", groupPermCol));
+		userDecides.addFilter(noBetterGroup);
+
+		// a group grant decides: it is one of the levels, and the user's own
+		// grant is worse or missing
+		AndQueryFilter groupDecides = new AndQueryFilter();
+		groupDecides
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterUser = new OrQueryFilter();
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToColFilter(groupPermCol, "<", userPermCol));
+		groupDecides.addFilter(noBetterUser);
+
+		OrQueryFilter effective = new OrQueryFilter();
+		effective.addFilter(userDecides);
+		effective.addFilter(groupDecides);
+
+		if (globalCol != null && levels.contains(AccessPermissionEnum.READ_ONLY.getId())) {
+			AndQueryFilter globalWithoutGrant = new AndQueryFilter();
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(globalCol, "==", true, PixelDataType.BOOLEAN));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+			effective.addFilter(globalWithoutGrant);
+		}
+		return effective;
+	}
+
+	/**
+	 * Keep the rows created by any of the given creators. A creator matches only
+	 * when both its login id and its login type match, the pairs
+	 * {@link User#getUserIdAndType(User)} returns.
+	 *
+	 * @param createdByCol     the creator's id column, such as
+	 *                         {@code PROJECT__CREATEDBY}
+	 * @param createdByTypeCol the creator's login type column, such as
+	 *                         {@code PROJECT__CREATEDBYTYPE}
+	 * @param creators         the creators to keep, as (id, login type) pairs; must
+	 *                         not be empty
+	 * @return the filter
+	 */
+	static IQueryFilter getCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue0())));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Read creator filters from reactor input: maps with the creator's login
+	 * {@code id} and login {@code type}.
+	 *
+	 * @param values the input values, each expected to be a map; may be null
+	 * @return (id, login type) pairs, in input order; empty without input
+	 * @throws IllegalArgumentException when a value is not a map, or lacks an id or
+	 *                                  a type
+	 */
+	public static List<Pair<String, String>> getCreatorPairs(Collection<?> values) {
+		List<Pair<String, String>> creators = new ArrayList<>();
+		if (values == null) {
+			return creators;
+		}
+		for (Object value : values) {
+			Object id = value instanceof Map ? ((Map<?, ?>) value).get("id") : null;
+			Object type = value instanceof Map ? ((Map<?, ?>) value).get("type") : null;
+			if (id == null || id.toString().trim().isEmpty() || type == null || type.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Each creator filter must be a map with an \"id\" and a \"type\"");
+			}
+			creators.add(Pair.with(id.toString().trim(), type.toString().trim()));
+		}
+		return creators;
 	}
 
 	/**

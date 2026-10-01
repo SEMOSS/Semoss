@@ -51,7 +51,7 @@ public class SqlQueryBase64Reactor extends AbstractSqlQueryReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (key.equals(ReactorKeysEnum.QUERY_KEY.getKey())) {
-			return "The sql query to execute. The query should be passed in as a base64-encoded utf-8 string";
+			return "One or more SQL statements to execute, passed as a base64-encoded UTF-8 string";
 		}
 		return super.getDescriptionForKey(key);
 	}

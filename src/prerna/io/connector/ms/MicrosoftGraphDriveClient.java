@@ -198,7 +198,8 @@ public class MicrosoftGraphDriveClient {
 	}
 
 	/**
-	 * Runs a Graph collection request, following {@code @odata.nextLink} to the end.
+	 * Runs a Graph collection request, following {@code @odata.nextLink} to the
+	 * end.
 	 */
 	private List<Map<String, Object>> getPagedValues(String url) throws Exception {
 		List<Map<String, Object>> collected = new ArrayList<>();
@@ -677,8 +678,8 @@ public class MicrosoftGraphDriveClient {
 	}
 
 	/**
-	 * Matches on the status phrase the helper builds rather than on the bare digits,
-	 * which a url or a response body could contain by coincidence.
+	 * Matches on the status phrase the helper builds rather than on the bare
+	 * digits, which a url or a response body could contain by coincidence.
 	 */
 	private static boolean hasStatus(IllegalArgumentException e, int statusCode) {
 		return messageContains(e, "returned http " + statusCode);

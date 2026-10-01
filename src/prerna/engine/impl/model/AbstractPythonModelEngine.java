@@ -49,6 +49,7 @@ import prerna.engine.api.ModelModalityEnum;
 import prerna.engine.api.ModelTypeEnum;
 import prerna.engine.impl.SmssUtilities;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.BatchListResponse;
@@ -109,10 +110,15 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 		}
 
 		// vars for string substitution
+		this.vars.clear();
 		for (Object smssKey : this.smssProp.keySet()) {
 			String key = smssKey.toString();
 			this.vars.put(key, this.smssProp.getProperty(key));
 		}
+		// Older init scripts still reference these placeholders. A cleared limit
+		// must resolve to Python None, not a stale value or an unresolved token.
+		this.vars.putIfAbsent(Constants.CONTEXT_WINDOW, "None");
+		this.vars.putIfAbsent(Constants.MAX_TOKENS, "None");
 	}
 
 	/**
@@ -186,10 +192,9 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				}
 
 				String serverDirectory = this.cacheFolder.getAbsolutePath();
-				// it has to be -- don't change this unless you can send engine calls from
-				// python
 				boolean nativePyServer = true;
 				try {
+					cpwToInit.setEngineOwned(true);
 					cpwToInit.createProcessAndClient(nativePyServer, null, port, venvPath, serverDirectory,
 							customClassPath, debug, timeout, loggerLevel);
 				} catch (Exception e) {
@@ -279,8 +284,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	}
 
 	@Override
-	public AskModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> parameters) {
+	public AskModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> parameters) {
 		if (ModelInferenceLogsUtils.isRoomInActive(insight.getUserId(), roomId)) {
 			throw new IllegalArgumentException(
 					"The room being referenced has been permanently closed. Please open a new room");

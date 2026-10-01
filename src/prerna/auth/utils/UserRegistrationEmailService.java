@@ -34,9 +34,8 @@ import java.nio.file.Paths;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.Session;
 import prerna.auth.PasswordRequirements;
-import prerna.util.EmailUtility;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 
@@ -77,7 +76,11 @@ public final class UserRegistrationEmailService {
 
 	public boolean sendPasswordResetRequestEmail(String recipient, String customUrl, String customEmailSubject) {
 		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
-		Session emailSession = socialProps.getEmailSession();
+		SMTPFunctionEngine mailEngine = socialProps.getSmtpEngine();
+		if (mailEngine == null) {
+			classLogger.error("Cannot send the password reset request email, no mail server is configured");
+			return false;
+		}
 		String sender = socialProps.getSmtpSender();
 		String subject = customEmailSubject;
 		if (subject == null || (subject = subject.trim()).isEmpty()) {
@@ -103,14 +106,18 @@ public final class UserRegistrationEmailService {
 		}
 
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject,
-				message, isHtml, attachments);
+		boolean success = mailEngine.sendEmail(recipients, ccRecipients, bccRecipients, sender, subject, message,
+				isHtml, attachments);
 		return success;
 	}
 
 	public boolean sendPasswordResetSuccessEmail(String recipient, String customEmailSubject) {
 		SocialPropertiesUtil socialProps = SocialPropertiesUtil.getInstance();
-		Session emailSession = socialProps.getEmailSession();
+		SMTPFunctionEngine mailEngine = socialProps.getSmtpEngine();
+		if (mailEngine == null) {
+			classLogger.error("Cannot send the password reset success email, no mail server is configured");
+			return false;
+		}
 		String sender = socialProps.getSmtpSender();
 		String subject = customEmailSubject;
 		if (subject == null || (subject = subject.trim()).isEmpty()) {
@@ -135,17 +142,9 @@ public final class UserRegistrationEmailService {
 		}
 
 		// send email
-		boolean success = EmailUtility.sendEmail(emailSession, recipients, ccRecipients, bccRecipients, sender, subject,
-				message, isHtml, attachments);
+		boolean success = mailEngine.sendEmail(recipients, ccRecipients, bccRecipients, sender, subject, message,
+				isHtml, attachments);
 		return success;
 	}
-
-//	public static void main(String[] args) {
-//		TestUtilityMethods.loadDIHelper("/Users/mahkhalil/development/workspace/Semoss_Dev/RDF_Map.prop");
-//		UserRegistrationEmailService emailInstance = UserRegistrationEmailService.getInstance();
-//		emailInstance.sendPasswordResetRequestEmail("***REMOVED***", 
-//				"http://localhost:8080/Monolith_Dev/resetPassword/index.html?token=***REMOVED***", 
-//				null);
-//	}
 
 }

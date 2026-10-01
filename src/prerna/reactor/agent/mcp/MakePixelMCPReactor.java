@@ -30,16 +30,9 @@ package prerna.reactor.agent.mcp;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,10 +46,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.IReactor;
-import prerna.reactor.ReactorFactory;
-import prerna.reactor.agent.mcp.MCPUtility.MCPDisplayOption;
-import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -101,157 +90,13 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		IProject project = Utility.getProject(projectId);
 		String projectAssetFolder = AssetUtility.getProjectAssetsFolder(projectId);
 
-		JSONArray toolsArray = new JSONArray();
 		List<String> reactorNames = getNounAsStringList(ReactorKeysEnum.REACTOR.getKey());
-		if (reactorNames == null) {
-			reactorNames = new ArrayList<>();
-		}
 		List<String> packageNames = getNounAsStringList(PACKAGE_KEY);
 		List<Map<String, Object>> mcpMetadataList = getList(ReactorKeysEnum.MCP_METADATA.getKey());
-		boolean mcpMetaExists = false;
-		if (mcpMetadataList != null) {
-			mcpMetaExists = true;
-			if (mcpMetadataList.size() != reactorNames.size()) {
-				throw new IllegalArgumentException("The number of " + ReactorKeysEnum.MCP_METADATA.getKey()
-						+ " entries must match the number of REACTOR entries.");
-			}
-		}
+		boolean scanAll = PixelMCPToolBuilder.isFullScan(reactorNames, packageNames);
 
-		boolean hasPackages = packageNames != null && !packageNames.isEmpty();
-		boolean hasReactors = !reactorNames.isEmpty();
-		// Default behavior: if no reactor or package is specified, scan all app
-		// reactors
-		boolean scanAll = !hasReactors && !hasPackages;
-
-		// Track reactor names already added to avoid duplicates when both scan and
-		// reactor are provided
-		Set<String> addedReactorNames = new LinkedHashSet<>();
-
-		// Phase 1: Scan for reactors that override getMcpToolMetadata()
-		// If neither reactor nor package is provided, scans every reactor in the app
-		// If package is provided, filters by package prefix
-		if (scanAll || hasPackages) {
-			// Trigger compilation if reactors haven't been loaded yet.
-			// getAvailableReactors() only returns the cache - calling compileReactors()
-			if (project.getAvailableReactors().isEmpty()) {
-				project.compileReactors();
-			}
-			for (String availableName : project.getAvailableReactors()) {
-				IReactor reactor = project.getReactor(availableName);
-				if (reactor instanceof AbstractReactor && ((AbstractReactor) reactor).getMcpToolMetadata() != null
-						&& (scanAll || matchesPackage(reactor.getClass().getPackageName(), packageNames))) {
-					JSONObject reactorTool = reactor.asMcpTool();
-					String functionName = reactorTool.getString("name");
-
-					// if we encounter the same reactor name
-					// we should make it unique
-					// this is possible as we are allowing subpackages where files can share names
-					// outside of exact package match
-					String addedToolName = functionName;
-					int counter = 1;
-					while (addedReactorNames.contains(addedToolName)) {
-						addedToolName = functionName + (++counter);
-					}
-					// update the toolname
-					// this works because we use the {@code MCPUtility.SMSS_FUNCTION_NAME} in meta
-					// for the actual reactor to run
-					if (functionName != addedToolName) {
-						reactorTool.put("name", addedToolName);
-					}
-
-					toolsArray.put(reactorTool);
-					addedReactorNames.add(functionName);
-				}
-			}
-		}
-
-		// Phase 2: Process explicitly listed reactors (existing behavior)
-		for (int i = 0; i < reactorNames.size(); i++) {
-			IReactor thisReactor = ReactorFactory.getReactor(this.insight, reactorNames.get(i), null,
-					this.insight.getCurFrame());
-			JSONObject reactorTool = thisReactor.asMcpTool();
-			String functionName = reactorTool.getString("name");
-
-			// if we encounter the same reactor name
-			// we should make it unique
-			String addedToolName = functionName;
-			int counter = 1;
-			while (addedReactorNames.contains(addedToolName)) {
-				addedToolName = functionName + (++counter);
-			}
-			// update the toolname
-			// this works because we use the {@code MCPUtility.SMSS_FUNCTION_NAME} in meta
-			// for the actual reactor to run
-			if (functionName != addedToolName) {
-				reactorTool.put("name", addedToolName);
-			}
-
-			JSONObject meta = reactorTool.optJSONObject("_meta");
-			if (meta == null) {
-				meta = new JSONObject();
-			}
-			meta.put(MCPUtility.SMSS_FUNCTION_NAME, functionName);
-
-			// Determine if explicit mcpMetadata was provided for this reactor
-			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
-			boolean hasMethodMeta = meta.has(MCPUtility.SMSS_MCP_EXECUTION);
-
-			// execution mode: mcpMetadata overrides getMcpToolMetadata(), which overrides
-			// default
-			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_EXECUTION)) {
-				String execModeInput = (String) additionalMeta.get(MCPUtility.SMSS_MCP_EXECUTION);
-				MCPExecution execModeEnum = MCPExecution.fromValue(execModeInput);
-				if (execModeEnum == null && !execModeInput.isBlank()) {
-					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_EXECUTION + " can only be a value of: "
-							+ Arrays.toString(MCPExecution.values()));
-				}
-				if (execModeEnum != null) {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, execModeEnum.getValue());
-				} else {
-					meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
-					classLogger.warn("Invalid SMSS_MCP_EXECUTION value '{}' for reactor '{}'; falling back to 'auto'.",
-							execModeInput, reactorNames.get(i));
-				}
-			} else if (!hasMethodMeta) {
-				meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPExecution.AUTO.getValue());
-			}
-
-			// UI: mcpMetadata overrides getMcpToolMetadata() values
-			Map<String, Object> uiMap = new HashMap<>();
-			try {
-				uiMap = (Map<String, Object>) additionalMeta.getOrDefault(MCPUtility.SMSS_MCP_UI, new HashMap<>());
-			} catch (ClassCastException e) {
-				classLogger.error("Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
-						reactorNames.get(i));
-			}
-
-			if (!uiMap.isEmpty()) {
-				JSONObject uiJson = new JSONObject();
-				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
-					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
-				}
-				if (uiMap.containsKey(MCPUtility.UI_LOADING_MESSAGE)) {
-					uiJson.put(MCPUtility.UI_LOADING_MESSAGE, uiMap.get(MCPUtility.UI_LOADING_MESSAGE));
-				}
-				if (uiMap.containsKey(MCPUtility.UI_DISPLAY_LOCATION)) {
-					String displayLocation = (String) uiMap.getOrDefault(MCPUtility.UI_DISPLAY_LOCATION, null);
-					MCPDisplayOption displayEnum = MCPDisplayOption.fromValue(displayLocation);
-					if (displayEnum == null && !displayLocation.isBlank()) {
-						throw new IllegalArgumentException(MCPUtility.UI_DISPLAY_LOCATION + " can only be a value of: "
-								+ Arrays.toString(MCPDisplayOption.values()));
-					}
-					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
-					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
-				}
-				meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
-			} else if (!meta.has(MCPUtility.SMSS_MCP_UI)) {
-				meta.put(MCPUtility.SMSS_MCP_UI, new JSONObject());
-			}
-
-			reactorTool.put("_meta", meta);
-			toolsArray.put(reactorTool);
-			addedReactorNames.add(functionName);
-		}
+		JSONArray toolsArray = PixelMCPToolBuilder.buildTools(this.insight, project, reactorNames, packageNames,
+				mcpMetadataList);
 
 		// Both the scan and the explicit-reactor path feed this array.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
@@ -263,13 +108,7 @@ public class MakePixelMCPReactor extends AbstractReactor {
 		toolsArray = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray, GENERATOR_ID,
 				scanAll);
 
-		JSONObject mcpJson = new JSONObject();
-		mcpJson.put("tools", toolsArray);
-		JSONObject _meta = new JSONObject();
-		LocalDate todayUTC = LocalDate.now(ZoneOffset.UTC);
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-		_meta.put("last_modified_date", todayUTC.format(formatter));
-		mcpJson.put("_meta", _meta);
+		JSONObject mcpJson = PixelMCPToolBuilder.wrapMcpJson(toolsArray);
 
 		File outputFile = new File(outputFileLoc);
 		if (!outputFile.getParentFile().exists() || !outputFile.getParentFile().isDirectory()) {
@@ -341,23 +180,6 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "Comment to add while saving the files within the git repository for the project";
 		}
 		return super.getDescriptionForKey(key);
-	}
-
-	/**
-	 * Checks if a reactor's package matches any of the requested package prefixes.
-	 * Matches the exact package or any sub-package.
-	 * 
-	 * @param reactorPackage
-	 * @param packageNames
-	 * @return
-	 */
-	private boolean matchesPackage(String reactorPackage, List<String> packageNames) {
-		for (String pkg : packageNames) {
-			if (reactorPackage.equals(pkg) || reactorPackage.startsWith(pkg + ".")) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 }

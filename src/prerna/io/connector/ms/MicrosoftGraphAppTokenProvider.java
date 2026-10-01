@@ -51,16 +51,17 @@ import prerna.security.HttpHelperUtility;
  *
  * <p>
  * An instance is bound to one set of application credentials, so callers that
- * connect as a service identity rather than as the signed in user hold their own
- * provider and get their own cached token. The token is refreshed on demand and
- * reused until it is within {@link #EXPIRY_BUFFER_MILLIS} of expiring.
+ * connect as a service identity rather than as the signed in user hold their
+ * own provider and get their own cached token. The token is refreshed on demand
+ * and reused until it is within {@link #EXPIRY_BUFFER_MILLIS} of expiring.
  * </p>
  *
  * <p>
- * Client credentials tokens carry the application permissions granted on the app
- * registration rather than individual scopes, which is why the requested scope
- * is {@code .default}. Note that {@code /me} endpoints cannot be used with these
- * tokens, since there is no signed in user for {@code /me} to resolve to.
+ * Client credentials tokens carry the application permissions granted on the
+ * app registration rather than individual scopes, which is why the requested
+ * scope is {@code .default}. Note that {@code /me} endpoints cannot be used
+ * with these tokens, since there is no signed in user for {@code /me} to
+ * resolve to.
  * </p>
  */
 public class MicrosoftGraphAppTokenProvider {
@@ -167,7 +168,8 @@ public class MicrosoftGraphAppTokenProvider {
 	 * signature is deliberately not validated.
 	 * </p>
 	 *
-	 * @return the granted roles, empty when the token carries none or cannot be read
+	 * @return the granted roles, empty when the token carries none or cannot be
+	 *         read
 	 */
 	public Set<String> getGrantedRoles() {
 		String token;
@@ -231,9 +233,9 @@ public class MicrosoftGraphAppTokenProvider {
 
 		AccessToken newToken = HttpHelperUtility.getAccessToken(tokenEndpoint, params, true, true);
 		if (newToken == null || isBlank(newToken.getAccess_token())) {
-			throw new IllegalStateException(
-					"Unable to acquire an app-only Microsoft Graph token for tenant " + this.tenantId
-							+ ". Verify the client id, client secret and tenant, and that admin consent has been granted.");
+			throw new IllegalStateException("Unable to acquire an app-only Microsoft Graph token for tenant "
+					+ this.tenantId
+					+ ". Verify the client id, client secret and tenant, and that admin consent has been granted.");
 		}
 
 		this.cachedToken = newToken.getAccess_token();

@@ -58,7 +58,7 @@ public class GetSubagentRunsReactor extends AbstractReactor {
 			throw new IllegalArgumentException("runId is required");
 		}
 
-		List<Map<String, Object>> runs = new AgentRunStore().getSubagentRuns(this.insight, runId);
+		List<Map<String, Object>> runs = AgentRunStore.getSubagentRuns(this.insight, runId);
 		return new NounMetadata(runs, PixelDataType.VECTOR, PixelOperationType.OPERATION);
 	}
 

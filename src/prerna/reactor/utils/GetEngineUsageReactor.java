@@ -35,6 +35,7 @@ import java.util.Map;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
+import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.impl.function.FunctionParameter;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -54,6 +55,7 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String JAVA = "java";
 	private static final String JAVASCRIPT = "javascript";
 	private static final String PIXEL = "pixel";
+	private static final String GUARDRAIL = "guardrail";
 	private static final String LANGCHAIN = "LANGCHAIN";
 	private static final String OPENAI = "OPENAI";
 	private static final String ANTHROPIC = "ANTHROPIC";
@@ -70,8 +72,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 	private static final String PYTHON_LABEL = "How to use in Python";
 	private static final String JAVA_LABEL = "How to use in Java";
 	private static final String JAVASCRIPT_LABEL = "How to use in JavaScript/TypeScript with the @semoss/sdk";
+	private static final String GUARDRAIL_LABEL = "How to configure the guardrail pipeline JSON";
 	private static final String LANGCHAIN_LABEL = "How to use with LangChain API";
-	private static final String OPENAI_LABEL = "How to use externally with OpenAI API";
+	private static final String OPENAI_LABEL = "How to use with the OpenAI API";
 	private static final String ANTHROPIC_LABEL = "How to use externally with Anthropic API";
 	private static final String OLLAMA_LABEL = "How to use externally with Ollama API";
 
@@ -179,6 +182,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return getVectorUsage(engineId);
 		case FUNCTION:
 			return getFunctionUsage(engineId);
+		case GUARDRAIL:
+			return getGuardrailUsage(engineId);
 		default:
 			return getPendingUsage();
 		}
@@ -759,130 +764,200 @@ public class GetEngineUsageReactor extends AbstractReactor {
 				```
 				""", engineId);
 
-		addUsage(usage, OPENAI, OPENAI_LABEL, """
-				Direct Client Setup (without sdk)
-				```python
-				from openai import OpenAI
+		addUsage(usage, OPENAI, OPENAI_LABEL,
+				"""
+						## In the platform
+						Client Setup
+						```python
+						# Python running in the platform is already authenticated, so there is no api key and no base url to set.
+						# Which models you can reach is decided based on the user's access, the same as everywhere else in the platform.
+						from openai import OpenAI
 
-				# access key + secret key format
-				client = OpenAI(
-				    api_key="<accesskey>:<secretkey>",
-				    base_url="<openaiendpoint>"
-				)
-				```
+						client = OpenAI()
+						```
 
-				Chat Completions (without sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"}
-				    ]
-				)
-				print(response.choices[0].message.content)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						response.choices[0].message.content
+						```
 
-				Responses API (without sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?"
-				)
-				print(response.output[0].text)
-				```
+						Streaming
+						```python
+						for chunk in client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Count from 1 to 5."}],
+						    stream=True
+						):
+						    if chunk.choices and chunk.choices[0].delta.content:
+						        print(chunk.choices[0].delta.content, end="")
+						```
 
-				Legacy Completions (Deprecated by OpenAI, without sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    extra_body={"insight_id":"<optional insight id>"}
-				)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						response.output_text
+						```
 
-				Embeddings (without sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"]
-				)
-				```
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
 
-				Client Setup (with sdk)
+						Continuing a conversation
+						```python
+						# Each call starts a new room unless you name one to carry the history.
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[{"role": "user", "content": "Where was it played?"}],
+						    extra_body={"room_id": "<your room id>"}
+						)
+						```
 
-				SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
-				```python
-				# Requires user access/secret, service account, or bearer token
-				import ai_server
-				server_connection=ai_server.ServerClient(
-				    base="<apiendpoint>",
-				    access_key="<your access key>",
-				    secret_key="<your secret key>"
-				)
+						Listing the models you can reach
+						```python
+						[model.id for model in client.models.list().data]
+						```
 
-				# Configure the OpenAI client to route through this Semoss instance
-				from openai import OpenAI
-				import httpx as httpx
-				http_client = httpx.Client()
-				http_client.cookies=server_connection.cookies
+						## External, direct OpenAI client
+						Client Setup
+						```python
+						from openai import OpenAI
 
-				client = OpenAI(
-				    api_key="EMPTY",
-				    base_url=server_connection.get_openai_endpoint(),
-				    default_headers=server_connection.get_auth_headers(),
-				    http_client=http_client
-				)
-				```
+						# access key + secret key format
+						client = OpenAI(
+						    api_key="<accesskey>:<secretkey>",
+						    base_url="<openaiendpoint>"
+						)
+						```
 
-				Chat Completions (with sdk)
-				```python
-				response = client.chat.completions.create(
-				    model="<engineid>",
-				    messages=[
-				        {"role": "system", "content": "You are a helpful assistant."},
-				        {"role": "user", "content": "Who won the world series in 2020?"},
-				        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
-				        {"role": "user", "content": "Where was it played?"}
-				    ],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"}
+						    ]
+						)
+						print(response.choices[0].message.content)
+						```
 
-				Responses API (with sdk)
-				```python
-				response = client.responses.create(
-				    model="<engineid>",
-				    instructions="You are a helpful assistant.",
-				    input="Who won the world series in 2020?",
-					# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				print(response.output[0].text)
-				```
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?"
+						)
+						print(response.output[0].text)
+						```
 
-				Legacy Completions (Deprecated by OpenAI, with sdk)
-				```python
-				response = client.completions.create(
-				    model="<engineid>",
-				    prompt="Write a tagline for an ice cream shop.",
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    extra_body={"insight_id":"<optional insight id>"}
+						)
+						```
 
-				Embeddings (with sdk)
-				```python
-				embeddings = client.embeddings.create(
-				    model="<engineid>",
-				    input=["Your text string goes here"],
-				    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
-				    extra_body={"insight_id":server_connection.cur_insight}
-				)
-				```
-				""", engineId);
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"]
+						)
+						```
+
+						## External, with the ai-server-sdk
+						Client Setup
+
+						SDK package: [ai-server-sdk on PyPI](https://pypi.org/project/ai-server-sdk/)
+						```python
+						# Requires user access/secret, service account, or bearer token
+						import ai_server
+						server_connection=ai_server.ServerClient(
+						    base="<apiendpoint>",
+						    access_key="<your access key>",
+						    secret_key="<your secret key>"
+						)
+
+						# Configure the OpenAI client to route through this Semoss instance
+						from openai import OpenAI
+						import httpx as httpx
+						http_client = httpx.Client()
+						http_client.cookies=server_connection.cookies
+
+						client = OpenAI(
+						    api_key="EMPTY",
+						    base_url=server_connection.get_openai_endpoint(),
+						    default_headers=server_connection.get_auth_headers(),
+						    http_client=http_client
+						)
+						```
+
+						Chat Completions
+						```python
+						response = client.chat.completions.create(
+						    model="<engineid>",
+						    messages=[
+						        {"role": "system", "content": "You are a helpful assistant."},
+						        {"role": "user", "content": "Who won the world series in 2020?"},
+						        {"role": "assistant", "content": "The Los Angeles Dodgers won the World Series in 2020."},
+						        {"role": "user", "content": "Where was it played?"}
+						    ],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Responses API
+						```python
+						response = client.responses.create(
+						    model="<engineid>",
+						    instructions="You are a helpful assistant.",
+						    input="Who won the world series in 2020?",
+							# Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						print(response.output[0].text)
+						```
+
+						Legacy Completions (Deprecated by OpenAI)
+						```python
+						response = client.completions.create(
+						    model="<engineid>",
+						    prompt="Write a tagline for an ice cream shop.",
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+
+						Embeddings
+						```python
+						embeddings = client.embeddings.create(
+						    model="<engineid>",
+						    input=["Your text string goes here"],
+						    # Only difference vs a standard OpenAI call: pass the current insight id in extra_body.
+						    extra_body={"insight_id":server_connection.cur_insight}
+						)
+						```
+						""",
+				engineId);
 
 		addUsage(usage, ANTHROPIC, ANTHROPIC_LABEL, """
 				Direct Client Setup
@@ -1326,7 +1401,9 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		List<Map<String, Object>> usage = new ArrayList<>();
 		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
 				"""
-						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others) queried behind one consistent interface. The examples below assume SQL; substitute SPARQL, Gremlin, or whichever dialect the underlying database speaks.
+						A **Database** engine is a connected data source (RDBMS, RDF, graph, NoSQL, and others).
+						Choose a supported query route for the actual engine: SqlQuery for relational engines, SparqlQuery for RDF SELECTs, and structured Database | Select | Collect pipelines for Tinker/JanusGraph/DataStax graph engines.
+						Those graph engines translate structured queries to Gremlin/Cypher internally
 
 						## What you can do
 
@@ -1362,6 +1439,23 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						```
 						SqlQuery(database = "<engineid>", query = "<encode> SELECT * FROM table_name </encode>", limit = 500);
 						SqlQuery(database = "<engineid>", query = "<encode> UPDATE table_name SET column1 = value1 WHERE condition </encode>", commit = true);
+						```
+
+						Multiple SQL Statements<br/>
+						`SqlQuery` splits a multi-statement script, verifies database access for every
+						statement before execution, and executes the statements in order. It returns an ordered array in
+						`pixelReturn[0].output`. Each item includes `statement`, normalized `query`, `route`, `status`,
+						`type`, `timeToRun`, and either table `output` or a `message`. Execution stops on the first error;
+						later entries are marked `SKIPPED`.
+						A batch is not atomic: with `commit = true`, each successful write uses the normal committed write
+						path, so earlier writes remain committed if a later statement fails.
+						```
+						SqlQuery(
+						  database = "<engineid>",
+						  query = "<encode> SELECT COUNT(*) AS before_count FROM orders; INSERT INTO orders(id) VALUES (42); SELECT COUNT(*) AS after_count FROM orders; </encode>",
+						  limit = 500,
+						  commit = true
+						);
 						```
 
 						Example Output (select query)
@@ -1448,6 +1542,30 @@ public class GetEngineUsageReactor extends AbstractReactor {
 						const { headers, values } = pixelReturn[0].output.data;
 						// headers: ["ID", "AGE", "GENDER"]
 						// values:  [["1000", 59, "female"], ["1001", 68, "female"]]
+						```
+
+						For multiple statements, read the result array instead:
+
+						```typescript
+						const sql = `
+						  SELECT COUNT(*) AS before_count FROM orders;
+						  INSERT INTO orders(id) VALUES (42);
+						  SELECT COUNT(*) AS after_count FROM orders;
+						`;
+
+						const { errors, pixelReturn } = await runPixel(
+						  `SqlQuery(database="${DATABASE_ID}", query="<encode>${sql}</encode>", limit=500, commit=true);`,
+						);
+
+						if (errors.length) throw new Error(errors[0]);
+
+						for (const result of pixelReturn[0].output) {
+						  if (result.type === "TABLE") {
+						    console.log(result.output.headers, result.output.values);
+						  } else {
+						    console.log(result.status, result.message);
+						  }
+						}
 						```
 
 						`errors` already contains any expression the server flagged with `operationType` `["ERROR"]`, so this one check is enough. `output` is the same map documented in the Pixel section (`data.values`, `data.headers`, `data.rawHeaders`, `headerInfo`, `sources`, `numCollected`).
@@ -2216,22 +2334,6 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usage;
 	}
 
-	private List<Map<String, Object>> getPendingUsage() {
-		List<Map<String, Object>> usage = new ArrayList<>();
-		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
-				"""
-						Detailed usage examples for this engine type have not been written yet. The platform notes below still apply - every engine is reachable the same way, whichever type it is.
-
-						"""
-						+ PLATFORM_INTRODUCTION,
-				null);
-		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
-		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL, "Documentation pending", null);
-		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
-		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
-		return usage;
-	}
-
 	private List<FunctionParameter> getFunctionParameters(IFunctionEngine functionEngine) {
 		List<FunctionParameter> parameters = functionEngine.getParameters();
 		return parameters == null ? new ArrayList<>() : parameters;
@@ -2278,6 +2380,114 @@ public class GetEngineUsageReactor extends AbstractReactor {
 			return "\"string\"";
 		}
 		return type;
+	}
+
+	private List<Map<String, Object>> getGuardrailUsage(String engineId) {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		List<FunctionParameter> parameters;
+		List<String> requiredParameters;
+		String pipelineUsage;
+		if (SAMPLE_ENGINE_ID.equals(engineId)) {
+			parameters = List.of(new FunctionParameter("prompt", "String", "The text to evaluate"));
+			requiredParameters = List.of("prompt");
+			pipelineUsage = "Select a guardrail engine to view its default pipeline configuration.";
+		} else {
+			IGuardrailReactorFunctionEngine guardrailEngine = Utility.getGuardrailEngine(engineId);
+			parameters = getFunctionParameters(guardrailEngine);
+			requiredParameters = getRequiredFunctionParameters(guardrailEngine);
+			pipelineUsage = guardrailEngine.getDefaultMarkdown();
+			if (pipelineUsage == null || pipelineUsage.trim().isEmpty()) {
+				pipelineUsage = "This guardrail engine does not define a default pipeline configuration.";
+			}
+		}
+		List<Map<String, Object>> paramInfo = buildFunctionParamInfo(parameters, requiredParameters);
+		String testArguments = buildGuardrailTestArguments(parameters, requiredParameters);
+
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						A **Guardrail** engine evaluates selected input or output from another engine and returns a pass, block, mask, or replacement-response decision. Guardrails are normally referenced from another engine's `pipeline.json` rather than called directly.
+
+						## Pipeline placement
+
+						Save `pipeline.json` in the protected engine's assets folder and set `PIPELINE pipeline.json` in that engine's SMSS. The top-level `pipelines` map is keyed by intercepted Java method name, such as `askRoom` for model chat or `execute` for a function engine. Use `*` to apply a pipeline to every intercepted method.
+
+						## Execution order
+
+						- `input` guardrails run before the protected engine method. They can block, mask an argument, return a guardrail-provided response, or close a model room after a block.
+						- `output` guardrails run after the protected engine method. They can block the result or close a model room after a block.
+						- Entries run in list order. A failed blocking guardrail stops the remaining work.
+
+						## Tool-result continuations
+
+						`askRoom` carries both a user's turn and the agent loop's tool results, so a guardrail meant for user-typed text also screens every tool result. These optional `params` on an input guardrail let a mount skip the tool turns:
+
+						- `skipOnToolContinuationForAllTools` (boolean) skips every tool-result continuation and ignores the allowlist below.
+						- `skipOnToolContinuationForTools` (list) skips only when every tool result on the message names a listed tool. Names are the ones the model was given, so a tool served by another engine carries that engine's prefix, such as `a<engineid>_search`.
+						- `toolContinuationArg` (string, default `arg0`) names the argument holding the message, for an intercepted method that does not take it first.
+
+						A turn carrying user-written text is always screened, whatever these are set to. Skipping is not free: tool output is untrusted content, and a mount that skips it stops protecting the boundary where a web search or a file read can carry an injection. Prefer the allowlist, and keep a screening mount attached for the rest.
+						""",
+				engineId);
+
+		addUsage(usage, GUARDRAIL, GUARDRAIL_LABEL, pipelineUsage, engineId, paramInfo);
+		addUsage(usage, PIXEL, PIXEL_LABEL,
+				"""
+						## Test the guardrail directly
+
+						`ExecuteGuardrailEngine` runs the guardrail by itself so you can test its decision and returned details before attaching it to another engine. This call does not exercise the input/output pipeline behavior such as blocking, masking, replacing a response, or closing a room.
+
+						```
+						ExecuteGuardrailEngine(engine = "<engineid>"<testarguments>);
+						```
+						"""
+						.replace("<testarguments>", testArguments),
+				engineId, paramInfo);
+		return usage;
+	}
+
+	private String buildGuardrailTestArguments(List<FunctionParameter> parameters, List<String> requiredParameters) {
+		List<FunctionParameter> testParameters = new ArrayList<>();
+		for (FunctionParameter parameter : parameters) {
+			if (requiredParameters.contains(parameter.getParameterName())) {
+				testParameters.add(parameter);
+			}
+		}
+		if (testParameters.isEmpty() && !parameters.isEmpty()) {
+			testParameters.add(parameters.get(0));
+		}
+
+		StringBuilder arguments = new StringBuilder();
+		for (FunctionParameter parameter : testParameters) {
+			arguments.append(", ").append(parameter.getParameterName()).append(" = ")
+					.append(getGuardrailTestValue(parameter));
+		}
+		return arguments.toString();
+	}
+
+	private String getGuardrailTestValue(FunctionParameter parameter) {
+		String type = parameter.getParameterType();
+		if ("string".equalsIgnoreCase(type)) {
+			if ("prompt".equalsIgnoreCase(parameter.getParameterName())) {
+				return "\"<encode>Sample text to evaluate</encode>\"";
+			}
+			return "\"sample value\"";
+		}
+		if ("boolean".equalsIgnoreCase(type)) {
+			return "true";
+		}
+		if ("double".equalsIgnoreCase(type) || "float".equalsIgnoreCase(type)) {
+			return "0.7";
+		}
+		if ("integer".equalsIgnoreCase(type) || "long".equalsIgnoreCase(type)) {
+			return "1";
+		}
+		if (type != null && type.toLowerCase().startsWith("list")) {
+			return "[\"sample value\"]";
+		}
+		if (type != null && type.toLowerCase().startsWith("map")) {
+			return "{}";
+		}
+		return "null";
 	}
 
 	/**
@@ -2335,17 +2545,33 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		return usageMap;
 	}
 
+	private List<Map<String, Object>> getPendingUsage() {
+		List<Map<String, Object>> usage = new ArrayList<>();
+		addUsage(usage, INTRODUCTION, INTRODUCTION_LABEL,
+				"""
+						Detailed usage examples for this engine type have not been written yet. The platform notes below still apply - every engine is reachable the same way, whichever type it is.
+
+						"""
+						+ PLATFORM_INTRODUCTION,
+				null);
+		addUsage(usage, PIXEL, PIXEL_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVASCRIPT, JAVASCRIPT_LABEL, "Documentation pending", null);
+		addUsage(usage, PYTHON, PYTHON_LABEL, "Documentation pending", null);
+		addUsage(usage, JAVA, JAVA_LABEL, "Documentation pending", null);
+		return usage;
+	}
+
 	@Override
 	public String getReactorDescription() {
 		return """
-				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
+				Builds tutorial-style usage snippets for a selected engine across Pixel, JavaScript/TypeScript, Python, Java, Guardrail pipeline JSON, and optional integrations (for example LangChain or OpenAI-compatible usage when supported).
 
-				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), and Function (callable tools) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
+				Platform context (useful for both human readers and machine consumers): on the Semoss AI Server platform every capability is an *engine* registered in a shared catalog - Model (LLMs), Vector (semantic search), Database (SQL/graph), Storage (files), Function (callable tools), and Guardrail (input/output policy checks) - addressed by a stable `engineId`. Pixel is the server-side scripting language executed through the `runPixel` REST endpoint; the `@semoss/sdk` JavaScript package, the `ai_server` Python SDK, and the Java `Utility` helpers call the same engines. Model/chat calls are stateful via a *room* (insight) that holds conversation history.
 
 				- Input resolution order is: `engine` first, then `type` if `engine` is not provided.
 				- When only `type` is supplied, snippets are generated with `SAMPLE_ENGINE_ID` as the placeholder engine identifier.
 				- The returned vector contains one object per usage channel with `type`, `label`, and `code`.
-				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does plus a shared "how to reach this engine" platform section. The remaining channels (`pixel`, `javascript`, `python`, `java`, ...) are per-integration.
+				- The first channel is always `type = "introduction"`: a markdown primer explaining what this engine type does. The remaining channels (`pixel`, `javascript`, `python`, `java`, `guardrail`, ...) are per-integration or configuration format.
 				- Each integration channel's `code` is markdown with per-operation example calls, each followed by an "Example Output" block showing the JSON/dict payload it returns. Pixel outputs show the full `runPixel` envelope (`pixelReturn[i].output`); Python SDK outputs show the unwrapped payload.
 				- The `javascript` channel covers the `@semoss/sdk` front-end package: `runPixel` (which returns the parsed envelope plus a pre-collected `errors` array), insight sessions, engine discovery via `MyEngines`, and, for Model engines, room-threaded chat, file uploads, and streaming through `runPixelAsync`/`getPixelJobStreaming`.
 				- Model responses are schemaVersion 2: `response` is the convenience concatenated text while `parts` is the full ordered content (text, tool_call, media, etc.) that can mix modalities in one turn.
@@ -2364,7 +2590,8 @@ public class GetEngineUsageReactor extends AbstractReactor {
 		} else if (key.equals(ReactorKeysEnum.TYPE.getKey())) {
 			String validValues = String.join(", ", IEngine.CATALOG_TYPE.DATABASE.toString(),
 					IEngine.CATALOG_TYPE.STORAGE.toString(), IEngine.CATALOG_TYPE.MODEL.toString(),
-					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString());
+					IEngine.CATALOG_TYPE.VECTOR.toString(), IEngine.CATALOG_TYPE.FUNCTION.toString(),
+					IEngine.CATALOG_TYPE.GUARDRAIL.toString());
 			return """
 					Fallback engine catalog type used only when `engine` is not provided.
 

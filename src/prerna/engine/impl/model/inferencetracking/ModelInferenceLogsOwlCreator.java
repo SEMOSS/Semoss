@@ -38,9 +38,10 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 
 	public ModelInferenceLogsOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String BLOB_DATATYPE_NAME = queryUtil.getBlobDataTypeName();
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
@@ -149,6 +150,7 @@ public class ModelInferenceLogsOwlCreator extends AbstractOwlCreator {
 				Pair.with("STATUS", VARCHAR_50),
 				Pair.with("INPUT", CLOB_DATATYPE_NAME),
 				Pair.with("REQUEST_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("PROGRESS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("INPUT_MESSAGE_ID", VARCHAR_50),
 				Pair.with("FINAL_OUTPUT", CLOB_DATATYPE_NAME),
 				Pair.with("FINAL_OUTPUT_MESSAGE_ID", VARCHAR_50),

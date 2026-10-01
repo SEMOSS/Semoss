@@ -53,9 +53,8 @@ import prerna.util.Utility;
  * Guardrail that checks whether a prompt is on-topic by performing a similarity
  * search against a user-configured vector database. The vector DB should be
  * pre-loaded with example on-topic prompts/documents. Whether the returned
- * Score is a distance or a similarity
- * depends on the configured vector engine, so it is declared via
- * SCORE_IS_DISTANCE rather than assumed.
+ * Score is a distance or a similarity depends on the configured vector engine,
+ * so it is declared via SCORE_IS_DISTANCE rather than assumed.
  *
  */
 public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
@@ -167,8 +166,7 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 		IVectorDatabaseEngine vectorDb = Utility.getVectorDatabase(this.vectorEngineId);
 		if (vectorDb == null) {
 			classLogger.error("OnTopicGuardrail: vector database engine not found: {}", this.vectorEngineId);
-			throw new IllegalStateException(
-					"Could not find vector database engine with id: " + this.vectorEngineId);
+			throw new IllegalStateException("Could not find vector database engine with id: " + this.vectorEngineId);
 		}
 
 		// Vector DB nearestNeighbor requires an Insight for its embedding model calls.
@@ -195,22 +193,21 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 			}
 		}
 
-		// Results are returned sorted by the vector DB — first result is the best match.
+		// Results are returned sorted by the vector DB - first result is the best
+		// match.
 		double bestScore = Double.MAX_VALUE;
 		if (!results.isEmpty()) {
 			Object scoreObj = results.get(0).get(SCORE_KEY);
 			if (scoreObj instanceof Number) {
 				bestScore = ((Number) scoreObj).doubleValue();
 			}
-			classLogger.info("OnTopicGuardrail: top match — score={}, content={}",
-					bestScore,
+			classLogger.info("OnTopicGuardrail: top match - score={}, content={}", bestScore,
 					results.get(0).getOrDefault("Content", results.get(0).getOrDefault("content", "<unknown>")));
 		} else {
 			classLogger.info("OnTopicGuardrail: no results returned from vector DB");
 		}
 
-		boolean pass = !results.isEmpty()
-				&& (scoreIsDistance ? bestScore <= threshold : bestScore >= threshold);
+		boolean pass = !results.isEmpty() && (scoreIsDistance ? bestScore <= threshold : bestScore >= threshold);
 
 		Map<String, Object> details = new HashMap<>();
 		details.put("threshold", threshold);
@@ -218,8 +215,8 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 		details.put("limit", limit);
 		details.put("results", results);
 
-		classLogger.info("OnTopicGuardrail: bestScore={}, threshold={}, pass={}, resultCount={}",
-				bestScore, threshold, pass, results.size());
+		classLogger.info("OnTopicGuardrail: bestScore={}, threshold={}, pass={}, resultCount={}", bestScore, threshold,
+				pass, results.size());
 
 		return new GuardrailNounMetadata(pass, prompt, details);
 	}
@@ -244,5 +241,49 @@ public class OnTopicGuardrailEngine extends AbstractGuardrailReactorFunctionEngi
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_ON_TOPIC;
+	}
+
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# On-topic guardrail
+
+				This guardrail compares selected text with examples stored in a vector database. It passes when the best nearest-neighbor result meets the configured score threshold and fails when there is no match.
+
+				Load the vector engine with representative allowed questions or documents. Set `VECTOR_ENGINE_ID` and `SCORE_IS_DISTANCE` in the guardrail SMSS. `SCORE_IS_DISTANCE=true` means lower scores are better and must be at or below the threshold; `false` means higher scores are better and must be at or above it. Calibrate `DEFAULT_THRESHOLD` using scores from the selected vector backend. `LIMIT` defaults to `5`.
+
+				## Example: restrict a model to an approved knowledge domain
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "input": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "arg0"
+				            },
+				            "directParameters": {
+				              "threshold": 0.82,
+				              "limit": 5
+				            },
+				            "blockOnGuardrailFailure": true,
+				            "blockErrorMessage": "This assistant only answers questions in its approved knowledge domain."
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				The example threshold assumes a similarity score; replace it with a value measured for your vector engine. This guardrail returns the original prompt, so it should block off-topic requests rather than mask them.
+				"""
+				.formatted(getEngineId());
 	}
 }

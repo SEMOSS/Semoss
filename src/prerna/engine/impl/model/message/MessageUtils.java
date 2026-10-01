@@ -989,6 +989,24 @@ public class MessageUtils {
 	 * @param toolCall raw tool call map from a {@link ToolCallMessagePart}
 	 * @return whether the call was executed server-side by the model provider
 	 */
+	/**
+	 * The tool name on a tool call, read from either shape a provider produces:
+	 * flat, or nested under an OpenAI style function object.
+	 *
+	 * @param toolCall one entry of a response message's tool calls
+	 * @return the name, or null when the call does not carry one
+	 */
+	public static String getToolCallName(Map<String, Object> toolCall) {
+		if (toolCall == null) {
+			return null;
+		}
+		Object name = toolCall.get("name");
+		if (name == null && toolCall.get("function") instanceof Map) {
+			name = ((Map<?, ?>) toolCall.get("function")).get("name");
+		}
+		return name == null ? null : String.valueOf(name);
+	}
+
 	public static boolean isServerToolCall(Map<String, Object> toolCall) {
 		if (toolCall == null) {
 			return false;

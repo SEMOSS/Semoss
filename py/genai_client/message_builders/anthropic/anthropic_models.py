@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel, field_validator
 
 from ...utils import StringEnum
@@ -30,9 +30,15 @@ class AnthropicImageContentPart(BaseModel):
     source: AnthropicMediaSourceBase64
 
 
+class AnthropicMediaSourceText(BaseModel):
+    type: Literal["text"] = "text"
+    media_type: Literal["text/plain"] = "text/plain"
+    data: str
+
+
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    source: AnthropicMediaSourceBase64
+    source: Union[AnthropicMediaSourceBase64, AnthropicMediaSourceText]
 
 
 # FOR HISTORY
@@ -143,13 +149,10 @@ class AnthropicRequestConfig(BaseModel):
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    top_k: Optional[int] = None
-    top_p: Optional[float] = None
+    extra_body: Optional[Dict[str, Any]] = None
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     thinking: Optional[Dict[str, Any]] = None
-    # Modern Claude (Opus 4.6+/Sonnet 4.6/Fable): {"effort": "low|medium|high|xhigh|max"}
     output_config: Optional[Dict[str, Any]] = None
 
 

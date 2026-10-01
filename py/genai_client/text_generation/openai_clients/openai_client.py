@@ -95,9 +95,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         return OpenAI(api_key=api_key, **kwargs)
 
     def _get_bedrock_client(self, **kwargs) -> OpenAI:
-        import boto3
-        import httpx
-        from .bedrock_sigv4_auth import BedrockSigV4Auth
+        from openai.providers import bedrock
 
         aws_access_key = kwargs.pop("aws_access_key", None) or kwargs.pop(
             "aws_access_key_id", None
@@ -105,47 +103,34 @@ class OpenAiClient(AbstractTextGenerationClient):
         aws_secret_key = kwargs.pop("aws_secret_key", None) or kwargs.pop(
             "aws_secret_access_key", None
         )
-        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
-
-        # Optional openai api key; no idea why you would use it here
-        api_key = kwargs.pop("api_key", None)
-
-        session = boto3.Session(
-            aws_access_key_id=aws_access_key,
-            aws_secret_access_key=aws_secret_key,
-            region_name=aws_region,
+        aws_session_token = kwargs.pop("aws_session_token", None) or kwargs.pop(
+            "session_token", None
         )
-        credentials = session.get_credentials()
-        if credentials is None:
-            raise ValueError(
-                "Could not resolve AWS credentials for provider='bedrock' "
-                "(pass aws_access_key/aws_secret_key or configure the default chain)"
-            )
-        region = aws_region or session.region_name
-        if not region:
+        aws_region = kwargs.pop("aws_region", None) or kwargs.pop("region", None)
+        kwargs.pop("api_key", None)
+
+        if not aws_region:
+            import boto3
+
+            aws_region = boto3.Session().region_name
+        if not aws_region:
             raise ValueError(
                 "provider='bedrock' requires a region "
                 "(pass aws_region, set AWS_REGION, or run on EC2 with a region)"
             )
 
-        base_url = (
-            kwargs.pop("base_url", None)
-            or kwargs.pop("endpoint", None)
-            or f"https://bedrock-mantle.{region}.api.aws/openai/v1"
-        )
+        base_url = kwargs.pop("base_url", None) or kwargs.pop("endpoint", None)
+        provider_kwargs = {"base_url": base_url} if base_url else {}
 
-        http_client = httpx.Client(
-            auth=BedrockSigV4Auth(
-                credentials=credentials,
-                service="bedrock-mantle",
-                region=region,
+        return OpenAI(
+            provider=bedrock(
+                region=aws_region,
+                access_key_id=aws_access_key,
+                secret_access_key=aws_secret_key,
+                session_token=aws_session_token,
+                **provider_kwargs,
             ),
             timeout=kwargs.pop("timeout", 300.0),
-        )
-        return OpenAI(
-            api_key=api_key or "unused-sigv4-signs-this",
-            base_url=base_url,
-            http_client=http_client,
         )
 
     def ask_call(

@@ -1,13 +1,16 @@
 from typing import List, Dict, Any, Tuple, Union, Optional
 import json, re
-from ...utils import (
-    get_image_extension,
-    fetch_and_encode_image,
+from ...utils import fetch_and_encode_image
+from ..semoss_base.media_types import (
+    decode_base64_text,
+    is_text_mime_type,
+    prepare_base64_media,
 )
 from .anthropic_models import (
     AnthropicRoles,
     AnthropicMessage,
     AnthropicMediaSourceBase64,
+    AnthropicMediaSourceText,
     AnthropicImageContentPart,
     AnthropicDocumentContentPart,
     AnthropicTextContentPart,
@@ -303,33 +306,11 @@ class AnthropicMessageBuilder:
                                     {"type": "text", "text": message.content}
                                 )
 
-                            # Add images
+                            # Use the same provider conversion for tool attachments.
                             for media in message.media_content:
-                                if media.type == SEMOSSMediaInputType.BASE64:
-                                    content_parts.append(
-                                        {
-                                            "type": "image",
-                                            "source": {
-                                                "type": "base64",
-                                                "media_type": media.mime_type,
-                                                "data": media.data,
-                                            },
-                                        }
-                                    )
-                                elif media.type == SEMOSSMediaInputType.URL:
-                                    media_data, media_type = fetch_and_encode_image(
-                                        media.url
-                                    )
-                                    content_parts.append(
-                                        {
-                                            "type": "image",
-                                            "source": {
-                                                "type": "base64",
-                                                "media_type": media_type,
-                                                "data": media_data,
-                                            },
-                                        }
-                                    )
+                                content_parts.append(
+                                    self._build_media_content_single_part(media)
+                                )
 
                             tool_result = AnthropicToolResultContentPart(
                                 tool_use_id=message.tool_call_id,
@@ -578,9 +559,7 @@ class AnthropicMessageBuilder:
         else:
             raise ValueError(f"Unknown message type: {message_type}")
 
-    def _parse_tool_result_content(
-        self, output: Optional[str]
-    ) -> Union[
+    def _parse_tool_result_content(self, output: Optional[str]) -> Union[
         str,
         List[
             Union[
@@ -618,25 +597,15 @@ class AnthropicMessageBuilder:
                 # unresolved file ref - Java should have inlined this; skip
                 continue
             elif block.type == "image":
-                mime = block.mime_type or "image/png"
-                if mime == "image/jpg":
-                    mime = "image/jpeg"
+                data, mime = prepare_base64_media(block, "image/png")
                 parts.append(
                     AnthropicImageContentPart(
-                        source=AnthropicMediaSourceBase64(
-                            media_type=mime, data=block.data
-                        )
+                        source=AnthropicMediaSourceBase64(media_type=mime, data=data)
                     )
                 )
             else:
-                parts.append(
-                    AnthropicDocumentContentPart(
-                        source=AnthropicMediaSourceBase64(
-                            media_type=block.mime_type or "application/pdf",
-                            data=block.data,
-                        )
-                    )
-                )
+                data, mime = prepare_base64_media(block, "application/pdf")
+                parts.append(self._build_document_content(data, mime))
 
         return parts if parts else output
 
@@ -674,19 +643,12 @@ class AnthropicMessageBuilder:
                 "The media type was specified as URL but no URL was provided.."
             )
 
-        # TODO: this utility methods needs to be expanded for non-images
         media_data, media_type = fetch_and_encode_image(media_content.url)
-        if media_type == "image/jpg":
-            media_type = "image/jpeg"
-
-        media_source = AnthropicMediaSourceBase64(
-            media_type=media_type,
-            data=media_data,
+        return self._build_base64_media_content(
+            media_content.model_copy(
+                update={"data": media_data, "mime_type": media_type}
+            )
         )
-        if media_type.startswith("image"):
-            return AnthropicImageContentPart(source=media_source)
-        else:
-            return AnthropicDocumentContentPart(source=media_source)
 
     def _build_base64_media_content(
         self, media_content: SEMOSSMediaContent
@@ -697,38 +659,22 @@ class AnthropicMessageBuilder:
                 "The media type was specified as base64 but no data was provided."
             )
 
-        data = media_content.data
-        mime_type = media_content.mime_type
+        data, mime_type = prepare_base64_media(media_content)
+        if mime_type.startswith("image/"):
+            return AnthropicImageContentPart(
+                source=AnthropicMediaSourceBase64(media_type=mime_type, data=data)
+            )
+        return self._build_document_content(data, mime_type)
 
-        # Handle data URI format: 'data:<mime_type>;base64,<data>'
-        if data.startswith("data:") and ";base64," in data:
-            # Extract mime type from data URI if not already set
-            data_uri_mime = data.split(";base64,")[0].replace("data:", "")
-            if not mime_type:
-                mime_type = data_uri_mime
-            # Extract just the base64 data (after the comma)
-            data = data.split(";base64,")[1]
-
-        if not mime_type:
-            mime_type = get_image_extension(data)
-
-        # Normalize short mime types (e.g., 'jpeg' -> 'image/jpeg', 'png' -> 'image/png')
-        if mime_type and "/" not in mime_type:
-            image_extensions = ["jpeg", "jpg", "png", "gif", "webp", "bmp", "tiff"]
-            if mime_type.lower() in image_extensions:
-                mime_type = f"image/{mime_type.lower()}"
-
-        if mime_type == "image/jpg":
-            mime_type = "image/jpeg"
-
-        media_source = AnthropicMediaSourceBase64(
-            media_type=mime_type,
-            data=data,
-        )
-        if mime_type and mime_type.startswith("image"):
-            return AnthropicImageContentPart(source=media_source)
+    def _build_document_content(
+        self, data: str, mime_type: str
+    ) -> AnthropicDocumentContentPart:
+        if is_text_mime_type(mime_type):
+            # Anthropic text documents require decoded text, not a base64 source.
+            source = AnthropicMediaSourceText(data=decode_base64_text(data))
         else:
-            return AnthropicDocumentContentPart(source=media_source)
+            source = AnthropicMediaSourceBase64(media_type=mime_type, data=data)
+        return AnthropicDocumentContentPart(source=source)
 
     def _convert_mcp_to_anthropic_tools(self, mcp_tools: List[Dict]) -> List[Dict]:
         """
@@ -892,6 +838,14 @@ class AnthropicMessageBuilder:
             if temperature is not None:
                 temperature = 1
 
+        extra_body: Dict[str, Any] = {}
+        if temperature is not None:
+            extra_body["temperature"] = temperature
+        if top_p is not None:
+            extra_body["top_p"] = top_p
+        if top_k is not None:
+            extra_body["top_k"] = top_k
+
         if "use_history" in kwargs:
             use_history = kwargs.pop("use_history")
             if string_to_bool(use_history) is False:
@@ -908,9 +862,7 @@ class AnthropicMessageBuilder:
             tools=tools,
             tool_choice=kwargs.pop("tool_choice", None),
             max_tokens=max_tokens,
-            temperature=temperature,
-            top_k=top_k,
-            top_p=top_p,
+            extra_body=extra_body or None,
             container=kwargs.pop("container", None),
             stop_sequences=kwargs.pop("stop_sequences", None),
             thinking=thinking_map,
@@ -1007,23 +959,19 @@ class AnthropicMessageBuilder:
         if isinstance(base_64_docs, list):
             for doc in base_64_docs:
                 if isinstance(doc, dict) and "data" in doc and "mime_type" in doc:
-                    media_source = AnthropicMediaSourceBase64(
-                        media_type=doc["mime_type"],
-                        data=doc["data"],
+                    data, mime = prepare_base64_media(
+                        SEMOSSMediaContent(type="base64", **doc)
                     )
-                    content_part = AnthropicDocumentContentPart(source=media_source)
-                    content_parts.append(content_part)
+                    content_parts.append(self._build_document_content(data, mime))
         elif (
             isinstance(base_64_docs, dict)
             and "data" in base_64_docs
             and "mime_type" in base_64_docs
         ):
-            media_source = AnthropicMediaSourceBase64(
-                media_type=base_64_docs["mime_type"],
-                data=base_64_docs["data"],
+            data, mime = prepare_base64_media(
+                SEMOSSMediaContent(type="base64", **base_64_docs)
             )
-            content_part = AnthropicDocumentContentPart(source=media_source)
-            content_parts.append(content_part)
+            content_parts.append(self._build_document_content(data, mime))
         else:
             raise ValueError(
                 "base64Docs must be a dict or list of dicts with 'data' and 'mime_type' keys."

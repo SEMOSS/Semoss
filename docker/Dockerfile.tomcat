@@ -37,7 +37,7 @@ ARG FIPS_ENABLED=false
 # libraries outside the certificate boundary that call into it. Before bumping
 # BC_FIPS_VERSION, confirm the new version is on the CMVP active list, not just
 # published to Maven Central.
-ARG BC_FIPS_VERSION=2.1.2
+ARG BC_FIPS_VERSION=2.1.3
 ARG BCTLS_FIPS_VERSION=2.1.24
 ARG BCPKIX_FIPS_VERSION=2.1.12
 ARG BCUTIL_FIPS_VERSION=2.1.7
@@ -158,7 +158,7 @@ RUN if [ "$FIPS_ENABLED" != "true" ]; then echo "FIPS_ENABLED=$FIPS_ENABLED - sk
 	wget -q $M2/bctls-fips/${BCTLS_FIPS_VERSION}/bctls-fips-${BCTLS_FIPS_VERSION}.jar; \
 	wget -q $M2/bcpkix-fips/${BCPKIX_FIPS_VERSION}/bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar; \
 	wget -q $M2/bcutil-fips/${BCUTIL_FIPS_VERSION}/bcutil-fips-${BCUTIL_FIPS_VERSION}.jar; \
-	{ echo "044fcd8a29d236edea8a5b414406cdae63b475f9ad9f05fe2dc904a277941115  bc-fips-${BC_FIPS_VERSION}.jar"; \
+	{ echo "f55fc476ede820d5c03fe87e6ced5bb0095e1dc30b387445846a3ff0274f8c0e  bc-fips-${BC_FIPS_VERSION}.jar"; \
 	  echo "d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c  bctls-fips-${BCTLS_FIPS_VERSION}.jar"; \
 	  echo "48f418d70c9551ac9225f333e5e9dfe872b4501cc566728b6d2bc7364a2223d4  bcpkix-fips-${BCPKIX_FIPS_VERSION}.jar"; \
 	  echo "a30e550f06dcfa0fd7da1e9a501f111421406fa237467522b3ca05187429832d  bcutil-fips-${BCUTIL_FIPS_VERSION}.jar"; } > sha256.manifest; \

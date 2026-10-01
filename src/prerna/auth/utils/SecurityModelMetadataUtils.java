@@ -78,6 +78,7 @@ import prerna.util.Utility;
 public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityModelMetadataUtils.class);
+
 	private static final Gson GSON = new Gson();
 	private static final Gson LONG_OR_DOUBLE_GSON = new GsonBuilder()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
@@ -86,15 +87,17 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
 			Constants.REASONING, Constants.REASONING_CONFIG, Constants.CATALOG_MODEL_KEY, Constants.PRICING);
-	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY,
-			Constants.MODEL_PROVIDER, Constants.SERVING_PROVIDER,
-			Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES, Constants.OUTPUT_MODALITIES,
-			Constants.BUILTIN_TOOLS, Constants.MODEL_FAMILY, Constants.ATTACHMENT,
-			Constants.REASONING, Constants.TOOL_CALL, Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
+	private static final Set<String> CATALOG_ONLY_KEYS = Set.of(Constants.CATALOG_MODEL_KEY, Constants.MODEL_PROVIDER,
+			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
+			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
+			Constants.MODEL_FAMILY, Constants.ATTACHMENT, Constants.REASONING, Constants.TOOL_CALL,
+			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
 			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
 			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING, Constants.DESCR);
+
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
+
 	private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("^[A-Z][A-Z0-9_]*$");
 	private static final Pattern LOWER_SNAKE_CASE_PATTERN = Pattern.compile("^[a-z][a-z0-9_]*$");
 	private static final int MODEL_METADATA_QUERY_BATCH_SIZE = 500;
@@ -139,16 +142,13 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the properties needed to open the model engine. Catalog-only metadata
-	 * is deliberately excluded so the security database remains its source of
-	 * truth. MODEL, CONTEXT_WINDOW, and MAX_TOKENS remain because model engines use
-	 * them at runtime.
+	 * Return the properties to persist in the model SMSS. Token limits and other
+	 * catalog metadata live in the security database; model engines resolve them
+	 * from that table when opening.
 	 */
 	public static Map<String, Object> getModelEngineProperties(Map<String, Object> normalizedModelDetails) {
 		Map<String, Object> engineProperties = new LinkedHashMap<>(normalizedModelDetails);
-		for (String key : CATALOG_ONLY_KEYS) {
-			engineProperties.remove(key);
-		}
+		engineProperties.keySet().removeIf(key -> CATALOG_ONLY_KEYS.contains(key.toUpperCase(Locale.ROOT)));
 		return engineProperties;
 	}
 
@@ -157,10 +157,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * metadata-related properties are present, no row is created.
 	 * <p>
 	 * The SMSS only carries the handful of properties the model engine needs at
-	 * runtime, so this runs as a merge: whatever the SMSS defines wins, anything
-	 * already saved for the engine is preserved, and the remaining gaps are filled
-	 * from the static catalog. Replacing the row outright would blank the catalog
-	 * columns every time the engine is loaded.
+	 * runtime. Legacy SMSS limits seed models without a metadata row. Once a row
+	 * exists, its token limits (including NULL) are authoritative and cannot be
+	 * replaced by SMSS values or automatic catalog defaults during engine load.
+	 * Other properties retain their existing SMSS/catalog merge behavior.
 	 */
 	public static void upsertModelMetadata(String engineId, Properties properties) {
 		if (properties == null) {
@@ -191,9 +191,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 		copyIfPresent(properties, details, Constants.BENCHMARKS);
 		copyIfPresent(properties, details, Constants.PRICING);
 
-		Map<String, Object> merged = toDetails(getModelMetadata(engineId));
+		Map<String, Object> existing = getModelMetadata(engineId);
+		Map<String, Object> merged = toDetails(existing);
 		merged.putAll(details);
 		StaticModelMetadataCatalog.applyStaticDefaults(merged);
+		if (existing != null) {
+			merged.put(Constants.CONTEXT_WINDOW, existing.get("contextWindow"));
+			merged.put(Constants.MAX_TOKENS, existing.get("maxOutputTokens"));
+		}
 		upsertModelMetadata(engineId, merged);
 	}
 
@@ -278,11 +283,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * returned, so the values are mapped back to their {@link Constants} keys and
 	 * revalidated before being saved.
 	 * <p>
-	 * This runs as a merge on top of whatever cataloguing the upload already
-	 * saved from the smss file and the static catalog. Every value the export
-	 * carried wins, and a value the export did not carry is left alone rather than
-	 * blanked, so an export made before a column existed cannot erase what the
-	 * catalog just filled in.
+	 * This runs as a merge on top of whatever cataloguing the upload already saved
+	 * from the smss file and the static catalog. Every value the export carried
+	 * wins, and a value the export did not carry is left alone rather than blanked,
+	 * so an export made before a column existed cannot erase what the catalog just
+	 * filled in.
 	 *
 	 * @param engineId         the engine as it now exists in this instance
 	 * @param exportedMetadata the parsed contents of the exported metadata file
@@ -309,15 +314,15 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	 * engines, or for every model engine in the security database when no engine
 	 * ids are given. This is the bulk version of what
 	 * {@link #upsertModelMetadata(String, Properties)} already does for a single
-	 * engine as it is catalogued on startup - it exists so a catalog refresh can be
+	 * engine as it is cataloged on startup - it exists so a catalog refresh can be
 	 * applied to models that were created before the catalog knew about them,
 	 * without bouncing the server.
 	 * <p>
-	 * The default is a gap fill: only columns that are currently empty are
-	 * written. Pass force to let the catalog win over values that are already
-	 * stored. Engines the catalog cannot speak to are reported rather than
-	 * touched, and an engine whose values would not change is never written, so
-	 * running this over the full catalog is cheap and repeatable.
+	 * The default is a gap fill: only columns that are currently empty are written.
+	 * Pass force to let the catalog win over values that are already stored.
+	 * Engines the catalog cannot speak to are reported rather than touched, and an
+	 * engine whose values would not change is never written, so running this over
+	 * the full catalog is cheap and repeatable.
 	 *
 	 * @param engineIds engines to sync, or null/empty for all model engines
 	 * @param force     overwrite stored values instead of only filling gaps
@@ -348,11 +353,11 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Force-apply the static catalog onto a single engine's metadata, optionally
-	 * associating it with a different catalog entry first. This backs the "reset
-	 * to defaults" and "match to a catalog entry" actions on the model settings
+	 * associating it with a different catalog entry first. This backs the "reset to
+	 * defaults" and "match to a catalog entry" actions on the model settings
 	 * screen: every property the catalog defines for the entry replaces what is
-	 * stored, while properties the catalog cannot speak to - the serving
-	 * provider, built-in tools, and description - are left as they are.
+	 * stored, while properties the catalog cannot speak to - the serving provider,
+	 * built-in tools, and description - are left as they are.
 	 *
 	 * @param engineId   the model engine to apply the catalog to
 	 * @param catalogKey the exact catalog key to associate (persisted as
@@ -453,7 +458,7 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	/**
 	 * The provider model id as defined in the engine's smss file. Returns null when
-	 * the engine is not catalogued or its smss cannot be read - the sync reports
+	 * the engine is not cataloged or its smss cannot be read - the sync reports
 	 * that rather than failing, since one unreadable smss should not stop the rest.
 	 */
 	private static String getModelIdFromSmss(String engineId) {
@@ -665,16 +670,15 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	private static boolean containsMetadata(Map<String, Object> details) {
 		return details.containsKey(Constants.MODEL) || details.containsKey(Constants.CATALOG_MODEL_KEY)
-				|| details.containsKey(Constants.MODEL_PROVIDER)
-				|| details.containsKey(Constants.SERVING_PROVIDER) || details.containsKey(Constants.MODEL_CAPABILITY)
-				|| details.containsKey(Constants.MODEL_FAMILY)
+				|| details.containsKey(Constants.MODEL_PROVIDER) || details.containsKey(Constants.SERVING_PROVIDER)
+				|| details.containsKey(Constants.MODEL_CAPABILITY) || details.containsKey(Constants.MODEL_FAMILY)
 				|| details.containsKey(Constants.INPUT_MODALITIES) || details.containsKey(Constants.OUTPUT_MODALITIES)
-				|| details.containsKey(Constants.CONTEXT_WINDOW)
-				|| details.containsKey(Constants.MAX_TOKENS) || details.containsKey(Constants.BUILTIN_TOOLS)
-				|| details.containsKey(Constants.ATTACHMENT) || details.containsKey(Constants.REASONING)
-				|| details.containsKey(Constants.TOOL_CALL) || details.containsKey(Constants.STRUCTURED_OUTPUT)
-				|| details.containsKey(Constants.TEMPERATURE) || details.containsKey(Constants.KNOWLEDGE_CUTOFF)
-				|| details.containsKey(Constants.RELEASE_DATE) || details.containsKey(Constants.SUPPORTED_PARAMETERS)
+				|| details.containsKey(Constants.CONTEXT_WINDOW) || details.containsKey(Constants.MAX_TOKENS)
+				|| details.containsKey(Constants.BUILTIN_TOOLS) || details.containsKey(Constants.ATTACHMENT)
+				|| details.containsKey(Constants.REASONING) || details.containsKey(Constants.TOOL_CALL)
+				|| details.containsKey(Constants.STRUCTURED_OUTPUT) || details.containsKey(Constants.TEMPERATURE)
+				|| details.containsKey(Constants.KNOWLEDGE_CUTOFF) || details.containsKey(Constants.RELEASE_DATE)
+				|| details.containsKey(Constants.SUPPORTED_PARAMETERS)
 				|| details.containsKey(Constants.REASONING_CONFIG) || details.containsKey(Constants.BENCHMARKS)
 				|| details.containsKey(Constants.PRICING);
 	}
@@ -696,23 +700,24 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	private static ModelMetadata toMetadata(String engineId, Map<String, Object> details) {
 		return new ModelMetadata(engineId, nullableString(details.get(Constants.MODEL)),
 				nullableString(details.get(Constants.CATALOG_MODEL_KEY)),
-				nullableString(details.get(Constants.MODEL_PROVIDER)), nullableString(details.get(Constants.SERVING_PROVIDER)),
+				nullableString(details.get(Constants.MODEL_PROVIDER)),
+				nullableString(details.get(Constants.SERVING_PROVIDER)),
 				nullableString(details.get(Constants.MODEL_CAPABILITY)),
 				nullableString(details.get(Constants.MODEL_FAMILY)),
 				nullableString(details.get(Constants.INPUT_MODALITIES)),
 				nullableString(details.get(Constants.OUTPUT_MODALITIES)),
 				toNullableLong(details.get(Constants.CONTEXT_WINDOW)),
-				toNullableLong(details.get(Constants.MAX_TOKENS)),
-				nullableString(details.get(Constants.BUILTIN_TOOLS)),
-				toNullableBoolean(details.get(Constants.ATTACHMENT)), toNullableBoolean(details.get(Constants.REASONING)),
+				toNullableLong(details.get(Constants.MAX_TOKENS)), nullableString(details.get(Constants.BUILTIN_TOOLS)),
+				toNullableBoolean(details.get(Constants.ATTACHMENT)),
+				toNullableBoolean(details.get(Constants.REASONING)),
 				toNullableBoolean(details.get(Constants.TOOL_CALL)),
 				toNullableBoolean(details.get(Constants.STRUCTURED_OUTPUT)),
 				toNullableBoolean(details.get(Constants.TEMPERATURE)),
 				nullableString(details.get(Constants.KNOWLEDGE_CUTOFF)),
 				nullableString(details.get(Constants.RELEASE_DATE)),
 				nullableString(details.get(Constants.SUPPORTED_PARAMETERS)),
-				nullableString(details.get(Constants.REASONING_CONFIG)), nullableString(details.get(Constants.BENCHMARKS)),
-				nullableString(details.get(Constants.PRICING)));
+				nullableString(details.get(Constants.REASONING_CONFIG)),
+				nullableString(details.get(Constants.BENCHMARKS)), nullableString(details.get(Constants.PRICING)));
 	}
 
 	private static void normalizeStringProperty(Map<String, Object> details, String key, boolean identifier) {
@@ -812,9 +817,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Built-in tools are stored as a JSON object keyed by tool name holding
-	 * the selected catalog definition for each tool. An empty selection is
-	 * stored as SQL NULL; anything that is not a JSON object is rejected.
+	 * Built-in tools are stored as a JSON object keyed by tool name holding the
+	 * selected catalog definition for each tool. An empty selection is stored as
+	 * SQL NULL; anything that is not a JSON object is rejected.
 	 */
 	private static void normalizeBuiltinToolsProperty(Map<String, Object> details) {
 		String key = Constants.BUILTIN_TOOLS;
@@ -851,10 +856,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Stored built-in tools are a JSON object keyed by tool name; anything
-	 * else in the column reads as unset. Whole numbers parse as longs rather
-	 * than gson's default doubles, since the selection is forwarded to the
-	 * python clients where a max_uses of 5.0 is not the same request as 5.
+	 * Stored built-in tools are a JSON object keyed by tool name; anything else in
+	 * the column reads as unset. Whole numbers parse as longs rather than gson's
+	 * default doubles, since the selection is forwarded to the python clients where
+	 * a max_uses of 5.0 is not the same request as 5.
 	 */
 	private static Map<?, ?> parseStoredBuiltinTools(String json) {
 		if (json == null || !json.trim().startsWith("{")) {
@@ -936,10 +941,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Pricing is stored as a JSON array of per-serving-provider rate entries.
-	 * Entries missing the identifying servingProvider/modelId strings are
-	 * dropped individually so one bad entry does not discard the rest. Values
-	 * round-trip through the long-or-double gson so integer rates re-serialize
-	 * identically and catalog sync comparisons stay stable.
+	 * Entries missing the identifying servingProvider/modelId strings are dropped
+	 * individually so one bad entry does not discard the rest. Values round-trip
+	 * through the long-or-double gson so integer rates re-serialize identically and
+	 * catalog sync comparisons stay stable.
 	 */
 	private static void normalizePricingProperty(Map<String, Object> details) {
 		String key = Constants.PRICING;
@@ -966,10 +971,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 		List<Map<?, ?>> entries = new ArrayList<>();
 		for (Object element : parsed) {
-			if (element instanceof Map<?, ?> entry
-					&& entry.get("servingProvider") instanceof String servingProvider
-					&& !servingProvider.trim().isEmpty()
-					&& entry.get("modelId") instanceof String modelId && !modelId.trim().isEmpty()) {
+			if (element instanceof Map<?, ?> entry && entry.get("servingProvider") instanceof String servingProvider
+					&& !servingProvider.trim().isEmpty() && entry.get("modelId") instanceof String modelId
+					&& !modelId.trim().isEmpty()) {
 				entries.add(entry);
 			} else {
 				classLogger.warn("Ignoring {} entry without a servingProvider and modelId", key);
@@ -979,9 +983,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Stored pricing is a JSON array of rate entries; anything else in the
-	 * column reads as unset. Whole numbers parse as longs rather than gson's
-	 * default doubles so re-serialized rates match the catalog exactly.
+	 * Stored pricing is a JSON array of rate entries; anything else in the column
+	 * reads as unset. Whole numbers parse as longs rather than gson's default
+	 * doubles so re-serialized rates match the catalog exactly.
 	 */
 	private static List<?> parseStoredPricing(String json) {
 		if (json == null || !json.trim().startsWith("[")) {
@@ -991,19 +995,18 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Whole numbers parse as longs rather than gson's default doubles, matching
-	 * how the catalog serializes them. With the default policy a stored
-	 * benchmark score of 85 read back as 85.0, so every catalog comparison
-	 * flagged BENCHMARKS as changed and every settings save rewrote the column
-	 * with the drifted value.
+	 * Whole numbers parse as longs rather than gson's default doubles, matching how
+	 * the catalog serializes them. With the default policy a stored benchmark score
+	 * of 85 read back as 85.0, so every catalog comparison flagged BENCHMARKS as
+	 * changed and every settings save rewrote the column with the drifted value.
 	 */
 	private static List<?> parseStoredJsonArray(String json) {
 		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, List.class);
 	}
 
 	/**
-	 * Same long-or-double policy as {@link #parseStoredJsonArray(String)}, for
-	 * the integer limits a reasoning config can carry.
+	 * Same long-or-double policy as {@link #parseStoredJsonArray(String)}, for the
+	 * integer limits a reasoning config can carry.
 	 */
 	private static Map<?, ?> parseStoredJsonObject(String json) {
 		return json == null ? null : LONG_OR_DOUBLE_GSON.fromJson(json, Map.class);
@@ -1155,10 +1158,10 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	private record ModelMetadata(String engineId, String modelId, String catalogModelKey, String modelProvider,
-			String servingProvider,
-			String capability, String family, String inputModalitiesJson, String outputModalitiesJson, Long contextWindow,
-			Long maxOutputTokens, String builtinToolsJson, Boolean attachment, Boolean reasoning,
-			Boolean toolCall, Boolean structuredOutput, Boolean temperature, String knowledgeCutoff, String releaseDate,
-			String supportedParametersJson, String reasoningConfigJson, String benchmarksJson, String pricingJson) {
+			String servingProvider, String capability, String family, String inputModalitiesJson,
+			String outputModalitiesJson, Long contextWindow, Long maxOutputTokens, String builtinToolsJson,
+			Boolean attachment, Boolean reasoning, Boolean toolCall, Boolean structuredOutput, Boolean temperature,
+			String knowledgeCutoff, String releaseDate, String supportedParametersJson, String reasoningConfigJson,
+			String benchmarksJson, String pricingJson) {
 	}
 }

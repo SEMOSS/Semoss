@@ -339,6 +339,25 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertNull(val);
 	}
 
+	@Test
+	void testSetDefaultEngineMarkdownOnlyFillsEmptyMetadata() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("id1", "name1", IEngine.CATALOG_TYPE.GUARDRAIL, user);
+
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "First default");
+		assertEquals("First default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Second default");
+		assertEquals("First default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+
+		SecurityEngineUtils.updateEngineMetadata("id1", Map.of(Constants.MARKDOWN, ""));
+		SecurityEngineUtils.setDefaultEngineMarkdown("id1", "Replacement default");
+		assertEquals("Replacement default", SecurityEngineUtils
+				.getAggregateEngineMetadata("id1", List.of(Constants.MARKDOWN), false).get(Constants.MARKDOWN));
+	}
+
 	///
 	/// getUserEnginePermission
 	///

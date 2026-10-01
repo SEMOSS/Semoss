@@ -27,221 +27,159 @@
  *******************************************************************************/
 package prerna.engine.impl.guardrail;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.engine.api.GuardrailTypeEnum;
-import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.Room;
-import prerna.engine.impl.model.RoomUtils;
-import prerna.engine.impl.model.message.InputMessage;
-import prerna.engine.impl.model.message.ResponseMessage;
-import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
-import prerna.om.Insight;
-import prerna.om.InsightStore;
-import prerna.om.ThreadStore;
-import prerna.sablecc2.om.GenRowStruct;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.nounmeta.GuardrailNounMetadata;
-import prerna.util.Utility;
 
 /**
  * Guardrail that classifies text against a configurable content policy by
  * calling a configured LLM with a classification system prompt. The model is
  * expected to respond with a single word {@code SAFE} or {@code UNSAFE}.
+ * <p>
  * Typically mounted on an {@code output} pipeline to check a model's response,
  * but works identically on a user prompt when mounted on {@code input}.
  *
- * Required SMSS keys:
- *   {@code MODEL_ENGINE_ID} engine ID of the LLM to use for classification.
- *    Must not itself be guarded by this (or any) output pipeline.
- *   {@code POLICY_DESCRIPTION} the behaviors that make the text UNSAFE
- * Optional SMSS keys:
- *   {@code BLOCKED_MESSAGE} canned replacement text; only takes effect
- *       when mounted on an {@code input} pipeline with
- *   {@code respondWithGuardrailMessage=true}. Output pipelines can only
- *       block a failing response today, not rewrite it.
- * Optional per-call parameter {@code policy} overrides {@code POLICY_DESCRIPTION}.
+ * <h3>Required SMSS keys</h3>
+ * <ul>
+ * <li>{@code MODEL_ENGINE_ID} - engine ID of the LLM used for classification.
+ * The judge model must not use a pipeline that invokes this guardrail.</li>
+ * <li>{@code POLICY_DESCRIPTION} - behaviors that make the evaluated text
+ * unsafe.</li>
+ * </ul>
+ * 
+ * <h3>Optional SMSS keys</h3>
+ * <ul>
+ * <li>{@code SYSTEM_PROMPT} - replaces the default judge instructions. The
+ * {@code ${POLICY_DESCRIPTION}} placeholder is replaced for each call.</li>
+ * <li>{@code BLOCKED_MESSAGE} - replacement text used by an input pipeline when
+ * {@code respondWithGuardrailMessage=true}. Output pipelines can block a
+ * failing response but cannot rewrite it.</li>
+ * <li>{@code FAIL_OPEN} - whether a judge error should allow the guarded call.
+ * Defaults to {@code true} for compatibility. Set it to {@code false} for
+ * irreversible operations such as sending mail.</li>
+ * </ul>
+ *
+ * <h3>Optional call parameters</h3>
+ * <ul>
+ * <li>{@code policy} - overrides {@code POLICY_DESCRIPTION} for one call.</li>
+ * </ul>
  */
-public class PolicyComplianceGuardrailEngine extends AbstractGuardrailReactorFunctionEngine {
+public class PolicyComplianceGuardrailEngine extends PromptGuardrailEngine {
 
-	private static final Logger classLogger = LogManager.getLogger(PolicyComplianceGuardrailEngine.class);
-
-	public static final String MODEL_ENGINE_ID_KEY = "MODEL_ENGINE_ID";
 	public static final String POLICY_DESCRIPTION_KEY = "POLICY_DESCRIPTION";
-	public static final String BLOCKED_MESSAGE_KEY = "BLOCKED_MESSAGE";
-
-	private static final String PROMPT_PARAM = "prompt";
 	private static final String POLICY_PARAM = "policy";
 
-	private static final String SYSTEM_PROMPT_TEMPLATE =
-			"You are a strict content-policy classifier. You review a piece of text - typically an AI "
-			+ "assistant's RESPONSE, reviewed here before it is shown to the end user - and decide whether "
-			+ "it violates the policy below.\n\n"
-			+ "POLICY - the text is UNSAFE if it does any of the following:\n"
-			+ "${POLICY_DESCRIPTION}\n\n"
-			+ "The text is SAFE if it does not do any of the above - including when it factually reports "
-			+ "negative, critical, or unfavorable information that is explicitly documented in the source "
-			+ "material, WITHOUT adding the assistant's own opinion, characterization, or advice. Faithfully "
-			+ "reporting documented facts is required, not prohibited, even when those facts are unflattering.\n\n"
-			+ "Respond with ONLY one word:\n"
-			+ "- UNSAFE if the text violates the policy above\n"
-			+ "- SAFE   if it does not\n\n"
-			+ "Do not explain your reasoning. Output only SAFE or UNSAFE.";
+	private static final String DEFAULT_SYSTEM_PROMPT = """
+			You are a strict content-policy classifier. You review a piece of text - typically an AI assistant's RESPONSE, reviewed here before it is shown to the end user - and decide whether it violates the policy below.
 
-	private String modelEngineId;
+			POLICY - the text is UNSAFE if it does any of the following:
+			${POLICY_DESCRIPTION}
+
+			The text is SAFE if it does not do any of the above - including when it factually reports negative, critical, or unfavorable information that is explicitly documented in the source material, WITHOUT adding the assistant's own opinion, characterization, or advice. Faithfully reporting documented facts is required, not prohibited, even when those facts are unflattering.
+
+			Respond with ONLY one word:
+			- UNSAFE if the text violates the policy above
+			- SAFE if it does not
+
+			Do not explain your reasoning. Output only SAFE or UNSAFE.
+			""";
+
 	private String defaultPolicyDescription;
-	private String blockedMessage;
 
 	public PolicyComplianceGuardrailEngine() {
-		this.keysToGet = new String[] { PROMPT_PARAM, POLICY_PARAM };
+		super(POLICY_PARAM);
 	}
 
 	@Override
-	public void open(Properties smssProp) throws Exception {
-		super.open(smssProp);
-
-		this.modelEngineId = this.smssProp.getProperty(MODEL_ENGINE_ID_KEY);
-		if (this.modelEngineId == null || (this.modelEngineId = this.modelEngineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException(MODEL_ENGINE_ID_KEY + " is required for PolicyComplianceGuardrailEngine");
-		}
-
-		this.defaultPolicyDescription = this.smssProp.getProperty(POLICY_DESCRIPTION_KEY);
-		if (this.defaultPolicyDescription == null || (this.defaultPolicyDescription = this.defaultPolicyDescription.trim()).isEmpty()) {
-			throw new IllegalArgumentException(POLICY_DESCRIPTION_KEY + " is required for PolicyComplianceGuardrailEngine");
-		}
-
-		String blockedMessageStr = this.smssProp.getProperty(BLOCKED_MESSAGE_KEY);
-		if (blockedMessageStr != null && !(blockedMessageStr = blockedMessageStr.trim()).isEmpty()) {
-			this.blockedMessage = blockedMessageStr;
-		}
-
-		this.functionDescription = "Classifies text against a configurable content policy using an LLM judge, "
-				+ "returning SAFE/UNSAFE.";
-		this.parameters = new ArrayList<>();
-		this.parameters.add(new FunctionParameter("prompt", "String", "The text to evaluate against the policy"));
-		this.parameters.add(new FunctionParameter("policy", "String", "Optional override of POLICY_DESCRIPTION for this call"));
-		this.requiredParameters = new ArrayList<>(Arrays.asList("prompt"));
+	protected void configurePromptGuardrail() {
+		this.defaultPolicyDescription = getRequiredSmssProperty(POLICY_DESCRIPTION_KEY);
 	}
 
 	@Override
-	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow) {
-		Map<String, String> keyValue = organizeKeys(ns, curRow);
-		Object rawPrompt = getRawNounValue(ns, curRow, PROMPT_PARAM, 0);
-		String textToJudge = extractText(rawPrompt);
-		if (textToJudge == null || textToJudge.isEmpty()) {
-			Map<String, Object> details = new HashMap<>();
-			details.put("classification", "SKIPPED_NO_TEXT");
-			return new GuardrailNounMetadata(true, textToJudge, details);
-		}
+	protected String getDefaultSystemPrompt() {
+		return DEFAULT_SYSTEM_PROMPT;
+	}
 
+	@Override
+	protected boolean isFailOpenByDefault() {
+		return true;
+	}
+
+	@Override
+	protected String getPromptGuardrailDescription() {
+		return "Classifies text against a configurable content policy using an LLM judge, returning SAFE/UNSAFE.";
+	}
+
+	@Override
+	protected List<FunctionParameter> getPromptGuardrailParameters() {
+		return List.of(new FunctionParameter(PROMPT_PARAM, "String", "The text to evaluate against the policy"),
+				new FunctionParameter(POLICY_PARAM, "String", "Optional override of POLICY_DESCRIPTION for this call"));
+	}
+
+	@Override
+	protected String resolveSystemPrompt(Map<String, String> keyValue) {
 		String policyDescription = keyValue.containsKey(POLICY_PARAM) && !keyValue.get(POLICY_PARAM).isEmpty()
 				? keyValue.get(POLICY_PARAM)
 				: this.defaultPolicyDescription;
+		return getConfiguredSystemPrompt().replace("${POLICY_DESCRIPTION}", policyDescription);
+	}
 
-		classLogger.info("PolicyComplianceGuardrail: classifying text (length={}) via model={}",
-				textToJudge.length(), this.modelEngineId);
-
-		String classification;
-		try {
-			classification = classify(textToJudge, policyDescription);
-		} catch (Exception e) {
-			classLogger.error("PolicyComplianceGuardrail: judge call failed, passing by default (fail-open): {}",
-					e.getMessage());
-			Map<String, Object> details = new HashMap<>();
-			details.put("classification", "ERROR_FAIL_OPEN");
-			details.put("error", e.getMessage());
-			return new GuardrailNounMetadata(true, textToJudge, details);
-		}
-
-		boolean pass = !classification.toUpperCase().contains("UNSAFE");
-		classLogger.info("PolicyComplianceGuardrail: classification='{}', pass={}", classification, pass);
-
+	@Override
+	protected GuardrailNounMetadata handleMissingText(String textToJudge) {
 		Map<String, Object> details = new HashMap<>();
-		details.put("classification", classification);
-		details.put("modelEngineId", this.modelEngineId);
-
-		String returnPrompt = pass ? textToJudge : (this.blockedMessage != null ? this.blockedMessage : textToJudge);
-		return new GuardrailNounMetadata(pass, returnPrompt, details);
-	}
-
-	private String classify(String textToJudge, String policyDescription) throws Exception {
-		IModelEngine judgeEngine = Utility.getModel(this.modelEngineId);
-		if (judgeEngine == null) {
-			throw new IllegalStateException("Could not find model engine with id: " + this.modelEngineId);
-		}
-
-		// Room/model calls require an Insight to be registered, this one is never tied to a real user session.
-		Insight classificationInsight = new Insight();
-		InsightStore.getInstance().put(classificationInsight);
-		String savedJobId = ThreadStore.getJobId();
-		ThreadStore.setJobId(null);
-		try {
-			Room room = RoomUtils.createRoomIfNotExists(UUID.randomUUID().toString(), classificationInsight,
-					judgeEngine, textToJudge);
-			Map<String, Object> params = new HashMap<>();
-			params.put("use_history", false);
-			InputMessage msg = InputMessage.builder(room)
-					.withSystemPrompt(buildSystemPrompt(policyDescription))
-					.withText(textToJudge)
-					.withModelType(judgeEngine.getModelType())
-					.withParamMap(params)
-					.build();
-			ResponseMessage response = room.ask(msg, judgeEngine);
-			Object responseObj = response.getModelEngineResponse().toMap().get("response");
-			return responseObj != null ? responseObj.toString().trim() : "";
-		} finally {
-			ThreadStore.setJobId(savedJobId);
-			InsightStore.getInstance().remove(classificationInsight.getInsightId());
-		}
-	}
-
-	private String buildSystemPrompt(String policyDescription) {
-		return SYSTEM_PROMPT_TEMPLATE.replace("${POLICY_DESCRIPTION}", policyDescription);
-	}
-
-	@SuppressWarnings("unchecked")
-	private String extractText(Object rawValue) {
-		if (rawValue == null) {
-			return null;
-		}
-		if (rawValue instanceof String) {
-			return (String) rawValue;
-		}
-		if (rawValue instanceof AbstractModelEngineResponse) {
-			Object resp = ((AbstractModelEngineResponse) rawValue).toMap().get("response");
-			return resp != null ? resp.toString() : null;
-		}
-		if (rawValue instanceof Map) {
-			Object resp = ((Map<String, Object>) rawValue).get("response");
-			return resp != null ? resp.toString() : null;
-		}
-		return rawValue.toString();
-	}
-
-	private Object getRawNounValue(NounStore ns, GenRowStruct curRow, String key, int positionalIndexIfMissing) {
-		if (ns != null) {
-			GenRowStruct grs = ns.getGenRowStruct(key);
-			if (grs != null && !grs.isEmpty()) {
-				return grs.get(0);
-			}
-		}
-		if (curRow != null && !curRow.isEmpty() && positionalIndexIfMissing < curRow.size()) {
-			return curRow.get(positionalIndexIfMissing);
-		}
-		return null;
+		details.put("classification", "SKIPPED_NO_TEXT");
+		return new GuardrailNounMetadata(true, textToJudge, details);
 	}
 
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_POLICY_COMPLIANCE;
+	}
+
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# Policy Compliance guardrail
+
+				This guardrail sends selected text and a policy to the configured model engine. The judge must answer `SAFE` or `UNSAFE`; an unsafe result prevents the guarded result from being returned.
+
+				The SMSS `POLICY_DESCRIPTION` is the default policy. A pipeline may supply a `policy` in `directParameters` for one use case. `SYSTEM_PROMPT` can replace the default judge instructions; include `${POLICY_DESCRIPTION}` where the policy should be inserted. `BLOCKED_MESSAGE` and `FAIL_OPEN` are also optional. `FAIL_OPEN` defaults to `true`; use `false` before irreversible actions such as sending mail.
+
+				## Example: review model responses
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "output": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailOutputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "result"
+				            },
+				            "directParameters": {
+				              "policy": "Classify the response as UNSAFE if it exposes secrets, invents unsupported claims, or gives instructions outside the approved scope."
+				            },
+				            "blockOnGuardrailFailure": true,
+				            "blockErrorMessage": "The response did not pass policy review."
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				The output reactor maps the completed model response to `prompt`, supplies a use-case-specific policy, and withholds the result if the judge returns `UNSAFE`. Omit `directParameters` to use the engine's default policy. Do not attach a pipeline that invokes this guardrail to its judge model, because that would recurse.
+				"""
+				.formatted(getEngineId());
 	}
 }

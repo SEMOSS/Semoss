@@ -27,8 +27,9 @@
  *******************************************************************************/
 package prerna.engine.impl;
 
-import java.util.Arrays;
-import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -43,19 +44,25 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.skill.ListSkillFilesReactor;
 import prerna.reactor.agent.skill.ReadSkillFileReactor;
+import prerna.reactor.agent.skill.Skill;
+import prerna.reactor.agent.skill.SkillProjects;
+import prerna.reactor.agent.skill.SkillProjects.SkillInfo;
 import prerna.sablecc2.om.ReactorKeysEnum;
 
 /**
  * Wraps the MCP of a skill project so it always serves two tools -
+ * {@code list_<skill>_skill_files} and {@code read_<skill>_skill_file}, running
  * {@code ListSkillFiles} and {@code ReadSkillFile} - on top of whatever the
  * project defines in its own {@code mcp/} folder.
  *
  * <p>
- * This is what makes a skill usable by an external MCP client: the client lists
- * the skill's files with their declared name/description, then reads only the
- * ones it needs, instead of the whole folder having to be staged somewhere
- * first. Skill projects ship no {@code mcp/pixel_mcp.json}, so without this a
- * skill served as an MCP would publish nothing.
+ * This is what makes a skill usable when it is called as an MCP
+ * ({@code GetMCPTools}/{@code RunMCPTool}, or a room that lists the skill as an
+ * MCP): the caller lists the skill's files with their declared
+ * name/description, then reads only the ones it needs. Agent runs do not come
+ * through here - they stage the skill folder and load it with
+ * {@code LoadSkill}, and agent and room tool aggregation skip SKILL resources.
+ * A skill needs no {@code mcp/pixel_mcp.json} of its own.
  *
  * <p>
  * A decorator rather than a flavor of {@link InternalMCP}: {@code InternalMCP}
@@ -68,22 +75,24 @@ import prerna.sablecc2.om.ReactorKeysEnum;
  * that method.
  *
  * <p>
- * The two tool definitions are generated from the reactors themselves via
- * {@link AbstractReactor#asMcpTool()}, so their schemas and descriptions cannot
- * drift from the reactors, with one edit applied on top: the {@code project}
- * parameter is pinned to this skill as a single-value {@code enum} plus a
- * {@code default}. The enum tells the client there is exactly one legal value;
- * the default is what makes a zero-argument call work, since
- * {@link MCPUtility#runPixelTool} substitutes a parameter's {@code default}
- * when the caller omits it - without it the reactors would fall back to the
- * insight's context project, which is not necessarily this skill.
+ * The schemas and execution metadata are generated from the reactors via
+ * {@link AbstractReactor#asMcpTool()}, so they cannot drift from the reactors.
+ * The name, title, and description are derived from the skill's
+ * {@code SKILL.md} frontmatter, so a model looking at several skills' tools in
+ * one list can tell which skill holds what guidance ({@code vector} serves
+ * {@code list_vector_skill_files}). The {@code project} parameter is pinned to
+ * this skill as a single-value {@code enum} plus a {@code default}. The enum
+ * tells the client there is exactly one legal value; the default is what makes
+ * a zero-argument call work, since {@link MCPUtility#runPixelTool} substitutes
+ * a parameter's {@code default} when the caller omits it - without it the
+ * reactors would fall back to the insight's context project, which is not
+ * necessarily this skill.
  *
  * <p>
  * A tool the project defines itself wins over the equivalent default: the
  * author's own definition is served and ours is dropped, so the published list
  * never offers the same capability twice. "Equivalent" means same name or same
- * {@code SMSS_FUNCTION_NAME}, which is how the shipped platform skills replace
- * these with subject-specific names (see {@link #coversFunction}).
+ * {@code SMSS_FUNCTION_NAME} (see {@link #coversCapability}).
  */
 public class SkillMCP implements IMCP {
 
@@ -94,6 +103,14 @@ public class SkillMCP implements IMCP {
 	 */
 	private static final String GENERATOR_ID = "SkillDefaults";
 
+	/**
+	 * Longest skill-derived segment in a generated tool name. Keeps
+	 * {@code read_<key>_skill_file} within the 54 characters a 64-character
+	 * provider limit leaves after the short engine-id prefix, so the name is never
+	 * truncated - a truncated name would not match when the call comes back.
+	 */
+	private static final int MAX_NAME_KEY_LENGTH = 32;
+
 	/** The skill project being served. */
 	private final IProject project;
 
@@ -101,14 +118,11 @@ public class SkillMCP implements IMCP {
 	private final IMCP delegate;
 
 	/**
-	 * The generated definitions, serialized. Held as text rather than as a
-	 * {@link JSONArray} because callers mutate what {@link #getMCPTools()} hands
-	 * back - {@code MCPUtility.appendEngineIdToToolsMethodName} renames every tool
-	 * object in place to prefix it with the engine id - so each call has to get its
-	 * own copy. Sharing one instance would prefix the cached names on the first
-	 * room aggregation and double-prefix them on the next.
+	 * The generated definitions for the current {@code SKILL.md}, rebuilt when that
+	 * file changes. Nothing resets a project's MCP when a skill is edited, so the
+	 * file's modified time is what keeps the names and descriptions current.
 	 */
-	private final String defaultToolsJson;
+	private volatile DefaultTools defaults;
 
 	/**
 	 * @param project  the skill project whose id the generated tools are pinned to
@@ -123,24 +137,109 @@ public class SkillMCP implements IMCP {
 		}
 		this.project = project;
 		this.delegate = delegate;
-		this.defaultToolsJson = buildDefaultTools(project.getEngineId()).toString();
-	}
-
-	/** A fresh, independent copy of the generated definitions. */
-	private JSONArray defaultTools() {
-		return new JSONArray(this.defaultToolsJson);
 	}
 
 	/**
-	 * Builds the default tool definitions from the reactors that implement them and
-	 * pins each one's {@code project} parameter to {@code projectId}.
+	 * A fresh, independent copy of the generated definitions. Callers mutate what
+	 * {@link #getMCPTools()} hands back - {@code MCPUtility.appendEngineIdToToolsMethodName}
+	 * renames every tool object in place to prefix it with the engine id - so each
+	 * call has to get its own copy. Sharing one instance would prefix the cached
+	 * names on the first room aggregation and double-prefix them on the next.
 	 */
-	private static JSONArray buildDefaultTools(String projectId) {
+	private JSONArray defaultTools() {
+		DefaultTools current = this.defaults;
+		if (current == null || current.isStale()) {
+			current = DefaultTools.build(this.project.getEngineId());
+			this.defaults = current;
+		}
+		return new JSONArray(current.json);
+	}
+
+	/**
+	 * The generated definitions, serialized, and the {@code SKILL.md} state they
+	 * were built from.
+	 */
+	private static final class DefaultTools {
+
+		private final Path skillFile;
+		private final long lastModified;
+		private final String json;
+
+		private DefaultTools(Path skillFile, long lastModified, String json) {
+			this.skillFile = skillFile;
+			this.lastModified = lastModified;
+			this.json = json;
+		}
+
+		/**
+		 * Stats the file before reading it, so an edit that lands in between marks the
+		 * result stale rather than being missed.
+		 */
+		private static DefaultTools build(String projectId) {
+			Path skillDir = SkillProjects.resolveSkillDir(projectId);
+			Path skillFile = skillDir == null ? null : skillDir.resolve(Skill.SKILL_FILE);
+			long lastModified = lastModified(skillFile);
+			SkillInfo info = SkillProjects.resolve(projectId);
+			return new DefaultTools(skillFile, lastModified, buildDefaultTools(projectId, info).toString());
+		}
+
+		private boolean isStale() {
+			return lastModified(this.skillFile) != this.lastModified;
+		}
+	}
+
+	/** Modified time of {@code file}, or -1 when there is no readable file. */
+	private static long lastModified(Path file) {
+		if (file == null) {
+			return -1L;
+		}
+		try {
+			return Files.getLastModifiedTime(file).toMillis();
+		} catch (IOException e) {
+			return -1L;
+		}
+	}
+
+	/**
+	 * Builds the default tool definitions from the reactors that implement them,
+	 * names and describes them after the skill, and pins each one's
+	 * {@code project} parameter to {@code projectId}.
+	 */
+	private static JSONArray buildDefaultTools(String projectId, SkillInfo info) {
+		String key = toolNameKey(info.slug);
+		String listName = "list_" + key + "_skill_files";
+		String readName = "read_" + key + "_skill_file";
+		String title = titleCase(info.slug);
+
+		StringBuilder listDescription = new StringBuilder();
+		listDescription.append("List the files in the '").append(info.name).append("' skill. ");
+		if (info.description != null && !info.description.isBlank()) {
+			String description = info.description.trim();
+			listDescription.append(description);
+			if (!description.endsWith(".")) {
+				listDescription.append('.');
+			}
+			listDescription.append(' ');
+		}
+		listDescription.append("Returns each file with its path, name, and description so you can read only what ")
+				.append("you need; start with SKILL.md. Pass a returned filePath to ").append(readName).append('.');
+
+		JSONObject list = new ListSkillFilesReactor().asMcpTool();
+		describeTool(list, listName, "List " + title + " Skill Files", listDescription.toString());
+
+		JSONObject read = new ReadSkillFileReactor().asMcpTool();
+		describeTool(read, readName, "Read " + title + " Skill File", "Read one file from the '" + info.name
+				+ "' skill in full. Pass filePath exactly as " + listName + " reports it; SKILL.md is the main guide.");
+		JSONObject filePath = parameter(read, ReactorKeysEnum.FILE_PATH.getKey());
+		if (filePath != null) {
+			filePath.put("description", "Path of the file to read, relative to the skill folder, as reported by "
+					+ listName + ". Use 'SKILL.md' for the main guide.");
+			filePath.put("default", Skill.SKILL_FILE);
+		}
+
 		JSONArray tools = new JSONArray();
-		List<AbstractReactor> reactors = Arrays.asList(new ListSkillFilesReactor(), new ReadSkillFileReactor());
-		for (AbstractReactor reactor : reactors) {
-			JSONObject tool = reactor.asMcpTool();
-			pinProjectParameter(tool, projectId);
+		for (JSONObject tool : new JSONObject[] { list, read }) {
+			pinProjectParameter(tool, projectId, info.name);
 			tools.put(tool);
 		}
 		MCPUtility.stampGenerator(tools, GENERATOR_ID);
@@ -148,14 +247,56 @@ public class SkillMCP implements IMCP {
 	}
 
 	/**
+	 * The slug as a tool-name segment: {@code [a-z0-9_]} only, since Amazon Nova
+	 * rejects hyphenated tool names, and capped at {@link #MAX_NAME_KEY_LENGTH}.
+	 */
+	private static String toolNameKey(String slug) {
+		String key = slug.replace('-', '_');
+		if (key.length() > MAX_NAME_KEY_LENGTH) {
+			key = key.substring(0, MAX_NAME_KEY_LENGTH);
+		}
+		key = key.replaceAll("_+$", "");
+		return key.isEmpty() ? "skill" : key;
+	}
+
+	/** {@code app-bootstrap} becomes {@code App Bootstrap}. */
+	private static String titleCase(String slug) {
+		StringBuilder title = new StringBuilder();
+		for (String word : slug.split("-")) {
+			if (word.isEmpty()) {
+				continue;
+			}
+			if (title.length() > 0) {
+				title.append(' ');
+			}
+			title.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+		}
+		return title.toString();
+	}
+
+	private static void describeTool(JSONObject tool, String name, String title, String description) {
+		tool.put("name", name);
+		tool.put("title", title);
+		tool.put("description", description);
+		JSONObject inputSchema = tool.optJSONObject("inputSchema");
+		if (inputSchema != null) {
+			inputSchema.put("title", name + "_Arguments");
+		}
+	}
+
+	/** The schema of the tool's {@code key} parameter, or null when it has none. */
+	private static JSONObject parameter(JSONObject tool, String key) {
+		JSONObject inputSchema = tool.optJSONObject("inputSchema");
+		JSONObject properties = inputSchema == null ? null : inputSchema.optJSONObject("properties");
+		return properties == null ? null : properties.optJSONObject(key);
+	}
+
+	/**
 	 * Rewrites the tool's {@code project} parameter so this skill is the only value
 	 * it can take, and the value it takes when the caller says nothing.
 	 */
-	private static void pinProjectParameter(JSONObject tool, String projectId) {
-		JSONObject inputSchema = tool.optJSONObject("inputSchema");
-		JSONObject properties = inputSchema == null ? null : inputSchema.optJSONObject("properties");
-		JSONObject projectProperty = properties == null ? null
-				: properties.optJSONObject(ReactorKeysEnum.PROJECT.getKey());
+	private static void pinProjectParameter(JSONObject tool, String projectId, String skillName) {
+		JSONObject projectProperty = parameter(tool, ReactorKeysEnum.PROJECT.getKey());
 		if (projectProperty == null) {
 			classLogger.warn("SkillMCP: tool '{}' has no '{}' parameter to pin to skill '{}'", tool.optString("name"),
 					ReactorKeysEnum.PROJECT.getKey(), projectId);
@@ -163,7 +304,7 @@ public class SkillMCP implements IMCP {
 		}
 		projectProperty.put("enum", new JSONArray().put(projectId));
 		projectProperty.put("default", projectId);
-		projectProperty.put("description", "This skill (" + projectId + "). Always this value.");
+		projectProperty.put("description", "The " + skillName + " skill (" + projectId + "). Always this value.");
 	}
 
 	@Override
@@ -204,11 +345,10 @@ public class SkillMCP implements IMCP {
 		JSONArray defaults = defaultTools();
 		for (int i = 0; i < defaults.length(); i++) {
 			JSONObject defaultTool = defaults.getJSONObject(i);
-			String name = defaultTool.optString("name");
-			if (coversFunction(tools, name)) {
+			if (coversCapability(tools, defaultTool)) {
 				// the project's own definition of this capability wins
 				classLogger.info("SkillMCP: skill '{}' defines its own '{}', not adding the default",
-						this.project.getEngineId(), name);
+						this.project.getEngineId(), defaultTool.optString("name"));
 				continue;
 			}
 			tools.put(defaultTool);
@@ -225,24 +365,26 @@ public class SkillMCP implements IMCP {
 		// itself, so only match on the stripped form and hand the delegate the original
 		String strippedName = MCPUtility.removeEngineIdFromToolsMethodName(this.project.getEngineId(), toolName.trim());
 		JSONObject defaultTool = findDefaultTool(strippedName);
-		if (defaultTool != null && !projectDefinesTool(strippedName)) {
+		if (defaultTool != null && !projectDefinesTool(defaultTool)) {
 			JSONObject inputSchema = defaultTool.optJSONObject("inputSchema");
 			JSONObject properties = inputSchema == null ? null : inputSchema.optJSONObject("properties");
-			JSONObject meta = defaultTool.optJSONObject("_meta");
-			String functionName = meta == null ? strippedName
-					: meta.optString(MCPUtility.SMSS_FUNCTION_NAME, strippedName);
-			return MCPUtility.runPixelTool(this.project, insight, functionName,
+			return MCPUtility.runPixelTool(this.project, insight, functionName(defaultTool),
 					properties == null ? new JSONObject() : properties, params);
 		}
 		return this.delegate.callTool(toolName, params, insight);
 	}
 
-	/** The generated default carrying {@code name}, or null when there is none. */
+	/**
+	 * The generated default called {@code name}, or null when there is none. The
+	 * reactor names ({@code ListSkillFiles}, {@code ReadSkillFile}) also match -
+	 * they were the default tool names before the names were derived from the
+	 * skill, so a conversation that learned them keeps working.
+	 */
 	private JSONObject findDefaultTool(String name) {
 		JSONArray defaults = defaultTools();
 		for (int i = 0; i < defaults.length(); i++) {
 			JSONObject tool = defaults.getJSONObject(i);
-			if (name.equals(tool.optString("name"))) {
+			if (name.equals(tool.optString("name")) || name.equals(functionName(tool))) {
 				return tool;
 			}
 		}
@@ -250,34 +392,36 @@ public class SkillMCP implements IMCP {
 	}
 
 	/**
-	 * True when the project already covers the default named {@code name} in its
-	 * own {@code mcp/} folder, in which case that definition is the one being
-	 * served and the execution has to go to the delegate.
+	 * True when the project already covers {@code defaultTool} in its own
+	 * {@code mcp/} folder, in which case that definition is the one being served
+	 * and the execution has to go to the delegate.
 	 */
-	private boolean projectDefinesTool(String name) {
+	private boolean projectDefinesTool(JSONObject defaultTool) {
 		JSONObject delegateTools = this.delegate.getMCPTools();
 		JSONArray tools = delegateTools == null ? null : delegateTools.optJSONArray("tools");
-		return coversFunction(tools, name);
+		return coversCapability(tools, defaultTool);
+	}
+
+	/** The reactor a tool runs: its {@code SMSS_FUNCTION_NAME}, else its name. */
+	private static String functionName(JSONObject tool) {
+		JSONObject meta = tool.optJSONObject("_meta");
+		String name = tool.optString("name");
+		return meta == null ? name : meta.optString(MCPUtility.SMSS_FUNCTION_NAME, name);
 	}
 
 	/**
-	 * True when {@code tools} already covers the capability the default named
-	 * {@code name} provides - either as a tool of that name, or as a tool under a
-	 * different name that runs the same reactor via {@code SMSS_FUNCTION_NAME}.
-	 *
-	 * <p>
-	 * The function check is what lets a skill rename these tools for discovery. The
-	 * shipped platform skills publish subject-specific names - {@code vector}
-	 * serves {@code list_vector_skill_files} rather than a bare
-	 * {@code ListSkillFiles}, so a client scanning tool names can tell which skill
-	 * holds the vector guidance. Matching on name alone would treat those as
-	 * unrelated and publish the generic default beside them, offering the same
-	 * capability twice.
+	 * True when {@code tools} already covers the capability {@code defaultTool}
+	 * provides - either as a tool of the same name, or as a tool under a different
+	 * name that runs the same reactor via {@code SMSS_FUNCTION_NAME}. Matching on
+	 * name alone would treat a project that renames these tools as unrelated and
+	 * publish the default beside them, offering the same capability twice.
 	 */
-	private static boolean coversFunction(JSONArray tools, String name) {
-		if (tools == null || name == null || name.isEmpty()) {
+	private static boolean coversCapability(JSONArray tools, JSONObject defaultTool) {
+		if (tools == null) {
 			return false;
 		}
+		String name = defaultTool.optString("name");
+		String function = functionName(defaultTool);
 		for (int i = 0; i < tools.length(); i++) {
 			JSONObject tool = tools.optJSONObject(i);
 			if (tool == null) {
@@ -287,7 +431,7 @@ public class SkillMCP implements IMCP {
 				return true;
 			}
 			JSONObject meta = tool.optJSONObject("_meta");
-			if (meta != null && name.equals(meta.optString(MCPUtility.SMSS_FUNCTION_NAME, null))) {
+			if (meta != null && function.equals(meta.optString(MCPUtility.SMSS_FUNCTION_NAME, null))) {
 				return true;
 			}
 		}

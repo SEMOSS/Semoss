@@ -50,21 +50,29 @@ import prerna.reactor.agent.IAgentHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 /**
- * Base reactor for workspace operations that need to assemble workspace-resource mappings.
+ * Base reactor for workspace operations that need to assemble
+ * workspace-resource mappings.
  * <p>
- * Provides common helper methods to construct normalized resource rows for engines, projects,
- * and prompts so concrete workspace reactors can reuse consistent payload structures.
+ * Provides common helper methods to construct normalized resource rows for
+ * engines, projects, and prompts so concrete workspace reactors can reuse
+ * consistent payload structures.
  */
 public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
-	/** Resource type identifier used when a workspace resource points to a prompt. */
+	/**
+	 * Resource type identifier used when a workspace resource points to a prompt.
+	 */
 	public static final String PROMPT_RESOURCE_TYPE = "PROMPT";
 
-	/** Resource type identifier used when a workspace resource points to a skill in the skill registry. */
+	/**
+	 * Resource type identifier used when a workspace resource points to a skill in
+	 * the skill registry.
+	 */
 	public static final String SKILL_RESOURCE_TYPE = "SKILL";
 
 	/** Request key for workspace name. */
@@ -73,38 +81,71 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	static final String DESCRIPTION = "description";
 	/** Request key for workspace-level system prompt. */
 	static final String SYSTEM_PROMPT = "systemPrompt";
-	/** Request key for the workspace/agent default model engine id (CONFIG_JSON.model_id). */
+	/**
+	 * Request key for the workspace/agent default model engine id
+	 * (CONFIG_JSON.model_id).
+	 */
 	static final String MODEL_ID = "modelId";
 	/** Request key controlling whether general built-in agent tools are exposed. */
 	static final String USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
+	/** Request key for default-tool names disabled for this workspace. */
+	static final String DISABLED_DEFAULT_TOOLS = "disabledDefaultTools";
 	/** Request key for prompt collection input. */
 	static final String PROMPTS = "prompts";
 	/** Request key for skill collection input. */
 	static final String SKILLS = "skills";
 	/** Request key for active/inactive workspace state. */
 	static final String IS_ACTIVE = "isActive";
-	/** Request key for the agent tool-loop turn cap (CONFIG_JSON.budgets.max_turns). */
+	/**
+	 * Request key for the agent tool-loop turn cap (CONFIG_JSON.budgets.max_turns).
+	 */
 	static final String MAX_TURNS = "maxTurns";
-	/** Request key for the agent reflection cap (CONFIG_JSON.budgets.max_reflections). */
+	/**
+	 * Request key for the agent reflection cap
+	 * (CONFIG_JSON.budgets.max_reflections).
+	 */
 	static final String MAX_REFLECTIONS = "maxReflections";
-	/** Request key for the agent wall-clock cap in seconds (CONFIG_JSON.budgets.max_seconds). */
+	/**
+	 * Request key for the agent wall-clock cap in seconds
+	 * (CONFIG_JSON.budgets.max_seconds).
+	 */
 	static final String MAX_SECONDS = "maxSeconds";
-	/** Request key for the subagent delegation depth cap (CONFIG_JSON.spawn_policy.max_subagent_depth). */
+	/**
+	 * Request key for the subagent delegation depth cap
+	 * (CONFIG_JSON.spawn_policy.max_subagent_depth).
+	 */
 	static final String MAX_SUBAGENT_DEPTH = "maxSubagentDepth";
-	/** Request key for the per-run subagent spawn budget (CONFIG_JSON.spawn_policy.max_subagents_per_run). */
+	/**
+	 * Request key for the per-run subagent spawn budget
+	 * (CONFIG_JSON.spawn_policy.max_subagents_per_run).
+	 */
 	static final String MAX_SUBAGENTS_PER_RUN = "maxSubagentsPerRun";
-	/** Request key for the per-turn subagent spawn cap (CONFIG_JSON.spawn_policy.max_spawns_per_turn). */
+	/**
+	 * Request key for the per-turn subagent spawn cap
+	 * (CONFIG_JSON.spawn_policy.max_spawns_per_turn).
+	 */
 	static final String MAX_SPAWNS_PER_TURN = "maxSpawnsPerTurn";
 	/** Request key for named subagent slots (CONFIG_JSON.subagents[]). */
 	static final String SUBAGENTS = "subagents";
 	/** Request key for agent lifecycle hooks (CONFIG_JSON.hooks[]). */
 	static final String HOOKS = "hooks";
+	/**
+	 * Request key for the agent's scripted opening message (CONFIG_JSON.greeting).
+	 * Never sent to the model.
+	 */
+	static final String GREETING = "greeting";
+	/**
+	 * Request key controlling whether {@code greeting} is shown
+	 * (CONFIG_JSON.greeting_enabled).
+	 */
+	static final String GREETING_ENABLED = "greetingEnabled";
 
 	/**
-	 * Builds a workspace resource row for an engine, including engine type metadata.
+	 * Builds a workspace resource row for an engine, including engine type
+	 * metadata.
 	 *
 	 * @param workspaceId workspace identifier that owns the resource
-	 * @param engineId engine identifier being linked to the workspace
+	 * @param engineId    engine identifier being linked to the workspace
 	 * @return map representing a row for workspace resource persistence
 	 */
 	Map<String, String> makeResourceEntryMap(String workspaceId, String engineId) {
@@ -122,7 +163,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * Builds a workspace resource row for a project.
 	 *
 	 * @param workspaceId workspace identifier that owns the resource
-	 * @param projectId project identifier being linked to the workspace
+	 * @param projectId   project identifier being linked to the workspace
 	 * @return map representing a row for workspace resource persistence
 	 */
 	Map<String, String> makeProjectResourceEntryMap(String workspaceId, String projectId) {
@@ -140,7 +181,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * Builds a workspace resource row for a prompt.
 	 *
 	 * @param workspaceId workspace identifier that owns the resource
-	 * @param promptId prompt identifier being linked to the workspace
+	 * @param promptId    prompt identifier being linked to the workspace
 	 * @return map representing a row for workspace resource persistence
 	 */
 	Map<String, String> makePromptResourceEntryMap(String workspaceId, String promptId) {
@@ -157,13 +198,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	 * Builds a workspace resource row for a skill.
 	 * <p>
 	 * The {@code resource_subtype} carries the optional pinned skill version
-	 * ({@code AgentConfigLoader.resolveSkills} reads it back as {@code pinned_version}).
-	 * It is left {@code null} here because the workspace edit/add inputs only carry
-	 * skill ids - matching {@link prerna.reactor.agent.skill.AttachSkillToWorkspaceReactor},
-	 * which also attaches with no pinned version.
+	 * ({@code AgentConfigLoader.resolveSkills} reads it back as
+	 * {@code pinned_version}). It is left {@code null} here because the workspace
+	 * edit/add inputs only carry skill ids - matching
+	 * {@link prerna.reactor.agent.skill.AttachSkillToWorkspaceReactor}, which also
+	 * attaches with no pinned version.
 	 *
 	 * @param workspaceId workspace identifier that owns the resource
-	 * @param skillId skill identifier being linked to the workspace
+	 * @param skillId     skill identifier being linked to the workspace
 	 * @return map representing a row for workspace resource persistence
 	 */
 	Map<String, String> makeSkillResourceEntryMap(String workspaceId, String skillId) {
@@ -186,10 +228,11 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Returns named subagent spec entries ({@code {workspaceId}}) from the
-	 * incoming reactor request payload.
+	 * Returns named subagent spec entries ({@code {workspaceId}}) from the incoming
+	 * reactor request payload.
 	 *
-	 * @return list of subagent maps; each map represents one requested subagent slot
+	 * @return list of subagent maps; each map represents one requested subagent
+	 *         slot
 	 */
 	List<Map<String, Object>> getSubagentMapList() {
 		return getList(SUBAGENTS, List.of());
@@ -197,18 +240,22 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 	/**
 	 * Validates and normalizes {@code rawSubagents} into the internal shape
-	 * {@link #mirrorCoreFieldsIntoConfigJson} writes to {@code CONFIG_JSON.subagents[]}.
-	 * The request and persisted config only identify a target {@code workspaceId}; alias and
-	 * description are authoritative target-agent metadata resolved by {@code AgentConfigLoader}
-	 * for each run.
+	 * {@link #mirrorCoreFieldsIntoConfigJson} writes to
+	 * {@code CONFIG_JSON.subagents[]}. The request and persisted config only
+	 * identify a target {@code workspaceId}; alias and description are
+	 * authoritative target-agent metadata resolved by {@code AgentConfigLoader} for
+	 * each run.
 	 *
-	 * <p>Rejects a subagent workspaceId equal to {@code workspaceId} itself (trivial
-	 * self-delegation loop - {@code spawn_policy.max_subagent_depth} bounds it at run time
-	 * regardless, but there's no legitimate reason to author one), duplicate targets, inactive
-	 * or missing target agents, and any workspaceId the user lacks view permission on.
+	 * <p>
+	 * Rejects a subagent workspaceId equal to {@code workspaceId} itself (trivial
+	 * self-delegation loop - {@code spawn_policy.max_subagent_depth} bounds it at
+	 * run time regardless, but there's no legitimate reason to author one),
+	 * duplicate targets, inactive or missing target agents, and any workspaceId the
+	 * user lacks view permission on.
 	 *
-	 * @throws IllegalArgumentException with a human-readable message on validation failure
-	 *                                   (callers catch and convert to {@code getError(...)})
+	 * @throws IllegalArgumentException with a human-readable message on validation
+	 *                                  failure (callers catch and convert to
+	 *                                  {@code getError(...)})
 	 */
 	protected static List<Map<String, Object>> validateAndNormalizeSubagents(User user, String workspaceId,
 			List<Map<String, Object>> rawSubagents) {
@@ -241,7 +288,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 			if (!Boolean.TRUE.equals(targetWorkspace.get("is_active"))) {
 				throw new IllegalArgumentException("Subagent workspace is inactive: " + targetWorkspaceId);
 			}
-			
+
 			String targetName = targetWorkspace.get("name").toString().trim();
 			targetName = targetName.isEmpty() ? null : targetName;
 			if (targetName == null) {
@@ -256,8 +303,9 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Returns agent lifecycle hook entries ({@code {kind, ...kind-specific fields}}) from
-	 * the incoming reactor request payload.
+	 * Returns agent lifecycle hook entries
+	 * ({@code {kind, ...kind-specific fields}}) from the incoming reactor request
+	 * payload.
 	 *
 	 * @return list of hook maps; each map represents one requested hook entry
 	 */
@@ -266,17 +314,22 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Validates each hook entry has a known {@code kind}, then delegates kind-specific
-	 * validation to a fresh hook instance. This uses the same registry and
-	 * {@link IAgentHook#configure(JSONObject)} contract as the read/execute path, so invalid
-	 * configuration is rejected when saved rather than being silently skipped at run time.
+	 * Validates each hook entry has a known {@code kind}, plus the one
+	 * kind-specific required field known today ({@code kind="pixel"} requires a
+	 * non-empty {@code pixel} field). Mirrors the validation the standalone
+	 * {@code SetAgentHooksReactor} used to perform before hooks were folded into
+	 * this same write path as every other agent-config field.
 	 *
-	 * <p>Unlike {@link #validateAndNormalizeSubagents}, this does not reconstruct entries
-	 * field-by-field - hook schemas are open-ended per kind, so validated entries are
-	 * persisted as-is.
+	 * <p>
+	 * Unlike {@link #validateAndNormalizeSubagents}, this does not reconstruct
+	 * entries field-by-field - hook schemas are open-ended per kind (e.g.
+	 * {@code pixel}'s optional {@code events} array, and future kinds may carry
+	 * their own fields this reactor doesn't need to know about), so validated
+	 * entries are persisted as-is.
 	 *
-	 * @throws IllegalArgumentException with a human-readable message on validation failure
-	 *                                   (callers catch and convert to {@code getError(...)})
+	 * @throws IllegalArgumentException with a human-readable message on validation
+	 *                                  failure (callers catch and convert to
+	 *                                  {@code getError(...)})
 	 */
 	protected static void validateHooks(List<Map<String, Object>> rawHooks) {
 		for (int i = 0; i < rawHooks.size(); i++) {
@@ -306,68 +359,122 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Mirrors the workspace's {@code system_prompt}, MCP refs, and skill refs
-	 * into {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already
-	 * present (hooks, subagents, budgets, etc.).
+	 * Mirrors the workspace's {@code system_prompt}, MCP refs, and skill refs into
+	 * {@code WORKSPACE.CONFIG_JSON}, preserving any other fields already present
+	 * (hooks, subagents, budgets, etc.).
 	 *
-	 * <p>Empty {@code engines} + empty {@code projects} writes an empty
-	 * {@code mcps} array, and empty {@code skills} writes an empty {@code skills}
-	 * array - both intentional, since the caller may be removing all of them.
-	 * Null {@code systemPrompt} omits the key (vs. writing JSON null), so the
-	 * loader falls through to the legacy SYSTEM_PROMPT column for that field.
+	 * <p>
+	 * Empty {@code engines} + empty {@code projects} writes an empty {@code mcps}
+	 * array, and empty {@code skills} writes an empty {@code skills} array - both
+	 * intentional, since the caller may be removing all of them. Null
+	 * {@code systemPrompt} omits the key (vs. writing JSON null), so the loader
+	 * falls through to the legacy SYSTEM_PROMPT column for that field.
 	 *
-	 * <p>The {@code skills} entry shape - {@code { "skill_id": <id> }} - matches
-	 * what {@code AgentConfigLoader.resolveSkills} and
-	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write.
-	 * No {@code pinned_version} is emitted because the edit/add inputs carry only
-	 * ids.
+	 * <p>
+	 * The {@code skills} entry shape - {@code { "skill_id": <id> }} - matches what
+	 * {@code AgentConfigLoader.resolveSkills} and
+	 * {@code ModelInferenceLogsUtils.addSkillToWorkspaceConfigJson} read/write. No
+	 * {@code pinned_version} is emitted because the edit/add inputs carry only ids.
 	 *
-	 * <p>Any legacy {@code platform_skills} array is dropped on write: platform
-	 * skills are ordinary SKILL-type projects now and live in {@code skills[]}.
+	 * <p>
+	 * Any legacy {@code platform_skills} array is dropped on write: platform skills
+	 * are ordinary SKILL-type projects now and live in {@code skills[]}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, false, null, null, null,
-				false, null, false, null, false, null);
+				false, null, false, null, false, null, false, null, false, null, false, null);
 	}
 
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId) throws Exception {
 		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
-				null, null, false, null, false, null, false, null);
+				null, null, false, null, false, null, false, null, false, null, false, null, false, null);
+	}
+
+	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
+			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
+			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
+			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
+			boolean useDefaultToolsProvided, Boolean useDefaultTools) throws Exception {
+		mirrorCoreFieldsIntoConfigJson(workspaceId, systemPrompt, engines, projects, skills, modelIdProvided, modelId,
+				budgetUpdates, spawnPolicyUpdates, subagentsProvided, subagents, hooksProvided, hooks,
+				useDefaultToolsProvided, useDefaultTools, false, null, false, null, false, null);
 	}
 
 	/**
-	 * @param budgetUpdates      {@code CONFIG_JSON.budgets} keys (e.g. {@code max_turns})
-	 *                           to add/overwrite; a {@code null} value removes that key
-	 *                           (falls back to the caller/session-supplied value at run
-	 *                           time). {@code null} or empty leaves {@code budgets}
-	 *                           untouched entirely.
-	 * @param spawnPolicyUpdates same as {@code budgetUpdates}, but for
-	 *                           {@code CONFIG_JSON.spawn_policy} keys (e.g.
-	 *                           {@code max_subagent_depth}); a removed key falls back to
-	 *                           the platform default for that field at run time.
-	 * @param subagentsProvided  whether the caller passed a {@code subagents} key at all;
-	 *                           when {@code false}, {@code CONFIG_JSON.subagents} is left
-	 *                           untouched regardless of {@code subagents}.
-	 * @param subagents          validated target workspace references (see
-	 *                           {@link #validateAndNormalizeSubagents}) to fully replace
-	 *                           {@code CONFIG_JSON.subagents[]} with; an empty list clears
-	 *                           it. Ignored when {@code subagentsProvided} is {@code false}.
-	 * @param hooksProvided      whether the caller passed a {@code hooks} key at all; when
-	 *                           {@code false}, {@code CONFIG_JSON.hooks} is left untouched
-	 *                           regardless of {@code hooks}.
-	 * @param hooks              validated entries (see {@link #validateHooks}) to fully
-	 *                           replace {@code CONFIG_JSON.hooks[]} with, persisted as-is;
-	 *                           an empty list clears it. Ignored when {@code hooksProvided}
-	 *                           is {@code false}.
+	 * @param budgetUpdates                {@code CONFIG_JSON.budgets} keys (e.g.
+	 *                                     {@code max_turns}) to add/overwrite; a
+	 *                                     {@code null} value removes that key
+	 *                                     (falls back to the
+	 *                                     caller/session-supplied value at run
+	 *                                     time). {@code null} or empty leaves
+	 *                                     {@code budgets} untouched entirely.
+	 * @param spawnPolicyUpdates           same as {@code budgetUpdates}, but for
+	 *                                     {@code CONFIG_JSON.spawn_policy} keys
+	 *                                     (e.g. {@code max_subagent_depth}); a
+	 *                                     removed key falls back to the platform
+	 *                                     default for that field at run time.
+	 * @param subagentsProvided            whether the caller passed a
+	 *                                     {@code subagents} key at all; when
+	 *                                     {@code false},
+	 *                                     {@code CONFIG_JSON.subagents} is left
+	 *                                     untouched regardless of
+	 *                                     {@code subagents}.
+	 * @param subagents                    validated target workspace references
+	 *                                     (see
+	 *                                     {@link #validateAndNormalizeSubagents})
+	 *                                     to fully replace
+	 *                                     {@code CONFIG_JSON.subagents[]} with; an
+	 *                                     empty list clears it. Ignored when
+	 *                                     {@code subagentsProvided} is
+	 *                                     {@code false}.
+	 * @param hooksProvided                whether the caller passed a {@code hooks}
+	 *                                     key at all; when {@code false},
+	 *                                     {@code CONFIG_JSON.hooks} is left
+	 *                                     untouched regardless of {@code hooks}.
+	 * @param hooks                        validated entries (see
+	 *                                     {@link #validateHooks}) to fully replace
+	 *                                     {@code CONFIG_JSON.hooks[]} with,
+	 *                                     persisted as-is; an empty list clears it.
+	 *                                     Ignored when {@code hooksProvided} is
+	 *                                     {@code false}.
+	 * @param useDefaultToolsProvided      whether the caller passed the master
+	 *                                     default-tool switch; when {@code false},
+	 *                                     it is left untouched.
+	 * @param useDefaultTools              value for
+	 *                                     {@code CONFIG_JSON.use_default_agent_tools}.
+	 * @param disabledDefaultToolsProvided whether the caller passed the selective
+	 *                                     default-tool list; when {@code false}, it
+	 *                                     is left untouched.
+	 * @param disabledDefaultTools         exact, validated names to replace the
+	 *                                     stored list with; an empty list clears
+	 *                                     it.
+	 * @param greetingProvided             whether the caller passed the agent's
+	 *                                     scripted opening message; when
+	 *                                     {@code false},
+	 *                                     {@code CONFIG_JSON.greeting} is left
+	 *                                     untouched.
+	 * @param greeting                     text to store; blank removes the key
+	 *                                     rather than storing an empty string.
+	 *                                     Presentation only - never sent to the
+	 *                                     model.
+	 * @param greetingEnabledProvided      whether the caller passed the greeting
+	 *                                     on/off switch; when {@code false},
+	 *                                     {@code CONFIG_JSON.greeting_enabled} is
+	 *                                     left untouched.
+	 * @param greetingEnabled              value for
+	 *                                     {@code CONFIG_JSON.greeting_enabled}.
+	 *                                     Toggling this off hides the greeting
+	 *                                     without discarding {@code greeting}.
 	 */
 	protected static void mirrorCoreFieldsIntoConfigJson(String workspaceId, String systemPrompt, Set<String> engines,
 			Set<String> projects, Set<String> skills, boolean modelIdProvided, String modelId,
 			Map<String, Integer> budgetUpdates, Map<String, Integer> spawnPolicyUpdates, boolean subagentsProvided,
 			List<Map<String, Object>> subagents, boolean hooksProvided, List<Map<String, Object>> hooks,
-			boolean useDefaultToolsProvided, Boolean useDefaultTools)
-			throws Exception {
+			boolean useDefaultToolsProvided, Boolean useDefaultTools, boolean disabledDefaultToolsProvided,
+			List<String> disabledDefaultTools, boolean greetingProvided, String greeting,
+			boolean greetingEnabledProvided, Boolean greetingEnabled) throws Exception {
 		JSONObject cfg = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId);
 		if (cfg == null) {
 			cfg = new JSONObject();
@@ -388,6 +495,30 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 		}
 		if (useDefaultToolsProvided) {
 			cfg.put("use_default_agent_tools", Boolean.TRUE.equals(useDefaultTools));
+		}
+		if (disabledDefaultToolsProvided) {
+			JSONObject toolPolicy = cfg.optJSONObject("tool_policy");
+			if (toolPolicy == null) {
+				toolPolicy = new JSONObject();
+			}
+			JSONObject defaultTools = toolPolicy.optJSONObject("default_tools");
+			if (defaultTools == null) {
+				defaultTools = new JSONObject();
+			}
+			defaultTools.put("disabled",
+					new JSONArray(disabledDefaultTools != null ? disabledDefaultTools : List.of()));
+			toolPolicy.put("default_tools", defaultTools);
+			cfg.put("tool_policy", toolPolicy);
+		}
+		if (greetingProvided) {
+			if (greeting != null && !greeting.trim().isEmpty()) {
+				cfg.put("greeting", greeting.trim());
+			} else {
+				cfg.remove("greeting");
+			}
+		}
+		if (greetingEnabledProvided) {
+			cfg.put("greeting_enabled", Boolean.TRUE.equals(greetingEnabled));
 		}
 
 		JSONArray mcpsJson = new JSONArray();
@@ -442,12 +573,13 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	}
 
 	/**
-	 * Merges caller-provided integer fields into the {@code cfg.<subObjectKey>} sub-object,
-	 * creating it if absent. A {@code null} value in {@code updates} removes that field from
-	 * the sub-object (rather than writing JSON null) so the run-time resolver falls back to
-	 * its own default/cap for that specific field. Leaves the sub-object alone entirely when
-	 * {@code updates} is {@code null} or empty, preserving fields set by other means (e.g. a
-	 * future hooks-style reactor writing {@code max_seconds}).
+	 * Merges caller-provided integer fields into the {@code cfg.<subObjectKey>}
+	 * sub-object, creating it if absent. A {@code null} value in {@code updates}
+	 * removes that field from the sub-object (rather than writing JSON null) so the
+	 * run-time resolver falls back to its own default/cap for that specific field.
+	 * Leaves the sub-object alone entirely when {@code updates} is {@code null} or
+	 * empty, preserving fields set by other means (e.g. a future hooks-style
+	 * reactor writing {@code max_seconds}).
 	 */
 	private static void applyIntegerUpdates(JSONObject cfg, String subObjectKey, Map<String, Integer> updates) {
 		if (updates == null || updates.isEmpty()) {
@@ -470,23 +602,21 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 	/**
 	 * Reads the MCP / prompt / skill nouns from the request, validates them, and
 	 * populates the caller-owned accumulators in place. Throws
-	 * {@link IllegalArgumentException} with a human-readable message on
-	 * validation failure (callers catch and convert to {@code getError(...)}).
+	 * {@link IllegalArgumentException} with a human-readable message on validation
+	 * failure (callers catch and convert to {@code getError(...)}).
 	 *
-	 * <p>{@code existingDependencies} and {@code existingSkills} are the
-	 * workspace's pre-existing attachments - ids already in
-	 * {@code PROJECTDEPENDENCIES} and skill ids already in
-	 * {@code WORKSPACE_RESOURCE} respectively. They carry the "existing
-	 * attachment" escape hatch Edit uses: an id already attached passes the
-	 * permission check even if the caller has lost view rights since. Add
-	 * passes {@code null} for both, since on create there are no prior
-	 * attachments to preserve.
+	 * <p>
+	 * {@code existingDependencies} and {@code existingSkills} are the workspace's
+	 * pre-existing attachments - ids already in {@code PROJECTDEPENDENCIES} and
+	 * skill ids already in {@code WORKSPACE_RESOURCE} respectively. They carry the
+	 * "existing attachment" escape hatch Edit uses: an id already attached passes
+	 * the permission check even if the caller has lost view rights since. Add
+	 * passes {@code null} for both, since on create there are no prior attachments
+	 * to preserve.
 	 */
-	protected void validateWorkspaceInputs(User user, String workspaceId,
-			Set<String> existingDependencies, Set<String> existingSkills,
-			Set<String> engines, Set<String> projectDependencies,
-			List<Map<String, Object>> dependencyList,
-			List<Map<String, String>> workspaceResources,
+	protected void validateWorkspaceInputs(User user, String workspaceId, Set<String> existingDependencies,
+			Set<String> existingSkills, Set<String> engines, Set<String> projectDependencies,
+			List<Map<String, Object>> dependencyList, List<Map<String, String>> workspaceResources,
 			Set<String> skillIds) {
 		boolean hasExistingDeps = existingDependencies != null;
 		boolean hasExistingSkills = existingSkills != null;
@@ -530,9 +660,7 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 
 		List<String> promptIds = getNounAsStringList(PROMPTS);
 		if (!promptIds.isEmpty()) {
-			if (!SystemEngineRegistry.isPromptDbLoaded()) {
-				throw new IllegalArgumentException("Prompt database is not enabled");
-			}
+			SystemEngineRegistry.requireDatabase(Constants.PROMPT_DB, "workspace prompt attachments");
 			for (String promptId : promptIds) {
 				Map<String, Object> prompt = PromptUtils.getPrompt(promptId, user);
 				if (prompt == null || prompt.isEmpty()) {

@@ -38,36 +38,46 @@ import java.util.Map;
 import com.google.gson.Gson;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 /**
  * Persistence layer for the {@code AGENT_RUN_ACTION} table.
  *
- * <p>Each row represents a single MCP tool call that was paused because its
- * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness creates rows when
- * it transitions a run to {@code INPUT_REQUIRED}; {@code RunMCPToolReactor}
- * updates them when the user decides; {@code GetAgentRunReactor} reads them
- * to surface pending actions to the UI.
+ * <p>
+ * Each row represents a single MCP tool call that was paused because its
+ * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness creates rows when it
+ * transitions a run to {@code INPUT_REQUIRED}; {@code RunMCPToolReactor}
+ * updates them when the user decides; {@code GetAgentRunReactor} reads them to
+ * surface pending actions to the UI.
  */
 public final class AgentRunActionStore {
 
 	private static final Gson GSON = new Gson();
 
+	private AgentRunActionStore() {
+
+	}
+
 	/**
 	 * Insert a batch of pending actions for a single run. Called by the harness
 	 * when it pauses on {@code ask} tools.
 	 *
-	 * @param runId    the agent run id
-	 * @param roomId   the room id
-	 * @param userId   the user id
-	 * @param actions  one map per pending tool call, each carrying at minimum:
-	 *                 {@code toolCallId}, {@code toolName}, {@code toolArgs},
-	 *                 {@code toolMeta}, {@code parentMessageId}, {@code hasUi},
-	 *                 {@code uiUrl}
+	 * @param runId   the agent run id
+	 * @param roomId  the room id
+	 * @param userId  the user id
+	 * @param actions one map per pending tool call, each carrying at minimum:
+	 *                {@code toolCallId}, {@code toolName}, {@code toolArgs},
+	 *                {@code toolMeta}, {@code parentMessageId}, {@code hasUi},
+	 *                {@code uiUrl}
 	 */
-	public void insertPendingActions(String runId, String roomId, String userId, List<Map<String, Object>> actions) {
+	public static void insertPendingActions(String runId, String roomId, String userId,
+			List<Map<String, Object>> actions) {
 		if (actions == null || actions.isEmpty()) {
 			return;
 		}
@@ -109,10 +119,10 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return all action rows for a run id, ordered by creation time.
-	 * Used by {@code GetAgentRunReactor} to surface pending actions.
+	 * Return all action rows for a run id, ordered by creation time. Used by
+	 * {@code GetAgentRunReactor} to surface pending actions.
 	 */
-	public List<Map<String, Object>> getActionsForRun(String runId) {
+	public static List<Map<String, Object>> getActionsForRun(String runId) {
 		return getActionsForRun(runId, null);
 	}
 
@@ -120,7 +130,7 @@ public final class AgentRunActionStore {
 	 * Return all action rows for a run id and, when supplied, the owning user.
 	 * Owner-scoped read surfaces should always use this overload.
 	 */
-	public List<Map<String, Object>> getActionsForRun(String runId, String userId) {
+	public static List<Map<String, Object>> getActionsForRun(String runId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -128,8 +138,8 @@ public final class AgentRunActionStore {
 			String query = "SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, TOOL_CALL_ID, TOOL_NAME, "
 					+ "TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
 					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
-					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?"
-					+ (userId != null ? " AND USER_ID = ?" : "") + " ORDER BY DATE_CREATED ASC";
+					+ "FROM AGENT_RUN_ACTION WHERE RUN_ID = ?" + (userId != null ? " AND USER_ID = ?" : "")
+					+ " ORDER BY DATE_CREATED ASC";
 			ps = db.getPreparedStatement(query);
 			ps.setString(1, runId);
 			if (userId != null) {
@@ -151,11 +161,12 @@ public final class AgentRunActionStore {
 	/**
 	 * Return only PENDING actions for a run.
 	 */
-	public List<Map<String, Object>> getPendingActions(String runId) {
+	public static List<Map<String, Object>> getPendingActions(String runId) {
 		List<Map<String, Object>> all = getActionsForRun(runId);
 		List<Map<String, Object>> pending = new ArrayList<>();
 		for (Map<String, Object> a : all) {
-			if ("PENDING".equals(a.get("status"))) {
+			// A delegation belongs to its assignee, not the run owner's approval UI.
+			if ("PENDING".equals(a.get("status")) && !HumanDelegationService.isDelegationAction(a)) {
 				pending.add(a);
 			}
 		}
@@ -163,11 +174,11 @@ public final class AgentRunActionStore {
 	}
 
 	/**
-	 * Return one pending action row by action id and owner. ACTION_ID is a
-	 * globally unique v7 UUID (the table PK), so scoping by actionId + userId
-	 * is sufficient; runId is derivable from the row.
+	 * Return one pending action row by action id and owner. ACTION_ID is a globally
+	 * unique v7 UUID (the table PK), so scoping by actionId + userId is sufficient;
+	 * runId is derivable from the row.
 	 */
-	public Map<String, Object> getPendingActionById(String actionId, String userId) {
+	public static Map<String, Object> getPendingActionById(String actionId, String userId) {
 		Map<String, Object> action = getActionById(actionId, userId);
 		if (action != null && "PENDING".equals(action.get("status"))) {
 			return action;
@@ -178,7 +189,7 @@ public final class AgentRunActionStore {
 	/**
 	 * Return one action row by action id and owner, regardless of status.
 	 */
-	public Map<String, Object> getActionById(String actionId, String userId) {
+	public static Map<String, Object> getActionById(String actionId, String userId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -203,10 +214,64 @@ public final class AgentRunActionStore {
 	}
 
 	/**
+	 * Loads an action without applying the owning-user predicate.
+	 *
+	 * <p>
+	 * This method is reserved for Automation APIs that have already verified project
+	 * edit access and the exact persisted Automation trace. Generic agent APIs must
+	 * use {@link #getActionById(String, String)}.
+	 *
+	 * @param actionId agent action identifier
+	 * @return matching action, or {@code null} when it does not exist
+	 */
+	public static Map<String, Object> getActionByIdForAutomation(String actionId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__ACTION_ID", "actionId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__RUN_ID", "runId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__ROOM_ID", "roomId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__PARENT_MESSAGE_ID", "parentMessageId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_CALL_ID", "toolCallId"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_NAME", "toolName"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_ARGS", "toolArgs"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__EDITED_ARGS", "editedArgs"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_META", "toolMeta"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__HAS_UI", "hasUi"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__UI_URL", "uiUrl"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__STATUS", "status"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__RESULT", "result"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__TOOL_STATUS", "toolStatus"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DATE_CREATED", "dateCreated"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DECIDED_AT", "decidedAt"));
+			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__USER_ID", "userId"));
+			qs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("AGENT_RUN_ACTION__ACTION_ID", "==", actionId));
+
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
+			if (rows.isEmpty()) {
+				return null;
+			}
+			Map<String, Object> action = rows.get(0);
+			action.put("hasUi", booleanValue(action.get("hasUi")));
+			action.put("toolArgs", stringValue(action.get("toolArgs")));
+			action.put("editedArgs", stringValue(action.get("editedArgs")));
+			action.put("toolMeta", stringValue(action.get("toolMeta")));
+			action.put("uiUrl", stringValue(action.get("uiUrl")));
+			action.put("result", stringValue(action.get("result")));
+			action.put("dateCreated", stringValue(action.get("dateCreated")));
+			action.put("decidedAt", stringValue(action.get("decidedAt")));
+			return action;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load Automation AGENT_RUN_ACTION actionId=" + actionId, e);
+		}
+	}
+
+	/**
 	 * Claim a pending action before executing a side-effecting tool. Only one
 	 * request can move the action from PENDING to EXECUTING.
 	 */
-	public boolean claimForExecution(String actionId, String runId, String userId) {
+	public static boolean claimForExecution(String actionId, String runId, String userId) {
 		return updateStatus(actionId, runId, userId, "PENDING", "EXECUTING", false);
 	}
 
@@ -214,7 +279,7 @@ public final class AgentRunActionStore {
 	 * Return an EXECUTING action to PENDING when the tool was not executed to a
 	 * durable result.
 	 */
-	public boolean releaseExecutionClaim(String actionId, String runId, String userId) {
+	public static boolean releaseExecutionClaim(String actionId, String runId, String userId) {
 		return updateStatus(actionId, runId, userId, "EXECUTING", "PENDING", false);
 	}
 
@@ -223,14 +288,15 @@ public final class AgentRunActionStore {
 	 * from PENDING to one of APPROVED / EDITED / REJECTED / RESPONDED, which also
 	 * encodes what the user chose (there is no separate DECISION column).
 	 *
-	 * @param actionId    the action id
-	 * @param editedArgs  final args when they differ from what the model proposed, else null
-	 * @param result      the tool result (approve/edit), the user's response (respond),
-	 *                    or the rejection message (reject)
-	 * @param status      the decided status: APPROVED, EDITED, REJECTED, RESPONDED
-	 * @param toolStatus  execution status persisted for exact replay
+	 * @param actionId   the action id
+	 * @param editedArgs final args when they differ from what the model proposed,
+	 *                   else null
+	 * @param result     the tool result (approve/edit), the user's response
+	 *                   (respond), or the rejection message (reject)
+	 * @param status     the decided status: APPROVED, EDITED, REJECTED, RESPONDED
+	 * @param toolStatus execution status persisted for exact replay
 	 */
-	public boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
+	public static boolean markDecided(String actionId, String runId, String userId, Object editedArgs, String result,
 			String status, String toolStatus) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -273,12 +339,67 @@ public final class AgentRunActionStore {
 		}
 	}
 
+	/** Actions of one tool type assigned to a user, newest first; status is optional. */
+	static List<Map<String, Object>> getAssignedActions(String userId, String toolName, String status, int limit) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		ResultSet rs = null;
+		try {
+			StringBuilder query = new StringBuilder("SELECT ACTION_ID, RUN_ID, ROOM_ID, PARENT_MESSAGE_ID, "
+					+ "TOOL_CALL_ID, TOOL_NAME, TOOL_ARGS, EDITED_ARGS, TOOL_META, HAS_UI, UI_URL, STATUS, "
+					+ "RESULT, TOOL_STATUS, DATE_CREATED, DECIDED_AT, USER_ID "
+					+ "FROM AGENT_RUN_ACTION WHERE USER_ID = ? AND TOOL_NAME = ?");
+			if (status != null) {
+				query.append(" AND STATUS = ?");
+			}
+			query.append(" ORDER BY DATE_CREATED DESC");
+			db.getQueryUtil().addLimitOffsetToQuery(query, limit, 0);
+			ps = db.getPreparedStatement(query.toString());
+			int idx = 1;
+			ps.setString(idx++, userId);
+			ps.setString(idx++, toolName);
+			if (status != null) {
+				ps.setString(idx++, status);
+			}
+			rs = ps.executeQuery();
+			List<Map<String, Object>> results = new ArrayList<>();
+			while (rs.next()) {
+				results.add(rowToMap(rs));
+			}
+			return results;
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to load assigned AGENT_RUN_ACTION rows", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
+		}
+	}
+
+	/** Cancel every still-pending action on a run, whoever it is assigned to. */
+	static void cancelPendingForRun(String runId) {
+		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
+		PreparedStatement ps = null;
+		try {
+			ps = db.getPreparedStatement("UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECIDED_AT = ? "
+					+ "WHERE RUN_ID = ? AND STATUS = ?");
+			ps.setString(1, "CANCELLED");
+			ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+			ps.setString(3, runId);
+			ps.setString(4, "PENDING");
+			ps.executeUpdate();
+			commitIfNeeded(ps);
+		} catch (Exception e) {
+			throw new IllegalStateException("Failed to cancel AGENT_RUN_ACTION rows for runId=" + runId, e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
+		}
+	}
+
 	/**
-	 * Return true if there is at least one action row for the given run.
-	 * Used by the worker as a short-term marker that the run has entered the
-	 * HITL resume flow without relying on persisted REQUEST_JSON.resumeMode.
+	 * Return true if there is at least one action row for the given run. Used by
+	 * the worker as a short-term marker that the run has entered the HITL resume
+	 * flow without relying on persisted REQUEST_JSON.resumeMode.
 	 */
-	public boolean hasAnyActions(String runId) {
+	public static boolean hasAnyActions(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -298,7 +419,7 @@ public final class AgentRunActionStore {
 	/**
 	 * Check if all actions for a run have been decided (no PENDING remaining).
 	 */
-	public boolean allActionsDecided(String runId) {
+	public static boolean allActionsDecided(String runId) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
@@ -320,8 +441,8 @@ public final class AgentRunActionStore {
 
 	// --- helpers ---
 
-	private boolean updateStatus(String actionId, String runId, String userId, String currentStatus, String nextStatus,
-			boolean setDecidedAt) {
+	private static boolean updateStatus(String actionId, String runId, String userId, String currentStatus,
+			String nextStatus, boolean setDecidedAt) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
