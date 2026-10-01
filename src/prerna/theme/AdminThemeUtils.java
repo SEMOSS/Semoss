@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.theme;
 
-import java.io.UnsupportedEncodingException;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,19 +37,17 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
-import prerna.engine.api.IRDBMSEngine;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class AdminThemeUtils extends AbstractThemeUtils {
@@ -175,21 +171,22 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 	public boolean setAllThemesInactive() {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
-		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement("UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?");
-			int parameterIndex = 1;
-			ps.setBoolean(parameterIndex++, false);
-			ps.setBoolean(parameterIndex++, false);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?")) {
+					int parameterIndex = 1;
+					ps.setBoolean(parameterIndex++, false);
+					ps.setBoolean(parameterIndex++, false);
+					ps.execute();
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		return true;
@@ -208,25 +205,24 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		String themeId = UUID.randomUUID().toString();
 
-		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement(
-					"INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, themeId);
-			ps.setString(parameterIndex++, themeName);
-			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++,
-					new Gson());
-			ps.setBoolean(parameterIndex++, isActive);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (UnsupportedEncodingException | SQLException e) {
+			QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(
+						"INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)")) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, themeId);
+					ps.setString(parameterIndex++, themeName);
+					themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
+					ps.setBoolean(parameterIndex++, isActive);
+					ps.execute();
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return null;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		if (isActive) {
@@ -246,31 +242,30 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	 */
 	public boolean editAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
-		PreparedStatement ps = null;
 		try {
-			ps = themeDb
-					.getPreparedStatement("UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, themeName);
-			themeDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, themeMap, parameterIndex++,
-					new Gson());
-			ps.setBoolean(parameterIndex++, isActive);
-			ps.setString(parameterIndex++, themeId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (UnsupportedEncodingException | SQLException e) {
+			QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?")) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, themeName);
+					themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
+					ps.setBoolean(parameterIndex++, isActive);
+					ps.setString(parameterIndex++, themeId);
+					ps.execute();
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		if (isActive) {
 			setActiveTheme(themeId);
 			PlaygroundThemeUtils.refreshCacheFromActiveTheme();
-		} 
+		}
 		return true;
 	}
 
@@ -283,19 +278,19 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public boolean deleteAdminTheme(String themeId) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 
-		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement("DELETE FROM ADMIN_THEME WHERE ID=?");
-			ps.setString(1, themeId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement("DELETE FROM ADMIN_THEME WHERE ID=?")) {
+					ps.setString(1, themeId);
+					ps.execute();
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
 
 		return true;

@@ -32,7 +32,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Savepoint;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -70,7 +69,6 @@ import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class MasterDatabaseUtility {
@@ -2470,27 +2468,26 @@ public class MasterDatabaseUtility {
 	 * @return
 	 */
 	public static Date getEngineDate(String engineId) {
-		java.util.Date retDate = null;
+		// Retain an already materialized date if a later cursor/cleanup step fails.
+		Date[] retDate = new Date[1];
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		Connection conn = null;
-		PreparedStatement stmt = null;
-		ResultSet rs = null;
 		try {
-			conn = engine.getConnection();
-			String query = "select modifieddate from engine e where e.id = ?";
-			stmt = conn.prepareStatement(query);
-			stmt.setString(1, engineId);
-			rs = stmt.executeQuery();
-			while (rs.next()) {
-				java.sql.Timestamp modDate = rs.getTimestamp(1);
-				retDate = new java.util.Date(modDate.getTime());
-			}
+			return QueryExecutionUtility.read(engine, conn -> {
+				String query = "select modifieddate from engine e where e.id = ?";
+				try (PreparedStatement stmt = conn.prepareStatement(query)) {
+					stmt.setString(1, engineId);
+					try (ResultSet rs = stmt.executeQuery()) {
+						while (rs.next()) {
+							retDate[0] = new Date(rs.getTimestamp(1).getTime());
+						}
+					}
+				}
+				return retDate[0];
+			});
 		} catch (Exception ex) {
 			classLogger.error("Error retrieving engine modified date for engine id {}.", engineId, ex);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, stmt, rs);
 		}
-		return retDate;
+		return retDate[0];
 	}
 
 	/**
@@ -2500,37 +2497,13 @@ public class MasterDatabaseUtility {
 	 */
 	public static void saveMetamodelPositions(String databaseId, Map<String, Object> positions) {
 		IRDBMSEngine engine = SystemEngineRegistry.getLocalMasterDb();
-		AbstractSqlQueryUtil queryUtil = engine.getQueryUtil();
-		Connection conn = null;
-		Savepoint savepoint = null;
 		try {
-			conn = engine.getConnection();
-			if (!conn.getAutoCommit()) {
-				savepoint = conn.setSavepoint("mm_position_" + Utility.getRandomString(5));
-			}
-			saveMetamodelPositions(databaseId, positions, conn);
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(engine, conn -> {
+				saveMetamodelPositions(databaseId, positions, conn);
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Error saving metamodel positions for database {}.", databaseId, e);
-			try {
-				if (savepoint != null) {
-					conn.rollback(savepoint);
-				}
-			} catch (SQLException e1) {
-				classLogger.error("Error rolling back metamodel position save for database {}.", databaseId, e1);
-			}
-		} finally {
-			if (savepoint != null && !queryUtil.savePointAutoRelease()) {
-				try {
-					conn.releaseSavepoint(savepoint);
-				} catch (SQLException e) {
-					classLogger.error("Error releasing savepoint while saving metamodel positions for database {}.",
-							databaseId, e);
-				}
-			}
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null);
 		}
 	}
 
@@ -2548,14 +2521,11 @@ public class MasterDatabaseUtility {
 		String removeExisting = "DELETE FROM METAMODELPOSITION where ENGINEID = ?";
 		String insertStatement = "INSERT INTO METAMODELPOSITION VALUES (?, ?, ?, ?)";
 
-		PreparedStatement remove = null;
-		PreparedStatement add = null;
-		try {
-			remove = conn.prepareStatement(removeExisting);
+		try (PreparedStatement remove = conn.prepareStatement(removeExisting);
+				PreparedStatement add = conn.prepareStatement(insertStatement)) {
 			remove.setString(1, databaseId);
 			remove.execute();
 
-			add = conn.prepareStatement(insertStatement);
 			for (String x : positions.keySet()) {
 				int i = 1;
 				add.setString(i++, databaseId);
@@ -2572,9 +2542,6 @@ public class MasterDatabaseUtility {
 		} catch (Exception e) {
 			classLogger.error("Could not save metamodel positions for database {}.", databaseId, e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeStatement(remove);
-			ConnectionUtils.closeStatement(add);
 		}
 	}
 

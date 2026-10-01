@@ -858,7 +858,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index, Gson gson)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			statement.setNull(index, java.sql.Types.CLOB);
+			setNullableLargeText(statement, index, null);
 			return;
 		}
 

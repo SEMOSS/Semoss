@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -49,7 +48,6 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -199,22 +197,24 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			String updateQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME
 					+ " SET SECRETKEY=?, SECRETSALT=? WHERE ACCESSKEY=?";
 
-			PreparedStatement ps = null;
 			try {
-				int parameterIndex = 1;
-				ps = securityDb.getPreparedStatement(updateQuery);
-				ps.setString(parameterIndex++, saltedSecretKey);
-				ps.setString(parameterIndex++, salt);
-				ps.setString(parameterIndex++, accessKey);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				classLogger.info("Migrated a stored access token secret key hash to the approved scheme");
-			} catch (SQLException e) {
+				QueryExecutionUtility.write(securityDb, connection -> {
+					int parameterIndex = 1;
+
+					try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+						ps.setString(parameterIndex++, saltedSecretKey);
+						ps.setString(parameterIndex++, salt);
+						ps.setString(parameterIndex++, accessKey);
+						ps.execute();
+
+						classLogger.info("Migrated a stored access token secret key hash to the approved scheme");
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Unable to migrate the stored secret key hash to the approved scheme.", e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		});
 	}
@@ -269,43 +269,43 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 				+ " (USERID, TYPE, ACCESSKEY, SECRETKEY, SECRETSALT, DATECREATED, LASTUSED, TOKENNAME, TOKENDESCRIPTION) "
 				+ "VALUES (?,?,?,?,?,?,?,?,?)";
 
-		PreparedStatement ps = null;
+		String normalizedTokenName = tokenName == null ? null : tokenName.trim();
+		String normalizedTokenDescription = tokenDescription == null ? null : tokenDescription.trim();
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, accessToken.getId());
-			ps.setString(parameterIndex++, accessToken.getProvider().getLabel());
-			ps.setString(parameterIndex++, accessKey);
-			ps.setString(parameterIndex++, saltedSecretKey);
-			ps.setString(parameterIndex++, salt);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			if (tokenName == null || (tokenName = tokenName.trim()).isEmpty()) {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			} else {
-				ps.setString(parameterIndex++, tokenName);
-			}
-			if (tokenDescription == null || (tokenDescription = tokenDescription.trim()).isEmpty()) {
-				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			} else {
-				ps.setString(parameterIndex++, tokenDescription);
-			}
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
-			classLogger.error("Unable to validate the local user-store configuration.", e);
+			QueryExecutionUtility.write(securityDb, connection -> {
+				int parameterIndex = 1;
+
+				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+					ps.setString(parameterIndex++, accessToken.getId());
+					ps.setString(parameterIndex++, accessToken.getProvider().getLabel());
+					ps.setString(parameterIndex++, accessKey);
+					ps.setString(parameterIndex++, saltedSecretKey);
+					ps.setString(parameterIndex++, salt);
+					ps.setTimestamp(parameterIndex++, timestamp);
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, normalizedTokenName);
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							normalizedTokenDescription);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
+		} catch (Exception e) {
+			classLogger.error("Unable to validate the local user-store configuration.", e);
+			if (e instanceof SQLException) {
+				throw (SQLException) e;
+			}
+			throw new SQLException(e);
 		}
 
 		Map<String, String> details = new HashMap<>();
 		details.put("ACCESSKEY", accessKey);
 		details.put("SECRETKEY", secretKey);
-		details.put("TOKENNAME", tokenName);
-		details.put("TOKENDESCRIPTION", tokenDescription);
+		details.put("TOKENNAME", normalizedTokenName);
+		details.put("TOKENDESCRIPTION", normalizedTokenDescription);
 		return details;
 	}
 
@@ -320,20 +320,22 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 
 		String insertQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " SET LASTUSED=? WHERE ACCESSKEY=?";
 
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.setString(parameterIndex++, accessKey);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				int parameterIndex = 1;
+
+				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+					ps.setTimestamp(parameterIndex++, timestamp);
+					ps.setString(parameterIndex++, accessKey);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to update the access token last-used timestamp.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -351,21 +353,21 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Access key does not exist for this user");
 		}
 		String insertQuery = "DELETE FROM " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " WHERE ACCESSKEY=?";
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, accessKey);
-			int updatedRows = ps.executeUpdate();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-			return updatedRows > 0;
-		} catch (SQLException e) {
+			return QueryExecutionUtility.write(securityDb, connection -> {
+				int parameterIndex = 1;
+
+				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+					ps.setString(parameterIndex++, accessKey);
+					int updatedRows = ps.executeUpdate();
+					return updatedRows > 0;
+				}
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to delete user access token.", e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -418,28 +420,22 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		// since we had a bad name
 		// will check for the old column if it exists and use that
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			List<String> allCols = securityDb.getQueryUtil().getTableColumns(conn, SMSS_USER_ACCESS_KEYS_TABLE_NAME,
-					securityDb.getDatabase(), securityDb.getSchema());
-			// this should return in all upper case
-			// ... but sometimes it is not -_- i.e. postgres always lowercases
-			if (allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase())) {
-				return true;
-			}
+			return QueryExecutionUtility.read(securityDb, connection -> {
+				String query = securityDb.getQueryUtil().getAllColumnDetails(SMSS_USER_ACCESS_KEYS_TABLE_NAME,
+						securityDb.getDatabase(), securityDb.getSchema());
+				List<String> allCols = new java.util.ArrayList<>();
+				try (PreparedStatement statement = connection.prepareStatement(query);
+						java.sql.ResultSet result = statement.executeQuery()) {
+					while (result.next()) {
+						allCols.add(result.getString(1).toUpperCase());
+					}
+				}
+				return allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase());
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to determine whether the legacy access-key column exists.", e);
-		} finally {
-			if (securityDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Unable to determine whether the legacy access-key column exists.", e);
-				}
-			}
 		}
-
 		return false;
 	}
 

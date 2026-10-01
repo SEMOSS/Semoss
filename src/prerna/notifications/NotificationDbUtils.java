@@ -61,8 +61,8 @@ import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
-import prerna.util.ConnectionUtils;
 import prerna.util.NotificationConstants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -130,7 +130,8 @@ public class NotificationDbUtils {
 				throw new IllegalArgumentException("Notification scopeId is required when scopeType is APP");
 			}
 			if (!canViewAppScope(user, scopeId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+				throw new IllegalArgumentException(
+						"Project does not exist or user does not have access to the project");
 			}
 		}
 		return normalized;
@@ -213,47 +214,47 @@ public class NotificationDbUtils {
 			if (recipient == null || recipient.get("userId") == null) {
 				continue;
 			}
-			PreparedStatement ps = null;
 			try {
-				ps = notificationDb.getPreparedStatement(query);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
-				ps.setString(parameterIndex++, type);
-				ps.setString(parameterIndex++, scopeType);
-				ps.setString(parameterIndex++, scopeId);
-				ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
-				ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
-				ps.setString(parameterIndex++,
-						recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
-				ps.setString(parameterIndex++, "NOTIFICATION");
-				ps.setString(parameterIndex++, null);
-				ps.setString(parameterIndex++, normalizePriority(priority));
-				ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
-				ps.setString(parameterIndex++, sourceType);
-				ps.setString(parameterIndex++, catalogId);
-				ps.setString(parameterIndex++, targetType);
-				ps.setString(parameterIndex++, catalogId);
-				ps.setString(parameterIndex++, metadataJson);
-				ps.setString(parameterIndex++, createdBy);
-				ps.setTimestamp(parameterIndex++, createdAt);
+				QueryExecutionUtility.write(notificationDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(query)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
+						ps.setString(parameterIndex++, type);
+						ps.setString(parameterIndex++, scopeType);
+						ps.setString(parameterIndex++, scopeId);
+						ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
+						ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
+						ps.setString(parameterIndex++,
+								recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
+						ps.setString(parameterIndex++, "NOTIFICATION");
+						ps.setString(parameterIndex++, null);
+						ps.setString(parameterIndex++, normalizePriority(priority));
+						ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+						ps.setString(parameterIndex++, sourceType);
+						ps.setString(parameterIndex++, catalogId);
+						ps.setString(parameterIndex++, targetType);
+						ps.setString(parameterIndex++, catalogId);
+						ps.setString(parameterIndex++, metadataJson);
+						ps.setString(parameterIndex++, createdBy);
+						ps.setTimestamp(parameterIndex++, createdAt);
 
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
+						ps.execute();
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Failed to insert notification for recipient {} (type {}) on catalog {}",
 						recipient.get("userId"), recipient.get("userType"), catalogId, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 			}
 		}
 	}
 
-	static String insertNotificationEvent(String type, String scopeType, String scopeId,
-			String audienceType, String audienceId, String audienceUserType, String title, String message,
-			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
-			String targetId, String metadataJson, String createdBy) {
+	static String insertNotificationEvent(String type, String scopeType, String scopeId, String audienceType,
+			String audienceId, String audienceUserType, String title, String message, String priority,
+			String displaySurface, String sourceType, String sourceId, String targetType, String targetId,
+			String metadataJson, String createdBy) {
 		return insertNotificationEventRow(GUID.v7().toUUID().toString(), type, scopeType, scopeId, audienceType,
 				audienceId, audienceUserType, title, message, priority, displaySurface, sourceType, sourceId,
 				targetType, targetId, metadataJson, createdBy);
@@ -264,10 +265,10 @@ public class NotificationDbUtils {
 	 * notification later. The id is also the idempotency key: a retried producer
 	 * gets the existing notification back instead of a duplicate.
 	 */
-	static String insertNotificationEventIfAbsent(String notificationId, String type, String scopeType,
-			String scopeId, String audienceType, String audienceId, String audienceUserType, String title,
-			String message, String priority, String displaySurface, String sourceType, String sourceId,
-			String targetType, String targetId, String metadataJson, String createdBy) {
+	static String insertNotificationEventIfAbsent(String notificationId, String type, String scopeType, String scopeId,
+			String audienceType, String audienceId, String audienceUserType, String title, String message,
+			String priority, String displaySurface, String sourceType, String sourceId, String targetType,
+			String targetId, String metadataJson, String createdBy) {
 		if (notificationExists(notificationId)) {
 			return notificationId;
 		}
@@ -278,17 +279,20 @@ public class NotificationDbUtils {
 
 	private static boolean notificationExists(String notificationId) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		PreparedStatement ps = null;
 		try {
-			ps = notificationDb.getPreparedStatement("SELECT 1 FROM NOTIFICATION_EVENT WHERE NOTIFICATION_ID = ?");
-			ps.setString(1, notificationId);
-			try (ResultSet rs = ps.executeQuery()) {
-				return rs.next();
-			}
-		} catch (SQLException e) {
+			return QueryExecutionUtility.read(notificationDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("SELECT 1 FROM NOTIFICATION_EVENT WHERE NOTIFICATION_ID = ?")) {
+					ps.setString(1, notificationId);
+					try (ResultSet rs = ps.executeQuery()) {
+						return rs.next();
+					}
+				}
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new IllegalStateException("Unable to check for notification " + notificationId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 	}
 
@@ -298,39 +302,39 @@ public class NotificationDbUtils {
 			String targetType, String targetId, String metadataJson, String createdBy) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-		PreparedStatement ps = null;
 		try {
-			ps = notificationDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, notificationId);
-			ps.setString(parameterIndex++, type);
-			ps.setString(parameterIndex++, scopeType);
-			ps.setString(parameterIndex++, scopeId);
-			ps.setString(parameterIndex++, audienceType);
-			ps.setString(parameterIndex++, audienceId);
-			ps.setString(parameterIndex++, audienceUserType);
-			ps.setString(parameterIndex++, title);
-			ps.setString(parameterIndex++, message);
-			ps.setString(parameterIndex++, priority);
-			ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
-			ps.setString(parameterIndex++, sourceType);
-			ps.setString(parameterIndex++, sourceId);
-			ps.setString(parameterIndex++, targetType);
-			ps.setString(parameterIndex++, targetId);
-			ps.setString(parameterIndex++, metadataJson);
-			ps.setString(parameterIndex++, createdBy);
-			ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-			return notificationId;
-		} catch (SQLException e) {
+			return QueryExecutionUtility.write(notificationDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, notificationId);
+					ps.setString(parameterIndex++, type);
+					ps.setString(parameterIndex++, scopeType);
+					ps.setString(parameterIndex++, scopeId);
+					ps.setString(parameterIndex++, audienceType);
+					ps.setString(parameterIndex++, audienceId);
+					ps.setString(parameterIndex++, audienceUserType);
+					ps.setString(parameterIndex++, title);
+					ps.setString(parameterIndex++, message);
+					ps.setString(parameterIndex++, priority);
+					ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+					ps.setString(parameterIndex++, sourceType);
+					ps.setString(parameterIndex++, sourceId);
+					ps.setString(parameterIndex++, targetType);
+					ps.setString(parameterIndex++, targetId);
+					ps.setString(parameterIndex++, metadataJson);
+					ps.setString(parameterIndex++, createdBy);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					ps.execute();
+
+					return notificationId;
+				}
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert notification event [type={}, scopeType={}, scopeId={}]", type,
 					scopeType, scopeId, e);
 			throw new IllegalStateException("Unable to create notification", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 	}
 
@@ -338,8 +342,8 @@ public class NotificationDbUtils {
 		return fetchNotifications(user, NotificationConstants.FetchScope.ALL, null, limit, offset);
 	}
 
-	public static List<Map<String, Object>> fetchNotifications(User user, String scopeType, String scopeId, String limit,
-			String offset) {
+	public static List<Map<String, Object>> fetchNotifications(User user, String scopeType, String scopeId,
+			String limit, String offset) {
 		List<Pair<String, String>> userIdAndTypeList = User.getUserIdAndType(user);
 		if (userIdAndTypeList.isEmpty()) {
 			return new ArrayList<>();
@@ -351,20 +355,21 @@ public class NotificationDbUtils {
 		List<Object> readParameters = new ArrayList<>();
 		String audienceCondition = buildVisibleAudienceSqlCondition(userIdAndTypeList, accessibleProjectIds,
 				audienceParameters);
-		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds,
+				scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", userIdAndTypeList, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		String readCondition = buildStateExistsSqlCondition("urs", userIdAndTypeList, readParameters,
 				"urs.IS_READ = TRUE");
 
 		StringBuilder query = new StringBuilder();
-		query.append("SELECT n.NOTIFICATION_ID, n.TYPE, n.SCOPE_TYPE, n.SCOPE_ID, n.AUDIENCE_TYPE, ")
-				.append("n.AUDIENCE_ID, n.AUDIENCE_USER_TYPE, n.TITLE, n.MESSAGE, n.PRIORITY, n.DISPLAY_SURFACE, n.SOURCE_TYPE, ")
+		query.append("SELECT n.NOTIFICATION_ID, n.TYPE, n.SCOPE_TYPE, n.SCOPE_ID, n.AUDIENCE_TYPE, ").append(
+				"n.AUDIENCE_ID, n.AUDIENCE_USER_TYPE, n.TITLE, n.MESSAGE, n.PRIORITY, n.DISPLAY_SURFACE, n.SOURCE_TYPE, ")
 				.append("n.SOURCE_ID, n.TARGET_TYPE, n.TARGET_ID, n.METADATA_JSON, n.CREATED_BY, n.CREATED_AT, ")
 				.append("CASE WHEN EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(readCondition).append(") THEN TRUE ELSE FALSE END AS IS_READ ")
-				.append("FROM NOTIFICATION_EVENT n WHERE (").append(audienceCondition).append(") ")
-				.append("AND (").append(scopeCondition).append(") ")
+				.append("FROM NOTIFICATION_EVENT n WHERE (").append(audienceCondition).append(") ").append("AND (")
+				.append(scopeCondition).append(") ")
 				.append("AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND ")
 				.append(dismissedCondition).append(") ").append("ORDER BY n.CREATED_AT DESC");
 		List<Object> parameters = new ArrayList<>();
@@ -406,8 +411,8 @@ public class NotificationDbUtils {
 	 * notificationId is null.
 	 */
 	public static int deleteNotification(User user, String notificationId, String scopeType, String scopeId) {
-		return deleteNotification(User.getUserIdAndType(user), getAccessibleProjectIds(user), notificationId,
-				scopeType, scopeId);
+		return deleteNotification(User.getUserIdAndType(user), getAccessibleProjectIds(user), notificationId, scopeType,
+				scopeId);
 	}
 
 	public static int deleteNotification(List<Pair<String, String>> recipientPairs, String notificationId) {
@@ -480,7 +485,8 @@ public class NotificationDbUtils {
 	}
 
 	public static int markNotificationRead(User user, String notificationId, Timestamp readDate) {
-		return markNotificationRead(notificationId, readDate, User.getUserIdAndType(user), getAccessibleProjectIds(user));
+		return markNotificationRead(notificationId, readDate, User.getUserIdAndType(user),
+				getAccessibleProjectIds(user));
 	}
 
 	private static int markNotificationRead(String notificationId, Timestamp readDate,
@@ -505,7 +511,8 @@ public class NotificationDbUtils {
 	}
 
 	public static int fetchNewNotificationCount(User user, String scopeType, String scopeId) {
-		return fetchNewNotificationCount(User.getUserIdAndType(user), getAccessibleProjectIds(user), scopeType, scopeId);
+		return fetchNewNotificationCount(User.getUserIdAndType(user), getAccessibleProjectIds(user), scopeType,
+				scopeId);
 	}
 
 	public static int fetchNewNotificationCount(List<Pair<String, String>> recipientPairs) {
@@ -524,7 +531,8 @@ public class NotificationDbUtils {
 		List<Object> readParameters = new ArrayList<>();
 		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
 				audienceParameters);
-		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds,
+				scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", recipientPairs, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		String readCondition = buildStateExistsSqlCondition("urs", recipientPairs, readParameters,
@@ -541,39 +549,45 @@ public class NotificationDbUtils {
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE urs WHERE urs.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ readCondition + ")";
 
-		PreparedStatement ps = null;
 		try {
-			ps = notificationDb.getPreparedStatement(query);
-			setParameters(ps, parameters);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					return rs.getInt(1);
+			return QueryExecutionUtility.read(notificationDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					setParameters(ps, parameters);
+					try (ResultSet rs = ps.executeQuery()) {
+						if (rs.next()) {
+							return rs.getInt(1);
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return 0;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to fetch new notification count for recipient pairs {}", recipientPairs, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 		return 0;
 	}
 
 	private static List<Map<String, Object>> executeNotificationFetch(String query, List<Object> parameters) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		PreparedStatement ps = null;
 		List<Map<String, Object>> rows = new ArrayList<>();
 		try {
-			ps = notificationDb.getPreparedStatement(query);
-			setParameters(ps, parameters);
-			try (ResultSet rs = ps.executeQuery()) {
-				while (rs.next()) {
-					rows.add(mapNotificationRow(rs));
+			QueryExecutionUtility.read(notificationDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					setParameters(ps, parameters);
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							rows.add(mapNotificationRow(rs));
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to fetch notifications", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 		return rows;
 	}
@@ -673,15 +687,16 @@ public class NotificationDbUtils {
 		List<Object> readParameters = new ArrayList<>();
 		String audienceCondition = buildVisibleAudienceSqlCondition(recipientPairs, accessibleProjectIds,
 				audienceParameters);
-		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds, scopeParameters);
+		String scopeCondition = buildVisibleScopeSqlCondition(scopeType, scopeId, accessibleProjectIds,
+				scopeParameters);
 		String dismissedCondition = buildStateExistsSqlCondition("us", recipientPairs, dismissedParameters,
 				"us.IS_DISMISSED = TRUE");
 		List<Object> parameters = new ArrayList<>();
 		parameters.addAll(audienceParameters);
 		parameters.addAll(scopeParameters);
 		parameters.addAll(dismissedParameters);
-		String query = "SELECT n.NOTIFICATION_ID FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
-				+ "AND (" + scopeCondition + ") "
+		String query = "SELECT n.NOTIFICATION_ID FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") " + "AND ("
+				+ scopeCondition + ") "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
 		if (unreadOnly) {
@@ -693,25 +708,29 @@ public class NotificationDbUtils {
 		}
 		List<String> ids = new ArrayList<>();
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		PreparedStatement ps = null;
+		String notificationQuery = query;
 		try {
-			ps = notificationDb.getPreparedStatement(query);
-			setParameters(ps, parameters);
-			try (ResultSet rs = ps.executeQuery()) {
-				while (rs.next()) {
-					ids.add(rs.getString(1));
+			QueryExecutionUtility.read(notificationDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(notificationQuery)) {
+					setParameters(ps, parameters);
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							ids.add(rs.getString(1));
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to fetch visible notification ids for recipient pairs {}", recipientPairs, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 		return ids;
 	}
 
-	private static boolean isNotificationVisibleToUser(String notificationId,
-			List<Pair<String, String>> recipientPairs, List<String> accessibleProjectIds) {
+	private static boolean isNotificationVisibleToUser(String notificationId, List<Pair<String, String>> recipientPairs,
+			List<String> accessibleProjectIds) {
 		List<Object> audienceParameters = new ArrayList<>();
 		List<Object> scopeParameters = new ArrayList<>();
 		List<Object> dismissedParameters = new ArrayList<>();
@@ -726,23 +745,25 @@ public class NotificationDbUtils {
 		parameters.addAll(scopeParameters);
 		parameters.add(notificationId);
 		parameters.addAll(dismissedParameters);
-		String query = "SELECT 1 FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") "
-				+ "AND (" + scopeCondition + ") " + "AND n.NOTIFICATION_ID = ? "
+		String query = "SELECT 1 FROM NOTIFICATION_EVENT n WHERE (" + audienceCondition + ") " + "AND ("
+				+ scopeCondition + ") " + "AND n.NOTIFICATION_ID = ? "
 				+ "AND NOT EXISTS (SELECT 1 FROM NOTIFICATION_USER_STATE us WHERE us.NOTIFICATION_ID = n.NOTIFICATION_ID AND "
 				+ dismissedCondition + ")";
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		PreparedStatement ps = null;
 		try {
-			ps = notificationDb.getPreparedStatement(query);
-			setParameters(ps, parameters);
-			try (ResultSet rs = ps.executeQuery()) {
-				return rs.next();
-			}
-		} catch (SQLException e) {
+			return QueryExecutionUtility.read(notificationDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					setParameters(ps, parameters);
+					try (ResultSet rs = ps.executeQuery()) {
+						return rs.next();
+					}
+				}
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to check notification visibility [notificationId={}, recipientPairs={}]",
 					notificationId, recipientPairs, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, ps);
 		}
 		return false;
 	}
@@ -750,8 +771,6 @@ public class NotificationDbUtils {
 	private static int upsertNotificationState(String notificationId, Pair<String, String> userPair, Boolean isRead,
 			Timestamp readAt, Boolean isDismissed, Timestamp dismissedAt) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
-		PreparedStatement updatePs = null;
-		PreparedStatement insertPs = null;
 		try {
 			List<String> sets = new ArrayList<>();
 			List<Object> parameters = new ArrayList<>();
@@ -775,32 +794,31 @@ public class NotificationDbUtils {
 			parameters.add(userPair.getValue1());
 			String update = "UPDATE NOTIFICATION_USER_STATE SET " + String.join(", ", sets)
 					+ " WHERE NOTIFICATION_ID = ? AND USER_ID = ? AND USER_TYPE = ?";
-			updatePs = notificationDb.getPreparedStatement(update);
-			setParameters(updatePs, parameters);
-			int updated = updatePs.executeUpdate();
-			if (updated == 0) {
-				insertPs = notificationDb.getPreparedStatement(
-						"INSERT INTO NOTIFICATION_USER_STATE (NOTIFICATION_ID,USER_ID,USER_TYPE,IS_READ,READ_AT,IS_DISMISSED,DISMISSED_AT) VALUES (?,?,?,?,?,?,?)");
-				insertPs.setString(1, notificationId);
-				insertPs.setString(2, userPair.getValue0());
-				insertPs.setString(3, userPair.getValue1());
-				insertPs.setBoolean(4, isRead != null && isRead.booleanValue());
-				insertPs.setTimestamp(5, readAt);
-				insertPs.setBoolean(6, isDismissed != null && isDismissed.booleanValue());
-				insertPs.setTimestamp(7, dismissedAt);
-				insertPs.executeUpdate();
-			}
-			Connection conn = updatePs.getConnection();
-			if (conn != null && !conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return 1;
-		} catch (SQLException e) {
+			return QueryExecutionUtility.write(notificationDb, connection -> {
+				try (PreparedStatement updatePs = connection.prepareStatement(update)) {
+					setParameters(updatePs, parameters);
+					int updated = updatePs.executeUpdate();
+					if (updated == 0) {
+						try (PreparedStatement insertPs = connection.prepareStatement(
+								"INSERT INTO NOTIFICATION_USER_STATE (NOTIFICATION_ID,USER_ID,USER_TYPE,IS_READ,READ_AT,IS_DISMISSED,DISMISSED_AT) VALUES (?,?,?,?,?,?,?)")) {
+							insertPs.setString(1, notificationId);
+							insertPs.setString(2, userPair.getValue0());
+							insertPs.setString(3, userPair.getValue1());
+							insertPs.setBoolean(4, isRead != null && isRead.booleanValue());
+							insertPs.setTimestamp(5, readAt);
+							insertPs.setBoolean(6, isDismissed != null && isDismissed.booleanValue());
+							insertPs.setTimestamp(7, dismissedAt);
+							insertPs.executeUpdate();
+						}
+					}
+					return 1;
+				}
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to upsert notification state [notificationId={}, userPair={}]", notificationId,
 					userPair, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, insertPs);
-			ConnectionUtils.closeAllConnectionsIfPooling(notificationDb, updatePs);
 		}
 		return 0;
 	}
@@ -831,7 +849,8 @@ public class NotificationDbUtils {
 
 	private static String buildVisibleScopeSqlCondition(String scopeType, String scopeId,
 			List<String> accessibleProjectIds, List<Object> parameters) {
-		String normalizedScopeType = scopeType == null ? NotificationConstants.FetchScope.ALL : scopeType.trim().toUpperCase();
+		String normalizedScopeType = scopeType == null ? NotificationConstants.FetchScope.ALL
+				: scopeType.trim().toUpperCase();
 		if (!NotificationConstants.FetchScope.isValid(normalizedScopeType)) {
 			throw new IllegalArgumentException("Notification scopeType must be ALL, SYSTEM, or APP");
 		}

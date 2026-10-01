@@ -28,7 +28,6 @@
 package prerna.theme;
 
 import java.lang.reflect.Type;
-import java.sql.Clob;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -51,7 +50,6 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -163,18 +161,19 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 
 		if (hardDelete) {
 			String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
-			PreparedStatement ps = null;
-
 			try {
-				ps = themeDb.getPreparedStatement(query);
-				ps.setString(1, blockId);
-				int rowsAffected = ps.executeUpdate();
-				return (rowsAffected > 0);
-			} catch (SQLException e) {
+				return QueryExecutionUtility.write(themeDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(query)) {
+						ps.setString(1, blockId);
+						int rowsAffected = ps.executeUpdate();
+						return (rowsAffected > 0);
+					}
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error(Constants.STACKTRACE, e);
 				return false;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 			}
 		} else {
 			return updateBlock(blockId);
@@ -222,34 +221,27 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	// insert the row into blocks_table table
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
-		PreparedStatement blockPS = null;
 		try {
-			blockPS = themeDb.getPreparedStatement(BLOCK_QUERY);
-			int parameterIndex = 1;
-			blockPS.setString(parameterIndex++, blockId);
-			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
-			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
-			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
-			if (allowClob) {
-				Clob toclob = themeDb.getConnection().createClob();
-				toclob.setString(1, String.valueOf(blockDetails.get("json")));
-				blockPS.setClob(parameterIndex++, toclob);
-			} else {
-				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("json")));
-			}
-			blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-			blockPS.setBoolean(parameterIndex++, true);
-			// blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
-			blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
-			blockPS.executeUpdate();
-			if (!blockPS.getConnection().getAutoCommit()) {
-				blockPS.getConnection().commit();
-			}
+			QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement blockPS = connection.prepareStatement(BLOCK_QUERY)) {
+					int parameterIndex = 1;
+					blockPS.setString(parameterIndex++, blockId);
+					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
+					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
+					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
+					themeDb.getQueryUtil().setNullableLargeText(blockPS, parameterIndex++,
+							String.valueOf(blockDetails.get("json")));
+					blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					blockPS.setBoolean(parameterIndex++, true);
+					// blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
+					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
+					blockPS.executeUpdate();
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			throw new IllegalArgumentException(e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, null, blockPS, null);
 		}
 	}
 
@@ -261,24 +253,21 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		String[] whereCol = { "ID" };
 		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString(
 				ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), colToUpdate, whereCol);
-		PreparedStatement ps = null;
 		try {
-			ps = themeDb.getPreparedStatement(promptPermissionQuery);
-			int parameterIndex = 1;
-			ps.setBoolean(parameterIndex++, false);
-			ps.setString(parameterIndex++, blockId);
-			int rowsAffected = ps.executeUpdate();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-			return (rowsAffected > 0);
+			return QueryExecutionUtility.write(themeDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(promptPermissionQuery)) {
+					int parameterIndex = 1;
+					ps.setBoolean(parameterIndex++, false);
+					ps.setString(parameterIndex++, blockId);
+					int rowsAffected = ps.executeUpdate();
+
+					return (rowsAffected > 0);
+				}
+			});
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(themeDb, ps);
 		}
-
 	}
 
 	public static String[] getThemeColTypes(AbstractSqlQueryUtil queryUtil) {

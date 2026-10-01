@@ -27,10 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +43,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
 public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils {
@@ -150,32 +147,29 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 					e);
 		}
 
-		Connection conn = null;
-		Statement ps = null;
 		try {
-			conn = securityDb.getConnection();
-			ps = conn.prepareStatement(INSERT_CONNECTION_SQL);
-			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_CONNECTION_SQL)) {
-				insertStmt.setString(1, generatedId);
-				insertStmt.setString(2, alias);
-				insertStmt.setString(3, clientId);
-				insertStmt.setString(4, clientSecret);
+			String boundClientId = clientId;
+			String boundClientSecret = clientSecret;
+			String boundAlias = alias;
+			return QueryExecutionUtility.write(securityDb, conn -> {
+				try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_CONNECTION_SQL)) {
+					insertStmt.setString(1, generatedId);
+					insertStmt.setString(2, boundAlias);
+					insertStmt.setString(3, boundClientId);
+					insertStmt.setString(4, boundClientSecret);
 
-				int rowsInserted = insertStmt.executeUpdate();
-				if (rowsInserted != 1) {
-					throw new SemossPixelException("Unable to insert Salesforce connection.");
+					int rowsInserted = insertStmt.executeUpdate();
+					if (rowsInserted != 1) {
+						throw new SemossPixelException("Unable to insert Salesforce connection.");
+					}
+					return generatedId;
 				}
-
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-				return generatedId;
-			}
-		} catch (SQLException e) {
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert Salesforce connection.", e);
 			throw new SemossPixelException("Unable to insert Salesforce connection: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
 		}
 	}
 
@@ -236,34 +230,33 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 					e);
 		}
 
-		Connection conn = null;
-		Statement ps = null;
 		try {
-			conn = securityDb.getConnection();
-			ps = conn.prepareStatement(INSERT_SERVICENOW_CONNECTION_SQL);
-			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_SERVICENOW_CONNECTION_SQL)) {
-				insertStmt.setString(1, generatedId);
-				insertStmt.setString(2, instanceUrl);
-				insertStmt.setString(3, alias);
-				insertStmt.setString(4, clientId);
-				insertStmt.setString(5, clientSecret);
-				insertStmt.setString(6, userProfileUrl);
+			String boundClientId = clientId;
+			String boundClientSecret = clientSecret;
+			String boundAlias = alias;
+			String boundInstanceUrl = instanceUrl;
+			String boundUserProfileUrl = userProfileUrl;
+			return QueryExecutionUtility.write(securityDb, conn -> {
+				try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_SERVICENOW_CONNECTION_SQL)) {
+					insertStmt.setString(1, generatedId);
+					insertStmt.setString(2, boundInstanceUrl);
+					insertStmt.setString(3, boundAlias);
+					insertStmt.setString(4, boundClientId);
+					insertStmt.setString(5, boundClientSecret);
+					insertStmt.setString(6, boundUserProfileUrl);
 
-				int rowsInserted = insertStmt.executeUpdate();
-				if (rowsInserted != 1) {
-					throw new SemossPixelException("Unable to insert ServiceNow connection.");
+					int rowsInserted = insertStmt.executeUpdate();
+					if (rowsInserted != 1) {
+						throw new SemossPixelException("Unable to insert ServiceNow connection.");
+					}
+					return generatedId;
 				}
-
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-				return generatedId;
-			}
-		} catch (SQLException e) {
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert ServiceNow connection.", e);
 			throw new SemossPixelException("Unable to insert ServiceNow connection: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
 		}
 	}
 
@@ -324,34 +317,33 @@ public class SecurityAdminExternalConnectorsUtils extends AbstractSecurityUtils 
 					e);
 		}
 
-		Connection conn = null;
-		Statement ps = null;
 		try {
-			conn = securityDb.getConnection();
-			ps = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL);
-			try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL)) {
-				insertStmt.setString(1, generatedId);
-				insertStmt.setString(2, alias);
-				insertStmt.setString(3, clientId);
-				insertStmt.setString(4, clientSecret);
-				insertStmt.setString(5, scope);
-				insertStmt.setString(6, userProfileUrl);
+			String boundClientId = clientId;
+			String boundClientSecret = clientSecret;
+			String boundAlias = alias;
+			String boundUserProfileUrl = userProfileUrl;
+			String boundScope = scope;
+			return QueryExecutionUtility.write(securityDb, conn -> {
+				try (PreparedStatement insertStmt = conn.prepareStatement(INSERT_JIRA_CONNECTION_SQL)) {
+					insertStmt.setString(1, generatedId);
+					insertStmt.setString(2, boundAlias);
+					insertStmt.setString(3, boundClientId);
+					insertStmt.setString(4, boundClientSecret);
+					insertStmt.setString(5, boundScope);
+					insertStmt.setString(6, boundUserProfileUrl);
 
-				int rowsInserted = insertStmt.executeUpdate();
-				if (rowsInserted != 1) {
-					throw new SemossPixelException("Unable to insert Jira connection.");
+					int rowsInserted = insertStmt.executeUpdate();
+					if (rowsInserted != 1) {
+						throw new SemossPixelException("Unable to insert Jira connection.");
+					}
+					return generatedId;
 				}
-
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-				return generatedId;
-			}
-		} catch (SQLException e) {
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert Jira connection.", e);
 			throw new SemossPixelException("Unable to insert Jira connection: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn, ps);
 		}
 	}
 }

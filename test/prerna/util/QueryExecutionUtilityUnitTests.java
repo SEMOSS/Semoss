@@ -71,16 +71,17 @@ class QueryExecutionUtilityUnitTests {
 
 	@BeforeEach
 	void setup() throws Exception {
-		connection = DriverManager.getConnection("jdbc:h2:mem:parameterized_" + UUID.randomUUID());
+		connection = spy(DriverManager.getConnection("jdbc:h2:mem:parameterized_" + UUID.randomUUID()));
 		engine = mock(IRDBMSEngine.class);
-		when(engine.getPreparedStatement(anyString())).thenAnswer(invocation -> {
-			statement = spy(connection.prepareStatement(invocation.getArgument(0, String.class)));
+		when(engine.getConnection()).thenReturn(connection);
+		doAnswer(invocation -> {
+			statement = spy((PreparedStatement) invocation.callRealMethod());
 			doAnswer(execution -> {
 				result = (ResultSet) execution.callRealMethod();
 				return result;
 			}).when(statement).executeQuery();
 			return statement;
-		});
+		}).when(connection).prepareStatement(anyString());
 	}
 
 	@AfterEach
@@ -157,11 +158,11 @@ class QueryExecutionUtilityUnitTests {
 
 	@Test
 	void closesResultSetAndConnectionWhenReadingFails() throws Exception {
-		var failingStatement = spy(connection.prepareStatement("SELECT 1 AS N"));
+		var failingStatement = connection.prepareStatement("SELECT 1 AS N");
 		var failingResult = spy(failingStatement.executeQuery());
 		doThrow(new SQLException("Read failed")).when(failingResult).next();
 		doReturn(failingResult).when(failingStatement).executeQuery();
-		doReturn(failingStatement).when(engine).getPreparedStatement(anyString());
+		doReturn(failingStatement).when(connection).prepareStatement(anyString());
 		when(engine.isConnectionPooling()).thenReturn(true);
 
 		var error = assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(engine,
@@ -176,7 +177,8 @@ class QueryExecutionUtilityUnitTests {
 	@Test
 	void rejectsInvalidArgumentsBeforeOpeningAStatement() {
 		var query = new ParameterizedQuery("SELECT 1", List.of(), 1);
-		assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(null, query, 5));
+		assertThrows(IllegalArgumentException.class,
+				() -> QueryExecutionUtility.flushRsToMap((IRDBMSEngine) null, query, 5));
 		assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(engine, null, 5));
 		assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(engine, query, -1));
 		for (var invalid : List.of(new ParameterizedQuery(null, List.of(), 1),
