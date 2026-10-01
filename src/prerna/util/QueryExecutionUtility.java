@@ -28,6 +28,8 @@
 package prerna.util;
 
 import java.lang.reflect.Type;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,11 +48,31 @@ import com.google.gson.reflect.TypeToken;
 
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
+/**
+ * Executes database queries and materializes their results as Java scalars and
+ * collections.
+ *
+ * <p>
+ * Methods accepting an engine manage their query resources and close them on
+ * completion or failure. Query-structure and raw-query methods obtain wrappers
+ * through {@link WrapperManager}; parameterized queries use prepared
+ * statements. Methods accepting an existing {@link IRawSelectWrapper} consume
+ * its remaining rows; the caller remains responsible for closing that wrapper.
+ *
+ * <p>
+ * Collection methods materialize all available rows in memory. The
+ * {@link ParameterizedQuery} overload applies its requested JDBC row limit;
+ * other overloads require callers to set any limit in the query or statement.
+ * Lists preserve wrapper iteration order; set and map ordering is described by
+ * the individual methods.
+ */
 public class QueryExecutionUtility {
 
 	private static final Logger classLogger = LogManager.getLogger(QueryExecutionUtility.class);
@@ -58,19 +80,36 @@ public class QueryExecutionUtility {
 	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
 			.disableHtmlEscaping().create();
 
+	/**
+	 * Describes SQL text, ordered JDBC bind values, and a requested result-row
+	 * limit for reuse by query consumers.
+	 *
+	 * <p>
+	 * This record only carries data: the consumer validates and executes the SQL,
+	 * binds the parameters, and applies the limit. The parameter list is stored by
+	 * reference without a defensive copy.
+	 *
+	 * @param sql        SQL containing parameter placeholders
+	 * @param parameters values in placeholder order, starting with JDBC parameter 1
+	 * @param limit      maximum rows to be applied by the query consumer
+	 */
+	public record ParameterizedQuery(String sql, List<Object> parameters, int limit) {
+	}
+
 	private QueryExecutionUtility() {
 
 	}
 
-	/*
-	 * Utility methods
-	 */
-
 	/**
-	 * Utility method to flush result set into list Assumes single return at index 0
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Executes a query and returns the first column of its first row as a string.
+	 * The value is cast to {@link String}, not converted with {@code toString()}.
+	 * Later rows and columns are ignored.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query whose first column is a string or {@code null}
+	 * @return the first value, or {@code null} if it is null or there are no rows
+	 * @throws IllegalArgumentException if execution, casting, iteration, or wrapper
+	 *                                  closure fails
 	 */
 	public static String flushToString(IDatabaseEngine engine, SelectQueryStruct qs) {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
@@ -86,11 +125,15 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * Utility method to flush result set into an integer Assumes single return at
-	 * index 0
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Executes a query and returns the first non-null value in its first column,
+	 * converted with {@link Number#intValue()}. Rows with a null first column are
+	 * skipped; other columns are ignored.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query whose first column contains numbers or nulls
+	 * @return the converted value, or {@code null} if no non-null value is found
+	 * @throws IllegalArgumentException if execution, numeric conversion, iteration,
+	 *                                  or wrapper closure fails
 	 */
 	public static Integer flushToInteger(IDatabaseEngine engine, SelectQueryStruct qs) {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
@@ -108,6 +151,17 @@ public class QueryExecutionUtility {
 		return null;
 	}
 
+	/**
+	 * Executes a query and returns the first non-null value in its first column,
+	 * converted with {@link Number#longValue()}. Rows with a null first column are
+	 * skipped; other columns are ignored.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query whose first column contains numbers or nulls
+	 * @return the converted value, or {@code null} if no non-null value is found
+	 * @throws IllegalArgumentException if execution, numeric conversion, iteration,
+	 *                                  or wrapper closure fails
+	 */
 	public static Long flushToLong(IDatabaseEngine engine, SelectQueryStruct qs) {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
 			while (wrapper.hasNext()) {
@@ -125,10 +179,15 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * Utility method to flush result set into list Assumes single return at index 0
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Executes a query and converts each first-column value with
+	 * {@link Object#toString()}. Null first-column values are not supported.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query whose first-column values are non-null
+	 * @return a mutable list in row order, retaining duplicates; empty for no rows
+	 * @throws IllegalArgumentException if a first-column value is null, or
+	 *                                  execution, conversion, iteration, or wrapper
+	 *                                  closure fails
 	 */
 	public static List<String> flushToListString(IDatabaseEngine engine, SelectQueryStruct qs) {
 		List<String> values = new ArrayList<String>();
@@ -145,10 +204,18 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * Utility method to flush result set into set Assumes single return at index 0
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Executes a query and collects distinct first-column values after converting
+	 * them with {@link Object#toString()}. Null first-column values are not
+	 * supported.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query whose first-column values are non-null
+	 * @param order  {@code true} for natural string ordering in a {@link TreeSet};
+	 *               {@code false} for a {@link HashSet} with unspecified order
+	 * @return a mutable set of distinct strings, or an empty set for no rows
+	 * @throws IllegalArgumentException if a first-column value is null, or
+	 *                                  execution, conversion, iteration, or wrapper
+	 *                                  closure fails
 	 */
 	public static Set<String> flushToSetString(IDatabaseEngine engine, SelectQueryStruct qs, boolean order) {
 		Set<String> values = null;
@@ -170,10 +237,19 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * Utility method to flush result set into set Assumes single return at index 0
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Executes a raw query and collects distinct first-column values after
+	 * converting them with {@link Object#toString()}. The query text is passed to
+	 * {@link WrapperManager} unchanged; this overload does not bind parameters.
+	 * Null first-column values are not supported.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param query  raw query whose first-column values are non-null
+	 * @param order  {@code true} for natural string ordering in a {@link TreeSet};
+	 *               {@code false} for a {@link HashSet} with unspecified order
+	 * @return a mutable set of distinct strings, or an empty set for no rows
+	 * @throws IllegalArgumentException if a first-column value is null, or
+	 *                                  execution, conversion, iteration, or wrapper
+	 *                                  closure fails
 	 */
 	public static Set<String> flushToSetString(IDatabaseEngine engine, String query, boolean order) {
 		Set<String> values = null;
@@ -194,6 +270,18 @@ public class QueryExecutionUtility {
 		return values;
 	}
 
+	/**
+	 * Executes a query and converts every row to a new array of strings in column
+	 * order. String conversion represents null values as the literal
+	 * {@code "null"}.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query to execute
+	 * @return a mutable list of string arrays in row order, or an empty list for no
+	 *         rows
+	 * @throws IllegalArgumentException if execution, conversion, iteration, or
+	 *                                  wrapper closure fails
+	 */
 	public static List<String[]> flushRsToListOfStrArray(IDatabaseEngine engine, SelectQueryStruct qs) {
 		List<String[]> ret = new ArrayList<String[]>();
 
@@ -216,6 +304,17 @@ public class QueryExecutionUtility {
 		return ret;
 	}
 
+	/**
+	 * Executes a query and collects each row's value array in column order. Values,
+	 * including nulls, retain their wrapper-provided types; arrays are not copied.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query to execute
+	 * @return a mutable list of value arrays in row order, or an empty list for no
+	 *         rows
+	 * @throws IllegalArgumentException if execution, iteration, or wrapper closure
+	 *                                  fails
+	 */
 	public static List<Object[]> flushRsToListOfObjArray(IDatabaseEngine engine, SelectQueryStruct qs) {
 		List<Object[]> ret = new ArrayList<Object[]>();
 
@@ -231,6 +330,19 @@ public class QueryExecutionUtility {
 		return ret;
 	}
 
+	/**
+	 * Executes a query and collects the wrapper-provided row arrays without copying
+	 * their values or changing nulls.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query to execute
+	 * @return a mutable list of value arrays in row order, or an empty list for no
+	 *         rows
+	 * @throws IllegalArgumentException if execution, iteration, or wrapper closure
+	 *                                  fails
+	 * @deprecated Use
+	 *             {@link #flushRsToListOfObjArray(IDatabaseEngine, SelectQueryStruct)}.
+	 */
 	@Deprecated
 	static List<Object[]> flushRsToMatrix(IDatabaseEngine engine, SelectQueryStruct qs) {
 		List<Object[]> ret = new ArrayList<Object[]>();
@@ -248,10 +360,15 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * 
-	 * @param engine
-	 * @param qs
-	 * @return
+	 * Executes a query and maps each row's headers to its values using
+	 * {@link #flushWrapperToMap(IRawSelectWrapper)}. JDBC CLOB and BLOB values are
+	 * read as strings; other values, including nulls, retain their types.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query to execute
+	 * @return a mutable list of row maps in row order, or an empty list for no rows
+	 * @throws IllegalArgumentException if execution, conversion, iteration, or
+	 *                                  wrapper closure fails
 	 */
 	public static List<Map<String, Object>> flushRsToMap(IDatabaseEngine engine, SelectQueryStruct qs) {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
@@ -263,11 +380,18 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * 
-	 * @param engine
-	 * @param qs
-	 * @param mapKeys
-	 * @return
+	 * Executes a query and maps each row's headers to values, optionally parsing
+	 * selected columns as JSON objects. Conversion follows
+	 * {@link #flushWrapperToMap(IRawSelectWrapper, Set)}.
+	 *
+	 * @param engine  database engine used to execute the query
+	 * @param qs      query to execute
+	 * @param mapKeys exact, case-sensitive headers to parse as JSON objects; null
+	 *                or empty disables JSON parsing. All columns remain in each
+	 *                row.
+	 * @return a mutable list of row maps in row order, or an empty list for no rows
+	 * @throws IllegalArgumentException if execution, LOB conversion, iteration, or
+	 *                                  wrapper closure fails
 	 */
 	public static List<Map<String, Object>> flushRsToMap(IDatabaseEngine engine, SelectQueryStruct qs,
 			Set<String> mapKeys) {
@@ -280,11 +404,79 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * Query can only have 2 projections
-	 * 
-	 * @param engine
-	 * @param qs
-	 * @return
+	 * Executes a parameterized read and maps result headers to values using
+	 * {@link #flushWrapperToMap(IRawSelectWrapper)}. Values are bound in list order
+	 * with {@link PreparedStatement#setObject(int, Object)}, including nulls.
+	 * Headers and wrapper-provided value types are preserved; JDBC CLOBs and BLOBs
+	 * are read as strings. No JSON parsing or API-specific formatting is applied.
+	 *
+	 * <p>
+	 * The query limit is applied with {@link PreparedStatement#setMaxRows(int)} and
+	 * the timeout with {@link PreparedStatement#setQueryTimeout(int)}. Zero
+	 * disables the respective JDBC limit. Callers enforce any application-specific
+	 * maximums before calling this method.
+	 *
+	 * <p>
+	 * The result set and statement are closed on success or failure. Pooled
+	 * connections are released through {@link ConnectionUtils}; non-pooled engine
+	 * connections remain open. Cleanup failures handled by {@code ConnectionUtils}
+	 * are logged without replacing the query outcome.
+	 *
+	 * @param engine              relational database engine used to prepare the
+	 *                            query
+	 * @param query               non-null query with non-blank SQL, a non-null
+	 *                            parameter list, and a non-negative row limit
+	 * @param queryTimeoutSeconds non-negative JDBC timeout in seconds; zero means
+	 *                            no timeout
+	 * @return a mutable list of row maps in result order, or an empty list for no
+	 *         rows; map key order is unspecified
+	 * @throws IllegalArgumentException if arguments are invalid or preparing,
+	 *                                  binding, executing, reading, or converting
+	 *                                  the query fails; execution failures retain
+	 *                                  their cause without including database
+	 *                                  details in the exception message
+	 */
+	public static List<Map<String, Object>> flushRsToMap(IRDBMSEngine engine, ParameterizedQuery query,
+			int queryTimeoutSeconds) {
+		if (engine == null || query == null || query.sql() == null || query.sql().isBlank()
+				|| query.parameters() == null || query.limit() < 0 || queryTimeoutSeconds < 0) {
+			throw new IllegalArgumentException(
+					"A database engine, SQL, parameters, and non-negative limits are required");
+		}
+		PreparedStatement statement = null;
+		ResultSet result = null;
+		try {
+			statement = engine.getPreparedStatement(query.sql());
+			statement.setMaxRows(query.limit());
+			if (queryTimeoutSeconds >= 0) {
+				statement.setQueryTimeout(queryTimeoutSeconds);
+			}
+			for (int i = 0; i < query.parameters().size(); i++) {
+				statement.setObject(i + 1, query.parameters().get(i));
+			}
+			result = statement.executeQuery();
+			try (RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.flushRsToWrapper(result)) {
+				return flushWrapperToMap(wrapper);
+			}
+		} catch (Exception e) {
+			classLogger.error("Error executing parameterized query", e);
+			throw new IllegalArgumentException("Error executing parameterized query", e);
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(engine, null, statement, result);
+		}
+	}
+
+	/**
+	 * Executes a query and maps each row's first column to its second column.
+	 * Additional columns are ignored. Later rows replace earlier values for the
+	 * same key; null keys and values are retained.
+	 *
+	 * @param engine database engine used to execute the query
+	 * @param qs     query returning at least two columns per row
+	 * @return a mutable map with unspecified key order, or an empty map for no rows
+	 * @throws IllegalArgumentException if a row has fewer than two columns, or
+	 *                                  execution, iteration, or wrapper closure
+	 *                                  fails
 	 */
 	public static Map<Object, Object> flushRsToKeyValueMap(IDatabaseEngine engine, SelectQueryStruct qs) {
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(engine, qs)) {
@@ -307,18 +499,48 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Consumes the remaining rows of an existing wrapper and maps headers to
+	 * values. Equivalent to {@link #flushWrapperToMap(IRawSelectWrapper, Set)} with
+	 * no JSON columns selected. JDBC CLOB and BLOB values are read as strings;
+	 * other values, including nulls, retain their types.
+	 *
+	 * <p>
+	 * This method does not close the wrapper; the caller owns its lifecycle.
+	 *
+	 * @param wrapper executed wrapper positioned before the next row to consume
+	 * @return a mutable list of row maps in iteration order, or an empty list if
+	 *         the wrapper has no remaining rows; map key order is unspecified
+	 * @throws IllegalArgumentException if reading or converting a row fails
 	 */
 	public static List<Map<String, Object>> flushWrapperToMap(IRawSelectWrapper wrapper) {
 		return flushWrapperToMap(wrapper, null);
 	}
 
 	/**
-	 * 
-	 * @param wrapper
-	 * @return
+	 * Consumes the remaining rows of an existing wrapper and maps each row's
+	 * headers to values. Header spelling is preserved; duplicate headers overwrite
+	 * earlier columns with the same header.
+	 *
+	 * <p>
+	 * For headers in {@code mapKeys}, string values (including text read from JDBC
+	 * CLOBs or BLOBs) are parsed as JSON objects. Successful parsing produces
+	 * nested maps and lists, with numbers represented as {@link Long} or
+	 * {@link Double}. If parsing does not produce an object, the original wrapper
+	 * value is retained. For other headers, CLOBs and BLOBs are converted to
+	 * strings and other values, including nulls, are retained unchanged. The
+	 * selected headers do not filter which columns are returned.
+	 *
+	 * <p>
+	 * This method does not close the wrapper; the caller owns its lifecycle.
+	 *
+	 * @param wrapper executed wrapper positioned before the next row to consume
+	 * @param mapKeys exact, case-sensitive headers to parse as JSON objects; null
+	 *                or empty disables JSON parsing
+	 * @return a mutable list of row maps in iteration order, or an empty list if
+	 *         the wrapper has no remaining rows; map key order is unspecified
+	 * @throws IllegalArgumentException if iteration or LOB conversion fails;
+	 *                                  invalid JSON retains the original value
+	 *                                  instead
 	 */
 	public static List<Map<String, Object>> flushWrapperToMap(IRawSelectWrapper wrapper, Set<String> mapKeys) {
 		List<Map<String, Object>> result = new ArrayList<>();
@@ -353,9 +575,13 @@ public class QueryExecutionUtility {
 	}
 
 	/**
-	 * 
-	 * @param jsonString
-	 * @return
+	 * Attempts to parse a string value as a JSON object using the shared Gson
+	 * configuration. Conversion errors are treated as an unavailable conversion.
+	 *
+	 * @param jsonString candidate value, expected to be a string containing a JSON
+	 *                   object
+	 * @return the parsed map, or {@code null} for null, non-string, or unparseable
+	 *         input, or when parsing produces null
 	 */
 	private static Map<String, Object> convertJsonString(Object jsonString) {
 		if (jsonString == null) {
