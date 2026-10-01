@@ -15,7 +15,7 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-// Candidate A.1: counting over permitted headers; no model, bodies, database or embeddings.
+// Deterministic topic discovery over permitted headers; no model calls, bodies, database writes or embeddings.
 public final class BrainTopicStructure {
 
 	// wide: any real (non-bulk) thread can seed or join a topic, not only threads the owner took part in; for a pool
@@ -32,6 +32,7 @@ public final class BrainTopicStructure {
 		}
 	}
 
+	// Before a completed sort, require owner engagement; after sort, WIDE trusts the non-automated pool.
 	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000, false);
 	// after a sort: every real thread, and a longer list for the owner to narrow down
 	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, 6000, true);
@@ -48,6 +49,7 @@ public final class BrainTopicStructure {
 			boolean wrote, boolean bulk, boolean vip, boolean outside, int messages, boolean engaged) {
 	}
 
+	// Indices refer to pool entries and seed topics. filed is discovery membership, never BRAIN_THREAD_TOPIC.
 	public record Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
 			List<Map<String, Object>> cards, int gated) {
 	}
@@ -62,6 +64,7 @@ public final class BrainTopicStructure {
 
 	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain,
 			Set<String> vips, Settings settings, Set<String> sentHistory) {
+		// Engagement uses all permitted Sent contacts, not just the threads that survive the pool limit.
 		Set<String> sentTo = new HashSet<>(sentHistory);
 		for (MailThread thread : input) {
 			for (Message m : thread.messages()) {
@@ -105,6 +108,7 @@ public final class BrainTopicStructure {
 		if (pool.size() < 3) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
+		// Similarity balances subject wording and participants, with less weight across distant dates.
 		List<List<String>> words = pool.stream().map(t -> words(t.subject())).toList();
 		double[][] text = tfidf(words, 0.15);
 		double[][] people = tfidf(pool.stream().map(Facts::people).toList(), 0.1);
@@ -116,6 +120,7 @@ public final class BrainTopicStructure {
 						* (0.5 + 0.5 * Math.exp(-days / 60));
 			}
 		}
+		// Seed coherent groups first; only then apply engagement/non-bulk eligibility and the seed cap.
 		List<List<Integer>> groups = linkage(sim, 0.9);
 		groups.removeIf(g -> g.size() < 3);
 		groups.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
@@ -130,6 +135,7 @@ public final class BrainTopicStructure {
 		if (seeds.isEmpty()) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
+		// Merge seeds by their normalized participant centroid. mergeCut is distance (1 - cosine), not similarity.
 		double[][] centroids = new double[seeds.size()][people[0].length];
 		for (int i = 0; i < seeds.size(); i++) {
 			for (int j : seeds.get(i)) {
@@ -155,6 +161,7 @@ public final class BrainTopicStructure {
 		}
 		merged.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
 		merged = new ArrayList<>(merged.subList(0, Math.min(settings.topics(), merged.size())));
+		// Extend discovery groups using each remaining thread's three closest seed members; cards stay seed-only.
 		Map<Integer, Integer> filed = new LinkedHashMap<>();
 		for (int i = 0; i < merged.size(); i++) {
 			for (int j : merged.get(i)) {

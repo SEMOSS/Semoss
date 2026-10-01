@@ -27,53 +27,15 @@
  *******************************************************************************/
 package prerna.collaboration;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
-import prerna.engine.api.IModelEngine;
-import prerna.om.Insight;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-// topic proposals from the platform text model (COLLAB_LLM_ENGINE_ID): it groups working threads and names
-// them from headers only (subject, organisations, counts), after keep-out. Code checks every answer.
+// Resolves the permitted platform text engine; BrainTopicStructure groups headers and BrainTopicVotes judges them.
 final class BrainTopicModel {
 
-	static final int MAX_THREADS = 300;
-	private static final int MAX_TOPICS = 15;
-	private static final int MAX_WORDS = 5;
-
-	private static final String INSTRUCTIONS = """
-			You organise one person's work email into topics. You get their recent email threads (subject only,
-			no bodies), the organisations on each thread, how many messages it has, whether the person wrote on it
-			(you) and whether one of their VIPs is on it (vip).
-
-			Group the threads into the topics this person actually works on: projects, client engagements, deals,
-			proposals, recurring workstreams, hiring, and similar. Name each topic the way a colleague would,
-			in 2 to 5 words, after the project, client, or piece of work it is about. Threads the person wrote
-			on, and VIP threads, matter most.
-
-			Leave out: newsletters and digests, announcements to large lists, calendar notices, system and
-			approval notices, timesheets and expenses, training reminders, and personal mail. Do not make topics
-			named after a person, a date, or a generic word (Update, Reminder, Meeting, Request, Action Required).
-
-			Rules: every topic has at least 2 threads; a thread is in at most one topic; at most 15 topics;
-			organisation is one of the given organisations, or "internal".
-
-			Reply with JSON only:
-			{"topics": [{"name": "...", "organisation": "...", "threads": ["t1", "t7"], "why": "one short sentence"}]}
-			""";
-
 	private BrainTopicModel() {
-	}
-
-	record Proposal(String name, String organisation, List<String> threadIds, String why) {
 	}
 
 	/**
@@ -92,77 +54,4 @@ final class BrainTopicModel {
 		return id.trim();
 	}
 
-	/**
-	 * threads: id, subject, orgs (labels), messages, you, vip; most important
-	 * first, at most MAX_THREADS. Returns checked proposals with real thread ids.
-	 */
-	static List<Proposal> propose(User user, String engineId, List<Map<String, Object>> threads,
-			List<String> organisations, Set<String> takenNames) {
-		IModelEngine model = Utility.getModel(engineId);
-		if (model == null) {
-			throw new IllegalArgumentException("Topic model " + engineId + " could not be loaded");
-		}
-		// short ids keep the prompt small and make made-up ids easy to catch
-		Map<String, String> byShort = new LinkedHashMap<>();
-		List<Map<String, Object>> rows = new ArrayList<>();
-		for (Map<String, Object> t : threads.subList(0, Math.min(MAX_THREADS, threads.size()))) {
-			String shortId = "t" + (byShort.size() + 1);
-			byShort.put(shortId, (String) t.get("id"));
-			Map<String, Object> row = new LinkedHashMap<>(t);
-			row.put("id", shortId);
-			rows.add(row);
-		}
-		Map<String, Object> input = new LinkedHashMap<>();
-		input.put("organisations", organisations);
-		input.put("threads", rows);
-		Map<String, Object> params = new LinkedHashMap<>();
-		params.put("temperature", 0);
-		Insight insight = new Insight();
-		insight.setUser(user);
-		String reply = model.ask(CollaborationDbUtils.toJson(input), INSTRUCTIONS, insight, params).getStringResponse();
-
-		List<Proposal> out = new ArrayList<>();
-		Set<String> used = new HashSet<>();
-		Set<String> names = new HashSet<>(takenNames);
-		Object topics = parse(reply).get("topics");
-		if (!(topics instanceof List<?> list)) {
-			throw new IllegalStateException("The topic model did not return a topic list");
-		}
-		for (Object item : list) {
-			if (!(item instanceof Map<?, ?> m) || out.size() >= MAX_TOPICS) {
-				continue;
-			}
-			String name = m.get("name") == null ? "" : String.valueOf(m.get("name")).trim();
-			if (name.isEmpty() || name.length() > 60 || name.split("\\s+").length > MAX_WORDS
-					|| !names.add(name.toLowerCase())) {
-				continue;
-			}
-			List<String> ids = new ArrayList<>();
-			if (m.get("threads") instanceof List<?> given) {
-				for (Object g : given) {
-					String real = byShort.get(String.valueOf(g).trim());
-					// unknown or already used ids are dropped, not trusted
-					if (real != null && used.add(real)) {
-						ids.add(real);
-					}
-				}
-			}
-			if (ids.size() < 2) {
-				used.removeAll(ids);
-				continue;
-			}
-			String org = m.get("organisation") == null ? null : String.valueOf(m.get("organisation")).trim();
-			String why = m.get("why") == null ? "" : String.valueOf(m.get("why")).trim();
-			out.add(new Proposal(name, org, ids, why.length() > 200 ? why.substring(0, 200) : why));
-		}
-		return out;
-	}
-
-	private static Map<String, Object> parse(String reply) {
-		Map<String, Object> answer = CollaborationDbUtils.firstJsonObject(reply);
-		if (answer == null) {
-			throw new IllegalStateException("The topic model did not return JSON");
-		}
-		return answer;
-	}
 }

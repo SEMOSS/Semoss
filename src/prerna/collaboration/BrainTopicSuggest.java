@@ -83,6 +83,7 @@ public final class BrainTopicSuggest {
 
 	public static Map<String, Object> topics(User user, boolean dryRun) {
 		var owner = CollaborationDbUtils.ownerOf(user);
+		// Serialize generation through replacement for this owner; accepted topics are never replaced.
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", owner.getValue0(), owner.getValue1())) {
 			return suggest(user, true, dryRun);
 		}
@@ -237,6 +238,7 @@ public final class BrainTopicSuggest {
 						"No topic model is set up (" + Constants.COLLAB_LLM_ENGINE_ID + "); ask an admin to set one");
 				return out;
 			}
+			// The only topic proposer: snapshot -> deterministic groups -> complete model votes, with no writes yet.
 			BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
 					threads, self, emails, vips, ownOrg, topicNames);
 			out.putAll(result.diagnostics());

@@ -11,7 +11,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-// A.1's model contract is separate from model transport and persistence.
+// Judges and names discovered groups; model transport and topic persistence belong to other stages.
 public final class BrainTopicVotes {
 
 	public static final String INSTRUCTIONS = """
@@ -67,6 +67,7 @@ public final class BrainTopicVotes {
 		List<Map<String, Vote>> votes = new ArrayList<>();
 		int calls = 0;
 		int failed = 0;
+		// A vote counts only with complete card coverage; retries and the spare slot share a bounded budget.
 		for (int slot = 0; slot < settings.votes() + settings.spareVotes() && votes.size() < settings.votes(); slot++) {
 			Map<String, Vote> vote = null;
 			for (int attempt = 0; attempt < settings.attempts() && vote == null; attempt++) {
@@ -86,6 +87,7 @@ public final class BrainTopicVotes {
 		if (votes.size() != settings.votes()) {
 			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls, failed);
 		}
+		// Only a not_work majority removes a group; unclear remains available for the owner's review.
 		Set<Integer> dropped = new HashSet<>();
 		Map<Integer, String> names = new LinkedHashMap<>();
 		Map<Integer, String> abouts = new LinkedHashMap<>();

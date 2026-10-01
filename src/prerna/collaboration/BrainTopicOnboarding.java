@@ -19,7 +19,7 @@ import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.util.Utility;
 
-// Refreshes only previously imported, permitted headers; A.1 never substitutes aggregate recipient guesses.
+// Adapts the completed import into header discovery and model votes; returns candidates without publishing topics.
 final class BrainTopicOnboarding {
 
 	// Retain the persisted ID namespace and recognize links created by earlier onboarding runs.
@@ -36,6 +36,7 @@ final class BrainTopicOnboarding {
 			Map<String, BrainTopicSuggest.Thread> eligible, String self, Map<String, String> emails,
 			Set<String> vips, BrainOrgDomains.Org ownOrg, Set<String> takenNames) {
 		Map<String, Object> notes = new LinkedHashMap<>();
+		// Refresh exact imported headers: stored participant aggregates cannot reconstruct To/Cc or bulk facts.
 		BrainTopicStructure.Prepared prepared = snapshot(user, ownerId, ownerType, eligible.keySet(), self, emails,
 				vips, ownOrg, notes);
 		IModelEngine model = Utility.getModel(engineId);
@@ -63,6 +64,7 @@ final class BrainTopicOnboarding {
 		List<BrainTopicSuggest.Candidate> candidates = new ArrayList<>();
 		Set<String> names = new HashSet<>(takenNames);
 		Set<Integer> grouped = new HashSet<>();
+		// Apply votes after discovery assignment so rejected groups do not spill their mail into kept groups.
 		for (int i = 0; i < prepared.seeds().size(); i++) {
 			if (votes.dropped().contains(i)) {
 				continue;
@@ -85,7 +87,7 @@ final class BrainTopicOnboarding {
 		return new Result(candidates, diagnostics);
 	}
 
-	// wide once a sort has run since the last import: the classifier took automated mail out of the pool
+	// Completed-job history selects pool breadth, not an admin strategy flag. A skipped sort uses the engaged pool.
 	static BrainTopicStructure.Settings settings(String ownerId, String ownerType) {
 		boolean sorted = CollaborationDbUtils.exists("SELECT 1 FROM COLLAB_JOB c WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? "
 				+ "AND c.KIND = ? AND c.STATUS = ? AND c.STARTED_AT >= (SELECT MAX(i.STARTED_AT) FROM COLLAB_JOB i WHERE "
