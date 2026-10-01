@@ -292,6 +292,10 @@ Provision these prerequisites in the destination repository:
    The CodeBuild host's older glibc cannot run checkout's Node 24 directly;
    the Ubuntu job container supplies the compatible userland. This tooling
    container is not an application base or part of the published image.
+   It lacks Python, so the workflow explicitly installs the Ubuntu `python3`
+   package for orchestration and isolated source tests. This requires access
+   to the tooling image's configured Ubuntu package repositories and does not
+   change the Iron Bank Python runtime in the published image.
    The runner must support Node 24 actions (at least 2.327.1); the job needs
    Bash, Git, Python 3.10+, Docker Engine access, and Buildx. Bedrock checks
    are streamed over stdin rather than bind-mounting job-container paths into

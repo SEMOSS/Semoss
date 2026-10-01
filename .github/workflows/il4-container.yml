@@ -38,6 +38,12 @@ jobs:
           persist-credentials: false
           ref: ${{ github.event_name == 'schedule' && 'IL4-dev' || github.sha }}
 
+      - name: Install Python for build orchestration
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends python3
+
       - name: Check runner and required credentials
         env:
           IRONBANK_USERNAME: ${{ secrets.REPO_ONE_USERNAME }}
