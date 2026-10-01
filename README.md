@@ -84,6 +84,14 @@ records the deployable digest and resolved base images. See the
 for runner prerequisites, BC-FIPS TLS configuration, and acceptance limitations.
 This workflow does not deploy the image or establish IL4 authorization.
 
+Optional post-publication SBOM/vulnerability reports are disabled by default.
+Select `image_reports` for a manual run, or set the Actions variable
+`IL4_IMAGE_REPORTS=true` for push/scheduled runs. Scanner and upload failures
+are explicitly reported but do not block publication. Reports are retained as
+GitHub artifacts for 14 days; review visibility before enabling them in this
+public repository. The IL4-dev guide also documents an opt-in hardened Compose
+profile; existing deployments and FIPS settings are unchanged.
+
 ## Quick start with Docker
 
 The quickest way to try SEMOSS is the [Docker Compose examples](docker-compose-examples/README.md). They use a published SEMOSS image containing the web application and UI, so no local Java or frontend build is required.

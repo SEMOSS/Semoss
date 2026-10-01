@@ -7,6 +7,11 @@ on:
       - docker/il4/**
       - .github/workflows/il4-container.yml
   workflow_dispatch:
+    inputs:
+      image_reports:
+        description: Generate report-only SBOM and vulnerability artifacts
+        type: boolean
+        default: false
   schedule:
     - cron: '23 9 * * 1'
 
@@ -158,6 +163,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish the tested image
+        id: publish
         run: |
           set -euo pipefail
           docker push "$IMAGE_REF"
@@ -180,6 +186,64 @@ jobs:
                             "authorization remain separate gates.\n")
           print(matches[0])
           PY
+
+      - name: Generate optional image reports
+        id: reports
+        if: inputs.image_reports || vars.IL4_IMAGE_REPORTS == 'true'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          reports="$RUNNER_TEMP/il4-image-reports"
+          tools="$RUNNER_TEMP/il4-report-tools"
+          install -d -m 700 "$reports" "$tools"
+          printf '%s\n' "$IMAGE_REF" > "$reports/image-reference.txt"
+          docker image inspect "$IMAGE_REF" --format '{{json .RepoDigests}}' \
+            > "$reports/image-digests.json"
+          curl --fail --silent --show-error --location --retry 3 \
+            --connect-timeout 15 --max-time 180 \
+            https://github.com/aquasecurity/trivy/releases/download/v0.74.0/trivy_0.74.0_Linux-64bit.tar.gz \
+            --output "$tools/trivy.tar.gz"
+          printf '%s  %s\n' \
+            2ae6fe3ee734b7fdf11335663e18c75ea12dccc76062f09f164a3b0f8be4371a \
+            "$tools/trivy.tar.gz" | sha256sum --check -
+          tar -xzf "$tools/trivy.tar.gz" -C "$tools" trivy
+          "$tools/trivy" image --image-src docker --scanners vuln \
+            --skip-version-check --timeout 15m --exit-code 0 --list-all-pkgs \
+            --cache-dir "$tools/cache" --format json \
+            --output "$reports/vulnerabilities.json" "$IMAGE_REF"
+          "$tools/trivy" convert --format cyclonedx \
+            --output "$reports/sbom.cdx.json" "$reports/vulnerabilities.json"
+          "$tools/trivy" version --cache-dir "$tools/cache" --format json \
+            > "$reports/scanner-version.json"
+
+      - name: Upload optional image reports
+        id: report_upload
+        if: always() && steps.reports.outcome != 'skipped' && steps.publish.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: il4-image-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/il4-image-reports/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Summarize optional reporting outcome
+        if: always() && steps.reports.outcome != 'skipped' && steps.publish.outcome == 'success'
+        env:
+          REPORT_OUTCOME: ${{ steps.reports.outcome }}
+          UPLOAD_OUTCOME: ${{ steps.report_upload.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            printf '\n## Optional image reports\n\n'
+            printf 'Report generation: **%s**. Artifact upload: **%s**.\n\n' \
+              "$REPORT_OUTCOME" "$UPLOAD_OUTCOME"
+            printf 'Report-only: findings do not gate publishing or establish compliance.\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$REPORT_OUTCOME" != success || "$UPLOAD_OUTCOME" != success ]]; then
+            echo "::warning::Optional image reporting is incomplete. Do not interpret missing reports as a clean scan."
+          fi
 
       - name: Remove job image tag
         if: always() && steps.build.outcome == 'success'
