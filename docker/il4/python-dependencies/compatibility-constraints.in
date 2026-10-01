@@ -1,0 +1,5 @@
+# Preserve the upstream protobuf override while honoring Pipecat 1.0's upper bound.
+protobuf<7
+# Python 3.14 changed pickle._Pickler._batch_setitems to accept an obj argument.
+# dill 0.4.0 implements that signature; older allowed versions fail Dataset.from_dict.
+dill>=0.4.0

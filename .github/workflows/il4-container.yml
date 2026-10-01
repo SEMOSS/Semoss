@@ -1,0 +1,171 @@
+name: Build IL4 test container
+
+on:
+  push:
+    branches: [IL4-dev]
+    paths:
+      - docker/il4/**
+      - .github/workflows/il4-container.yml
+  workflow_dispatch:
+  schedule:
+    - cron: '23 9 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: il4-container-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/IL4-dev' || github.event_name == 'schedule'
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    timeout-minutes: 180
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        shell: bash
+        working-directory: docker/il4
+    steps:
+      - name: Check out reviewed source
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+          ref: ${{ github.event_name == 'schedule' && 'IL4-dev' || github.sha }}
+
+      - name: Check runner and required credentials
+        env:
+          IRONBANK_USERNAME: ${{ secrets.REPO_ONE_USERNAME }}
+          IRONBANK_PASSWORD: ${{ secrets.REPO_ONE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$IRONBANK_USERNAME" || -z "$IRONBANK_PASSWORD" ]]; then
+            echo "::error::Set both repository secrets REPO_ONE_USERNAME and REPO_ONE_PASSWORD."
+            exit 1
+          fi
+          export DOCKER_CONFIG="$RUNNER_TEMP/semoss-docker-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          install -d -m 700 "$DOCKER_CONFIG"
+          python3 --version
+          docker version
+          docker buildx version
+          if [[ "$(docker info --format '{{.OSType}}')" != linux ]]; then
+            echo "::error::The Docker daemon must run Linux containers."
+            exit 1
+          fi
+          # Use the approved daemon's embedded BuildKit, not a floating builder image.
+          if ! docker buildx inspect default | grep -Eq '^Driver:[[:space:]]+docker$'; then
+            echo "::error::The default Buildx builder must use the docker driver."
+            exit 1
+          fi
+          image_repository="ghcr.io/${GITHUB_REPOSITORY,,}-il4"
+          source_sha="$(git rev-parse HEAD)"
+          {
+            echo "DOCKER_CONFIG=$DOCKER_CONFIG"
+            echo "IMAGE_REPOSITORY=$image_repository"
+            echo "SOURCE_SHA=$source_sha"
+            echo "IMAGE_REF=$image_repository:sha-${source_sha}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          } >> "$GITHUB_ENV"
+
+      - name: Run isolated source tests
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -v
+          sh -n entrypoint.sh conf/setenv.sh python-dependencies/install.sh
+
+      - name: Log in to Iron Bank
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: registry1.dso.mil
+          username: ${{ secrets.REPO_ONE_USERNAME }}
+          password: ${{ secrets.REPO_ONE_PASSWORD }}
+
+      - name: Refresh the selected Iron Bank version tags
+        run: |
+          set -euo pipefail
+          python3 refresh_bases.py > "$RUNNER_TEMP/il4-bases.env"
+          cat "$RUNNER_TEMP/il4-bases.env" >> "$GITHUB_ENV"
+          {
+            printf '## Resolved Iron Bank bases\n\n```text\n'
+            cat "$RUNNER_TEMP/il4-bases.env"
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build and load candidate
+        id: build
+        env:
+          MAVEN_SETTINGS: ${{ secrets.MAVEN_SETTINGS }}
+        run: |
+          set -euo pipefail
+          secrets=()
+          if [[ -n "$MAVEN_SETTINGS" ]]; then
+            secrets+=(--secret "id=maven_settings,env=MAVEN_SETTINGS")
+          fi
+          docker buildx build --builder default \
+            --platform linux/amd64 --load --provenance=false --pull --no-cache \
+            --build-arg "MAVEN_IMAGE=$MAVEN_IMAGE" \
+            --build-arg "UBI_IMAGE=$UBI_IMAGE" \
+            --build-arg "PYTHON_IMAGE=$PYTHON_IMAGE" \
+            --tag "$IMAGE_REF" \
+            --label "org.opencontainers.image.source=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}" \
+            --label "org.opencontainers.image.revision=${SOURCE_SHA}" \
+            --label "org.semoss.base.maven=${MAVEN_IMAGE}" \
+            --label "org.semoss.base.ubi=${UBI_IMAGE}" \
+            --label "org.semoss.base.python=${PYTHON_IMAGE}" \
+            "${secrets[@]}" .
+
+      - name: Check candidate offline with runtime restrictions
+        run: |
+          set -euo pipefail
+          restrictions=(
+            --rm --platform linux/amd64 --network none
+            --read-only --cap-drop=ALL --security-opt=no-new-privileges
+            --pids-limit=512 --memory=8g --cpus=4
+            --tmpfs "/tmp:rw,noexec,nosuid,nodev" --workdir /tmp
+          )
+          docker run "${restrictions[@]}" "$IMAGE_REF" --check
+          docker run "${restrictions[@]}" --entrypoint /bin/sh "$IMAGE_REF" -ec \
+            'python /opt/python-check/validate.py
+             python /opt/python-check/python_check.py
+             python /opt/python-check/check_audio.py'
+          docker run "${restrictions[@]}" \
+            --mount "type=bind,src=$GITHUB_WORKSPACE/docker/il4/integrations/bedrock,dst=/checks,readonly" \
+            --entrypoint /opt/semoss-python/bin/python "$IMAGE_REF" \
+            -m unittest discover -s /checks -v
+
+      - name: Log in to GHCR after validation
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish the tested image
+        run: |
+          set -euo pipefail
+          docker push "$IMAGE_REF"
+          REPO_DIGESTS="$(docker image inspect "$IMAGE_REF" --format '{{json .RepoDigests}}')"
+          export REPO_DIGESTS
+          python3 - <<'PY'
+          import json, os, re, sys
+          prefix = os.environ["IMAGE_REPOSITORY"] + "@sha256:"
+          matches = [value for value in json.loads(os.environ["REPO_DIGESTS"])
+                     if value.startswith(prefix)
+                     and re.fullmatch(r"[0-9a-f]{64}", value[len(prefix):])]
+          if len(matches) != 1:
+              sys.exit("Expected exactly one published GHCR digest.")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("## IL4 test image published\n\n")
+              summary.write("Tag: `" + os.environ["IMAGE_REF"] + "`\n\n")
+              summary.write("Deploy by digest: `" + matches[0] + "`\n\n")
+              summary.write("Offline FIPS/JDBC/Python checks passed. HTTPS readiness, "
+                            "deployment acceptance, scanning, signing, and IL4 "
+                            "authorization remain separate gates.\n")
+          print(matches[0])
+          PY
+
+      - name: Remove job image tag
+        if: always() && steps.build.outcome == 'success'
+        run: docker image rm "$IMAGE_REF"

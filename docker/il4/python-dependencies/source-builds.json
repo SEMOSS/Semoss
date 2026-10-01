@@ -1,0 +1,71 @@
+{
+  "build_requirements": "build-requirements.lock",
+  "os_build_packages": [
+    "gcc-c++",
+    "python3.14-devel"
+  ],
+  "compiler": "gcc 14.3.1 (UBI10.2)",
+  "ANNOY_COMPILER_ARGS": "-D_CRT_SECURE_NO_WARNINGS,-fpermissive,-O3,-ffast-math,-fno-associative-math,-DANNOYLIB_MULTITHREADED_BUILD,-std=c++14,-march=x86-64-v3",
+  "packages": [
+    {
+      "name": "annoy",
+      "version": "1.17.3",
+      "source_build": true,
+      "compatible_wheels": [],
+      "sdists": [
+        {
+          "filename": "annoy-1.17.3.tar.gz",
+          "sha256": "9cbfebefe0a5f843eba29c6be4c84d601f4f41ad4ded0486f1b88c3b07739c15",
+          "url": "https://files.pythonhosted.org/packages/07/38/e321b0e05d8cc068a594279fb7c097efb1df66231c295d482d7ad51b6473/annoy-1.17.3.tar.gz"
+        }
+      ],
+      "build_system": {
+        "requires": [
+          "setuptools>=40.8.0"
+        ],
+        "build-backend": "setuptools.build_meta:__legacy__",
+        "implicit": true
+      }
+    },
+    {
+      "name": "pandasql",
+      "version": "0.7.3",
+      "source_build": true,
+      "compatible_wheels": [],
+      "sdists": [
+        {
+          "filename": "pandasql-0.7.3.tar.gz",
+          "sha256": "1eb248869086435a7d85281ebd9fe525d69d9d954a0dceb854f71a8d0fd8de69",
+          "url": "https://files.pythonhosted.org/packages/6b/c4/ee4096ffa2eeeca0c749b26f0371bd26aa5c8b611c43de99a4f86d3de0a7/pandasql-0.7.3.tar.gz"
+        }
+      ],
+      "build_system": {
+        "requires": [
+          "setuptools>=40.8.0"
+        ],
+        "build-backend": "setuptools.build_meta:__legacy__",
+        "implicit": true
+      }
+    },
+    {
+      "name": "swifter",
+      "version": "1.4.0",
+      "source_build": true,
+      "compatible_wheels": [],
+      "sdists": [
+        {
+          "filename": "swifter-1.4.0.tar.gz",
+          "sha256": "e1bb74476a21b3f07a17aa18c97fdcba8599726bd17da732f09dabcc50e26ba0",
+          "url": "https://files.pythonhosted.org/packages/65/50/229383aa3bdf7b42fce40bf45c5431112da080499213044b9a87bb1ae441/swifter-1.4.0.tar.gz"
+        }
+      ],
+      "build_system": {
+        "requires": [
+          "setuptools>=40.8.0"
+        ],
+        "build-backend": "setuptools.build_meta:__legacy__",
+        "implicit": true
+      }
+    }
+  ]
+}

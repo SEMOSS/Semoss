@@ -1,0 +1,5 @@
+# Explicit copies of the upstream CPU extra ensure all three packages are locked.
+# Keep these in sync with project.optional-dependencies.cpu in pyproject.toml.
+torch>=2.10.0
+torchvision>=0.25.0
+torchaudio>=2.10.0

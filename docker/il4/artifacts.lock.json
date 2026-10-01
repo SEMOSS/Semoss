@@ -1,0 +1,13 @@
+[
+  {"coordinate":"org.semoss:semoss:5.4.0:tar.gz:semosshome","sha256":"7019eaea3c14e0fc72d4495448df10b1550882cfd1ad436b8a8a91e8859008d7"},
+  {"coordinate":"org.semoss:monolith:5.4.0:war","sha256":"d9ffd33c225c0a5a67c0ba8e4f0695450e5d8604d6522b9d9127c6cf4d04571e"},
+  {"coordinate":"org.semoss:monolith:5.4.0:tar.gz:libraries","sha256":"0842b3b5c9f5a004be68502f75c7bd4f3e69e2afa6f8a3ef278b5fca5e61e27c"},
+  {"coordinate":"org.semoss:semossweb:5.4.0:war","sha256":"47f2e785db31def67b01bdb30c88d4b94ce541b8e45f7750ec6762238f7cee3c"},
+  {"coordinate":"org.apache.tomcat:tomcat:9.0.119:tar.gz","sha256":"bc4fd2fb7040fd2f574fd726e4d0274af0c18cb343c450179c3a63104a971964"},
+  {"coordinate":"org.bouncycastle:bc-fips:2.1.3:jar","sha256":"f55fc476ede820d5c03fe87e6ced5bb0095e1dc30b387445846a3ff0274f8c0e"},
+  {"coordinate":"org.bouncycastle:bctls-fips:2.1.24:jar","sha256":"d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c"},
+  {"coordinate":"org.bouncycastle:bcpkix-fips:2.1.12:jar","sha256":"48f418d70c9551ac9225f333e5e9dfe872b4501cc566728b6d2bc7364a2223d4"},
+  {"coordinate":"org.bouncycastle:bcutil-fips:2.1.7:jar","sha256":"a30e550f06dcfa0fd7da1e9a501f111421406fa237467522b3ca05187429832d"},
+  {"coordinate":"org.mariadb.jdbc:mariadb-java-client:3.5.10:jar","sha256":"919b8c1c771d9ee3465811462f242c9543ab401e140c64988ddbf1d8abcb18b2"},
+  {"coordinate":"com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11:jar","sha256":"4c566e4022c4dcf1489aeb639fe49a0f6ffae3d796fdc2f56b5b8882d4c3bf5a"}
+]

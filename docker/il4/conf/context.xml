@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context useHttpOnly="true">
+  <Manager pathname="" secureRandomProvider="BCFIPS" secureRandomAlgorithm="DEFAULT"/>
+  <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor"
+                   sameSiteCookies="lax"/>
+</Context>

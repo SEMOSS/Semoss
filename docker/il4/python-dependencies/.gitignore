@@ -1,0 +1,8 @@
+.cache/
+.resolver/
+.scratch/
+.venv/
+.build-venv/
+.verify-venv/
+wheelhouse/
+*.log

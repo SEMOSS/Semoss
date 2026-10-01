@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Server port="-1">
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener"/>
+  <Service name="Catalina">
+    <Connector port="8443" protocol="org.apache.coyote.http11.Http11NioProtocol"
+               SSLEnabled="true" scheme="https" secure="true"
+               sslImplementationName="org.apache.tomcat.util.net.jsse.JSSEImplementation"
+               maxThreads="200" connectionTimeout="20000" allowTrace="false"
+               maxParameterCount="1000" maxPostSize="10485760">
+      <SSLHostConfig protocols="TLSv1.2,+TLSv1.3" sslProtocol="TLS"
+                     keyManagerAlgorithm="PKIX"
+                     groups="secp256r1,secp384r1,secp521r1,ffdhe2048,ffdhe3072"
+                     cipherSuites="TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256"
+                     ciphers="TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256">
+        <Certificate certificateKeystoreFile="/run/secrets/server.bcfks"
+                     certificateKeystoreType="BCFKS" certificateKeystoreProvider="BCFIPS"
+                     certificateKeystorePasswordFile="/run/secrets/server.password"/>
+      </SSLHostConfig>
+    </Connector>
+    <Engine name="Catalina" defaultHost="localhost">
+      <Host name="localhost" appBase="webapps" unpackWARs="false" autoDeploy="false" deployXML="false">
+        <Valve className="org.apache.catalina.valves.ErrorReportValve"
+               showReport="false" showServerInfo="false"/>
+        <Valve className="org.apache.catalina.valves.AccessLogValve"
+               directory="/dev" prefix="stdout" suffix="" rotatable="false"
+               pattern="%a %t %m %U %s %b %D"/>
+      </Host>
+    </Engine>
+  </Service>
+</Server>

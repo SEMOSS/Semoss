@@ -1,0 +1,132 @@
+{
+  "status": "verified",
+  "application": "SEMOSS 5.4.0",
+  "scope": "All 71 upstream runtime requirements and all three CPU extra requirements; GPU and dev groups remain unchanged in the manifest but are not requested or installed.",
+  "upstream": {
+    "url": "https://raw.githubusercontent.com/SEMOSS/Semoss/565b2c1825011304a93eabcb21cf2cd33135a42a/py/install_config/pyproject.toml",
+    "commit": "565b2c1825011304a93eabcb21cf2cd33135a42a",
+    "path": "py/install_config/pyproject.toml",
+    "preserved_file": "pyproject.upstream.toml",
+    "sha256": "136c491cf54af772717494cb8062f52b67476d9ffde88fb8f5cd2051be83000e",
+    "project_version_note": "The manifest's internal 5.3.0 version is preserved; its source commit belongs to the requested SEMOSS 5.4.0 release."
+  },
+  "target": {
+    "image": "registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:eb433b924cccd4bb13068ff6284296e7c75a9a5dbc21b6bcd46bb9a38e71732d",
+    "platform": "linux/amd64",
+    "os": "UBI 10.2",
+    "python": "3.14.7",
+    "executable": "/usr/bin/python3.14",
+    "warning": "/usr/bin/python3 is Python 3.12.14 in this image; do not use it."
+  },
+  "approved_compatibility_changes": [
+    {
+      "requirement": "pandas",
+      "from": "2.2.3",
+      "to": "2.3.3",
+      "reason": "First version with CPython 3.14 wheels; original exact pin has no cp314 wheel."
+    },
+    {
+      "requirement": "pyarrow",
+      "from": "20.0.0",
+      "to": "22.0.0",
+      "reason": "First version with CPython 3.14 wheels; original exact pin has no cp314 wheel."
+    },
+    {
+      "requirement": "datasets",
+      "from": "2.14.3",
+      "to": "4.4.0",
+      "reason": "2.14.3 subclasses pyarrow.PyExtensionType, removed in Arrow 21. 2.15.0 fixes that but fails importing HfFolder with the resolved Hugging Face Hub. 2.16.0 imports but Dataset.from_dict fails under Python 3.14. 4.1.0 first permits dill 0.4.0, but its own Pickler._batch_setitems(self, items) still rejects Python 3.14's additional obj argument. 4.1.1, 4.2.0 and 4.3.0 retain that signature. 4.4.0 changes it to accept *args and **kwargs; Dataset.from_dict, serial and multiprocess map, and to_pandas were executed successfully with Arrow 22.",
+      "evidence": [
+        "https://raw.githubusercontent.com/huggingface/datasets/2.14.3/src/datasets/features/features.py",
+        "https://raw.githubusercontent.com/huggingface/datasets/2.15.0/src/datasets/features/features.py",
+        "https://raw.githubusercontent.com/huggingface/datasets/4.3.0/src/datasets/utils/_dill.py",
+        "https://raw.githubusercontent.com/huggingface/datasets/4.4.0/src/datasets/utils/_dill.py"
+      ],
+      "migration_caveat": "This is a major-version dependency update. Datasets 4.x no longer supports dataset loading scripts; application-specific dataset loaders require integration review. No package or requested SEMOSS dependency was omitted."
+    },
+    {
+      "requirement": "pipecat-ai",
+      "from": "0.0.103",
+      "to": "1.0.0",
+      "reason": "0.0.103 unconditionally requests its local-smart-turn-v3 extra, which pins onnxruntime~=1.23.2; that runtime has no cp314 wheel. It also pins numba==0.61.2, which has no cp314 wheel. All subsequent stable 0.x releases (0.0.104 through 0.0.108) retain onnxruntime~=1.23.2. 1.0.0 accepts onnxruntime~=1.24.3, numba>=0.61.2,<1 and soxr~=1.0.0, permitting cp314 wheels without dropping the smart-turn dependency.",
+      "evidence": [
+        "https://pypi.org/pypi/pipecat-ai/0.0.103/json",
+        "https://pypi.org/pypi/pipecat-ai/0.0.108/json",
+        "https://pypi.org/pypi/pipecat-ai/1.0.0/json"
+      ],
+      "migration_caveat": "Pipecat 1.0 removes TranscriptProcessor. The container applies the separately approved, exact-source-hash-guarded audio_compat.py patch to SEMOSS. Offline tests construct all three SEMOSS audio pipelines and verify user/assistant transcript event payloads. Live external audio/model/service integrations remain untested."
+    }
+  ],
+  "additional_constraints": [
+    {
+      "requirement": "dill>=0.4.0",
+      "locked": "0.4.0",
+      "reason": "Python 3.14 changed the pickle._Pickler._batch_setitems signature; older permitted dill versions are not suitable. Datasets 4.4.0 supplies the corresponding custom Pickler fix."
+    },
+    {
+      "requirement": "protobuf<7",
+      "locked": "6.33.6",
+      "reason": "Preserves upstream protobuf>=6.33.5 while also satisfying Pipecat 1.0's protobuf<7. The unconstrained upstream override selected 7.36.2 and pip check reported that incompatibility."
+    }
+  ],
+  "preservation": {
+    "removed_upstream_requirements": [],
+    "tool_uv_unchanged": true,
+    "optional_dependencies_unchanged": true,
+    "original_overrides": "overrides.in",
+    "hash_pinned_overrides": "overrides.lock",
+    "cpu_routing": "Original explicit tool.uv.sources preserved. Installation uses uv --torch-backend cpu with PyPI as the default index, not a global extra-index fallback.",
+    "explicit_cpu_input": "cpu.in repeats the three unchanged CPU extra requirements. The first compile using --extra cpu alone omitted torchaudio, so explicit inputs and an all-root-requirements coverage assertion were added. All three CPU packages are present in the final lock.",
+    "cpu_pins": {
+      "torch": "2.14.0+cpu",
+      "torchvision": "0.29.0+cpu",
+      "torchaudio": "2.11.0+cpu"
+    }
+  },
+  "locks_sha256": {
+    "requirements-cpu.lock": "73c2fe6f98c40983574ad034681d31e5a008f902bc01a9a4c7004348eb384e05",
+    "overrides.lock": "ebb547eb190bca7b3090d9900087ecc9cbb8eeafc941aae6e9d2a6919e0611a5",
+    "build-requirements.lock": "859f97043fdf3cc94b9f9dd3e8d5163bc37e2cae402fdd2f6a162514cd0b3bee",
+    "resolver-requirements.lock": "49968559cda4ccb40d5b53a656b57d1c8b2974f5d38372b4d736a9fa7d83f14f"
+  },
+  "build": {
+    "source_only_packages": "source-builds.json",
+    "source_pins": ["annoy==1.17.3", "pandasql==0.7.3", "swifter==1.4.0"],
+    "tooling": ["uv==0.11.17", "setuptools==84.0.0", "wheel==0.48.0", "nose==1.3.7", "packaging==26.3"],
+    "os_build_prerequisites": ["gcc-c++", "python3.14-devel"],
+    "os_runtime_prerequisites": ["enchant2"],
+    "validated_os_packages": {
+      "gcc-c++": "14.3.1-4.4.el10.x86_64",
+      "python3.14-devel": "3.14.7-2.el10_2.x86_64",
+      "enchant2": "2.6.9-1.el10.x86_64"
+    },
+    "method": "Hash-verified sdists, exact hash-locked build tools, --no-build-isolation, and portable Annoy compiler arguments. No package patching or --no-deps fallback. Build-only nose and wheel are removed by final lock synchronization.",
+    "reproducibility_limit": "The Python input artifacts and build tooling are hash-locked. Locally built wheel byte hashes and OS repository snapshots are not locked; source hashes and compiler settings are recorded instead."
+  },
+  "commands": {
+    "os_prerequisites_inside_target_image": "dnf install -y gcc-c++ python3.14-devel enchant2",
+    "install_inside_target_image": "PYTHON=/usr/bin/python3.14 VENV=/opt/semoss-python sh ./install.sh",
+    "validate_inside_target_image": "/opt/semoss-python/bin/python validate.py",
+    "regenerate_preserving_pins": "uv pip compile pyproject.toml cpu.in --extra cpu --constraint requirements-cpu.lock --constraint compatibility-constraints.in --python /usr/bin/python3.14 --generate-hashes --emit-index-annotation --output-file requirements-cpu.lock --no-header",
+    "regenerate_overrides": "uv --no-config pip compile overrides.in --constraint requirements-cpu.lock --python /usr/bin/python3.14 --generate-hashes --output-file overrides.lock --no-header"
+  },
+  "validation": {
+    "report": "validation.json",
+    "fresh_virtual_environment_reproduction": true,
+    "locked_distribution_count": 260,
+    "pip_check": "All installed packages are compatible",
+    "offline_checks_passed": 29,
+    "includes": [
+      "27 representative dependency imports",
+      "Datasets Arrow22 create/map/to_pandas/multiprocess operations",
+      "CPU-only torch calculation, torchaudio resampling, torchvision NMS, compiled Annoy indexing"
+    ],
+    "not_claimed": [
+      "Full SEMOSS application integration",
+      "Every external model/provider integration",
+      "Complete API compatibility across Datasets and Pipecat major versions",
+      "Bit-identical locally compiled wheel outputs"
+    ],
+    "remaining_dependency_resolution_or_installation_blockers": []
+  }
+}

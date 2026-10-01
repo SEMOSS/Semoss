@@ -1,0 +1,5 @@
+# Pinned tooling for the three legacy setuptools source distributions.
+# Annoy declares nose>=1.0 through setup_requires.
+setuptools==84.0.0
+wheel==0.48.0
+nose==1.3.7
