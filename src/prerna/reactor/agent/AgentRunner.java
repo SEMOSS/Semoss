@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -296,9 +295,8 @@ public final class AgentRunner {
 			throw new IllegalArgumentException(
 					"RunAgent media input is not supported for harnessType='" + harness.getName() + "'");
 		}
-		CompletableFuture<String> roomNameFuture = CompletableFuture.completedFuture(null);
 		if (!resumeMode && ctx.getSpawnDepth() == 0) {
-			roomNameFuture = AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
+			AgentRoomNamer.nameRoomAsync(roomId, input, modelId, room.getUserId(), insight);
 		}
 
 		// Apply a temporary workspace overlay so room-based lookups match AgentConfig.
@@ -358,8 +356,6 @@ public final class AgentRunner {
 				}
 			}
 		}
-
-		roomNameFuture.join();
 
 		if (ClusterUtil.IS_CLUSTER) {
 			try {
