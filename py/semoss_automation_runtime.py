@@ -99,7 +99,13 @@ class AutomationScope(dict[str, Any]):
         return self.resolve(value)
 
 
-def execute_node(encoded_scope: str, encoded_source: str, max_output_bytes: int) -> Any:
+def execute_node(
+    encoded_scope: str,
+    encoded_source: str,
+    max_output_bytes: int,
+    frame_name: str,
+    session_globals: dict[str, Any],
+) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
     scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
@@ -110,7 +116,9 @@ def execute_node(encoded_scope: str, encoded_source: str, max_output_bytes: int)
     run = module.get("run")
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
-    return _json_result(run(scope), max_output_bytes)
+    result = _json_result(run(scope), max_output_bytes)
+    _prepare_frame(result, frame_name, session_globals)
+    return result
 
 
 def execute_trigger(
@@ -159,6 +167,21 @@ def _is_json_compatible(value: Any) -> bool:
         return True
     except (TypeError, ValueError):
         return False
+
+
+def _prepare_frame(
+    value: Any, frame_name: str, session_globals: dict[str, Any]
+) -> None:
+    """Keep row-shaped output in the run's Python session for SEMOSS framing."""
+    session_globals.pop(frame_name, None)
+    if not value or not isinstance(value, list):
+        return
+    if not all(isinstance(row, dict) for row in value):
+        return
+
+    import pandas as pd
+
+    session_globals[frame_name] = pd.DataFrame.from_records(value)
 
 
 def _json_result(value: Any, max_bytes: int) -> Any:

@@ -184,6 +184,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
 	public static final String CONFIG_LIMIT = "limit";
+	public static final String CONFIG_OFFSET = "offset";
 	public static final String CONFIG_COMMAND = "command";
 	public static final String CONFIG_PARAM_VALUES = "paramValues";
 	public static final String CONFIG_PIXEL = "pixel";
@@ -207,10 +208,13 @@ public final class AutomationConstants {
 	// --------------------------------------------
 
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
+	public static final int DEFAULT_DB_QUERY_OFFSET = 0;
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
 	/** Largest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	/** Smallest row offset accepted by a generated database query node. */
+	public static final int DB_QUERY_MIN_OFFSET = 0;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
