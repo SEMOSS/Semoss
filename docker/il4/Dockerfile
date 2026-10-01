@@ -16,9 +16,9 @@ RUN --mount=type=cache,target=/root/.m2 \
     python3 assemble.py
 # Dereference the RPM JDK's external truststore symlink before changing distributions.
 RUN mkdir -p /out/java && cp -aL "${JAVA_HOME}/." /out/java/
-COPY AccpCheck.java JdbcCheck.java JdbcTls.java /build/
+COPY AccpCheck.java JdbcCheck.java JdbcTls.java RdsTrust.java /build/
 RUN mkdir -p /out/accp-check && \
-    javac -cp '/out/accp/*' -d /out/accp-check /build/AccpCheck.java /build/JdbcCheck.java /build/JdbcTls.java \
+    javac -cp '/out/accp/*' -d /out/accp-check /build/AccpCheck.java /build/JdbcCheck.java /build/JdbcTls.java /build/RdsTrust.java \
       /build/tests/JdbcTlsTest.java
 
 FROM ${PYTHON_IMAGE} AS python-runtime
@@ -83,6 +83,11 @@ COPY --from=assembly --chown=10001:10001 /out/semosshome/ /opt/semosshome/
 COPY conf/server.xml conf/context.xml conf/logging.properties /opt/tomcat/conf/
 COPY conf/setenv.sh /opt/tomcat/bin/setenv.sh
 COPY entrypoint.sh /usr/local/bin/semoss-entrypoint
+COPY RdsTrust.java tests/RdsTrustTest.java /opt/rds-check/
+ADD --checksum=sha256:cffb079b116f6bb731b10b1dc3e026287758b0c2fdc81144e218da0a58650454 \
+    https://truststore.pki.us-gov-west-1.rds.amazonaws.com/us-gov-west-1/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-west-1-bundle.pem
+ADD --checksum=sha256:701cd34b338d4199cd09a669bbc3d11000febe52393d08a689d0b21c50ea3974 \
+    https://truststore.pki.us-gov-west-1.rds.amazonaws.com/us-gov-east-1/us-gov-east-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem
 
 RUN java -version && \
     keytool -importkeystore -noprompt \
@@ -96,6 +101,13 @@ RUN java -version && \
       /opt/tomcat/conf/Catalina/localhost && \
     chown -R 10001:10001 /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs && \
     rpm -qa | sort > /opt/provenance/rpm-packages.txt
+
+RUN --network=none javac -d /opt/rds-check /opt/rds-check/RdsTrust.java /opt/rds-check/RdsTrustTest.java && \
+    java -cp /opt/rds-check RdsTrustTest /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
+    java -cp /opt/rds-check RdsTrust /opt/accp/cacerts.p12 PKCS12 \
+      /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
+    chmod 0644 /opt/semoss-ca/* && \
+    cp /opt/semoss-ca/roots-sha256.txt /opt/provenance/aws-rds-govcloud-roots.txt
 
 USER 10001:10001
 WORKDIR /opt/semosshome

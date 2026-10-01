@@ -12,6 +12,10 @@
 !refresh_bases.py
 !readiness.py
 !compose.dev.yml
+!prepare_dev_tls.py
+!TLS.md
+!RDS.md
+!RdsTrust.java
 !compare_containers.py
 !database_fixtures.py
 !AccpCheck.java

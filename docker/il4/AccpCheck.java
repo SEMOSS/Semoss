@@ -38,15 +38,21 @@ public final class AccpCheck {
         KeyStore original = KeyStore.getInstance(
                 Path.of(System.getProperty("java.home"), "lib/security/cacerts").toFile(),
                 "changeit".toCharArray());
-        require(trust.size() > 0 && trust.size() == original.size(), "Public trust anchor count changed");
+        require(trust.size() == original.size() + RdsTrust.ROOTS.size(), "Trust anchor count changed");
         for (var aliases = original.aliases(); aliases.hasMoreElements();) {
             String alias = aliases.nextElement();
             require(trust.isCertificateEntry(alias), "Missing public trust anchor: " + alias);
             require(Arrays.equals(original.getCertificate(alias).getEncoded(),
                     trust.getCertificate(alias).getEncoded()), "Public trust anchor changed: " + alias);
         }
+        for (String fingerprint : RdsTrust.ROOTS) {
+            String alias = "aws-rds-govcloud-" + fingerprint;
+            require(trust.isCertificateEntry(alias), "Missing GovCloud RDS trust anchor");
+            require(RdsTrust.fingerprint((java.security.cert.X509Certificate) trust.getCertificate(alias))
+                    .equals(fingerprint), "GovCloud RDS trust anchor changed");
+        }
         System.out.println("PASS: experimental/nonvalidated PKCS12 truststore preserves all "
-                + trust.size() + " public anchors");
+                + original.size() + " public anchors plus six pinned GovCloud RDS roots");
     }
 
     public static void main(String[] args) throws Exception {

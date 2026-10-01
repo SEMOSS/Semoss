@@ -70,6 +70,29 @@ message contains only the fixed synthetic prompt and that `maxTokens` is 16.
 
 ## Deployment requirements
 
+### Public endpoint certificate trust
+
+The image's AWS Python SDK uses its packaged `certifi` public CA bundle by
+default. On 2026-10-01, both the published BC baseline and the locally tested
+ACCP image completed certificate- and hostname-verified HTTPS requests to
+`bedrock-runtime-fips.us-gov-west-1.amazonaws.com` using that SDK CA bundle.
+An unauthenticated `HEAD /` returned HTTP 404 after successful TLS; no credentials,
+account data, or model invocation were involved. This proves TLS connectivity
+from that test environment, not IAM authorization or model availability.
+The same endpoint also passed with the default Java TLS contexts: BCJSSE on
+the BC image and SunJSSE on ACCP. Python does not inherit Java's truststore.
+
+Do not bake Bedrock leaf/intermediate certificates into the image: AWS serves
+the chain, and the client trusts its public root CAs. Leaf/intermediate rotation
+does not require pinning a new endpoint certificate. GovCloud RDS roots are a
+separate trust bundle; do **not** set `AWS_CA_BUNDLE` to the RDS-only PEM file.
+If a deployment overrides `AWS_CA_BUNDLE` or uses approved TLS inspection,
+provide the complete appropriate trust set and repeat validation there.
+Inbound SEMOSS self-signed/organization-issued certificates do not configure
+Bedrock trust. Public CA trust is not evidence of client-side FIPS validation.
+
+### Access requirements
+
 - Prefer short-lived workload-role credentials through boto3's default credential
   chain. The tested CLI identity did not provide a session token or expiration;
   it is not a substitute for production workload identity.

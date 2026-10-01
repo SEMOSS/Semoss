@@ -47,8 +47,12 @@ def security_properties(text):
         "keystore.type": "PKCS12",
         "jdk.tls.disabledAlgorithms":
             "SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, "
-            "EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA",
+            "EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA, DHE, CBC, "
+            "CHACHA20-POLY1305, TLS_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_128_GCM_SHA256, "
+            "TLS_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256",
         "jdk.certpath.disabledAlgorithms": "MD2, MD5, SHA1, RSA keySize < 2048, DSA, EC keySize < 224",
+        "securerandom.strongAlgorithms":
+            "LibCryptoRng:AmazonCorrettoCryptoProvider,NativePRNGBlocking:SUN,DRBG:SUN",
     }
     for key in overrides:
         text = re.sub(r"(?m)^" + re.escape(key) + r"=.*\n?", "", text)

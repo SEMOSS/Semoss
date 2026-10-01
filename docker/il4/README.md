@@ -455,6 +455,12 @@ obtain the applicable approvals before using those services.
 
 ## TLS and runtime
 
+See [HTTPS certificate staging and replacement](./TLS.md) for explicit
+development-only generation of a unique seven-day self-signed certificate,
+organization-issued chain/private-key packaging, and controlled certificate
+rotation. No shared private key or automatic runtime fallback is built in.
+Outbound [AWS GovCloud RDS trust](./RDS.md) is a separate configuration surface.
+
 Provision these read-only secret files, readable by UID 10001:
 
 | File inside container | Contents |
@@ -467,7 +473,7 @@ private key is not part of the image. Tomcat reads its password from the file,
 not a JVM argument. Missing TLS secrets cause startup to fail explicitly.
 
 The generated `/opt/accp/cacerts.p12` contains the builder JDK's public trust
-anchors; `changeit` is the integrity password for this **public-certificate-only**
+anchors plus six pinned GovCloud RDS roots; `changeit` is the integrity password for this **public-certificate-only**
 store, not a private-key password. Replace it with an approved, appropriately
 limited PKCS12 truststore at that path when enterprise/internal CAs are needed;
 keep its integrity password consistent with [setenv.sh](./conf/setenv.sh).

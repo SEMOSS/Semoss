@@ -83,7 +83,8 @@ Use dedicated, least-privilege accounts and an appropriate server-side TLS polic
 Do not set `trustServerCertificate=true`, `sslMode=trust`, `sslmode=require`, or
 any non-validating socket factory as a workaround.
 
-The default generated truststore contains JDK public roots, not your private CA.
+The default generated truststore contains JDK public roots plus six pinned
+[AWS GovCloud RDS roots](../../RDS.md), not arbitrary enterprise/private CAs.
 Review whether to retain public roots or use a narrower trust set; replacing the
 global store also affects Java outbound HTTPS and other Java integrations.
 Python/Bedrock uses its separate PEM trust configuration.
