@@ -72,6 +72,7 @@ This is a development-only build using the existing
 `REPO_ONE_USERNAME` / `REPO_ONE_PASSWORD`, without an environment approval gate.
 The existing SEMOSS Ubuntu/Quay job-tooling image is digest-pinned; the
 published application's three base images remain Iron Bank images.
+The job installs Ubuntu's `python3` package for build orchestration only.
 Each run refreshes the digests behind the existing Iron Bank Maven `3.9.16`,
 UBI `10.2`, and Python `v3.14` tags and builds without cache. It does not
 automatically advance version tags or the locked SEMOSS release.
