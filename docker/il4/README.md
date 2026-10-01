@@ -570,6 +570,10 @@ Development refresh: resolve fresh digests for the same three Iron Bank version
 tags on every run, use uncached builds, and record the inputs in image labels.
 A weekly default-branch workflow checks out `IL4-dev`; its scheduling becomes
 active only after the corresponding workflow PR is merged into `dev`.
+The resolver and its mocked unit tests are also copied into the assembly stage;
+they are not copied into the runtime image. The Docker context explicitly
+re-excludes directory contents before allowing individual files, so opening a
+parent directory does not accidentally include caches or unlisted files.
 
 Local PostgreSQL validation: added a private-network TLS/SCRAM fixture and the
 `LocalPostgresTLS` connector without changing the application image. The local

@@ -6,7 +6,7 @@ ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:eb433
 FROM ${MAVEN_IMAGE} AS assembly
 USER 0
 WORKDIR /build
-COPY artifacts.lock.json assemble.py audio_compat.py python_check.py ./
+COPY artifacts.lock.json assemble.py audio_compat.py python_check.py refresh_bases.py ./
 COPY tests/ tests/
 RUN python3 -m unittest discover -s tests -v
 RUN --mount=type=cache,target=/root/.m2 \
