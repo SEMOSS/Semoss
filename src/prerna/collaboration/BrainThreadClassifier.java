@@ -37,10 +37,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -160,9 +162,7 @@ public final class BrainThreadClassifier {
 		List<Result> results = new ArrayList<>();
 		ExecutorService pool = Executors.newFixedThreadPool(parallel());
 		try {
-			List<Future<Result>> futures = new ArrayList<>();
-			for (String threadId : ids) {
-				futures.add(pool.submit(() -> {
+			results.addAll(runAll(pool, ids, threadId -> {
 					Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(),
 							threadId, ctx.window().messages(), BrainMessageSource.current());
 					List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
@@ -181,26 +181,50 @@ public final class BrainThreadClassifier {
 					}
 					return new Result(threadId, filing.topicId(), filing.confidence(), filing.band(), null, null, null,
 							null);
-				}));
-			}
-			if (progress != null) {
-				progress.report(0, futures.size());
-			}
-			for (int i = 0; i < futures.size(); i++) {
-				try {
-					results.add(futures.get(i).get());
-				} catch (Exception e) {
-					classLogger.warn("Topic filing failed on thread {}", ids.get(i), e);
-					results.add(new Result(ids.get(i), null, null, null, null, null, null, rootMessage(e)));
-				}
-				if (progress != null && ((i + 1) % 10 == 0 || i + 1 == futures.size())) {
-					progress.report(i + 1, futures.size());
-				}
-			}
+			}, "Topic filing", progress));
 		} finally {
 			pool.shutdown();
 		}
 		return summary(ctx.classifier().version(), false, results);
+	}
+
+	@FunctionalInterface
+	private interface Task {
+		Result run(String threadId) throws Exception;
+	}
+
+	// runs every thread on the pool and reports progress as each one finishes, in whatever order they finish
+	private static List<Result> runAll(ExecutorService pool, List<String> ids, Task task, String label,
+			Progress progress) {
+		CompletionService<Result> done = new ExecutorCompletionService<>(pool);
+		for (String threadId : ids) {
+			done.submit(() -> {
+				try {
+					return task.run(threadId);
+				} catch (Exception e) {
+					classLogger.warn("{} failed on thread {}", label, threadId, e);
+					return new Result(threadId, null, null, null, null, null, null, rootMessage(e));
+				}
+			});
+		}
+		if (progress != null) {
+			progress.report(0, ids.size());
+		}
+		List<Result> results = new ArrayList<>();
+		for (int i = 0; i < ids.size(); i++) {
+			try {
+				results.add(done.take().get());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Classification was interrupted", e);
+			} catch (ExecutionException e) {
+				throw new IllegalStateException(e.getCause());
+			}
+			if (progress != null) {
+				progress.report(i + 1, ids.size());
+			}
+		}
+		return results;
 	}
 
 	@FunctionalInterface
@@ -232,24 +256,7 @@ public final class BrainThreadClassifier {
 				}, pool);
 				ctx.automatedSenders().addAll(vote.automated());
 			}
-			List<Future<Result>> futures = new ArrayList<>();
-			for (String threadId : ids) {
-				futures.add(pool.submit(() -> classifyOne(ctx, threadId)));
-			}
-			if (progress != null) {
-				progress.report(0, futures.size());
-			}
-			for (int i = 0; i < futures.size(); i++) {
-				try {
-					results.add(futures.get(i).get());
-				} catch (Exception e) {
-					classLogger.warn("Classifier failed on thread {}", ids.get(i), e);
-					results.add(new Result(ids.get(i), null, null, null, null, null, null, rootMessage(e)));
-				}
-				if (progress != null && ((i + 1) % 10 == 0 || i + 1 == futures.size())) {
-					progress.report(i + 1, futures.size());
-				}
-			}
+			results.addAll(runAll(pool, ids, threadId -> classifyOne(ctx, threadId), "Classifier", progress));
 		} finally {
 			pool.shutdown();
 		}
@@ -309,14 +316,7 @@ public final class BrainThreadClassifier {
 
 	@SuppressWarnings("unchecked")
 	private static Result classifyOne(Context ctx, String threadId) {
-		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
-				ctx.window().messages(), BrainMessageSource.current());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
-		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
-			return new Result(threadId, null, null, null, "skipped", null, null, null);
-		}
-		Map<String, Object> newest = messages.get(messages.size() - 1);
-		boolean fromMe = ctx.self().personId() != null && ctx.self().personId().equals(newest.get("fromId"));
+		// database checks first: an automated thread needs no Graph read and no model call
 		Map<String, Object> thread = CollaborationDbUtils
 				.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED FROM BRAIN_THREAD "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
@@ -326,6 +326,9 @@ public final class BrainThreadClassifier {
 							row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
 							return row;
 						}, ctx.ownerId(), ctx.ownerType(), threadId);
+		if (thread == null) {
+			throw new IllegalArgumentException("Thread not found");
+		}
 		// marked automated by an earlier run: no model call
 		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
@@ -337,6 +340,14 @@ public final class BrainThreadClassifier {
 			ctx.scored().remove(threadId);
 			return new Result(threadId, null, null, null, "automated", null, null, null);
 		}
+		Map<String, Object> read = BrainThreadMessages.read(ctx.user(), ctx.ownerId(), ctx.ownerType(), threadId,
+				ctx.window().messages(), BrainMessageSource.current());
+		List<Map<String, Object>> messages = (List<Map<String, Object>>) read.get("messages");
+		if (Boolean.TRUE.equals(read.get("muted")) || messages == null || messages.isEmpty()) {
+			return new Result(threadId, null, null, null, "skipped", null, null, null);
+		}
+		Map<String, Object> newest = messages.get(messages.size() - 1);
+		boolean fromMe = ctx.self().personId() != null && ctx.self().personId().equals(newest.get("fromId"));
 		String onIt = recipientRole(ctx.self(), newest);
 		// filed by the owner or by onboarding: no topic question, the link stays
 		boolean kept = !ctx.dryRun() && hasKeptLink(ctx, threadId);

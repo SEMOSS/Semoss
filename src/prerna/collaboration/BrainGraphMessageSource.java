@@ -47,6 +47,8 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 
 	private static final String BASE = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0";
 	private static final int BATCH = 20;
+	private static final int RETRIES = 3;
+	private static final long MAX_WAIT_MS = 10000;
 	private static final String MAIL_SELECT = "subject,from,toRecipients,ccRecipients,body,uniqueBody,receivedDateTime,"
 			+ "conversationId,webLink";
 
@@ -92,30 +94,48 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			if (requests.isEmpty()) {
 				continue;
 			}
-			List<Object> responses;
-			try {
-				Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
-						BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
-						CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
-						null, null));
-				responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
-			} catch (Exception e) {
-				for (Map<String, Object> request : requests) {
-					out[Integer.parseInt((String) request.get("id"))] = new Fetched(null, e);
+			// a throttled (429) or busy (5xx) message is sent again after Graph's Retry-After
+			for (int attempt = 0; !requests.isEmpty(); attempt++) {
+				List<Object> responses;
+				try {
+					Map<String, Object> reply = CollaborationDbUtils.parseMap(HttpHelperUtility.postRequestStringBody(
+							BASE + "/$batch", MicrosoftLoginUtils.getBearerHeader(token),
+							CollaborationDbUtils.toJson(Map.of("requests", requests)), ContentType.APPLICATION_JSON, null,
+							null, null));
+					responses = reply.get("responses") instanceof List<?> list ? (List<Object>) list : List.of();
+				} catch (Exception e) {
+					for (Map<String, Object> request : requests) {
+						out[Integer.parseInt((String) request.get("id"))] = new Fetched(null, e);
+					}
+					break;
 				}
-				continue;
-			}
-			for (Object r : responses) {
-				Map<String, Object> response = (Map<String, Object>) r;
-				int i = Integer.parseInt(String.valueOf(response.get("id")));
-				int status = response.get("status") instanceof Number n ? n.intValue() : 0;
-				if (status == 200 && response.get("body") instanceof Map<?, ?> body) {
-					Map<String, Object> message = (Map<String, Object>) body;
-					out[i] = new Fetched("teams".equals(source) ? fromChat(message) : message, null);
-				} else if (status == 404) {
-					out[i] = new Fetched(null, null);
-				} else {
-					out[i] = new Fetched(null, new IllegalStateException("Graph returned " + status));
+				List<Map<String, Object>> again = new ArrayList<>();
+				long wait = 0;
+				for (Object r : responses) {
+					Map<String, Object> response = (Map<String, Object>) r;
+					int i = Integer.parseInt(String.valueOf(response.get("id")));
+					int status = response.get("status") instanceof Number n ? n.intValue() : 0;
+					if (status == 200 && response.get("body") instanceof Map<?, ?> body) {
+						Map<String, Object> message = (Map<String, Object>) body;
+						out[i] = new Fetched("teams".equals(source) ? fromChat(message) : message, null);
+					} else if (status == 404) {
+						out[i] = new Fetched(null, null);
+					} else if ((status == 429 || status >= 500) && attempt < RETRIES) {
+						requests.stream().filter(q -> String.valueOf(i).equals(q.get("id"))).findFirst()
+								.ifPresent(again::add);
+						wait = Math.max(wait, retryAfter(response, attempt));
+					} else {
+						out[i] = new Fetched(null, new IllegalStateException("Graph returned " + status));
+					}
+				}
+				requests = again;
+				if (!requests.isEmpty()) {
+					try {
+						Thread.sleep(wait);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+						break;
+					}
 				}
 			}
 		}
@@ -124,6 +144,24 @@ final class BrainGraphMessageSource implements BrainMessageSource {
 			list.add(f == null ? new Fetched(null, new IllegalStateException("No reply from Graph")) : f);
 		}
 		return list;
+	}
+
+	// Graph's Retry-After in seconds when it sends one, else 1, 2, 4 s; never more than MAX_WAIT_MS
+	@SuppressWarnings("unchecked")
+	private static long retryAfter(Map<String, Object> response, int attempt) {
+		long fallback = 1000L << attempt;
+		if (response.get("headers") instanceof Map<?, ?> headers) {
+			for (Map.Entry<?, ?> h : ((Map<Object, Object>) headers).entrySet()) {
+				if ("retry-after".equalsIgnoreCase(String.valueOf(h.getKey()))) {
+					try {
+						return Math.min(MAX_WAIT_MS, Long.parseLong(String.valueOf(h.getValue()).trim()) * 1000);
+					} catch (NumberFormatException e) {
+						return fallback;
+					}
+				}
+			}
+		}
+		return Math.min(MAX_WAIT_MS, fallback);
 	}
 
 	// the message's path under the Graph base, or null when the source cannot be
