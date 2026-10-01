@@ -34,17 +34,19 @@ import prerna.collaboration.BrainThreadClassifier;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainClassifyThreads(); or BrainClassifyThreads(threadIds=["...", "..."], dryRun=[true]); the model is always
+// BrainClassifyThreads(); BrainClassifyThreads(threadIds=["...", "..."], dryRun=[true]); or BrainClassifyThreads(topics=[true],
+// async=[true]) after onboarding picks topics; the model is always
 // COLLAB_CLASSIFIER_ENGINE_ID
 public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 
 	private static final String THREAD_IDS = "threadIds";
 	private static final String DRY_RUN = "dryRun";
 	private static final String ASYNC = "async";
+	private static final String TOPICS = "topics";
 
 	public BrainClassifyThreadsReactor() {
-		this.keysToGet = new String[] { THREAD_IDS, DRY_RUN, ASYNC };
-		this.keyRequired = new int[] { 0, 0, 0 };
+		this.keysToGet = new String[] { THREAD_IDS, DRY_RUN, ASYNC, TOPICS };
+		this.keyRequired = new int[] { 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -53,6 +55,12 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 		GenRowStruct ids = this.store.getNoun(THREAD_IDS);
 		List<String> threadIds = ids == null ? null : ids.getAllStrValues();
 		boolean dryRun = Boolean.TRUE.equals(getBoolean(DRY_RUN));
+		if (Boolean.TRUE.equals(getBoolean(TOPICS))) {
+			if (dryRun || !Boolean.TRUE.equals(getBoolean(ASYNC))) {
+				throw new IllegalArgumentException("Topic filing runs only as a background job (async=[true])");
+			}
+			return mapResult(BrainThreadClassifier.startTopics(user));
+		}
 		if (Boolean.TRUE.equals(getBoolean(ASYNC))) {
 			if (dryRun) {
 				throw new IllegalArgumentException("A dry run returns its scores and cannot run in the background");
@@ -74,6 +82,8 @@ public class BrainClassifyThreadsReactor extends AbstractCollaborationReactor {
 			return "Threads to classify; omit for every unmuted thread with no work item yet";
 		} else if (DRY_RUN.equals(key)) {
 			return "true to return scores for every unmuted thread without writing anything";
+		} else if (TOPICS.equals(key)) {
+			return "true to only file real mail that has no topic yet against the kept topics, after onboarding picks them";
 		} else if (ASYNC.equals(key)) {
 			return "true to run as a background job and return it; poll with BrainGetJob(kind=classify)";
 		}

@@ -18,19 +18,23 @@ import java.util.regex.Pattern;
 // Candidate A.1: counting over permitted headers; no model, bodies, database or embeddings.
 public final class BrainTopicStructure {
 
+	// wide: any real (non-bulk) thread can seed or join a topic, not only threads the owner took part in; for a pool
+	// the classifier has already cleared of automated mail
 	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes,
-			int dropAt, int attempts, int spareVotes, int maxTokens) {
+			int dropAt, int attempts, int spareVotes, int maxTokens, boolean wide) {
 		public Settings {
-			if (pool < 1 || pool > 300 || seeds < 1 || topics < 1 || topics > 25 || votes < 1 || votes > 9
+			if (pool < 1 || pool > 1000 || seeds < 1 || topics < 1 || topics > 40 || votes < 1 || votes > 9
 					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0
 					|| spareVotes > 1 || mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1
-					|| maxTokens < 1 || maxTokens > 4000) {
+					|| maxTokens < 1 || maxTokens > 8000) {
 				throw new IllegalArgumentException("Invalid topic onboarding settings");
 			}
 		}
 	}
 
-	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000);
+	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000, false);
+	// after a sort: every real thread, and a longer list for the owner to narrow down
+	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, 6000, true);
 	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*", Pattern.CASE_INSENSITIVE);
 	private static final Pattern WORD = Pattern.compile("(?U)\\b\\w\\w+\\b");
 
@@ -117,7 +121,8 @@ public final class BrainTopicStructure {
 		groups.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
 		List<List<Integer>> seeds = new ArrayList<>();
 		for (List<Integer> group : groups) {
-			List<Integer> kept = group.stream().filter(j -> ranked.get(j).engaged()).toList();
+			List<Integer> kept = group.stream()
+					.filter(j -> settings.wide() ? !ranked.get(j).bulk() : ranked.get(j).engaged()).toList();
 			if (kept.size() >= 3 && seeds.size() < settings.seeds()) {
 				seeds.add(kept);
 			}
@@ -157,7 +162,7 @@ public final class BrainTopicStructure {
 			}
 		}
 		for (int j = 0; j < pool.size(); j++) {
-			if (filed.containsKey(j) || !pool.get(j).engaged()) {
+			if (filed.containsKey(j) || (settings.wide() ? pool.get(j).bulk() : !pool.get(j).engaged())) {
 				continue;
 			}
 			int best = -1;

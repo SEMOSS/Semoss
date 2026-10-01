@@ -39,13 +39,20 @@ import prerna.om.Insight;
 // only has to fill in Scores.
 public interface BrainClassifier {
 
-	/** What a classifier sees: the gated thread, never more. */
+	/**
+	 * What a classifier sees: the gated thread, never more. earlier: the engine's
+	 * window fits the earlier messages too (COLLAB_CLASSIFIER_WINDOW).
+	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-			List<Message> messages) {
+			List<Message> messages, boolean earlier) {
 	}
 
-	/** One message, newest last; "me" marks the owner in from, to, and cc. */
-	record Message(String from, List<String> to, List<String> cc, String at, String text) {
+	/**
+	 * One message, newest last; "me" marks the owner in from, to, and cc. from is
+	 * "Name <address>"; footer is what cleaning cut from the end (signature,
+	 * disclaimer, unsubscribe), null when the window has no room for it.
+	 */
+	record Message(String from, List<String> to, List<String> cc, String at, String text, String footer) {
 	}
 
 	/** A topic the thread can be filed under. */

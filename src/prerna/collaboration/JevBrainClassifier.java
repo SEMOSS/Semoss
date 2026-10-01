@@ -107,24 +107,35 @@ final class JevBrainClassifier implements BrainClassifier {
 		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
 	}
 
-	// the thread as Jev state; Jev did best on the newest message alone (two
-	// messages and the owner's name
-	// dropped topic accuracy in the fixture eval), so earlier messages stay out
+	// the thread as Jev state; laya did best on the newest message alone (two
+	// messages and the owner's name dropped topic accuracy in the fixture eval), so
+	// earlier messages go in only when the engine's window is set for them
 	static Map<String, Object> state(ThreadInput thread) {
 		Map<String, Object> state = new LinkedHashMap<>();
 		state.put("subject", thread.subject());
 		state.put("participants", thread.participants());
 		state.put("messageCount", thread.messages().size());
-		if (!thread.messages().isEmpty()) {
-			Message m = thread.messages().get(thread.messages().size() - 1);
-			Map<String, Object> message = new LinkedHashMap<>();
-			message.put("from", m.from());
-			message.put("to", m.to());
-			message.put("cc", m.cc());
-			message.put("text", m.text());
-			state.put("newestMessage", message);
+		List<Message> messages = thread.messages();
+		if (!messages.isEmpty()) {
+			state.put("newestMessage", message(messages.get(messages.size() - 1)));
+			if (thread.earlier() && messages.size() > 1) {
+				state.put("earlierMessages",
+						messages.subList(0, messages.size() - 1).stream().map(JevBrainClassifier::message).toList());
+			}
 		}
 		return state;
+	}
+
+	private static Map<String, Object> message(Message m) {
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("from", m.from());
+		message.put("to", m.to());
+		message.put("cc", m.cc());
+		message.put("text", m.text());
+		if (m.footer() != null && !m.footer().isBlank()) {
+			message.put("footer", m.footer());
+		}
+		return message;
 	}
 
 	private static Map<String, Object> question(String type, String instructions, Object criteria) {

@@ -58,8 +58,6 @@ public final class BrainTopicSuggest {
 	private static final int ACCOUNT_MIN_THREADS = 3;
 	private static final int MEMBERS = 6;
 	private static final int DESCRIBE = 5;
-	// an onboarding link is the grouping itself, above the classifier's file cutoff
-	private static final int ONBOARDING_CONFIDENCE = 90;
 	private static final Set<String> FREEMAIL = Set.of("gmail.com", "googlemail.com", "outlook.com", "hotmail.com",
 			"live.com", "msn.com", "yahoo.com", "icloud.com", "me.com", "aol.com", "proton.me", "protonmail.com");
 
@@ -110,9 +108,15 @@ public final class BrainTopicSuggest {
 				rs -> rs.getString(1), ownerId, ownerType, self));
 		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, String> emails = new HashMap<>();
+		Map<String, String> names = new HashMap<>();
 		CollaborationDbUtils.query(
-				"SELECT PERSON_ID, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-				rs -> emails.put(rs.getString(1), rs.getString(2)), ownerId, ownerType);
+				"SELECT PERSON_ID, EMAIL_NORM, DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
+					emails.put(rs.getString(1), rs.getString(2));
+					if (rs.getString(3) != null) {
+						names.put(rs.getString(1), rs.getString(3));
+					}
+					return null;
+				}, ownerId, ownerType);
 
 		Map<String, Thread> threads = new LinkedHashMap<>();
 		CollaborationDbUtils.query("SELECT THREAD_ID, SUBJECT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
@@ -329,21 +333,8 @@ public final class BrainTopicSuggest {
 					CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC (OWNER_ID, OWNER_TYPE, TOPIC_ID, NAME, SHORT_NAME, "
 							+ "DESCRIPTION, KIND, ACCOUNT_ID, KEYWORDS_JSON, STATUS, ORIGIN, SUGGEST_REASON, LAST_ACTIVITY_AT, "
 							+ "CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
-							topicId, c.name(), c.name(), description(samples(c, mailThreads, writers, self)), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
+							topicId, c.name(), c.name(), c.about() != null ? c.about() : description(samples(c, mailThreads, writers, self)), kind, accountId, CollaborationDbUtils.toJson(c.keywords()),
 							BrainTopicUtils.SUGGESTED, "brain", c.reason(), now, now, now);
-					if (BrainTopicOnboarding.STRATEGY.equals(strategy)) {
-						// the grouping is the filing: its threads are linked now, and sorting only asks about the rest
-						for (Thread t : c.threads()) {
-							if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND "
-									+ "OWNER_TYPE = ? AND THREAD_ID = ?", ownerId, ownerType, t.id())) {
-								continue;
-							}
-							CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_THREAD_TOPIC (OWNER_ID, OWNER_TYPE, "
-									+ "THREAD_ID, TOPIC_ID, SOURCE, CONFIDENCE, IS_PRIMARY, CLASSIFIER_VERSION, CHANGED_BY, "
-									+ "CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType, t.id(), topicId,
-									"confirmed", ONBOARDING_CONFIDENCE, true, BrainTopicOnboarding.STRATEGY, "brain", now);
-						}
-					}
 					for (String p : members) {
 						CollaborationDbUtils.update(conn, "INSERT INTO BRAIN_TOPIC_PERSON (OWNER_ID, OWNER_TYPE, TOPIC_ID, "
 								+ "PERSON_ID, STATE, ORIGIN, REASON, CHANGED_BY, CHANGED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -359,6 +350,19 @@ public final class BrainTopicSuggest {
 				row.put("reason", c.reason());
 				row.put("threadIds", c.threads().stream().map(Thread::id).collect(Collectors.toList()));
 				row.put("memberIds", members);
+				// the card's profile: key people by name, and the outside domains on half its threads or more
+				row.put("people", members.stream().map(p -> Map.of("id", p, "name", names.getOrDefault(p, emails.getOrDefault(p, p))))
+						.collect(Collectors.toList()));
+				Map<String, Integer> byDomain = new HashMap<>();
+				for (Thread t : c.threads()) {
+					t.people().stream().map(p -> org(BrainMailImport.domain(emails.get(p))))
+							.filter(d -> d != null && !ownOrg.isMine(d) && !FREEMAIL.contains(d)).distinct()
+							.forEach(d -> byDomain.merge(d, 1, Integer::sum));
+				}
+				row.put("domains", byDomain.entrySet().stream().filter(e -> e.getValue() >= half)
+						.sorted((x, y) -> y.getValue() - x.getValue()).map(Map.Entry::getKey).limit(3)
+						.collect(Collectors.toList()));
+				row.put("about", c.about());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
 						.collect(Collectors.toList()));
 				int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
@@ -399,7 +403,8 @@ public final class BrainTopicSuggest {
 				.filter(x -> x != null && !x.isBlank()).distinct().collect(Collectors.toList());
 	}
 
-	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason) {
+	// about: the topic model's one line on what the topic covers, stored as its description
+	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about) {
 	}
 
 	// working threads first (a VIP on it, the owner wrote, more messages), then
@@ -444,7 +449,7 @@ public final class BrainTopicSuggest {
 			List<Thread> list = p.threadIds().stream().map(threads::get).collect(Collectors.toList());
 			List<String> keywords = List.of(p.name().toLowerCase().split("\\s+"));
 			out.add(new Candidate("model:" + p.name().toLowerCase(), p.name(), list, keywords,
-					p.why().isEmpty() ? list.size() + " threads grouped by the topic model" : p.why()));
+					p.why().isEmpty() ? list.size() + " threads grouped by the topic model" : p.why(), null));
 		}
 		return out;
 	}

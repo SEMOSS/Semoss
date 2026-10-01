@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.jsoup.Jsoup;
@@ -86,6 +87,8 @@ public final class BrainMessageText {
 			Pattern.CASE_INSENSITIVE);
 	// kept history (a forward, or mail from before the thread) can be long
 	private static final int MAX_KEPT_CHARS = 12000;
+	private static final Set<String> FOOTER_RULES = Set.of("banner", "html-signature", "signature-delimiter",
+			"mobile-footer", "disclaimer", "unsubscribe-footer", "sign-off");
 
 	// a sign-off counts only near the end, with a short name-and-title block under
 	// it
@@ -434,6 +437,22 @@ public final class BrainMessageText {
 	}
 
 	// what was removed and why; returned to the caller for review, never logged
+	// what cleaning cut that says how the mail was sent (banner, signature, disclaimer,
+	// unsubscribe footer); quoted history is a repeat and stays out; null when nothing was cut
+	@SuppressWarnings("unchecked")
+	public static String footer(Map<String, Object> extracted) {
+		if (!(extracted.get("cuts") instanceof List<?> cuts)) {
+			return null;
+		}
+		List<String> parts = new ArrayList<>();
+		for (Object c : cuts) {
+			if (c instanceof Map<?, ?> m && FOOTER_RULES.contains(m.get("rule"))) {
+				parts.add(String.valueOf(((Map<String, Object>) m).get("removed")));
+			}
+		}
+		return parts.isEmpty() ? null : String.join("\n", parts);
+	}
+
 	private static void cut(List<Map<String, Object>> cuts, String rule, String removed) {
 		if (removed == null || removed.isBlank()) {
 			return;

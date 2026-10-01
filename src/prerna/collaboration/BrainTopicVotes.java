@@ -24,7 +24,8 @@ public final class BrainTopicVotes {
 			automated or bulk (notifications, receipts, newsletters, marketing, alerts), or company-wide news and announcements
 			that need nothing from them; "unclear" when you cannot tell. Then name it the way a colleague would, in 2 to 5 words,
 			after the project, client or piece of work (for not_work, say what kind of mail it is). Do not name a topic after a
-			person or a date.
+			person or a date. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
+			(the project, client or work it covers and what it involves), so someone could sort a new email into it.
 
 			Answer for every cluster id given, once each.
 			""";
@@ -34,11 +35,11 @@ public final class BrainTopicVotes {
 		String ask(String prompt, String instructions, Map<String, Object> parameters);
 	}
 
-	public record Vote(String kind, String name) {
+	public record Vote(String kind, String name, String about) {
 	}
 
 	public record Result(String status, List<Map<String, Vote>> votes, Set<Integer> dropped,
-			Map<Integer, String> names, int calls, int failedVotes) {
+			Map<Integer, String> names, Map<Integer, String> abouts, int calls, int failedVotes) {
 	}
 
 	private BrainTopicVotes() {
@@ -46,10 +47,11 @@ public final class BrainTopicVotes {
 
 	public static Map<String, Object> schema(List<String> ids) {
 		Map<String, Object> item = Map.of("type", "object", "additionalProperties", false,
-				"required", List.of("id", "kind", "name"), "properties", Map.of(
+				"required", List.of("id", "kind", "name", "about"), "properties", Map.of(
 						"id", Map.of("type", "string", "enum", ids),
 						"kind", Map.of("type", "string", "enum", List.of("work", "not_work", "unclear")),
-						"name", Map.of("type", "string")));
+						"name", Map.of("type", "string"),
+						"about", Map.of("type", "string")));
 		return Map.of("type", "object", "additionalProperties", false, "required", List.of("clusters"),
 				"properties", Map.of("clusters", Map.of("type", "array", "minItems", ids.size(),
 						"maxItems", ids.size(), "items", item)));
@@ -57,7 +59,7 @@ public final class BrainTopicVotes {
 
 	public static Result run(BrainTopicStructure.Prepared prepared, BrainTopicStructure.Settings settings, Caller caller) {
 		if (prepared.cards().isEmpty()) {
-			return new Result("no_topics", List.of(), Set.of(), Map.of(), 0, 0);
+			return new Result("no_topics", List.of(), Set.of(), Map.of(), Map.of(), 0, 0);
 		}
 		List<String> ids = prepared.cards().stream().map(c -> (String) c.get("id")).toList();
 		String prompt = new com.google.gson.Gson().toJson(Map.of("clusters", prepared.cards()));
@@ -82,10 +84,11 @@ public final class BrainTopicVotes {
 			}
 		}
 		if (votes.size() != settings.votes()) {
-			return new Result("vote_failed", votes, Set.of(), Map.of(), calls, failed);
+			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls, failed);
 		}
 		Set<Integer> dropped = new HashSet<>();
 		Map<Integer, String> names = new LinkedHashMap<>();
+		Map<Integer, String> abouts = new LinkedHashMap<>();
 		for (int i = 0; i < ids.size(); i++) {
 			String id = ids.get(i);
 			long notWork = votes.stream().filter(v -> "not_work".equals(v.get(id).kind())).count();
@@ -96,9 +99,14 @@ public final class BrainTopicVotes {
 			for (Map<String, Vote> vote : votes) {
 				counts.merge(vote.get(id).name(), 1, Integer::sum);
 			}
-			names.put(i, counts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey());
+			final int index = i;
+			String name = counts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey();
+			names.put(i, name);
+			// the description from the first vote that gave the winning name, so name and description agree
+			votes.stream().map(v -> v.get(id)).filter(v -> v.name().equals(name)).findFirst()
+					.ifPresent(v -> abouts.put(index, v.about()));
 		}
-		return new Result("ok", votes, dropped, names, calls, failed);
+		return new Result("ok", votes, dropped, names, abouts, calls, failed);
 	}
 
 	public static Map<String, Vote> validate(String reply, List<String> ids) {
@@ -127,10 +135,10 @@ public final class BrainTopicVotes {
 					return null;
 				}
 				JsonObject row = element.getAsJsonObject();
-				if (!row.keySet().equals(Set.of("id", "kind", "name"))) {
+				if (!row.keySet().equals(Set.of("id", "kind", "name", "about"))) {
 					return null;
 				}
-				for (String key : List.of("id", "kind", "name")) {
+				for (String key : List.of("id", "kind", "name", "about")) {
 					if (!row.get(key).isJsonPrimitive() || !row.get(key).getAsJsonPrimitive().isString()) {
 						return null;
 					}
@@ -142,7 +150,8 @@ public final class BrainTopicVotes {
 						|| name.isBlank() || name.length() > 60 || name.split("\\s+").length > 5) {
 					return null;
 				}
-				out.put(id, new Vote(kind, name));
+				String about = row.get("about").getAsString().trim();
+				out.put(id, new Vote(kind, name, about.isEmpty() || about.length() > 300 ? null : about));
 			}
 			return out;
 		} catch (RuntimeException e) {

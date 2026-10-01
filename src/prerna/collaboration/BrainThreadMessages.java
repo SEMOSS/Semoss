@@ -291,6 +291,10 @@ public final class BrainThreadMessages {
 		entry.put("at", row.at());
 		entry.put("subject", clean.get("subject"));
 		entry.put("text", clean.get("body"));
+		String footer = BrainMessageText.footer(clean);
+		if (footer != null) {
+			entry.put("footer", footer);
+		}
 		// forwarded or earlier mail is kept in the text; the UI must not trim it as a
 		// quoted reply
 		if (Boolean.TRUE.equals(clean.get("history"))) {

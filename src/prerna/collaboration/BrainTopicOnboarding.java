@@ -41,7 +41,7 @@ final class BrainTopicOnboarding {
 		if (model == null) {
 			throw new IllegalArgumentException("The topic model could not be loaded");
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, BrainTopicStructure.A1, (prompt, instructions, params) -> {
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType), (prompt, instructions, params) -> {
 			Insight insight = new Insight();
 			insight.setUser(user);
 			return model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse();
@@ -77,12 +77,22 @@ final class BrainTopicOnboarding {
 			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
 			String key = STRATEGY + ":" + CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
 			// the card shows threads, people and your part; how it was grouped stays in diagnostics
-			candidates.add(new BrainTopicSuggest.Candidate(key, name, members,
-					List.of(name.toLowerCase(Locale.ROOT).split("\\s+")), null));
+			// no name-word keywords: a rename would leave the old words behind for the classifier
+			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i)));
 		}
 		diagnostics.put("groupedThreads", grouped.size());
 		diagnostics.put("unsortedThreads", prepared.pool().size() - grouped.size());
 		return new Result(candidates, diagnostics);
+	}
+
+	// wide once a sort has run since the last import: the classifier took automated mail out of the pool
+	static BrainTopicStructure.Settings settings(String ownerId, String ownerType) {
+		boolean sorted = CollaborationDbUtils.exists("SELECT 1 FROM COLLAB_JOB c WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? "
+				+ "AND c.KIND = ? AND c.STATUS = ? AND c.STARTED_AT >= (SELECT MAX(i.STARTED_AT) FROM COLLAB_JOB i WHERE "
+				+ "i.OWNER_ID = c.OWNER_ID AND i.OWNER_TYPE = c.OWNER_TYPE AND i.KIND = ? AND i.STATUS = ?)", ownerId,
+				ownerType, BrainThreadClassifier.JOB_KIND, CollaborationJobUtils.DONE, BrainMailImport.KIND,
+				CollaborationJobUtils.DONE);
+		return sorted ? BrainTopicStructure.WIDE : BrainTopicStructure.A1;
 	}
 
 	private static String uniqueName(String proposed, Set<String> names) {
@@ -200,7 +210,9 @@ final class BrainTopicOnboarding {
 		}
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
 				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
-		return BrainTopicStructure.prepare(input, emails.get(self), ownOrg::isMine, vipEmails, BrainTopicStructure.A1, sentHistory);
+		BrainTopicStructure.Settings settings = settings(ownerId, ownerType);
+		notes.put("wide", settings.wide());
+		return BrainTopicStructure.prepare(input, emails.get(self), ownOrg::isMine, vipEmails, settings, sentHistory);
 	}
 
 	private static String permitted(String address, String thread, Map<String, Object> header, Map<String, String> people,

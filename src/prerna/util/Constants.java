@@ -1087,6 +1087,7 @@ public class Constants {
 	// one brain classifier model for the whole platform, and its cutoffs per engine id
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
+	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
 	// a general text model for topic grouping and naming
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// threads the classifier sorts at once (default 8)
