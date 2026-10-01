@@ -27,28 +27,57 @@
  *******************************************************************************/
 package prerna.collaboration;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarDeleteEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarGetEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarGetScheduleReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarListCalendarsReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarListEventsReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarRespondToEventReactor;
+import prerna.io.connector.ms.calendar.MicrosoftCalendarUpdateEventReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveDownloadFileReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveGetFileReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListDrivesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
+import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookSendDraftReactor;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookSendMailReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadMessageAttachmentReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatMessageReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListChannelsReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListChatMessagesReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListChatsReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListFilesReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsListTeamsReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsSendChatMessageReactor;
+import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
+import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 
 /**
  * Tools every agent gets in a collaboration room, next to DelegateToPerson and
- * FindPerson: the Microsoft 365 mail, calendar, Teams and OneDrive reactors in
- * collaboration_tools_mcp.json. Each call runs its reactor as the room's user.
+ * FindPerson: the Microsoft 365 mail, calendar, Teams and OneDrive reactors.
+ * Each definition is built from its reactor (description, arguments, ask or
+ * auto) under a short name; each call runs the reactor as the room's user.
  */
 public final class CollaborationAgentTools {
 
@@ -57,7 +86,39 @@ public final class CollaborationAgentTools {
 	/** Stamped into each tool's _meta so an approved call can be told apart from a room tool. */
 	public static final String TOOL_KIND = "semoss_collaboration_tool";
 
-	private static final String RESOURCE = "collaboration_tools_mcp.json";
+	// tool name the model sees -> reactor it runs
+	private static final Map<String, Class<? extends AbstractReactor>> REACTORS = new LinkedHashMap<>();
+	static {
+		REACTORS.put("ListCalendars", MicrosoftCalendarListCalendarsReactor.class);
+		REACTORS.put("ListEvents", MicrosoftCalendarListEventsReactor.class);
+		REACTORS.put("GetEvent", MicrosoftCalendarGetEventReactor.class);
+		REACTORS.put("GetSchedule", MicrosoftCalendarGetScheduleReactor.class);
+		REACTORS.put("CreateEvent", MicrosoftCalendarCreateEventReactor.class);
+		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
+		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
+		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
+		REACTORS.put("ListMail", MicrosoftOutlookListMailReactor.class);
+		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
+		REACTORS.put("SendDraft", MicrosoftOutlookSendDraftReactor.class);
+		REACTORS.put("SendMail", MicrosoftOutlookSendMailReactor.class);
+		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
+		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
+		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);
+		REACTORS.put("DownloadChannelFile", MicrosoftTeamsDownloadFileReactor.class);
+		REACTORS.put("UploadChannelFile", MicrosoftTeamsUploadFileReactor.class);
+		REACTORS.put("ListChats", MicrosoftTeamsListChatsReactor.class);
+		REACTORS.put("GetChat", MicrosoftTeamsGetChatReactor.class);
+		REACTORS.put("ListChatMessages", MicrosoftTeamsListChatMessagesReactor.class);
+		REACTORS.put("GetChatMessage", MicrosoftTeamsGetChatMessageReactor.class);
+		REACTORS.put("SendChatMessage", MicrosoftTeamsSendChatMessageReactor.class);
+		REACTORS.put("DownloadMessageAttachment", MicrosoftTeamsDownloadMessageAttachmentReactor.class);
+		REACTORS.put("ListDrives", MicrosoftOneDriveListDrivesReactor.class);
+		REACTORS.put("ListDriveFiles", MicrosoftOneDriveListFilesReactor.class);
+		REACTORS.put("ListSharedFiles", MicrosoftOneDriveListSharedFilesReactor.class);
+		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
+		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
+		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+	}
 
 	private static volatile Map<String, JSONObject> toolsByName;
 
@@ -137,27 +198,51 @@ public final class CollaborationAgentTools {
 	}
 
 	private static Map<String, JSONObject> load() {
-		Map<String, JSONObject> byName = new LinkedHashMap<>();
-		try (InputStream in = CollaborationAgentTools.class.getResourceAsStream(RESOURCE)) {
-			if (in == null) {
-				classLogger.warn("Collaboration tools file {} is missing; rooms get none", RESOURCE);
-				return byName;
-			}
-			JSONArray tools = new JSONObject(new String(in.readAllBytes(), StandardCharsets.UTF_8))
-					.getJSONArray("tools");
-			for (int i = 0; i < tools.length(); i++) {
-				JSONObject tool = tools.getJSONObject(i);
+		// reactor descriptions name other reactors; the model knows them by tool name
+		Map<String, String> toolNameOf = new LinkedHashMap<>();
+		Map<String, JSONObject> built = new LinkedHashMap<>();
+		REACTORS.forEach((name, type) -> {
+			try {
+				JSONObject tool = type.getDeclaredConstructor().newInstance().asMcpTool();
 				JSONObject meta = tool.optJSONObject("_meta");
-				// a tool without a reactor cannot run
 				if (meta == null || meta.optString(MCPUtility.SMSS_FUNCTION_NAME).isBlank()) {
-					continue;
+					classLogger.warn("Reactor {} has no MCP metadata; rooms do not get {}", type.getSimpleName(), name);
+					return;
 				}
+				toolNameOf.put(meta.getString(MCPUtility.SMSS_FUNCTION_NAME), name);
 				meta.put("SMSS_TOOL_KIND", TOOL_KIND);
-				byName.put(tool.getString("name"), tool);
+				tool.put("name", name);
+				tool.put("title", MCPUtility.formatToTitleCase(name));
+				tool.getJSONObject("inputSchema").put("title", name + "_Arguments");
+				built.put(name, tool);
+			} catch (ReflectiveOperationException | RuntimeException e) {
+				classLogger.warn("Could not build collaboration tool {} from {}", name, type.getSimpleName(), e);
 			}
-		} catch (IOException | RuntimeException e) {
-			classLogger.warn("Could not read collaboration tools file {}", RESOURCE, e);
+		});
+		if (built.isEmpty()) {
+			return built;
 		}
-		return byName;
+		Pattern reactorName = Pattern.compile("\\b(" + String.join("|", toolNameOf.keySet()) + ")\\b");
+		for (JSONObject tool : built.values()) {
+			tool.put("description", renamed(tool.getString("description"), reactorName, toolNameOf));
+			JSONObject properties = tool.getJSONObject("inputSchema").optJSONObject("properties");
+			if (properties != null) {
+				for (String key : properties.keySet()) {
+					JSONObject property = properties.getJSONObject(key);
+					property.put("description", renamed(property.optString("description"), reactorName, toolNameOf));
+				}
+			}
+		}
+		return built;
+	}
+
+	private static String renamed(String text, Pattern reactorName, Map<String, String> toolNameOf) {
+		Matcher m = reactorName.matcher(text);
+		StringBuilder out = new StringBuilder();
+		while (m.find()) {
+			m.appendReplacement(out, Matcher.quoteReplacement(toolNameOf.get(m.group(1))));
+		}
+		m.appendTail(out);
+		return out.toString();
 	}
 }
