@@ -67,11 +67,13 @@ social.properties
 /model/**
 /project/*
 !/project/platform__*
+/project/platform__pixabay.smss.local
 /room/**
 /storage/**
 /user/**
 /vector/**
 *.mv.db
+*.trace.db
 # Don't track anything but CSV_Insights folder
 InsightCache/*
 !InsightCache/CSV_Insights/

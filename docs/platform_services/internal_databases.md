@@ -1,52 +1,36 @@
-# SEMOSS Internal Databases and Java Interaction
+# Internal Databases and Agent Persistence
 
-SEMOSS utilizes several internal databases for its operational needs, including metadata storage, user tracking, prompt management, and security. This document outlines how Java components interact with these key internal databases. Most of these databases are typically H2 file-based databases, configured via `.smss` files found in the `db/` directory.
+SEMOSS separates platform metadata into system databases. They can use embedded or external database configurations; the checked-in Docker examples use PostgreSQL. Resource definitions and startup settings determine the backend, so H2 is not a universal deployment requirement.
 
-## 1. Overview of Internal Databases
+## System database responsibilities
 
-SEMOSS leverages a set of specialized databases, often H2 instances, for managing its core metadata and operational data:
+| Service | Responsibility |
+| --- | --- |
+| Local master | Database metadata and semantic/query relationships used by core data services |
+| Security | Users, engine/project/insight catalogs, metadata, dependencies, and permissions |
+| Scheduler | Scheduled job state |
+| Themes | Theme configuration |
+| Prompt | Reusable prompts, metadata, and prompt access |
+| Model inference | Model records, persistent rooms, agent workspaces, runs, and pending actions |
+| User tracking | User activity records |
+| Audit logs | Configured audit records |
+| Notifications | Notification state where enabled/configured |
 
-*   **`LocalMasterDatabase`**: Stores metadata about user-created and system-level assets like projects, engines (data sources), insights, and their relationships. It's central to organizing and retrieving user work.
-*   **`PromptDatabase`**: Specifically designed to store and manage prompts used with Large Language Models (LLMs) and other GenAI features within SEMOSS.
-*   **`UserTrackingDatabase`**: Records user activity, system events, and audit trails.
-*   **`SecurityDB`**: (Often named `security.smss`) Stores user credentials, roles, permissions for projects, engines, insights, and other assets. This database is fundamental to SEMOSS's access control mechanisms. (Covered in more detail in the Authentication & Authorization section).
-*   **`ThemesDatabase`**: (Often named `themes.smss`) Stores theme configurations for customizing the SEMOSS UI appearance.
-*   **`SchedulerDatabase`**: (Often named `scheduler.smss`) Manages scheduled tasks and jobs within SEMOSS.
-*   **Other Utility Databases**: Depending on the configuration, there might be other small, special-purpose databases.
+[SystemEngineRegistry](../../src/prerna/util/SystemEngineRegistry.java) provides controlled access to internal engines. Core services should use their existing authorized helpers rather than treat these databases as user-created catalog engines.
 
-Java components interact with these databases primarily through JDBC, often abstracted by utility classes or specific data access objects (DAOs).
+## Local master and security
 
-## 2. `LocalMasterDatabase`
+[MasterDatabaseUtility](../../src/prerna/masterdatabase/utility/MasterDatabaseUtility.java) and [LocalMasterOwlCreator](../../src/prerna/masterdatabase/utility/LocalMasterOwlCreator.java) define the local-master interaction and schema. Do not infer project permission tables from its name: security catalog and permission behavior belongs to the security services.
 
-The `LocalMasterDatabase` is arguably one of the most critical internal databases, as it holds the metadata for user assets and system configurations.
+[SecurityEngineUtils](../../src/prerna/auth/utils/SecurityEngineUtils.java) and [SecurityProjectUtils](../../src/prerna/auth/utils/SecurityProjectUtils.java) manage engine/project metadata and access. Agent workspaces and skills are projects of types `WORKSPACE` and `SKILL`, so their reusable identity and permissions participate in this catalog.
 
-### 2.1. Purpose and Schema (Conceptual)
+External connector state also lives in the security database: `GITHUB_APP` holds the configured app, `GITHUB_PROJECT_LINK` maps projects to repositories, and `MS_GRAPH_SUBSCRIPTION` holds Microsoft change-notification subscriptions and subscriber credentials. [SecurityExternalConnectorsUtils](../../src/prerna/auth/utils/SecurityExternalConnectorsUtils.java) manages these records. See [Monolith webhooks](../integrations/monolith_webhooks.md) for setup, delivery, and renewal behavior.
 
-*   **Purpose**: To catalog projects, engines (data sources), insights (analyses/dashboards), and the relationships between them. It also stores metadata about global vs. user-specific assets.
-*   **Key Information Stored (Conceptual Tables)**:
-    *   `PROJECT`: Information about projects (ID, name, type, creator, visibility, etc.).
-    *   `ENGINE`: Information about data engines (ID, name, type, configuration path (SMSS file), creator, global status, etc.). This table is also managed by `SecurityEngineUtils` for consistency in the security database.
-    *   `INSIGHT`: Information about insights (ID, name, project associations, creator, etc.).
-    *   `PROJECT_ENGINE_RELATION`: Links projects to the engines they use.
-    *   `PROJECT_INSIGHT_RELATION`: Links projects to the insights they contain.
-    *   `USER_PROJECT_PERMISSIONS`, `USER_ENGINE_PERMISSIONS`, `USER_INSIGHT_PERMISSIONS`: While primarily managed in the `SecurityDB`, there might be some denormalized or cached permission information here, or this data might solely reside in `SecurityDB`.
-    *   Metadata tables for storing additional key-value properties for projects, engines, and insights.
-
-### 2.2. Java Interaction (`src/prerna/masterdatabase/`)
-
-The `src/prerna/masterdatabase/` package contains Java classes responsible for interacting with the `LocalMasterDatabase`.
-*   **`prerna.masterdatabase.utility.MasterDatabaseUtility`**: This class likely provides high-level methods to query and manipulate metadata stored in `LocalMasterDatabase`. It might offer functions to:
-    *   Retrieve lists of projects, engines, or insights for a user.
-    *   Get detailed metadata for a specific project, engine, or insight.
-    *   Add, update, or delete metadata entries.
-*   **Specific Reactors**: Reactors within sub-packages like `src/prerna/reactor/masterdatabase/` (e.g., `GetProjectListReactor`, `GetEngineListReactor`, `GetInsightListReactor`) would use `MasterDatabaseUtility` or direct JDBC calls to fetch information required by Pixel scripts.
-*   **OWL Representation**: Often, the metadata for these assets (especially engines and projects) is also stored or cached as OWL (Web Ontology Language) files (e.g., `db/LocalMasterDatabase/MasterDatabase_OWL.OWL`). Java classes like `prerna.masterdatabase.utility.MasterDatabaseOwlCreatorHelper` might be involved in generating or updating these OWL files from the database or vice-versa. These OWL files can provide a semantic representation of the assets and their relationships.
-
-## 3. `PromptDatabase`
+## Prompt database
 
 With the integration of GenAI capabilities, managing prompts effectively is crucial.
 
-### 3.1. Purpose and Schema
+### Purpose and Schema
 
 *   **Purpose**: To store, categorize, and manage prompts that can be used with various LLMs integrated into SEMOSS. This allows users to save, reuse, and share effective prompts with access control via a `GLOBAL` flag.
 *   **Tables**:
@@ -72,7 +56,7 @@ With the integration of GenAI capabilities, managing prompts effectively is cruc
         *   `DISPLAYOPTIONS` (VARCHAR) — Display configuration
         *   `DEFAULTVALUES` (VARCHAR) — Default values for the key
 
-### 3.2. Access Control
+### Access Control
 
 Prompt visibility and modification are governed by the `GLOBAL` flag and the `CREATED_BY` field:
 
@@ -81,7 +65,7 @@ Prompt visibility and modification are governed by the `GLOBAL` flag and the `CR
 *   **Deleting**: Same authorization rules as updating.
 *   **GetPromptMetaValues**: Restricted to admin users only.
 
-### 3.3. Java Interaction
+### Java Interaction
 
 *   **`prerna.prompt.PromptUtils.java`**: Core utility class in `src/prerna/prompt/` providing all CRUD operations for prompts. Key methods:
     *   `addPrompt(...)` — Creates a new prompt, inserts tags and metadata, returns the generated UUID.
@@ -105,50 +89,43 @@ Prompt visibility and modification are governed by the `GLOBAL` flag and the `CR
 
 See each reactor class for Pixel usage, parameters, and return types.
 
-## 4. Database Configuration and Access
+## Model-inference database
 
-*   **SMSS Files**: Each internal database (LocalMaster, PromptDB, SecurityDB, etc.) has its connection details defined in a respective `.smss` file located in the `db/` directory (e.g., `db/LocalMasterDatabase.smss`, `db/PromptDatabase.smss`). These files specify the JDBC driver, connection URL (often pointing to an H2 file like `database.mv.db` within its respective subdirectory), username, and password.
-*   **`DIHelper.java`**: As discussed previously, `DIHelper` plays a role in managing access to the *paths* of these `.smss` files or the loaded `Properties` objects.
-    *   `DIHelper.getInstance().getEngineProperty(engineId + "_" + Constants.STORE)` is a common pattern to get the SMSS file path for an engine (where `engineId` would be `Constants.LOCAL_MASTER_DB`, `Constants.PROMPT_DB`, etc.).
-*   **`prerna.engine.impl.SmssUtilities.java`**: This utility class contains methods like `getEngine(String engineId)` which can take an engine ID (like `Constants.LOCAL_MASTER_DB`), retrieve its SMSS properties (likely via `DIHelper`), instantiate the correct `IEngine` implementation (usually an `RDBMSNativeEngine` for these H2 databases), and return the opened engine.
-*   **JDBC and Query Utilities**:
-    *   Once an `IEngine` instance for an internal database is obtained, interactions often boil down to standard JDBC operations.
-    *   `prerna.util.sql.AbstractSqlQueryUtil` and its database-specific implementations (e.g., for H2) provide helper methods for executing queries, preparing statements, and processing results.
-    *   Higher-level utility classes (like `MasterDatabaseUtility` or `PromptUtils`) would use these JDBC utilities to perform their tasks.
+The model-inference database supports the persistent AI application, not only usage reporting. It must be initialized for the room, workspace, and durable agent services described in these docs. Its schema is defined in [ModelInferenceLogsOwlCreator](../../src/prerna/engine/impl/model/inferencetracking/ModelInferenceLogsOwlCreator.java).
 
-By using this setup, SEMOSS maintains a clear separation of concerns, with dedicated databases for different types of operational data, all accessed through a consistent mechanism of SMSS configuration files and Java database interaction utilities.
+| Table | Role |
+| --- | --- |
+| `AGENT` | Model/inference metadata retained by the logging schema; distinct from a reusable WORKSPACE agent |
+| `MESSAGE` | Inference records, model/room associations, timing, and token usage |
+| `FEEDBACK` | Feedback associated with model messages |
+| `ROOM` | Conversation identity, user/project/model associations, options, and serialized `MESSAGES` |
+| `WORKSPACE` | Agent identity, authored prompt, active state, and `CONFIG_JSON` |
+| `WORKSPACE_RESOURCE` | Attached resources such as MCP projects, skills, and prompts |
+| `AGENT_RUN` | Run ID, parent run, room/workspace/model/harness, request, progress, status, final output, and errors |
+| `AGENT_RUN_ACTION` | Pending tool action, arguments, decision/execution state, and result |
 
-## 5. `ModelInferenceLogsDatabase`
+### Conversation versus inference records
 
-The `ModelInferenceLogsDatabase` is a specialized internal database dedicated to tracking and auditing interactions with Large Language Models (LLMs) and other model engines within SEMOSS.
+[RoomMessageStore](../../src/prerna/engine/impl/model/RoomMessageStore.java) treats `ROOM.MESSAGES` as the durable conversation projection. Optional Redis integration provides a hot copy and coordination. The `MESSAGE` inference log serves a different purpose; it is not interchangeable with the room's message tree and tool state.
 
-### 5.1. Purpose and Schema (Conceptual)
+A room can be associated with an Insight while remaining a separate persisted conversation. Room IDs, Insight IDs, model engine IDs, workspace IDs, and agent run IDs should not be treated as synonyms.
 
-*   **Purpose**: To provide a comprehensive log of all requests and responses to model engines, capture usage metrics (like token counts and response times), associate interactions with users, insights (conversations/rooms), and projects, and store user feedback on model responses.
-*   **Initialization**:
-    *   The database schema (tables, columns, keys, indexes) is programmatically defined and managed by `prerna.engine.impl.model.inferencetracking.ModelInferenceLogsOwlCreator`.
-    *   It's typically an H2 database, configured via an SMSS file (e.g., `db/ModelInferenceLogsDatabase.smss`).
-*   **Key Tables (Conceptual Names - actual names might have prefixes/suffixes like `MESSAGE__`)**:
-    *   `MESSAGE`: Stores individual LLM interactions.
-        *   Columns: `MESSAGE_ID` (Primary Key), `TRANSACTION_ID` (id for llm interaction), `MESSAGE_TYPE` (e.g., "INPUT", "OUTPUT"), `MESSAGE_DATA` (the actual prompt or response, potentially large, may be stored as CLOB/BLOB), `MESSAGE_METHOD` (e.g., "ask", "instruct", "embeddings"), `MESSAGE_TOKENS` (token count for the message), `RESPONSE_TIME`, `DATE_CREATED`, `AGENT_ID` (FK to AGENT table), `INSIGHT_ID` (FK to ROOM table, representing the conversation/room ID), `SESSIONID`, `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`.
-    *   `AGENT`: Stores information about the LLM agents or model engines being used.
-        *   Columns: `AGENT_ID` (Primary Key), `AGENT_NAME`, `DESCRIPTION`, `AGENT_TYPE` (e.g., "OpenAI", "Bedrock"), `AUTHOR`, `DATE_CREATED`.
-    *   `ROOM`: Represents conversation sessions or contexts in which LLM interactions occur. Often, an "Insight" in SEMOSS serves as a "room".
-        *   Columns: `INSIGHT_ID` (Primary Key, also the Room ID), `ROOM_NAME`, `ROOM_CONTEXT` (overall context for the conversation), `USER_ID`, `USER_NAME`, `USER_EMAIL_ID`, `AGENT_ID` (FK to AGENT table, the primary model for the room), `IS_ACTIVE`, `DATE_CREATED`, `PROJECT_ID`, `PROJECT_NAME`.
-    *   `FEEDBACK`: Stores user-provided feedback on model responses.
-        *   Columns: `MESSAGE_ID` (FK to MESSAGE table), `MESSAGE_TYPE` (e.g., "RESPONSE"), `FEEDBACK_TEXT`, `FEEDBACK_DATE`, `RATING` (e.g., thumbs up/down as boolean or integer).
+### Workspaces and skills
 
-### 5.2. Java Interaction
+Workspace setter reactors maintain both resource rows and configuration JSON. [AgentConfigLoader](../../src/prerna/reactor/agent/config/AgentConfigLoader.java) resolves the effective configuration and room additions. Skills themselves remain project assets; the workspace stores references, not a second authoritative copy of the skill body.
 
-*   **`prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils.java`**: This is the primary utility class for all interactions with the `ModelInferenceLogsDatabase`.
-    *   It handles database initialization, including schema creation and updates.
-    *   Provides methods like:
-        *   `doRecordMessage()`: To log a new model interaction (called by `AbstractModelEngine` and `AbstractVectorDatabaseEngine` after an LLM call).
-        *   `doCreateNewConversation()`: To create a new room/conversation record.
-        *   `doCreateNewAgent()`: To register a new model agent if it's not already present.
-        *   `recordFeedback()`, `updateFeedback()`, `deleteFeedbackEntry()`: To manage user feedback on model responses.
-        *   Various retrieval methods for fetching conversation histories (`doRetrieveConversation`), listing user conversations (`getUserConversations`), and generating usage reports (e.g., `getOverAllEngineUsageFromModelInferenceLogs`, `getTokenUsagePerProjectForEngine`).
-*   **`prerna.engine.impl.model.workers.ModelEngineInferenceLogsWorker.java`**: This class, typically run in a separate thread, is responsible for asynchronously calling `ModelInferenceLogsUtils.doRecordMessage()` to ensure that logging model interactions does not block the main execution flow of model calls.
-*   **Reactors for Usage and History**: Reactors in `src/prerna/engine/impl/model/inferencetracking/reactors/` (e.g., `GetRoomMessagesReactor`, `GetUserConversationRoomsReactor`) use `ModelInferenceLogsUtils` to expose conversation history and usage data via Pixel scripts.
+[SystemAgentSeeder](../../src/prerna/util/SystemAgentSeeder.java) reconciles built-in workspace definitions after their platform projects are cataloged. It skips seeding when model-inference storage is unavailable. See [agent configuration](../agents/agent_configuration.md) and [skills](../agents/skills/skills_doc.md).
 
-This database is essential for monitoring LLM usage, understanding costs, gathering data for potential fine-tuning, and providing users with access to their interaction histories.
+### Durable runs and decisions
+
+[AgentRunStore](../../src/prerna/reactor/agent/run/AgentRunStore.java) persists run lifecycle state. [AgentRunActionStore](../../src/prerna/reactor/agent/run/AgentRunActionStore.java) persists approval/input boundaries. Normal access is scoped to the owning user; specialized automation operations apply their explicit authorization paths.
+
+The persisted state supports status queries and continuation logic. Live stream events remain process-local, and ordinary active user runs retain live credentials on the submitting node. See [run lifecycle and durability](../agents/agent_runs.md).
+
+## Configuration and initialization
+
+The [Compose initialization SQL](../../docker-compose-examples/init.sql) creates example PostgreSQL databases. Matching `CUSTOM_*` connection settings in the [Compose files](../../docker-compose-examples/README.md) point the application at them. Startup services initialize/migrate their own tables through the configured engines.
+
+Database initialization SQL runs only against a fresh PostgreSQL data directory. Changing environment values or `init.sql` does not rewrite an existing volume's contents. Confirm feature flags and database startup logs before investigating missing rooms or system agents.
+
+See [local Docker configuration](../deployment/docker_configuration.md) for local volumes and initialization. For Kubernetes and semoss-artifacts property configuration, use [SEMOSS-deployment](https://github.com/SEMOSS/SEMOSS-deployment).

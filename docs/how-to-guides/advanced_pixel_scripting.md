@@ -27,13 +27,7 @@ result = MyReactor(inputParam=[$myNumber]);
 ### Variable Scope
 
 -   **Insight Scope**: Variables created in a Pixel script are typically scoped to the current `Insight` session. They persist as long as the insight is active or until explicitly cleared.
--   **Reactor Scope**: When a Reactor is called, it receives its inputs from the `NounStore` (which is part of the `Insight`'s `VarStore`). Variables set within a Reactor's Java code directly into its local `NounStore` might not always automatically persist back to the main `Insight`'s `VarStore` unless the Reactor's output `NounMetadata` is assigned to a Pixel variable or the Reactor explicitly updates the shared `VarStore` (less common for simple value reactors).
--   **`Var()` Reactor**: To explicitly create or update a variable in the `Insight`'s `VarStore` that can be recognized by other parts of the system (like UI components that listen for variable changes), use the `Var()` reactor.
-    ```pixel
-    // Create or update a variable named 'dashboardFilterValue'
-    Var(dashboardFilterValue = "Electronics");
-    // Now $dashboardFilterValue can be used, and UI components might react to this change.
-    ```
+-   **Reactor Scope**: A reactor receives named inputs through its own `NounStore`. Values become available to later Pixel commands when its output is assigned to a Pixel variable or the reactor explicitly updates the Insight's `VarStore`.
 
 ## Control Flow in Pixel
 
@@ -204,12 +198,9 @@ LogInfo(message="Name: " + $myMap{"name"}); // Accessing map items (may require 
 ```
 Direct indexing like `$myList[2]` or map access `$myMap{"name"}` in Pixel is highly dependent on the specific version and capabilities of the Pixel parser and `GreedyTranslation`. Often, dedicated reactors are used for list/map operations.
 
-## Explicit NounStore Interaction
+## Reactor inputs and Insight variables
 
-While most interactions are implicit (Reactors read from `NounStore`, results are put back), you can sometimes interact more directly, especially for debugging or complex state management.
-
--   **`GetNoun(keys=["myVar"])`**: Retrieves a noun from the `NounStore`.
--   **`SetNoun(myVar=["someValue"])`**: Sets a noun. (Similar to `Var()` but `Var()` often has more specific UI update implications).
+Reactors receive inputs through a `NounStore`, while Pixel variables live in the Insight's `VarStore`. See [NounStore usage](using_the_nounstore_effectively.md) for the Java access patterns.
 
 ## Best Practices for Advanced Pixel Scripting
 
@@ -225,4 +216,3 @@ While most interactions are implicit (Reactors read from `NounStore`, results ar
 10. **Debug with `Collect()` and `Log` Reactors**: `Collect(frameOrVar)` is invaluable for inspecting the state of frames or variables at different points in your script.
 
 By applying these advanced techniques, you can harness the full power of the Pixel language to build sophisticated data workflows and applications within SEMOSS.
-```

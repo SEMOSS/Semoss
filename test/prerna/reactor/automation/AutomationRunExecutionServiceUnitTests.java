@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -99,8 +100,9 @@ public class AutomationRunExecutionServiceUnitTests {
 
 	@Test
 	void exposesRunInsightOnlyWhileItRemainsInTheInsightStore() {
-		String runId = "run-insight-lifecycle-test";
-		String insightId = "automation-run-" + runId;
+		String runId = UUID.randomUUID().toString();
+		String insightId = "automation-" + runId;
+		assertEquals(47, insightId.length());
 		Insight insight = new Insight();
 		insight.setInsightId(insightId);
 

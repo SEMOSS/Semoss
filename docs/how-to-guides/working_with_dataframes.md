@@ -31,7 +31,7 @@ myDataTable = Frame("<TABLE_OR_VIEW_NAME>");
 activeCustomers = Frame("<TABLE_OR_VIEW_NAME>") | Filter(Status == "Active");
 Collect(activeCustomers);
 ```
-This creates a virtual frame. Data is typically not loaded into SEMOSS memory until an operation like `Collect()` is called or the frame is used in a visualization that requires data retrieval.
+This creates a virtual frame. Data is typically not loaded into SEMOSS memory until an operation such as `Collect()` retrieves the query results.
 
 ### 2. From Importing Files
 
@@ -112,7 +112,7 @@ While Pixel is the primary way users interact with frames, Java Reactors often c
 //    myJavaFrame.addRow(new HeadersDataRow(myJavaFrame.getHeaders(), row));
 // }
 // this.insight.getVarStore().put("myJavaFrameVar", new NounMetadata(myJavaFrame, PixelDataType.FRAME));
-// return new NounMetadata(myJavaFrame, PixelDataType.FRAME, PixelOperationType.NEW_FRAME);
+// return new NounMetadata(myJavaFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
 ```
 
 ## Common DataFrame Operations in Pixel
@@ -271,11 +271,11 @@ Java Reactors frequently interact with DataFrames.
 
 ### Returning DataFrames from Reactors
 
--   To return a DataFrame, wrap the `ITableDataFrame` instance in `NounMetadata` with `PixelDataType.FRAME`. It's also good practice to include a `PixelOperationType` like `NEW_FRAME` or `FRAME_DATA_CHANGE`.
+-   To return a DataFrame, wrap the `ITableDataFrame` instance in `NounMetadata` with `PixelDataType.FRAME`. It's also good practice to include a `PixelOperationType` like `FRAME` or `FRAME_DATA_CHANGE`.
 
     ```java
     // ITableDataFrame resultFrame = ...;
-    // return new NounMetadata(resultFrame, PixelDataType.FRAME, PixelOperationType.NEW_FRAME);
+    // return new NounMetadata(resultFrame, PixelDataType.FRAME, PixelOperationType.FRAME);
     ```
 -   This makes the returned frame available for assignment to a Pixel variable or for further piping in the Pixel script.
 
@@ -299,4 +299,3 @@ The choice of frame type can impact performance, memory usage, and the types of 
 -   **Saving Frames**: If you create or modify a frame and want to persist it, use `SaveFrame(frame=[myFrameVar], frameName=["NewOrExistingTableNameInDB"]);` to write it to the current database engine context.
 
 Working with DataFrames is a core part of developing with SEMOSS. By mastering Pixel operations and understanding how to interact with frames in Java, you can build powerful and flexible data processing solutions.
-```
