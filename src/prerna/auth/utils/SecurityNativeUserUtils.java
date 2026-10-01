@@ -53,6 +53,7 @@ import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -137,40 +138,16 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					int parameterIndex = 1;
 					ps = securityDb.getPreparedStatement(updateQuery);
 					ps.setString(parameterIndex++, newId);
-					if (newUser.getName() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getName());
-					}
-					if (newUser.getUsername() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getUsername());
-					}
-					if (newUser.getEmail() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getEmail());
-					}
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
 					ps.setString(parameterIndex++, newUser.getProvider().toString());
 					ps.setString(parameterIndex++, hashedPassword);
 					ps.setString(parameterIndex++, salt);
 					ps.setTimestamp(parameterIndex++, timestamp);
-					if (newUser.getPhone() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhone());
-					}
-					if (newUser.getPhoneExtension() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhoneExtension());
-					}
-					if (newUser.getCountryCode() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhone());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getCountryCode());
 					if (newUser.getModelMaxTokens() == 0) {
 						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 					} else {
@@ -181,16 +158,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}
-					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-					}
-					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-					}
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageRestriction());
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageFrequency());
 					// where
 					ps.setString(parameterIndex++, oldId);
 					ps.execute();
@@ -245,21 +216,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					int parameterIndex = 1;
 					ps = securityDb.getPreparedStatement(insertQuery);
 					ps.setString(parameterIndex++, newUser.getId());
-					if (newUser.getName() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getName());
-					}
-					if (newUser.getUsername() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getUsername());
-					}
-					if (newUser.getEmail() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getEmail());
-					}
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getName());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getUsername());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getEmail());
 					ps.setString(parameterIndex++, newUser.getProvider().toString());
 					// we never add ADMIN this way
 					ps.setBoolean(parameterIndex++, false);
@@ -268,21 +227,9 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					ps.setTimestamp(parameterIndex++, timestamp);
 					// not locked ...
 					ps.setBoolean(parameterIndex++, false);
-					if (newUser.getPhone() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhone());
-					}
-					if (newUser.getPhoneExtension() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getPhoneExtension());
-					}
-					if (newUser.getCountryCode() == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getCountryCode());
-					}
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhone());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getPhoneExtension());
+					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, newUser.getCountryCode());
 					if (newUser.getModelMaxTokens() == 0) {
 						ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
 					} else {
@@ -293,16 +240,10 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 					} else {
 						ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 					}
-					if (newUser.getModelUsageRestriction() == null || newUser.getModelUsageRestriction().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageRestriction());
-					}
-					if (newUser.getModelUsageFrequency() == null || newUser.getModelUsageFrequency().isEmpty()) {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(parameterIndex++, newUser.getModelUsageFrequency());
-					}
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageRestriction());
+					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+							newUser.getModelUsageFrequency());
 					ps.execute();
 					if (!ps.getConnection().getAutoCommit()) {
 						ps.getConnection().commit();
@@ -494,24 +435,25 @@ public class SecurityNativeUserUtils extends AbstractSecurityUtils {
 			String hashedPassword = AbstractSecurityUtils.hash(password, salt);
 			String updateQuery = "UPDATE SMSS_USER SET SALT=?, PASSWORD=? WHERE ID=? AND TYPE=?";
 
-			PreparedStatement ps = null;
 			try {
-				ps = securityDb.getPreparedStatement(updateQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, salt);
-				ps.setString(parameterIndex++, hashedPassword);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, AuthProvider.NATIVE.getLabel());
-				ps.execute();
+				QueryExecutionUtility.write(securityDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, salt);
+						ps.setString(parameterIndex++, hashedPassword);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, AuthProvider.NATIVE.getLabel());
+						ps.execute();
 
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-				classLogger.info("Migrated the stored password hash for user id={} to the approved scheme", userId);
-			} catch (SQLException e) {
+						classLogger.info("Migrated the stored password hash for user id={} to the approved scheme",
+								userId);
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Unable to migrate the stored password hash to the approved scheme.", e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 			}
 		});
 	}

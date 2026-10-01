@@ -36,12 +36,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -87,6 +92,7 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.MessageFeedback;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.engine.impl.owl.OWLEngineFactory;
 import prerna.engine.impl.owl.WriteOWLEngine;
 import prerna.query.interpreters.IQueryInterpreter;
@@ -97,13 +103,12 @@ import prerna.rdf.engine.wrappers.RawRDBMSSelectWrapper;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
-import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
 
 public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
+
 	User user;
 	ResultSet rs;
 	Statement stmt;
@@ -144,6 +149,11 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		interpreter = mock(IQueryInterpreter.class);
 		databaseEngine = mock(IDatabaseEngine.class);
 		absQueryUtil = mock(AbstractSqlQueryUtil.class);
+		doCallRealMethod().when(absQueryUtil).setNullableString(any(PreparedStatement.class), anyInt(),
+				nullable(String.class));
+		when(engine.getConnection()).thenReturn(conn);
+		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
+		when(conn.prepareStatement(anyString())).thenReturn(ps);
 
 		reactor = new ModelInferenceLogsUtils();
 		Field registryField = SystemEngineRegistry.class.getDeclaredField("modelInferenceLogsDbHolder");
@@ -160,7 +170,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void initModelInferenceLogsDatabase() throws Exception {
-		try (MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
+		try (MockedStatic<AbstractOwlCreator> schema = Mockito.mockStatic(AbstractOwlCreator.class);
 				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class)) {
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 			when(engine.getOWLEngineFactory()).thenReturn(owlFactory);
@@ -184,7 +194,9 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 			ModelInferenceLogsUtils.initModelInferenceLogsDatabase();
 
-			util.verify(() -> Utility.synchronizeEngineMetadata(Constants.MODEL_INFERENCE_LOGS_DB), times(2));
+			schema.verify(() -> AbstractOwlCreator.syncSchema(eq(engine), eq(conn), anyList()), times(2));
+			schema.verify(() -> AbstractOwlCreator.syncIndexes(eq(engine), eq(conn), anyList()), times(2));
+			verify(conn, times(2)).commit();
 			connUtil.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, conn, null, null), times(2));
 		}
 	}
@@ -218,7 +230,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(dataRow.getValues()).thenReturn(new Object[] { 1 }).thenReturn(new Object[] { null });
 			doThrow(IOException.class).doNothing().when(rawWrapper).close();
 
-			when(engine.getPreparedStatement(
+			when(conn.prepareStatement(
 					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)"))
 					.thenReturn(ps);
 			when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
@@ -235,14 +247,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 			// Goes into insertFeedback
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
-			verify(engine, times(1)).getPreparedStatement(
+			verify(conn, times(1)).prepareStatement(
 					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)");
 			verify(ps, times(1)).execute();
-			verify(ps, times(2)).getConnection();
-			verify(conn).getAutoCommit();
-			verify(conn).commit();
-			staticConnUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null),
-					times(1));
+			verify(ps, never()).getConnection();
+			verify(conn, atLeastOnce()).getAutoCommit();
+			verify(conn, times(2)).commit();
+			staticConnUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(2));
 
 			staticWrapperManager.verify(() -> WrapperManager.getInstance(), times(3));
 			verify(wrapperManager, times(3)).getRawWrapper(eq(engine), any(SelectQueryStruct.class));
@@ -315,8 +326,8 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 				MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
 			statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
-			when(engine.getPreparedStatement(
-					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
+			when(conn.prepareStatement(
+					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
 					.thenReturn(ps);
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 			when(ps.getConnection()).thenReturn(conn);
@@ -333,22 +344,25 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					"userId", "userName", "userEmail", "agentType", "agentId", true, "projectId", "projectName",
 					"workspaceId", new HashMap<>(), "parentRoomId");
 
-			verify(engine, times(3)).getPreparedStatement(
-					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			verify(engine, times(3)).getQueryUtil();
-			verify(absQueryUtil, times(2)).handleInsertionOfClob(eq(ps), eq("roomContext"), eq(4), any(Gson.class));
-			verify(absQueryUtil).handleInsertionOfClob(eq(ps), any(HashMap.class), eq(15), any(Gson.class));
+			verify(conn, times(3)).prepareStatement(
+					"INSERT INTO ROOM (INSIGHT_ID, ROOM_ID, ROOM_NAME, ROOM_CONTEXT, USER_ID, USER_NAME, USER_EMAIL_ID, AGENT_TYPE, AGENT_ID, IS_ACTIVE, DATE_CREATED, PROJECT_ID, PROJECT_NAME, WORKSPACE_ID, OPTIONS, PARENT_ROOM_ID) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+			verify(engine, atLeastOnce()).getQueryUtil();
+			verify(absQueryUtil, times(2)).setNullableLargeText(eq(ps), eq(4), eq("roomContext"));
+			verify(absQueryUtil).setNullableJson(eq(ps), eq(15), any(HashMap.class), any(Gson.class));
 
-			verify(ps, times(26)).setString(anyInt(), anyString());
-			verify(ps, times(10)).setNull(anyInt(), anyInt());
+			verify(ps).setString(16, "parentRoomId");
+			verify(absQueryUtil).setNullableLargeText(eq(ps), eq(4), org.mockito.ArgumentMatchers.isNull());
+			verify(absQueryUtil, times(2)).setNullableJson(eq(ps), eq(15), org.mockito.ArgumentMatchers.isNull(),
+					any(Gson.class));
+			verify(conn).rollback();
 
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null), times(3));
+			connUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(3));
 		}
 	}
 
 	@Test
 	void doCheckRoomExists() throws Exception {
-		when(engine.getPreparedStatement("SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?")).thenReturn(ps)
+		when(conn.prepareStatement("SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?")).thenReturn(ps)
 				.thenThrow(SQLException.class);
 
 		when(ps.execute()).thenReturn(true);
@@ -364,7 +378,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void doModelIsRegistered() throws Exception {
-		when(engine.getPreparedStatement("SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?")).thenReturn(ps)
+		when(conn.prepareStatement("SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?")).thenReturn(ps)
 				.thenThrow(SQLException.class);
 
 		when(ps.execute()).thenReturn(true);
@@ -382,7 +396,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	void doCreateNewAgent() throws Exception {
 		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
 
-			when(engine.getPreparedStatement(
+			when(conn.prepareStatement(
 					"INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)"))
 					.thenReturn(ps).thenThrow(SQLException.class);
 
@@ -395,13 +409,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 			verify(ps, times(5)).setString(anyInt(), anyString());
 			verify(ps, times(1)).setTimestamp(anyInt(), any(Timestamp.class));
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null), times(1));
+			connUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(1));
 		}
 	}
 
 	@Test
 	void doRecordMessage() throws Exception {
-		when(engine.getPreparedStatement(
+		when(conn.prepareStatement(
 				"INSERT INTO MESSAGE (MESSAGE_ID, TRANSACTION_ID, MESSAGE_TYPE, MESSAGE_DATA, MESSAGE_METHOD, MESSAGE_TOKENS, RESPONSE_TIME, DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) 	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"))
 				.thenReturn(ps);
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
@@ -415,32 +429,38 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", null, "messageMethod", null, 2.0, "agentId",
 				"insightId", "sessionId", "userId", null, null);
 
-		verify(engine).getQueryUtil();
+		verify(engine, atLeastOnce()).getQueryUtil();
 		verify(absQueryUtil).handleInsertionOfBlob(conn, ps, "messageData", 4);
 		verify(ps, times(18)).setString(anyInt(), anyString());
-		verify(ps, times(6)).setNull(anyInt(), anyInt());
+		verify(ps, times(16)).setNull(anyInt(), anyInt());
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
 		verify(ps, times(1)).setInt(anyInt(), anyInt());
 		verify(ps, times(2)).execute();
-		verify(ps, times(3)).getConnection();
-		verify(conn).getAutoCommit();
+		verify(ps, never()).getConnection();
+		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}
 
 	@Test
-	void doSetRoomToInactive() {
+	void doSetRoomToInactive() throws Exception {
+		when(conn.prepareStatement(anyString())).thenThrow(new SQLException("prepare failed"));
 		assertFalse(ModelInferenceLogsUtils.doSetRoomToInactive("userId", "roomId"));
+		verify(conn).rollback();
 	}
 
 	@Test
-	void doSetRoomToPinned() {
+	void doSetRoomToPinned() throws Exception {
+		when(conn.prepareStatement(anyString())).thenThrow(new SQLException("prepare failed"));
 		assertFalse(ModelInferenceLogsUtils.doSetRoomToPinned("userId", "roomId", true));
+		verify(conn).rollback();
 	}
 
 	@Test
-	void doSetNameForRoom() {
+	void doSetNameForRoom() throws Exception {
+		when(conn.prepareStatement(anyString())).thenThrow(new SQLException("prepare failed"));
 		assertFalse(ModelInferenceLogsUtils.doSetNameForRoom("userId", "roomId", "roomName"));
+		verify(conn).rollback();
 	}
 
 	@Test
@@ -507,7 +527,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(dataRow.getValues()).thenReturn(new Object[] { 1 }).thenReturn(new Object[] { 1 })
 					.thenReturn(new Object[] { null });
 
-			when(engine.getPreparedStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?")).thenReturn(ps);
+			when(conn.prepareStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?")).thenReturn(ps);
 			when(ps.executeUpdate()).thenReturn(0);
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
@@ -515,14 +535,13 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 			ModelInferenceLogsUtils.removeFeedback("messageId");
 
-			verify(engine, times(1)).getPreparedStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?");
+			verify(conn, times(1)).prepareStatement("DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?");
 			verify(ps, times(1)).setString(1, "messageId");
 			verify(ps, times(1)).executeUpdate();
-			verify(ps, times(2)).getConnection();
-			verify(conn, times(1)).getAutoCommit();
+			verify(ps, never()).getConnection();
+			verify(conn, atLeastOnce()).getAutoCommit();
 			verify(conn, times(1)).commit();
-			staticConnUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null),
-					times(1));
+			staticConnUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(1));
 
 			SemossPixelException e = assertThrows(SemossPixelException.class,
 					() -> ModelInferenceLogsUtils.removeFeedback("messageId"));
@@ -567,8 +586,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void setRoomOptions() throws Exception {
 		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-			when(engine.getPreparedStatement("UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?"))
-					.thenReturn(ps);
+			when(conn.prepareStatement("UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?")).thenReturn(ps);
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 
 			when(ps.getConnection()).thenReturn(conn);
@@ -578,22 +596,22 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			ModelInferenceLogsUtils.setRoomOptions("roomId", "userId", new HashMap<>());
 			ModelInferenceLogsUtils.setRoomOptions("roomId", "userId", null);
 
-			verify(engine).getQueryUtil();
-			verify(absQueryUtil).handleInsertionOfClob(eq(ps), anyMap(), eq(1), any(Gson.class));
+			verify(engine, atLeastOnce()).getQueryUtil();
+			verify(absQueryUtil).setNullableJson(eq(ps), eq(1), anyMap(), any(Gson.class));
 			verify(ps, times(4)).setString(anyInt(), anyString());
-			verify(ps).setNull(anyInt(), anyInt());
-			verify(ps, times(2)).getConnection();
-			verify(conn).getAutoCommit();
+			verify(absQueryUtil).setNullableJson(eq(ps), eq(1), org.mockito.ArgumentMatchers.isNull(), any(Gson.class));
+			verify(ps, never()).getConnection();
+			verify(conn, atLeastOnce()).getAutoCommit();
 			verify(conn).commit();
 
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null), times(2));
+			connUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(2));
 		}
 	}
 
 	@Test
 	void setRoomWorkspaceId() throws Exception {
 		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
-			when(engine.getPreparedStatement("UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?"))
+			when(conn.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?"))
 					.thenReturn(ps);
 
 			when(ps.getConnection()).thenReturn(conn);
@@ -605,11 +623,11 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 			verify(ps, times(5)).setString(anyInt(), anyString());
 			verify(ps).setNull(anyInt(), anyInt());
-			verify(ps, times(2)).getConnection();
-			verify(conn).getAutoCommit();
+			verify(ps, never()).getConnection();
+			verify(conn, atLeastOnce()).getAutoCommit();
 			verify(conn).commit();
 
-			connUtils.verify(() -> ConnectionUtils.closeAllConnectionsIfPooling(engine, null, ps, null), times(2));
+			connUtils.verify(() -> ConnectionUtils.closeConnectionIfPooling(engine, conn), times(2));
 		}
 	}
 
@@ -700,8 +718,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void llm2_updateRoomMessages() throws Exception {
-		when(engine
-				.getPreparedStatement("UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?"))
+		when(conn.prepareStatement("UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?"))
 				.thenReturn(ps);
 
 		when(ps.executeUpdate()).thenReturn(1).thenReturn(0).thenThrow(SQLException.class);
@@ -717,7 +734,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void llm2_updateRoomMessages2() throws Exception {
-		when(engine.getPreparedStatement(
+		when(conn.prepareStatement(
 				"UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?"))
 				.thenThrow(SQLException.class).thenReturn(ps);
 		when(ps.executeUpdate()).thenReturn(1);
@@ -737,7 +754,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		Room expected = new Room("", "", "", "", "", "", true, new Timestamp(0), new Timestamp(0), "", true, "", "",
 				"");
 
-		when(engine.getPreparedStatement("SELECT *  FROM ROOM WHERE ROOM_ID = ? and USER_ID = ? "))
+		when(conn.prepareStatement("SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?"))
 				.thenThrow(SQLException.class).thenReturn(ps);
 		when(ps.executeQuery()).thenReturn(rs);
 		when(rs.next()).thenReturn(false).thenReturn(true);
@@ -831,13 +848,14 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 		verify(engine, times(3)).getConnection();
 		verify(conn, times(4)).prepareStatement(anyString());
-		verify(ps, times(14 - 3)).setString(anyInt(), anyString());
+		verify(ps, times(14)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(3)).execute();
-		verify(conn, times(3)).getAutoCommit();
-		verify(conn, times(3)).commit();
+		verify(conn, atLeastOnce()).getAutoCommit();
+		verify(conn, times(2)).commit();
 		verify(ps, times(1)).executeBatch();
+		verify(conn).rollback();
 	}
 
 	@Test
@@ -876,19 +894,20 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 				"systemPrompt", true, resources);
 
 		verify(engine, times(3)).getConnection();
-		verify(engine, times(6)).getQueryUtil();
+		verify(engine, atLeastOnce()).getQueryUtil();
 
-		verify(absQueryUtil, times(6)).handleInsertionOfClob(eq(conn), eq(ps), anyString(), anyInt(), any(Gson.class));
+		verify(absQueryUtil, times(6)).setNullableLargeText(eq(ps), anyInt(), anyString());
 
 		verify(conn, times(6)).prepareStatement(anyString());
-		verify(conn, times(5)).getAutoCommit();
-		verify(conn, times(5)).commit();
+		verify(conn, atLeastOnce()).getAutoCommit();
+		verify(conn, times(2)).commit();
 
-		verify(ps, times(13 - 3)).setString(anyInt(), anyString());
+		verify(ps, times(13)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(5)).execute();
 		verify(ps).executeBatch();
+		verify(conn).rollback();
 	}
 
 	@Test
@@ -908,7 +927,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(conn, times(6)).prepareStatement(anyString());
 		verify(ps, times(6)).setString(anyInt(), anyString());
 		verify(ps, times(4)).execute();
-		verify(conn).getAutoCommit();
+		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}
 
@@ -1098,7 +1117,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(conn, times(2)).prepareStatement(anyString());
 		verify(ps, times(10)).setString(anyInt(), anyString());
 		verify(ps, times(2)).execute();
-		verify(conn).getAutoCommit();
+		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}
 
@@ -1120,7 +1139,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(2)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(2)).setString(anyInt(), anyString());
 		verify(ps, times(2)).execute();
-		verify(conn).getAutoCommit();
+		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}
 }

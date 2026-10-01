@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -46,7 +45,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -145,24 +144,26 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 		String uniqueToken = UUID.randomUUID().toString();
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.bulkInsertPreparedStatement(
-					new Object[] { "PASSWORD_RESET", "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" });
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, email);
-			ps.setString(parameterIndex++, type);
-			ps.setString(parameterIndex++, uniqueToken);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(
+						securityDb.getQueryUtil().createInsertPreparedStatementString("PASSWORD_RESET",
+								new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" }))) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, email);
+					ps.setString(parameterIndex++, type);
+					ps.setString(parameterIndex++, uniqueToken);
+					ps.setTimestamp(parameterIndex++, timestamp);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to determine whether the user is allowed to reset the password.", e);
 			throw new IllegalArgumentException("Error occurred inserting the request to update the password");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return uniqueToken;
@@ -239,20 +240,21 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	 */
 	public static boolean deleteToken(String token) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM PASSWORD_RESET WHERE TOKEN=?");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, token);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement("DELETE FROM PASSWORD_RESET WHERE TOKEN=?")) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, token);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to delete token.", e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		return true;

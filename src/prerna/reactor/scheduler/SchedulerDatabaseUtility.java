@@ -122,7 +122,6 @@ import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_80;
 import static prerna.reactor.scheduler.SchedulerConstants.VARCHAR_95;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
@@ -152,12 +151,10 @@ import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.impl.matchers.GroupMatcher;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 import prerna.util.sql.AbstractSqlQueryUtil;
@@ -405,27 +402,23 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(INSERT_EXECUTION_QUERY)) {
-			statement.setString(1, execId);
-			statement.setString(2, jobId);
-			statement.setString(3, jobGroup);
-			statement.executeUpdate();
-		} catch (SQLException e) {
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(INSERT_EXECUTION_QUERY)) {
+					statement.setString(1, execId);
+					statement.setString(2, jobId);
+					statement.setString(3, jobGroup);
+					statement.executeUpdate();
+				}
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert into SMSS_EXECUTION for execId '{}', jobId '{}', jobGroup '{}': {}",
 					execId, jobId, jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -437,37 +430,26 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static String[] executionIdExists(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		ResultSet rs = null;
-		try (PreparedStatement statement = conn.prepareStatement(SELECT_EXECUTION_BY_ID_QUERY)) {
-			statement.setString(1, execId);
-			rs = statement.executeQuery();
-			if (rs.next()) {
-				String jobId = rs.getString(1);
-				String jobGroup = rs.getString(2);
-				return new String[] { jobId, jobGroup };
-			}
-		} catch (SQLException e) {
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(SELECT_EXECUTION_BY_ID_QUERY)) {
+					statement.setString(1, execId);
+					try (ResultSet rs = statement.executeQuery()) {
+						if (rs.next()) {
+							String jobId = rs.getString(1);
+							String jobGroup = rs.getString(2);
+							return new String[] { jobId, jobGroup };
+						}
+					}
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to look up execution id '{}' in SMSS_EXECUTION: {}", execId, e.getMessage(), e);
 			return null;
-		} finally {
-			if (rs != null) {
-				try {
-					rs.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close ResultSet: {}", e.getMessage(), e);
-				}
-			}
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return null;
 	}
 
 	/**
@@ -479,24 +461,20 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean removeExecutionId(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(DELETE_EXECUTION_QUERY)) {
-			statement.setString(1, execId);
-			statement.executeUpdate();
-		} catch (SQLException e) {
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(DELETE_EXECUTION_QUERY)) {
+					statement.setString(1, execId);
+					statement.executeUpdate();
+				}
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to remove execution id '{}' from SMSS_EXECUTION: {}", execId, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -515,8 +493,6 @@ public class SchedulerDatabaseUtility {
 	public static boolean insertIntoAuditTrailTable(String jobId, String jobGroup, Long start, Long end,
 			boolean success, String schedulerOutput) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		Timestamp startTimeStamp = Utility
 				.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.ofEpochMilli(start), ZoneOffset.UTC));
@@ -525,42 +501,44 @@ public class SchedulerDatabaseUtility {
 
 		// update is_latest to false for all the existing records of this job id
 		try {
-			try (PreparedStatement updateAuditTrailStatement = conn.prepareStatement(CLEAR_AUDIT_TRAIL_LATEST_QUERY)) {
-				updateAuditTrailStatement.setBoolean(1, false);
-				updateAuditTrailStatement.setString(2, jobId);
-				updateAuditTrailStatement.executeUpdate();
-			} catch (SQLException e) {
-				classLogger.error("Failed to clear IS_LATEST flag in SMSS_AUDIT_TRAIL for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
-			// now insert the new record with is_latest as true
-			try (PreparedStatement statement = conn.prepareStatement(INSERT_AUDIT_TRAIL_QUERY)) {
-				int index = 1;
-				statement.setString(index++, jobId);
-				statement.setString(index++, jobGroup);
-				statement.setTimestamp(index++, startTimeStamp);
-				statement.setTimestamp(index++, endTimeStamp);
-				statement.setString(index++, String.valueOf(end - start));
-				statement.setBoolean(index++, success);
-				statement.setBoolean(index++, true);
-				queryUtil.handleInsertionOfClob(conn, statement, schedulerOutput, index++, gson);
-				statement.executeUpdate();
-			} catch (UnsupportedEncodingException | SQLException e) {
-				classLogger.error("Failed to insert audit trail row for jobId '{}', jobGroup '{}': {}", jobId, jobGroup,
-						e.getMessage(), e);
-				return false;
-			}
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+
+				try (PreparedStatement updateAuditTrailStatement = conn
+						.prepareStatement(CLEAR_AUDIT_TRAIL_LATEST_QUERY)) {
+					updateAuditTrailStatement.setBoolean(1, false);
+					updateAuditTrailStatement.setString(2, jobId);
+					updateAuditTrailStatement.executeUpdate();
 				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
+					classLogger.error("Failed to clear IS_LATEST flag in SMSS_AUDIT_TRAIL for jobId '{}': {}", jobId,
+							e.getMessage(), e);
+					throw e;
 				}
-			}
+				// now insert the new record with is_latest as true
+				try (PreparedStatement statement = conn.prepareStatement(INSERT_AUDIT_TRAIL_QUERY)) {
+					int index = 1;
+					statement.setString(index++, jobId);
+					statement.setString(index++, jobGroup);
+					statement.setTimestamp(index++, startTimeStamp);
+					statement.setTimestamp(index++, endTimeStamp);
+					statement.setString(index++, String.valueOf(end - start));
+					statement.setBoolean(index++, success);
+					statement.setBoolean(index++, true);
+					queryUtil.setNullableLargeText(statement, index++, schedulerOutput);
+					statement.executeUpdate();
+				} catch (SQLException e) {
+					classLogger.error("Failed to insert audit trail row for jobId '{}', jobGroup '{}': {}", jobId,
+							jobGroup, e.getMessage(), e);
+					throw e;
+				}
+
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to record scheduler audit for job '{}'", jobId, e);
+			return false;
 		}
-		return true;
 	}
 
 	/**
@@ -587,37 +565,34 @@ public class SchedulerDatabaseUtility {
 			boolean triggerOnLoad, String uiState, List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_RECIPES_QUERY)) {
-			int index = 1;
-			statement.setString(index++, userId);
-			statement.setString(index++, jobId);
-			statement.setString(index++, jobName);
-			statement.setString(index++, jobGroup);
-			statement.setString(index++, cronExpression);
-			statement.setString(index++, cronTimeZone.getID());
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
-			statement.setString(index++, jobCategory);
-			statement.setBoolean(index++, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_RECIPES_QUERY)) {
+					int index = 1;
+					statement.setString(index++, userId);
+					statement.setString(index++, jobId);
+					statement.setString(index++, jobName);
+					statement.setString(index++, jobGroup);
+					statement.setString(index++, cronExpression);
+					statement.setString(index++, cronTimeZone.getID());
+					queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+					queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+					statement.setString(index++, jobCategory);
+					statement.setBoolean(index++, triggerOnLoad);
+					queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 
-			statement.executeUpdate();
-		} catch (SQLException | UnsupportedEncodingException e) {
+					statement.executeUpdate();
+				}
+				updateJobTags(conn, jobId, jobTags);
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to insert SMSS_JOB_RECIPES row for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return updateJobTags(jobId, jobTags);
 	}
 
 	/**
@@ -631,47 +606,49 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean updateJobTags(String jobId, List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-
 		try {
-			// first we delete old tags
-			try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
-				statement.setString(1, jobId);
-				statement.execute();
-			} catch (SQLException e) {
-				classLogger.error("Failed to delete existing tags from SMSS_JOB_TAGS for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				updateJobTags(conn, jobId, jobTags);
+				return null;
+			});
+			return true;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to replace scheduler tags for job '{}'", jobId, e);
+			return false;
+		}
+	}
 
-			if (jobTags == null) {
-				return true;
-			}
+	private static void updateJobTags(Connection conn, String jobId, List<String> jobTags) throws SQLException {
 
-			// bulk insert for the job tags
-			try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_TAGS_QUERY)) {
-				for (String jobTag : jobTags) {
-					statement.setString(1, jobId);
-					statement.setString(2, jobTag.trim());
-					statement.addBatch();
-				}
-				statement.executeBatch();
-			} catch (SQLException e) {
-				classLogger.error("Failed to bulk insert tags into SMSS_JOB_TAGS for jobId '{}': {}", jobId,
-						e.getMessage(), e);
-				return false;
-			}
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
+		// first we delete old tags
+		try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
+			statement.setString(1, jobId);
+			statement.execute();
+		} catch (SQLException e) {
+			classLogger.error("Failed to delete existing tags from SMSS_JOB_TAGS for jobId '{}': {}", jobId,
+					e.getMessage(), e);
+			throw e;
 		}
 
-		return true;
+		if (jobTags == null) {
+			return;
+		}
+
+		// bulk insert for the job tags
+		try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_TAGS_QUERY)) {
+			for (String jobTag : jobTags) {
+				statement.setString(1, jobId);
+				statement.setString(2, jobTag.trim());
+				statement.addBatch();
+			}
+			statement.executeBatch();
+		} catch (SQLException e) {
+			classLogger.error("Failed to bulk insert tags into SMSS_JOB_TAGS for jobId '{}': {}", jobId, e.getMessage(),
+					e);
+			throw e;
+		}
 	}
 
 	/**
@@ -701,40 +678,37 @@ public class SchedulerDatabaseUtility {
 			List<String> jobTags) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(UPDATE_JOB_RECIPES_QUERY)) {
-			int index = 1;
-			statement.setString(index++, userId);
-			statement.setString(index++, jobName);
-			statement.setString(index++, jobGroup);
-			statement.setString(index++, cronExpression);
-			statement.setString(index++, cronTimeZone.getID());
-			queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
-			queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
-			statement.setString(index++, jobCategory);
-			statement.setBoolean(index++, triggerOnLoad);
-			queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(UPDATE_JOB_RECIPES_QUERY)) {
+					int index = 1;
+					statement.setString(index++, userId);
+					statement.setString(index++, jobName);
+					statement.setString(index++, jobGroup);
+					statement.setString(index++, cronExpression);
+					statement.setString(index++, cronTimeZone.getID());
+					queryUtil.handleInsertionOfBlob(conn, statement, recipe, index++);
+					queryUtil.handleInsertionOfBlob(conn, statement, recipeParameters, index++);
+					statement.setString(index++, jobCategory);
+					statement.setBoolean(index++, triggerOnLoad);
+					queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
 
-			// where clause filters
-			statement.setString(index++, jobId);
-			statement.setString(index++, existingJobGroup);
+					// where clause filters
+					statement.setString(index++, jobId);
+					statement.setString(index++, existingJobGroup);
 
-			statement.executeUpdate();
-		} catch (SQLException | UnsupportedEncodingException e) {
+					statement.executeUpdate();
+				}
+				updateJobTags(conn, jobId, jobTags);
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to update SMSS_JOB_RECIPES for jobId '{}', existingJobGroup '{}': {}", jobId,
 					existingJobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return updateJobTags(jobId, jobTags);
 	}
 
 	/**
@@ -747,27 +721,23 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean removeFromJobRecipesTable(String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_RECIPES_QUERY)) {
-			statement.setString(1, jobId);
-			statement.setString(2, jobGroup);
+		try {
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_RECIPES_QUERY)) {
+					statement.setString(1, jobId);
+					statement.setString(2, jobGroup);
 
-			statement.executeUpdate();
-		} catch (SQLException e) {
+					statement.executeUpdate();
+				}
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to delete SMSS_JOB_RECIPES row for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -799,58 +769,41 @@ public class SchedulerDatabaseUtility {
 
 	private static void removeProjectJobRecords(String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		boolean originalAutoCommit = true;
 		try {
-			originalAutoCommit = conn.getAutoCommit();
-			conn.setAutoCommit(false);
+			QueryExecutionUtility.write(schedulerDb, conn -> {
 
-			List<String> jobIds = new ArrayList<>();
-			try (PreparedStatement select = conn.prepareStatement(SELECT_PROJECT_JOB_IDS_QUERY)) {
-				select.setString(1, jobGroup);
-				try (ResultSet result = select.executeQuery()) {
-					while (result.next()) {
-						jobIds.add(result.getString(1));
+				List<String> jobIds = new ArrayList<>();
+				try (PreparedStatement select = conn.prepareStatement(SELECT_PROJECT_JOB_IDS_QUERY)) {
+					select.setString(1, jobGroup);
+					try (ResultSet result = select.executeQuery()) {
+						while (result.next()) {
+							jobIds.add(result.getString(1));
+						}
 					}
 				}
-			}
 
-			if (!jobIds.isEmpty()) {
-				try (PreparedStatement deleteTags = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
-					for (String jobId : jobIds) {
-						deleteTags.setString(1, jobId);
-						deleteTags.addBatch();
+				if (!jobIds.isEmpty()) {
+					try (PreparedStatement deleteTags = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
+						for (String jobId : jobIds) {
+							deleteTags.setString(1, jobId);
+							deleteTags.addBatch();
+						}
+						deleteTags.executeBatch();
 					}
-					deleteTags.executeBatch();
 				}
-			}
 
-			try (PreparedStatement deleteRecipes = conn.prepareStatement(DELETE_PROJECT_JOB_RECIPES_QUERY)) {
-				deleteRecipes.setString(1, jobGroup);
-				deleteRecipes.executeUpdate();
-			}
-			conn.commit();
-		} catch (SQLException e) {
-			try {
-				conn.rollback();
-			} catch (SQLException rollbackError) {
-				e.addSuppressed(rollbackError);
-			}
+				try (PreparedStatement deleteRecipes = conn.prepareStatement(DELETE_PROJECT_JOB_RECIPES_QUERY)) {
+					deleteRecipes.setString(1, jobGroup);
+					deleteRecipes.executeUpdate();
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+
 			classLogger.error("Failed to remove scheduler records for project '{}': {}", jobGroup, e.getMessage(), e);
 			throw new IllegalStateException("Failed to remove scheduler records for project " + jobGroup, e);
-		} finally {
-			try {
-				conn.setAutoCommit(originalAutoCommit);
-			} catch (SQLException e) {
-				classLogger.error("Failed to restore scheduler connection auto-commit: {}", e.getMessage(), e);
-			}
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
 	}
 
@@ -862,33 +815,29 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static boolean existsInJobRecipesTable(String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement statement = conn.prepareStatement(EXISTS_JOB_RECIPES_QUERY)) {
-			statement.setString(1, jobId);
-			statement.setString(2, jobGroup);
-			try (ResultSet result = statement.executeQuery()) {
-				while (result.next()) {
-					int count = result.getInt(1);
-					if (count == 0) {
-						return false;
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement statement = conn.prepareStatement(EXISTS_JOB_RECIPES_QUERY)) {
+					statement.setString(1, jobId);
+					statement.setString(2, jobGroup);
+					try (ResultSet result = statement.executeQuery()) {
+						while (result.next()) {
+							int count = result.getInt(1);
+							if (count == 0) {
+								return false;
+							}
+						}
 					}
 				}
-			}
-		} catch (SQLException e) {
+				return true;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to check existence in SMSS_JOB_RECIPES for jobId '{}', jobGroup '{}': {}", jobId,
 					jobGroup, e.getMessage(), e);
 			return false;
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-
-		return true;
 	}
 
 	/**
@@ -1205,26 +1154,24 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Map<String, Long> getTriggerStateCounts() {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
 		Map<String, Long> counts = new HashMap<>();
-		try (PreparedStatement ps = conn.prepareStatement(TRIGGER_STATE_COUNT_QUERY);
-				ResultSet rs = ps.executeQuery()) {
-			while (rs.next()) {
-				String state = rs.getString(1);
-				if (state != null) {
-					counts.put(state, rs.getLong(2));
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(TRIGGER_STATE_COUNT_QUERY);
+						ResultSet rs = ps.executeQuery()) {
+					while (rs.next()) {
+						String state = rs.getString(1);
+						if (state != null) {
+							counts.put(state, rs.getLong(2));
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return counts;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query trigger state counts: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
 		return counts;
 	}
@@ -1236,26 +1183,24 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static long getOverdueTriggerCount(long beforeEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement ps = conn.prepareStatement(OVERDUE_TRIGGER_COUNT_QUERY)) {
-			ps.setLong(1, beforeEpochMillis);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					return rs.getLong(1);
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(OVERDUE_TRIGGER_COUNT_QUERY)) {
+					ps.setLong(1, beforeEpochMillis);
+					try (ResultSet rs = ps.executeQuery()) {
+						if (rs.next()) {
+							return rs.getLong(1);
+						}
+					}
 				}
-			}
-		} catch (SQLException e) {
+				return 0L;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query overdue trigger count: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
-		return 0;
+		return 0L;
 	}
 
 	/**
@@ -1265,27 +1210,25 @@ public class SchedulerDatabaseUtility {
 	 */
 	public static Long getNextScheduledRunTime(long afterEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
-		Connection conn = connectToScheduler();
-		try (PreparedStatement ps = conn.prepareStatement(NEXT_SCHEDULED_RUN_QUERY)) {
-			ps.setLong(1, afterEpochMillis);
-			try (ResultSet rs = ps.executeQuery()) {
-				if (rs.next()) {
-					long next = rs.getLong(1);
-					if (!rs.wasNull() && next > 0) {
-						return next;
+		try {
+			return QueryExecutionUtility.read(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(NEXT_SCHEDULED_RUN_QUERY)) {
+					ps.setLong(1, afterEpochMillis);
+					try (ResultSet rs = ps.executeQuery()) {
+						if (rs.next()) {
+							long next = rs.getLong(1);
+							if (!rs.wasNull() && next > 0) {
+								return next;
+							}
+						}
 					}
 				}
-			}
-		} catch (SQLException e) {
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to query next trigger fire time: {}", e.getMessage(), e);
-		} finally {
-			if (schedulerDb.isConnectionPooling()) {
-				try {
-					conn.close();
-				} catch (SQLException e) {
-					classLogger.error("Failed to close scheduler db connection: {}", e.getMessage(), e);
-				}
-			}
 		}
 		return null;
 	}

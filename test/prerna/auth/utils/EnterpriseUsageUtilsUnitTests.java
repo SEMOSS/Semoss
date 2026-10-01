@@ -34,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -244,11 +246,13 @@ class EnterpriseUsageUtilsUnitTests {
 	void catalogPagesHaveBoundedRowsAndAccurateContinuationAndCloseStatements() throws Exception {
 		var engine = mock(IRDBMSEngine.class);
 		var statements = new ArrayList<PreparedStatement>();
-		when(engine.getPreparedStatement(anyString())).thenAnswer(invocation -> {
-			var statement = spy(connection.prepareStatement(invocation.getArgument(0, String.class)));
+		connection = spy(connection);
+		when(engine.getConnection()).thenReturn(connection);
+		doAnswer(invocation -> {
+			var statement = spy((PreparedStatement) invocation.callRealMethod());
 			statements.add(statement);
 			return statement;
-		});
+		}).when(connection).prepareStatement(anyString());
 		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class)) {
 			registry.when(SystemEngineRegistry::getSecurityDb).thenReturn(engine);
 			var first = EnterpriseUsageUtils.filterOptions(FilterDimension.USER, "", null, 2, 0);
@@ -291,11 +295,13 @@ class EnterpriseUsageUtilsUnitTests {
 	void productionReaderReturnsSerializableRowsAndClosesStatements() throws Exception {
 		var engine = mock(IRDBMSEngine.class);
 		var statementRef = new java.util.concurrent.atomic.AtomicReference<PreparedStatement>();
-		when(engine.getPreparedStatement(anyString())).thenAnswer(invocation -> {
-			var statement = spy(connection.prepareStatement(invocation.getArgument(0, String.class)));
+		connection = spy(connection);
+		when(engine.getConnection()).thenReturn(connection);
+		doAnswer(invocation -> {
+			var statement = spy((PreparedStatement) invocation.callRealMethod());
 			statementRef.set(statement);
 			return statement;
-		});
+		}).when(connection).prepareStatement(anyString());
 		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class)) {
 			registry.when(SystemEngineRegistry::getModelInferenceLogsDb).thenReturn(engine);
 			var result = EnterpriseUsageUtils.report(Source.MODEL, View.LOGS, "2024-03-01", "2024-03-31", "", "", "",
@@ -333,8 +339,7 @@ class EnterpriseUsageUtilsUnitTests {
 					"UPDATE AUDIT_LOGS SET MESSAGE = 'Request completed', REQUEST = '{\"text\":\"r\u00e9sum\u00e9\"}' WHERE LOG_ID = 'log-1'");
 		}
 		var engine = mock(IRDBMSEngine.class);
-		when(engine.getPreparedStatement(anyString()))
-				.thenAnswer(invocation -> connection.prepareStatement(invocation.getArgument(0, String.class)));
+		when(engine.getConnection()).thenReturn(connection);
 		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class)) {
 			registry.when(SystemEngineRegistry::getModelInferenceLogsDb).thenReturn(engine);
 			registry.when(SystemEngineRegistry::getAuditLogsDb).thenReturn(engine);
@@ -354,7 +359,9 @@ class EnterpriseUsageUtilsUnitTests {
 	void productionReaderClosesResourcesWhenExecutionFails() throws Exception {
 		var engine = mock(IRDBMSEngine.class);
 		var statement = spy(connection.prepareStatement("SELECT ? AS RECORD_ID"));
-		when(engine.getPreparedStatement(anyString())).thenReturn(statement);
+		connection = spy(connection);
+		when(engine.getConnection()).thenReturn(connection);
+		doReturn(statement).when(connection).prepareStatement(anyString());
 		when(engine.isConnectionPooling()).thenReturn(true);
 		doThrow(new java.sql.SQLException("Internal query detail")).when(statement).executeQuery();
 		try (MockedStatic<SystemEngineRegistry> registry = mockStatic(SystemEngineRegistry.class)) {

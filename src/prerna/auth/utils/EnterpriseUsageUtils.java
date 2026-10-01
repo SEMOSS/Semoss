@@ -290,8 +290,8 @@ public final class EnterpriseUsageUtils {
 	}
 
 	/**
-	 * Creates an allowlisted catalog query with identity and engine provider metadata,
-	 * fetching one extra row to identify the next page.
+	 * Creates an allowlisted catalog query with identity and engine provider
+	 * metadata, fetching one extra row to identify the next page.
 	 */
 	static ParameterizedQuery filterOptionsQuery(FilterDimension dimension, String searchTerm, String id, int limit,
 			int offset) {

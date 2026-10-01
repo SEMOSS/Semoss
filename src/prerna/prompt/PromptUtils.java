@@ -27,7 +27,7 @@
  *******************************************************************************/
 package prerna.prompt;
 
-import java.sql.Clob;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -56,7 +56,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -167,19 +166,20 @@ public final class PromptUtils {
 					if (numrows < 6) {
 						promptDb.removeData("DELETE FROM " + Constants.PROMPT_METAKEYS + " WHERE 1=1");
 						int order = 0;
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { "description", "single", order++, "textarea", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { "data classification", "multi", order++, "select-box",
+						promptDb.insertData(
+								queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
+										new Object[] { Constants.MARKDOWN, "single", order++, "markdown", null }));
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
+								metaKeysTypes, new Object[] { "description", "single", order++, "textarea", null }));
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
+								metaKeysTypes, new Object[] { "tag", "multi", order++, "multi-typeahead", null }));
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
+								metaKeysTypes, new Object[] { "domain", "multi", order++, "multi-typeahead", null }));
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
+								metaKeysTypes, new Object[] { "data classification", "multi", order++, "select-box",
 										"Confidential,FOUO,Internal Only,IP,PII,PHI,Public,Restricted" }));
-						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames, metaKeysTypes,
-								new Object[] { "data restrictions", "multi", order++, "select-box",
+						promptDb.insertData(queryUtil.insertIntoTable(Constants.PROMPT_METAKEYS, metaKeysColNames,
+								metaKeysTypes, new Object[] { "data restrictions", "multi", order++, "select-box",
 										"Confidential Allowed,FOUO Allowed,Internal Allowed,IP Allowed,PII Allowed,PHI Allowed,Restricted Allowed" }));
 					}
 				}
@@ -445,20 +445,18 @@ public final class PromptUtils {
 		String promptPermissionQuery = promptDb.getQueryUtil().createUpdatePreparedStatementString("PROMPT",
 				colToUpdate, whereCol);
 
-		PreparedStatement ps = null;
 		try {
-			ps = promptDb.getPreparedStatement(promptPermissionQuery);
-			int i = 1;
-			ps.setBoolean(i++, false);
-			ps.setString(i++, promptId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.write(promptDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(promptPermissionQuery)) {
+					int i = 1;
+					ps.setBoolean(i++, false);
+					ps.setString(i++, promptId);
+					ps.execute();
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to mark previous versions as non-latest for prompt ID '{}'.", promptId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 		}
 	}
 
@@ -472,24 +470,26 @@ public final class PromptUtils {
 	public static void updatePromptTags(String promptId, Map<String, Collection<String>> userSelectedMeta,
 			List<String> tags) {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		// first do a delete
-		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = promptDb.getPreparedStatement(deleteQ);
-			int parameterIndex = 1;
-			deletePs.setString(parameterIndex++, promptId);
-			deletePs.execute();
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
+		boolean insertMetadata = tags != null && !tags.isEmpty();
+		if (insertMetadata) {
+			for (String metaKey : userSelectedMeta.keySet()) {
+				ensureUserMetaKeyExistsInPromptMetaKeys(metaKey);
 			}
-		} catch (Exception e) {
-			classLogger.error("Failed to clear existing metadata for prompt ID '{}' before update.", promptId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
 		}
-		if (tags != null && !tags.isEmpty()) {
-			insertTagsAndMeta(tags, userSelectedMeta, promptId);
+		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
+		try {
+			QueryExecutionUtility.write(promptDb, connection -> {
+				try (PreparedStatement statement = connection.prepareStatement(deleteQ)) {
+					statement.setString(1, promptId);
+					statement.execute();
+				}
+				if (insertMetadata) {
+					insertTagsAndMeta(connection, promptDb.getQueryUtil(), tags, userSelectedMeta, promptId);
+				}
+				return null;
+			});
+		} catch (Exception ex) {
+			classLogger.error("Failed to replace tags/metadata for prompt ID '{}'.", promptId, ex);
 		}
 	}
 
@@ -705,11 +705,22 @@ public final class PromptUtils {
 		}
 
 		// now we do the new insert with the order of the tags
-		String promptMetaQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
-				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
-		PreparedStatement ps = null;
+
 		try {
-			ps = promptDb.getPreparedStatement(promptMetaQuery);
+			QueryExecutionUtility.write(promptDb, connection -> {
+				insertTagsAndMeta(connection, promptDb.getQueryUtil(), tags, userSelectedMeta, promptId);
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to insert prompt tags/metadata for prompt ID '{}'.", promptId, e);
+		}
+	}
+
+	private static void insertTagsAndMeta(Connection connection, AbstractSqlQueryUtil queryUtil, List<String> tags,
+			Map<String, Collection<String>> userSelectedMeta, String promptId) throws SQLException {
+		String promptMetaQuery = queryUtil.createInsertPreparedStatementString("PROMPTMETA",
+				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
+		try (PreparedStatement ps = connection.prepareStatement(promptMetaQuery)) {
 			int i = 0;
 			for (String tag : tags) {
 				int parameterIndex = 1;
@@ -734,13 +745,6 @@ public final class PromptUtils {
 				}
 			}
 			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to insert prompt tags/metadata for prompt ID '{}'.", promptId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 		}
 	}
 
@@ -808,22 +812,20 @@ public final class PromptUtils {
 				// Insert into PROMPTMETAKEYS (excluding DISPLAYORDER)
 				String insertQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETAKEYS",
 						new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYOPTIONS", "DEFAULTVALUES" });
-				PreparedStatement ps = null;
 				try {
-					ps = promptDb.getPreparedStatement(insertQuery);
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, fetchedMetaKey);
-					ps.setString(parameterIndex++, singleMulti);
-					ps.setString(parameterIndex++, displayOptions);
-					ps.setString(parameterIndex++, defaultValues);
-					ps.execute();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
+					QueryExecutionUtility.write(promptDb, connection -> {
+						try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
+							int parameterIndex = 1;
+							ps.setString(parameterIndex++, fetchedMetaKey);
+							ps.setString(parameterIndex++, singleMulti);
+							ps.setString(parameterIndex++, displayOptions);
+							ps.setString(parameterIndex++, defaultValues);
+							ps.execute();
+						}
+						return null;
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to copy metakey '{}' into PROMPTMETAKEYS.", metaKey, e);
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 				}
 			}
 		} catch (Exception e) {
@@ -848,38 +850,31 @@ public final class PromptUtils {
 	private static void insertPrompt(Map<String, Object> promptDetails, String userId, boolean allowClob,
 			String promptId) {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
-		PreparedStatement promptPS = null;
+		Integer version = getVersionNumber(promptId);
 		try {
-			promptPS = promptDb.getPreparedStatement(INSERT_PROMPT_QUERY);
-			int index = 1;
-			promptPS.setString(index++, promptId);
-			promptPS.setString(index++, (String) promptDetails.get("title"));
-			if (allowClob) {
-				Clob toclob = promptDb.getConnection().createClob();
-				toclob.setString(1, (String) promptDetails.get("context"));
-				promptPS.setClob(index++, toclob);
-			} else {
-				promptPS.setString(index++, (String) promptDetails.get("context"));
-			}
-			// Get version of existing prompt
-			Integer version = getVersionNumber(promptId);
-			promptPS.setInt(index++, version);
-			promptPS.setString(index++, (String) promptDetails.get("intent"));
-			promptPS.setString(index++, userId);
-			promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-			promptPS.setBoolean(index++, true);
-			// Set GLOBAL value, default to false if not provided
-			Boolean global = (Boolean) promptDetails.get("global");
-			promptPS.setBoolean(index++, global != null ? global : false);
-			promptPS.execute();
-			if (!promptPS.getConnection().getAutoCommit()) {
-				promptPS.getConnection().commit();
-			}
+			QueryExecutionUtility.write(promptDb, connection -> {
+				try (PreparedStatement promptPS = connection.prepareStatement(INSERT_PROMPT_QUERY)) {
+					int index = 1;
+					promptPS.setString(index++, promptId);
+					promptPS.setString(index++, (String) promptDetails.get("title"));
+					promptDb.getQueryUtil().setNullableLargeText(promptPS, index++,
+							(String) promptDetails.get("context"));
+					// Get version of existing prompt
+					promptPS.setInt(index++, version);
+					promptPS.setString(index++, (String) promptDetails.get("intent"));
+					promptPS.setString(index++, userId);
+					promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+					promptPS.setBoolean(index++, true);
+					// Set GLOBAL value, default to false if not provided
+					Boolean global = (Boolean) promptDetails.get("global");
+					promptPS.setBoolean(index++, global != null ? global : false);
+					promptPS.execute();
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert prompt record for prompt ID '{}'.", promptId, e);
 			throw new IllegalArgumentException(e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, null, promptPS, null);
 		}
 	}
 
@@ -932,18 +927,18 @@ public final class PromptUtils {
 		deletes.add("DELETE FROM PROMPTMETA WHERE PROMPT_ID=?");
 
 		for (String deleteQuery : deletes) {
-			PreparedStatement ps = null;
 			try {
-				ps = promptDb.getPreparedStatement(deleteQuery);
-				ps.setString(1, promptId);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
+				QueryExecutionUtility.write(promptDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+						ps.setString(1, promptId);
+						ps.execute();
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Failed to execute prompt delete statement for prompt ID '{}'.", promptId, e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
 			}
 		}
 
@@ -1123,61 +1118,48 @@ public final class PromptUtils {
 		validatePromptUpdateAuthorization(promptId, user);
 		// first do a delete
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE METAKEY=? AND PROMPT_ID=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = promptDb.getPreparedStatement(deleteQ);
-			for (String field : metadata.keySet()) {
-				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, field);
-				deletePs.setString(parameterIndex++, promptId);
-				deletePs.addBatch();
-			}
-			deletePs.executeBatch();
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to delete existing metadata keys for prompt ID '{}'.", promptId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, deletePs);
-		}
-
-		// now we do the new insert with the order of the tags
 		String query = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETA",
 				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
-		PreparedStatement ps = null;
 		try {
-			ps = promptDb.getPreparedStatement(query);
-			for (String field : metadata.keySet()) {
-				Object val = metadata.get(field);
-				List<Object> values = new ArrayList<>();
-				if (val instanceof List) {
-					values = (List<Object>) val;
-				} else if (val instanceof Collection) {
-					values.addAll((Collection<Object>) val);
-				} else {
-					values.add(val);
+			QueryExecutionUtility.write(promptDb, connection -> {
+				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
+					for (String field : metadata.keySet()) {
+						int parameterIndex = 1;
+						deletePs.setString(parameterIndex++, field);
+						deletePs.setString(parameterIndex++, promptId);
+						deletePs.addBatch();
+					}
+					deletePs.executeBatch();
 				}
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					for (String field : metadata.keySet()) {
+						Object val = metadata.get(field);
+						List<Object> values = new ArrayList<>();
+						if (val instanceof List) {
+							values = (List<Object>) val;
+						} else if (val instanceof Collection) {
+							values.addAll((Collection<Object>) val);
+						} else {
+							values.add(val);
+						}
 
-				for (int i = 0; i < values.size(); i++) {
-					int parameterIndex = 1;
-					Object fieldVal = values.get(i);
+						for (int i = 0; i < values.size(); i++) {
+							int parameterIndex = 1;
+							Object fieldVal = values.get(i);
 
-					ps.setString(parameterIndex++, promptId);
-					ps.setString(parameterIndex++, field);
-					ps.setString(parameterIndex++, fieldVal + "");
-					ps.setInt(parameterIndex++, i);
-					ps.addBatch();
+							ps.setString(parameterIndex++, promptId);
+							ps.setString(parameterIndex++, field);
+							ps.setString(parameterIndex++, fieldVal + "");
+							ps.setInt(parameterIndex++, i);
+							ps.addBatch();
+						}
+					}
+					ps.executeBatch();
 				}
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+				return null;
+			});
 		} catch (Exception e) {
-			classLogger.error("Failed to insert updated metadata values for prompt ID '{}'.", promptId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(promptDb, ps);
+			classLogger.error("Failed to replace metadata values for prompt ID '{}'.", promptId, e);
 		}
 	}
 

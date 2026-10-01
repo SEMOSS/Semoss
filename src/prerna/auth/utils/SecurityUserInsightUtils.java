@@ -500,35 +500,21 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 				"DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?", };
 
 		for (String dQuery : deleteQueries) {
-			PreparedStatement ps = null;
 			try {
-				ps = securityDb.getPreparedStatement(dQuery);
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, insightId);
-				ps.setString(parameterIndex++, projectId);
-				ps.execute();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
-				}
-			} catch (SQLException e) {
+				QueryExecutionUtility.write(securityDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(dQuery)) {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, insightId);
+						ps.setString(parameterIndex++, projectId);
+						ps.execute();
+
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Unable to delete insight.", e);
-			} finally {
-				if (ps != null) {
-					try {
-						ps.close();
-					} catch (SQLException e) {
-						classLogger.error("Unable to delete insight.", e);
-					}
-				}
-				if (securityDb.isConnectionPooling()) {
-					try {
-						if (ps != null) {
-							ps.getConnection().close();
-						}
-					} catch (SQLException e) {
-						classLogger.error("Unable to delete insight.", e);
-					}
-				}
 			}
 
 		}

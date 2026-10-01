@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,10 +39,6 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
@@ -60,7 +54,6 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -70,9 +63,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	private static AdminSecurityGroupUtils instance = new AdminSecurityGroupUtils();
 
 	private static final Logger classLogger = LogManager.getLogger(AdminSecurityGroupUtils.class);
-
-	private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE)
-			.disableHtmlEscaping().create();
 
 	private AdminSecurityGroupUtils() {
 
@@ -130,34 +120,31 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	 */
 	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
 			if (groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " already exists");
 			}
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-			String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
-					+ "VALUES (?,?,?,?,?,?)";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, groupType);
-				securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, description, parameterIndex++, GSON);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
+				String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
+						+ "VALUES (?,?,?,?,?,?)";
+				try (PreparedStatement ps = conn.prepareStatement(query)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, groupType);
+					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, description);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.execute();
+
 				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to add group.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -173,7 +160,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (!groupExists(groupId, groupType)) {
 			throw new IllegalArgumentException("Group " + groupId + " does not exist");
 		}
-		String[] queries = null;
+		String[] queries;
 
 		if ("CUSTOM".equals(groupType)) {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
@@ -188,11 +175,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?" };
 		}
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			QueryExecutionUtility.write(securityDb, conn -> {
 
-			try {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
@@ -206,22 +191,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						}
 					}
 				}
-
-				// commit
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -244,26 +218,24 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (!groupExists(curGroupId, curGroupType)) {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
-		String groupQuery = null;
-		String[] propagateQueries = null;
+		String groupQuery;
+		String[] propagateQueries;
 		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
 		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", };
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			QueryExecutionUtility.write(securityDb, conn -> {
 
-			Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
+				Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-			try {
 				// group edit
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					ps.setString(parameterIndex++, newGroupType);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
+					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, newDescription);
 					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
@@ -284,20 +256,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -331,15 +294,13 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
+			QueryExecutionUtility.write(securityDb, conn -> {
 
-			try {
 				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, newDescription, parameterIndex++, GSON);
+					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, newDescription);
 					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curGroupType);
@@ -366,21 +327,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 						ps.execute();
 					}
 				}
-
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			} catch (SQLException e) {
-				if (!conn.getAutoCommit()) {
-					conn.rollback();
-				}
-				throw e;
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -408,39 +359,34 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
+		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
-					+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) " + "VALUES (?,?,?,?,?,?,?)";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, userType);
-				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-				if (verifiedEndDate == null) {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				} else {
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
+						+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
+						+ "VALUES (?,?,?,?,?,?,?)";
+				try (PreparedStatement ps = conn.prepareStatement(query)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userType);
+					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+					if (verifiedEndDate == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					}
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.execute();
+
 				}
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -461,25 +407,22 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
 		}
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
-			try (PreparedStatement ps = conn.prepareStatement(query)) {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, userType);
-				ps.execute();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
+				try (PreparedStatement ps = conn.prepareStatement(query)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, userId);
+					ps.setString(parameterIndex++, userType);
+					ps.execute();
+
 				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Unable to remove user from group.", e);
 			throw e;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -739,37 +682,35 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
+		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, projectId);
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(
+						"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)")) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, groupType);
+					ps.setString(parameterIndex++, projectId);
+					ps.setInt(parameterIndex++, permission);
+					ps.setTimestamp(parameterIndex++, startDate);
+					if (verifiedEndDate == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					}
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -797,38 +738,36 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
+		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
-		String updateQuery = null;
+		String updateQuery;
 		updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(updateQuery);
-			int parameterIndex = 1;
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+					int parameterIndex = 1;
+					ps.setInt(parameterIndex++, permission);
+					ps.setTimestamp(parameterIndex++, startDate);
+					if (verifiedEndDate == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					}
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, groupType);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -846,24 +785,25 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"Group " + groupId + " does not currently have access to project " + projectId + " to remove");
 		}
-		String deleteQuery = null;
+		String deleteQuery;
 		deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(deleteQuery);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, projectId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, groupType);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to remove group project permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -1151,37 +1091,35 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
+		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(
-					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, groupType);
-			ps.setString(parameterIndex++, engineId);
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(
+						"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)")) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, groupType);
+					ps.setString(parameterIndex++, engineId);
+					ps.setInt(parameterIndex++, permission);
+					ps.setTimestamp(parameterIndex++, startDate);
+					if (verifiedEndDate == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					}
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -1209,38 +1147,36 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
+		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
-		String updateQuery = null;
+		String updateQuery;
 		updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(updateQuery);
-			int parameterIndex = 1;
-			ps.setInt(parameterIndex++, permission);
-			ps.setTimestamp(parameterIndex++, startDate);
-			if (verifiedEndDate == null) {
-				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-			}
-			ps.setString(parameterIndex++, userDetails.getValue0());
-			ps.setString(parameterIndex++, userDetails.getValue1());
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+					int parameterIndex = 1;
+					ps.setInt(parameterIndex++, permission);
+					ps.setTimestamp(parameterIndex++, startDate);
+					if (verifiedEndDate == null) {
+						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+					} else {
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					}
+					ps.setString(parameterIndex++, userDetails.getValue0());
+					ps.setString(parameterIndex++, userDetails.getValue1());
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, engineId);
+					ps.setString(parameterIndex++, groupType);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -1258,24 +1194,25 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
 		}
-		String deleteQuery = null;
+		String deleteQuery;
 		deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(deleteQuery);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, groupId);
-			ps.setString(parameterIndex++, engineId);
-			ps.setString(parameterIndex++, groupType);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, groupId);
+					ps.setString(parameterIndex++, engineId);
+					ps.setString(parameterIndex++, groupType);
+					ps.execute();
+
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to remove group engine permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
