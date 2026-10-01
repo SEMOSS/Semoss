@@ -805,7 +805,7 @@ public final class BrainThreadClassifier {
 		return CollaborationDbUtils.exists(
 				"SELECT 1 FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 						+ "AND THREAD_ID = ? AND (SOURCE = ? OR CLASSIFIER_VERSION = ?)",
-				ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU, BrainTopicOnboarding.STRATEGY);
+				ctx.ownerId(), ctx.ownerType(), threadId, BrainProfileUtils.YOU, BrainTopicOnboarding.VERSION);
 	}
 
 	private static int parallel() {

@@ -22,7 +22,8 @@ import prerna.util.Utility;
 // Refreshes only previously imported, permitted headers; A.1 never substitutes aggregate recipient guesses.
 final class BrainTopicOnboarding {
 
-	static final String STRATEGY = "candidate_a1";
+	// Retain the persisted ID namespace and recognize links created by earlier onboarding runs.
+	static final String VERSION = "candidate_a1";
 	private static final int MAX_PER_FOLDER = 5000;
 
 	record Result(List<BrainTopicSuggest.Candidate> candidates, Map<String, Object> diagnostics) {
@@ -47,7 +48,6 @@ final class BrainTopicOnboarding {
 			return model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse();
 		});
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
-		diagnostics.put("strategy", STRATEGY);
 		diagnostics.putAll(notes);
 		diagnostics.put("status", votes.status());
 		diagnostics.put("poolThreads", prepared.pool().size());
@@ -75,7 +75,7 @@ final class BrainTopicOnboarding {
 					}).toList();
 			String name = uniqueName(votes.names().get(i), names);
 			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
-			String key = STRATEGY + ":" + CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
+			String key = VERSION + ":" + CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
 			// the card shows threads, people and your part; how it was grouped stays in diagnostics
 			// no name-word keywords: a rename would leave the old words behind for the classifier
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i)));

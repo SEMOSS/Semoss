@@ -44,16 +44,14 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.util.Constants;
-import prerna.util.Utility;
 
-// onboarding: accounts from outside domains (returned, the owner saves them), and topics the platform text model
-// (BrainTopicModel, COLLAB_LLM_ENGINE_ID) groups and names, written as STATUS suggested, ORIGIN brain, with suggested
+// onboarding: accounts from outside domains (returned, the owner saves them), and structured topic groups judged
+// and named by the platform text model (COLLAB_LLM_ENGINE_ID), written as STATUS suggested, ORIGIN brain, with suggested
 // members. No text model means no topic suggestions. The classifier files only against accepted topics.
 public final class BrainTopicSuggest {
 
 	private static final Logger classLogger = LogManager.getLogger(BrainTopicSuggest.class);
 
-	private static final int MAX_TOPICS = 12;
 	private static final int ACCOUNT_MIN_PEOPLE = 2;
 	private static final int ACCOUNT_MIN_THREADS = 3;
 	private static final int MEMBERS = 6;
@@ -72,7 +70,7 @@ public final class BrainTopicSuggest {
 	 * link to saved accounts.
 	 */
 	public static Map<String, Object> accounts(User user) {
-		return suggest(user, false, "legacy", false);
+		return suggest(user, false, false);
 	}
 
 	/**
@@ -80,22 +78,17 @@ public final class BrainTopicSuggest {
 	 * unsaved account suggestions.
 	 */
 	public static Map<String, Object> topics(User user) {
-		return topics(user, null, false);
+		return topics(user, false);
 	}
 
-	public static Map<String, Object> topics(User user, String strategy, boolean dryRun) {
-		String selected = strategy == null ? Utility.getDIHelperProperty(Constants.COLLAB_TOPIC_ONBOARDING_STRATEGY) : strategy;
-		selected = selected == null || selected.isBlank() ? "legacy" : selected.trim().toLowerCase(Locale.ROOT);
-		if (!Set.of("legacy", BrainTopicOnboarding.STRATEGY).contains(selected)) {
-			throw new IllegalArgumentException("strategy must be legacy or candidate_a1");
-		}
+	public static Map<String, Object> topics(User user, boolean dryRun) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", owner.getValue0(), owner.getValue1())) {
-			return suggest(user, true, selected, dryRun);
+			return suggest(user, true, dryRun);
 		}
 	}
 
-	private static Map<String, Object> suggest(User user, boolean writeTopics, String strategy, boolean dryRun) {
+	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -169,11 +162,9 @@ public final class BrainTopicSuggest {
 
 		// existing accounts by domain, existing topic names
 		Map<String, String> accountByDomain = new HashMap<>();
-		Map<String, String> accountNames = new HashMap<>();
 		CollaborationDbUtils.query(
 				"SELECT ACCOUNT_ID, NAME, DOMAINS_JSON FROM BRAIN_ACCOUNT WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
 				rs -> {
-					accountNames.put(rs.getString(1), rs.getString(2));
 					for (String d : CollaborationDbUtils.toStringList(
 							CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "DOMAINS_JSON")))) {
 						accountByDomain.put(d, rs.getString(1));
@@ -235,7 +226,6 @@ public final class BrainTopicSuggest {
 		if (!writeTopics) {
 			return out;
 		}
-		out.put("strategy", strategy);
 		out.put("dryRun", dryRun);
 
 		List<Candidate> candidates;
@@ -247,19 +237,14 @@ public final class BrainTopicSuggest {
 						"No topic model is set up (" + Constants.COLLAB_LLM_ENGINE_ID + "); ask an admin to set one");
 				return out;
 			}
-			if (BrainTopicOnboarding.STRATEGY.equals(strategy)) {
-				BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
-						threads, self, emails, vips, ownOrg, topicNames);
-				out.putAll(result.diagnostics());
-				if (out.containsKey("modelError")) {
-					out.put("topics", List.of());
-					return out;
-				}
-				candidates = new ArrayList<>(result.candidates());
-			} else {
-				candidates = modelCandidates(user, engineId, ownerId, ownerType, threads, writers, vips, emails,
-						accountByDomain, accountNames, ownOrg, self, topicNames);
+			BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
+					threads, self, emails, vips, ownOrg, topicNames);
+			out.putAll(result.diagnostics());
+			if (out.containsKey("modelError")) {
+				out.put("topics", List.of());
+				return out;
 			}
+			candidates = new ArrayList<>(result.candidates());
 		} catch (RuntimeException e) {
 			classLogger.warn("Topic model failed", e);
 			out.put("topics", List.of());
@@ -289,8 +274,7 @@ public final class BrainTopicSuggest {
 				}
 			}
 			for (Candidate c : proposals) {
-				int limit = BrainTopicOnboarding.STRATEGY.equals(strategy) ? BrainTopicStructure.A1.topics() : MAX_TOPICS;
-				if (written.size() >= limit || topicNames.contains(c.name().toLowerCase(Locale.ROOT))) {
+				if (written.size() >= BrainTopicStructure.A1.topics() || topicNames.contains(c.name().toLowerCase(Locale.ROOT))) {
 					continue;
 				}
 				String topicId = "t-" + CollaborationDbUtils.deterministicId(ownerId, ownerType, "suggest", c.key());
@@ -405,53 +389,6 @@ public final class BrainTopicSuggest {
 
 	// about: the topic model's one line on what the topic covers, stored as its description
 	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about) {
-	}
-
-	// working threads first (a VIP on it, the owner wrote, more messages), then
-	// recent; to the model and back
-	private static List<Candidate> modelCandidates(User user, String engineId, String ownerId, String ownerType,
-			Map<String, Thread> threads, Map<String, Set<String>> writers, Set<String> vips, Map<String, String> emails,
-			Map<String, String> accountByDomain, Map<String, String> accountNames, BrainOrgDomains.Org ownOrg,
-			String self, Set<String> takenNames) {
-		Map<String, Integer> counts = new HashMap<>();
-		CollaborationDbUtils.query(
-				"SELECT THREAD_ID, MESSAGE_COUNT FROM BRAIN_THREAD WHERE OWNER_ID = ? AND " + "OWNER_TYPE = ?",
-				rs -> counts.put(rs.getString(1), rs.getInt(2)), ownerId, ownerType);
-		Set<String> organisations = new LinkedHashSet<>();
-		List<Map<String, Object>> rows = new ArrayList<>();
-		for (Thread t : threads.values()) {
-			Set<String> orgs = new LinkedHashSet<>();
-			for (String p : t.people()) {
-				String d = org(BrainMailImport.domain(emails.get(p)));
-				if (d != null && !ownOrg.isMine(d) && !FREEMAIL.contains(d)) {
-					orgs.add(accountByDomain.containsKey(d) ? accountNames.get(accountByDomain.get(d)) : label(d));
-				}
-			}
-			organisations.addAll(orgs);
-			Map<String, Object> row = new LinkedHashMap<>();
-			row.put("id", t.id());
-			row.put("subject", t.subject());
-			row.put("orgs", new ArrayList<>(orgs));
-			row.put("messages", counts.getOrDefault(t.id(), 1));
-			row.put("you", self != null && writers.getOrDefault(t.id(), Set.of()).contains(self));
-			row.put("vip", t.people().stream().anyMatch(vips::contains));
-			rows.add(row);
-		}
-		// stable: recency stays the tie-break
-		rows.sort((x, y) -> {
-			int a = (Boolean.TRUE.equals(x.get("vip")) ? 2 : 0) + (Boolean.TRUE.equals(x.get("you")) ? 1 : 0);
-			int b = (Boolean.TRUE.equals(y.get("vip")) ? 2 : 0) + (Boolean.TRUE.equals(y.get("you")) ? 1 : 0);
-			return a != b ? b - a : (Integer) y.get("messages") - (Integer) x.get("messages");
-		});
-		List<Candidate> out = new ArrayList<>();
-		for (BrainTopicModel.Proposal p : BrainTopicModel.propose(user, engineId, rows, new ArrayList<>(organisations),
-				takenNames)) {
-			List<Thread> list = p.threadIds().stream().map(threads::get).collect(Collectors.toList());
-			List<String> keywords = List.of(p.name().toLowerCase().split("\\s+"));
-			out.add(new Candidate("model:" + p.name().toLowerCase(), p.name(), list, keywords,
-					p.why().isEmpty() ? list.size() + " threads grouped by the topic model" : p.why(), null));
-		}
-		return out;
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example

@@ -1092,8 +1092,6 @@ public class Constants {
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
-	// opt-in onboarding strategy; unset keeps the legacy proposer
-	public static final String COLLAB_TOPIC_ONBOARDING_STRATEGY = "COLLAB_TOPIC_ONBOARDING_STRATEGY";
 	// the platform agent (workspace id) that powers a Work thread's assistant
 	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
 
