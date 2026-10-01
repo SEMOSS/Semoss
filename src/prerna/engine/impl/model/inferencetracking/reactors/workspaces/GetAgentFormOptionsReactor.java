@@ -37,11 +37,12 @@ public class GetAgentFormOptionsReactor extends AbstractReactor {
 			options.put("default_tools", new ArrayList<>());
 		}
 		options.put("known_hook_kinds", new ArrayList<>(AgentHookRegistry.knownKinds()));
+		options.put("hook_capabilities", AgentHookRegistry.formCapabilities());
 		return new NounMetadata(options, PixelDataType.MAP);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Get the built-in agent tool catalog and known hook kinds for creating an agent";
+		return "Get the built-in agent tool catalog and hook configuration capabilities for creating an agent";
 	}
 }

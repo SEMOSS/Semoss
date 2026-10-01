@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.agent.hooks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -34,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
@@ -103,6 +106,23 @@ class AgentHookRegistryTest {
 		assertTrue(kinds.contains(AgentHookRegistry.PIXEL));
 		assertTrue(kinds.contains(AgentHookRegistry.GIT_COMMIT));
 		assertTrue(kinds.contains(AgentHookRegistry.LOG_TOOLS));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void pixelCapabilitiesAreAvailableBeforeConfiguration() {
+		Map<String, Map<String, Object>> capabilities = AgentHookRegistry.formCapabilities();
+		Map<String, Object> pixel = capabilities.get(AgentHookRegistry.PIXEL);
+
+		assertNotNull(pixel);
+		assertTrue(((List<String>) pixel.get("events")).contains(PixelReactorHook.EVT_ON_ROOM_CREATION));
+		List<Map<String, Object>> sources = (List<Map<String, Object>>) pixel.get("binding_sources");
+		Map<String, Object> finalText = sources.stream()
+				.filter(source -> "result.finalText".equals(source.get("source")))
+				.findFirst()
+				.orElseThrow();
+		assertEquals(List.of(PixelReactorHook.EVT_AFTER_RUN, PixelReactorHook.EVT_BEFORE_AGENT_DEINIT),
+				finalText.get("events"));
 	}
 
 	// ---------- unknown kinds ----------

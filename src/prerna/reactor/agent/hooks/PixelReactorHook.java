@@ -87,7 +87,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
     private static final Logger logger = LogManager.getLogger(PixelReactorHook.class);
 
     private static final Pattern VARIABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
-    private static final Set<String> KNOWN_BINDING_SOURCES = Set.of(
+    private static final List<String> BINDING_SOURCES = List.of(
             "event", "payload",
             "context", "context.runId", "context.roomId", "context.userId",
             "context.input", "context.spawnDepth",
@@ -95,6 +95,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
             "result.inputMessageId", "result.finalOutputMessageId", "result.toolCallRecords",
             "tool", "tool.name", "tool.callId", "tool.params", "tool.resultContent",
             "tool.durationMs", "tool.success", "tool.iteration");
+    private static final Set<String> KNOWN_BINDING_SOURCES = Set.copyOf(BINDING_SOURCES);
 
     /** Valid event names accepted in the {@code events} filter. */
     public static final String EVT_ON_ROOM_CREATION    = "onRoomCreation";
@@ -113,11 +114,44 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
                 EVT_AFTER_RUN, EVT_BEFORE_AGENT_DEINIT);
     }
 
+    private static final Set<String> RESULT_EVENTS = Set.of(EVT_AFTER_RUN, EVT_BEFORE_AGENT_DEINIT);
+    private static final Set<String> TOOL_EVENTS = Set.of(EVT_BEFORE_TOOL, EVT_AFTER_TOOL);
+    private static final Set<String> AFTER_TOOL_EVENTS = Set.of(EVT_AFTER_TOOL);
+
     private String pixel;
     /** Insight variable name to lifecycle-payload path. */
     private Map<String, String> bindings = Collections.emptyMap();
     /** Subset of {@link #KNOWN_EVENTS} to fire on; empty means fire on all. */
     private Set<String> eventFilter = Collections.emptySet();
+
+    @Override
+    public Map<String, Object> getFormCapabilities() {
+        List<String> events = List.of(
+                EVT_ON_ROOM_CREATION, EVT_BEFORE_RUN, EVT_AFTER_AGENT_INIT,
+                EVT_BEFORE_TOOL, EVT_AFTER_TOOL, EVT_AFTER_RUN, EVT_BEFORE_AGENT_DEINIT);
+        List<Map<String, Object>> bindingSources = new ArrayList<>();
+        for (String source : BINDING_SOURCES) {
+            Set<String> sourceEvents;
+            if (source.equals("result") || source.startsWith("result.")) {
+                sourceEvents = RESULT_EVENTS;
+            } else if (source.equals("tool.resultContent") || source.equals("tool.durationMs")
+                    || source.equals("tool.success")) {
+                sourceEvents = AFTER_TOOL_EVENTS;
+            } else if (source.equals("tool") || source.startsWith("tool.")) {
+                sourceEvents = TOOL_EVENTS;
+            } else {
+                sourceEvents = KNOWN_EVENTS;
+            }
+            Map<String, Object> definition = new LinkedHashMap<>();
+            definition.put("source", source);
+            definition.put("events", events.stream().filter(sourceEvents::contains).toList());
+            bindingSources.add(Collections.unmodifiableMap(definition));
+        }
+        Map<String, Object> capabilities = new LinkedHashMap<>();
+        capabilities.put("events", events);
+        capabilities.put("binding_sources", Collections.unmodifiableList(bindingSources));
+        return Collections.unmodifiableMap(capabilities);
+    }
 
     @Override
     public void configure(JSONObject spec) {
@@ -221,31 +255,52 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
         Room room = ctx.getRoom();
         String roomId = room == null ? null : room.getId();
         Map<String, Object> payload = lifecyclePayload(ctx, roomId, event, result, tool);
+        if (bindings.isEmpty()) {
+            try {
+                logger.debug("[pixel-hook] event={} room={} firing pixel: {}", event, roomId, pixel);
+                runPixelInAgentContext(insight, ctx, pixel);
+            } catch (Exception e) {
+                logger.warn("[pixel-hook] event={} room={} pixel threw — logging and continuing. cause: {}",
+                        event, roomId, e.getMessage(), e);
+            }
+            return;
+        }
+
         VarStore varStore = insight.getVarStore();
-        Map<String, NounMetadata> previousValues = new LinkedHashMap<>();
-        Set<String> absentVariables = new HashSet<>();
-        try {
-            for (Map.Entry<String, String> binding : bindings.entrySet()) {
-                String variableName = binding.getKey();
-                if (varStore.containsKey(variableName)) {
-                    previousValues.put(variableName, varStore.get(variableName));
-                } else {
-                    absentVariables.add(variableName);
+        if (varStore == null) {
+            logger.warn("[pixel-hook] event={} room={} skipped — no variable store on insight", event, roomId);
+            return;
+        }
+        // Parallel tool calls share one Insight and therefore one VarStore. Keep the
+        // bind/run/restore sequence atomic so one hook cannot observe or restore
+        // another tool call's temporary values. VarStore's synchronized methods are
+        // reentrant on this same monitor while the Pixel executes.
+        synchronized (varStore) {
+            Map<String, NounMetadata> previousValues = new LinkedHashMap<>();
+            Set<String> absentVariables = new HashSet<>();
+            try {
+                for (Map.Entry<String, String> binding : bindings.entrySet()) {
+                    String variableName = binding.getKey();
+                    if (varStore.containsKey(variableName)) {
+                        previousValues.put(variableName, varStore.get(variableName));
+                    } else {
+                        absentVariables.add(variableName);
+                    }
+                    Object value = resolvePayloadValue(payload, binding.getValue());
+                    varStore.put(variableName, NounMetadata.predictNounMetadata(value));
                 }
-                Object value = resolvePayloadValue(payload, binding.getValue());
-                varStore.put(variableName, NounMetadata.predictNounMetadata(value));
-            }
-            logger.debug("[pixel-hook] event={} room={} firing pixel: {}", event, roomId, pixel);
-            runPixelInAgentContext(insight, ctx, pixel);
-        } catch (Exception e) {
-            logger.warn("[pixel-hook] event={} room={} pixel threw — logging and continuing. cause: {}",
-                    event, roomId, e.getMessage(), e);
-        } finally {
-            for (String variableName : absentVariables) {
-                varStore.remove(variableName);
-            }
-            for (Map.Entry<String, NounMetadata> previous : previousValues.entrySet()) {
-                varStore.put(previous.getKey(), previous.getValue());
+                logger.debug("[pixel-hook] event={} room={} firing pixel: {}", event, roomId, pixel);
+                runPixelInAgentContext(insight, ctx, pixel);
+            } catch (Exception e) {
+                logger.warn("[pixel-hook] event={} room={} pixel threw — logging and continuing. cause: {}",
+                        event, roomId, e.getMessage(), e);
+            } finally {
+                for (String variableName : absentVariables) {
+                    varStore.remove(variableName);
+                }
+                for (Map.Entry<String, NounMetadata> previous : previousValues.entrySet()) {
+                    varStore.put(previous.getKey(), previous.getValue());
+                }
             }
         }
     }
