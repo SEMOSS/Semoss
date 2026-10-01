@@ -1445,6 +1445,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__TYPE", "==", accessToken.getProvider()));
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__USERID", "==", accessToken.getId()));
+		qs.addExplicitFilter(getUnexpiredFilter("CUSTOMGROUPASSIGNMENT__ENDDATE"));
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
 			while (wrapper.hasNext()) {
 				Object[] values = wrapper.next().getValues();

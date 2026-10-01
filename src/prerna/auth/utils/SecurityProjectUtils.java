@@ -66,6 +66,7 @@ import prerna.project.api.IProject;
 import prerna.project.impl.ProjectHelper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
@@ -3522,40 +3523,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					groupProjectPermission + "PERMISSION", "PERMISSION"));
 			qs3.addGroupBy(new QueryColumnSelector(groupProjectPermission + "PROJECTID", "PROJECTID"));
 
-			// filter on groups
-			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				AccessToken accessToken = user.getAccessToken(login);
-				Collection<String> userGroups = accessToken.getUserGroups();
-				String userGroupType = accessToken.getUserGroupType();
-				Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
-				if (!userCustomGroups.isEmpty()) {
-					AndQueryFilter customAndFilter = new AndQueryFilter();
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", "CUSTOM"));
-					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==",
-							userCustomGroups));
-					groupProjectOrFilters.addFilter(customAndFilter);
-				}
-				if (!userGroups.isEmpty()) {
-					AndQueryFilter andFilter = new AndQueryFilter();
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", userGroupType));
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", userGroups));
-					groupProjectOrFilters.addFilter(andFilter);
-				}
-			}
-
-			if (!groupProjectOrFilters.isEmpty()) {
-				qs3.addExplicitFilter(groupProjectOrFilters);
-			} else {
-				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", null));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", null));
-				qs3.addExplicitFilter(andFilter1);
-			}
+			qs3.addExplicitFilter(getUserGroupPermissionFilter(user, groupProjectPermission));
 
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "=" });
@@ -3645,47 +3613,6 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTMETA__METAVALUE", "==",
 						projectMetadataFilter.get(k)));
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", subQs));
-			}
-		}
-
-		{
-			// first lets make sure we have any groups
-			OrQueryFilter groupProjectOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				AccessToken accessToken = user.getAccessToken(login);
-				Collection<String> userGroups = accessToken.getUserGroups();
-				String userGroupType = accessToken.getUserGroupType();
-				Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
-				if (userGroups.isEmpty() && userCustomGroups.isEmpty()) {
-					continue;
-				}
-				if (!userCustomGroups.isEmpty()) {
-					AndQueryFilter customAndFilter = new AndQueryFilter();
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", "CUSTOM"));
-					customAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==",
-							userCustomGroups));
-					groupProjectOrFilters.addFilter(customAndFilter);
-				}
-				if (!userGroups.isEmpty()) {
-					AndQueryFilter andFilter = new AndQueryFilter();
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", userGroupType));
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", userGroups));
-					groupProjectOrFilters.addFilter(andFilter);
-				}
-			}
-			// 4.a does the group have explicit access
-			if (!groupProjectOrFilters.isEmpty()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "==", subQs));
-
-				// we need to have the insight filters
-				subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID"));
-				subQs.addExplicitFilter(groupProjectOrFilters);
 			}
 		}
 
@@ -3780,33 +3707,26 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs2.addSelector(new QueryColumnSelector(projectPermissionPrefix + "PROJECTID", "PROJECTID"));
 			qs2.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(projectPermissionPrefix + "USERID", "==", userIds));
-			orFilter.addFilter(
-					SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", existingAccessComparator, qs2));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPermissionPrefix + "PERMISSION", "!=",
+					null, PixelDataType.CONST_INT));
+			IQueryFilter directAccess = SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID",
+					existingAccessComparator, qs2);
+			if (includeExistingAccess) {
+				orFilter.addFilter(directAccess);
+			} else {
+				qs1.addExplicitFilter(directAccess);
+			}
 		}
 		{
-			// filter on groups
-			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				if (user.getAccessToken(login).getUserGroups().isEmpty()) {
-					continue;
-				}
-
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "TYPE", "==",
-						user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermissionPrefix + "ID", "==",
-						user.getAccessToken(login).getUserGroups()));
-				groupEngineOrFilters.addFilter(andFilter);
-			}
-
-			if (!groupEngineOrFilters.isEmpty()) {
-				SelectQueryStruct qs3 = new SelectQueryStruct();
-				qs3.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
-				qs3.addExplicitFilter(groupEngineOrFilters);
-
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID",
-						existingAccessComparator, qs3));
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupProjectPermissionPrefix + "PROJECTID", "PROJECTID"));
+			qs3.addExplicitFilter(getUserGroupPermissionFilter(user, groupProjectPermissionPrefix));
+			IQueryFilter groupAccess = SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID",
+					existingAccessComparator, qs3);
+			if (includeExistingAccess) {
+				orFilter.addFilter(groupAccess);
+			} else {
+				qs1.addExplicitFilter(groupAccess);
 			}
 		}
 
@@ -3885,25 +3805,24 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		if (projectFilter != null && !projectFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECT__PROJECTID", "==", projectFilter));
 		}
-		boolean addGroupProjectPermissionJoin = false;
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(
 					SimpleQueryFilter.makeColToValFilter("PROJECT__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-			orFilter.addFilter(
+			AndQueryFilter directAccess = new AndQueryFilter();
+			directAccess.addFilter(
 					SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", getUserFiltersQs(user)));
+			directAccess.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.CONST_INT));
+			orFilter.addFilter(directAccess);
 
-			Collection<String> groupIds = getUserGroupFiltersQs(user);
-			if (!groupIds.isEmpty()) {
-				addGroupProjectPermissionJoin = true;
-				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__ID", "==", groupIds));
-			}
+			SelectQueryStruct groupAccess = new SelectQueryStruct();
+			groupAccess.addSelector(new QueryColumnSelector("GROUPPROJECTPERMISSION__PROJECTID"));
+			groupAccess.addExplicitFilter(getUserGroupPermissionFilter(user, "GROUPPROJECTPERMISSION__"));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "==", groupAccess));
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
-		if (addGroupProjectPermissionJoin) {
-			qs.addRelation("PROJECT", "GROUPPROJECTPERMISSION", "left.outer.join");
-		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
@@ -4129,7 +4048,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
 				}
 				try {
-					// we will set the permission to read only
+					// Preserve permissions when updating preferences.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -4155,7 +4074,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
 				}
 				try {
-					// we will set the permission to read only
+					// A preference does not grant direct access.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -4164,7 +4083,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						ps.setBoolean(parameterIndex++, visibility);
 						// default favorite as false
 						ps.setBoolean(parameterIndex++, false);
-						ps.setInt(parameterIndex++, 3);
+						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 
 						ps.addBatch();
 					}
@@ -4216,7 +4135,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
 				try {
-					// we will set the permission to read only
+					// Preserve permissions when updating preferences.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -4243,7 +4162,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
 				}
 				try {
-					// we will set the permission to read only
+					// A preference does not grant direct access.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -4252,7 +4171,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 						// default visibility as true
 						ps.setBoolean(parameterIndex++, true);
 						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setInt(parameterIndex++, 3);
+						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 
 						ps.addBatch();
 					}
