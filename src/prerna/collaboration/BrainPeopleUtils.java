@@ -114,6 +114,54 @@ public final class BrainPeopleUtils {
 		return page;
 	}
 
+	/**
+	 * People to write to: the owner's own contacts first (every word of the query in
+	 * the name or address, closest first), then the Microsoft directory. Automated
+	 * senders are left out.
+	 */
+	public static List<Map<String, Object>> findPeople(User user, String query, int limit) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		List<String> words = java.util.Arrays.stream(query.trim().toLowerCase().split("[\\s,;]+"))
+				.filter(w -> !w.isEmpty()).limit(5).toList();
+		if (words.isEmpty()) {
+			return List.of();
+		}
+		StringBuilder where = new StringBuilder(
+				" WHERE p.OWNER_ID = ? AND p.OWNER_TYPE = ? AND COALESCE(p.RELATIONSHIP, '') <> ?");
+		List<Object> params = new ArrayList<>(List.of(owner.getValue0(), owner.getValue1(), BrainSenderTyping.AUTOMATED));
+		for (String word : words) {
+			where.append(" AND (LOWER(p.DISPLAY_NAME) LIKE ? OR p.EMAIL_NORM LIKE ?)");
+			params.addAll(List.of("%" + word + "%", "%" + word + "%"));
+		}
+		List<Map<String, Object>> out = new ArrayList<>();
+		Set<String> seen = new HashSet<>();
+		for (Map<String, Object> person : CollaborationDbUtils.query(
+				CollaborationDbUtils.page("SELECT " + PERSON_COLUMNS + PERSON_FROM + where
+						+ " ORDER BY COALESCE(p.STRENGTH, 0) DESC, p.LAST_CONTACT_AT DESC, p.PERSON_ID", limit, 0),
+				BrainPeopleUtils::mapPerson, params.toArray())) {
+			Map<String, Object> entry = new LinkedHashMap<>();
+			entry.put("name", person.get("name"));
+			entry.put("email", person.get("email"));
+			entry.put("title", person.get("title"));
+			entry.put("department", person.get("department"));
+			entry.put("relationship", person.get("relationship"));
+			entry.put("lastContact", person.get("lastContact"));
+			entry.put("source", "contacts");
+			out.add(entry);
+			seen.add(String.valueOf(person.get("email")));
+		}
+		if (out.size() < limit) {
+			for (Map<String, Object> person : BrainMailHeaderSource.current().searchDirectory(user, query, limit)) {
+				if (out.size() < limit && seen.add(String.valueOf(person.get("email")))) {
+					Map<String, Object> entry = new LinkedHashMap<>(person);
+					entry.put("source", "directory");
+					out.add(entry);
+				}
+			}
+		}
+		return out;
+	}
+
 	static Map<String, Object> getPerson(String ownerId, String ownerType, String personId) {
 		Map<String, Object> person = CollaborationDbUtils.queryOne(
 				"SELECT " + PERSON_COLUMNS + PERSON_FROM

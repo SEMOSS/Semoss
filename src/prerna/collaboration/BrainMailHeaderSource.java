@@ -71,6 +71,12 @@ public interface BrainMailHeaderSource {
 		return null;
 	}
 
+	// people in the directory whose name or address matches the query: name, email, title, department; empty when
+	// there is no directory
+	default List<Map<String, Object>> searchDirectory(User user, String query, int max) {
+		return List.of();
+	}
+
 	// the owner's direct reports and peers (the manager's other reports), address
 	// to "report" or "peer"
 	default Map<String, String> orgChart(User user, String managerId) {

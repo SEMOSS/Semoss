@@ -328,6 +328,43 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 	}
 
 	@Override
+	public List<Map<String, Object>> searchDirectory(User user, String query, int max) {
+		// $search matches word prefixes in any order, so "ryan weiler" finds "Weiler, Ryan"
+		String text = query.replace("\"", " ").replace("\\", " ").trim();
+		String field = text.contains("@") ? "mail" : "displayName";
+		String url = BASE + "/users?$search=" + encode("\"" + field + ":" + text + "\"") + "&$select=" + USER_SELECT
+				+ "&$top=" + Math.min(max * 2, 50);
+		List<Map<String, Object>> out = new ArrayList<>();
+		try {
+			Map<String, String> headers = MicrosoftLoginUtils
+					.getBearerHeader(MicrosoftLoginUtils.getValidAccessToken(user));
+			// $search on users needs eventual consistency
+			headers.put("ConsistencyLevel", "eventual");
+			for (Map<String, Object> row : values(
+					CollaborationDbUtils.parseMap(HttpHelperUtility.getRequest(url, headers, null, null, null)))) {
+				String email = address(row);
+				// admin and service accounts have no mailbox
+				if (email == null || row.get("mail") == null || Boolean.FALSE.equals(row.get("accountEnabled"))) {
+					continue;
+				}
+				Map<String, Object> person = new LinkedHashMap<>();
+				person.put("name", row.get("displayName"));
+				person.put("email", email);
+				person.put("title", row.get("jobTitle"));
+				person.put("department", row.get("department"));
+				person.put("guest", "Guest".equalsIgnoreCase(String.valueOf(row.get("userType"))));
+				out.add(person);
+				if (out.size() >= max) {
+					break;
+				}
+			}
+		} catch (Exception e) {
+			classLogger.warn("Directory search failed: {}", e.getMessage());
+		}
+		return out;
+	}
+
+	@Override
 	public Map<String, String> orgChart(User user, String managerId) {
 		Map<String, String> out = new LinkedHashMap<>();
 		try {

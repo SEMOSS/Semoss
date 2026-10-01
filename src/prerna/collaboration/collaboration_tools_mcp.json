@@ -1,0 +1,1399 @@
+{
+  "_meta": {
+    "last_modified_date": "2026-09-25"
+  },
+  "tools": [
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListCalendars_Arguments",
+        "properties": {
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of calendars to return. All calendars are returned when omitted.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "name": "ListCalendars",
+      "description": "List the Microsoft 365 calendars of the signed in user.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarListCalendars",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Calendars"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListEvents_Arguments",
+        "properties": {
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "includeBody": {
+            "description": "Optional boolean for whether the event body comes back. Defaults to false, since a listing is usually about when rather than what.",
+            "title": "includeBody",
+            "type": "string"
+          },
+          "calendarId": {
+            "description": "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.",
+            "title": "calendarId",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Optional text the subject has to contain, matched without regard to case.",
+            "title": "subject",
+            "type": "string"
+          },
+          "start": {
+            "description": "Optional start of the window as an ISO 8601 date and time. Defaults to now.",
+            "title": "start",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of events to return. Defaults to 50 and is capped at 100.",
+            "title": "limit",
+            "type": "integer"
+          },
+          "days": {
+            "description": "Optional number of days the window covers when no end is given. Defaults to 7.",
+            "title": "days",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Optional time zone that times without an offset are read and answered in, such as Eastern Standard Time or America/New_York. Defaults to UTC.",
+            "title": "timeZone",
+            "type": "string"
+          },
+          "end": {
+            "description": "Optional end of the window as an ISO 8601 date and time. Defaults to the number of days after the start.",
+            "title": "end",
+            "type": "string"
+          },
+          "maxBodyChars": {
+            "description": "Optional longest body to return before it is truncated. Defaults to 10000.",
+            "title": "maxBodyChars",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "ListEvents",
+      "description": "Read the events on a Microsoft 365 calendar, the signed in user's own or one shared or delegated to them.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarListEvents",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Events"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetEvent_Arguments",
+        "properties": {
+          "eventId": {
+            "description": "Id of the event to read, as returned by MicrosoftCalendarListEvents.",
+            "title": "eventId",
+            "type": "string"
+          },
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "calendarId": {
+            "description": "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.",
+            "title": "calendarId",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Optional time zone that times without an offset are read and answered in, such as Eastern Standard Time or America/New_York. Defaults to UTC.",
+            "title": "timeZone",
+            "type": "string"
+          },
+          "maxBodyChars": {
+            "description": "Optional longest body to return before it is truncated. Defaults to 10000.",
+            "title": "maxBodyChars",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "name": "GetEvent",
+      "description": "Read one event from a Microsoft 365 calendar, the signed in user's own or one shared or delegated to them.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarGetEvent",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Event"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetSchedule_Arguments",
+        "properties": {
+          "schedules": {
+            "description": "Email addresses of the mailboxes to look at, passed as several values or as one comma separated value.",
+            "title": "schedules",
+            "type": "string"
+          },
+          "start": {
+            "description": "Optional start of the window as an ISO 8601 date and time. Defaults to now.",
+            "title": "start",
+            "type": "string"
+          },
+          "days": {
+            "description": "Optional number of days the window covers when no end is given. Defaults to 1.",
+            "title": "days",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Optional time zone that times without an offset are read and answered in, such as Eastern Standard Time or America/New_York. Defaults to UTC.",
+            "title": "timeZone",
+            "type": "string"
+          },
+          "end": {
+            "description": "Optional end of the window as an ISO 8601 date and time. Defaults to the number of days after the start.",
+            "title": "end",
+            "type": "string"
+          },
+          "availabilityViewInterval": {
+            "description": "Optional number of minutes each slot of the availability view covers. Defaults to 30 and must be between 5 and 1440.",
+            "title": "availabilityViewInterval",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schedules"
+        ]
+      },
+      "name": "GetSchedule",
+      "description": "Read the free and busy times of one or more Microsoft 365 mailboxes, to find a time that suits everybody.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarGetSchedule",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Schedule"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "CreateEvent_Arguments",
+        "properties": {
+          "isOnlineMeeting": {
+            "description": "Optional boolean for whether a Microsoft Teams meeting link is created for the event.",
+            "title": "isOnlineMeeting",
+            "type": "string"
+          },
+          "showAs": {
+            "description": "Optional way the time reads on the calendar, one of [free, tentative, busy, oof, workingElsewhere, unknown].",
+            "title": "showAs",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Subject line of the event.",
+            "title": "subject",
+            "type": "string"
+          },
+          "attendees": {
+            "description": "Optional email addresses of the required attendees, passed as several values or as one comma separated value.",
+            "title": "attendees",
+            "type": "string"
+          },
+          "importance": {
+            "description": "Optional importance of the event, one of [low, normal, high].",
+            "title": "importance",
+            "type": "string"
+          },
+          "start": {
+            "description": "Start as an ISO 8601 date and time, such as 2026-09-01T13:00:00 in the given time zone or 2026-09-01T17:00:00Z in UTC.",
+            "title": "start",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Optional time zone that times without an offset are read and answered in, such as Eastern Standard Time or America/New_York. Defaults to UTC.",
+            "title": "timeZone",
+            "type": "string"
+          },
+          "message": {
+            "description": "Body of the invitation, describing what the event is about.",
+            "title": "message",
+            "type": "string"
+          },
+          "optionalAttendees": {
+            "description": "Optional email addresses of the optional attendees, passed as several values or as one comma separated value.",
+            "title": "optionalAttendees",
+            "type": "string"
+          },
+          "isAllDay": {
+            "description": "Optional boolean for whether the event covers whole days. The start and end are read as dates when it is true, and the end is the day after the last day.",
+            "title": "isAllDay",
+            "type": "string"
+          },
+          "reminderMinutesBeforeStart": {
+            "description": "Optional number of minutes before the start that the reminder fires.",
+            "title": "reminderMinutesBeforeStart",
+            "type": "string"
+          },
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "calendarId": {
+            "description": "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.",
+            "title": "calendarId",
+            "type": "string"
+          },
+          "end": {
+            "description": "End as an ISO 8601 date and time, such as 2026-09-01T14:00:00 in the given time zone or 2026-09-01T18:00:00Z in UTC.",
+            "title": "end",
+            "type": "string"
+          },
+          "location": {
+            "description": "Optional place the event is held.",
+            "title": "location",
+            "type": "string"
+          },
+          "html": {
+            "description": "Optional boolean for whether the body is html rather than plain text. Defaults to false.",
+            "title": "html",
+            "type": "string"
+          },
+          "categories": {
+            "description": "Optional categories to tag the event with, passed as several values or as one comma separated value.",
+            "title": "categories",
+            "type": "string"
+          }
+        },
+        "required": [
+          "start",
+          "end"
+        ]
+      },
+      "name": "CreateEvent",
+      "description": "Create an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, inviting anybody named as an attendee.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarCreateEvent",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Create Event"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "UpdateEvent_Arguments",
+        "properties": {
+          "eventId": {
+            "description": "Id of the event to change, as returned by MicrosoftCalendarListEvents.",
+            "title": "eventId",
+            "type": "string"
+          },
+          "isOnlineMeeting": {
+            "description": "Optional boolean for whether a Microsoft Teams meeting link is created for the event.",
+            "title": "isOnlineMeeting",
+            "type": "string"
+          },
+          "showAs": {
+            "description": "Optional way the time reads on the calendar, one of [free, tentative, busy, oof, workingElsewhere, unknown].",
+            "title": "showAs",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Subject line of the event.",
+            "title": "subject",
+            "type": "string"
+          },
+          "attendees": {
+            "description": "Optional email addresses of the required attendees. Passing any attendees replaces the whole guest list, so pass everybody who should be on it.",
+            "title": "attendees",
+            "type": "string"
+          },
+          "importance": {
+            "description": "Optional importance of the event, one of [low, normal, high].",
+            "title": "importance",
+            "type": "string"
+          },
+          "start": {
+            "description": "Start as an ISO 8601 date and time, such as 2026-09-01T13:00:00 in the given time zone or 2026-09-01T17:00:00Z in UTC.",
+            "title": "start",
+            "type": "string"
+          },
+          "timeZone": {
+            "description": "Optional time zone that times without an offset are read and answered in, such as Eastern Standard Time or America/New_York. Defaults to UTC.",
+            "title": "timeZone",
+            "type": "string"
+          },
+          "message": {
+            "description": "Body of the invitation, describing what the event is about.",
+            "title": "message",
+            "type": "string"
+          },
+          "optionalAttendees": {
+            "description": "Optional email addresses of the optional attendees. Passing any attendees replaces the whole guest list, so pass everybody who should be on it.",
+            "title": "optionalAttendees",
+            "type": "string"
+          },
+          "isAllDay": {
+            "description": "Optional boolean for whether the event covers whole days. The start and end are read as dates when it is true, and the end is the day after the last day.",
+            "title": "isAllDay",
+            "type": "string"
+          },
+          "reminderMinutesBeforeStart": {
+            "description": "Optional number of minutes before the start that the reminder fires.",
+            "title": "reminderMinutesBeforeStart",
+            "type": "string"
+          },
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "calendarId": {
+            "description": "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.",
+            "title": "calendarId",
+            "type": "string"
+          },
+          "end": {
+            "description": "End as an ISO 8601 date and time, such as 2026-09-01T14:00:00 in the given time zone or 2026-09-01T18:00:00Z in UTC.",
+            "title": "end",
+            "type": "string"
+          },
+          "location": {
+            "description": "Optional place the event is held.",
+            "title": "location",
+            "type": "string"
+          },
+          "html": {
+            "description": "Optional boolean for whether the body is html rather than plain text. Defaults to false.",
+            "title": "html",
+            "type": "string"
+          },
+          "categories": {
+            "description": "Optional categories to tag the event with, passed as several values or as one comma separated value.",
+            "title": "categories",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "name": "UpdateEvent",
+      "description": "Change an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, leaving whatever is not passed as it was.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarUpdateEvent",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Update Event"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "DeleteEvent_Arguments",
+        "properties": {
+          "eventId": {
+            "description": "Id of the event to delete, as returned by MicrosoftCalendarListEvents.",
+            "title": "eventId",
+            "type": "string"
+          },
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "calendarId": {
+            "description": "Optional id of the calendar to work against. The default calendar of the mailbox is used when omitted.",
+            "title": "calendarId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId"
+        ]
+      },
+      "name": "DeleteEvent",
+      "description": "Delete an event from a Microsoft 365 calendar, the signed in user's own or one shared with them to write, canceling it for the attendees when the calendar's owner organized it.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarDeleteEvent",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Delete Event"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "RespondToEvent_Arguments",
+        "properties": {
+          "eventId": {
+            "description": "Id of the event to reply to, as returned by MicrosoftCalendarListEvents.",
+            "title": "eventId",
+            "type": "string"
+          },
+          "mailbox": {
+            "description": "Optional email address or user id of somebody whose calendar was shared or delegated to the signed in user, which reads and writes that person's calendar instead of the user's own. Their own mailbox is used when omitted.",
+            "title": "mailbox",
+            "type": "string"
+          },
+          "response": {
+            "description": "The reply, one of accept, decline or tentative.",
+            "title": "response",
+            "type": "string"
+          },
+          "comment": {
+            "description": "Optional note sent to the organizer along with the reply.",
+            "title": "comment",
+            "type": "string"
+          },
+          "sendResponse": {
+            "description": "Optional boolean for whether the organizer is told of the reply. Defaults to true.",
+            "title": "sendResponse",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventId",
+          "response"
+        ]
+      },
+      "name": "RespondToEvent",
+      "description": "Accept, decline or tentatively accept a Microsoft 365 meeting invitation, as the signed in user or on behalf of somebody they are a delegate of.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftCalendarRespondToEvent",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Respond to Event"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListMail_Arguments",
+        "properties": {
+          "folder": {
+            "description": "Optional mail folder to read, by well known name such as inbox or sentitems, or by folder id. Defaults to inbox.",
+            "title": "folder",
+            "type": "string"
+          },
+          "includeBody": {
+            "description": "Optional boolean for whether the message body comes back. Defaults to true.",
+            "title": "includeBody",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Optional text the subject has to contain. Searching by text cannot be combined with a date, which is applied afterwards.",
+            "title": "subject",
+            "type": "string"
+          },
+          "sinceDays": {
+            "description": "Optional number of days back to read. All messages in the folder are considered when omitted.",
+            "title": "sinceDays",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of messages to return. Defaults to 10 and is capped at 100.",
+            "title": "limit",
+            "type": "integer"
+          },
+          "from": {
+            "description": "Optional text the sender has to contain.",
+            "title": "from",
+            "type": "string"
+          },
+          "unreadOnly": {
+            "description": "Optional boolean to return only messages that have not been read. Defaults to false.",
+            "title": "unreadOnly",
+            "type": "string"
+          },
+          "maxBodyChars": {
+            "description": "Optional longest body to return before it is truncated. Defaults to 10000.",
+            "title": "maxBodyChars",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "ListMail",
+      "description": "Read the mail of the signed in user's own Microsoft 365 mailbox.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOutlookListMail",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Mail"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SaveDraft_Arguments",
+        "properties": {
+          "cc": {
+            "description": "Recipients to copy on the email.",
+            "title": "cc",
+            "type": "string"
+          },
+          "bcc": {
+            "description": "Recipients to blind copy on the email.",
+            "title": "bcc",
+            "type": "string"
+          },
+          "attachments": {
+            "description": "Optional files to attach, named relative to the insight folder. Roughly 4MB in total is accepted.",
+            "title": "attachments",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Optional subject line of the draft.",
+            "title": "subject",
+            "type": "string"
+          },
+          "html": {
+            "description": "Optional boolean for whether the body is html rather than plain text. Defaults to false.",
+            "title": "html",
+            "type": "string"
+          },
+          "to": {
+            "description": "Optional recipients of the draft, which can be left for the person reviewing it to fill in.",
+            "title": "to",
+            "type": "string"
+          },
+          "message": {
+            "description": "Optional body of the draft.",
+            "title": "message",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "SaveDraft",
+      "description": "Save an email as a draft in the signed in user's own Microsoft 365 mailbox, for them to review and send.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOutlookSaveDraft",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Save Draft"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SendDraft_Arguments",
+        "properties": {
+          "draftId": {
+            "description": "Id of the draft to send, as returned by MicrosoftOutlookSaveDraft or by reading the drafts folder.",
+            "title": "draftId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "draftId"
+        ]
+      },
+      "name": "SendDraft",
+      "description": "Send a draft that is already saved in the signed in user's own Microsoft 365 mailbox.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOutlookSendDraft",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Send Draft"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SendMail_Arguments",
+        "properties": {
+          "cc": {
+            "description": "Recipients to copy on the email.",
+            "title": "cc",
+            "type": "string"
+          },
+          "bcc": {
+            "description": "Recipients to blind copy on the email.",
+            "title": "bcc",
+            "type": "string"
+          },
+          "attachments": {
+            "description": "Optional files to attach, named relative to the insight folder. Roughly 4MB in total is accepted.",
+            "title": "attachments",
+            "type": "string"
+          },
+          "subject": {
+            "description": "Subject line of the email.",
+            "title": "subject",
+            "type": "string"
+          },
+          "saveToSentItems": {
+            "description": "Optional boolean for whether a copy is kept in the sender's Sent Items. Defaults to true.",
+            "title": "saveToSentItems",
+            "type": "string"
+          },
+          "html": {
+            "description": "Optional boolean for whether the body is html rather than plain text. Defaults to false.",
+            "title": "html",
+            "type": "string"
+          },
+          "to": {
+            "description": "Recipients of the email. At least one of to, cc or bcc is required.",
+            "title": "to",
+            "type": "string"
+          },
+          "message": {
+            "description": "Body of the email.",
+            "title": "message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "name": "SendMail",
+      "description": "Send an email as the signed in user from their own Microsoft 365 mailbox.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOutlookSendMail",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Send Mail"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListTeams_Arguments",
+        "properties": {
+          "limit": {
+            "description": "Optional maximum number of teams to return. All teams are returned when omitted.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "name": "ListTeams",
+      "description": "List the Microsoft Teams that the user has joined.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsListTeams",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Teams"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListChannels_Arguments",
+        "properties": {
+          "teamId": {
+            "description": "Microsoft Teams team ID whose channels should be listed.",
+            "title": "teamId",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of channels to return. All channels are returned when omitted.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "teamId"
+        ]
+      },
+      "name": "ListChannels",
+      "description": "List the channels within a Microsoft Team.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsListChannels",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Channels"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListChannelFiles_Arguments",
+        "properties": {
+          "folderPath": {
+            "description": "Optional folder path relative to the channel root folder. The channel root folder is listed when omitted.",
+            "title": "folderPath",
+            "type": "string"
+          },
+          "teamId": {
+            "description": "Microsoft Teams team ID that owns the channel.",
+            "title": "teamId",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of files to return. All files are returned when omitted.",
+            "title": "limit",
+            "type": "integer"
+          },
+          "channelId": {
+            "description": "Microsoft Teams channel ID whose files should be listed.",
+            "title": "channelId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "channelId"
+        ]
+      },
+      "name": "ListChannelFiles",
+      "description": "List the files stored in a Microsoft Teams channel.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsListFiles",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Channel Files"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "DownloadChannelFile_Arguments",
+        "properties": {
+          "fileName": {
+            "description": "Optional name to save the file as in the insight folder. The name it carries in the channel is used when omitted.",
+            "title": "fileName",
+            "type": "string"
+          },
+          "driveId": {
+            "description": "Optional SharePoint drive ID returned by MicrosoftTeamsListFiles, which skips the channel lookup.",
+            "title": "driveId",
+            "type": "string"
+          },
+          "teamId": {
+            "description": "Microsoft Teams team ID that owns the channel. Not needed when the drive ID is supplied.",
+            "title": "teamId",
+            "type": "string"
+          },
+          "id": {
+            "description": "Drive item ID of the file to download, as returned by MicrosoftTeamsListFiles.",
+            "title": "id",
+            "type": "string"
+          },
+          "channelId": {
+            "description": "Microsoft Teams channel ID that holds the file. Not needed when the drive ID is supplied.",
+            "title": "channelId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "name": "DownloadChannelFile",
+      "description": "Download a file from a Microsoft Teams channel into the insight folder.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsDownloadFile",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Download Channel File"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "UploadChannelFile_Arguments",
+        "properties": {
+          "folderPath": {
+            "description": "Optional folder path relative to the channel root folder. The file lands in the channel root folder when omitted.",
+            "title": "folderPath",
+            "type": "string"
+          },
+          "teamId": {
+            "description": "Microsoft Teams team ID that owns the channel.",
+            "title": "teamId",
+            "type": "string"
+          },
+          "filePath": {
+            "description": "Path of the file to upload, relative to the insight folder.",
+            "title": "filePath",
+            "type": "string"
+          },
+          "name": {
+            "description": "Optional name to assign to the uploaded file in the channel. The source file name is used when omitted.",
+            "title": "name",
+            "type": "string"
+          },
+          "conflictBehavior": {
+            "description": "Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.",
+            "title": "conflictBehavior",
+            "type": "string"
+          },
+          "channelId": {
+            "description": "Microsoft Teams channel ID to upload into.",
+            "title": "channelId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "teamId",
+          "channelId",
+          "filePath"
+        ]
+      },
+      "name": "UploadChannelFile",
+      "description": "Upload a file from the insight folder into a Microsoft Teams channel.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsUploadFile",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Upload Channel File"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListChats_Arguments",
+        "properties": {
+          "limit": {
+            "description": "Optional maximum number of chats to return. Defaults to 50 and is capped at 200.",
+            "title": "limit",
+            "type": "integer"
+          },
+          "includeLastMessage": {
+            "description": "Optional boolean for whether the last message of each chat comes back, which is also what decides whether the chat is reported as unread. Defaults to false.",
+            "title": "includeLastMessage",
+            "type": "string"
+          },
+          "unreadOnly": {
+            "description": "Optional boolean for returning only the chats holding messages the signed in user has not read. Defaults to false.",
+            "title": "unreadOnly",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "ListChats",
+      "description": "List the Microsoft Teams chats the signed in user is part of, and say which of them hold unread messages.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsListChats",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Chats"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetChat_Arguments",
+        "properties": {
+          "chatId": {
+            "description": "Microsoft Teams chat id, as returned by MicrosoftTeamsListChats.",
+            "title": "chatId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ]
+      },
+      "name": "GetChat",
+      "description": "Read one Microsoft Teams chat, including who is in it.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsGetChat",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Chat"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListChatMessages_Arguments",
+        "properties": {
+          "chatId": {
+            "description": "Microsoft Teams chat id, as returned by MicrosoftTeamsListChats.",
+            "title": "chatId",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of messages to return. Defaults to 50 and is capped at 200.",
+            "title": "limit",
+            "type": "integer"
+          },
+          "maxBodyChars": {
+            "description": "Optional longest message body to return before it is truncated. Defaults to 10000.",
+            "title": "maxBodyChars",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId"
+        ]
+      },
+      "name": "ListChatMessages",
+      "description": "Read the messages of a Microsoft Teams chat, most recent first.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsListChatMessages",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Chat Messages"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetChatMessage_Arguments",
+        "properties": {
+          "chatId": {
+            "description": "Microsoft Teams chat id, as returned by MicrosoftTeamsListChats.",
+            "title": "chatId",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Id of the message, as returned by the Microsoft Teams message listings.",
+            "title": "messageId",
+            "type": "string"
+          },
+          "maxBodyChars": {
+            "description": "Optional longest message body to return before it is truncated. Defaults to 10000.",
+            "title": "maxBodyChars",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chatId",
+          "messageId"
+        ]
+      },
+      "name": "GetChatMessage",
+      "description": "Read one message of a Microsoft Teams chat.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsGetChatMessage",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get Chat Message"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SendChatMessage_Arguments",
+        "properties": {
+          "chatId": {
+            "description": "Id of the chat to send to, as returned by MicrosoftTeamsListChats. Not needed when recipients are named.",
+            "title": "chatId",
+            "type": "string"
+          },
+          "recipients": {
+            "description": "Email addresses or user ids to message, passed as several values or as one comma separated value. The one on one chat with one person is used or started, and several people are put in a group chat. Not needed when a chat id is given.",
+            "title": "recipients",
+            "type": "string"
+          },
+          "mentions": {
+            "description": "Optional email addresses or user ids to mention, which is what notifies those people. Passed as several values or as one comma separated value.",
+            "title": "mentions",
+            "type": "string"
+          },
+          "html": {
+            "description": "Optional boolean for whether the message is html rather than plain text. Defaults to false.",
+            "title": "html",
+            "type": "string"
+          },
+          "message": {
+            "description": "What the message says.",
+            "title": "message",
+            "type": "string"
+          },
+          "attachmentUrls": {
+            "description": "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl returned by MicrosoftOneDriveUploadFile or MicrosoftTeamsUploadFile.",
+            "title": "attachmentUrls",
+            "type": "string"
+          },
+          "attachmentNames": {
+            "description": "Optional names to show the attached files under, in the same order as the urls. The name each url ends in is used when omitted.",
+            "title": "attachmentNames",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "name": "SendChatMessage",
+      "description": "Send a message in a Microsoft Teams chat, either to an existing chat or to the people named.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsSendChatMessage",
+        "SMSS_MCP_EXECUTION": "ask"
+      },
+      "title": "Send Chat Message"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "DownloadMessageAttachment_Arguments",
+        "properties": {
+          "fileName": {
+            "description": "Optional name to save the file as in the insight folder. The name the attachment carries is used when omitted, which a pasted image does not have.",
+            "title": "fileName",
+            "type": "string"
+          },
+          "chatId": {
+            "description": "Id of the chat holding the message. Not needed when a team id and channel id are given.",
+            "title": "chatId",
+            "type": "string"
+          },
+          "teamId": {
+            "description": "Id of the team holding the message. Not needed when a chat id is given.",
+            "title": "teamId",
+            "type": "string"
+          },
+          "replyId": {
+            "description": "Optional id of a reply to the message, which is what is acted on when it is given.",
+            "title": "replyId",
+            "type": "string"
+          },
+          "messageId": {
+            "description": "Id of the message, as returned by the Microsoft Teams message listings.",
+            "title": "messageId",
+            "type": "string"
+          },
+          "attachmentId": {
+            "description": "Optional id or name of the attachment, as returned on the message. The only attachment is taken when the message has one.",
+            "title": "attachmentId",
+            "type": "string"
+          },
+          "channelId": {
+            "description": "Id of the channel holding the message. Not needed when a chat id is given.",
+            "title": "channelId",
+            "type": "string"
+          }
+        },
+        "required": [
+          "messageId"
+        ]
+      },
+      "name": "DownloadMessageAttachment",
+      "description": "Download a file or an image attached to a Microsoft Teams chat or channel message into the insight folder.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftTeamsDownloadMessageAttachment",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Download Message Attachment"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListDrives_Arguments",
+        "properties": {
+          "limit": {
+            "description": "Optional maximum number of drives to return. All drives are returned when omitted.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "name": "ListDrives",
+      "description": "List the OneDrive drives the signed in user can reach: their own, and the drives holding the files shared with them.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveListDrives",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Drives"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListDriveFiles_Arguments",
+        "properties": {
+          "itemId": {
+            "description": "Optional id of the folder to list. The drive root is listed when omitted.",
+            "title": "itemId",
+            "type": "string"
+          },
+          "path": {
+            "description": "Optional path of the folder to list, relative to the drive root, or relative to the folder the item id names when both are given.",
+            "title": "path",
+            "type": "string"
+          },
+          "driveId": {
+            "description": "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.",
+            "title": "driveId",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of items to return. Defaults to 100 and is capped at 500.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "name": "ListDriveFiles",
+      "description": "List the files and folders inside a OneDrive folder, in the signed in user's own drive or in a drive shared with them.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveListFiles",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Drive Files"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "ListSharedFiles_Arguments",
+        "properties": {
+          "search": {
+            "description": "Optional text the file has to match. Everything shared with the signed in user is returned when omitted.",
+            "title": "search",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of files to return. Defaults to 50 and is capped at 200.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": []
+      },
+      "name": "ListSharedFiles",
+      "description": "List the OneDrive and SharePoint files other people have shared with the signed in user.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveListSharedFiles",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "List Shared Files"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "SearchFiles_Arguments",
+        "properties": {
+          "itemId": {
+            "description": "Optional id of the folder to search under, which only applies to the 'drive' scope. The whole drive is searched when omitted.",
+            "title": "itemId",
+            "type": "string"
+          },
+          "path": {
+            "description": "Optional path of the folder to search under, which only applies to the 'drive' scope.",
+            "title": "path",
+            "type": "string"
+          },
+          "search": {
+            "description": "Text to look for in the file name and contents.",
+            "title": "search",
+            "type": "string"
+          },
+          "driveId": {
+            "description": "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.",
+            "title": "driveId",
+            "type": "string"
+          },
+          "scope": {
+            "description": "Optional place to search, one of [all, drive, shared]. 'all' covers the signed in user's own drive and everything shared with them, 'drive' searches one drive, and 'shared' keeps only what somebody else owns. Defaults to 'drive' when a drive, item or path is named and to 'all' otherwise.",
+            "title": "scope",
+            "type": "string"
+          },
+          "limit": {
+            "description": "Optional maximum number of files to return. Defaults to 50 and is capped at 200.",
+            "title": "limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "search"
+        ]
+      },
+      "name": "SearchFiles",
+      "description": "Search the signed in user's OneDrive files, the files shared with them, or both.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveSearchFiles",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Search Files"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "GetFile_Arguments",
+        "properties": {
+          "itemId": {
+            "description": "Id of the item to read, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.",
+            "title": "itemId",
+            "type": "string"
+          },
+          "path": {
+            "description": "Path of the item to read, relative to the drive root. Not needed when an item id or a sharing link is given.",
+            "title": "path",
+            "type": "string"
+          },
+          "driveId": {
+            "description": "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.",
+            "title": "driveId",
+            "type": "string"
+          },
+          "shareUrl": {
+            "description": "Optional sharing link to the file, which stands in for the drive id, item id and path. Use this for a link somebody sent rather than a file already listed.",
+            "title": "shareUrl",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "GetFile",
+      "description": "Read the details of one OneDrive file or folder, by drive and item, by path, or by the sharing link somebody sent.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveGetFile",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Get File"
+    },
+    {
+      "inputSchema": {
+        "type": "object",
+        "title": "DownloadDriveFile_Arguments",
+        "properties": {
+          "itemId": {
+            "description": "Id of the file to download, as returned by the OneDrive listings. Not needed when a path or a sharing link is given.",
+            "title": "itemId",
+            "type": "string"
+          },
+          "path": {
+            "description": "Path of the file to download, relative to the drive root. Not needed when an item id or a sharing link is given.",
+            "title": "path",
+            "type": "string"
+          },
+          "fileName": {
+            "description": "Optional name to save the file as in the insight folder. The name it carries in the drive is used when omitted.",
+            "title": "fileName",
+            "type": "string"
+          },
+          "driveId": {
+            "description": "Optional id of the drive to work against, as returned by the OneDrive listings. The signed in user's own OneDrive is used when omitted, and another person's drive is named here to reach a file they shared.",
+            "title": "driveId",
+            "type": "string"
+          },
+          "shareUrl": {
+            "description": "Optional sharing link to the file, which stands in for the drive id, item id and path. Use this for a link somebody sent rather than a file already listed.",
+            "title": "shareUrl",
+            "type": "string"
+          }
+        },
+        "required": []
+      },
+      "name": "DownloadDriveFile",
+      "description": "Download a OneDrive file into the insight folder, from the signed in user's own drive, from a drive shared with them, or from a sharing link.",
+      "_meta": {
+        "SMSS_MCP_UI": {
+          "displayLocation": "sidebar"
+        },
+        "SMSS_MCP_GENERATOR": "MakePixelMCP",
+        "SMSS_FUNCTION_NAME": "MicrosoftOneDriveDownloadFile",
+        "SMSS_MCP_EXECUTION": "auto"
+      },
+      "title": "Download Drive File"
+    }
+  ]
+}

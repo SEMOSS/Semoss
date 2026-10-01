@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
@@ -181,6 +182,10 @@ public class SemossAgentHarness implements IAgentHarness {
 				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
+		}
+		// Microsoft 365 tools for every agent in a collaboration room
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.addAll(CollaborationAgentTools.definitions());
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 

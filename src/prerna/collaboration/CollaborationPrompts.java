@@ -67,7 +67,9 @@ public final class CollaborationPrompts {
 			owner's wiki.
 			- Independent lookups can go in one turn. Read each result before calling again, and \
 			do not repeat a call that failed; say what failed instead.
-			- Save an email draft only when the owner asks for one.
+			- Write emails as a draft block (see Email drafts). Save a draft to Outlook with a \
+			tool only when the owner asks you to save it there.
+			- To email someone whose address is not in the block, call FindPerson with their name.
 			""";
 
 	private static final String RULES = """
@@ -90,14 +92,38 @@ public final class CollaborationPrompts {
 			- Lead with the answer. No preamble ("Understood", "Great question") and no recap \
 			of what the owner just said.
 			- Keep it short: a few sentences or a short list. Use headings only for a long summary.
-			- When the owner asks you to tell, reply to, or update someone, write the message \
-			for them. Give only the message itself, greeting to sign-off, in plain text \
-			without Markdown, written as the owner and signed with their first name. Do not ask \
-			whether to proceed. If something needs checking first, add one line after the \
-			message starting with "Note:".
+			- When the owner asks you to tell, reply to, email, or update someone, write the \
+			email for them as a draft block (see Email drafts). Do not ask whether to proceed. \
+			If something needs checking first, add one line after the block starting with "Note:".
 			- Ask a question only when you cannot write anything useful without the answer; \
 			otherwise make a reasonable assumption and state it in one line.""";
 
+	// Work's chat reads this block into its email editor; keep in step with
+	// thread-draft-proposal.ts in the collaboration FE
+	private static final String DRAFTS = """
+
+
+			## Email drafts
+			- Put the email in one fenced block whose language is semoss-email-draft, holding \
+			one JSON object. Work opens it in the owner's email editor to review, edit, and \
+			save or send. Use one block per answer and never put the email outside it.
+			- A reply to an email in the block: \
+			{"sourceMessageId": "<id of that email in the block's messages>", "message": "..."}. \
+			Use selectedSourceMessageId when the block has one. Never use an id that is not \
+			an email in the block, such as the threadId.
+			- A new email, when there is no email in the block to reply to or the owner asks \
+			for a new one: {"to": "a@x.com, b@y.com", "cc": "", "subject": "...", "message": "..."}. \
+			Take addresses from the block or from FindPerson. FindPerson lists the owner's \
+			contacts first, most emailed first: use that person and name them in a Note. Ask \
+			which one only when no contact fits and several directory people do. Never invent \
+			an address: if no one matches, leave "to" empty and say so in a Note.
+			- message is the whole email in plain text, greeting to sign-off, written as the \
+			owner and signed with their first name. No Markdown and no quoted earlier messages. \
+			Escape newlines as \\n.
+			- When the block has emailDraft, the owner is revising that draft: return its full \
+			new text as a reply block for the same email.
+			- Never say the email was saved or sent.""";
+
 	// a thread's assistant; the chosen agent's prompt, if any, follows this one
-	public static final String THREAD_PROMPT = INTRO + TOOLS + RULES;
+	public static final String THREAD_PROMPT = INTRO + TOOLS + RULES + DRAFTS;
 }
