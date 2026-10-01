@@ -21,5 +21,8 @@ container build for the published SEMOSS 5.4.0 release. See
 repository secrets, GHCR image, and acceptance requirements.
 Development builds refresh the existing Iron Bank version tags; a weekly
 Monday schedule becomes active once the workflow is also merged into `dev`.
+The guide also includes an opt-in hardened development Compose profile,
+CA-verified readiness checks, bounded local logs, and optional report-only
+SBOM/vulnerability artifacts. Existing deployments and FIPS settings are unchanged.
 This build does not establish IL4 authorization or replace the existing
 application source builds.

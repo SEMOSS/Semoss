@@ -9,6 +9,8 @@
 !audio_compat.py
 !python_check.py
 !refresh_bases.py
+!readiness.py
+!compose.dev.yml
 !FipsCheck.java
 !JdbcCheck.java
 !JdbcTls.java

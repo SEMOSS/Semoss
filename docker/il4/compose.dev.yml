@@ -1,0 +1,82 @@
+# Opt-in only: docker compose -f compose.dev.yml --profile hardened-dev up -d
+# Supply an approved immutable image digest where possible; nothing is built here.
+# TLS and CA inputs must already exist and be readable by UID/GID 10001:10001.
+# Bind mounts do not correct host ownership or permissions.
+services:
+  semoss:
+    profiles: [hardened-dev]
+    image: ${SEMOSS_IMAGE:?Set SEMOSS_IMAGE (an immutable digest is recommended)}
+    platform: linux/amd64
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 8g
+    cpus: 4
+    pids_limit: 512
+    stop_grace_period: 60s
+    ports:
+      - "127.0.0.1:8443:8443"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev
+      - /opt/tomcat/temp:rw,noexec,nosuid,nodev,uid=10001,gid=10001
+      - /opt/tomcat/work:rw,noexec,nosuid,nodev,uid=10001,gid=10001
+      - /opt/tomcat/logs:rw,noexec,nosuid,nodev,uid=10001,gid=10001
+    volumes:
+      # A new project-scoped volume is seeded by Docker from the image's home.
+      # No existing home is selected, migrated, overwritten, or deleted.
+      - type: volume
+        source: hardened-dev-home
+        target: /opt/semosshome
+      - type: bind
+        source: ${SEMOSS_TLS_KEYSTORE:?Set an absolute path to server.bcfks}
+        target: /run/secrets/server.bcfks
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SEMOSS_TLS_PASSWORD:?Set an absolute path to server.password}
+        target: /run/secrets/server.password
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SEMOSS_READINESS_CA:?Set an absolute path to the readiness PEM CA file}
+        target: /run/secrets/readiness-ca.pem
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./readiness.py
+        target: /opt/semoss-readiness/readiness.py
+        read_only: true
+        bind:
+          create_host_path: false
+    healthcheck:
+      # The URL hostname must match the certificate and resolve to this container.
+      # This reports readiness only: no automatic restart or compliance claim.
+      test:
+        - CMD
+        - /opt/semoss-python/bin/python
+        - -I
+        - /opt/semoss-readiness/readiness.py
+        - --url
+        - ${SEMOSS_READINESS_URL:-https://localhost:8443/Monolith/health/ready}
+        - --ca
+        - /run/secrets/readiness-ca.pem
+        - --timeout
+        - "5"
+      interval: 30s
+      timeout: 8s
+      start_period: 180s
+      retries: 3
+    # Bounded local diagnostics, not centralized audit retention.
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Default Compose networking retains outbound connectivity; no egress denial.
+volumes:
+  hardened-dev-home: {}

@@ -378,6 +378,37 @@ actionlint .github/workflows/il4-container.yml
 These validation tools run locally; no source upload to a third-party lint
 service is required.
 
+### Optional SBOM and vulnerability reports
+
+Reporting is **off by default**. For an individual manual run on `IL4-dev`,
+select the `image_reports` input. To opt in for push and scheduled builds, set
+the repository Actions variable `IL4_IMAGE_REPORTS` to the exact value `true`.
+This change does not set that variable or activate the still-pending schedule.
+
+Reports run **after successful publication**, inspect the same local image,
+and never gate publishing on vulnerability severity. Trivy 0.74.0 is downloaded
+from its versioned release and checked against a pinned SHA-256. It runs locally
+on the build runner, not through a hosted scanning service. It requires egress
+for the release, vulnerability databases, and Java metadata; image contents
+are not uploaded to a third-party scanner.
+
+The optional GitHub artifact `il4-image-reports-<run-id>-<run-attempt>` contains:
+
+- `vulnerabilities.json`: OS/library vulnerability matches, including unfixed
+  findings; only the vulnerability scanner is enabled, not secret scanning.
+- `sbom.cdx.json`: CycloneDX inventory converted from the same scan's package
+  inventory.
+- `image-reference.txt` and `image-digests.json`: the image that was analyzed.
+- `scanner-version.json`: scanner and downloaded database version information.
+
+Artifacts expire after **14 days**; they are development diagnostics, not a
+long-term audit archive or signed attestation. The repository is public: review
+report visibility before opting in and never scan images containing sensitive
+inputs here. Scanner/DB failures and artifact-upload failures are explicitly
+reported in the run summary and warnings, while remaining non-blocking. A
+partial artifact or a green publishing job must not be treated as a clean scan.
+Disabling the input/variable returns to the existing publishing-only behavior.
+
 This build gate does **not** start Tomcat or exercise a live HTTPS handshake,
 backend readiness, administrator login, or live connectors. Follow the runtime
 and acceptance procedures below on the published digest. BC-FIPS/BCJSSE TLS
@@ -448,6 +479,65 @@ stdout/stderr and application audit logs; Tomcat access logs omit query strings.
 Bootstrap/admin endpoints and authentication policy must be restricted before
 network exposure. Review data-source passwords, SSO, proxy trust, upload limits,
 external databases, backup, audit retention, and network policy for your deployment.
+
+### Opt-in hardened development deployment
+
+[compose.dev.yml](./compose.dev.yml) provides a separate `hardened-dev` profile.
+It does not change the image or any running container. FIPS work remains on
+hold: Java, providers, cipher settings, and existing TLS requirements are
+unchanged. Authentication, existing data, repository permissions, and outbound
+connectivity are also unchanged.
+
+From this directory, with already-provisioned TLS and CA files:
+
+```sh
+export SEMOSS_IMAGE='ghcr.io/semoss/semoss-il4@sha256:060aa47f04e5f6c69c8fc6e6d020f0beae5e9ab0469df6f1ebc5eb3091ec73ae'
+export SEMOSS_TLS_KEYSTORE='/absolute/path/server.bcfks'
+export SEMOSS_TLS_PASSWORD='/absolute/path/server.password'
+export SEMOSS_READINESS_CA='/absolute/path/approved-ca.pem'
+
+docker compose -p semoss-hardened-dev -f compose.dev.yml \
+  --profile hardened-dev config --quiet
+docker compose -p semoss-hardened-dev -f compose.dev.yml \
+  --profile hardened-dev up -d
+```
+
+Use an approved image digest; the example identifies the previously tested
+development image, not an automatically updated tag. The host paths must exist;
+missing files are not silently created. The configuration command validates
+Compose structure, not file readability or certificate validity.
+Bind mounts do **not** fix ownership or permissions: provision files readable
+by container UID/GID `10001:10001`, restricting private-key/password access.
+Port 8443 must be free; the profile will not replace an existing container
+already using it. Use a distinct, unused Compose project name for a new instance.
+
+The profile enforces the existing documented runtime restrictions: non-root,
+read-only root, dropped capabilities, no new privileges, noexec/nosuid/nodev
+temporary mounts, and memory/CPU/PID limits. A 60-second stop grace period
+allows orderly shutdown. Docker's local logging driver bounds each container's
+diagnostic logs to three 10 MB files (plus rotation/compression overhead).
+Those logs are not centralized audit retention; existing logs are not migrated.
+
+A new project-scoped home volume is seeded from the image. Subsequent launches
+retain it; existing homes are not selected, migrated, overwritten, or deleted.
+Do not use `down -v` for data you intend to keep. Keep these files available:
+the readiness helper is bind-mounted read-only rather than baked into the image.
+
+[readiness.py](./readiness.py) verifies CA trust and hostname, HTTP 200, and the
+exact JSON boolean `startupComplete: true`. It rejects redirects, credentials
+in URLs, malformed/oversized responses, and bounded-timeout failures without
+logging response bodies. The default URL is
+`https://localhost:8443/Monolith/health/ready`; its hostname must match the
+certificate. If setting `SEMOSS_READINESS_URL`, use a certificate-matching
+hostname that resolves to **this container**, not another deployment.
+Health checks report status only: Compose does not restart an unhealthy
+container automatically. This Python probe does not establish FIPS validation
+or IL4 compliance, and does not weaken TLS verification.
+
+Run its hermetic tests with
+`python3 -m unittest discover -s tests -p 'test_readiness.py' -v`.
+The helper and its tests are deliberately excluded from the image build
+context; the full host-side test suite includes them.
 
 `CATALINA_OPTS` can set reviewed heap limits. The entrypoint rejects global
 `JAVA_TOOL_OPTIONS`, `JDK_JAVA_OPTIONS`, and `JAVA_OPTS` injection. Treat all
@@ -574,6 +664,11 @@ The resolver and its mocked unit tests are also copied into the assembly stage;
 they are not copied into the runtime image. The Docker context explicitly
 re-excludes directory contents before allowing individual files, so opening a
 parent directory does not accidentally include caches or unlisted files.
+
+Additive development safeguards: optional hardened Compose profile,
+CA-verified readiness, bounded local container logs, and opt-in post-publication
+SBOM/vulnerability reports. Defaults, existing deployments and data, FIPS
+configuration, authentication, and network access are unchanged.
 
 Local PostgreSQL validation: added a private-network TLS/SCRAM fixture and the
 `LocalPostgresTLS` connector without changing the application image. The local
