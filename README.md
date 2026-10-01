@@ -13,6 +13,7 @@ This repository contains the **core SEMOSS runtime**: the Java execution engine,
 - [Capabilities](#capabilities)
 - [Architecture and related repositories](#architecture-and-related-repositories)
 - [Quick start with Docker](#quick-start-with-docker)
+- [Weekly IL4 development build](#weekly-il4-development-build)
 - [Complete deployments](#complete-deployments)
 - [Core concepts](#core-concepts)
 - [Building from source](#building-from-source)
@@ -57,6 +58,30 @@ Monolith packages the core runtime as a Java dependency in its WAR. These are la
 | **[SEMOSS-deployment](https://github.com/SEMOSS/SEMOSS-deployment)** | Complete Kubernetes deployment examples and infrastructure configuration | [Deployment guide](https://github.com/SEMOSS/SEMOSS-deployment#readme) |
 
 For a ready-to-run local platform, use the Docker examples below. To run backend code changes, use [Monolith's local Docker examples](https://github.com/SEMOSS/Monolith/tree/dev/local-docker-testing/local-docker-compose).
+
+## Weekly IL4 development build
+
+[Build IL4 test container](.github/workflows/il4-container.yml) runs every Monday
+at **09:23 UTC** once installed on this repository's default branch. Scheduled
+runs explicitly check out `IL4-dev`; they do not build or merge `dev` application
+code. The same workflow supports path-filtered pushes and manual runs on
+`IL4-dev`.
+
+This is a development-only build using the existing
+`codebuild-semoss-github-runner` project and repository secrets
+`REPO_ONE_USERNAME` / `REPO_ONE_PASSWORD`, without an environment approval gate.
+The existing SEMOSS Ubuntu/Quay job-tooling image is digest-pinned; the
+published application's three base images remain Iron Bank images.
+Each run refreshes the digests behind the existing Iron Bank Maven `3.9.16`,
+UBI `10.2`, and Python `v3.14` tags and builds without cache. It does not
+automatically advance version tags or the locked SEMOSS release.
+
+After offline checks pass, the exact tested image is published to
+`ghcr.io/semoss/semoss-il4` with a source-commit/run-specific tag. The run summary
+records the deployable digest and resolved base images. See the
+[IL4-dev build and deployment guide](https://github.com/SEMOSS/Semoss/blob/IL4-dev/docker/il4/README.md)
+for runner prerequisites, BC-FIPS TLS configuration, and acceptance limitations.
+This workflow does not deploy the image or establish IL4 authorization.
 
 ## Quick start with Docker
 
