@@ -59,6 +59,7 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.notifications.NotificationDbUtils;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.joins.IRelation;
@@ -1703,7 +1704,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	public static void setEngineVisibility(User user, String engineId, boolean visibility)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityUserEngineUtils.userCanViewEngine(user, engineId)) {
+		if (!userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
 		}
@@ -1722,7 +1723,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
 				}
 				try {
-					// we will set the permission to read only
+					// Preserve permissions when updating preferences.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -1748,7 +1749,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
 				}
 				try {
-					// we will set the permission to read only
+					// A preference does not grant direct access.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -1757,7 +1758,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						ps.setBoolean(parameterIndex++, visibility);
 						// default favorite as false
 						ps.setBoolean(parameterIndex++, false);
-						ps.setInt(parameterIndex++, 3);
+						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 
 						ps.addBatch();
 					}
@@ -1808,7 +1809,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
 				}
 				try {
-					// we will set the permission to read only
+					// Preserve permissions when updating preferences.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -1835,7 +1836,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
 				}
 				try {
-					// we will set the permission to read only
+					// A preference does not grant direct access.
 					for (AuthProvider loginType : user.getLogins()) {
 						String userId = user.getAccessToken(loginType).getId();
 						int parameterIndex = 1;
@@ -1844,7 +1845,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 						// default visibility as true
 						ps.setBoolean(parameterIndex++, true);
 						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setInt(parameterIndex++, 3);
+						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 
 						ps.addBatch();
 					}
@@ -2665,39 +2666,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					groupEnginePermission + "PERMISSION", "PERMISSION"));
 			qs3.addGroupBy(new QueryColumnSelector(groupEnginePermission + "ENGINEID", "ENGINEID"));
 
-			// filter on groups
-			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				AccessToken accessToken = user.getAccessToken(login);
-				Collection<String> userGroups = accessToken.getUserGroups();
-				String userGroupType = accessToken.getUserGroupType();
-				Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
-				if (!userCustomGroups.isEmpty()) {
-					AndQueryFilter customAndFilter = new AndQueryFilter();
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", "CUSTOM"));
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", userCustomGroups));
-					groupEngineOrFilters.addFilter(customAndFilter);
-				}
-				if (!userGroups.isEmpty()) {
-					AndQueryFilter andFilter = new AndQueryFilter();
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", userGroupType));
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", userGroups));
-					groupEngineOrFilters.addFilter(andFilter);
-				}
-			}
-			if (!groupEngineOrFilters.isEmpty()) {
-				qs3.addExplicitFilter(groupEngineOrFilters);
-			} else {
-				AndQueryFilter andFilter1 = new AndQueryFilter();
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", null));
-				andFilter1.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", null));
-				qs3.addExplicitFilter(andFilter1);
-			}
+			qs3.addExplicitFilter(getUserGroupPermissionFilter(user, groupEnginePermission));
 
 			IRelation subQuery = new SubqueryRelationship(qs3, "GROUP_PERMISSIONS", "left.outer.join",
 					new String[] { "GROUP_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "=" });
@@ -2743,6 +2712,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 					SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__PERMISSION", "!=", null,
 					PixelDataType.CONST_INT));
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUP_PERMISSIONS__PERMISSION", "!=", null,
+					PixelDataType.CONST_INT));
 			qs1.addExplicitFilter(orFilter);
 		}
 		// only show those that are visible
@@ -2774,48 +2745,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEMETA__METAVALUE", "==",
 						engineMetadataFilter.get(k)));
 				qs1.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", subQs));
-			}
-		}
-
-		// group permissions
-		{
-			// first lets make sure we have any groups
-			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				AccessToken accessToken = user.getAccessToken(login);
-				Collection<String> userGroups = accessToken.getUserGroups();
-				String userGroupType = accessToken.getUserGroupType();
-				Collection<String> userCustomGroups = AdminSecurityGroupUtils.getUserCustomGroups(accessToken);
-				if (userGroups.isEmpty() && userCustomGroups.isEmpty()) {
-					continue;
-				}
-				if (!userCustomGroups.isEmpty()) {
-					AndQueryFilter customAndFilter = new AndQueryFilter();
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", "CUSTOM"));
-					customAndFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", userCustomGroups));
-					groupEngineOrFilters.addFilter(customAndFilter);
-				}
-				if (!userGroups.isEmpty()) {
-					AndQueryFilter andFilter = new AndQueryFilter();
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", userGroupType));
-					andFilter.addFilter(
-							SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", userGroups));
-					groupEngineOrFilters.addFilter(andFilter);
-				}
-			}
-			// 4.a does the group have explicit access
-			if (!groupEngineOrFilters.isEmpty()) {
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", "==", subQs));
-
-				// we need to have the insight filters
-				subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID"));
-				subQs.addExplicitFilter(groupEngineOrFilters);
 			}
 		}
 
@@ -2905,32 +2834,26 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs2.addSelector(new QueryColumnSelector(enginePermissionPrefix + "ENGINEID", "ENGINEID"));
 			qs2.addExplicitFilter(
 					SimpleQueryFilter.makeColToValFilter(enginePermissionPrefix + "USERID", "==", userIds));
-			orFilter.addFilter(
-					SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs2));
+			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(enginePermissionPrefix + "PERMISSION", "!=",
+					null, PixelDataType.CONST_INT));
+			IQueryFilter directAccess = SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID",
+					existingAccessComparator, qs2);
+			if (includeExistingAccess) {
+				orFilter.addFilter(directAccess);
+			} else {
+				qs1.addExplicitFilter(directAccess);
+			}
 		}
 		{
-			// filter on groups
-			OrQueryFilter groupEngineOrFilters = new OrQueryFilter();
-			List<AuthProvider> logins = user.getLogins();
-			for (AuthProvider login : logins) {
-				if (user.getAccessToken(login).getUserGroups().isEmpty()) {
-					continue;
-				}
-
-				AndQueryFilter andFilter = new AndQueryFilter();
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermissionPrefix + "TYPE", "==",
-						user.getAccessToken(login).getUserGroupType()));
-				andFilter.addFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermissionPrefix + "ID", "==",
-						user.getAccessToken(login).getUserGroups()));
-				groupEngineOrFilters.addFilter(andFilter);
-			}
-
-			if (!groupEngineOrFilters.isEmpty()) {
-				SelectQueryStruct qs3 = new SelectQueryStruct();
-				qs3.addSelector(new QueryColumnSelector(groupEnginePermissionPrefix + "ENGINEID", "ENGINEID"));
-				qs3.addExplicitFilter(groupEngineOrFilters);
-				orFilter.addFilter(
-						SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", existingAccessComparator, qs3));
+			SelectQueryStruct qs3 = new SelectQueryStruct();
+			qs3.addSelector(new QueryColumnSelector(groupEnginePermissionPrefix + "ENGINEID", "ENGINEID"));
+			qs3.addExplicitFilter(getUserGroupPermissionFilter(user, groupEnginePermissionPrefix));
+			IQueryFilter groupAccess = SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID",
+					existingAccessComparator, qs3);
+			if (includeExistingAccess) {
+				orFilter.addFilter(groupAccess);
+			} else {
+				qs1.addExplicitFilter(groupAccess);
 			}
 		}
 
@@ -3045,26 +2968,25 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		if (engineTypeFilter != null && !engineTypeFilter.isEmpty()) {
 			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypeFilter));
 		}
-		boolean addGroupProjectPermissionJoin = false;
 		{
 			OrQueryFilter orFilter = new OrQueryFilter();
 			orFilter.addFilter(
 					SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__DISCOVERABLE", "==",
 					Arrays.asList(true, null), PixelDataType.BOOLEAN));
-			orFilter.addFilter(
+			AndQueryFilter directAccess = new AndQueryFilter();
+			directAccess.addFilter(
 					SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
-			Collection<String> groupIds = getUserGroupFiltersQs(user);
-			if (!groupIds.isEmpty()) {
-				addGroupProjectPermissionJoin = true;
-				orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", groupIds));
-			}
+			directAccess.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+					PixelDataType.CONST_INT));
+			orFilter.addFilter(directAccess);
+			SelectQueryStruct groupAccess = new SelectQueryStruct();
+			groupAccess.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__ENGINEID"));
+			groupAccess.addExplicitFilter(getUserGroupPermissionFilter(user, "GROUPENGINEPERMISSION__"));
+			orFilter.addFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "==", groupAccess));
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
-		if (addGroupProjectPermissionJoin) {
-			qs.addRelation("ENGINE", "GROUPENGINEPERMISSION", "left.outer.join");
-		}
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_engine_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
