@@ -232,6 +232,8 @@ public final class AutomationConstants {
 	public static final int LOOP_DEFAULT_MAX_ITERATIONS = 1_000;
 	public static final int LOOP_MAX_ITERATIONS = 10_000;
 	public static final int LOOP_MAX_BODY_NODES = 1_000;
+	/** Maximum materialized body-node rows created by one loop execution. */
+	public static final int LOOP_MAX_NODE_EXECUTIONS = 100_000;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;

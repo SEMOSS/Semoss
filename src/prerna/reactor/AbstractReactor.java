@@ -933,6 +933,7 @@ public abstract class AbstractReactor implements IReactor {
 			if (resourceURI != null && !resourceURI.isEmpty()) {
 				uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
 			}
+			MCPUtility.copyUiHints(mcpMeta, uiJson);
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			tool.put("_meta", meta);
 		}

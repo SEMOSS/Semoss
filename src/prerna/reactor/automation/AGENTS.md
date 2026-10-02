@@ -1,4 +1,4 @@
-# Automation Python — Agent Guide
+# Automation — Agent Guide
 
 Automation projects persist a typed graph and one Python source file per Python-backed node. The graph
 is canonical: Java traverses its control edges, and Python executes each selected node module
@@ -74,7 +74,7 @@ Supported native-Python runtime types are:
 - `storage.list`, `storage.read`, `storage.upload`,
   `storage.download`, `storage.delete`
 - `vector.search`, `vector.add`, `vector.delete`
-- `function.execute`, `app.pixel`, `control.wait`, `control.if`, `control.jev`
+- `function.execute`, `app.pixel`, `control.wait`, `control.if`, `control.jev`, `control.loop`
 - `agent.run`
 
 `control.if` stores ordered `{ id, condition }` clauses evaluated only by the bounded Java
@@ -83,8 +83,12 @@ expression evaluator. The first match selects its `case:<clause-id>` edge; other
 `questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
 model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
 Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
-below the configured threshold. Arbitrary fan-out from one port, loops, and parallel execution are
-rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
+below the configured threshold. `control.loop` owns a nested acyclic graph and currently supports
+bounded sequential `forEach`/batch execution. Java owns iteration, cancellation, and server-side
+limits; body nodes continue to use the ordinary node executors and appear under their parent loop
+in run history. Nested loops, agent waits inside a loop, arbitrary fan-out from one port, and
+parallel execution are rejected before execution. Nonselected branch nodes are retained in history
+as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional
 setup source. Java puts defaults in the runtime scope unless
@@ -102,6 +106,13 @@ database writes use the database SDK's `ExecQuery` path, which retains edit auth
 behavior, and configured `insertData` guardrails. Generated updates always require a `WHERE` clause; use custom Python
 for an intentionally unbounded operation. Return a value so Java can store it under the node's `outputVar`.
 
+Node output, run inputs, and aggregate scope remain bounded by `AutomationConstants`. Row-shaped node output is
+also registered under its `outputVar` as a standard SEMOSS Python frame in that run's execution Insight, matching
+Notebook's named-frame convention. `GetAutomationRun` returns the ordinary `FRAME_MAP` noun while the execution
+Insight remains live; the UI reads it with the existing
+`Frame | QueryAll | Offset | Limit | Collect` path. The frame is a display boundary, not a durable-data contract:
+when the run Insight has closed, callers fall back to the persisted output preview.
+
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine
 id, or Java object from Python. Cancellation sets the DB flag, signals the same-pod Python socket
@@ -111,9 +122,27 @@ job when possible, and is checked before each node and during waits.
 
 | Class | Purpose |
 | --- | --- |
-| `AutomationDatabaseUtility` | Physical run records, node outputs, per-run claiming, and stale-run recovery in the scheduler DB. |
+| `AutomationRunStore` | Physical run records, node outputs, per-run claiming, and stale-run recovery in the scheduler DB. |
 | `SchedulerOwlCreator` | Authoritative OWL schema for both scheduler-owned and automation-owned tables in that DB. |
-| `AutomationPythonRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
+| `AutomationRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
+| `AutomationProjectService` | Project permissions, definition locking/persistence, reference validation, and derived-asset synchronization. |
 | `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |
 
 Do not bypass the per-run database claim, run snapshot, or DB/in-memory cancellation signal.
+
+## Java package layout
+
+Automation backend code is grouped by owned capability:
+
+| Package | Ownership |
+| --- | --- |
+| `prerna.reactor.automation` | Shared constants and graph/Python invocation support. |
+| `prerna.reactor.automation.definition` | Canonical graph validation, node catalog, generated source, definition persistence, and authoring reactors. |
+| `prerna.reactor.automation.project` | `AutomationProjectService`, project creation, permission-aware project coordination, and derived MCP assets. |
+| `prerna.reactor.automation.run` | Durable run storage, execution lifecycle, cancellation registry, history, and run reactors. |
+| `prerna.reactor.automation.agent` | Trace-linked child-agent access and action reactors. |
+| `prerna.reactor.automation.utils` | Cross-boundary runtime JSON, scope, and preview helpers only. |
+
+Keep additions with the capability that owns their lifecycle. Do not recreate a
+flat package, add generic `service` or `helpers` buckets, or create a subpackage
+for one speculative abstraction.

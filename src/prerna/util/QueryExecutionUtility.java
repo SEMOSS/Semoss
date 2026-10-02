@@ -28,6 +28,7 @@
 package prerna.util;
 
 import java.lang.reflect.Type;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
@@ -35,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -98,6 +100,282 @@ public class QueryExecutionUtility {
 
 	private QueryExecutionUtility() {
 
+	}
+
+	/**
+	 * Synchronous work in a transaction owned by this utility. Close all statements
+	 * and result sets before returning a materialized result. Do not close the
+	 * connection, change auto-commit, or commit/roll back. Nested operations must
+	 * use connection-based helpers, not another engine-based read/write call.
+	 */
+	@FunctionalInterface
+	public interface JdbcWork<T> {
+		T run(Connection connection) throws Exception;
+	}
+
+	/** Binds values/settings without executing or closing the statement. */
+	@FunctionalInterface
+	public interface StatementBinder {
+		void bind(PreparedStatement statement) throws Exception;
+	}
+
+	/**
+	 * Binds every parameter for one batch row; the utility adds it to the batch.
+	 */
+	@FunctionalInterface
+	public interface BatchBinder<T> {
+		void bind(PreparedStatement statement, T row) throws Exception;
+	}
+
+	/**
+	 * Maps the current row to a materialized value without advancing the cursor.
+	 */
+	@FunctionalInterface
+	public interface RowMapper<T> {
+		T map(ResultSet result) throws Exception;
+	}
+
+	/** Executes one prepared DML statement in an owned write transaction. */
+	public static int executeUpdate(IRDBMSEngine engine, String sql, StatementBinder binder) throws Exception {
+		return write(engine, connection -> executeUpdate(connection, sql, binder));
+	}
+
+	/**
+	 * Closes the statement; leaves the supplied connection and transaction owned by
+	 * the caller.
+	 */
+	public static int executeUpdate(Connection connection, String sql, StatementBinder binder) throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			return statement.executeUpdate();
+		}
+	}
+
+	/**
+	 * Executes a batch atomically; the binder must bind and add each batch entry.
+	 */
+	public static int[] executeBatch(IRDBMSEngine engine, String sql, StatementBinder batch) throws Exception {
+		return write(engine, connection -> executeBatch(connection, sql, batch));
+	}
+
+	/**
+	 * Supports custom/nested batch assembly within the caller's transaction.
+	 * Returns JDBC update counts unchanged.
+	 */
+	public static int[] executeBatch(Connection connection, String sql, StatementBinder batch) throws Exception {
+		Objects.requireNonNull(batch, "batch");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			batch.bind(statement);
+			return statement.executeBatch();
+		}
+	}
+
+	/**
+	 * Binds each row once and executes the whole batch in one owned transaction.
+	 */
+	public static <T> int[] executeBatch(IRDBMSEngine engine, String sql, Iterable<T> rows, BatchBinder<T> binder)
+			throws Exception {
+		return write(engine, connection -> executeBatch(connection, sql, rows, binder));
+	}
+
+	/**
+	 * Clears parameters between rows; empty input executes an empty batch. Does not
+	 * complete the caller's transaction.
+	 */
+	public static <T> int[] executeBatch(Connection connection, String sql, Iterable<T> rows, BatchBinder<T> binder)
+			throws Exception {
+		Objects.requireNonNull(rows, "rows");
+		Objects.requireNonNull(binder, "binder");
+		return executeBatch(connection, sql, statement -> {
+			for (T row : rows) {
+				statement.clearParameters();
+				binder.bind(statement, row);
+				statement.addBatch();
+			}
+		});
+	}
+
+	/**
+	 * Returns the mapped first row, or null if absent; later rows are ignored. Owns
+	 * a read transaction.
+	 */
+	public static <T> T queryOne(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return read(engine, connection -> queryOne(connection, sql, binder, mapper));
+	}
+
+	/**
+	 * Maps at most one row and closes query resources without completing the
+	 * caller's transaction.
+	 */
+	public static <T> T queryOne(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		Objects.requireNonNull(mapper, "mapper");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			try (ResultSet result = statement.executeQuery()) {
+				return result.next() ? mapper.map(result) : null;
+			}
+		}
+	}
+
+	/**
+	 * Materializes a mutable list in row order, retaining duplicates and mapped
+	 * nulls. Owns a read transaction.
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return read(engine, connection -> queryList(connection, sql, binder, mapper));
+	}
+
+	/**
+	 * Returns an empty list for no rows; mapping/cursor failures propagate without
+	 * returning a partial list.
+	 */
+	public static <T> List<T> queryList(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return queryList(connection, sql, binder, mapper, new ArrayList<>());
+	}
+
+	/**
+	 * Appends into the caller's list, preserving accumulated rows if a later read
+	 * or cleanup fails.
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper,
+			List<T> rows) throws Exception {
+		return read(engine, connection -> queryList(connection, sql, binder, mapper, rows));
+	}
+
+	/**
+	 * Appends mapped rows without clearing the list or completing the caller's
+	 * transaction.
+	 */
+	public static <T> List<T> queryList(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper,
+			List<T> rows) throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		Objects.requireNonNull(mapper, "mapper");
+		Objects.requireNonNull(rows, "rows");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			try (ResultSet result = statement.executeQuery()) {
+				while (result.next()) {
+					rows.add(mapper.map(result));
+				}
+				return rows;
+			}
+		}
+	}
+
+	/**
+	 * Executes query-only work, rolling back a successful manual read transaction
+	 * before releasing the connection. This is a caller contract: SQL is not
+	 * inspected and the connection is not made read-only. Owns the entire
+	 * transaction; do not use with another caller's unfinished transaction.
+	 */
+	public static <T> T read(IRDBMSEngine engine, JdbcWork<T> work) throws Exception {
+		return executeJdbc(engine, false, work);
+	}
+
+	/**
+	 * Executes one atomic operation and commits before returning its result,
+	 * including when the acquired connection already has auto-commit disabled. Owns
+	 * the entire transaction; do not use with another caller's unfinished
+	 * transaction. A cleanup failure after commit does not undo committed writes.
+	 * No failures are retried automatically.
+	 */
+	public static <T> T write(IRDBMSEngine engine, JdbcWork<T> work) throws Exception {
+		return executeJdbc(engine, true, work);
+	}
+
+	private static <T> T executeJdbc(IRDBMSEngine engine, boolean write, JdbcWork<T> work) throws Exception {
+		Objects.requireNonNull(engine, "engine");
+		Objects.requireNonNull(work, "work");
+		boolean pooling = engine.isConnectionPooling();
+		Connection connection = Objects.requireNonNull(engine.getConnection(), "connection");
+		if (pooling) {
+			return withJdbcConnection(engine, connection, write, work);
+		}
+		// Engine proxies can share the same non-pooled connection.
+		synchronized (connection) {
+			return withJdbcConnection(engine, connection, write, work);
+		}
+	}
+
+	private static <T> T withJdbcConnection(IRDBMSEngine engine, Connection connection, boolean write, JdbcWork<T> work)
+			throws Exception {
+		Boolean originalAutoCommit = null;
+		boolean manualTransaction = false;
+		boolean changeAttempted = false;
+		boolean transactionEnded = false;
+		boolean rollbackAttempted = false;
+		Throwable failure = null;
+		T result = null;
+		try {
+			originalAutoCommit = connection.getAutoCommit();
+			manualTransaction = !originalAutoCommit;
+			if (write && originalAutoCommit) {
+				// A driver may change state before reporting failure.
+				changeAttempted = true;
+				connection.setAutoCommit(false);
+				manualTransaction = true;
+			}
+			result = work.run(connection);
+			if (write) {
+				connection.commit();
+			} else if (manualTransaction) {
+				rollbackAttempted = true;
+				try {
+					connection.rollback();
+				} catch (Exception | Error cleanup) {
+					classLogger.error("Error completing JDBC read transaction", cleanup);
+					throw cleanup;
+				}
+			}
+			transactionEnded = true;
+		} catch (Exception | Error e) {
+			failure = e;
+			if (!rollbackAttempted && (manualTransaction || changeAttempted)) {
+				try {
+					connection.rollback();
+					transactionEnded = true;
+				} catch (Exception | Error cleanup) {
+					failure = jdbcCleanupFailure(failure, cleanup, "Error rolling back JDBC transaction");
+				}
+			}
+		}
+		// Never enable auto-commit after a failed rollback, or guess an unread state.
+		if (changeAttempted && transactionEnded && originalAutoCommit != null) {
+			try {
+				connection.setAutoCommit(originalAutoCommit);
+			} catch (Exception | Error cleanup) {
+				failure = jdbcCleanupFailure(failure, cleanup, "Error restoring JDBC auto-commit");
+			}
+		}
+		try {
+			ConnectionUtils.closeConnectionIfPooling(engine, connection);
+		} catch (Exception | Error cleanup) {
+			failure = jdbcCleanupFailure(failure, cleanup, "Error releasing JDBC connection");
+		}
+		if (failure instanceof Exception) {
+			throw (Exception) failure;
+		}
+		if (failure instanceof Error) {
+			throw (Error) failure;
+		}
+		return result;
+	}
+
+	private static Throwable jdbcCleanupFailure(Throwable failure, Throwable cleanup, String message) {
+		classLogger.error(message, cleanup);
+		if (failure == null) {
+			return cleanup;
+		}
+		if (failure != cleanup) {
+			failure.addSuppressed(cleanup);
+		}
+		return failure;
 	}
 
 	/**
@@ -419,8 +697,8 @@ public class QueryExecutionUtility {
 	 * <p>
 	 * The result set and statement are closed on success or failure. Pooled
 	 * connections are released through {@link ConnectionUtils}; non-pooled engine
-	 * connections remain open. Cleanup failures handled by {@code ConnectionUtils}
-	 * are logged without replacing the query outcome.
+	 * connections remain open. Manual read transactions are completed by rollback.
+	 * Cleanup failures are logged and retain the original failure when one exists.
 	 *
 	 * @param engine              relational database engine used to prepare the
 	 *                            query
@@ -443,26 +721,37 @@ public class QueryExecutionUtility {
 			throw new IllegalArgumentException(
 					"A database engine, SQL, parameters, and non-negative limits are required");
 		}
-		PreparedStatement statement = null;
-		ResultSet result = null;
 		try {
-			statement = engine.getPreparedStatement(query.sql());
-			statement.setMaxRows(query.limit());
-			if (queryTimeoutSeconds >= 0) {
-				statement.setQueryTimeout(queryTimeoutSeconds);
-			}
-			for (int i = 0; i < query.parameters().size(); i++) {
-				statement.setObject(i + 1, query.parameters().get(i));
-			}
-			result = statement.executeQuery();
-			try (RawRDBMSSelectWrapper wrapper = RawRDBMSSelectWrapper.flushRsToWrapper(result)) {
-				return flushWrapperToMap(wrapper);
-			}
+			return read(engine, connection -> flushRsToMap(connection, query, queryTimeoutSeconds));
 		} catch (Exception e) {
 			classLogger.error("Error executing parameterized query", e);
 			throw new IllegalArgumentException("Error executing parameterized query", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(engine, null, statement, result);
+		}
+	}
+
+	/**
+	 * Executes a parameterized query within a caller-owned transaction. Preserves
+	 * the engine overload's limits, timeout, binding and result mapping, but only
+	 * closes the statement and result set it creates. Does not change or close the
+	 * connection, commit, or roll back. Failures propagate to the transaction
+	 * owner.
+	 */
+	public static List<Map<String, Object>> flushRsToMap(Connection connection, ParameterizedQuery query,
+			int queryTimeoutSeconds) throws Exception {
+		if (connection == null || query == null || query.sql() == null || query.sql().isBlank()
+				|| query.parameters() == null || query.limit() < 0 || queryTimeoutSeconds < 0) {
+			throw new IllegalArgumentException(
+					"A database connection, SQL, parameters, and non-negative limits are required");
+		}
+		try (PreparedStatement statement = connection.prepareStatement(query.sql())) {
+			statement.setMaxRows(query.limit());
+			statement.setQueryTimeout(queryTimeoutSeconds);
+			for (int i = 0; i < query.parameters().size(); i++) {
+				statement.setObject(i + 1, query.parameters().get(i));
+			}
+			try (ResultSet result = statement.executeQuery()) {
+				return flushWrapperToMap(RawRDBMSSelectWrapper.flushRsToWrapper(result));
+			}
 		}
 	}
 

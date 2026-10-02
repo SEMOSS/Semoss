@@ -74,7 +74,7 @@ import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
 
-	// Force-load EngineUtility safely - its clinit calls Utility.getBaseFolder()
+	// Force-load EngineUtility safely - its client calls Utility.getBaseFolder()
 	// which returns null in test context, causing NPE on .replace().
 	static {
 		try (MockedStatic<Utility> util = mockStatic(Utility.class)) {

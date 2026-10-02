@@ -301,9 +301,9 @@ public abstract class AbstractSqlQueryUtil {
 	 * Replace a conneciton url to a file based db (H2, SQLite) with
 	 * "@BaseFolder@/db/@ENGINE@"
 	 * <p>
-	 * In {@link RDBMSNativeEngine#open(Properties) method we call {@link
-	 * #fillFileParameterizedConnectionUrl(String, String, String)} to turn back
-	 * into a useable conneciton url
+	 * In {@link RDBMSNativeEngine#open(Properties) method we call
+	 * {@link #fillFileParameterizedConnectionUrl(String, String, String)} to turn
+	 * back into a useable conneciton url
 	 * </p>
 	 * 
 	 * @param connectionUrl
@@ -959,6 +959,63 @@ public abstract class AbstractSqlQueryUtil {
 	 * @return
 	 */
 	public abstract boolean allowBlobJavaObject();
+
+	/**
+	 * Binds the supplied string exactly, including empty and whitespace-only text.
+	 */
+	public void setNullableString(PreparedStatement statement, int index, String value) throws SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.VARCHAR);
+		} else {
+			statement.setString(index, value);
+		}
+	}
+
+	/**
+	 * Binds null or an empty string as SQL NULL; preserves all non-empty text,
+	 * including whitespace. Callers that normalize text must do so explicitly
+	 * before binding.
+	 */
+	public void setStringEmptyAsNullable(PreparedStatement statement, int index, String value) throws SQLException {
+		setNullableString(statement, index, value != null && value.isEmpty() ? null : value);
+	}
+
+	/**
+	 * Binds text to CLOB storage without normalization. Dialects using other
+	 * storage override this method. The in-memory reader has no external resources
+	 * and is retained for the driver's use until execution/statement closure; no
+	 * temporary JDBC Clob is allocated or freed before execution.
+	 */
+	public void setNullableLargeText(PreparedStatement statement, int index, String value) throws SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.CLOB);
+		} else {
+			statement.setClob(index, new java.io.StringReader(value), value.length());
+		}
+	}
+
+	/**
+	 * Binds raw bytes to BLOB storage without text conversion. The in-memory stream
+	 * has no external resources and remains available until statement execution.
+	 * The caller must not mutate the bytes before execution. No JDBC Blob is
+	 * created.
+	 */
+	public void setNullableBinary(PreparedStatement statement, int index, byte[] value) throws SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.BLOB);
+		} else {
+			statement.setBlob(index, new java.io.ByteArrayInputStream(value), value.length);
+		}
+	}
+
+	/**
+	 * Serializes with the caller's Gson configuration into large-text storage. Java
+	 * null becomes SQL NULL. Already serialized JSON must instead use
+	 * setNullableLargeText; this method does not bind native JSON/JSONB columns.
+	 */
+	public void setNullableJson(PreparedStatement statement, int index, Object value, Gson gson) throws SQLException {
+		setNullableLargeText(statement, index, value == null ? null : gson.toJson(value));
+	}
 
 	/**
 	 * 
