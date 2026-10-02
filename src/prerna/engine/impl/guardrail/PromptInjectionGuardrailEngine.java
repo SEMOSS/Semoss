@@ -38,7 +38,8 @@ import java.util.Properties;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import net.snowflake.client.jdbc.internal.google.gson.Gson;
+import com.google.gson.Gson;
+
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.GuardrailTypeEnum;
 import prerna.engine.impl.SmssUtilities;
@@ -352,6 +353,53 @@ public class PromptInjectionGuardrailEngine extends AbstractPythonGuardrailReact
 	@Override
 	public GuardrailTypeEnum getGuardrailType() {
 		return GuardrailTypeEnum.EMBEDDED_PROMPT_INJECTION;
+	}
+
+	@Override
+	public String getDefaultMarkdown() {
+		return """
+				# Prompt-injection guardrail
+
+				This guardrail runs a local Hugging Face text-classification model and evaluates its label scores using `LABEL_DECISION_MAP`. A label mapped to `BLOCK` fails when its score is at or above the threshold.
+
+				`MODEL_NAME` and `LABEL_DECISION_MAP` are required in the guardrail SMSS. Match the map keys to the exact labels produced by that model, for example `{"SAFE":"ALLOW","INJECTION":"BLOCK"}`. `DEFAULT_DECISION` is used for unmapped or missing labels and defaults to block. Optional settings include `DEFAULT_THRESHOLD`, `DEFAULT_MAX_LENGTH`, `DEVICE`, `USE_CUDA`, and `TRUST_REMOTE_CODE`. Enable remote code only for a model repository you trust.
+
+				## Example: block injection attempts before model inference
+
+				Save this as `pipeline.json` in the model engine's assets folder, set `PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload the model engine:
+
+				```json
+				{
+				  "pipelines": {
+				    "askRoom": {
+				      "input": [
+				        {
+				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
+				          "params": {
+				            "guardrailEngineId": "%s",
+				            "inputMapping": {
+				              "prompt": "arg0"
+				            },
+				            "directParameters": {
+				              "threshold": 0.75,
+				              "maxLength": 512
+				            },
+				            "blockOnGuardrailFailure": true,
+				            "blockErrorMessage": "The request was blocked because it may contain prompt-injection instructions.",
+				            "skipOnToolContinuationForTools": ["a<engineid>_search"]
+				          }
+				        }
+				      ]
+				    }
+				  }
+				}
+				```
+
+				The classifier sees the text from the actual `InputMessage`, and a failed check prevents the model call. This guardrail returns the original prompt, so use it to block rather than mask.
+
+				`askRoom` also carries the agent loop's tool results, which a classifier trained on user-typed text tends to score as attacks. `skipOnToolContinuationForTools` lists the tools whose results this mount leaves alone, named as the model sees them; `skipOnToolContinuationForAllTools` skips all of them. Leave both off unless false positives are actually breaking tool calling, because tool output is exactly the untrusted content this classifier is for. A turn carrying user-written text is screened either way.
+				"""
+				.formatted(getEngineId());
 	}
 
 }

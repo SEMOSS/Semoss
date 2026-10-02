@@ -393,7 +393,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 	}
 
 	@Test
-	void testCreateTempAssetAndWorkspace() throws IOException {
+	void testCreateTempAsset() throws IOException {
 		Path base = tempDir.resolve("Semoss");
 		Files.createDirectories(base);
 		Properties coreProp = new Properties();
@@ -403,7 +403,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		Path user = base.resolve("user");
 		Files.createDirectories(user);
 
-		File f = SmssUtilities.createTemporaryAssetSmss("pid", "pname", false, RdbmsTypeEnum.H2_DB);
+		File f = SmssUtilities.createTemporaryAssetSmss("pid", "pname", RdbmsTypeEnum.H2_DB);
 
 		assertNotNull(f);
 		assertTrue(f.exists());
@@ -419,7 +419,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("pid", load.getProperty(Constants.PROJECT));
 		assertEquals("pname", load.getProperty(Constants.PROJECT_ALIAS));
 		assertEquals("prerna.project.impl.Project", load.getProperty(Constants.PROJECT_TYPE));
-		assertEquals("false", load.getProperty(Constants.IS_ASSET_APP));
+		assertEquals("true", load.getProperty(Constants.IS_ASSET_APP));
 		assertEquals("project/@PROJECT@/insights_database", load.getProperty(Constants.RDBMS_INSIGHTS));
 		assertEquals("H2_DB", load.getProperty(Constants.RDBMS_INSIGHTS_TYPE));
 		assertEquals("org.h2.Driver", load.getProperty(Constants.DRIVER));

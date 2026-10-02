@@ -70,16 +70,7 @@ public abstract class AbstractProjectPyReactor extends AbstractReactor {
 		}
 
 		organizeKeys();
-		String projectId = this.keyValue.get(ReactorKeysEnum.PROJECT.getKey());
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			projectId = this.insight.getContextProjectId();
-			if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-				projectId = this.insight.getProjectId();
-			}
-		}
-		if (projectId == null || (projectId = projectId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must input an project id");
-		}
+		String projectId = resolveContextEngineId(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
 
 		String code = getDecodedCode();
 

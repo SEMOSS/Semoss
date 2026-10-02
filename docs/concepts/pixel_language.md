@@ -1,6 +1,6 @@
 # Pixel: The SEMOSS Query Language and its Interaction with Reactors
 
-"Pixel" is the custom query and scripting language of SEMOSS. It is a powerful, imperative, and dataflow-oriented language designed to allow users and developers to express a wide array of operations within the SEMOSS ecosystem. These operations range from data querying and transformation, to workflow automation, interaction with various engines (databases, models, functions), and influencing UI components.
+"Pixel" is the custom query and scripting language of SEMOSS. It is an imperative and dataflow-oriented language designed to allow users and developers to express a wide array of operations within the SEMOSS ecosystem. These operations include data querying and transformation, workflow automation, and interaction with engines such as databases, models, and functions.
 
 The `src/prerna/sablecc2/` package and its sub-packages are responsible for parsing, translating, and executing these Pixel scripts. The name `sablecc2` suggests that the SableCC parser generator tool was used to create the underlying parsing infrastructure, which is evident from the presence of files like `lexer.dat`, `parser.dat`, and the typical structure of sub-packages (`lexer/`, `parser/`, `node/`, `analysis/`).
 
@@ -10,7 +10,6 @@ The `src/prerna/sablecc2/` package and its sub-packages are responsible for pars
 *   **Workflow Orchestration**: Chaining multiple operations together to create complex data processing pipelines or analytical workflows.
 *   **Engine Interaction**: Sending commands to and receiving data from different types of `IEngine` implementations (databases, AI models, storage, functions).
 *   **Variable Management**: Creating and using variables to store intermediate results, parameters, or references to data frames.
-*   **UI Interaction**: Triggering updates to UI components, such as panels and visualizations, by sending specific data or commands.
 *   **Extensibility**: Providing a common language to invoke modular units of logic called "Reactors".
 
 ## Pixel Syntax Basics

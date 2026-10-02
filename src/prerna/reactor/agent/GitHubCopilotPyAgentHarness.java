@@ -84,6 +84,14 @@ public class GitHubCopilotPyAgentHarness implements IAgentHarness {
 		if (systemPrompt == null) {
 			systemPrompt = "";
 		}
+		// Selected-engines block resolved per run by AgentConfigLoader from the
+		// run's target project; keeps workbench engine selections prompt-visible.
+		String selectedEnginesPrompt = ctx.getAgentConfig().getSelectedEnginesPrompt();
+		if (selectedEnginesPrompt != null && !selectedEnginesPrompt.isEmpty()) {
+			systemPrompt = systemPrompt.isEmpty()
+					? selectedEnginesPrompt
+					: systemPrompt + "\n\n" + selectedEnginesPrompt;
+		}
 		User         user           = ctx.getInsight().getUser();
 		if (user == null) {
 			throw new IllegalArgumentException(NAME + ": insight has no user");

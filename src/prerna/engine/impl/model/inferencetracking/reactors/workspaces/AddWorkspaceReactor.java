@@ -55,8 +55,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	public AddWorkspaceReactor() {
 		this.keysToGet = new String[] { NAME, DESCRIPTION, SYSTEM_PROMPT, ReactorKeysEnum.MCP.getKey(), PROMPTS,
-				SKILLS };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
+				SKILLS, USE_DEFAULT_AGENT_TOOLS };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -77,6 +77,15 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 
 		String workspaceDescription = this.keyValue.get(DESCRIPTION);
 		String workspaceSystemPrompt = this.keyValue.get(SYSTEM_PROMPT);
+		boolean useDefaultToolsProvided = getGenRowStruct(USE_DEFAULT_AGENT_TOOLS) != null;
+		Boolean useDefaultTools = null;
+		if (useDefaultToolsProvided) {
+			String raw = this.keyValue.get(USE_DEFAULT_AGENT_TOOLS);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(USE_DEFAULT_AGENT_TOOLS + " must be true or false");
+			}
+			useDefaultTools = Boolean.valueOf(raw);
+		}
 
 		Set<String> engines = new HashSet<>();
 		Set<String> projectDependencies = new HashSet<>();
@@ -99,7 +108,8 @@ public class AddWorkspaceReactor extends AbstractWorkspaceReactor {
 					workspaceName, workspaceDescription, workspaceSystemPrompt, workspaceResources);
 			try {
 				mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies,
-						skillIds);
+						skillIds, false, null, null, null, false, null, false, null,
+						useDefaultToolsProvided, useDefaultTools);
 			} catch (Exception mirrorEx) {
 				classLogger.warn(
 						"Created workspace '{}' but failed to mirror system_prompt/mcps/skills into CONFIG_JSON (legacy writes already succeeded)",

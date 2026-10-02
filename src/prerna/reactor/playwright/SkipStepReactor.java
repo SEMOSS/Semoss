@@ -35,9 +35,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -45,8 +42,6 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 public class SkipStepReactor extends AbstractReactor {
-
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	private Path recordingsDir = null;
 	private StepsEnvelope stepsEnvelope;
@@ -83,7 +78,8 @@ public class SkipStepReactor extends AbstractReactor {
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
 		}
 
 		if (sessionId == null || sessionId.isEmpty()) {
@@ -166,7 +162,7 @@ public class SkipStepReactor extends AbstractReactor {
 				: recordingsDir.resolve(nameOrPath.endsWith(".json") ? nameOrPath : nameOrPath + ".json");
 
 		try {
-			return json.readValue(file.toFile(), StepsEnvelope.class);
+			return PlaywrightUtility.readStepsEnvelope(file.toFile());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to read: " + file, e);
 		}

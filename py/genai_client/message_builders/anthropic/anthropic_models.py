@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any, Union
+from typing import List, Optional, Dict, Any, Union, Literal
 from pydantic import BaseModel, field_validator
 
 from ...utils import StringEnum
@@ -30,9 +30,15 @@ class AnthropicImageContentPart(BaseModel):
     source: AnthropicMediaSourceBase64
 
 
+class AnthropicMediaSourceText(BaseModel):
+    type: Literal["text"] = "text"
+    media_type: Literal["text/plain"] = "text/plain"
+    data: str
+
+
 class AnthropicDocumentContentPart(BaseModel):
     type: str = "document"
-    source: AnthropicMediaSourceBase64
+    source: Union[AnthropicMediaSourceBase64, AnthropicMediaSourceText]
 
 
 # FOR HISTORY
@@ -64,14 +70,18 @@ class AnthropicToolUseContentPart(BaseModel):
 class AnthropicToolResultContentPart(BaseModel):
     type: str = "tool_result"
     tool_use_id: str
-    content: str
+    content: Union[
+        str,
+        List[
+            Union[
+                "AnthropicTextContentPart",
+                AnthropicImageContentPart,
+                AnthropicDocumentContentPart,
+            ]
+        ],
+    ]
 
 
-# Result block for Anthropic server-side tools (web_search,
-# code_execution, ...). Lives inside the assistant turn (unlike the regular
-# tool_result block, which only belongs in user turns). The `type` is
-# provider-specific (e.g. "web_search_tool_result") and the content is a
-# structured list of result entries rather than an opaque string.
 class AnthropicServerToolResultContentPart(BaseModel):
     type: str
     tool_use_id: str
@@ -91,14 +101,25 @@ class AnthropicThinkingContentPart(BaseModel):
     signature: Optional[str] = None
 
 
+class AnthropicCacheTTL(StringEnum):
+    FIVE_MINUTES = "5m"
+    ONE_HOUR = "1h"
+
+
 class AnthropicCacheControl(BaseModel):
     type: str = "ephemeral"
+    # Omitted entirely for the 5m default so the request matches what Anthropic
+    # expects when no explicit lifetime is requested.
+    ttl: Optional[AnthropicCacheTTL] = None
 
 
 class AnthropicTextContentPart(BaseModel):
     type: str = "text"
     text: str
     cache_control: Optional[AnthropicCacheControl] = None
+
+
+AnthropicToolResultContentPart.model_rebuild()
 
 
 class AnthropicMessage(BaseModel):
@@ -128,13 +149,10 @@ class AnthropicRequestConfig(BaseModel):
     tools: Optional[List[Dict]] = None
     tool_choice: Optional[Dict[str, str]] = None
     max_tokens: Optional[int] = None
-    temperature: Optional[float] = None
-    top_k: Optional[int] = None
-    top_p: Optional[float] = None
+    extra_body: Optional[Dict[str, Any]] = None
     container: Optional[str] = None
     stop_sequences: Optional[List[str]] = None
     thinking: Optional[Dict[str, Any]] = None
-    # Modern Claude (Opus 4.6+/Sonnet 4.6/Fable): {"effort": "low|medium|high|xhigh|max"}
     output_config: Optional[Dict[str, Any]] = None
 
 

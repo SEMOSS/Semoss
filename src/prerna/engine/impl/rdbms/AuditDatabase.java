@@ -51,6 +51,7 @@ import com.google.gson.ToNumberPolicy;
 import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.GenRowFilters;
@@ -80,7 +81,6 @@ public class AuditDatabase {
 	private IRDBMSEngine auditDatabase;
 	private IDatabaseEngine database;
 	private String databaseId;
-	private String databaseName;
 
 	private List<Pair<String, List<Pair<String, String>>>> allSchemas = null;
 	private List<Pair<String, String>> auditColumns = null;
@@ -100,7 +100,6 @@ public class AuditDatabase {
 	public void init(IDatabaseEngine database, String databaseId, String databaseName) throws Exception {
 		this.database = database;
 		this.databaseId = databaseId;
-		this.databaseName = databaseName;
 
 		String dbFolder = EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, databaseId,
 				databaseName);
@@ -119,7 +118,8 @@ public class AuditDatabase {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create the audit database file {} for database {}", f.getPath(),
+							databaseId, e);
 				}
 			}
 		} else {
@@ -129,7 +129,8 @@ public class AuditDatabase {
 				try {
 					f.createNewFile();
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to create the audit database file {} for database {}", f.getPath(),
+							databaseId, e);
 				}
 			}
 		}
@@ -143,7 +144,7 @@ public class AuditDatabase {
 		// regardless of OS, connection url is always /
 		connectionUrl = connectionUrl.replace('\\', '/');
 
-		classLogger.info("Audit connection url is {}", connectionUrl);
+		classLogger.info("Audit database for {} connecting to {}", databaseId, connectionUrl);
 
 		Properties tempSmssProp = new Properties();
 		tempSmssProp.put(Constants.CONNECTION_URL, connectionUrl);
@@ -179,22 +180,7 @@ public class AuditDatabase {
 		this.allSchemas = Arrays.asList(Pair.with(QUERY_TABLE, this.queryColumns),
 				Pair.with(AUDIT_TABLE, this.auditColumns));
 
-		for (Pair<String, List<Pair<String, String>>> tableSchema : allSchemas) {
-			String tableName = tableSchema.getValue0();
-			String[] colNames = tableSchema.getValue1().stream().map(Pair::getValue0).toArray(String[]::new);
-			String[] types = tableSchema.getValue1().stream().map(Pair::getValue1).toArray(String[]::new);
-			String sql = queryUtil.createTableIfNotExists(tableName, colNames, types);
-			auditDatabase.insertData(sql);
-
-			List<String> allCols = queryUtil.getTableColumns(conn, tableName, null, null);
-			for (int i = 0; i < colNames.length; i++) {
-				String col = colNames[i];
-				if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
-					String addColumnSql = queryUtil.alterTableAddColumn(tableName, col, types[i]);
-					auditDatabase.insertData(addColumnSql);
-				}
-			}
-		}
+		AbstractOwlCreator.syncSchema(auditDatabase, conn, allSchemas);
 	}
 
 	/**
@@ -257,7 +243,7 @@ public class AuditDatabase {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to record INSERT audit entries for database {}", this.databaseId, e);
 		}
 
 		storeExactQuery(id, userId, "INSERT", query);
@@ -338,7 +324,7 @@ public class AuditDatabase {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to record UPDATE audit entries for database {}", this.databaseId, e);
 		}
 
 		storeExactQuery(id, userId, "UPDATE", query);
@@ -405,7 +391,7 @@ public class AuditDatabase {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to record DELETE audit entries for database {}", this.databaseId, e);
 		}
 
 		storeExactQuery(id, userId, "DELETE", query);
@@ -444,7 +430,8 @@ public class AuditDatabase {
 				ps.getConnection().commit();
 			}
 		} catch (SQLException | UnsupportedEncodingException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to record the {} query audit entry for database {}", queryType, this.databaseId,
+					e);
 		}
 	}
 
@@ -512,7 +499,7 @@ public class AuditDatabase {
 		try {
 			this.auditDatabase.close();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to close the audit database for {}", this.databaseId, e);
 		}
 	}
 

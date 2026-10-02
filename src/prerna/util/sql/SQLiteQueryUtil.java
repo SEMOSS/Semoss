@@ -107,13 +107,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix() + ":" + this.hostname;
 
-			if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
 
 		return this.connectionUrl;
@@ -142,13 +136,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix() + ":" + this.hostname;
 
-			if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
 
 		return this.connectionUrl;
@@ -166,13 +154,7 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 
 		this.connectionUrl = this.dbType.getUrlPrefix() + ":" + this.hostname;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}
@@ -445,6 +427,26 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public void setNullableLargeText(java.sql.PreparedStatement statement, int index, String value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.VARCHAR);
+		} else {
+			statement.setString(index, value);
+		}
+	}
+
+	@Override
+	public void setNullableBinary(java.sql.PreparedStatement statement, int index, byte[] value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.BLOB);
+		} else {
+			statement.setBytes(index, value);
+		}
+	}
+
+	@Override
 	public boolean allowBlobJavaObject() {
 		return false;
 	}
@@ -573,4 +575,13 @@ public class SQLiteQueryUtil extends AnsiSqlQueryUtil {
 		}
 		return "ALTER TABLE " + tableName + " RENAME COLUMN " + curColName + " TO " + newColName;
 	}
+
+	@Override
+	/**
+	 * sqlite-jdbc reads pragmas from ?key=value&key2=value2 appended to the file
+	 */
+	protected String getAdditionalPropsSeparator() {
+		return "?";
+	}
+
 }

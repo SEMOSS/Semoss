@@ -60,6 +60,7 @@ import prerna.auth.User;
 import prerna.date.SemossDate;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.Constants;
@@ -96,6 +97,16 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		assertFalse(AbstractSecurityUtils.adminOnlyProjectAddAccess());
 		assertFalse(AbstractSecurityUtils.adminOnlyProjectSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyProjectSetDiscoverable());
+		assertFalse(AbstractSecurityUtils.adminOnlyWorkspaceAdd());
+		assertFalse(AbstractSecurityUtils.adminOnlyWorkspaceDelete());
+		assertFalse(AbstractSecurityUtils.adminOnlyWorkspaceAddAccess());
+		assertFalse(AbstractSecurityUtils.adminOnlyWorkspaceSetPublic());
+		assertFalse(AbstractSecurityUtils.adminOnlyWorkspaceSetDiscoverable());
+		assertFalse(AbstractSecurityUtils.adminOnlySkillAdd());
+		assertFalse(AbstractSecurityUtils.adminOnlySkillDelete());
+		assertFalse(AbstractSecurityUtils.adminOnlySkillAddAccess());
+		assertFalse(AbstractSecurityUtils.adminOnlySkillSetPublic());
+		assertFalse(AbstractSecurityUtils.adminOnlySkillSetDiscoverable());
 		assertFalse(AbstractSecurityUtils.adminOnlyDatabaseAdd());
 		assertFalse(AbstractSecurityUtils.adminOnlyDatabaseDelete());
 		assertFalse(AbstractSecurityUtils.adminOnlyDatabaseAddAccess());
@@ -127,6 +138,58 @@ public class AbstractSecurityUtilsUnitTests extends AbstractSecurityUtilsUnitTes
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightSetPublic());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightAddAccess());
 		assertFalse(AbstractSecurityUtils.adminOnlyInsightShare());
+	}
+
+	@Test
+	void testAdminOnlyProjectFlagsRouteByProjectType() {
+		AbstractSecurityUtils.adminOnlyProjectAdd = true;
+		AbstractSecurityUtils.adminOnlyProjectDelete = false;
+		AbstractSecurityUtils.adminOnlyProjectAddAccess = true;
+		AbstractSecurityUtils.adminOnlyProjectSetPublic = false;
+		AbstractSecurityUtils.adminOnlyProjectSetDiscoverable = true;
+		AbstractSecurityUtils.adminOnlyWorkspaceAdd = false;
+		AbstractSecurityUtils.adminOnlyWorkspaceDelete = true;
+		AbstractSecurityUtils.adminOnlyWorkspaceAddAccess = false;
+		AbstractSecurityUtils.adminOnlyWorkspaceSetPublic = true;
+		AbstractSecurityUtils.adminOnlyWorkspaceSetDiscoverable = false;
+		AbstractSecurityUtils.adminOnlySkillAdd = true;
+		AbstractSecurityUtils.adminOnlySkillDelete = true;
+		AbstractSecurityUtils.adminOnlySkillAddAccess = false;
+		AbstractSecurityUtils.adminOnlySkillSetPublic = false;
+		AbstractSecurityUtils.adminOnlySkillSetDiscoverable = true;
+
+		try {
+			assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE.BLOCKS, true, false, true, false, true);
+			assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE.CODE, true, false, true, false, true);
+			assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE.INSIGHTS, true, false, true, false, true);
+			assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE.WORKSPACE, false, true, false, true, false);
+			assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE.SKILL, true, true, false, false, true);
+		} finally {
+			AbstractSecurityUtils.adminOnlyProjectAdd = false;
+			AbstractSecurityUtils.adminOnlyProjectDelete = false;
+			AbstractSecurityUtils.adminOnlyProjectAddAccess = false;
+			AbstractSecurityUtils.adminOnlyProjectSetPublic = false;
+			AbstractSecurityUtils.adminOnlyProjectSetDiscoverable = false;
+			AbstractSecurityUtils.adminOnlyWorkspaceAdd = false;
+			AbstractSecurityUtils.adminOnlyWorkspaceDelete = false;
+			AbstractSecurityUtils.adminOnlyWorkspaceAddAccess = false;
+			AbstractSecurityUtils.adminOnlyWorkspaceSetPublic = false;
+			AbstractSecurityUtils.adminOnlyWorkspaceSetDiscoverable = false;
+			AbstractSecurityUtils.adminOnlySkillAdd = false;
+			AbstractSecurityUtils.adminOnlySkillDelete = false;
+			AbstractSecurityUtils.adminOnlySkillAddAccess = false;
+			AbstractSecurityUtils.adminOnlySkillSetPublic = false;
+			AbstractSecurityUtils.adminOnlySkillSetDiscoverable = false;
+		}
+	}
+
+	private static void assertAdminOnlyProjectFlags(IProject.PROJECT_TYPE type, boolean add, boolean delete,
+			boolean addAccess, boolean setPublic, boolean setDiscoverable) {
+		assertEquals(add, AbstractSecurityUtils.adminOnlyProjectAdd(type));
+		assertEquals(delete, AbstractSecurityUtils.adminOnlyProjectDelete(type));
+		assertEquals(addAccess, AbstractSecurityUtils.adminOnlyProjectAddAccess(type));
+		assertEquals(setPublic, AbstractSecurityUtils.adminOnlyProjectSetPublic(type));
+		assertEquals(setDiscoverable, AbstractSecurityUtils.adminOnlyProjectSetDiscoverable(type));
 	}
 
 	@Test

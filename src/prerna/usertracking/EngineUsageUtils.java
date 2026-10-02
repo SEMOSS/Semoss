@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -40,7 +39,6 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -140,24 +138,17 @@ public class EngineUsageUtils extends UserTrackingUtils {
 	private static void add(String engineId, String insightId, String projectId, LocalDate date) {
 		String query = "INSERT INTO " + EU_TN + " VALUES (?, ?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, engineId);
-			ps.setString(index++, insightId);
-			ps.setString(index++, projectId);
-			ps.setDate(index++, java.sql.Date.valueOf(date));
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert engine usage row for engine {} (insight {}, project {})", engineId,
 					insightId, projectId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
@@ -173,25 +164,18 @@ public class EngineUsageUtils extends UserTrackingUtils {
 	private static void update(String engineId, String insightId, String projectId, LocalDate date) {
 		String query = "UPDATE " + EU_TN + " SET DATE = ? WHERE ENGINEID = ? AND INSIGHTID = ? " + "AND PROJECTID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
 
-			ps.setDate(index++, java.sql.Date.valueOf(date));
-			ps.setString(index++, engineId);
-			ps.setString(index++, insightId);
-			ps.setString(index++, projectId);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine usage row for engine {} (insight {}, project {})", engineId,
 					insightId, projectId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
@@ -205,22 +189,16 @@ public class EngineUsageUtils extends UserTrackingUtils {
 	private static void remove(String engineId, String insightId, String projectId) {
 		String query = "DELETE FROM " + EU_TN + " where ENGINEID = ? AND INSIGHTID = ? AND PROJECTID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, engineId);
-			ps.setString(index++, insightId);
-			ps.setString(index++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine usage row for engine {} (insight {}, project {})", engineId,
 					insightId, projectId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 

@@ -102,7 +102,8 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
         question: Optional[str] = None,  # Deprecated
         room_id: Optional[str] = None,
         context: Optional[str] = None,
-        image: Optional[List] = None,
+        media: Optional[List] = None,
+        image: Optional[List] = None,  # Deprecated
         url: Optional[List] = None,
         use_history: Optional[bool] = True,
         param_dict: Optional[Dict] = None,
@@ -115,8 +116,9 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             - question (str): **Deprecated**. Use `command` instead.
             - room_id (Optional[str]): Identifier for the room/conversation. If not provided, one will be created on the Java side.
             - context (Optional[str]): Context for the model (the system prompt).
-            - image (Optional[List]): List of base64 image data to provide to the model.
-            - url (Optional[List]): List of image URLs to provide to the model.
+            - media (Optional[List]): List of media to provide to the model, as file names already uploaded to the insight or room, or base64 data. Any file type is accepted - image, pdf, document, spreadsheet, audio, video - and what the model can actually read depends on the model.
+            - image (Optional[List]): **Deprecated**. Use `media` instead, which is not images-only. Values from both are combined.
+            - url (Optional[List]): List of media URLs to provide to the model.
             - use_history (Optional[bool]): Whether to provide the conversation history to the model on an individual call.
             - param_dict (Optional[Dict]): Additional parameters.
             - insight_id (Optional[str]): Identifier for insights.
@@ -139,6 +141,17 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             )
             if command is None:
                 command = question
+
+        if image is not None:
+            warnings.warn(
+                "The 'image' parameter is deprecated and will be removed in a future version. "
+                "Please use 'media' instead, which accepts any file type.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            # combine rather than letting one win, matching the Java reactor, which
+            # accepts both names and merges their values
+            media = list(media) + list(image) if media is not None else image
 
         if insight_id is None:
             insight_id = self.insight_id
@@ -167,7 +180,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             if (param_dict is not None)
             else ""
         )
-        optional_image_param = f",image={image}" if (image is not None) else ""
+        optional_media_param = f",media={media}" if (media is not None) else ""
         optional_url_param = f",url={url}" if (url is not None) else ""
         optional_use_history_param = (
             f", useHistory={str(use_history).lower()}"
@@ -175,7 +188,7 @@ class TomcatModelEngine(AbstractModelEngine, ServerProxy):
             else ""
         )
 
-        pixel = f'LLM(engine="{self.engine_id}"{command_param}{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_image_param}{optional_url_param});'
+        pixel = f'LLM(engine="{self.engine_id}"{command_param}{optional_context}{optional_use_history_param}{optional_param_dict}{optional_room_id_param}{optional_media_param}{optional_url_param});'
 
         pixelReturn = super().callReactor(
             epoc=epoc,

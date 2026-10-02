@@ -31,7 +31,6 @@ import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
-import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 
@@ -105,18 +104,24 @@ public class AuditLogReportSecurityUtils {
 			throw new IllegalArgumentException("Must provide engine, project, or a room id");
 		}
 
-		// if not project or engine but a room
-		// then we need to validate you have access to the room
-		if (isBlank(projectId) && isBlank(engineId) && !isBlank(roomId)) {
-			// this will throw an error if the room does not exist for this user
-			RoomUtils.getOrLoadRoom(roomId, insight);
-		}
-
-		if (!isBlank(roomId) && !ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
-			throw new IllegalArgumentException("Room ID is not valid");
-		}
-
 		String userId = user.getPrimaryLoginToken().getId();
+
+		if (!isBlank(roomId)) {
+			if (isBlank(projectId) && isBlank(engineId)) {
+				// no project or engine but a room, so the room itself is what grants access
+				// this is a metadata only lookup - we never load the room object or its
+				// messages, which would take the room mutation lock and cache the room
+				if (!ModelInferenceLogsUtils.doCheckRoomExistsForUser(roomId, userId)) {
+					if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
+						throw new IllegalArgumentException("Room ID is not valid");
+					}
+					throw new IllegalArgumentException("Room is not valid for this user");
+				}
+			} else if (!ModelInferenceLogsUtils.doCheckRoomExists(roomId)) {
+				// access is granted by the project/engine below, the room is only a filter
+				throw new IllegalArgumentException("Room ID is not valid");
+			}
+		}
 
 		// if you are using a project or an engine
 		// let us check if you are the owner of either of these

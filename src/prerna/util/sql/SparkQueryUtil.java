@@ -33,10 +33,10 @@ public class SparkQueryUtil extends AnsiSqlQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.SPARK);
 	}
-	
+
 	SparkQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.SPARK);
 	}
-	
+
 }

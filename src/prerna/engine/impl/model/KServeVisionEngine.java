@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskStringModelEngineResponse;
 import prerna.om.Insight;
 
@@ -42,8 +43,8 @@ public class KServeVisionEngine extends AbstractRemoteModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(KServeVisionEngine.class);
 
 	@Override
-	public AskStringModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> hyperParameters) {
+	public AskStringModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> hyperParameters) {
 		classLogger.debug("Handling KServeVision Request..");
 
 		JSONObject payload = new JSONObject();
@@ -59,7 +60,7 @@ public class KServeVisionEngine extends AbstractRemoteModelEngine {
 			return response;
 		}
 
-		payload.put("text", question);
+		payload.put("text", inputMessage.getFullInputPrompt());
 
 		classLogger.debug("KServeVision askCall payload: {}", payload.toString(2));
 

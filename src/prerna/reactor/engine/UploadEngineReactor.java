@@ -47,6 +47,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
@@ -319,6 +320,26 @@ public class UploadEngineReactor extends AbstractReactor {
 					// delete this file since values can update and file is dynamically generated on
 					// export
 					metadataFile.delete();
+				}
+			}
+
+			if (IEngine.CATALOG_TYPE.MODEL == engineType) {
+				File modelMetadataFile = new File(Utility.normalizePath(
+						finalEngineFolder.getAbsolutePath() + "/" + engineName + IEngine.MODEL_METADATA_FILE_SUFFIX));
+				if (modelMetadataFile.exists() && modelMetadataFile.isFile()) {
+					logger.info(step + ") Applying model metadata");
+					try {
+						Map<String, Object> modelMetadata = (Map<String, Object>) GsonUtility
+								.readJsonFileToObject(modelMetadataFile, new TypeToken<Map<String, Object>>() {
+								}.getType());
+						SecurityModelMetadataUtils.restoreModelMetadata(engineId, modelMetadata);
+					} catch (Exception e) {
+						classLogger.error("Failed to apply the model metadata for engine {}. The engine is uploaded without it",
+								Utility.cleanLogString(engineId), e);
+					}
+					modelMetadataFile.delete();
+					logger.info(step + ") Done");
+					step++;
 				}
 			}
 		} catch (Exception e) {

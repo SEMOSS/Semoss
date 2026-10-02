@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import org.h2.tools.Server;
 
 import prerna.engine.api.IEmbeddedRDBMSServerEngine;
-import prerna.util.Constants;
 import prerna.util.PortAllocator;
 import prerna.util.Utility;
 
@@ -55,14 +54,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine implements IEmbedd
 		if (baseConnUrl.startsWith("jdbc:h2:nio:")) {
 			baseConnUrl = baseConnUrl.substring("jdbc:h2:nio:".length());
 		}
-		if (force && server != null) {
-			try {
-				Server.shutdownTcpServer(this.server.getURL(), "", true, false);
-				server.shutdown();
-			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
-			server = null;
+		if (force) {
+			stopServer();
 		}
 		if (server == null) {
 			try {
@@ -80,7 +73,8 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine implements IEmbedd
 							dbFile.getParentFile().mkdirs();
 							dbFile.createNewFile();
 						} catch (IOException e) {
-							classLogger.error(Constants.STACKTRACE, e);
+							classLogger.error("Failed to create the database file {}: {}",
+									Utility.cleanLogString(dbFile.getAbsolutePath()), e.getMessage(), e);
 						}
 					}
 				}
@@ -92,26 +86,45 @@ public class H2EmbeddedServerEngine extends RDBMSNativeEngine implements IEmbedd
 				serverUrl = "jdbc:h2:" + server.getURL() + "/nio:" + baseConnUrl;
 				server.start();
 			} catch (SQLException e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to start the H2 TCP server for {}: {}", getEngineId(), e.getMessage(), e);
 			}
 		}
 
-		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
-		classLogger.info(getEngineId() + DATABASE_RUNNING_ON + Utility.cleanLogString(serverUrl));
+		if (serverUrl != null) {
+			classLogger.info("{}{}{}", getEngineId(), DATABASE_RUNNING_ON, Utility.cleanLogString(serverUrl));
+		}
 
 		return serverUrl;
 	}
 
 	@Override
 	public void close() throws IOException {
-		try {
-			Server.shutdownTcpServer(this.server.getURL(), "", true, false);
-			this.server.shutdown();
-		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
-		}
+		stopServer();
 		super.close();
+	}
+
+	/**
+	 * Stops the TCP server this engine started, if it is running.
+	 *
+	 * <p>
+	 * The server runs in this JVM and we hold the instance, so it is stopped
+	 * directly. {@code Server.shutdownTcpServer} is the remote path: it signs in to
+	 * the server's in-memory management database, and H2 generates a random
+	 * management password for a server started without {@code -tcpPassword}, so
+	 * that sign-in can never succeed from here. {@code Server.shutdown()} is no
+	 * good either -- with no shutdown handler attached it stops every H2 server in
+	 * the JVM rather than this one.
+	 */
+	private void stopServer() {
+		if (server == null) {
+			return;
+		}
+		try {
+			server.stop();
+		} catch (RuntimeException e) {
+			classLogger.error("Failed to stop the H2 TCP server for {}: {}", getEngineId(), e.getMessage(), e);
+		}
+		server = null;
 	}
 
 	@Override

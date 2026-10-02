@@ -27,70 +27,130 @@
  *******************************************************************************/
 package prerna.reactor.agent.config;
 
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Declarative spec for a named subagent the parent agent can delegate to.
  *
- * <p>Each spec surfaces to the LLM as a synthesized MCP tool named {@link #getAlias() alias};
- * invoking the tool spawns a child run against the configured {@link #getWorkspaceId() workspaceId}.
- * Specs are loaded from {@code WORKSPACE.CONFIG_JSON.subagents[]} by
- * {@link AgentConfigLoader#resolveSubagents(org.json.JSONObject)} and attached to
+ * <p>
+ * Each spec surfaces to the LLM as a synthesized MCP tool named
+ * {@link #getAlias() alias}; invoking the tool spawns a child run against the
+ * configured {@link #getWorkspaceId() workspaceId}. Target workspace ids are
+ * loaded from {@code WORKSPACE.CONFIG_JSON.subagents[]} by
+ * {@link AgentConfigLoader#resolveSubagents(org.json.JSONObject)}. The loader
+ * derives each alias from the target agent's current name and uses its current
+ * description before attaching the resolved specs to
  * {@link AgentConfig#getSubagents()}.
  *
- * <p>Immutable.
+ * <p>
+ * Immutable.
  */
 public final class SubAgentSpec {
 
-    private final String alias;
-    private final String workspaceId;
-    private final String description;
+	private static final String ALIAS_PREFIX = "agent_";
+	private static final int MAX_ALIAS_LENGTH = 64;
 
-    public SubAgentSpec(String alias, String workspaceId, String description) {
-        if (alias == null || alias.trim().isEmpty()) {
-            throw new IllegalArgumentException("alias is required");
-        }
-        if (workspaceId == null || workspaceId.trim().isEmpty()) {
-            throw new IllegalArgumentException("workspaceId is required");
-        }
-        this.alias       = alias.trim();
-        this.workspaceId = workspaceId.trim();
-        this.description = description;
-    }
+	private final String alias;
+	private final String workspaceId;
+	private final String description;
 
-    /** Tool name the LLM sees; must be unique within a workspace's subagent list. */
-    public String getAlias() {
-        return alias;
-    }
+	public SubAgentSpec(String alias, String workspaceId, String description) {
+		if (alias == null || alias.trim().isEmpty()) {
+			throw new IllegalArgumentException("alias is required");
+		}
+		if (workspaceId == null || workspaceId.trim().isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		this.alias = alias.trim();
+		this.workspaceId = workspaceId.trim();
+		this.description = description;
+	}
 
-    /** Target child workspace id. The child run loads its own CONFIG_JSON (prompt, MCPs, hooks). */
-    public String getWorkspaceId() {
-        return workspaceId;
-    }
+	/**
+	 * Generates a provider-safe tool alias from the target agent's current name and
+	 * disambiguates names that normalize identically within one parent workspace.
+	 */
+	public static String generateAlias(String agentName, String workspaceId, Set<String> usedAliases) {
+		if (agentName == null || agentName.trim().isEmpty()) {
+			throw new IllegalArgumentException("agentName is required");
+		}
+		if (workspaceId == null || workspaceId.trim().isEmpty()) {
+			throw new IllegalArgumentException("workspaceId is required");
+		}
+		if (usedAliases == null) {
+			throw new IllegalArgumentException("usedAliases is required");
+		}
 
-    /** Free-form description shown to the LLM as the tool description. May be {@code null}. */
-    public String getDescription() {
-        return description;
-    }
+		String slug = agentName.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_-]+", "_").replaceAll("_+", "_")
+				.replaceAll("^[_-]+|[_-]+$", "");
+		if (slug.isEmpty()) {
+			slug = "subagent";
+		}
+		String base = truncateAlias(ALIAS_PREFIX + slug, MAX_ALIAS_LENGTH);
+		if (usedAliases.add(base)) {
+			return base;
+		}
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof SubAgentSpec)) return false;
-        SubAgentSpec that = (SubAgentSpec) o;
-        return alias.equals(that.alias)
-                && workspaceId.equals(that.workspaceId)
-                && Objects.equals(description, that.description);
-    }
+		String stableSuffix = "_" + Integer.toUnsignedString(workspaceId.hashCode(), 16);
+		String candidate = truncateAlias(base, MAX_ALIAS_LENGTH - stableSuffix.length()) + stableSuffix;
+		int counter = 2;
+		while (!usedAliases.add(candidate)) {
+			String counterSuffix = stableSuffix + "_" + counter++;
+			candidate = truncateAlias(base, MAX_ALIAS_LENGTH - counterSuffix.length()) + counterSuffix;
+		}
+		return candidate;
+	}
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(alias, workspaceId, description);
-    }
+	private static String truncateAlias(String value, int maxLength) {
+		return value.length() <= maxLength ? value : value.substring(0, maxLength);
+	}
 
-    @Override
-    public String toString() {
-        return "SubAgentSpec{alias=" + alias + ", workspaceId=" + workspaceId
-                + ", descriptionChars=" + (description == null ? 0 : description.length()) + "}";
-    }
+	/**
+	 * Tool name the LLM sees; must be unique within a workspace's subagent list.
+	 */
+	public String getAlias() {
+		return alias;
+	}
+
+	/**
+	 * Target child workspace id. The child run loads its own CONFIG_JSON (prompt,
+	 * MCPs, hooks).
+	 */
+	public String getWorkspaceId() {
+		return workspaceId;
+	}
+
+	/**
+	 * Free-form description shown to the LLM as the tool description. May be
+	 * {@code null}.
+	 */
+	public String getDescription() {
+		return description;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof SubAgentSpec)) {
+			return false;
+		}
+		SubAgentSpec that = (SubAgentSpec) o;
+		return alias.equals(that.alias) && workspaceId.equals(that.workspaceId)
+				&& Objects.equals(description, that.description);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(alias, workspaceId, description);
+	}
+
+	@Override
+	public String toString() {
+		return "SubAgentSpec{alias=" + alias + ", workspaceId=" + workspaceId + ", descriptionChars="
+				+ (description == null ? 0 : description.length()) + "}";
+	}
 }

@@ -199,7 +199,7 @@ public final class HttpHelperUtility {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
-					httpGet.addHeader(key, headerMap.get(key));
+					httpGet.addHeader(requireSafeHeaderValue(key), requireSafeHeaderValue(headerMap.get(key)));
 				}
 			}
 
@@ -447,7 +447,7 @@ public final class HttpHelperUtility {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
-					httpPost.addHeader(key, headersMap.get(key));
+					httpPost.addHeader(requireSafeHeaderValue(key), requireSafeHeaderValue(headersMap.get(key)));
 				}
 			}
 			if (body != null && !body.isEmpty()) {
@@ -561,6 +561,54 @@ public final class HttpHelperUtility {
 			});
 		} catch (IOException e) {
 			classLogger.error("Failed to execute PUT request to URL: {}", url, e);
+			throw buildConnectionException("PUT", url, e);
+		}
+	}
+
+	/**
+	 * Executes an HTTP PUT request with a byte-array payload.
+	 *
+	 * @param url          target URL
+	 * @param headersMap   optional request headers
+	 * @param bodyBytes    request payload; ignored when {@code null} or empty
+	 * @param contentType  content type used for the request entity
+	 * @param keyStore     optional path to a keystore file for mutual TLS
+	 * @param keyStorePass password for the keystore
+	 * @param keyPass      optional key password
+	 * @return response payload as a string, or {@code null} when the response has
+	 *         no entity
+	 * @throws IllegalArgumentException if the URL cannot be reached or the endpoint
+	 *                                  returns a non-2xx status
+	 */
+	public static String putRequestBytesBody(String url, Map<String, String> headersMap, byte[] bodyBytes,
+			ContentType contentType, String keyStore, String keyStorePass, String keyPass) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, keyStore, keyStorePass,
+				keyPass)) {
+
+			HttpPut httpPut = new HttpPut(url);
+			if (headersMap != null && !headersMap.isEmpty()) {
+				for (Map.Entry<String, String> entry : headersMap.entrySet()) {
+					httpPut.addHeader(entry.getKey(), entry.getValue());
+				}
+			}
+			if (bodyBytes != null && bodyBytes.length > 0) {
+				httpPut.setEntity(new ByteArrayEntity(bodyBytes, contentType));
+			}
+
+			return httpClient.execute(httpPut, new HttpClientResponseHandler<String>() {
+				@Override
+				public String handleResponse(ClassicHttpResponse response) throws IOException {
+					int statusCode = response.getCode();
+					HttpEntity entity = response.getEntity();
+					if (statusCode >= 200 && statusCode < 300) {
+						return readEntityAsString(entity);
+					}
+					String responseData = readEntityAsStringOrEmpty(entity);
+					throw buildHttpStatusException("PUT", url, statusCode, responseData);
+				}
+			});
+		} catch (IOException e) {
+			classLogger.error("Failed to execute PUT request with byte[] payload to URL: {}", url, e);
 			throw buildConnectionException("PUT", url, e);
 		}
 	}
@@ -1638,6 +1686,26 @@ public final class HttpHelperUtility {
 		}
 
 		return retString;
+	}
+
+	/**
+	 * Rejects header and cookie fields containing line breaks or NUL. Valid values
+	 * are returned unchanged, including whitespace and credential/signature bytes.
+	 * A null value is left to the calling API's existing handling.
+	 *
+	 * @param value header or cookie field
+	 * @return the value without header delimiters
+	 * @throws IllegalArgumentException if the value contains CR, LF or NUL
+	 */
+	public static String requireSafeHeaderValue(String value) {
+		if (value == null) {
+			return null;
+		}
+		String safeValue = value.replace("\r", "").replace("\n", "").replace("\0", "");
+		if (!safeValue.equals(value)) {
+			throw new IllegalArgumentException("Header and cookie fields must not contain CR, LF or NUL");
+		}
+		return safeValue;
 	}
 
 	/**

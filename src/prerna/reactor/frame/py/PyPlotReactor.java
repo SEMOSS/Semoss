@@ -165,6 +165,10 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String ROOT = insight.getInsightFolder();
 		ROOT = ROOT.replace("\\", "/");
 
+		// this reactor saves the figure itself and returns it as the task output,
+		// so turn off the automatic inline rendering that would otherwise also
+		// push a copy of the image onto the console stream
+		String disableInlineDisplay = "smss_inline_display(False)";
 		String importPyPlot = "import matplotlib.pyplot as plt";
 		String importSeaborn = "import seaborn as sns";
 		String clearPlot = "plt.clf()";
@@ -177,8 +181,8 @@ public class PyPlotReactor extends AbstractPyFrameReactor implements ICodeExecut
 		String removeSeaborn = "del(sns)";
 		String removeSaveFile = "del(saveFile)";
 
-		seabornFile = (String) pyt.runDirectPy(assigner, importPyPlot, importSeaborn, clearPlot, saveFileName, runPlot,
-				savePlot, removeSeaborn, printFile, removeSaveFile);
+		seabornFile = (String) pyt.runDirectPy(disableInlineDisplay, assigner, importPyPlot, importSeaborn, clearPlot,
+				saveFileName, runPlot, savePlot, removeSeaborn, printFile, removeSaveFile);
 
 		// get the insight folder
 		String IF = insight.getInsightFolder();

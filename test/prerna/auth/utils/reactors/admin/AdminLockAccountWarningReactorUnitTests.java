@@ -30,7 +30,12 @@ package prerna.auth.utils.reactors.admin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -45,12 +50,12 @@ import org.mockito.Mockito;
 import prerna.auth.PasswordRequirements;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 import prerna.om.Insight;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
-import prerna.util.EmailUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.Utility;
 
@@ -148,8 +153,7 @@ public class AdminLockAccountWarningReactorUnitTests {
 		try (MockedStatic<SecurityAdminUtils> sau = Mockito.mockStatic(SecurityAdminUtils.class);
 				MockedStatic<PasswordRequirements> pr = Mockito.mockStatic(PasswordRequirements.class);
 				MockedStatic<SocialPropertiesUtil> spu = Mockito.mockStatic(SocialPropertiesUtil.class);
-				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class);
-				MockedStatic<EmailUtility> eu = Mockito.mockStatic(EmailUtility.class)) {
+				MockedStatic<Utility> util = Mockito.mockStatic(Utility.class)) {
 
 			SecurityAdminUtils s = mock(SecurityAdminUtils.class);
 			sau.when(() -> SecurityAdminUtils.getInstance(user)).thenReturn(s);
@@ -160,7 +164,8 @@ public class AdminLockAccountWarningReactorUnitTests {
 
 			SocialPropertiesUtil mockSpu = mock(SocialPropertiesUtil.class);
 			spu.when(SocialPropertiesUtil::getInstance).thenReturn(mockSpu);
-			when(mockSpu.getEmailSession()).thenReturn(null);
+			SMTPFunctionEngine mockMailEngine = mock(SMTPFunctionEngine.class);
+			when(mockSpu.getSmtpEngine()).thenReturn(mockMailEngine);
 			when(mockSpu.getEmailStaticProps()).thenReturn(new HashMap<>());
 			when(mockSpu.getSmtpSender()).thenReturn("admin@test.com");
 
@@ -168,8 +173,7 @@ public class AdminLockAccountWarningReactorUnitTests {
 			listToEmail.add(new Object[] { "user@test.com", Long.valueOf(80) });
 			when(s.getUserEmailsGettingLocked()).thenReturn(listToEmail);
 
-			util.when(() -> Utility.getDIHelperProperty(Constants.EMAIL_TEMPLATES))
-					.thenReturn("/nonexistent/path/");
+			util.when(() -> Utility.getDIHelperProperty(Constants.EMAIL_TEMPLATES)).thenReturn("/nonexistent/path/");
 
 			NounMetadata result = reactor.execute();
 
@@ -177,6 +181,8 @@ public class AdminLockAccountWarningReactorUnitTests {
 			List<String> emails = (List<String>) result.getValue();
 			assertEquals(1, emails.size());
 			assertEquals("user@test.com", emails.get(0));
+			verify(mockMailEngine, times(1)).sendEmail(eq(new String[] { "user@test.com" }), isNull(), isNull(),
+					eq("admin@test.com"), eq("WARNING! Account Locking Soon"), anyString(), eq(true), isNull());
 		}
 	}
 }

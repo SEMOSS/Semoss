@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -42,7 +41,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -66,16 +65,15 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC")).minusMinutes(expirationMinutes);
 		String query = "DELETE FROM TOKEN WHERE DATEADDED <= ?";
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
-			ps.execute();
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to clear expired tokens.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
 	}
 
@@ -90,20 +88,23 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO TOKEN (IPADDR, VAL, DATEADDED, CLIENTID) VALUES (?,?,?,?)";
 		String tokenValue = UUID.randomUUID().toString();
 		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC"));
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(query);
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, ipAddr);
-			ps.setString(parameterIndex++, tokenValue);
-			ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
-			ps.setString(parameterIndex++, clientId);
-			ps.execute();
-			classLogger.debug("Adding new token={} for ip={}", tokenValue, ipAddr);
-		} catch (SQLException e) {
+			QueryExecutionUtility.write(securityDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, ipAddr);
+					ps.setString(parameterIndex++, tokenValue);
+					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
+					ps.setString(parameterIndex++, clientId);
+					ps.execute();
+					classLogger.debug("Adding new token={} for ip={}", tokenValue, ipAddr);
+				}
+				return null;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to generate token.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, null, ps, null);
 		}
 
 		return new Object[] { tokenValue, ipAddr, clientId };

@@ -60,6 +60,7 @@ public final class AgentHarnessResult {
 
     /** Terminal assistant message id for this run, when the harness has one. */
     private final String finalOutputMessageId;
+    private final String completionError;
 
     /** Backward-compatible constructor - sets {@code reflectionsUsed = 0}. */
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords) {
@@ -73,6 +74,12 @@ public final class AgentHarnessResult {
 
     public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords,
                               int reflectionsUsed, String inputMessageId, String finalOutputMessageId) {
+        this(finalText, iterations, toolCallRecords, reflectionsUsed, inputMessageId, finalOutputMessageId, null);
+    }
+
+    public AgentHarnessResult(String finalText, int iterations, List<ToolCallRecord> toolCallRecords,
+                              int reflectionsUsed, String inputMessageId, String finalOutputMessageId, String completionError) {
+        this.completionError = completionError;
         this.finalText        = finalText != null ? finalText : "";
         this.iterations       = iterations;
         this.toolCallRecords  = Collections.unmodifiableList(toolCallRecords);
@@ -104,6 +111,8 @@ public final class AgentHarnessResult {
     public String getInputMessageId() {
         return inputMessageId;
     }
+
+    public String getCompletionError() { return completionError; }
 
     public String getFinalOutputMessageId() {
         return finalOutputMessageId;

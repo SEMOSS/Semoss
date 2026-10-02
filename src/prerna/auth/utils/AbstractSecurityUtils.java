@@ -28,6 +28,11 @@
 package prerna.auth.utils;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,20 +43,28 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.javatuples.Pair;
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.PasswordRequirements;
@@ -61,10 +74,16 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
+import prerna.project.api.IProject;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
+import prerna.query.querystruct.filters.IQueryFilter;
+import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -89,6 +108,16 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyProjectAddAccess = false;
 	static boolean adminOnlyProjectSetPublic = false;
 	static boolean adminOnlyProjectSetDiscoverable = false;
+	static boolean adminOnlyWorkspaceAdd = false;
+	static boolean adminOnlyWorkspaceDelete = false;
+	static boolean adminOnlyWorkspaceAddAccess = false;
+	static boolean adminOnlyWorkspaceSetPublic = false;
+	static boolean adminOnlyWorkspaceSetDiscoverable = false;
+	static boolean adminOnlySkillAdd = false;
+	static boolean adminOnlySkillDelete = false;
+	static boolean adminOnlySkillAddAccess = false;
+	static boolean adminOnlySkillSetPublic = false;
+	static boolean adminOnlySkillSetDiscoverable = false;
 
 	static boolean adminOnlyDatabaseAdd = false;
 	static boolean adminOnlyDatabaseDelete = false;
@@ -132,6 +161,19 @@ public abstract class AbstractSecurityUtils {
 	static boolean adminOnlyInsightShare = false;
 
 	static Gson securityGson = new GsonBuilder().disableHtmlEscaping().create();
+
+	// passwords are hashed with PBKDF2, which is FIPS approved
+	private static final String PBKDF2_ALGORITHM = "PBKDF2WithHmacSHA256";
+	private static final String PBKDF2_SALT_PREFIX = "pbkdf2-sha256$";
+	private static final int PBKDF2_SALT_BYTE_LENGTH = 16;
+	private static final int PBKDF2_DERIVED_KEY_LENGTH_BITS = 256;
+	private static final int PBKDF2_ITERATIONS = 210_000;
+
+	private static final SecureRandom RANDOM = new SecureRandom();
+
+	// credentials currently being rehashed, so concurrent requests for the same
+	// credential do not all run the migration
+	private static final Set<String> MIGRATIONS_IN_PROGRESS = ConcurrentHashMap.newKeySet();
 
 	/**
 	 * Only used for static references
@@ -187,6 +229,16 @@ public abstract class AbstractSecurityUtils {
 		adminOnlyProjectAddAccess = Utility.getApplicationAdminOnlyProjectAddAccess();
 		adminOnlyProjectSetPublic = Utility.getApplicationAdminOnlyProjectSetPublic();
 		adminOnlyProjectSetDiscoverable = Utility.getApplicationAdminOnlyProjectSetDiscoverable();
+		adminOnlyWorkspaceAdd = Utility.getApplicationAdminOnlyWorkspaceAdd();
+		adminOnlyWorkspaceDelete = Utility.getApplicationAdminOnlyWorkspaceDelete();
+		adminOnlyWorkspaceAddAccess = Utility.getApplicationAdminOnlyWorkspaceAddAccess();
+		adminOnlyWorkspaceSetPublic = Utility.getApplicationAdminOnlyWorkspaceSetPublic();
+		adminOnlyWorkspaceSetDiscoverable = Utility.getApplicationAdminOnlyWorkspaceSetDiscoverable();
+		adminOnlySkillAdd = Utility.getApplicationAdminOnlySkillAdd();
+		adminOnlySkillDelete = Utility.getApplicationAdminOnlySkillDelete();
+		adminOnlySkillAddAccess = Utility.getApplicationAdminOnlySkillAddAccess();
+		adminOnlySkillSetPublic = Utility.getApplicationAdminOnlySkillSetPublic();
+		adminOnlySkillSetDiscoverable = Utility.getApplicationAdminOnlySkillSetDiscoverable();
 
 		adminOnlyDatabaseAdd = Utility.getApplicationAdminOnlyDbAdd();
 		adminOnlyDatabaseDelete = Utility.getApplicationAdminOnlyDbDelete();
@@ -251,7 +303,29 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAdd;
 	}
 
+	public static boolean adminOnlyProjectAdd(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAdd;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAdd;
+		}
+		return adminOnlyProjectAdd;
+	}
+
 	public static boolean adminOnlyProjectDelete() {
+		return adminOnlyProjectDelete;
+	}
+
+	public static boolean adminOnlyProjectDelete(String projectId) {
+		return adminOnlyProjectDelete(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectDelete(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceDelete;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillDelete;
+		}
 		return adminOnlyProjectDelete;
 	}
 
@@ -259,12 +333,105 @@ public abstract class AbstractSecurityUtils {
 		return adminOnlyProjectAddAccess;
 	}
 
+	public static boolean adminOnlyProjectAddAccess(String projectId) {
+		return adminOnlyProjectAddAccess(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectAddAccess(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceAddAccess;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillAddAccess;
+		}
+		return adminOnlyProjectAddAccess;
+	}
+
 	public static boolean adminOnlyProjectSetPublic() {
+		return adminOnlyProjectSetPublic;
+	}
+
+	public static boolean adminOnlyProjectSetPublic(String projectId) {
+		return adminOnlyProjectSetPublic(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetPublic(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetPublic;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetPublic;
+		}
 		return adminOnlyProjectSetPublic;
 	}
 
 	public static boolean adminOnlyProjectSetDiscoverable() {
 		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(String projectId) {
+		return adminOnlyProjectSetDiscoverable(getProjectTypeForAdminOnly(projectId));
+	}
+
+	public static boolean adminOnlyProjectSetDiscoverable(IProject.PROJECT_TYPE type) {
+		if (IProject.PROJECT_TYPE.WORKSPACE == type) {
+			return adminOnlyWorkspaceSetDiscoverable;
+		} else if (IProject.PROJECT_TYPE.SKILL == type) {
+			return adminOnlySkillSetDiscoverable;
+		}
+		return adminOnlyProjectSetDiscoverable;
+	}
+
+	public static boolean adminOnlyWorkspaceAdd() {
+		return adminOnlyWorkspaceAdd;
+	}
+
+	public static boolean adminOnlyWorkspaceDelete() {
+		return adminOnlyWorkspaceDelete;
+	}
+
+	public static boolean adminOnlyWorkspaceAddAccess() {
+		return adminOnlyWorkspaceAddAccess;
+	}
+
+	public static boolean adminOnlyWorkspaceSetPublic() {
+		return adminOnlyWorkspaceSetPublic;
+	}
+
+	public static boolean adminOnlyWorkspaceSetDiscoverable() {
+		return adminOnlyWorkspaceSetDiscoverable;
+	}
+
+	public static boolean adminOnlySkillAdd() {
+		return adminOnlySkillAdd;
+	}
+
+	public static boolean adminOnlySkillDelete() {
+		return adminOnlySkillDelete;
+	}
+
+	public static boolean adminOnlySkillAddAccess() {
+		return adminOnlySkillAddAccess;
+	}
+
+	public static boolean adminOnlySkillSetPublic() {
+		return adminOnlySkillSetPublic;
+	}
+
+	public static boolean adminOnlySkillSetDiscoverable() {
+		return adminOnlySkillSetDiscoverable;
+	}
+
+	private static IProject.PROJECT_TYPE getProjectTypeForAdminOnly(String projectId) {
+		String projectType = SecurityProjectUtils.getProjectTypeForId(projectId);
+		if (projectType == null || projectType.trim().isEmpty()) {
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
+		try {
+			return IProject.PROJECT_TYPE.valueOf(projectType.trim());
+		} catch (IllegalArgumentException e) {
+			classLogger.warn("Unknown project type '{}' for project {}; applying project admin limits", projectType,
+					projectId);
+			return IProject.PROJECT_TYPE.INSIGHTS;
+		}
 	}
 
 	public static boolean adminOnlyDatabaseAdd() {
@@ -745,6 +912,58 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// MODELMETADATA
+			colNames = new String[] { "ENGINEID", "MODELID", "CATALOGMODELKEY", "MODELPROVIDER", "SERVINGPROVIDER",
+					"CAPABILITY", "FAMILY", "INPUTMODALITIES", "OUTPUTMODALITIES", "CONTEXTWINDOW", "MAXOUTPUTTOKENS",
+					"BUILTINTOOLS", "ATTACHMENT", "REASONING", "TOOLCALL", "STRUCTUREDOUTPUT", "TEMPERATURE",
+					"KNOWLEDGECUTOFF", "RELEASEDATE", "SUPPORTEDPARAMETERS", "REASONINGCONFIG", "BENCHMARKS",
+					"PRICING" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255,
+					VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME, "BIGINT", "BIGINT", CLOB_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
+					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.tableExists(conn, "MODELMETADATA", database, schema)) {
+				String sql = queryUtil.createTable("MODELMETADATA", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MODELMETADATA", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MODELMETADATA", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+				for (String obsoleteColumn : new String[] { "LICENSE", "LINKS", "WEIGHTS", "OPENWEIGHTS", "LASTUPDATED",
+						"MAXINPUTTOKENS" }) {
+					if (allCols.stream().anyMatch(obsoleteColumn::equalsIgnoreCase)) {
+						String dropColumnSql = queryUtil.alterTableDropColumn("MODELMETADATA", obsoleteColumn);
+						classLogger.info("Running sql {}", dropColumnSql);
+						securityDb.insertData(dropColumnSql);
+					}
+				}
+			}
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA",
+						"ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else if (!queryUtil.indexExists(securityDb, "MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", database,
+					schema)) {
+				String sql = queryUtil.createIndex("MODELMETADATA_ENGINEID_INDEX", "MODELMETADATA", "ENGINEID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			}
+
 			// ENGINEPERMISSION
 			colNames = new String[] { "USERID", "PERMISSION", "ENGINEID", "VISIBILITY", "FAVORITE",
 					"PERMISSIONGRANTEDBY", "PERMISSIONGRANTEDBYTYPE", "DATEADDED", "ENDDATE", "USAGERESTRICTION",
@@ -854,12 +1073,12 @@ public abstract class AbstractSecurityUtils {
 			// Type and cost are the main questions -
 			boolean projectExists = queryUtil.tableExists(conn, "PROJECT", database, schema);
 			colNames = new String[] { "PROJECTID", "PROJECTNAME", "PROJECTDISPLAYNAME", "GLOBAL", "DISCOVERABLE",
-					"CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST", "CATALOGNAME",
-					"PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
+					"IS_TEMPLATE", "CREATEDBY", "CREATEDBYTYPE", "DATECREATED", "DATELASTEDITED", "TYPE", "COST",
+					"CATALOGNAME", "PORTALPUBLISHED", "PORTALPUBLISHEDUSER", "PORTALPUBLISHEDTYPE", "REACTORSCOMPILED",
 					"REACTORSCOMPILEDUSER", "REACTORSCOMPILEDTYPE" };
 			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, BOOLEAN_DATATYPE_NAME, BOOLEAN_DATATYPE_NAME,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, VARCHAR_255,
-					VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
+					BOOLEAN_DATATYPE_NAME, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME,
+					VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255,
 					TIMESTAMP_DATATYPE_NAME, VARCHAR_255, VARCHAR_255 };
 			if (allowIfExistsTable) {
 				String sql = queryUtil.createTableIfNotExists("PROJECT", colNames, types);
@@ -891,6 +1110,12 @@ public abstract class AbstractSecurityUtils {
 				// backfill display name from canonical name for existing rows
 				securityDb.insertData(
 						"UPDATE PROJECT SET PROJECTDISPLAYNAME = PROJECTNAME WHERE PROJECTDISPLAYNAME IS NULL OR PROJECTDISPLAYNAME = ''");
+
+				try (PreparedStatement ps = conn
+						.prepareStatement("UPDATE PROJECT SET IS_TEMPLATE = ? WHERE IS_TEMPLATE IS NULL")) {
+					ps.setBoolean(1, false);
+					ps.executeUpdate();
+				}
 			}
 			if (allowIfExistsIndexs) {
 				String sql = queryUtil.createIndexIfNotExists("PROJECT_GLOBAL_INDEX", "PROJECT", "GLOBAL");
@@ -2404,6 +2629,52 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// MS_GRAPH_SUBSCRIPTION
+			// the Microsoft Graph change notification subscriptions this deployment
+			// created. A notification carries a subscription id and nothing else, and any
+			// container behind the load balancer can be the one that receives it, so what
+			// is needed to recognize it and to act as the user it belongs to is held here
+			// rather than in the memory of whichever container created it
+			colNames = new String[] { "SUBSCRIPTION_ID", "USER_ID", "USER_PROVIDER", "USER_EMAIL", "CLIENT_STATE",
+					"RESOURCE", "CHANGE_TYPE", "NOTIFICATION_URL", "EXPIRATION", "ACCESS_TOKEN", "REFRESH_TOKEN",
+					"TOKEN_EXPIRATION", "CREATED_ON", "UPDATED_ON" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_255, VARCHAR_500,
+					VARCHAR_255, VARCHAR_500, TIMESTAMP_DATATYPE_NAME, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MS_GRAPH_SUBSCRIPTION", colNames, types));
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					// make the table
+					securityDb.insertData(queryUtil.createTable("MS_GRAPH_SUBSCRIPTION", colNames, types));
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MS_GRAPH_SUBSCRIPTION", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("MS_GRAPH_SUBSCRIPTION", col, types[i]);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+			// index for listing what one user is watching, which is the only read that
+			// is not already by subscription id
+			if (allowIfExistsIndexs) {
+				String sql = queryUtil.createIndexIfNotExists("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				if (!queryUtil.indexExists(securityDb, "IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", database, schema)) {
+					String sql = queryUtil.createIndex("IX_MSGS_USER", "MS_GRAPH_SUBSCRIPTION", "USER_ID");
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+
 			if (!conn.getAutoCommit()) {
 				conn.commit();
 			}
@@ -2438,8 +2709,9 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] { "TYPE" });
 		allValues.put("USERINSIGHTPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 
-		// grab the new fixed names to the old names
-		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
+		// Use the same aliases as request parsing, including the legacy Microsoft
+		// prefix.
+		Map<String, AuthProvider> providersByKey = AuthProvider.getSocialPropKeysToEnum();
 
 		// repeat for all tables
 		for (String tableName : allValues.keySet()) {
@@ -2453,12 +2725,14 @@ public abstract class AbstractSecurityUtils {
 					conn = securityDb.getConnection();
 					StringBuilder query = new StringBuilder();
 					query.append("UPDATE ").append(tableName).append(" SET ").append(columnName).append("=? WHERE ")
-							.append(columnName).append("=?");
+							.append("LOWER(").append(columnName).append(")=? AND ").append(columnName).append("<>?");
 					ps = conn.prepareStatement(query.toString());
 
-					for (String newType : newTypesMap.keySet()) {
-						ps.setString(1, newType);
-						ps.setString(2, newTypesMap.get(newType));
+					for (Map.Entry<String, AuthProvider> entry : providersByKey.entrySet()) {
+						String label = entry.getValue().getLabel();
+						ps.setString(1, label);
+						ps.setString(2, entry.getKey());
+						ps.setString(3, label);
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -2927,6 +3201,191 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
+	 * Keep the rows whose effective permission is one of the given levels. The
+	 * effective permission is the better (lower) of the user's own grant and their
+	 * groups' grant, the same value the list queries select as {@code permission}.
+	 * Built from query struct filters only, so every security database dialect gets
+	 * its own SQL.
+	 *
+	 * A global resource the user holds no grant on counts as read only, as the UI
+	 * shows it, when a global column is given.
+	 *
+	 * @param userPermCol  the user's own grant, such as
+	 *                     {@code USER_PERMISSIONS__PERMISSION}
+	 * @param groupPermCol the best grant of the user's groups, such as
+	 *                     {@code GROUP_PERMISSIONS__PERMISSION}; null when the
+	 *                     query has no group grants
+	 * @param globalCol    the resource's global flag, such as
+	 *                     {@code PROJECT__GLOBAL}; null to leave global resources
+	 *                     without a grant out
+	 * @param permissions  the levels to keep, as {@link AccessPermissionEnum} ids
+	 * @return the filter
+	 * @throws IllegalArgumentException when a level is not an
+	 *                                  {@link AccessPermissionEnum} id
+	 */
+	static IQueryFilter getEffectivePermissionFilter(String userPermCol, String groupPermCol, String globalCol,
+			Collection<Integer> permissions) {
+		List<Integer> levels = new ArrayList<>(permissions);
+		for (Integer level : levels) {
+			if (level == null || level < AccessPermissionEnum.OWNER.getId()
+					|| level > AccessPermissionEnum.READ_ONLY.getId()) {
+				throw new IllegalArgumentException(
+						"Permission filters take 1 (owner), 2 (edit), or 3 (read only); got " + level);
+			}
+		}
+		if (groupPermCol == null) {
+			return SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT);
+		}
+
+		// the user's own grant decides: it is one of the levels, and no group
+		// grant is better
+		AndQueryFilter userDecides = new AndQueryFilter();
+		userDecides.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterGroup = new OrQueryFilter();
+		noBetterGroup
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterGroup.addFilter(SimpleQueryFilter.makeColToColFilter(userPermCol, "<=", groupPermCol));
+		userDecides.addFilter(noBetterGroup);
+
+		// a group grant decides: it is one of the levels, and the user's own
+		// grant is worse or missing
+		AndQueryFilter groupDecides = new AndQueryFilter();
+		groupDecides
+				.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", levels, PixelDataType.CONST_INT));
+		OrQueryFilter noBetterUser = new OrQueryFilter();
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+		noBetterUser.addFilter(SimpleQueryFilter.makeColToColFilter(groupPermCol, "<", userPermCol));
+		groupDecides.addFilter(noBetterUser);
+
+		OrQueryFilter effective = new OrQueryFilter();
+		effective.addFilter(userDecides);
+		effective.addFilter(groupDecides);
+
+		if (globalCol != null && levels.contains(AccessPermissionEnum.READ_ONLY.getId())) {
+			AndQueryFilter globalWithoutGrant = new AndQueryFilter();
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(globalCol, "==", true, PixelDataType.BOOLEAN));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(userPermCol, "==", null, PixelDataType.CONST_INT));
+			globalWithoutGrant
+					.addFilter(SimpleQueryFilter.makeColToValFilter(groupPermCol, "==", null, PixelDataType.CONST_INT));
+			effective.addFilter(globalWithoutGrant);
+		}
+		return effective;
+	}
+
+	/**
+	 * Keep the rows created by any of the given creators. A creator matches only
+	 * when both its login id and its login type match, the pairs
+	 * {@link User#getUserIdAndType(User)} returns.
+	 *
+	 * @param createdByCol     the creator's id column, such as
+	 *                         {@code PROJECT__CREATEDBY}
+	 * @param createdByTypeCol the creator's login type column, such as
+	 *                         {@code PROJECT__CREATEDBYTYPE}
+	 * @param creators         the creators to keep, as (id, login type) pairs; must
+	 *                         not be empty
+	 * @return the filter
+	 */
+	static IQueryFilter getCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue0())));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
+					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Read creator filters from reactor input: maps with the creator's login
+	 * {@code id} and login {@code type}.
+	 *
+	 * @param values the input values, each expected to be a map; may be null
+	 * @return (id, login type) pairs, in input order; empty without input
+	 * @throws IllegalArgumentException when a value is not a map, or lacks an id or
+	 *                                  a type
+	 */
+	public static List<Pair<String, String>> getCreatorPairs(Collection<?> values) {
+		List<Pair<String, String>> creators = new ArrayList<>();
+		if (values == null) {
+			return creators;
+		}
+		for (Object value : values) {
+			Object id = value instanceof Map ? ((Map<?, ?>) value).get("id") : null;
+			Object type = value instanceof Map ? ((Map<?, ?>) value).get("type") : null;
+			if (id == null || id.toString().trim().isEmpty() || type == null || type.toString().trim().isEmpty()) {
+				throw new IllegalArgumentException("Each creator filter must be a map with an \"id\" and a \"type\"");
+			}
+			creators.add(Pair.with(id.toString().trim(), type.toString().trim()));
+		}
+		return creators;
+	}
+
+	/**
+	 * Match active grants to the user's provider groups and custom groups. A group
+	 * identity includes both its type and ID; IDs alone are not unique across
+	 * providers.
+	 *
+	 * @param user             the user whose memberships are checked
+	 * @param permissionPrefix the group permission table followed by {@code __}
+	 */
+	static IQueryFilter getUserGroupPermissionFilter(User user, String permissionPrefix) {
+		OrQueryFilter memberships = new OrQueryFilter();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				AccessToken token = user.getAccessToken(login);
+				Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(token);
+				if (!customGroups.isEmpty()) {
+					AndQueryFilter custom = new AndQueryFilter();
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==", "CUSTOM"));
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", customGroups));
+					memberships.addFilter(custom);
+				}
+				if (!token.getUserGroups().isEmpty()) {
+					AndQueryFilter provider = new AndQueryFilter();
+					provider.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==",
+							token.getUserGroupType()));
+					provider.addFilter(
+							SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", token.getUserGroups()));
+					memberships.addFilter(provider);
+				}
+			}
+		}
+		if (memberships.isEmpty()) {
+			// An empty membership list must never become an unrestricted query.
+			return new SimpleQueryFilter(new NounMetadata(1, PixelDataType.CONST_INT), "==",
+					new NounMetadata(0, PixelDataType.CONST_INT));
+		}
+		AndQueryFilter activeGrants = new AndQueryFilter();
+		activeGrants.addFilter(memberships);
+		activeGrants.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		activeGrants.addFilter(getUnexpiredFilter(permissionPrefix + "ENDDATE"));
+		return activeGrants;
+	}
+
+	/**
+	 * Match unlimited or unexpired permissions/memberships, whose end dates are
+	 * stored in UTC.
+	 */
+	static IQueryFilter getUnexpiredFilter(String endDateColumn) {
+		OrQueryFilter active = new OrQueryFilter();
+		active.addFilter(
+				SimpleQueryFilter.makeColToValFilter(endDateColumn, "==", null, PixelDataType.CONST_TIMESTAMP));
+		active.addFilter(SimpleQueryFilter.makeColToValFilter(endDateColumn, ">",
+				new SemossDate(Utility.getCurrentZonedDateTimeUTC()), PixelDataType.CONST_TIMESTAMP));
+		return active;
+	}
+
+	/**
 	 * 
 	 * @param user
 	 * @return
@@ -3063,23 +3522,112 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Current salt generation by BCrypt
-	 * 
+	 * Generate a salt in the format
+	 * {@code pbkdf2-sha256$<iterations>$<base64 salt>}
+	 *
 	 * @return salt
 	 */
 	public static String generateSalt() {
-		return BCrypt.gensalt();
+		byte[] saltBytes = new byte[PBKDF2_SALT_BYTE_LENGTH];
+		RANDOM.nextBytes(saltBytes);
+		return PBKDF2_SALT_PREFIX + PBKDF2_ITERATIONS + "$" + Base64.getEncoder().encodeToString(saltBytes);
 	}
 
 	/**
 	 * Create the password hash based on the password and salt provided.
-	 * 
+	 *
 	 * @param password
 	 * @param salt
 	 * @return hash
 	 */
 	public static String hash(String password, String salt) {
-		return BCrypt.hashpw(password, salt);
+		if (isLegacySalt(salt)) {
+			return BCrypt.hashpw(password, salt);
+		}
+		return pbkdf2Hash(password, salt);
+	}
+
+	/**
+	 * Whether the salt is in the legacy BCrypt format instead of PBKDF2
+	 *
+	 * @param salt
+	 * @return true if legacy
+	 */
+	public static boolean isLegacySalt(String salt) {
+		return salt != null && !salt.startsWith(PBKDF2_SALT_PREFIX);
+	}
+
+	/**
+	 * Compare a password against a stored hash and salt in constant time
+	 *
+	 * @param password
+	 * @param storedHash
+	 * @param storedSalt
+	 * @return true if the password matches
+	 */
+	public static boolean credentialMatches(String password, String storedHash, String storedSalt) {
+		if (password == null || storedHash == null || storedSalt == null) {
+			return false;
+		}
+		byte[] computed;
+		try {
+			computed = hash(password, storedSalt).getBytes(StandardCharsets.UTF_8);
+		} catch (Exception e) {
+			classLogger.error("Unable to hash the provided credential for comparison.", e);
+			return false;
+		}
+		return MessageDigest.isEqual(storedHash.getBytes(StandardCharsets.UTF_8), computed);
+	}
+
+	/**
+	 * Run a rehash of the stored credential, skipping it when another thread is
+	 * already migrating the same one. Only the migration is guarded, the verify
+	 * that precedes it is untouched. Skipping is safe since the credential has
+	 * already been verified and the next request retries the migration.
+	 *
+	 * @param credentialId identifies the credential being migrated
+	 * @param migration    the rehash and update to run
+	 */
+	protected static void runCredentialMigration(String credentialId, Runnable migration) {
+		if (!MIGRATIONS_IN_PROGRESS.add(credentialId)) {
+			return;
+		}
+		try {
+			migration.run();
+		} finally {
+			MIGRATIONS_IN_PROGRESS.remove(credentialId);
+		}
+	}
+
+	/**
+	 * Hash using the iterations and salt recorded in the salt spec
+	 *
+	 * @param password
+	 * @param saltSpec
+	 * @return hash
+	 */
+	private static String pbkdf2Hash(String password, String saltSpec) {
+		String[] parts = saltSpec.split("\\$");
+		if (parts.length != 3) {
+			throw new IllegalArgumentException("Stored credential salt is malformed");
+		}
+		int iterations;
+		try {
+			iterations = Integer.parseInt(parts[1]);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Stored credential salt has a malformed iteration count", e);
+		}
+		byte[] saltBytes = Base64.getDecoder().decode(parts[2]);
+
+		PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), saltBytes, iterations, PBKDF2_DERIVED_KEY_LENGTH_BITS);
+		try {
+			byte[] derived = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).getEncoded();
+			return Base64.getEncoder().encodeToString(derived);
+		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+			throw new IllegalStateException("Unable to hash the password with " + PBKDF2_ALGORITHM, e);
+		} finally {
+			spec.clearPassword();
+		}
 	}
 
 	/**

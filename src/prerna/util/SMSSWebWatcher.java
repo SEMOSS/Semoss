@@ -41,13 +41,14 @@ import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.engine.logging.AuditLogsDbUtils;
 import prerna.masterdatabase.DeleteFromMasterDB;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.collaboration.CollaborationDbUtils;
 import prerna.notifications.NotificationDbUtils;
 import prerna.prompt.PromptUtils;
+import prerna.reactor.automation.AutomationDatabaseUtility;
 import prerna.reactor.scheduler.SchedulerDatabaseUtility;
 import prerna.theme.AbstractThemeUtils;
 import prerna.usertracking.UserTrackingUtils;
@@ -213,6 +214,10 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 				try {
 					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[schedulerDbNameIndex]);
 					SchedulerDatabaseUtility.startServer();
+					// Automation tables live in the scheduler DB, so only initialize them
+					// after the scheduler DB has started successfully.
+					AutomationDatabaseUtility.initialize();
+					AutomationDatabaseUtility.markStaleRunsInterrupted();
 				} catch (Exception e) {
 					classLogger.error("Failed to load and start the scheduler database", e);
 				}
@@ -261,12 +266,17 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 			}
 		}
 
-		// THIS IS TEMPORARY UNTIL WE HAVE ALL USERS ON THE NEW VERSION
-		// USING THE DB AND PROJECT SPLIT OF AN APP
-		// TODO: need to update this for the cloud
-		if (!ClusterUtil.IS_CLUSTER) {
-			LegacyToProjectRestructurerHelper updater = new LegacyToProjectRestructurerHelper();
-			updater.executeRestructure();
+		if (Utility.isCollaborationDatabaseEnabled()) {
+			String collaborationDbName = Constants.COLLABORATION_DB + this.extension;
+			int collaborationDbNameIndex = ArrayUtilityMethods.calculateIndexOfArray(fileNames, collaborationDbName);
+			if (collaborationDbNameIndex > -1) {
+				try {
+					SystemEngineRegistry.loadSystemEngine(folderToWatch + "/" + fileNames[collaborationDbNameIndex]);
+					CollaborationDbUtils.loadCollaborationDatabase();
+				} catch (Exception e) {
+					classLogger.error("Failed to load and initialize the collaboration database", e);
+				}
+			}
 		}
 	}
 
@@ -294,6 +304,7 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 		String userTrackingDBName = Constants.USER_TRACKING_DB + this.extension;
 		String modelInferenceLogsDB = Constants.MODEL_INFERENCE_LOGS_DB + this.extension;
 		String notificationDB = Constants.NOTIFICATION_DB + this.extension;
+		String collaborationDB = Constants.COLLABORATION_DB + this.extension;
 
 		// loop through and load all the engines
 		// but we will ignore the local master and security database
@@ -305,7 +316,8 @@ public class SMSSWebWatcher extends AbstractFileWatcher {
 						|| (fileName.equals(promptDBName) && !Utility.isPromptDatabaseEnabled())
 						|| fileName.equals(userTrackingDBName)
 						|| (fileName.equals(modelInferenceLogsDB) && !Utility.isModelInferenceLogsEnabled())
-						|| (fileName.equals(notificationDB) && !Utility.isNotificationDatabaseEnabled())) {
+						|| (fileName.equals(notificationDB) && !Utility.isNotificationDatabaseEnabled())
+						|| (fileName.equals(collaborationDB) && !Utility.isCollaborationDatabaseEnabled())) {
 					// ignore - we have already loaded these or they are disabled and need to be
 					// ignored
 					continue;

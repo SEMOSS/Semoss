@@ -47,12 +47,18 @@ import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.PasswordAuthentication;
-import jakarta.mail.Session;
-import jakarta.mail.Store;
 import prerna.auth.AuthProvider;
+import prerna.engine.impl.function.mail.engine.IMAPFunctionEngine;
+import prerna.engine.impl.function.mail.engine.POP3FunctionEngine;
+import prerna.engine.impl.function.mail.engine.SMTPFunctionEngine;
 
 public final class SocialPropertiesProcessor {
+
+	// the engine ids the instance wide mail connections are opened under. they are
+	// never in the catalog, so these only show up in the logs
+	private static final String SMTP_ENGINE_ID = "SOCIAL_PROPERTIES_SMTP";
+	private static final String POP3_ENGINE_ID = "SOCIAL_PROPERTIES_POP3";
+	private static final String IMAP_ENGINE_ID = "SOCIAL_PROPERTIES_IMAP";
 
 	public static final String SMTP_ENABLED = "smtp_enabled";
 	public static final String SMTP_ONLY_CUSTOM_PROPS = "smtp_only_custom_props";
@@ -80,19 +86,21 @@ public final class SocialPropertiesProcessor {
 	private Map<String, Boolean> loginsAllowedMap;
 	private List<Map<String, Object>> availableProviders;
 
-	// smtp
-	private Session smtpEmailSession = null;
+	// smtp. the connection is held as an engine rather than a bare session so the
+	// jakarta.mail handling lives in one place
+	private SMTPFunctionEngine smtpEngine = null;
 	// pulling out email properties for performance
 	private Properties smtpEmailProps = null;
 	private Map<String, String> smtpEmailStaticProps = null;
 
-	// pop3
-	private Store pop3EmailStore = null;
+	// pop3. also held as an engine, which reopens the connection after the mail
+	// server has dropped an idle one
+	private POP3FunctionEngine pop3Engine = null;
 	// pulling out email properties for performance
 	private Properties pop3EmailProps = null;
 
 	// imap
-	private Store imapEmailStore = null;
+	private IMAPFunctionEngine imapEngine = null;
 	// pulling out email properties for performance
 	private Properties imapEmailProps = null;
 
@@ -365,15 +373,14 @@ public final class SocialPropertiesProcessor {
 	public void reloadProps() {
 		// null out values to be reset
 		this.loadSocialProperties();
-		this.smtpEmailSession = null;
+		closeSmtpEngine();
+		closeMailStoreEngines();
 		this.smtpEmailProps = null;
 		this.smtpEmailStaticProps = null;
 
 		this.pop3EmailProps = null;
-		this.pop3EmailStore = null;
 
 		this.imapEmailProps = null;
-		this.imapEmailStore = null;
 	}
 
 	/**
@@ -632,8 +639,13 @@ public final class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Initializes the shared SMTP session from configured SMTP properties. Security
-	 * defaults are applied unless {@code smtp_only_custom_props=true}.
+	 * Initializes the shared SMTP connection from configured SMTP properties.
+	 * Security defaults are applied unless {@code smtp_only_custom_props=true}.
+	 *
+	 * <p>
+	 * The connection itself is an {@link SMTPFunctionEngine} opened against these
+	 * properties rather than a session built here, so the mail server gets the same
+	 * TLS handling as any other mail connection.
 	 *
 	 * @throws IllegalArgumentException when SMTP is enabled but configuration is
 	 *                                  missing or invalid
@@ -649,39 +661,24 @@ public final class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"SMTP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		boolean smtpOnlyCustomProps = Boolean
-				.parseBoolean(this.socialData.getProperty(SMTP_ONLY_CUSTOM_PROPS, "false"));
-		if (!smtpOnlyCustomProps) {
-			boolean smtpSslEnabled = Boolean
-					.parseBoolean(this.smtpEmailProps.getProperty("mail.smtp.ssl.enable", "false"));
-			this.smtpEmailProps.setProperty("mail.smtp.starttls.enable", "true");
-			if (!smtpSslEnabled) {
-				this.smtpEmailProps.setProperty("mail.smtp.starttls.required", "true");
-			}
-			this.smtpEmailProps.setProperty("mail.smtp.ssl.checkserveridentity", "true");
-			if (this.smtpEmailProps.getProperty("mail.smtp.ssl.protocols") == null) {
-				this.smtpEmailProps.setProperty("mail.smtp.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-		}
 		this.smtpEmailStaticProps = getSmtpEmailStaticProps();
 
-		String username = getSmtpUsername();
-		String password = getSmtpPassword();
+		// social.properties already speaks in raw jakarta.mail keys, which the
+		// engine takes as is, so only the credentials and the custom props flag
+		// have to be translated onto the engine's own key names
+		Properties engineProps = new Properties();
+		engineProps.putAll(this.smtpEmailProps);
+		engineProps.put(SMTPFunctionEngine.ONLY_CUSTOM_PROPS_KEY,
+				this.socialData.getProperty(SMTP_ONLY_CUSTOM_PROPS, "false"));
+		putIfPresent(engineProps, SMTPFunctionEngine.SMTP_USERNAME_KEY, getSmtpUsername());
+		putIfPresent(engineProps, SMTPFunctionEngine.SMTP_PASSWORD_KEY, getSmtpPassword());
+		// smtp_sender is deliberately not passed along. callers read the sender off
+		// getSmtpSender() rather than off the connection, and handing it to the
+		// engine would make a malformed one fail the whole mail server at load
 
 		try {
-			if (username != null && password != null) {
-				classLogger.info("Making secured connection to the email server");
-				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps, new jakarta.mail.Authenticator() {
-					/** {@inheritDoc} */
-					@Override
-					protected PasswordAuthentication getPasswordAuthentication() {
-						return new PasswordAuthentication(username, password);
-					}
-				});
-			} else {
-				classLogger.info("Making connection to the email server");
-				this.smtpEmailSession = Session.getInstance(this.smtpEmailProps);
-			}
+			classLogger.info("Making connection to the email server");
+			this.smtpEngine = SMTPFunctionEngine.openTransientEngine(SMTP_ENGINE_ID, engineProps);
 		} catch (Exception e) {
 			classLogger.error("Error creating SMTP email session", e);
 			throw new IllegalArgumentException(
@@ -692,9 +689,28 @@ public final class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Initializes and connects the shared POP3 store from configured POP3
-	 * properties. Security defaults are applied unless
-	 * {@code pop3_only_custom_props=true}.
+	 * Copies a value onto the engine properties only when there is one, so an unset
+	 * social property does not arrive at the engine as a blank string.
+	 *
+	 * @param props the engine properties being built
+	 * @param key   the engine key to set
+	 * @param value the configured value, possibly null or blank
+	 */
+	private static void putIfPresent(Properties props, String key, String value) {
+		if (value != null && !value.trim().isEmpty()) {
+			props.put(key, value);
+		}
+	}
+
+	/**
+	 * Initializes the shared POP3 connection from configured POP3 properties.
+	 * Security defaults are applied unless {@code pop3_only_custom_props=true}.
+	 *
+	 * <p>
+	 * The connection is a {@link POP3FunctionEngine} opened against these
+	 * properties rather than a store connected here, so the mailbox gets the same
+	 * TLS handling as any other mail connection. The engine connects on first use
+	 * and reopens the connection after the mail server has dropped an idle one.
 	 *
 	 * @throws IllegalArgumentException when POP3 is enabled but configuration is
 	 *                                  missing or invalid
@@ -710,67 +726,22 @@ public final class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"POP3 properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		boolean pop3OnlyCustomProps = Boolean
-				.parseBoolean(this.socialData.getProperty(POP3_ONLY_CUSTOM_PROPS, "false"));
-		if (!pop3OnlyCustomProps) {
-			this.pop3EmailProps.setProperty("mail.store.protocol", "pop3s");
-			this.pop3EmailProps.setProperty("mail.pop3.ssl.enable", "true");
-			this.pop3EmailProps.setProperty("mail.pop3s.ssl.enable", "true");
-			this.pop3EmailProps.setProperty("mail.pop3.ssl.checkserveridentity", "true");
-			this.pop3EmailProps.setProperty("mail.pop3s.ssl.checkserveridentity", "true");
-			if (this.pop3EmailProps.getProperty("mail.pop3.ssl.protocols") == null) {
-				this.pop3EmailProps.setProperty("mail.pop3.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-			if (this.pop3EmailProps.getProperty("mail.pop3s.ssl.protocols") == null) {
-				this.pop3EmailProps.setProperty("mail.pop3s.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-		}
 
-		String pop3StoreProtocol = this.pop3EmailProps.getProperty("mail.store.protocol", "pop3s");
-		String host = null;
-		if ("pop3".equalsIgnoreCase(pop3StoreProtocol)) {
-			host = this.pop3EmailProps.getProperty("mail.pop3.host");
-			if (host == null || host.trim().isEmpty()) {
-				host = this.pop3EmailProps.getProperty("mail.pop3s.host");
-			}
-		} else {
-			host = this.pop3EmailProps.getProperty("mail.pop3s.host");
-			if (host == null || host.trim().isEmpty()) {
-				host = this.pop3EmailProps.getProperty("mail.pop3.host");
-			}
-		}
-		String username = getPop3Username();
-		String password = getPop3Password();
-
-		Session emailSession = null;
-		try {
-			if (username != null && password != null) {
-				classLogger.info("Making secured connection to the email server");
-				emailSession = Session.getInstance(this.pop3EmailProps, new jakarta.mail.Authenticator() {
-					/** {@inheritDoc} */
-					@Override
-					protected PasswordAuthentication getPasswordAuthentication() {
-						return new PasswordAuthentication(username, password);
-					}
-				});
-			} else {
-				classLogger.info("Making connection to the email server");
-				emailSession = Session.getInstance(this.pop3EmailProps);
-			}
-		} catch (Exception e) {
-			classLogger.error("Error creating POP3 email session", e);
-			throw new IllegalArgumentException(
-					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
-							+ e.getMessage(),
-					e);
-		}
+		// social.properties already speaks in raw jakarta.mail keys, which the
+		// engine takes as is, so only the credentials and the custom props flag
+		// have to be translated onto the engine's own key names
+		Properties engineProps = new Properties();
+		engineProps.putAll(this.pop3EmailProps);
+		engineProps.put(POP3FunctionEngine.ONLY_CUSTOM_PROPS_KEY,
+				this.socialData.getProperty(POP3_ONLY_CUSTOM_PROPS, "false"));
+		putIfPresent(engineProps, POP3FunctionEngine.POP3_USERNAME_KEY, getPop3Username());
+		putIfPresent(engineProps, POP3FunctionEngine.POP3_PASSWORD_KEY, getPop3Password());
 
 		try {
-			// create the POP3 store object and connect with the pop server
-			this.pop3EmailStore = emailSession.getStore(pop3StoreProtocol);
-			this.pop3EmailStore.connect(host, username, password);
+			classLogger.info("Opening the connection to the pop3 mail server");
+			this.pop3Engine = POP3FunctionEngine.openTransientEngine(POP3_ENGINE_ID, engineProps);
 		} catch (Exception e) {
-			classLogger.error("Error connecting to POP3 email store at host: {}", host, e);
+			classLogger.error("Error creating the POP3 connection", e);
 			throw new IllegalArgumentException(
 					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
@@ -779,9 +750,13 @@ public final class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Initializes and connects the shared IMAP store from configured IMAP
-	 * properties. Security defaults are applied unless
-	 * {@code imap_only_custom_props=true}.
+	 * Initializes the shared IMAP connection from configured IMAP properties.
+	 * Security defaults are applied unless {@code imap_only_custom_props=true}.
+	 *
+	 * <p>
+	 * The connection is an {@link IMAPFunctionEngine} opened against these
+	 * properties rather than a store connected here, and it connects on first use
+	 * rather than at load.
 	 *
 	 * @throws IllegalArgumentException when IMAP is enabled but configuration is
 	 *                                  missing or invalid
@@ -797,69 +772,21 @@ public final class SocialPropertiesProcessor {
 			throw new IllegalArgumentException(
 					"IMAP properties not defined for this instance but it is enabled. Please reach out to an admin to configure");
 		}
-		boolean imapOnlyCustomProps = Boolean
-				.parseBoolean(this.socialData.getProperty(IMAP_ONLY_CUSTOM_PROPS, "false"));
-		if (!imapOnlyCustomProps) {
-			this.imapEmailProps.setProperty("mail.store.protocol", "imaps");
-			this.imapEmailProps.setProperty("mail.imap.ssl.enable", "true");
-			this.imapEmailProps.setProperty("mail.imaps.ssl.enable", "true");
-			this.imapEmailProps.setProperty("mail.imap.ssl.checkserveridentity", "true");
-			this.imapEmailProps.setProperty("mail.imaps.ssl.checkserveridentity", "true");
-			if (this.imapEmailProps.getProperty("mail.imap.ssl.protocols") == null) {
-				this.imapEmailProps.setProperty("mail.imap.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-			if (this.imapEmailProps.getProperty("mail.imaps.ssl.protocols") == null) {
-				this.imapEmailProps.setProperty("mail.imaps.ssl.protocols", "TLSv1.2 TLSv1.3");
-			}
-		}
 
-		String imapStoreProtocol = this.imapEmailProps.getProperty("mail.store.protocol", "imaps");
-		String host = null;
-		if ("imap".equalsIgnoreCase(imapStoreProtocol)) {
-			host = this.imapEmailProps.getProperty("mail.imap.host");
-			if (host == null || host.trim().isEmpty()) {
-				host = this.imapEmailProps.getProperty("mail.imaps.host");
-			}
-		} else {
-			host = this.imapEmailProps.getProperty("mail.imaps.host");
-			if (host == null || host.trim().isEmpty()) {
-				host = this.imapEmailProps.getProperty("mail.imap.host");
-			}
-		}
-		String username = getImapUsername();
-		String password = getImapPassword();
-
-		Session emailSession = null;
-		try {
-			if (username != null && password != null) {
-				classLogger.info("Making secured connection to the email server");
-				emailSession = Session.getInstance(this.imapEmailProps, new jakarta.mail.Authenticator() {
-					/** {@inheritDoc} */
-					@Override
-					protected PasswordAuthentication getPasswordAuthentication() {
-						return new PasswordAuthentication(username, password);
-					}
-				});
-			} else {
-				classLogger.info("Making connection to the email server");
-				emailSession = Session.getInstance(this.imapEmailProps);
-			}
-		} catch (Exception e) {
-			classLogger.error("Error creating IMAP email session", e);
-			throw new IllegalArgumentException(
-					"Error occurred connecting to the email session defined. Please ensure the proper settings are set for connecting. Detailed error: "
-							+ e.getMessage(),
-					e);
-		}
+		Properties engineProps = new Properties();
+		engineProps.putAll(this.imapEmailProps);
+		engineProps.put(IMAPFunctionEngine.ONLY_CUSTOM_PROPS_KEY,
+				this.socialData.getProperty(IMAP_ONLY_CUSTOM_PROPS, "false"));
+		putIfPresent(engineProps, IMAPFunctionEngine.IMAP_USERNAME_KEY, getImapUsername());
+		putIfPresent(engineProps, IMAPFunctionEngine.IMAP_PASSWORD_KEY, getImapPassword());
 
 		try {
-			// create the POP3 store object and connect with the pop server
-			this.imapEmailStore = emailSession.getStore(imapStoreProtocol);
-			this.imapEmailStore.connect(host, username, password);
+			classLogger.info("Opening the connection to the imap mail server");
+			this.imapEngine = IMAPFunctionEngine.openTransientEngine(IMAP_ENGINE_ID, engineProps);
 		} catch (Exception e) {
-			classLogger.error("Error connecting to IMAP email store at host: {}", host, e);
+			classLogger.error("Error creating the IMAP connection", e);
 			throw new IllegalArgumentException(
-					"Error occurred establishing the pop3 connection. Please ensure the proper settings are set for connecting. Detailed error: "
+					"Error occurred establishing the imap connection. Please ensure the proper settings are set for connecting. Detailed error: "
 							+ e.getMessage(),
 					e);
 		}
@@ -929,39 +856,78 @@ public final class SocialPropertiesProcessor {
 	}
 
 	/**
-	 * Returns the cached SMTP session, loading it if necessary.
+	 * Returns the cached SMTP connection, loading it if necessary.
 	 *
-	 * @return SMTP session or {@code null} when SMTP is disabled
+	 * @return the SMTP engine or {@code null} when SMTP is disabled
 	 */
-	public Session getSmtpEmailSession() {
-		if (this.smtpEmailSession == null) {
+	public SMTPFunctionEngine getSmtpEngine() {
+		if (this.smtpEngine == null) {
 			loadSmtpEmailSession();
 		}
-		return this.smtpEmailSession;
+		return this.smtpEngine;
 	}
 
 	/**
-	 * Returns the cached POP3 store, loading and connecting it if necessary.
-	 *
-	 * @return POP3 store or {@code null} when POP3 is disabled
+	 * Drops the cached SMTP connection so the next caller rebuilds it from the
+	 * current properties.
 	 */
-	public Store getPop3EmailStore() {
-		if (this.pop3EmailStore == null) {
+	private void closeSmtpEngine() {
+		if (this.smtpEngine == null) {
+			return;
+		}
+		try {
+			this.smtpEngine.close();
+		} catch (IOException e) {
+			classLogger.warn("Error closing the smtp connection", e);
+		}
+		this.smtpEngine = null;
+	}
+
+	/**
+	 * Returns the cached POP3 connection, loading it if necessary.
+	 *
+	 * @return the POP3 engine or {@code null} when POP3 is disabled
+	 */
+	public POP3FunctionEngine getPop3Engine() {
+		if (this.pop3Engine == null) {
 			loadPop3EmailSession();
 		}
-		return this.pop3EmailStore;
+		return this.pop3Engine;
 	}
 
 	/**
-	 * Returns the cached IMAP store, loading and connecting it if necessary.
+	 * Returns the cached IMAP connection, loading it if necessary.
 	 *
-	 * @return IMAP store or {@code null} when IMAP is disabled
+	 * @return the IMAP engine or {@code null} when IMAP is disabled
 	 */
-	public Store getImapEmailStore() {
-		if (this.imapEmailStore == null) {
+	public IMAPFunctionEngine getImapEngine() {
+		if (this.imapEngine == null) {
 			loadImapEmailSession();
 		}
-		return this.imapEmailStore;
+		return this.imapEngine;
+	}
+
+	/**
+	 * Drops the cached POP3 and IMAP connections so the next caller rebuilds them
+	 * from the current properties.
+	 */
+	private void closeMailStoreEngines() {
+		if (this.pop3Engine != null) {
+			try {
+				this.pop3Engine.close();
+			} catch (IOException e) {
+				classLogger.warn("Error closing the pop3 connection", e);
+			}
+			this.pop3Engine = null;
+		}
+		if (this.imapEngine != null) {
+			try {
+				this.imapEngine.close();
+			} catch (IOException e) {
+				classLogger.warn("Error closing the imap connection", e);
+			}
+			this.imapEngine = null;
+		}
 	}
 
 	/**

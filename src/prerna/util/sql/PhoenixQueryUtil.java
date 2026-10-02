@@ -33,10 +33,10 @@ public class PhoenixQueryUtil extends AnsiSqlQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.PHOENIX);
 	}
-	
+
 	PhoenixQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.PHOENIX);
 	}
-	
+
 }

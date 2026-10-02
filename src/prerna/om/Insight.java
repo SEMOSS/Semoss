@@ -42,8 +42,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -62,7 +60,6 @@ import prerna.project.api.IProject;
 import prerna.query.parsers.GenExpressionWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.IReactor;
-import prerna.reactor.browser.PlaywrightBrowserUtil;
 import prerna.reactor.export.IFormatter;
 import prerna.reactor.frame.r.util.AbstractRJavaTranslator;
 import prerna.reactor.frame.r.util.RJavaTranslatorFactory;
@@ -192,7 +189,6 @@ public class Insight implements Serializable {
 
 	// browser automation utilities
 	private transient ChromeDriverUtility chromeUtil = null;
-	private transient PlaywrightBrowserUtil playwrightUtil = null;
 
 	// SQL expression wrappers keyed by an auto-generated ID
 	private transient Map<String, GenExpressionWrapper> sqlWrapperMap = new HashMap<String, GenExpressionWrapper>();
@@ -1608,25 +1604,6 @@ public class Insight implements Serializable {
 		return chromeUtil;
 	}
 
-	/**
-	 * Returns the Playwright browser utility bound to this insight, or null if
-	 * Playwright has not been initialized.
-	 *
-	 * @return the PlaywrightBrowserUtil, or null
-	 */
-	public PlaywrightBrowserUtil getPlaywrightUtil() {
-		return this.playwrightUtil;
-	}
-
-	/**
-	 * Sets the Playwright browser utility for this insight.
-	 *
-	 * @param pbu the PlaywrightBrowserUtil to bind
-	 */
-	public void setPlaywrightUtil(PlaywrightBrowserUtil pbu) {
-		this.playwrightUtil = pbu;
-	}
-
 	////////////////////////////////////////////////////////////////
 	// SHELL EXECUTION
 	////////////////////////////////////////////////////////////////
@@ -1763,12 +1740,11 @@ public class Insight implements Serializable {
 	public String getAbsoluteInsightFolderPath(String filePath) {
 		// is this one that starts with INSIGHT_FOLDER
 		if (filePath.startsWith(Insight.INSIGHT_FOLDER_KEY)) {
-			filePath = Pattern.compile(Matcher.quoteReplacement(Insight.INSIGHT_FOLDER_KEY)).matcher(filePath)
-					.replaceFirst(Matcher.quoteReplacement(getInsightFolder()));
+			// expand only the leading literal token; folder paths need no regex escaping.
+			filePath = getInsightFolder() + filePath.substring(Insight.INSIGHT_FOLDER_KEY.length());
 		} else {
 			// make sure this is not relative
-			// if it is
-			// turn to absolute based on the insight folder location
+			// if it is turn to absolute based on the insight folder location
 			if (!(new File(filePath).exists())) {
 				String filePrefix = getInsightFolder();
 				if (filePath.startsWith("\\") || filePath.startsWith("/")) {

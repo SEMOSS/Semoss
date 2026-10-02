@@ -1,23 +1,54 @@
 {
-    "_meta": {"last_modified_date": "2026-04-22"},
-    "tools": [{
-        "inputSchema": {
-            "type": "object",
-            "title": "BuildAndPublishApp_Arguments",
-            "properties": {"project": {
-                "description": "The unique id (or alias) of the project to build and publish.",
-                "title": "project",
-                "type": "string"
-            }},
-            "required": ["project"]
+    "_meta": {"last_modified_date": "2026-08-10"},
+    "tools": [
+        {
+            "inputSchema": {
+                "type": "object",
+                "title": "BuildAndPublishApp_Arguments",
+                "properties": {"project": {
+                    "description": "The unique id (or alias) of the project to build and publish.",
+                    "title": "project",
+                    "type": "string"
+                }},
+                "required": ["project"]
+            },
+            "name": "BuildAndPublishApp",
+            "description": "Compile a React or JavaScript app from assets/client, write the build output to assets/portals, and publish it. Use this after changing client source that requires a frontend build. Do not use it for a plain HTML app or when assets/portals already contains the complete runnable app. Use this at the end of any turn that edited source files. This is the only way to build — node/npm/pnpm are unavailable in the sandbox.",
+            "_meta": {
+                "SMSS_MCP_UI": {},
+                "SMSS_FUNCTION_NAME": "BuildAndPublishApp",
+                "SMSS_MCP_EXECUTION": "auto"
+            },
+            "title": "Build And Publish App"
         },
-        "name": "BuildAndPublishApp",
-        "description": "Build and publish a React app. Use this at the end of any turn that edited source files. This is the only way to build — node/npm/pnpm are unavailable in the sandbox. Takes a project id and returns build status plus any errors.",
-        "_meta": {
-            "SMSS_MCP_UI": {},
-            "SMSS_FUNCTION_NAME": "BuildAndPublishApp",
-            "SMSS_MCP_EXECUTION": "auto"
-        },
-        "title": "Build And Publish App"
-    }]
+        {
+            "inputSchema": {
+                "type": "object",
+                "title": "PublishProject_Arguments",
+                "properties": {
+                    "project": {
+                        "description": "The unique id of the project whose existing portal assets should be published.",
+                        "title": "project",
+                        "type": "string"
+                    },
+                    "release": {
+                        "description": "Release the published portal so it is available from the public project URL. Set this to true.",
+                        "title": "release",
+                        "type": "boolean",
+                        "const": true,
+                        "default": true
+                    }
+                },
+                "required": ["project", "release"]
+            },
+            "name": "PublishProject",
+            "description": "Publish and release portal assets that are already runnable without compiling them. Use this for a plain index.html app or when assets/portals already contains the finished app. Do not use it after changing React or JavaScript client source that still needs to be built.",
+            "_meta": {
+                "SMSS_MCP_UI": {},
+                "SMSS_FUNCTION_NAME": "PublishProject",
+                "SMSS_MCP_EXECUTION": "auto"
+            },
+            "title": "Publish Project"
+        }
+    ]
 }

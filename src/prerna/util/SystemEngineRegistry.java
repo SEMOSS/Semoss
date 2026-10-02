@@ -86,8 +86,8 @@ public final class SystemEngineRegistry {
 	private static final Set<String> LOCAL_MASTER_DB_ALLOWED = Set.of("prerna.auth", "prerna.masterdatabase",
 			"prerna.reactor.masterdatabase", "prerna.reactor.utils", "prerna.util", "prerna.web.conf");
 
-	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.scheduler",
-			"prerna.util", "prerna.web.conf");
+	private static final Set<String> SCHEDULER_DB_ALLOWED = Set.of("prerna.auth", "prerna.reactor.automation",
+			"prerna.reactor.scheduler", "prerna.util", "prerna.web.conf");
 
 	private static final Set<String> THEMING_DB_ALLOWED = Set.of("prerna.auth", "prerna.theme", "prerna.util",
 			"prerna.web.conf");
@@ -99,6 +99,9 @@ public final class SystemEngineRegistry {
 			"prerna.web.conf");
 
 	private static final Set<String> NOTIFICATION_DB_ALLOWED = Set.of("prerna.auth", "prerna.notifications",
+			"prerna.util", "prerna.web.conf");
+
+	private static final Set<String> COLLABORATION_DB_ALLOWED = Set.of("prerna.auth", "prerna.collaboration",
 			"prerna.util", "prerna.web.conf");
 
 	private static final Set<String> AUDIT_LOGS_DB_ALLOWED = Set.of("prerna.auth", "prerna.engine.logging",
@@ -119,7 +122,8 @@ public final class SystemEngineRegistry {
 	 */
 	static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
-			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+			Constants.NOTIFICATION_DB, Constants.COLLABORATION_DB, Constants.AUDIT_LOGS_DB,
+			Constants.MODEL_INFERENCE_LOGS_DB);
 
 	/**
 	 * Cache of proxy-verified callers. The classloader check result is stable for
@@ -135,6 +139,7 @@ public final class SystemEngineRegistry {
 	private static volatile Supplier<IRDBMSEngine> userTrackingDbHolder;
 	private static volatile Supplier<IRDBMSEngine> promptDbHolder;
 	private static volatile Supplier<IRDBMSEngine> notificationDbHolder;
+	private static volatile Supplier<IRDBMSEngine> collaborationDbHolder;
 	private static volatile Supplier<IRDBMSEngine> auditLogsDbHolder;
 	private static volatile Supplier<IRDBMSEngine> modelInferenceLogsDbHolder;
 
@@ -179,6 +184,11 @@ public final class SystemEngineRegistry {
 	public static IRDBMSEngine getNotificationDb() {
 		checkAccess(NOTIFICATION_DB_ALLOWED, "NotificationDb");
 		return notificationDbHolder != null ? notificationDbHolder.get() : null;
+	}
+
+	public static IRDBMSEngine getCollaborationDb() {
+		checkAccess(COLLABORATION_DB_ALLOWED, "CollaborationDb");
+		return collaborationDbHolder != null ? collaborationDbHolder.get() : null;
 	}
 
 	public static IRDBMSEngine getAuditLogsDb() {
@@ -230,6 +240,11 @@ public final class SystemEngineRegistry {
 		return notificationDbHolder != null;
 	}
 
+	/** Returns true if the CollaborationDb has been loaded and registered. */
+	public static boolean isCollaborationDbLoaded() {
+		return collaborationDbHolder != null;
+	}
+
 	/** Returns true if the AuditLogsDb has been loaded and registered. */
 	public static boolean isAuditLogsDbLoaded() {
 		return auditLogsDbHolder != null;
@@ -238,6 +253,44 @@ public final class SystemEngineRegistry {
 	/** Returns true if the ModelInferenceLogsDb has been loaded and registered. */
 	public static boolean isModelInferenceLogsDbLoaded() {
 		return modelInferenceLogsDbHolder != null;
+	}
+
+	/** Requires a registered system database for this operation. */
+	public static void requireDatabase(String engineId) {
+		requireDatabase(engineId, null);
+	}
+
+	/**
+	 * Requires a registered system database without retrieving it or granting
+	 * access to it. Like the loaded-state checks, this may be called from any
+	 * package.
+	 *
+	 * @param engineId  canonical system database ID from {@link Constants}
+	 * @param operation description of the operation requiring the database;
+	 *                  defaults to "this operation" when null or blank
+	 * @throws IllegalArgumentException if the ID is unknown or the database is not
+	 *                                  loaded
+	 */
+	public static void requireDatabase(String engineId, String operation) {
+		if (engineId == null) {
+			throw new IllegalArgumentException("System database id is required");
+		}
+		boolean loaded = switch (engineId) {
+		case Constants.SECURITY_DB -> isSecurityDbLoaded();
+		case Constants.LOCAL_MASTER_DB -> isLocalMasterDbLoaded();
+		case Constants.SCHEDULER_DB -> isSchedulerDbLoaded();
+		case Constants.THEMING_DB -> isThemesDbLoaded();
+		case Constants.USER_TRACKING_DB -> isUserTrackingDbLoaded();
+		case Constants.PROMPT_DB -> isPromptDbLoaded();
+		case Constants.NOTIFICATION_DB -> isNotificationDbLoaded();
+		case Constants.AUDIT_LOGS_DB -> isAuditLogsDbLoaded();
+		case Constants.MODEL_INFERENCE_LOGS_DB -> isModelInferenceLogsDbLoaded();
+		default -> throw new IllegalArgumentException("Unknown system database: " + engineId);
+		};
+		if (!loaded) {
+			String description = operation == null || operation.isBlank() ? "this operation" : operation.trim();
+			throw new IllegalArgumentException("System database '" + engineId + "' is required for " + description);
+		}
 	}
 
 	/**
@@ -335,6 +388,13 @@ public final class SystemEngineRegistry {
 			IRDBMSEngine guardedNotificationDb = wrapWithGuard(engine, "NotificationDb");
 			notificationDbHolder = () -> guardedNotificationDb;
 		}
+		case Constants.COLLABORATION_DB -> {
+			if (collaborationDbHolder != null) {
+				throw new IllegalStateException("CollaborationDb is already registered");
+			}
+			IRDBMSEngine guardedCollaborationDb = wrapWithGuard(engine, "CollaborationDb");
+			collaborationDbHolder = () -> guardedCollaborationDb;
+		}
 		case Constants.AUDIT_LOGS_DB -> {
 			if (auditLogsDbHolder != null) {
 				throw new IllegalStateException("AuditLogsDb is already registered");
@@ -381,6 +441,9 @@ public final class SystemEngineRegistry {
 		}
 		case Constants.NOTIFICATION_DB -> {
 			return getNotificationDb();
+		}
+		case Constants.COLLABORATION_DB -> {
+			return getCollaborationDb();
 		}
 		case Constants.AUDIT_LOGS_DB -> {
 			return getAuditLogsDb();

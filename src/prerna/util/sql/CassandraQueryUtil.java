@@ -37,12 +37,12 @@ public class CassandraQueryUtil extends AnsiSqlQueryUtil {
 		super();
 		setDbType(RdbmsTypeEnum.CASSANDRA);
 	}
-	
+
 	CassandraQueryUtil(String connectionUrl, String username, String password) {
 		super(connectionUrl, username, password);
 		setDbType(RdbmsTypeEnum.CASSANDRA);
 	}
-	
+
 	@Override
 	public CassandraSqlInterpreter getInterpreter(IDatabaseEngine engine) {
 		return new CassandraSqlInterpreter(engine);
@@ -52,5 +52,5 @@ public class CassandraQueryUtil extends AnsiSqlQueryUtil {
 	public CassandraSqlInterpreter getInterpreter(ITableDataFrame frame) {
 		return new CassandraSqlInterpreter(frame);
 	}
-	
+
 }
