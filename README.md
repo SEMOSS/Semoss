@@ -22,7 +22,21 @@ repository secrets, GHCR image, and acceptance requirements.
 Development builds refresh the existing Iron Bank version tags; a weekly
 Monday schedule becomes active once the workflow is also merged into `dev`.
 The guide also includes an opt-in hardened development Compose profile,
-CA-verified readiness checks, bounded local logs, and optional report-only
-SBOM/vulnerability artifacts. Existing deployments and FIPS settings are unchanged.
+CA-verified readiness checks, bounded local logs, a read-only runtime
+configuration/drift audit, and optional report-only SBOM/vulnerability artifacts.
+Existing deployments and FIPS settings are unchanged.
+See [HTTPS certificate provisioning](docker/il4/TLS.md) for unique opt-in
+development certificates and organization-issued chain replacement, and
+[AWS GovCloud RDS trust](docker/il4/RDS.md) for strict database TLS configuration.
 This build does not establish IL4 authorization or replace the existing
 application source builds.
+
+For deployment tailoring and acceptance, use the
+[portable baseline and deployment checklist](docker/il4/DEPLOYMENT-CHECKLIST.md).
+It identifies generic safeguards, site-specific inputs, and evidence required
+before operational sensitive-data use.
+
+The [alternative-provider feasibility results](docker/il4/README.md#alternative-provider-feasibility-2026-10-01)
+record the Red Hat/NSS acquisition/support blockers and isolated ACCP-FIPS
+compatibility findings. Neither investigation changes the default image or
+establishes a FIPS-compliant replacement.
