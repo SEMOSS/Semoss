@@ -139,4 +139,27 @@ public final class AgentHookRegistry {
 			return Collections.unmodifiableSet(new LinkedHashSet<>(REGISTRY.keySet()));
 		}
 	}
+
+	/**
+	 * Configuration metadata keyed by hook kind. Capability discovery constructs a
+	 * fresh, unconfigured hook, so clients can build the form before an agent or run
+	 * exists.
+	 */
+	public static Map<String, Map<String, Object>> formCapabilities() {
+		Map<String, Map<String, Object>> capabilities = new HashMap<>();
+		synchronized (REGISTRY) {
+			for (Map.Entry<String, Supplier<? extends IAgentHook>> entry : REGISTRY.entrySet()) {
+				try {
+					Map<String, Object> kindCapabilities = entry.getValue().get().getFormCapabilities();
+					if (kindCapabilities != null && !kindCapabilities.isEmpty()) {
+						capabilities.put(entry.getKey(), kindCapabilities);
+					}
+				} catch (RuntimeException e) {
+					logger.warn("AgentHookRegistry: failed to resolve form capabilities for hook '{}': {}",
+							entry.getKey(), e.getMessage());
+				}
+			}
+		}
+		return Collections.unmodifiableMap(capabilities);
+	}
 }

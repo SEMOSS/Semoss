@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.json.JSONObject;
 
 /**
@@ -49,6 +52,15 @@ import org.json.JSONObject;
  * override to extract their fields.
  */
 public interface IAgentHook {
+
+    /**
+     * Describes configuration-time capabilities without requiring this hook to be
+     * configured or attached to a live agent run. Form clients use this metadata
+     * after selecting a hook kind to offer only supported events and bindings.
+     */
+    default Map<String, Object> getFormCapabilities() {
+        return Collections.emptyMap();
+    }
 
     /**
      * Called once by {@code AgentConfigLoader} after the hook is
