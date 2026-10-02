@@ -43,7 +43,8 @@ import prerna.auth.User;
 import prerna.om.Insight;
 
 // Refresh (and later the Collaboration webhook): mail and Teams since the last finished import or sync, through the
-// same gate and classifier as onboarding, without its setup steps. One sync job per owner at a time.
+// same gate and classifier as onboarding, without its setup steps, then queues the summaries and action items of the
+// threads with new mail (WorkThreadInsights). One sync job per owner at a time.
 public final class BrainSync {
 
 	public static final String KIND = "sync";
@@ -143,6 +144,12 @@ public final class BrainSync {
 			}
 		}
 		outcomes(job, ownerId, ownerType, touched, verdicts, startedAt);
+
+		// summaries and action items for the threads with new mail, on their own pool: the sync does not wait
+		Set<String> summarize = new LinkedHashSet<>(touched);
+		summarize.removeIf(id -> AUTOMATED.equals(verdicts.get(id)) || "skipped".equals(verdicts.get(id)));
+		WorkThreadInsights.queue(user, ownerId, ownerType, summarize);
+		job.count("summarizing", summarize.size());
 
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, EMAIL);
 		if (withTeams && teamsError == null) {

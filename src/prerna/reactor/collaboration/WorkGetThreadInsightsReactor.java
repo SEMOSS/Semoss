@@ -25,34 +25,43 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.collaboration;
+package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.collaboration.WorkThreadInsights;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// Resolves the permitted platform text engine; BrainTopicStructure groups headers and BrainTopicVotes judges them, and
-// WorkThreadInsights writes thread summaries and action items with it.
-final class BrainTopicModel {
+// WorkGetThreadInsights(threadId=["..."]);
+public class WorkGetThreadInsightsReactor extends AbstractCollaborationReactor {
 
-	private BrainTopicModel() {
+	private static final String THREAD_ID = "threadId";
+
+	public WorkGetThreadInsightsReactor() {
+		this.keysToGet = new String[] { THREAD_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
-	/**
-	 * The platform text model, or null when none is set; the caller needs access to
-	 * it.
-	 */
-	static String engine(User user) {
-		String id = Utility.getDIHelperProperty(Constants.COLLAB_LLM_ENGINE_ID);
-		if (id == null || id.isBlank()) {
-			return null;
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String threadId = getString(THREAD_ID);
+		if (threadId == null) {
+			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		if (!SecurityEngineUtils.userCanViewEngine(user, id.trim())) {
-			throw new IllegalArgumentException(
-					"You do not have access to Brain's text model (" + id.trim() + "); ask an admin to share it with you");
-		}
-		return id.trim();
+		return mapResult(WorkThreadInsights.status(user, threadId));
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "A thread's summary, whether it covers the newest message, the background run's status (running, done, "
+				+ "failed with error) and the thread's action items";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

@@ -25,34 +25,46 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.collaboration;
+package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.auth.utils.SecurityEngineUtils;
-import prerna.util.Constants;
-import prerna.util.Utility;
+import prerna.collaboration.WorkThreadInsights;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// Resolves the permitted platform text engine; BrainTopicStructure groups headers and BrainTopicVotes judges them, and
-// WorkThreadInsights writes thread summaries and action items with it.
-final class BrainTopicModel {
+// WorkSummarizeThread(threadId=["..."], force=[true]);
+public class WorkSummarizeThreadReactor extends AbstractCollaborationReactor {
 
-	private BrainTopicModel() {
+	private static final String THREAD_ID = "threadId";
+	private static final String FORCE = "force";
+
+	public WorkSummarizeThreadReactor() {
+		this.keysToGet = new String[] { THREAD_ID, FORCE };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
-	/**
-	 * The platform text model, or null when none is set; the caller needs access to
-	 * it.
-	 */
-	static String engine(User user) {
-		String id = Utility.getDIHelperProperty(Constants.COLLAB_LLM_ENGINE_ID);
-		if (id == null || id.isBlank()) {
-			return null;
+	@Override
+	public NounMetadata execute() {
+		User user = getUser();
+		String threadId = getString(THREAD_ID);
+		if (threadId == null) {
+			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		if (!SecurityEngineUtils.userCanViewEngine(user, id.trim())) {
-			throw new IllegalArgumentException(
-					"You do not have access to Brain's text model (" + id.trim() + "); ask an admin to share it with you");
-		}
-		return id.trim();
+		return mapResult(WorkThreadInsights.request(user, threadId, Boolean.TRUE.equals(getBoolean(FORCE))));
 	}
 
+	@Override
+	public String getReactorDescription() {
+		return "Starts a background summary and action-item pass for a thread unless its summary covers the newest "
+				+ "message; poll WorkGetThreadInsights until status is no longer running";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
+		} else if (FORCE.equals(key)) {
+			return "true to summarize again even when the summary is current";
+		}
+		return super.getDescriptionForKey(key);
+	}
 }

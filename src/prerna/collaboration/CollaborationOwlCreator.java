@@ -217,6 +217,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("GOAL", CLOB_DATATYPE_NAME),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
+				// the newest message the summary and generated steps were made from, and when
+				Pair.with("SUMMARY_REF", VARCHAR_255),
+				Pair.with("SUMMARY_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("MESSAGE_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("LAST_MESSAGE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
@@ -371,6 +374,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("DUE_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ITEM_ID", VARCHAR_50),
 				Pair.with("LINK_TOPIC_ID", VARCHAR_50),
+				// brain when thread insights made it; EDITED once the owner changes its text, owner, due or kind
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("EDITED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("WORK_THREAD_FACT", Arrays.asList(
