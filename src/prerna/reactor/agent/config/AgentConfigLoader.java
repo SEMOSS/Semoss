@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -59,6 +60,7 @@ import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
+import prerna.util.SystemDefaultEngines;
 
 /**
  * Builds the resolved {@link AgentConfig} for one run.
@@ -360,8 +362,9 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, and room
-	 * options, deduped by {@code skill_id}.
+	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, room options,
+	 * and collaboration defaults, deduped by {@code skill_id}. Explicit references
+	 * retain their pinned version when also present in the defaults.
 	 */
 	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
 		List<Map<String, String>> out = new ArrayList<>();
@@ -424,6 +427,18 @@ public final class AgentConfigLoader {
 				continue;
 			}
 			out.add(entry);
+		}
+
+		// Resolve on every run, including agentless rooms, follow-ups, and resumes.
+		// Preserve explicit workspace/room references before adding unpinned defaults.
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			for (String skillId : SystemDefaultEngines.getCollaborationSkills()) {
+				if (seen.add(skillId)) {
+					out.add(skillRef(skillId, null));
+				}
+			}
+			logger.info("AgentConfigLoader: collaboration skills room={} defaults={} effective={}", room.getId(),
+					SystemDefaultEngines.getCollaborationSkills(), out.stream().map(ref -> ref.get("skill_id")).toList());
 		}
 
 		return out;
