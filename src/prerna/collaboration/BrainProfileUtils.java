@@ -204,6 +204,7 @@ public final class BrainProfileUtils {
 		// read-only: the platform agent behind each thread's assistant, when this user
 		// can use it
 		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
+		settings.put("presentationAgent", CollaborationUtils.presentationAgent(user));
 		return settings;
 	}
 

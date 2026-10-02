@@ -93,7 +93,19 @@ public final class CollaborationUtils {
 	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
 	 */
 	public static Map<String, Object> threadAgent(User user) {
-		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);
+		return configuredAgent(user, Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID), false);
+	}
+
+	/** An accessible managed PPTX agent, defaulting to the platform's seeded workspace. */
+	public static Map<String, Object> presentationAgent(User user) {
+		String id = Utility.getDIHelperProperty(Constants.COLLAB_PPTX_AGENT_ID);
+		if (id == null || id.isBlank()) {
+			id = Constants.AGENT_PPTX;
+		}
+		return configuredAgent(user, id, true);
+	}
+
+	private static Map<String, Object> configuredAgent(User user, String id, boolean presentation) {
 		if (id == null || id.isBlank() || user == null || !SecurityProjectUtils.userCanViewProject(user, id.trim())) {
 			return null;
 		}
@@ -103,6 +115,10 @@ public final class CollaborationUtils {
 			return null;
 		}
 		JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(id);
+		if (presentation && (config == null || config.optJSONObject("pptx_workflow") == null
+				|| !config.getJSONObject("pptx_workflow").optBoolean("enabled", false))) {
+			return null;
+		}
 		Map<String, Object> agent = new LinkedHashMap<>();
 		agent.put("id", id);
 		agent.put("name", row.get("name") == null ? "Assistant" : String.valueOf(row.get("name")));

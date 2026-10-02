@@ -1094,6 +1094,7 @@ public class Constants {
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
 	// the platform agent (workspace id) that powers a Work thread's assistant
 	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
+	public static final String COLLAB_PPTX_AGENT_ID = "COLLAB_PPTX_AGENT_ID";
 
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
