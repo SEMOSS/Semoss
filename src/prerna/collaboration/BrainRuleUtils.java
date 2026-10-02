@@ -164,6 +164,8 @@ public final class BrainRuleUtils {
 		// a sender kept out leaves Work too; deleting the rule brings the items back
 		WorkItemUtils.dismissForRule(ownerId, ownerType, keptOutPeople(ownerId, ownerType, kind, value, personId),
 				ruleId);
+		// what a summary may say changed; each thread summarizes again when opened or when mail comes in
+		WorkThreadInsights.markStale(ownerId, ownerType, null);
 		return getRule(ownerId, ownerType, ruleId);
 	}
 
@@ -212,6 +214,7 @@ public final class BrainRuleUtils {
 			reinclude(conn, ownerId, ownerType, ruleId);
 		});
 		WorkItemUtils.reopenForRule(ownerId, ownerType, ruleId);
+		WorkThreadInsights.markStale(ownerId, ownerType, null);
 	}
 
 	private static void reinclude(Connection conn, String ownerId, String ownerType, String ruleId)
