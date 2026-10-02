@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -83,24 +81,19 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 
 		IRDBMSEngine engine = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(engine, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, sessionId);
-					ps.setString(index++, userId);
-					ps.setString(index++, type);
-					ps.setTimestamp(index++, timestamp);
-					ps.setNull(index++, java.sql.Types.TIMESTAMP);
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpAddr());
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpLat());
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpLong());
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpCountry());
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpState());
-					engine.getQueryUtil().setNullableString(ps, index++, utd.getIpCity());
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(engine, query, ps -> {
+				int index = 1;
+				ps.setString(index++, sessionId);
+				ps.setString(index++, userId);
+				ps.setString(index++, type);
+				ps.setTimestamp(index++, timestamp);
+				ps.setNull(index++, java.sql.Types.TIMESTAMP);
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpAddr());
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpLat());
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpLong());
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpCountry());
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpState());
+				engine.getQueryUtil().setNullableString(ps, index++, utd.getIpCity());
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to save user tracking session {} for user {} ({})", sessionId, userId, type, e);
@@ -119,15 +112,10 @@ public abstract class AbstractUserTrackingUtils implements IUserTracking {
 
 		IRDBMSEngine engine = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(engine, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setTimestamp(index++, timestamp);
-					ps.setString(index++, sessionId);
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(engine, query, ps -> {
+				int index = 1;
+				ps.setTimestamp(index++, timestamp);
+				ps.setString(index++, sessionId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update user tracking logout time for session {}", sessionId, e);

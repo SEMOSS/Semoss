@@ -233,7 +233,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			when(conn.prepareStatement(
 					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)"))
 					.thenReturn(ps);
-			when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
+			when(ps.executeUpdate()).thenReturn(1);
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
@@ -249,7 +249,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			ModelInferenceLogsUtils.recordFeedback(testFeedback);
 			verify(conn, times(1)).prepareStatement(
 					"INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) VALUES (?, ?, ?, ?)");
-			verify(ps, times(1)).execute();
+			verify(ps, times(2)).executeUpdate();
 			verify(ps, never()).getConnection();
 			verify(conn, atLeastOnce()).getAutoCommit();
 			verify(conn, times(2)).commit();
@@ -365,8 +365,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(conn.prepareStatement("SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?")).thenReturn(ps)
 				.thenThrow(SQLException.class);
 
-		when(ps.execute()).thenReturn(true);
-		when(ps.getResultSet()).thenReturn(rs);
+		when(ps.executeQuery()).thenReturn(rs);
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
@@ -374,6 +373,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			assertTrue(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 			assertFalse(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 		}
+		verify(ps).executeQuery();
 	}
 
 	@Test
@@ -381,8 +381,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(conn.prepareStatement("SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?")).thenReturn(ps)
 				.thenThrow(SQLException.class);
 
-		when(ps.execute()).thenReturn(true);
-		when(ps.getResultSet()).thenReturn(rs);
+		when(ps.executeQuery()).thenReturn(rs);
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
@@ -390,6 +389,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 			assertTrue(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 			assertFalse(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 		}
+		verify(ps).executeQuery();
 	}
 
 	@Test
@@ -400,7 +400,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 					"INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)"))
 					.thenReturn(ps).thenThrow(SQLException.class);
 
-			when(ps.execute()).thenReturn(true);
+			when(ps.executeUpdate()).thenReturn(1);
 			when(ps.getConnection()).thenReturn(conn);
 			when(conn.getAutoCommit()).thenReturn(false);
 
@@ -421,7 +421,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 		when(ps.getConnection()).thenReturn(conn);
 
-		when(ps.execute()).thenReturn(true).thenThrow(SQLException.class);
+		when(ps.executeUpdate()).thenReturn(1).thenThrow(SQLException.class);
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		ModelInferenceLogsUtils.doRecordMessage("messageId", "messageType", "messageData", "messageMethod", 1, 2.0,
@@ -436,7 +436,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(2)).setTimestamp(anyInt(), any(Timestamp.class));
 		verify(ps, times(2)).setDouble(anyInt(), any(Double.class));
 		verify(ps, times(1)).setInt(anyInt(), anyInt());
-		verify(ps, times(2)).execute();
+		verify(ps, times(2)).executeUpdate();
 		verify(ps, never()).getConnection();
 		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
@@ -829,7 +829,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 				.thenReturn(ps);
 
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
-		when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
+		when(ps.executeUpdate()).thenThrow(SQLException.class).thenReturn(1);
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		when(conn.prepareStatement(
@@ -851,7 +851,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(14)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(6)).setTimestamp(anyInt(), any(Timestamp.class));
-		verify(ps, times(3)).execute();
+		verify(ps, times(3)).executeUpdate();
 		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn, times(2)).commit();
 		verify(ps, times(1)).executeBatch();
@@ -875,7 +875,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 				.thenReturn(ps);
 
 		when(engine.getQueryUtil()).thenReturn(absQueryUtil);
-		when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
+		when(ps.executeUpdate()).thenThrow(SQLException.class).thenReturn(1);
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		when(conn.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")).thenReturn(ps);
@@ -905,7 +905,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(ps, times(13)).setString(anyInt(), anyString());
 		verify(ps, times(3)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(3)).setTimestamp(anyInt(), any(Timestamp.class));
-		verify(ps, times(5)).execute();
+		verify(ps, times(5)).executeUpdate();
 		verify(ps).executeBatch();
 		verify(conn).rollback();
 	}
@@ -1102,7 +1102,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(conn.prepareStatement(
 				"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)"))
 				.thenReturn(ps);
-		when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
+		when(ps.executeUpdate()).thenThrow(SQLException.class).thenReturn(1);
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		Exception e = assertThrows(IllegalArgumentException.class,
@@ -1116,7 +1116,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(engine, times(2)).getConnection();
 		verify(conn, times(2)).prepareStatement(anyString());
 		verify(ps, times(10)).setString(anyInt(), anyString());
-		verify(ps, times(2)).execute();
+		verify(ps, times(2)).executeUpdate();
 		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}
@@ -1125,7 +1125,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	void doSetWorkspaceToInactive() throws Exception {
 		when(engine.getConnection()).thenReturn(conn);
 		when(conn.prepareStatement("UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?")).thenReturn(ps);
-		when(ps.execute()).thenThrow(SQLException.class).thenReturn(true);
+		when(ps.executeUpdate()).thenThrow(SQLException.class).thenReturn(1);
 		when(conn.getAutoCommit()).thenReturn(false);
 
 		Exception e = assertThrows(IllegalArgumentException.class,
@@ -1138,7 +1138,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		verify(conn, times(2)).prepareStatement(anyString());
 		verify(ps, times(2)).setBoolean(anyInt(), anyBoolean());
 		verify(ps, times(2)).setString(anyInt(), anyString());
-		verify(ps, times(2)).execute();
+		verify(ps, times(2)).executeUpdate();
 		verify(conn, atLeastOnce()).getAutoCommit();
 		verify(conn).commit();
 	}

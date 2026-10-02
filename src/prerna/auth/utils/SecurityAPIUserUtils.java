@@ -196,29 +196,23 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) " + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					ps.setString(parameterIndex++, clientId); // ID is the client ID
-					ps.setString(parameterIndex++, name);
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no username
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no email
-					ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
-					// shouldn't be adding API as an admin
-					ps.setBoolean(parameterIndex++, false);
-					ps.setString(parameterIndex++, hashedPassword);
-					ps.setString(parameterIndex++, salt);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					// not locked ...
-					ps.setBoolean(parameterIndex++, false);
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					ps.execute();
-
-				}
-				return null;
+				ps.setString(parameterIndex++, clientId); // ID is the client ID
+				ps.setString(parameterIndex++, name);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no username
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no email
+				ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
+				// shouldn't be adding API as an admin
+				ps.setBoolean(parameterIndex++, false);
+				ps.setString(parameterIndex++, hashedPassword);
+				ps.setString(parameterIndex++, salt);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				// not locked ...
+				ps.setBoolean(parameterIndex++, false);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 			});
 		} catch (RuntimeException e) {
 			throw e;

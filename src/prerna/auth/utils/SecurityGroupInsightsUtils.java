@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -392,24 +391,20 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO GROUPINSIGHTPERMISSION (ID, TYPE, PROJECTID, INSIGHTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -502,24 +497,20 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?")) {
-					int parameterIndex = 1;
-					ps.setInt(parameterIndex++, newPermissionLvl);
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"UPDATE GROUPINSIGHTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setInt(parameterIndex++, newPermissionLvl);
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -565,19 +556,14 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -607,19 +593,14 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=? AND INSIGHTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

@@ -736,16 +736,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String query = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, isPublic);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, isPublic);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -841,32 +836,27 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, insightName);
-					ps.setBoolean(parameterIndex++, global);
-					ps.setInt(parameterIndex++, 0);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, layout);
-					ps.setBoolean(parameterIndex++, cacheable);
-					ps.setInt(parameterIndex++, cacheMinutes);
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, cacheCron);
-					if (cachedOn == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
-					}
-					ps.setBoolean(parameterIndex++, cacheEncrypt);
-					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, securityGson.toJson(recipe));
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, schemaName);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, insightName);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setInt(parameterIndex++, 0);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, layout);
+				ps.setBoolean(parameterIndex++, cacheable);
+				ps.setInt(parameterIndex++, cacheMinutes);
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, cacheCron);
+				if (cachedOn == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 				}
-				return null;
+				ps.setBoolean(parameterIndex++, cacheEncrypt);
+				securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, securityGson.toJson(recipe));
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, schemaName);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -889,24 +879,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String query = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					for (AuthProvider login : logins) {
-						String id = user.getAccessToken(login).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, id);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setInt(parameterIndex++, ownerId);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, query, logins, (ps, login) -> {
+				String id = user.getAccessToken(login).getId();
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, id);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setInt(parameterIndex++, ownerId);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -939,30 +921,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, insightName);
-					ps.setBoolean(parameterIndex++, global);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, layout);
-					ps.setBoolean(parameterIndex++, cacheable);
-					ps.setInt(parameterIndex++, cacheMinutes);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, cacheCron);
-					if (cachedOn == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
-					}
-					ps.setBoolean(parameterIndex++, cacheEncrypt);
-					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, securityGson.toJson(recipe));
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, schemaName);
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, insightName);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, layout);
+				ps.setBoolean(parameterIndex++, cacheable);
+				ps.setInt(parameterIndex++, cacheMinutes);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, cacheCron);
+				if (cachedOn == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 				}
-				return null;
+				ps.setBoolean(parameterIndex++, cacheEncrypt);
+				securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, securityGson.toJson(recipe));
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, schemaName);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -984,17 +961,12 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String query = "UPDATE INSIGHT SET INSIGHTNAME=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, insightName);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, insightName);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1019,25 +991,20 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String query = "UPDATE INSIGHT SET CACHEABLE=?, CACHEMINUTES=?, CACHECRON=?, CACHEDON=?, CACHEENCRYPT=?, LASTMODIFIEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, cacheInsight);
-					ps.setInt(parameterIndex++, cacheMinutes);
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, cacheCron);
-					if (cachedOn == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
-					}
-					ps.setBoolean(parameterIndex++, cacheEncrypt);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, cacheInsight);
+				ps.setInt(parameterIndex++, cacheMinutes);
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, cacheCron);
+				if (cachedOn == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 				}
-				return null;
+				ps.setBoolean(parameterIndex++, cacheEncrypt);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1059,20 +1026,15 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE INSIGHT SET CACHEDON=? WHERE INSIGHTID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					if (cachedOn == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
-					}
-					ps.setString(parameterIndex++, insightId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				if (cachedOn == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(cachedOn));
 				}
-				return null;
+				ps.setString(parameterIndex++, insightId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1096,23 +1058,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					for (String field : metadata.keySet()) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, field);
-						ps.setString(parameterIndex++, insightId);
-						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, query, metadata.keySet(), (ps, field) -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, field);
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, projectId);
+				});
 
 				// now we do the new insert with the order of the tags
 				query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA",
 						new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String field : metadata.keySet()) {
 						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
@@ -1136,9 +1093,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -1182,16 +1137,14 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				if (updateCount <= 0) {
 
 					query = "INSERT INTO INSIGHTMETA (PROJECTID, INSIGHTID, METAKEY, METAVALUE, METAORDER) VALUES (?,?,?,?,?)";
-					try (PreparedStatement ps = connection.prepareStatement(query)) {
+					QueryExecutionUtility.executeUpdate(connection, query, ps -> {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, projectId);
 						ps.setString(parameterIndex++, insightId);
 						ps.setString(parameterIndex++, META_KEY);
 						ps.setString(parameterIndex++, description);
 						ps.setInt(parameterIndex++, 0);
-						ps.execute();
-
-					}
+					});
 
 				}
 				return null;
@@ -1219,20 +1172,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				final String metaKey = "tag";
 				String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, metaKey);
 					ps.setString(parameterIndex++, insightId);
 					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
+				});
 
 				// now we do the new insert with the order of the tags
 				query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA",
 						new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (int i = 0; i < tags.size(); i++) {
 						String tag = tags.get(i);
 						int parameterIndex = 1;
@@ -1243,10 +1194,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						ps.setInt(parameterIndex++, i);
 						ps.addBatch();
 					}
-
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -1270,20 +1218,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				final String metaKey = "tag";
 				String query = "DELETE FROM INSIGHTMETA WHERE METAKEY=? AND INSIGHTID=? AND PROJECTID=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, metaKey);
 					ps.setString(parameterIndex++, insightId);
 					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
+				});
 
 				// now we do the new insert with the order of the tags
 				query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTMETA",
 						new String[] { "PROJECTID", "INSIGHTID", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (int i = 0; i < tags.length; i++) {
 						String tag = tags[i];
 						int parameterIndex = 1;
@@ -1294,9 +1240,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						ps.setInt(parameterIndex++, i);
 						ps.addBatch();
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -1318,20 +1262,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String query = "DELETE FROM INSIGHTFRAMES WHERE INSIGHTID =? AND PROJECTID=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, insightId);
 					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
+				});
 
 				// now we do the new insert with the order of the tags
 				query = securityDb.getQueryUtil().createInsertPreparedStatementString("INSIGHTFRAMES",
 						new String[] { "PROJECTID", "INSIGHTID", "TABLENAME", "TABLETYPE", "COLUMNNAME", "COLUMNTYPE",
 								"ADDITIONALTYPE" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					// loop through an add all the frames
 					for (ITableDataFrame frame : insightFrames) {
 						String tableName = frame.getOriginalName();
@@ -1360,9 +1302,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -1401,15 +1341,10 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 			String query = "UPDATE INSIGHT SET EXECUTIONCOUNT = EXECUTIONCOUNT + 1 WHERE PROJECTID=? AND INSIGHTID=?";
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(query)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.execute();
-
-					}
-					return null;
+				QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, projectId);
+					ps.setString(parameterIndex++, insightId);
 				});
 			} catch (RuntimeException e) {
 				throw e;
@@ -1466,23 +1401,19 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUserId);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+					});
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
@@ -1540,25 +1471,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?")) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, newPermissionLvl);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?",
+					ps -> {
+						int parameterIndex = 1;
+						// SET
+						ps.setInt(parameterIndex++, newPermissionLvl);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						// WHERE
+						ps.setString(parameterIndex++, existingUserId);
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, insightId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
 			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
@@ -1618,27 +1545,18 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE= ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < requests.size(); i++) {
-						int parameterIndex = 1;
-						// SET
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						// WHERE
-						ps.setString(parameterIndex++, requests.get(i).get("userid"));
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, batchRow.get("userid"));
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Unable to update execution count.", e);
@@ -1683,16 +1601,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -2929,9 +2842,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				try (PreparedStatement deletePs = connection.prepareStatement(truncateSql)) {
-					deletePs.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
+				});
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -3029,25 +2941,16 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement insertPs = connection.prepareStatement(insertQ)) {
-					for (int i = 0; i < permission.size(); i++) {
-						int parameterIndex = 1;
-						insertPs.setString(parameterIndex++, permission.get(i).get("userid"));
-						insertPs.setString(parameterIndex++, projectId);
-						insertPs.setString(parameterIndex++, insightId);
-						insertPs.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
-						insertPs.setString(parameterIndex++, userDetails.getValue0());
-						insertPs.setString(parameterIndex++, userDetails.getValue1());
-						insertPs.setTimestamp(parameterIndex++, startDate);
-						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-						insertPs.addBatch();
-					}
-					insertPs.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (insertPs, batchRow) -> {
+				int parameterIndex = 1;
+				insertPs.setString(parameterIndex++, batchRow.get("userid"));
+				insertPs.setString(parameterIndex++, projectId);
+				insertPs.setString(parameterIndex++, insightId);
+				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
+				insertPs.setString(parameterIndex++, userDetails.getValue0());
+				insertPs.setString(parameterIndex++, userDetails.getValue1());
+				insertPs.setTimestamp(parameterIndex++, startDate);
+				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
 			});
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve available metadata values.", e);
@@ -3088,19 +2991,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		}
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Unable to retrieve available metadata values.", e);
@@ -3118,16 +3013,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -3289,7 +3179,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
+				QueryExecutionUtility.executeBatch(connection, updateQ, ps -> {
 					AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 					String userId = token.getId();
 					String userType = token.getProvider().toString();
@@ -3302,9 +3192,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						ps.setString(index++, requestIdList.get(i));
 						ps.addBatch();
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {

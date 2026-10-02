@@ -28,7 +28,6 @@
 package prerna.usertracking;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
@@ -113,14 +112,9 @@ public class UserTrackingUtils {
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ?";
 
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, projectId);
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking engine usage for project {}", projectId, e);
@@ -142,15 +136,10 @@ public class UserTrackingUtils {
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ? AND INSIGHTID = ?";
 
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, projectId);
-					ps.setString(index++, insightId);
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, projectId);
+				ps.setString(index++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking engine usage for project {} insight {}", projectId,
@@ -182,30 +171,25 @@ public class UserTrackingUtils {
 		String query = "INSERT INTO EMAIL_TRACKING (ID, SENT_TIME, SUCCESSFUL, E_FROM, E_TO, E_CC, E_BCC, E_SUBJECT, BODY, ATTACHMENTS, IS_HTML) "
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, UUID.randomUUID().toString());
-					ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-					ps.setBoolean(index++, successful);
-					ps.setString(index++, from);
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, UUID.randomUUID().toString());
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setBoolean(index++, successful);
+				ps.setString(index++, from);
 
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
-							toRecipients == null ? null : String.join(", ", toRecipients));
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
-							ccRecipients == null ? null : String.join(", ", ccRecipients));
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
-							bccRecipients == null ? null : String.join(", ", bccRecipients));
-					userTrackingDb.getQueryUtil().setNullableString(ps, index++, subject);
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, emailMessage);
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
-							attachments == null ? null : String.join(", ", attachments));
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						toRecipients == null ? null : String.join(", ", toRecipients));
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						ccRecipients == null ? null : String.join(", ", ccRecipients));
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						bccRecipients == null ? null : String.join(", ", bccRecipients));
+				userTrackingDb.getQueryUtil().setNullableString(ps, index++, subject);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, emailMessage);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						attachments == null ? null : String.join(", ", attachments));
 
-					ps.setBoolean(index++, isHtml);
-
-					ps.execute();
-				}
-				return null;
+				ps.setBoolean(index++, isHtml);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track email from {} (subject {}, successful={})", from, subject, successful,
@@ -227,18 +211,14 @@ public class UserTrackingUtils {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) " + "VALUES (?, ?, ?, ?)";
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, insightId);
-					ps.setString(index++, userId);
-					ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(index++, origin);
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, insightId);
+				ps.setString(index++, userId);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(index++, origin);
 
-					// execute
-					ps.execute();
-				}
-				return null;
+				// execute
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track insight open for insight {} by user {} (origin {})", insightId, userId,
@@ -256,14 +236,9 @@ public class UserTrackingUtils {
 	private static void doDeleteEngine(String query, String engineId) {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, engineId);
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking rows for engine {} [query: {}]", engineId, query, e);
@@ -304,29 +279,25 @@ public class UserTrackingUtils {
 		String trackingUserId = userId;
 		String trackingUserType = userType;
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					int index = 1;
-					ps.setString(index++, id);
-					ps.setString(index++, trackingUserId);
-					ps.setString(index++, trackingUserType);
-					ps.setString(index++, databaseId);
-					userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, queryExecuted);
-					ps.setTimestamp(index++, startTime);
-					if (endTime == null) {
-						ps.setNull(index++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(index++, endTime);
-					}
-					if (executionTime == null) {
-						ps.setNull(index++, java.sql.Types.BIGINT);
-					} else {
-						ps.setLong(index++, executionTime);
-					}
-					ps.setBoolean(index++, failed);
-					ps.execute();
+			QueryExecutionUtility.executeUpdate(userTrackingDb, insertQuery, ps -> {
+				int index = 1;
+				ps.setString(index++, id);
+				ps.setString(index++, trackingUserId);
+				ps.setString(index++, trackingUserType);
+				ps.setString(index++, databaseId);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, queryExecuted);
+				ps.setTimestamp(index++, startTime);
+				if (endTime == null) {
+					ps.setNull(index++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(index++, endTime);
 				}
-				return null;
+				if (executionTime == null) {
+					ps.setNull(index++, java.sql.Types.BIGINT);
+				} else {
+					ps.setLong(index++, executionTime);
+				}
+				ps.setBoolean(index++, failed);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track query execution against database {} for user {} (failed={})", databaseId,

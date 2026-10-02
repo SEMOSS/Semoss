@@ -113,6 +113,161 @@ public class QueryExecutionUtility {
 		T run(Connection connection) throws Exception;
 	}
 
+	/** Binds values/settings without executing or closing the statement. */
+	@FunctionalInterface
+	public interface StatementBinder {
+		void bind(PreparedStatement statement) throws Exception;
+	}
+
+	/**
+	 * Binds every parameter for one batch row; the utility adds it to the batch.
+	 */
+	@FunctionalInterface
+	public interface BatchBinder<T> {
+		void bind(PreparedStatement statement, T row) throws Exception;
+	}
+
+	/**
+	 * Maps the current row to a materialized value without advancing the cursor.
+	 */
+	@FunctionalInterface
+	public interface RowMapper<T> {
+		T map(ResultSet result) throws Exception;
+	}
+
+	/** Executes one prepared DML statement in an owned write transaction. */
+	public static int executeUpdate(IRDBMSEngine engine, String sql, StatementBinder binder) throws Exception {
+		return write(engine, connection -> executeUpdate(connection, sql, binder));
+	}
+
+	/**
+	 * Closes the statement; leaves the supplied connection and transaction owned by
+	 * the caller.
+	 */
+	public static int executeUpdate(Connection connection, String sql, StatementBinder binder) throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			return statement.executeUpdate();
+		}
+	}
+
+	/**
+	 * Executes a batch atomically; the binder must bind and add each batch entry.
+	 */
+	public static int[] executeBatch(IRDBMSEngine engine, String sql, StatementBinder batch) throws Exception {
+		return write(engine, connection -> executeBatch(connection, sql, batch));
+	}
+
+	/**
+	 * Supports custom/nested batch assembly within the caller's transaction.
+	 * Returns JDBC update counts unchanged.
+	 */
+	public static int[] executeBatch(Connection connection, String sql, StatementBinder batch) throws Exception {
+		Objects.requireNonNull(batch, "batch");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			batch.bind(statement);
+			return statement.executeBatch();
+		}
+	}
+
+	/**
+	 * Binds each row once and executes the whole batch in one owned transaction.
+	 */
+	public static <T> int[] executeBatch(IRDBMSEngine engine, String sql, Iterable<T> rows, BatchBinder<T> binder)
+			throws Exception {
+		return write(engine, connection -> executeBatch(connection, sql, rows, binder));
+	}
+
+	/**
+	 * Clears parameters between rows; empty input executes an empty batch. Does not
+	 * complete the caller's transaction.
+	 */
+	public static <T> int[] executeBatch(Connection connection, String sql, Iterable<T> rows, BatchBinder<T> binder)
+			throws Exception {
+		Objects.requireNonNull(rows, "rows");
+		Objects.requireNonNull(binder, "binder");
+		return executeBatch(connection, sql, statement -> {
+			for (T row : rows) {
+				statement.clearParameters();
+				binder.bind(statement, row);
+				statement.addBatch();
+			}
+		});
+	}
+
+	/**
+	 * Returns the mapped first row, or null if absent; later rows are ignored. Owns
+	 * a read transaction.
+	 */
+	public static <T> T queryOne(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return read(engine, connection -> queryOne(connection, sql, binder, mapper));
+	}
+
+	/**
+	 * Maps at most one row and closes query resources without completing the
+	 * caller's transaction.
+	 */
+	public static <T> T queryOne(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		Objects.requireNonNull(mapper, "mapper");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			try (ResultSet result = statement.executeQuery()) {
+				return result.next() ? mapper.map(result) : null;
+			}
+		}
+	}
+
+	/**
+	 * Materializes a mutable list in row order, retaining duplicates and mapped
+	 * nulls. Owns a read transaction.
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return read(engine, connection -> queryList(connection, sql, binder, mapper));
+	}
+
+	/**
+	 * Returns an empty list for no rows; mapping/cursor failures propagate without
+	 * returning a partial list.
+	 */
+	public static <T> List<T> queryList(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper)
+			throws Exception {
+		return queryList(connection, sql, binder, mapper, new ArrayList<>());
+	}
+
+	/**
+	 * Appends into the caller's list, preserving accumulated rows if a later read
+	 * or cleanup fails.
+	 */
+	public static <T> List<T> queryList(IRDBMSEngine engine, String sql, StatementBinder binder, RowMapper<T> mapper,
+			List<T> rows) throws Exception {
+		return read(engine, connection -> queryList(connection, sql, binder, mapper, rows));
+	}
+
+	/**
+	 * Appends mapped rows without clearing the list or completing the caller's
+	 * transaction.
+	 */
+	public static <T> List<T> queryList(Connection connection, String sql, StatementBinder binder, RowMapper<T> mapper,
+			List<T> rows) throws Exception {
+		Objects.requireNonNull(binder, "binder");
+		Objects.requireNonNull(mapper, "mapper");
+		Objects.requireNonNull(rows, "rows");
+		try (PreparedStatement statement = connection.prepareStatement(sql)) {
+			binder.bind(statement);
+			try (ResultSet result = statement.executeQuery()) {
+				while (result.next()) {
+					rows.add(mapper.map(result));
+				}
+				return rows;
+			}
+		}
+	}
+
 	/**
 	 * Executes query-only work, rolling back a successful manual read transaction
 	 * before releasing the connection. This is a caller contract: SQL is not

@@ -28,7 +28,6 @@
 package prerna.theme;
 
 import java.lang.reflect.Type;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -162,13 +161,7 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		if (hardDelete) {
 			String query = "DELETE FROM " + table.getThemeDbTableName() + " WHERE ID = ?";
 			try {
-				return QueryExecutionUtility.write(themeDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(query)) {
-						ps.setString(1, blockId);
-						int rowsAffected = ps.executeUpdate();
-						return (rowsAffected > 0);
-					}
-				});
+				return QueryExecutionUtility.executeUpdate(themeDb, query, ps -> ps.setString(1, blockId)) > 0;
 			} catch (RuntimeException e) {
 				throw e;
 			} catch (Exception e) {
@@ -222,22 +215,18 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 	private static void insertBlock(Map<String, Object> blockDetails, boolean allowClob, String blockId) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		try {
-			QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement blockPS = connection.prepareStatement(BLOCK_QUERY)) {
-					int parameterIndex = 1;
-					blockPS.setString(parameterIndex++, blockId);
-					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
-					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
-					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
-					themeDb.getQueryUtil().setNullableLargeText(blockPS, parameterIndex++,
-							String.valueOf(blockDetails.get("json")));
-					blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					blockPS.setBoolean(parameterIndex++, true);
-					// blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
-					blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
-					blockPS.executeUpdate();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(themeDb, BLOCK_QUERY, blockPS -> {
+				int parameterIndex = 1;
+				blockPS.setString(parameterIndex++, blockId);
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("name")));
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("section")).toUpperCase());
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("hover_text")));
+				themeDb.getQueryUtil().setNullableLargeText(blockPS, parameterIndex++,
+						String.valueOf(blockDetails.get("json")));
+				blockPS.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				blockPS.setBoolean(parameterIndex++, true);
+				// blockPS.setBoolean(parameterIndex++, true); // IS_LATEST
+				blockPS.setString(parameterIndex++, String.valueOf(blockDetails.get("created_by"))); // CREATED_BY
 			});
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
@@ -254,16 +243,11 @@ public class BlocksThemeUtils extends AbstractThemeUtils {
 		String promptPermissionQuery = themeDb.getQueryUtil().createUpdatePreparedStatementString(
 				ThemeDbTable.BLOCKS_TABLE.getThemeDbTableName(), colToUpdate, whereCol);
 		try {
-			return QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(promptPermissionQuery)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, false);
-					ps.setString(parameterIndex++, blockId);
-					int rowsAffected = ps.executeUpdate();
-
-					return (rowsAffected > 0);
-				}
-			});
+			return QueryExecutionUtility.executeUpdate(themeDb, promptPermissionQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, false);
+				ps.setString(parameterIndex++, blockId);
+			}) > 0;
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			return false;

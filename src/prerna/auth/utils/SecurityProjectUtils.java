@@ -30,7 +30,6 @@ package prerna.auth.utils;
 import java.io.File;
 import java.io.IOException;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -467,36 +466,31 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, projectName);
-					ps.setString(parameterIndex++, projectType);
-					ps.setString(parameterIndex++, projectCost);
-					ps.setBoolean(parameterIndex++, global);
-					ps.setBoolean(parameterIndex++, false);
-					ps.setBoolean(parameterIndex++, isTemplate);
-					if (user != null) {
-						AuthProvider ap = user.getPrimaryLogin();
-						AccessToken token = user.getAccessToken(ap);
-						ps.setString(parameterIndex++, token.getId());
-						ps.setString(parameterIndex++, ap.toString());
-					} else {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					}
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
-						ps.setString(parameterIndex++, projectName);
-					} else {
-						ps.setString(parameterIndex++, projectDisplayName);
-					}
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, projectName);
+				ps.setString(parameterIndex++, projectType);
+				ps.setString(parameterIndex++, projectCost);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setBoolean(parameterIndex++, false);
+				ps.setBoolean(parameterIndex++, isTemplate);
+				if (user != null) {
+					AuthProvider ap = user.getPrimaryLogin();
+					AccessToken token = user.getAccessToken(ap);
+					ps.setString(parameterIndex++, token.getId());
+					ps.setString(parameterIndex++, ap.toString());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				return null;
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				if (projectDisplayName == null || projectDisplayName.trim().isEmpty()) {
+					ps.setString(parameterIndex++, projectName);
+				} else {
+					ps.setString(parameterIndex++, projectDisplayName);
+				}
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -511,20 +505,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
-					ps.setString(parameterIndex++, projectId);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+				ps.setString(parameterIndex++, projectId);
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -538,18 +527,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET PROJECTNAME=?, TYPE=?, COST=?, GLOBAL=? WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, projectName);
-					ps.setString(parameterIndex++, projectType);
-					ps.setString(parameterIndex++, projectCost);
-					ps.setBoolean(parameterIndex++, global);
-					ps.setString(parameterIndex++, projectID);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectName);
+				ps.setString(parameterIndex++, projectType);
+				ps.setString(parameterIndex++, projectCost);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setString(parameterIndex++, projectID);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -567,15 +551,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String query = "UPDATE PROJECT SET DATELASTEDITED=? WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(parameterIndex++, projectID);
-					ps.executeUpdate();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(parameterIndex++, projectID);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -593,14 +572,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM INSIGHT WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete project insights before recreation", e);
@@ -909,17 +883,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newDisplayName);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTDISPLAYNAME=? WHERE PROJECTID=?",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newDisplayName);
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project display name", e);
 			throw new IllegalArgumentException("An error occurred updating the project display name");
@@ -1192,17 +1161,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	private static LocalDateTime getProjectUtcTimestamp(String projectId, String selectQ, String label) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			return QueryExecutionUtility.read(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(selectQ)) {
-					ps.setString(1, projectId);
-					try (ResultSet rs = ps.executeQuery()) {
-						if (rs.next()) {
-							Timestamp storedValue = rs.getTimestamp(1);
-							if (storedValue != null) {
-								return storedValue.toLocalDateTime();
-							}
-						}
-					}
+			return QueryExecutionUtility.queryOne(securityDb, selectQ, ps -> ps.setString(1, projectId), rs -> {
+				Timestamp storedValue = rs.getTimestamp(1);
+				if (storedValue != null) {
+					return storedValue.toLocalDateTime();
 				}
 				return null;
 			});
@@ -1253,14 +1215,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String updateQ = "UPDATE PROJECT SET PORTALPUBLISHED=? WHERE PROJECTID=? AND PORTALPUBLISHED IS NULL";
 		try {
-			return QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					ps.setTimestamp(1, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(2, projectId);
-					ps.execute();
-					return true;
-				}
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				ps.setTimestamp(1, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(2, projectId);
 			});
+			return true;
 		} catch (Exception e) {
 			classLogger.error("Failed to record an initial cluster timestamp for project '{}'", projectId, e);
 			return false;
@@ -1285,18 +1244,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET DATELASTEDITED=?, PORTALPUBLISHED=?, PORTALPUBLISHEDUSER=?, PORTALPUBLISHEDTYPE=? WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int i = 1;
-					ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
-					ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(i++, token.getId());
-					ps.setString(i++, token.getProvider().toString());
-					ps.setString(i++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int i = 1;
+				ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+				ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(i++, token.getId());
+				ps.setString(i++, token.getProvider().toString());
+				ps.setString(i++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project portal published status", e);
@@ -1326,17 +1280,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
 		String updateQ = "UPDATE PROJECT SET REACTORSCOMPILED=?, REACTORSCOMPILEDUSER=?, REACTORSCOMPILEDTYPE=? WHERE PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int i = 1;
-					ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(i++, token.getId());
-					ps.setString(i++, token.getProvider().toString());
-					ps.setString(i++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int i = 1;
+				ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(i++, token.getId());
+				ps.setString(i++, token.getProvider().toString());
+				ps.setString(i++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project reactor compilation timestamp", e);
@@ -1524,27 +1473,23 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					if (verifiedEndDate != null) {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					} else {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					}
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUserId);
+						ps.setString(parameterIndex++, projectId);
+						ps.setBoolean(parameterIndex++, true);
+						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, startDate);
+						if (verifiedEndDate != null) {
+							ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						} else {
+							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+						}
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to add project user", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this project");
@@ -1760,14 +1705,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?");
 		for (String deleteQuery : deletes) {
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-						ps.setString(1, projectId);
-						ps.execute();
-
-					}
-					return null;
-				});
+				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, projectId));
 			} catch (RuntimeException e) {
 				throw e;
 			} catch (Exception e) {
@@ -1816,15 +1754,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				"DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=?" };
 		for (String deleteQuery : deletes) {
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserId);
-						ps.setString(parameterIndex++, projectId);
-						ps.execute();
-
-					}
-					return null;
+				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, existingUserId);
+					ps.setString(parameterIndex++, projectId);
 				});
 			} catch (RuntimeException e) {
 				throw e;
@@ -1846,15 +1779,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1880,15 +1808,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?")) {
-					ps.setBoolean(1, global);
-					ps.setString(2, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
+				ps.setBoolean(1, global);
+				ps.setString(2, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
@@ -1961,26 +1883,22 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				{
 					String update1 = "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?";
 
-					try (PreparedStatement ps = connection.prepareStatement(update1)) {
+					QueryExecutionUtility.executeUpdate(connection, update1, ps -> {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, true);
 						ps.setString(parameterIndex++, projectId);
-						ps.execute();
-
-					}
+					});
 
 				}
 
 				{
 					String update1 = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=?";
 
-					try (PreparedStatement ps = connection.prepareStatement(update1)) {
+					QueryExecutionUtility.executeUpdate(connection, update1, ps -> {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, true);
 						ps.setString(parameterIndex++, projectId);
-						ps.execute();
-
-					}
+					});
 
 				}
 				return null;
@@ -2010,16 +1928,11 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?")) {
-					ps.setBoolean(1, discoverable);
-					ps.setString(2, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?",
+					ps -> {
+						ps.setBoolean(1, discoverable);
+						ps.setString(2, projectId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project discoverability setting", e);
 		}
@@ -2043,19 +1956,14 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					"The user doesn't have the permission to change the project name. Only the owner or an admin can perform this action.");
 		}
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET PROJECTNAME=? WHERE PROJECTID=?")) {
-					int parameterIndex = 1;
-					// SET
-					ps.setString(parameterIndex++, newProjectName);
-					// WHERE
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET PROJECTNAME=? WHERE PROJECTID=?",
+					ps -> {
+						int parameterIndex = 1;
+						// SET
+						ps.setString(parameterIndex++, newProjectName);
+						// WHERE
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project name", e);
 			throw new IllegalArgumentException("An error occurred updating the project name");
@@ -2114,12 +2022,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=?";
 
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
+				QueryExecutionUtility.executeUpdate(connection, deleteQ, deletePs -> {
 					int parameterIndex = 1;
 					deletePs.setString(parameterIndex++, projectId);
-					deletePs.execute();
-
-				}
+				});
 
 				if (dependentEngines != null && !dependentEngines.isEmpty()) {
 					AccessToken token = user.getPrimaryLoginToken();
@@ -2128,20 +2034,15 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTDEPENDENCIES",
 							new String[] { "PROJECTID", "ENGINEID", "ENGINETYPE", "USERID", "TYPE", "DATEADDED" });
 
-					try (PreparedStatement ps = connection.prepareStatement(query)) {
-						for (Map<String, Object> depEngine : dependentEngines) {
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, projectId);
-							ps.setString(parameterIndex++, (String) depEngine.get("ENGINEID"));
-							ps.setString(parameterIndex++, (String) depEngine.get("ENGINETYPE"));
-							ps.setString(parameterIndex++, token.getId());
-							ps.setString(parameterIndex++, token.getProvider().getLabel());
-							ps.setTimestamp(parameterIndex++, timestamp);
-							ps.addBatch();
-						}
-						ps.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, query, dependentEngines, (ps, depEngine) -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, projectId);
+						ps.setString(parameterIndex++, (String) depEngine.get("ENGINEID"));
+						ps.setString(parameterIndex++, (String) depEngine.get("ENGINETYPE"));
+						ps.setString(parameterIndex++, token.getId());
+						ps.setString(parameterIndex++, token.getProvider().getLabel());
+						ps.setTimestamp(parameterIndex++, timestamp);
+					});
 
 				}
 				return null;
@@ -2168,15 +2069,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		String deleteQ = "DELETE FROM PROJECTDEPENDENCIES WHERE PROJECTID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-					int parameterIndex = 1;
-					deletePs.setString(parameterIndex++, projectId);
-					deletePs.setString(parameterIndex++, dependentEngineId);
-					deletePs.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, deletePs -> {
+				int parameterIndex = 1;
+				deletePs.setString(parameterIndex++, projectId);
+				deletePs.setString(parameterIndex++, dependentEngineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove project dependency mappings", e);
@@ -3020,22 +2916,17 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String deleteQ = "DELETE FROM PROJECTMETA WHERE METAKEY=? AND PROJECTID=?";
 
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-					for (String field : metadata.keySet()) {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, field);
-						deletePs.setString(parameterIndex++, projectId);
-						deletePs.addBatch();
-					}
-					deletePs.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
+					int parameterIndex = 1;
+					deletePs.setString(parameterIndex++, field);
+					deletePs.setString(parameterIndex++, projectId);
+				});
 
 				// now we do the new insert with the order of the tags
 				String query = securityDb.getQueryUtil().createInsertPreparedStatementString("PROJECTMETA",
 						new String[] { "PROJECTID", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String field : metadata.keySet()) {
 						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
@@ -3058,9 +2949,7 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -4340,9 +4229,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				try (PreparedStatement deletePs = connection.prepareStatement(truncateSql)) {
-					deletePs.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
+				});
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -4869,20 +4757,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 
 		// first do a delete
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?")) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
+			QueryExecutionUtility.executeBatch(securityDb,
+					"DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", existingUserIds, (ps, batchRow) -> {
 						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
+						ps.setString(parameterIndex++, batchRow);
 						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
-			});
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove project users", e);
 		}

@@ -186,16 +186,14 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 
 		try {
 			updateCount = QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement editUserPs = connection.prepareStatement(editUserQuery)) {
+				return QueryExecutionUtility.executeUpdate(connection, editUserQuery, editUserPs -> {
 					int i = 1;
 					editUserPs.setString(i++, email);
 					editUserPs.setString(i++, name);
 					// Where
 					editUserPs.setString(i++, userId);
 					editUserPs.setString(i++, userType);
-					return editUserPs.executeUpdate();
-
-				}
+				});
 			});
 		} catch (Exception e) {
 			classLogger.error("Unable to update user.", e);
@@ -230,9 +228,8 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM USERMETAKEYS WHERE 1=1";
-				try (PreparedStatement deletePs = connection.prepareStatement(truncateSql)) {
-					deletePs.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
+				});
 				try (PreparedStatement insertPs = connection
 						.prepareStatement(securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETAKEYS",
 								new String[] { Constants.METAKEY, Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER,
@@ -291,19 +288,17 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				String userType = token.getProvider().getLabel();
 				String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
+				QueryExecutionUtility.executeUpdate(connection, deleteQ, ps -> {
 					ps.setString(1, userId);
 					ps.setString(2, userType);
 					ps.setString(3, metaKey);
-					ps.executeUpdate();
-
-				}
+				});
 
 				// now we do the new insert with the order of the tags
 				String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
 						new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					List<Object> values = new ArrayList<>();
 					if (val instanceof Collection) {
 						values.addAll((Collection<Object>) val);
@@ -322,9 +317,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 						ps.setInt(parameterIndex++, i);
 						ps.addBatch();
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -402,22 +395,17 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 				String userType = token.getProvider().getLabel();
 				String deleteQ = "DELETE FROM USERMETA WHERE USERID=? AND TYPE=? AND METAKEY=?";
 
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (String metaKey : metadata.keySet()) {
-						ps.setString(1, userId);
-						ps.setString(2, userType);
-						ps.setString(3, metaKey);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (ps, metaKey) -> {
+					ps.setString(1, userId);
+					ps.setString(2, userType);
+					ps.setString(3, metaKey);
+				});
 
 				// now we do the new insert with the order of the tags
 				String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
 						new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String metaKey : metadata.keySet()) {
 						Collection<String> values = metadata.get(metaKey);
 
@@ -434,9 +422,7 @@ public class SecurityUserUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {

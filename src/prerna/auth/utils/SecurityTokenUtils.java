@@ -66,13 +66,9 @@ public class SecurityTokenUtils extends AbstractSecurityUtils {
 		ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("UTC")).minusMinutes(expirationMinutes);
 		String query = "DELETE FROM TOKEN WHERE DATEADDED <= ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(zdt));
 			});
 		} catch (RuntimeException e) {
 			throw e;

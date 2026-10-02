@@ -421,23 +421,17 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		}
 		updateQuery.append("WHERE ID=? AND TYPE=?");
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery.toString(), ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery.toString())) {
-					// loop through the set for the values
-					for (int i = 0; i < hasVal.size(); i++) {
-						if (hasVal.get(i)) {
-							ps.setString(parameterIndex++, values.get(i));
-						}
+				// loop through the set for the values
+				for (int i = 0; i < hasVal.size(); i++) {
+					if (hasVal.get(i)) {
+						ps.setString(parameterIndex++, values.get(i));
 					}
-					// always ahve the where clause
-					ps.setString(parameterIndex++, existingToken.getId());
-					ps.setString(parameterIndex++, existingToken.getProvider().toString());
-					ps.execute();
-
 				}
-				return null;
+				// always ahve the where clause
+				ps.setString(parameterIndex++, existingToken.getId());
+				ps.setString(parameterIndex++, existingToken.getProvider().toString());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -454,17 +448,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String updateQuery = "UPDATE SMSS_USER SET LOCKED=? WHERE ID=? AND TYPE=?";
 		try {
 			AuthProvider boundType = type;
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-					ps.setBoolean(parameterIndex++, isLocked);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, boundType.toString());
-					ps.execute();
-
-				}
-				return null;
+				ps.setBoolean(parameterIndex++, isLocked);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, boundType.toString());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -480,17 +468,11 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 		String updateQuery = "UPDATE SMSS_USER SET LASTLOGIN=? WHERE ID=? AND TYPE=?";
 		try {
 			AuthProvider boundType = type;
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, boundType.toString());
-					ps.execute();
-
-				}
-				return null;
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, boundType.toString());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -606,41 +588,36 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 			String boundPhone = phone;
 			String boundPhoneextension = phoneextension;
 			String boundCountrycode = countrycode;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, id);
-					ps.setString(parameterIndex++, boundUserName);
-					ps.setString(parameterIndex++, boundName);
-					ps.setString(parameterIndex++, boundEmail.toLowerCase());
-					ps.setString(parameterIndex++, boundHashedPassword);
-					ps.setString(parameterIndex++, boundSalt);
-					ps.setString(parameterIndex++, boundType);
-					ps.setString(parameterIndex++, boundPhone);
-					ps.setString(parameterIndex++, boundPhoneextension);
-					ps.setString(parameterIndex++, boundCountrycode);
-					ps.setBoolean(parameterIndex++, admin);
-					ps.setBoolean(parameterIndex++, publisher);
-					ps.setBoolean(parameterIndex++, exporter);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(modelUsageRestriction));
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(modelUsageFrequency));
-					if (modelMaxTokens != null && modelMaxTokens > 0) {
-						ps.setInt(parameterIndex++, modelMaxTokens);
-					} else {
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-					}
-					if (modelMaxResponseTime != null && modelMaxResponseTime > 0) {
-						ps.setDouble(parameterIndex++, modelMaxResponseTime);
-					} else {
-						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-					}
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, id);
+				ps.setString(parameterIndex++, boundUserName);
+				ps.setString(parameterIndex++, boundName);
+				ps.setString(parameterIndex++, boundEmail.toLowerCase());
+				ps.setString(parameterIndex++, boundHashedPassword);
+				ps.setString(parameterIndex++, boundSalt);
+				ps.setString(parameterIndex++, boundType);
+				ps.setString(parameterIndex++, boundPhone);
+				ps.setString(parameterIndex++, boundPhoneextension);
+				ps.setString(parameterIndex++, boundCountrycode);
+				ps.setBoolean(parameterIndex++, admin);
+				ps.setBoolean(parameterIndex++, publisher);
+				ps.setBoolean(parameterIndex++, exporter);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(modelUsageRestriction));
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(modelUsageFrequency));
+				if (modelMaxTokens != null && modelMaxTokens > 0) {
+					ps.setInt(parameterIndex++, modelMaxTokens);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 				}
-				return null;
+				if (modelMaxResponseTime != null && modelMaxResponseTime > 0) {
+					ps.setDouble(parameterIndex++, modelMaxResponseTime);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+				ps.setTimestamp(parameterIndex++, timestamp);
 			});
 		} catch (RuntimeException e) {
 			throw e;

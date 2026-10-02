@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -319,20 +318,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				+ " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					for (Pair<String, String> cred : creds) {
-						int index = 1;
-						ps.setInt(index++, vote);
-						ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-						ps.setString(index++, cred.getValue0());
-						ps.setString(index++, cred.getValue1());
-						ps.setString(index++, catalogId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
+				int index = 1;
+				ps.setInt(index++, vote);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(index++, cred.getValue0());
+				ps.setString(index++, cred.getValue1());
+				ps.setString(index++, catalogId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update votes for catalog {}", catalogId, e);
@@ -351,18 +343,11 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					for (Pair<String, String> cred : creds) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, cred.getValue0());
-						ps.setString(parameterIndex++, cred.getValue1());
-						ps.setString(parameterIndex++, catalogId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, cred.getValue0());
+				ps.setString(parameterIndex++, cred.getValue1());
+				ps.setString(parameterIndex++, catalogId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete votes for catalog {}", catalogId, e);
@@ -381,20 +366,13 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 				+ " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					for (Pair<String, String> cred : creds) {
-						int index = 1;
-						ps.setString(index++, cred.getValue0());
-						ps.setString(index++, cred.getValue1());
-						ps.setString(index++, cid);
-						ps.setInt(index++, vote);
-						ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-						ps.addBatch();
-					}
-					ps.executeBatch();
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
+				int index = 1;
+				ps.setString(index++, cred.getValue0());
+				ps.setString(index++, cred.getValue1());
+				ps.setString(index++, cid);
+				ps.setInt(index++, vote);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert votes for catalog {}", cid, e);

@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
@@ -145,20 +144,16 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 		String uniqueToken = UUID.randomUUID().toString();
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						securityDb.getQueryUtil().createInsertPreparedStatementString("PASSWORD_RESET",
-								new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" }))) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, email);
-					ps.setString(parameterIndex++, type);
-					ps.setString(parameterIndex++, uniqueToken);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					securityDb.getQueryUtil().createInsertPreparedStatementString("PASSWORD_RESET",
+							new String[] { "EMAIL", "TYPE", "TOKEN", "DATE_ADDED" }),
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, email);
+						ps.setString(parameterIndex++, type);
+						ps.setString(parameterIndex++, uniqueToken);
+						ps.setTimestamp(parameterIndex++, timestamp);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -241,14 +236,9 @@ public class SecurityPasswordResetUtils extends AbstractSecurityUtils {
 	public static boolean deleteToken(String token) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement("DELETE FROM PASSWORD_RESET WHERE TOKEN=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, token);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM PASSWORD_RESET WHERE TOKEN=?", ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, token);
 			});
 		} catch (RuntimeException e) {
 			throw e;

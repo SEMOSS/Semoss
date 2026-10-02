@@ -248,35 +248,30 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				+ "VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, engineId);
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineName);
-					ps.setString(parameterIndex++, engineType.toString());
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineSubType);
-					securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineCost);
-					ps.setBoolean(parameterIndex++, global);
-					ps.setBoolean(parameterIndex++, false);
-					if (user != null) {
-						AuthProvider ap = user.getPrimaryLogin();
-						AccessToken token = user.getAccessToken(ap);
-						ps.setString(parameterIndex++, token.getId());
-						ps.setString(parameterIndex++, ap.toString());
-					} else {
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-						ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-					}
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					if (engineDisplayName == null || engineDisplayName.trim().isEmpty()) {
-						ps.setString(parameterIndex++, engineName);
-					} else {
-						ps.setString(parameterIndex++, engineDisplayName);
-					}
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineId);
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineName);
+				ps.setString(parameterIndex++, engineType.toString());
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineSubType);
+				securityDb.getQueryUtil().setNullableString(ps, parameterIndex++, engineCost);
+				ps.setBoolean(parameterIndex++, global);
+				ps.setBoolean(parameterIndex++, false);
+				if (user != null) {
+					AuthProvider ap = user.getPrimaryLogin();
+					AccessToken token = user.getAccessToken(ap);
+					ps.setString(parameterIndex++, token.getId());
+					ps.setString(parameterIndex++, ap.toString());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+					ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
 				}
-				return null;
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+				if (engineDisplayName == null || engineDisplayName.trim().isEmpty()) {
+					ps.setString(parameterIndex++, engineName);
+				} else {
+					ps.setString(parameterIndex++, engineDisplayName);
+				}
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -291,16 +286,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String query = "UPDATE ENGINE SET ENGINETYPE=?, ENGINESUBTYPE=? WHERE ENGINEID=?";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, engineType.toString());
-					ps.setString(parameterIndex++, engineSubType);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, engineType.toString());
+				ps.setString(parameterIndex++, engineSubType);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -320,18 +310,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
-					ps.setString(parameterIndex++, engineId);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
+				ps.setString(parameterIndex++, engineId);
+				ps.setBoolean(parameterIndex++, true);
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -423,17 +408,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newDisplayName);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINEDISPLAYNAME=? WHERE ENGINEID=?",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newDisplayName);
+						ps.setString(parameterIndex++, engineId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine display name", e);
 			throw new IllegalArgumentException("An error occurred updating the engine display name");
@@ -1041,37 +1021,33 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, engineId);
-					ps.setBoolean(parameterIndex++, true);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageRestriction));
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageFrequency));
-					if (maxTokens == 0) {
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-					} else {
-						ps.setInt(parameterIndex++, maxTokens);
-					}
-					if (maxResponseTime == 0.0) {
-						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-					} else {
-						ps.setDouble(parameterIndex++, maxResponseTime);
-					}
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, VISIBILITY, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, newUserId);
+						ps.setString(parameterIndex++, engineId);
+						ps.setBoolean(parameterIndex++, true);
+						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+								StringUtils.trim(usageRestriction));
+						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+								StringUtils.trim(usageFrequency));
+						if (maxTokens == 0) {
+							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+						} else {
+							ps.setInt(parameterIndex++, maxTokens);
+						}
+						if (maxResponseTime == 0.0) {
+							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+						} else {
+							ps.setDouble(parameterIndex++, maxResponseTime);
+						}
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to add engine user", e);
 			throw new IllegalArgumentException(
@@ -1442,14 +1418,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		for (String deleteQuery : deletes) {
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-						ps.setString(1, engineId);
-						ps.execute();
-
-					}
-					return null;
-				});
+				QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> ps.setString(1, engineId));
 			} catch (RuntimeException e) {
 				throw e;
 			} catch (Exception e) {
@@ -1496,15 +1465,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1555,18 +1519,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		// first do a delete
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
-						ps.setString(parameterIndex++, engineId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine users", e);
@@ -1577,15 +1533,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String deleteQuery = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1613,14 +1564,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String updateQ = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					ps.setBoolean(1, global);
-					ps.setString(2, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				ps.setBoolean(1, global);
+				ps.setString(2, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
@@ -1638,15 +1584,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		{
 			String update1 = "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?";
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(update1)) {
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, true);
-						ps.setString(parameterIndex++, engineId);
-						ps.execute();
-
-					}
-					return null;
+				QueryExecutionUtility.executeUpdate(securityDb, update1, ps -> {
+					int parameterIndex = 1;
+					ps.setBoolean(parameterIndex++, true);
+					ps.setString(parameterIndex++, engineId);
 				});
 			} catch (RuntimeException e) {
 				throw e;
@@ -1675,14 +1616,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 		String updateQ = "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					ps.setBoolean(1, discoverable);
-					ps.setString(2, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				ps.setBoolean(1, discoverable);
+				ps.setString(2, engineId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1883,18 +1819,12 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ENGINE SET ENGINENAME=? WHERE ENGINEID=?")) {
-					int parameterIndex = 1;
-					// SET
-					ps.setString(parameterIndex++, newEngineName);
-					// WHERE
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET ENGINENAME=? WHERE ENGINEID=?", ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setString(parameterIndex++, newEngineName);
+				// WHERE
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine name", e);
@@ -1938,22 +1868,17 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String deleteQ = "DELETE FROM ENGINEMETA WHERE METAKEY=? AND ENGINEID=?";
 
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-					for (String field : metadata.keySet()) {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, field);
-						deletePs.setString(parameterIndex++, engineId);
-						deletePs.addBatch();
-					}
-					deletePs.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
+					int parameterIndex = 1;
+					deletePs.setString(parameterIndex++, field);
+					deletePs.setString(parameterIndex++, engineId);
+				});
 
 				// now we do the new insert with the order of the tags
 				String query = securityDb.getQueryUtil().createInsertPreparedStatementString("ENGINEMETA",
 						new String[] { "ENGINEID", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String field : metadata.keySet()) {
 						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
@@ -1976,9 +1901,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -3299,9 +3222,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.write(securityDb, connection -> {
 				// first truncate table clean
 				String truncateSql = "DELETE FROM " + tableName + " WHERE 1=1";
-				try (PreparedStatement deletePs = connection.prepareStatement(truncateSql)) {
-					deletePs.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(connection, truncateSql, deletePs -> {
+				});
 				try (PreparedStatement insertPs = connection.prepareStatement(securityDb.getQueryUtil()
 						.createInsertPreparedStatementString(tableName, new String[] { Constants.METAKEY,
 								Constants.SINGLE_MULTI, Constants.DISPLAY_ORDER, Constants.DISPLAY_OPTIONS }))) {
@@ -3468,12 +3390,10 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				String query = "UPDATE ENGINE SET TOOL_APP = ? WHERE ENGINEID = ?";
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
 					ps.setString(1, projectId);
 					ps.setString(2, engineId);
-					ps.executeUpdate();
-
-				}
+				});
 				return null;
 			});
 		} catch (RuntimeException e) {

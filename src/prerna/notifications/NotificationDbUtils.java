@@ -215,32 +215,27 @@ public class NotificationDbUtils {
 				continue;
 			}
 			try {
-				QueryExecutionUtility.write(notificationDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(query)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
-						ps.setString(parameterIndex++, type);
-						ps.setString(parameterIndex++, scopeType);
-						ps.setString(parameterIndex++, scopeId);
-						ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
-						ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
-						ps.setString(parameterIndex++,
-								recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
-						ps.setString(parameterIndex++, "NOTIFICATION");
-						ps.setString(parameterIndex++, null);
-						ps.setString(parameterIndex++, normalizePriority(priority));
-						ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
-						ps.setString(parameterIndex++, sourceType);
-						ps.setString(parameterIndex++, catalogId);
-						ps.setString(parameterIndex++, targetType);
-						ps.setString(parameterIndex++, catalogId);
-						ps.setString(parameterIndex++, metadataJson);
-						ps.setString(parameterIndex++, createdBy);
-						ps.setTimestamp(parameterIndex++, createdAt);
-
-						ps.execute();
-					}
-					return null;
+				QueryExecutionUtility.executeUpdate(notificationDb, query, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, GUID.v7().toUUID().toString());
+					ps.setString(parameterIndex++, type);
+					ps.setString(parameterIndex++, scopeType);
+					ps.setString(parameterIndex++, scopeId);
+					ps.setString(parameterIndex++, NotificationConstants.Audience.USER);
+					ps.setString(parameterIndex++, String.valueOf(recipient.get("userId")));
+					ps.setString(parameterIndex++,
+							recipient.get("userType") == null ? null : String.valueOf(recipient.get("userType")));
+					ps.setString(parameterIndex++, "NOTIFICATION");
+					ps.setString(parameterIndex++, null);
+					ps.setString(parameterIndex++, normalizePriority(priority));
+					ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+					ps.setString(parameterIndex++, sourceType);
+					ps.setString(parameterIndex++, catalogId);
+					ps.setString(parameterIndex++, targetType);
+					ps.setString(parameterIndex++, catalogId);
+					ps.setString(parameterIndex++, metadataJson);
+					ps.setString(parameterIndex++, createdBy);
+					ps.setTimestamp(parameterIndex++, createdAt);
 				});
 			} catch (RuntimeException e) {
 				throw e;
@@ -280,15 +275,9 @@ public class NotificationDbUtils {
 	private static boolean notificationExists(String notificationId) {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		try {
-			return QueryExecutionUtility.read(notificationDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("SELECT 1 FROM NOTIFICATION_EVENT WHERE NOTIFICATION_ID = ?")) {
-					ps.setString(1, notificationId);
-					try (ResultSet rs = ps.executeQuery()) {
-						return rs.next();
-					}
-				}
-			});
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(notificationDb,
+					"SELECT 1 FROM NOTIFICATION_EVENT WHERE NOTIFICATION_ID = ?", ps -> ps.setString(1, notificationId),
+					rs -> true));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -303,32 +292,28 @@ public class NotificationDbUtils {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String query = "INSERT INTO NOTIFICATION_EVENT (NOTIFICATION_ID,TYPE,SCOPE_TYPE,SCOPE_ID,AUDIENCE_TYPE,AUDIENCE_ID,AUDIENCE_USER_TYPE,TITLE,MESSAGE,PRIORITY,DISPLAY_SURFACE,SOURCE_TYPE,SOURCE_ID,TARGET_TYPE,TARGET_ID,METADATA_JSON,CREATED_BY,CREATED_AT) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 		try {
-			return QueryExecutionUtility.write(notificationDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, notificationId);
-					ps.setString(parameterIndex++, type);
-					ps.setString(parameterIndex++, scopeType);
-					ps.setString(parameterIndex++, scopeId);
-					ps.setString(parameterIndex++, audienceType);
-					ps.setString(parameterIndex++, audienceId);
-					ps.setString(parameterIndex++, audienceUserType);
-					ps.setString(parameterIndex++, title);
-					ps.setString(parameterIndex++, message);
-					ps.setString(parameterIndex++, priority);
-					ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
-					ps.setString(parameterIndex++, sourceType);
-					ps.setString(parameterIndex++, sourceId);
-					ps.setString(parameterIndex++, targetType);
-					ps.setString(parameterIndex++, targetId);
-					ps.setString(parameterIndex++, metadataJson);
-					ps.setString(parameterIndex++, createdBy);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.execute();
-
-					return notificationId;
-				}
+			QueryExecutionUtility.executeUpdate(notificationDb, query, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, notificationId);
+				ps.setString(parameterIndex++, type);
+				ps.setString(parameterIndex++, scopeType);
+				ps.setString(parameterIndex++, scopeId);
+				ps.setString(parameterIndex++, audienceType);
+				ps.setString(parameterIndex++, audienceId);
+				ps.setString(parameterIndex++, audienceUserType);
+				ps.setString(parameterIndex++, title);
+				ps.setString(parameterIndex++, message);
+				ps.setString(parameterIndex++, priority);
+				ps.setString(parameterIndex++, normalizeDisplaySurface(displaySurface));
+				ps.setString(parameterIndex++, sourceType);
+				ps.setString(parameterIndex++, sourceId);
+				ps.setString(parameterIndex++, targetType);
+				ps.setString(parameterIndex++, targetId);
+				ps.setString(parameterIndex++, metadataJson);
+				ps.setString(parameterIndex++, createdBy);
+				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
+			return notificationId;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -550,17 +535,9 @@ public class NotificationDbUtils {
 				+ readCondition + ")";
 
 		try {
-			return QueryExecutionUtility.read(notificationDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					setParameters(ps, parameters);
-					try (ResultSet rs = ps.executeQuery()) {
-						if (rs.next()) {
-							return rs.getInt(1);
-						}
-					}
-				}
-				return 0;
-			});
+			return java.util.Objects.requireNonNullElse(QueryExecutionUtility.queryOne(notificationDb, query, ps -> {
+				setParameters(ps, parameters);
+			}, rs -> rs.getInt(1)), 0);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -573,17 +550,9 @@ public class NotificationDbUtils {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		List<Map<String, Object>> rows = new ArrayList<>();
 		try {
-			QueryExecutionUtility.read(notificationDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					setParameters(ps, parameters);
-					try (ResultSet rs = ps.executeQuery()) {
-						while (rs.next()) {
-							rows.add(mapNotificationRow(rs));
-						}
-					}
-				}
-				return null;
-			});
+			QueryExecutionUtility.queryList(notificationDb, query, ps -> {
+				setParameters(ps, parameters);
+			}, rs -> mapNotificationRow(rs), rows);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -710,17 +679,9 @@ public class NotificationDbUtils {
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		String notificationQuery = query;
 		try {
-			QueryExecutionUtility.read(notificationDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(notificationQuery)) {
-					setParameters(ps, parameters);
-					try (ResultSet rs = ps.executeQuery()) {
-						while (rs.next()) {
-							ids.add(rs.getString(1));
-						}
-					}
-				}
-				return null;
-			});
+			QueryExecutionUtility.queryList(notificationDb, notificationQuery, ps -> {
+				setParameters(ps, parameters);
+			}, rs -> rs.getString(1), ids);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -751,14 +712,9 @@ public class NotificationDbUtils {
 				+ dismissedCondition + ")";
 		IRDBMSEngine notificationDb = SystemEngineRegistry.getNotificationDb();
 		try {
-			return QueryExecutionUtility.read(notificationDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					setParameters(ps, parameters);
-					try (ResultSet rs = ps.executeQuery()) {
-						return rs.next();
-					}
-				}
-			});
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(notificationDb, query, ps -> {
+				setParameters(ps, parameters);
+			}, rs -> true));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -799,17 +755,17 @@ public class NotificationDbUtils {
 					setParameters(updatePs, parameters);
 					int updated = updatePs.executeUpdate();
 					if (updated == 0) {
-						try (PreparedStatement insertPs = connection.prepareStatement(
-								"INSERT INTO NOTIFICATION_USER_STATE (NOTIFICATION_ID,USER_ID,USER_TYPE,IS_READ,READ_AT,IS_DISMISSED,DISMISSED_AT) VALUES (?,?,?,?,?,?,?)")) {
-							insertPs.setString(1, notificationId);
-							insertPs.setString(2, userPair.getValue0());
-							insertPs.setString(3, userPair.getValue1());
-							insertPs.setBoolean(4, isRead != null && isRead.booleanValue());
-							insertPs.setTimestamp(5, readAt);
-							insertPs.setBoolean(6, isDismissed != null && isDismissed.booleanValue());
-							insertPs.setTimestamp(7, dismissedAt);
-							insertPs.executeUpdate();
-						}
+						QueryExecutionUtility.executeUpdate(connection,
+								"INSERT INTO NOTIFICATION_USER_STATE (NOTIFICATION_ID,USER_ID,USER_TYPE,IS_READ,READ_AT,IS_DISMISSED,DISMISSED_AT) VALUES (?,?,?,?,?,?,?)",
+								insertPs -> {
+									insertPs.setString(1, notificationId);
+									insertPs.setString(2, userPair.getValue0());
+									insertPs.setString(3, userPair.getValue1());
+									insertPs.setBoolean(4, isRead != null && isRead.booleanValue());
+									insertPs.setTimestamp(5, readAt);
+									insertPs.setBoolean(6, isDismissed != null && isDismissed.booleanValue());
+									insertPs.setTimestamp(7, dismissedAt);
+								});
 					}
 					return 1;
 				}

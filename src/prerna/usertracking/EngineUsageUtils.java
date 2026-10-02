@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -140,17 +139,12 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		String query = "INSERT INTO " + EU_TN + " VALUES (?, ?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, engineId);
-					ps.setString(index++, insightId);
-					ps.setString(index++, projectId);
-					ps.setDate(index++, java.sql.Date.valueOf(date));
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert engine usage row for engine {} (insight {}, project {})", engineId,
@@ -171,18 +165,13 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		String query = "UPDATE " + EU_TN + " SET DATE = ? WHERE ENGINEID = ? AND INSIGHTID = ? " + "AND PROJECTID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
 
-					ps.setDate(index++, java.sql.Date.valueOf(date));
-					ps.setString(index++, engineId);
-					ps.setString(index++, insightId);
-					ps.setString(index++, projectId);
-
-					ps.execute();
-				}
-				return null;
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine usage row for engine {} (insight {}, project {})", engineId,
@@ -201,15 +190,11 @@ public class EngineUsageUtils extends UserTrackingUtils {
 		String query = "DELETE FROM " + EU_TN + " where ENGINEID = ? AND INSIGHTID = ? AND PROJECTID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, engineId);
-					ps.setString(index++, insightId);
-					ps.setString(index++, projectId);
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setString(index++, insightId);
+				ps.setString(index++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine usage row for engine {} (insight {}, project {})", engineId,

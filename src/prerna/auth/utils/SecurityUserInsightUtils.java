@@ -501,15 +501,10 @@ class SecurityUserInsightUtils extends AbstractSecurityUtils {
 
 		for (String dQuery : deleteQueries) {
 			try {
-				QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(dQuery)) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, insightId);
-						ps.setString(parameterIndex++, projectId);
-						ps.execute();
-
-					}
-					return null;
+				QueryExecutionUtility.executeUpdate(securityDb, dQuery, ps -> {
+					int parameterIndex = 1;
+					ps.setString(parameterIndex++, insightId);
+					ps.setString(parameterIndex++, projectId);
 				});
 			} catch (RuntimeException e) {
 				throw e;

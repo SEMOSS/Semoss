@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;
@@ -439,23 +438,19 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -545,23 +540,19 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=?")) {
-					int parameterIndex = 1;
-					ps.setInt(parameterIndex++, newPermissionLvl);
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND TYPE=? AND PROJECTID=?",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setInt(parameterIndex++, newPermissionLvl);
+						ps.setTimestamp(parameterIndex++, startDate);
+						ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -607,18 +598,13 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -649,18 +635,13 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=? AND PROJECTID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

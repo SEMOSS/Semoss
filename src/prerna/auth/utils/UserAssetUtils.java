@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -143,18 +142,13 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, token.getProvider().name());
-					ps.setString(parameterIndex++, token.getId());
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, token.getProvider().name());
+						ps.setString(parameterIndex++, token.getId());
+						ps.setString(parameterIndex++, projectId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
