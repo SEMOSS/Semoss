@@ -28,6 +28,9 @@ SBOM/vulnerability artifacts. A concurrent, isolated BC/ACCP comparison must
 pass before publication, including native administrator login and real SEMOSS
 registration/query checks against disposable TLS PostgreSQL and MariaDB servers.
 Existing `IL4-dev` deployments are unchanged.
+See [HTTPS certificate provisioning](docker/il4/TLS.md) for unique opt-in
+development certificates and organization-issued chain replacement, and
+[AWS GovCloud RDS trust](docker/il4/RDS.md) for strict database TLS configuration.
 This candidate is **NONVALIDATED**: PBKDF2/PKCS12 use SunJCE fallback and exact
 module certificate coverage remains unresolved. Startup requires explicit
 development acknowledgment. It does not establish FIPS compliance or IL4
