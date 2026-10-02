@@ -93,7 +93,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -373,53 +372,44 @@ public final class AutomationDatabaseUtility {
 		Timestamp threshold = toTimestamp(Instant.now().minusSeconds(STALE_HEARTBEAT_THRESHOLD_MINUTES * 60L));
 		Timestamp now = toTimestamp(Instant.now());
 
-		Connection conn = null;
-		boolean originalAutoCommit = false;
 		try {
-			conn = schedulerDb.getConnection();
-			originalAutoCommit = conn.getAutoCommit();
-			if (originalAutoCommit) {
-				conn.setAutoCommit(false);
-			}
-			for (Map<String, Object> row : results) {
-				String runId = (String) row.get(RUN_ID);
-				String currentStatus = (String) row.get(STATUS);
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				for (Map<String, Object> row : results) {
+					String runId = (String) row.get(RUN_ID);
+					String currentStatus = (String) row.get(STATUS);
 
-				// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
-				// heartbeat is still alive (e.g. executing on another node in a cluster), so
-				// interrupting it would clobber active work. A missing/unparseable heartbeat
-				// is treated as stale (a crashed run that never checkpointed).
-				Timestamp lastHeartbeat = toTimestampSafe(row.get(LAST_HEARTBEAT));
-				if (lastHeartbeat != null && lastHeartbeat.after(threshold)) {
-					classLogger.debug("Skipping automation run {} - heartbeat {} is newer than stale threshold {}",
-							runId, lastHeartbeat, threshold);
-					continue;
-				}
+					// Only interrupt runs whose heartbeat is actually stale. A run with a fresh
+					// heartbeat is still alive (e.g. executing on another node in a cluster), so
+					// interrupting it would clobber active work. A missing/unparseable heartbeat
+					// is treated as stale (a crashed run that never checkpointed).
+					Timestamp lastHeartbeat = toTimestampSafe(row.get(LAST_HEARTBEAT));
+					if (lastHeartbeat != null && lastHeartbeat.after(threshold)) {
+						classLogger.debug("Skipping automation run {} - heartbeat {} is newer than stale threshold {}",
+								runId, lastHeartbeat, threshold);
+						continue;
+					}
 
-				try (PreparedStatement ps = conn.prepareStatement(MARK_STALE_INTERRUPTED)) {
-					int index = 1;
-					ps.setString(index++, STATUS_INTERRUPTED);
-					ps.setTimestamp(index++, now);
-					ps.setString(index++, "Server restarted before or during execution");
-					ps.setString(index++, runId);
-					ps.setString(index++, currentStatus);
-					ps.setTimestamp(index++, threshold);
-					int updated = ps.executeUpdate();
-					if (updated > 0) {
-						classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
-					} else {
-						classLogger.debug("Automation run {} changed while stale recovery was in progress; "
-								+ "leaving its status unchanged", runId);
+					try (PreparedStatement ps = conn.prepareStatement(MARK_STALE_INTERRUPTED)) {
+						int index = 1;
+						ps.setString(index++, STATUS_INTERRUPTED);
+						ps.setTimestamp(index++, now);
+						ps.setString(index++, "Server restarted before or during execution");
+						ps.setString(index++, runId);
+						ps.setString(index++, currentStatus);
+						ps.setTimestamp(index++, threshold);
+						int updated = ps.executeUpdate();
+						if (updated > 0) {
+							classLogger.info("Marked stale automation run {} as INTERRUPTED", runId);
+						} else {
+							classLogger.debug("Automation run {} changed while stale recovery was in progress; "
+									+ "leaving its status unchanged", runId);
+						}
 					}
 				}
-			}
-			conn.commit();
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to mark stale automation runs", e);
-		} finally {
-			restoreAutoCommit(conn, originalAutoCommit);
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -440,31 +430,22 @@ public final class AutomationDatabaseUtility {
 			Map<String, String> nodeSources) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("initializing automation run history");
 
-		Connection conn = null;
-		boolean originalAutoCommit = false;
 		try {
-			conn = schedulerDb.getConnection();
-			originalAutoCommit = conn.getAutoCommit();
-			if (originalAutoCommit) {
-				conn.setAutoCommit(false);
-			}
-			Timestamp now = toTimestamp(Instant.now());
-			String inputSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(inputs != null ? inputs : Map.of(),
-					AutomationConstants.RUN_INPUTS_MAX_BYTES, "Automation run inputs");
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				Timestamp now = toTimestamp(Instant.now());
+				String inputSnapshot = AutomationRuntimeUtils.toBoundedRuntimeJson(inputs != null ? inputs : Map.of(),
+						AutomationConstants.RUN_INPUTS_MAX_BYTES, "Automation run inputs");
 
-			insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId, definitionVersion,
-					definitionHash, definitionSnapshot, inputSnapshot, triggerType, orderedNodes.size(), createdBy,
-					now);
-			insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
-			insertAllNodeOutputs(conn, runId, orderedNodes, traceRoomIds);
-			conn.commit();
+				insertRun(conn, schedulerDb.getQueryUtil(), runId, projectId, automationId, definitionVersion,
+						definitionHash, definitionSnapshot, inputSnapshot, triggerType, orderedNodes.size(), createdBy,
+						now);
+				insertAllRunNodeSources(conn, schedulerDb.getQueryUtil(), runId, nodeSources);
+				insertAllNodeOutputs(conn, schedulerDb.getQueryUtil(), runId, orderedNodes, traceRoomIds);
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to initialize automation run '{}' for project '{}'", runId, projectId, e);
 			throw new IllegalStateException("Unable to initialize automation run history.", e);
-		} finally {
-			restoreAutoCommit(conn, originalAutoCommit);
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -479,28 +460,22 @@ public final class AutomationDatabaseUtility {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("claiming the submitted automation run");
 		Timestamp now = toTimestamp(Instant.now());
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN)) {
-				int index = 1;
-				ps.setString(index++, STATUS_RUNNING);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index++, now);
-				ps.setString(index++, runId);
-				ps.setString(index++, STATUS_SUBMITTED);
-				boolean claimed = ps.executeUpdate() == 1;
-				if (!conn.getAutoCommit()) {
-					conn.commit();
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN)) {
+					int index = 1;
+					ps.setString(index++, STATUS_RUNNING);
+					ps.setTimestamp(index++, now);
+					ps.setTimestamp(index++, now);
+					ps.setString(index++, runId);
+					ps.setString(index++, STATUS_SUBMITTED);
+					boolean claimed = ps.executeUpdate() == 1;
+					return claimed;
 				}
-				return claimed;
-			}
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to claim submitted automation run '{}'", runId, e);
 			throw new IllegalStateException("Unable to claim the submitted automation run.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -531,60 +506,49 @@ public final class AutomationDatabaseUtility {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation agent wait");
 		String waitId = UUID.randomUUID().toString();
 		Timestamp now = toTimestamp(Instant.now());
-		Connection conn = null;
-		boolean originalAutoCommit = false;
 		try {
-			conn = schedulerDb.getConnection();
-			originalAutoCommit = conn.getAutoCommit();
-			if (originalAutoCommit) {
-				conn.setAutoCommit(false);
-			}
-			try (PreparedStatement ps = conn.prepareStatement(MARK_NODE_WAITING)) {
-				int index = 1;
-				ps.setString(index++, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT);
-				ps.setLong(index++, durationMs);
-				setNullableString(ps, index++, outputVar);
-				schedulerDb.getQueryUtil().handleInsertionOfClob(conn, ps, outputValue, index++,
-						AutomationRuntimeUtils.GSON);
-				setNullableString(ps, index++, outputPreview);
-				ps.setString(index++, agentRunId);
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				ps.setString(index++, NODE_STATUS_RUNNING);
-				requireSingleRow(ps.executeUpdate(), "mark the agent node waiting", runId, nodeId);
-			}
-			try (PreparedStatement ps = conn.prepareStatement(MARK_RUN_WAITING)) {
-				ps.setString(1, AutomationConstants.STATUS_WAITING_FOR_INPUT);
-				ps.setTimestamp(2, now);
-				ps.setString(3, runId);
-				ps.setString(4, projectId);
-				ps.setString(5, STATUS_RUNNING);
-				requireSingleRow(ps.executeUpdate(), "mark the automation run waiting", runId, nodeId);
-			}
-			try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_WAIT)) {
-				int index = 1;
-				ps.setString(index++, waitId);
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				ps.setString(index++, AutomationConstants.WAIT_TYPE_AGENT_ACTION);
-				ps.setString(index++, agentRunId);
-				ps.setString(index++, roomId);
-				setNullableString(ps, index++, resumeNodeId);
-				ps.setString(index++, AutomationConstants.WAIT_STATUS_PENDING);
-				setNullableString(ps, index++, createdBy);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index, toTimestamp(expiresAt));
-				ps.executeUpdate();
-			}
-			conn.commit();
-			return waitId;
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(MARK_NODE_WAITING)) {
+					int index = 1;
+					ps.setString(index++, AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT);
+					ps.setLong(index++, durationMs);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, outputVar);
+					schedulerDb.getQueryUtil().setNullableLargeText(ps, index++, outputValue);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, outputPreview);
+					ps.setString(index++, agentRunId);
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					ps.setString(index++, NODE_STATUS_RUNNING);
+					requireSingleRow(ps.executeUpdate(), "mark the agent node waiting", runId, nodeId);
+				}
+				try (PreparedStatement ps = conn.prepareStatement(MARK_RUN_WAITING)) {
+					ps.setString(1, AutomationConstants.STATUS_WAITING_FOR_INPUT);
+					ps.setTimestamp(2, now);
+					ps.setString(3, runId);
+					ps.setString(4, projectId);
+					ps.setString(5, STATUS_RUNNING);
+					requireSingleRow(ps.executeUpdate(), "mark the automation run waiting", runId, nodeId);
+				}
+				QueryExecutionUtility.executeUpdate(conn, INSERT_RUN_WAIT, ps -> {
+					int index = 1;
+					ps.setString(index++, waitId);
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					ps.setString(index++, AutomationConstants.WAIT_TYPE_AGENT_ACTION);
+					ps.setString(index++, agentRunId);
+					ps.setString(index++, roomId);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, resumeNodeId);
+					ps.setString(index++, AutomationConstants.WAIT_STATUS_PENDING);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, createdBy);
+					ps.setTimestamp(index++, now);
+					ps.setTimestamp(index, toTimestamp(expiresAt));
+				});
+
+				return waitId;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to persist agent wait for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the automation agent wait.", e);
-		} finally {
-			restoreAutoCommit(conn, originalAutoCommit);
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -634,43 +598,33 @@ public final class AutomationDatabaseUtility {
 			return null;
 		}
 		IRDBMSEngine schedulerDb = requireSchedulerDb("claiming the waiting automation run");
-		Connection conn = null;
-		boolean originalAutoCommit = false;
 		try {
-			conn = schedulerDb.getConnection();
-			originalAutoCommit = conn.getAutoCommit();
-			if (originalAutoCommit) {
-				conn.setAutoCommit(false);
-			}
-			try (PreparedStatement ps = conn.prepareStatement(CLAIM_WAITING_RUN)) {
-				ps.setString(1, STATUS_RUNNING);
-				ps.setTimestamp(2, toTimestamp(Instant.now()));
-				ps.setString(3, runId);
-				ps.setString(4, projectId);
-				ps.setString(5, AutomationConstants.STATUS_WAITING_FOR_INPUT);
-				if (ps.executeUpdate() != 1) {
-					conn.rollback();
-					return null;
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(CLAIM_WAITING_RUN)) {
+					ps.setString(1, STATUS_RUNNING);
+					ps.setTimestamp(2, toTimestamp(Instant.now()));
+					ps.setString(3, runId);
+					ps.setString(4, projectId);
+					ps.setString(5, AutomationConstants.STATUS_WAITING_FOR_INPUT);
+					if (ps.executeUpdate() != 1) {
+						return null;
+					}
 				}
-			}
-			try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN_WAIT)) {
-				ps.setString(1, AutomationConstants.WAIT_STATUS_RESUMING);
-				ps.setString(2, String.valueOf(wait.get(AutomationConstants.WAIT_ID)));
-				ps.setString(3, runId);
-				ps.setString(4, AutomationConstants.WAIT_STATUS_PENDING);
-				requireSingleRow(ps.executeUpdate(), "claim the automation wait", runId,
-						String.valueOf(wait.get(NODE_ID)));
-			}
-			conn.commit();
-			wait.put(STATUS, AutomationConstants.WAIT_STATUS_RESUMING);
-			return wait;
+				try (PreparedStatement ps = conn.prepareStatement(CLAIM_RUN_WAIT)) {
+					ps.setString(1, AutomationConstants.WAIT_STATUS_RESUMING);
+					ps.setString(2, String.valueOf(wait.get(AutomationConstants.WAIT_ID)));
+					ps.setString(3, runId);
+					ps.setString(4, AutomationConstants.WAIT_STATUS_PENDING);
+					requireSingleRow(ps.executeUpdate(), "claim the automation wait", runId,
+							String.valueOf(wait.get(NODE_ID)));
+				}
+
+				wait.put(STATUS, AutomationConstants.WAIT_STATUS_RESUMING);
+				return wait;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to claim waiting automation run '{}'", runId, e);
 			throw new IllegalStateException("Unable to claim the waiting automation run.", e);
-		} finally {
-			restoreAutoCommit(conn, originalAutoCommit);
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -684,27 +638,22 @@ public final class AutomationDatabaseUtility {
 	 */
 	public static void resolveWait(String runId, String waitId, String resolvedBy) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("resolving the automation wait");
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(RESOLVE_RUN_WAIT)) {
-				ps.setString(1, AutomationConstants.WAIT_STATUS_RESOLVED);
-				ps.setTimestamp(2, toTimestamp(Instant.now()));
-				setNullableString(ps, 3, resolvedBy);
-				ps.setString(4, waitId);
-				ps.setString(5, runId);
-				ps.setString(6, AutomationConstants.WAIT_STATUS_RESUMING);
-				requireSingleRow(ps.executeUpdate(), "resolve the automation wait", runId, null);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(RESOLVE_RUN_WAIT)) {
+					ps.setString(1, AutomationConstants.WAIT_STATUS_RESOLVED);
+					ps.setTimestamp(2, toTimestamp(Instant.now()));
+					schedulerDb.getQueryUtil().setNullableString(ps, 3, resolvedBy);
+					ps.setString(4, waitId);
+					ps.setString(5, runId);
+					ps.setString(6, AutomationConstants.WAIT_STATUS_RESUMING);
+					requireSingleRow(ps.executeUpdate(), "resolve the automation wait", runId, null);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to resolve wait '{}' for run '{}'", waitId, runId, e);
 			throw new IllegalStateException("Unable to resolve the automation wait.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -719,7 +668,7 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, runId);
 				ps.setString(index++, entry.getKey());
 				ps.setString(index++, AutomationDefinitionService.calculateSourceHash(entry.getValue()));
-				queryUtil.handleInsertionOfClob(conn, ps, entry.getValue(), index, AutomationRuntimeUtils.GSON);
+				queryUtil.setNullableLargeText(ps, index, entry.getValue());
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -737,8 +686,8 @@ public final class AutomationDatabaseUtility {
 			ps.setString(index++, automationId);
 			ps.setInt(index++, definitionVersion);
 			ps.setString(index++, definitionHash);
-			queryUtil.handleInsertionOfClob(conn, ps, definitionSnapshot, index++, AutomationRuntimeUtils.GSON);
-			queryUtil.handleInsertionOfClob(conn, ps, inputSnapshot, index++, AutomationRuntimeUtils.GSON);
+			queryUtil.setNullableLargeText(ps, index++, definitionSnapshot);
+			queryUtil.setNullableLargeText(ps, index++, inputSnapshot);
 			ps.setString(index++, STATUS_SUBMITTED);
 			ps.setString(index++, triggerType);
 			ps.setTimestamp(index++, now);
@@ -749,8 +698,8 @@ public final class AutomationDatabaseUtility {
 		}
 	}
 
-	private static void insertAllNodeOutputs(Connection conn, String runId, List<Map<String, Object>> orderedNodes,
-			Map<String, String> traceRoomIds) throws SQLException {
+	private static void insertAllNodeOutputs(Connection conn, AbstractSqlQueryUtil queryUtil, String runId,
+			List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds) throws SQLException {
 		try (PreparedStatement ps = conn.prepareStatement(INSERT_NODE_OUTPUT)) {
 			for (int i = 0; i < orderedNodes.size(); i++) {
 				Map<String, Object> node = orderedNodes.get(i);
@@ -760,8 +709,9 @@ public final class AutomationDatabaseUtility {
 				ps.setString(index++, (String) node.get(NODE_FIELD_LABEL));
 				ps.setInt(index++, i);
 				ps.setString(index++, NODE_STATUS_PENDING);
-				setNullableString(ps, index++, traceRoomIds == null ? null : traceRoomIds.get(node.get(NODE_FIELD_ID)));
-				setNullableString(ps, index++, AutomationRuntime.configuredAgentWorkspaceId(node));
+				queryUtil.setNullableString(ps, index++,
+						traceRoomIds == null ? null : traceRoomIds.get(node.get(NODE_FIELD_ID)));
+				queryUtil.setNullableString(ps, index++, AutomationRuntime.configuredAgentWorkspaceId(node));
 				ps.addBatch();
 			}
 			ps.executeBatch();
@@ -777,23 +727,18 @@ public final class AutomationDatabaseUtility {
 	public static void setCancelRequested(String runId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation cancellation request");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(SET_CANCEL_REQUESTED)) {
-				ps.setBoolean(1, true);
-				ps.setString(2, runId);
-				requireSingleRow(ps.executeUpdate(), "set the cancellation flag", runId, null);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(SET_CANCEL_REQUESTED)) {
+					ps.setBoolean(1, true);
+					ps.setString(2, runId);
+					requireSingleRow(ps.executeUpdate(), "set the cancellation flag", runId, null);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to set cancel-requested flag for run '{}'", runId, e);
 			throw new IllegalStateException("Unable to persist the automation cancellation request.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -833,33 +778,24 @@ public final class AutomationDatabaseUtility {
 			String errorMessage) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("completing the automation run");
 
-		Connection conn = null;
-		boolean originalAutoCommit = false;
 		try {
-			conn = schedulerDb.getConnection();
-			originalAutoCommit = conn.getAutoCommit();
-			if (originalAutoCommit) {
-				conn.setAutoCommit(false);
-			}
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_STATUS)) {
-				int index = 1;
-				ps.setString(index++, status);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				setNullableString(ps, index++, failedNodeId);
-				setNullableString(ps, index++, errorMessage);
-				ps.setString(index++, runId);
-				ps.setString(index++, projectId);
-				ps.setString(index++, STATUS_RUNNING);
-				requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
-			}
-			conn.commit();
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_STATUS)) {
+					int index = 1;
+					ps.setString(index++, status);
+					ps.setTimestamp(index++, toTimestamp(Instant.now()));
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, failedNodeId);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, errorMessage);
+					ps.setString(index++, runId);
+					ps.setString(index++, projectId);
+					ps.setString(index++, STATUS_RUNNING);
+					requireSingleRow(ps.executeUpdate(), "update the terminal run status", runId, null);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to complete run '{}' for project '{}'", runId, projectId, e);
 			throw new IllegalStateException("Unable to persist the completed automation run.", e);
-		} finally {
-			restoreAutoCommit(conn, originalAutoCommit);
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -875,23 +811,17 @@ public final class AutomationDatabaseUtility {
 			return false;
 		}
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_SUMMARY)) {
-				setNullableString(ps, 1, resultSummary);
+			QueryExecutionUtility.executeUpdate(schedulerDb, UPDATE_RUN_SUMMARY, ps -> {
+				schedulerDb.getQueryUtil().setNullableString(ps, 1, resultSummary);
 				ps.setString(2, runId);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			});
 			return true;
-		} catch (SQLException e) {
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to update run summary for '{}'", runId, e);
 			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -905,25 +835,19 @@ public final class AutomationDatabaseUtility {
 			return false;
 		}
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_HEARTBEAT)) {
+			QueryExecutionUtility.executeUpdate(schedulerDb, UPDATE_HEARTBEAT, ps -> {
 				int index = 1;
 				ps.setTimestamp(index++, toTimestamp(Instant.now()));
 				ps.setInt(index++, completedNodes);
 				ps.setString(index++, runId);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			});
 			return true;
-		} catch (SQLException e) {
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to update heartbeat for run '{}'", runId, e);
 			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -937,23 +861,17 @@ public final class AutomationDatabaseUtility {
 			return false;
 		}
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(TOUCH_HEARTBEAT)) {
+			QueryExecutionUtility.executeUpdate(schedulerDb, TOUCH_HEARTBEAT, ps -> {
 				ps.setTimestamp(1, toTimestamp(Instant.now()));
 				ps.setString(2, runId);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			});
 			return true;
-		} catch (SQLException e) {
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to touch heartbeat for run '{}'", runId, e);
 			return false;
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1110,27 +1028,21 @@ public final class AutomationDatabaseUtility {
 	public static void markNodeRunning(String runId, String nodeId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("marking the automation node as running");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_STATUS)) {
-				int index = 1;
-				ps.setString(index++, NODE_STATUS_RUNNING);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				requireSingleRow(ps.executeUpdate(), "mark the node as running", runId, nodeId);
-			}
-
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_STATUS)) {
+					int index = 1;
+					ps.setString(index++, NODE_STATUS_RUNNING);
+					ps.setTimestamp(index++, toTimestamp(Instant.now()));
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					requireSingleRow(ps.executeUpdate(), "mark the node as running", runId, nodeId);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to mark node running for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to mark the automation node as running.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1141,25 +1053,18 @@ public final class AutomationDatabaseUtility {
 	public static void skipPendingNodes(String runId, String reason) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting skipped automation nodes");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUTS)) {
+			QueryExecutionUtility.executeUpdate(schedulerDb, SKIP_PENDING_NODE_OUTPUTS, ps -> {
 				ps.setString(1, NODE_STATUS_SKIPPED);
-				setNullableString(ps, 2, reason);
+				schedulerDb.getQueryUtil().setNullableString(ps, 2, reason);
 				ps.setString(3, runId);
 				ps.setString(4, NODE_STATUS_PENDING);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} catch (SQLException e) {
-			rollback(conn, e);
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to skip pending nodes for run '{}'", runId, e);
 			throw new IllegalStateException("Unable to persist skipped automation nodes.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1170,36 +1075,31 @@ public final class AutomationDatabaseUtility {
 			String outputVar, String outputValue, String outputPreview, String modelMessageId, String agentRunId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
 
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_SUCCESS)) {
-				int index = 1;
-				ps.setString(index++, NODE_STATUS_SUCCESS);
-				ps.setTimestamp(index++, startedAt);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.setLong(index++, durationMs);
-				ps.setString(index++, outputVar);
-				// Handle CLOB for potentially large output values
-				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
-				ps.setString(index++, outputPreview);
-				setNullableString(ps, index++, modelMessageId);
-				setNullableString(ps, index++, agentRunId);
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_SUCCESS)) {
+					int index = 1;
+					ps.setString(index++, NODE_STATUS_SUCCESS);
+					ps.setTimestamp(index++, startedAt);
+					ps.setTimestamp(index++, toTimestamp(Instant.now()));
+					ps.setLong(index++, durationMs);
+					ps.setString(index++, outputVar);
+					// Handle CLOB for potentially large output values
+					queryUtil.setNullableLargeText(ps, index++, outputValue);
+					ps.setString(index++, outputPreview);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, modelMessageId);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, agentRunId);
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					requireSingleRow(ps.executeUpdate(), "persist the successful node result", runId, nodeId);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to update node success for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the successful automation node result.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1211,24 +1111,19 @@ public final class AutomationDatabaseUtility {
 	public static void updateNodeAgentRunTrace(String runId, String nodeId, String agentRunId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the automation agent run trace");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE)) {
-				setNullableString(ps, 1, agentRunId);
-				ps.setString(2, runId);
-				ps.setString(3, nodeId);
-				requireSingleRow(ps.executeUpdate(), "persist the agent run trace", runId, nodeId);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_AGENT_RUN_TRACE)) {
+					schedulerDb.getQueryUtil().setNullableString(ps, 1, agentRunId);
+					ps.setString(2, runId);
+					ps.setString(3, nodeId);
+					requireSingleRow(ps.executeUpdate(), "persist the agent run trace", runId, nodeId);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to persist agent run trace for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the automation agent run trace.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1239,29 +1134,24 @@ public final class AutomationDatabaseUtility {
 			String errorMessage) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the failed automation node result");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED)) {
-				int index = 1;
-				ps.setString(index++, NODE_STATUS_FAILED);
-				ps.setTimestamp(index++, startedAt);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.setLong(index++, durationMs);
-				setNullableString(ps, index++, errorMessage);
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				requireSingleRow(ps.executeUpdate(), "persist the failed node result", runId, nodeId);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED)) {
+					int index = 1;
+					ps.setString(index++, NODE_STATUS_FAILED);
+					ps.setTimestamp(index++, startedAt);
+					ps.setTimestamp(index++, toTimestamp(Instant.now()));
+					ps.setLong(index++, durationMs);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, errorMessage);
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					requireSingleRow(ps.executeUpdate(), "persist the failed node result", runId, nodeId);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to update node failed for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the failed automation node result.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1274,34 +1164,29 @@ public final class AutomationDatabaseUtility {
 			String outputVar, String outputValue, String outputPreview, String agentRunId, String errorMessage) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the failed automation agent result");
 
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
-			try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT)) {
-				int index = 1;
-				ps.setString(index++, NODE_STATUS_FAILED);
-				ps.setTimestamp(index++, startedAt);
-				ps.setTimestamp(index++, toTimestamp(Instant.now()));
-				ps.setLong(index++, durationMs);
-				ps.setString(index++, outputVar);
-				queryUtil.handleInsertionOfClob(conn, ps, outputValue, index++, AutomationRuntimeUtils.GSON);
-				ps.setString(index++, outputPreview);
-				setNullableString(ps, index++, agentRunId);
-				setNullableString(ps, index++, errorMessage);
-				ps.setString(index++, runId);
-				ps.setString(index++, nodeId);
-				requireSingleRow(ps.executeUpdate(), "persist the failed agent node result", runId, nodeId);
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				AbstractSqlQueryUtil queryUtil = schedulerDb.getQueryUtil();
+				try (PreparedStatement ps = conn.prepareStatement(UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT)) {
+					int index = 1;
+					ps.setString(index++, NODE_STATUS_FAILED);
+					ps.setTimestamp(index++, startedAt);
+					ps.setTimestamp(index++, toTimestamp(Instant.now()));
+					ps.setLong(index++, durationMs);
+					ps.setString(index++, outputVar);
+					queryUtil.setNullableLargeText(ps, index++, outputValue);
+					ps.setString(index++, outputPreview);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, agentRunId);
+					schedulerDb.getQueryUtil().setNullableString(ps, index++, errorMessage);
+					ps.setString(index++, runId);
+					ps.setString(index++, nodeId);
+					requireSingleRow(ps.executeUpdate(), "persist the failed agent node result", runId, nodeId);
+				}
+				return null;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			classLogger.error("Failed to update agent node failure for run '{}', node '{}'", runId, nodeId, e);
 			throw new IllegalStateException("Unable to persist the failed automation agent result.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1470,20 +1355,6 @@ public final class AutomationDatabaseUtility {
 		ConnectionUtils.closeAllConnectionsIfPooling(engine, conn);
 	}
 
-	private static void rollback(Connection conn, Exception cause) {
-		if (conn == null) {
-			return;
-		}
-		try {
-			if (!conn.getAutoCommit()) {
-				conn.rollback();
-			}
-		} catch (SQLException rollbackError) {
-			cause.addSuppressed(rollbackError);
-			classLogger.error("Failed to roll back automation database transaction", rollbackError);
-		}
-	}
-
 	private static void requireSingleRow(int updatedRows, String operation, String runId, String nodeId) {
 		if (updatedRows == 1) {
 			return;
@@ -1493,30 +1364,12 @@ public final class AutomationDatabaseUtility {
 				+ ": expected one row but updated " + updatedRows + ".");
 	}
 
-	private static void restoreAutoCommit(Connection conn, boolean originalAutoCommit) {
-		if (conn == null || !originalAutoCommit) {
-			return;
-		}
-		try {
-			conn.setAutoCommit(true);
-		} catch (SQLException e) {
-			classLogger.warn("Failed to restore scheduler database autocommit before closing connection", e);
-		}
-	}
-
 	/**
 	 * Binds a nullable VARCHAR column value, using {@code setNull(Types.VARCHAR)}
 	 * instead of {@code setString(index, null)} when the value is absent - some
 	 * JDBC drivers require an explicit SQL type for a null bind rather than
 	 * inferring it from a null String argument.
 	 */
-	private static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
-		if (value != null) {
-			ps.setString(index, value);
-		} else {
-			ps.setNull(index, Types.VARCHAR);
-		}
-	}
 
 	private static Timestamp toTimestamp(Instant instant) {
 		return Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(instant, ZoneOffset.UTC));
