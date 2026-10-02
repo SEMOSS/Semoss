@@ -101,7 +101,7 @@ RUN java -version && \
       'security.provider.3=SUN' \
       'ssl.KeyManagerFactory.algorithm=PKIX' \
       'ssl.TrustManagerFactory.algorithm=PKIX' \
-      'jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA, DHE, CBC, CHACHA20-POLY1305, TLS_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256' \
+      'jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 2048, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH, SHA1, DSA, DHE, CBC, CHACHA20-POLY1305, TLS_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_256_CBC_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA256, X25519, X448, Ed25519, Ed448' \
       'jdk.certpath.disabledAlgorithms=MD2, MD5, SHA1, RSA keySize < 2048, DSA, EC keySize < 224' \
       'keystore.type=BCFKS' >> /opt/fips/java.security && \
     chmod 0555 /usr/local/bin/semoss-entrypoint && \
