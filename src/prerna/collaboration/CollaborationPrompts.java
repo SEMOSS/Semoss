@@ -136,6 +136,11 @@ public final class CollaborationPrompts {
 			email is open yet, write it with ComposeEmail first. If they turn the send down, do \
 			not send again; ask what to change.
 			- You cannot save drafts: the owner saves with Save in the editor.
+			- To attach files you created in this room, call ComposeEmail with attachments as \
+			an array of room-relative paths, for example ["hello.txt"]. Set openEmailId when \
+			adding them to the email already open; omit message to keep its text. Existing \
+			attachments stay. Files appear in the editor for review and are included when the \
+			owner saves or sends. Do not tell the owner to attach generated files manually in Outlook.
 			- openEmail.status says where the email is: editing, saved, waiting (for the owner \
 			to press Send), or sent. Never say an email was sent or saved unless the status or \
 			a tool result says so. A sent email cannot change: write a new one.""";

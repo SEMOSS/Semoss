@@ -75,8 +75,8 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 	private static final String REPLY_ALL = "replyAll";
 
 	public MicrosoftOutlookReplyMailReactor() {
-		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT, "html", "overrideRecipients", "to", "cc" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT, "html", "overrideRecipients", "to", "cc", "attachments" };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -100,6 +100,7 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 		}
 
 		try {
+			var attachments = draftAttachments(asDraft);
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
@@ -107,6 +108,8 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 					? helper.replyHtmlDraft(accessToken, uid, comment, replyAll, values("to"), values("cc"))
 					: html ? helper.replyHtmlDraft(accessToken, uid, comment, replyAll)
 							: helper.reply(accessToken, null, uid, comment, replyAll, asDraft);
+
+			helper.attachToDraft(accessToken, draft, attachments);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("repliedTo", uid);
@@ -143,6 +146,7 @@ public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMe
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("attachments".equals(key)) return "Optional insight-relative files to add to a saved draft; requires asDraft=true.";
 		if ("overrideRecipients".equals(key)) {
 			return "Replace the native To and Cc lists with the supplied lists, including empty lists. Requires html=true and asDraft=true.";
 		}
