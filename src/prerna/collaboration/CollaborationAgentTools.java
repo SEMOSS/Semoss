@@ -70,6 +70,7 @@ import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
+import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
 
 /**
@@ -103,6 +104,8 @@ public final class CollaborationAgentTools {
 		// the email in the Work editor: written there, sent from it once the owner presses Send
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
+		// one email attachment of this thread, on request, into the room's working directory
+		REACTORS.put("DownloadAttachment", WorkDownloadAttachmentReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);

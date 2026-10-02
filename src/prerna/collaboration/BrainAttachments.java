@@ -32,7 +32,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -64,10 +66,10 @@ public final class BrainAttachments {
 	}
 
 	public static Map<String, Object> stage(User user, String folder, String threadId, String messageId,
-			String attachmentId, String fileName, boolean includeText) {
+			String attachmentId, String attachmentName, String fileName, boolean includeText) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return stage(user, owner.getValue0(), owner.getValue1(), folder, threadId, messageId, attachmentId, fileName,
-				includeText, BrainMessageSource.current(), maxBytes());
+		return stage(user, owner.getValue0(), owner.getValue1(), folder, threadId, messageId, attachmentId,
+				attachmentName, fileName, includeText, BrainMessageSource.current(), maxBytes());
 	}
 
 	/**
@@ -79,6 +81,14 @@ public final class BrainAttachments {
 	static Map<String, Object> stage(User user, String ownerId, String ownerType, String folder, String threadId,
 			String messageId, String attachmentId, String fileName, boolean includeText, BrainMessageSource messages,
 			long maxBytes) {
+		return stage(user, ownerId, ownerType, folder, threadId, messageId, attachmentId, null, fileName, includeText,
+				messages, maxBytes);
+	}
+
+	// the attachment is named by id (the UI) or by its file name (the assistant, which sees names)
+	static Map<String, Object> stage(User user, String ownerId, String ownerType, String folder, String threadId,
+			String messageId, String attachmentId, String attachmentName, String fileName, boolean includeText,
+			BrainMessageSource messages, long maxBytes) {
 		BrainThreadMessages.Readable email = BrainThreadMessages.readable(user, ownerId, ownerType, threadId,
 				messageId, messages);
 		if (email == null) {
@@ -86,6 +96,9 @@ public final class BrainAttachments {
 		}
 		if (!"email".equals(email.source())) {
 			throw new IllegalArgumentException("Only email attachments can be opened for now.");
+		}
+		if (attachmentId == null || attachmentId.isBlank()) {
+			attachmentId = idByName(user, email.source(), messageId, attachmentName, messages);
 		}
 		Map<String, Object> attachment;
 		try {
@@ -169,6 +182,39 @@ public final class BrainAttachments {
 				}
 			}
 		}
+	}
+
+	// the id of the one file attachment on the email with this name; the error lists the names there are
+	private static String idByName(User user, String source, String messageId, String attachmentName,
+			BrainMessageSource messages) {
+		if (attachmentName == null || attachmentName.isBlank()) {
+			throw new IllegalArgumentException("Pass the attachment's name or id.");
+		}
+		List<Map<String, Object>> listed;
+		try {
+			listed = messages.attachments(user, source, List.of(messageId)).getOrDefault(messageId, List.of());
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Could not list the attachments of an email", e);
+			throw new IllegalStateException("Microsoft could not list this email's attachments. Try again.", e);
+		}
+		List<String> names = new ArrayList<>();
+		List<Object> ids = new ArrayList<>();
+		for (Map<String, Object> item : listed) {
+			if ("file".equals(item.get("kind"))) {
+				names.add(String.valueOf(item.get("name")));
+				if (attachmentName.strip().equalsIgnoreCase(String.valueOf(item.get("name")))) {
+					ids.add(item.get("id"));
+				}
+			}
+		}
+		if (ids.size() == 1) {
+			return String.valueOf(ids.get(0));
+		}
+		throw new IllegalArgumentException((ids.isEmpty() ? "This email has no attached file named " + attachmentName
+				: "More than one attached file on this email is named " + attachmentName)
+				+ ". Its attached files: " + (names.isEmpty() ? "none" : String.join(", ", names)) + ".");
 	}
 
 	// a failed text copy still leaves the file itself usable
