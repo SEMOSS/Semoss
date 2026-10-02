@@ -14,7 +14,7 @@ files below, so pick a variant and point `docker compose -f` at it.
 | [semoss-with-postgres-minio-zk.yml](semoss-with-postgres-minio-zk.yml) | Two-node SEMOSS cluster + PostgreSQL + MinIO + Apache ZooKeeper. Nodes sync via `ClusterSynchronizer`. The ZooKeeper counterpart to the Redis example. | ZooKeeper | 2 |
 
 All four use the SEMOSS image
-`quay.io/semoss/semoss-dev:5.4.0-SNAPSHOT-ubuntu22-latest` and the Postgres
+`quay.io/semoss/semoss-dev:6.0.0-SNAPSHOT-ubuntu22-latest` and the Postgres
 credentials `myuser` / `mypassword` (local-dev defaults).
 
 ## Shared support files
@@ -30,9 +30,9 @@ credentials `myuser` / `mypassword` (local-dev defaults).
 ## Supporting engines
 
 The [engines/](engines/) folder has optional standalone services (Weaviate,
-Chroma, OpenSearch, pgvector vector DBs) you can run alongside SEMOSS, plus notes
-on how to make the SEMOSS container connect to them. See
-[engines/README.md](engines/README.md).
+Chroma, OpenSearch, pgvector vector DBs, and a ClickHouse database) you can run
+alongside SEMOSS, plus notes on how to make the SEMOSS container connect to them.
+See [engines/README.md](engines/README.md).
 
 ## Usage
 

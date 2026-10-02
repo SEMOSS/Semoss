@@ -269,6 +269,14 @@ public class ResponseMessage extends AbstractMessage {
 			return this;
 		}
 
+		// Model-facing text with a separate display version.
+		public Builder withText(String content, String uiText) {
+			if (content != null && !content.isEmpty()) {
+				message.addPart(new TextMessagePart(content, uiText));
+			}
+			return this;
+		}
+
 		public Builder withType(MessageType type) {
 			// Legacy-only: keep for compatibility, but behavior is driven by parts.
 			message.type = type;
@@ -330,6 +338,7 @@ public class ResponseMessage extends AbstractMessage {
 			builder.withModelEngineResponse(llmResponse);
 
 			builder.message.setCacheCreationTokens(llmResponse.getNumberOfCacheCreationTokens());
+			builder.message.setThinkingTokens(llmResponse.getNumberOfThinkingTokens());
 
 			// Prefer parts-based responses, fall back to legacy messageType.
 			if (llmResponse.getParts() != null && !llmResponse.getParts().isEmpty()) {

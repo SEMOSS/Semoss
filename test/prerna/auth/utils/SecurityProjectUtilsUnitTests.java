@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +48,6 @@ import org.junit.jupiter.api.Test;
 
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.User;
-import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.util.SystemEngineRegistry;
@@ -849,7 +849,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 
 		// Use includeExplicitUser=true to get only projects where user has explicit
 		// permission
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertTrue(ids.isEmpty());
 	}
@@ -860,7 +860,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("project1", "Project One", user);
 		UnitTestSecurityAuthUtils.createProject("project2", "Project Two", user);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, false, false, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user, null, false, false, true);
 		assertNotNull(ids);
 		assertEquals(2, ids.size());
 	}
@@ -1695,7 +1695,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
 
 		// Verify timestamp is now set
-		SemossDate timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNotNull(timestamp);
 	}
 
@@ -1704,8 +1704,36 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
 
-		SemossDate timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
 		assertNull(timestamp);
+	}
+
+	@Test
+	void testInitPortalPublishedTimestamp() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		assertNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
+
+		assertTrue(SecurityProjectUtils.initPortalPublishedTimestamp("testProjectId"));
+
+		assertNotNull(SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
+	}
+
+	@Test
+	void testInitPortalPublishedTimestamp_doesNotOverwriteExisting() {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user, true);
+
+		SecurityProjectUtils.setPortalPublish(user, "testProjectId");
+		LocalDateTime reported = SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId");
+		assertNotNull(reported);
+
+		// the IS NULL guard leaves an already recorded timestamp alone, so a container
+		// initializing one cannot move a change that another container reported
+		assertTrue(SecurityProjectUtils.initPortalPublishedTimestamp("testProjectId"));
+
+		assertEquals(reported, SecurityProjectUtils.getPortalPublishedTimestamp("testProjectId"));
 	}
 
 	///
@@ -1723,7 +1751,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setReactorCompilation(user, "testProjectId");
 
 		// Verify timestamp is now set
-		SemossDate timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
 		assertNotNull(timestamp);
 	}
 
@@ -1732,7 +1760,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 
-		SemossDate timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
+		LocalDateTime timestamp = SecurityProjectUtils.getReactorCompilationTimestamp("testProjectId");
 		assertNull(timestamp);
 	}
 
@@ -1911,7 +1939,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		SecurityProjectUtils.setProjectGlobal(user, "testProjectId", true);
 
 		// includeExistingAccess must be true when includeDiscoverable is false
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, true, true, true);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, true, true, true);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}
@@ -1923,7 +1951,7 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
 		SecurityProjectUtils.setProjectDiscoverable(user, "testProjectId", true);
 
-		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, false, true, false);
+		List<String> ids = SecurityProjectUtils.getUserProjectIdList(user2, null, false, true, false);
 		assertNotNull(ids);
 		assertTrue(ids.contains("testProjectId"));
 	}

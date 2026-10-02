@@ -143,7 +143,6 @@ import prerna.reactor.export.EmptyDataReactor;
 import prerna.reactor.export.GoogleUploaderReactor;
 import prerna.reactor.export.GrabScalarElementReactor;
 import prerna.reactor.export.IterateReactor;
-import prerna.reactor.export.OneDriveUploaderReactor;
 import prerna.reactor.export.ToCsvReactor;
 import prerna.reactor.export.ToDatabaseReactor;
 import prerna.reactor.export.ToExcelReactor;
@@ -337,13 +336,6 @@ import prerna.reactor.qs.source.FrameReactor;
 import prerna.reactor.qs.source.GoogleFileRetrieverReactor;
 import prerna.reactor.qs.source.GoogleListFilesReactor;
 import prerna.reactor.qs.source.JdbcSourceReactor;
-import prerna.reactor.qs.source.OneDriveFileRetrieverReactor;
-import prerna.reactor.qs.source.OneDriveListFilesReactor;
-import prerna.reactor.qs.source.SharePointDriveSelectorReactor;
-import prerna.reactor.qs.source.SharePointFileRetrieverReactor;
-import prerna.reactor.qs.source.SharePointListFilesReactor;
-import prerna.reactor.qs.source.SharePointSiteSelectorReactor;
-import prerna.reactor.qs.source.SharePointWebDavPullReactor;
 import prerna.reactor.qs.source.URLSourceReactor;
 import prerna.reactor.runtime.JavaReactor;
 import prerna.reactor.scheduler.ListAllJobsReactor;
@@ -561,7 +553,42 @@ public class ReactorFactory {
 		}
 	}
 
-	// populates the frame agnostic reactors used by pixel
+	/**
+	 * Registers the frame agnostic reactors used by pixel.
+	 *
+	 * <p>
+	 * <b>DO NOT ADD NEW REACTORS HERE.</b> Reactors are discovered at runtime. The
+	 * static initializer calls this method first and then calls
+	 * {@link #loadFromCP(String...)}, which scans the classpath for every
+	 * {@link IReactor} implementation under "prerna" (plus anything listed in
+	 * ADDITIONAL_REACTOR_PACKAGES) and registers each one under its simple class
+	 * name with a trailing "Reactor" stripped. That scan runs last, so it
+	 * overwrites whatever this method put in the map.
+	 *
+	 * <p>
+	 * An entry added here therefore does nothing: the scan writes the identical
+	 * mapping a moment later. That is already true of 299 of the 316 active entries
+	 * below, which are pure duplicates kept only for historical reasons.
+	 *
+	 * <p>
+	 * To add a reactor, only write the class. Name it {@code <PixelName>Reactor},
+	 * put it in a package under "prerna", and {@code PixelName()} is callable on
+	 * the next startup with no change to this file. Renaming the class likewise
+	 * renames the pixel automatically.
+	 *
+	 * <p>
+	 * The 17 entries that do have an effect are aliases whose key cannot be derived
+	 * from any class name, such as "Mean" for AverageReactor or "GroupBy" for
+	 * GroupReactor. They exist to keep an already released pixel name working after
+	 * its class was renamed. Do not add more as a matter of style: name the class
+	 * after the pixel instead. An alias is only warranted when a pixel name that
+	 * already shipped has to keep resolving.
+	 *
+	 * <p>
+	 * Reactors in a {@code *.frame.*} package are routed by that same scan to the
+	 * frame specific maps (h2FrameHash, rFrameHash, pandasFrameHash,
+	 * tinkerFrameHash) rather than to this one.
+	 */
 	private static void createReactorHash(Map<String, Class<? extends IReactor>> reactorHash) {
 		// Import Reactors
 		// takes in a query struct and imports data to a new frame
@@ -689,21 +716,11 @@ public class ReactorFactory {
 		reactorHash.put("DropBoxUploader", DropBoxUploaderReactor.class);
 		reactorHash.put("DropBoxListFiles", DropBoxListFilesReactor.class);
 		reactorHash.put("DropBoxFileRetriever", DropBoxFileRetrieverReactor.class);
-		// one drive
-		reactorHash.put("OneDriveUploader", OneDriveUploaderReactor.class);
-		reactorHash.put("OneDriveListFiles", OneDriveListFilesReactor.class);
-		reactorHash.put("OneDriveFileRetriever", OneDriveFileRetrieverReactor.class);
 		// google
 		reactorHash.put("GoogleUploader", GoogleUploaderReactor.class);
 		reactorHash.put("GoogleListFiles", GoogleListFilesReactor.class);
 		reactorHash.put("GoogleFileRetriever", GoogleFileRetrieverReactor.class);
 
-		// share point
-		reactorHash.put("SharePointListFiles", SharePointListFilesReactor.class);
-		reactorHash.put("SharePointFileRetriever", SharePointFileRetrieverReactor.class);
-		reactorHash.put("SharePointSiteSelector", SharePointSiteSelectorReactor.class);
-		reactorHash.put("SharePointDriveSelector", SharePointDriveSelectorReactor.class);
-		reactorHash.put("SharePointWebDavPull", SharePointWebDavPullReactor.class);
 		// survey monkey
 		reactorHash.put("SurveyMonkeyListSurveys", SurveyMonkeyListSurveysReactor.class);
 		reactorHash.put("NaturalLanguageSearch", NaturalLanguageSearchReactor.class);
@@ -1030,6 +1047,10 @@ public class ReactorFactory {
 		reactorHash.put("WEEK", WeekReactor.class);
 		reactorHash.put("MONTH", MonthReactor.class);
 		reactorHash.put("YEAR", YearReactor.class);
+
+		// Do not append new reactors below. See the javadoc on this method: the
+		// classpath scan in loadFromCP runs after this method and registers every
+		// reactor automatically, overwriting anything added here.
 	}
 
 	private static void populateNativeFrameHash(Map<String, Class<? extends IReactor>> nativeFrameHash) {

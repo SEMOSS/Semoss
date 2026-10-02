@@ -144,7 +144,7 @@ jobs:
         shell: bash
         run: |
           TAGS=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}" )
-          if [[ "${{ vars.RELEASE }}" == "true" ]]; then
+          if [[ "${{ vars.RELEASE }}" == "TRUE" ]]; then
             TAGS+=( "-t" "${IMAGE}:${PYTHON_VERSION}-${COMPUTE_TYPE}-${{ vars.VERSION }}" )
           fi
           echo "args=${TAGS[*]}" >> "$GITHUB_OUTPUT"

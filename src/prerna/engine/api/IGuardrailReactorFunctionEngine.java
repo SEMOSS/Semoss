@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.engine.api;
 
+import prerna.logging.IgnoreEngineLogging;
 import prerna.reactor.IReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.NounStore;
@@ -45,10 +46,38 @@ public interface IGuardrailReactorFunctionEngine extends IReactor, IFunctionEngi
 	GuardrailTypeEnum getGuardrailType();
 
 	/**
+	 * Markdown that explains and demonstrates this guardrail. Creation flows may
+	 * use it to initialize empty engine metadata without replacing user content.
+	 *
+	 * @return default markdown, or null when the guardrail has no example
+	 */
+	@IgnoreEngineLogging
+	default String getDefaultMarkdown() {
+		return null;
+	}
+
+	/**
 	 * 
 	 * @param ns
 	 * @param curRow
 	 * @return
 	 */
 	GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow);
+
+	/**
+	 * Executes the guardrail with the actual engine whose method is being
+	 * intercepted. The engine is optional and must remain in-memory; callers must
+	 * not place it in a NounStore, pipeline argument map, audit payload, or verdict
+	 * details. Implementations that do not need engine context keep the existing
+	 * two-argument behavior.
+	 *
+	 * @param ns           guardrail inputs
+	 * @param curRow       current row, when applicable
+	 * @param targetEngine actual intercepted engine, or null outside a pipeline
+	 * @return the guardrail decision
+	 */
+	@IgnoreEngineLogging
+	default GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
+		return execute(ns, curRow);
+	}
 }

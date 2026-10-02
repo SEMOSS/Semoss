@@ -137,13 +137,7 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + ";databaseName="
 				+ this.database;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}
@@ -229,6 +223,26 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getDoubleDataTypeName() {
 		return "FLOAT";
+	}
+
+	@Override
+	public void setNullableLargeText(java.sql.PreparedStatement statement, int index, String value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.LONGVARCHAR);
+		} else {
+			statement.setString(index, value);
+		}
+	}
+
+	@Override
+	public void setNullableBinary(java.sql.PreparedStatement statement, int index, byte[] value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.LONGVARBINARY);
+		} else {
+			statement.setBytes(index, value);
+		}
 	}
 
 	@Override

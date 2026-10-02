@@ -35,11 +35,10 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import jakarta.mail.Session;
-import jakarta.mail.Store;
 import prerna.util.Constants;
 import prerna.util.SocialPropertiesProcessor;
 
+@Deprecated
 public class ProjectProperties {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectProperties.class);
@@ -50,6 +49,7 @@ public class ProjectProperties {
 	private File socialProp = null;
 	private SocialPropertiesProcessor processor = null;
 
+	@Deprecated
 	public ProjectProperties(String projectDirString, String projectName, String projectId) {
 		this.projectDirString = projectDirString;
 		this.adminDir = new File(this.projectDirString + "/" + ADMIN_DIRECTORY);
@@ -69,83 +69,77 @@ public class ProjectProperties {
 		this.processor = new SocialPropertiesProcessor(socialPropertiesFileLoc);
 	}
 
+	@Deprecated
 	public void updateProviderProperties(String provider, Map<String, String> mods) throws Exception {
 		this.processor.updateProviderProperties(provider, mods);
 	}
 
+	@Deprecated
 	public void updateAllProperties(Map<String, String> mods) throws Exception {
 		this.processor.updateAllProperties(mods);
 	}
 
+	@Deprecated
 	public Map<String, Boolean> getLoginsAllowed() {
 		return this.processor.getLoginsAllowed();
 	}
 
+	@Deprecated
 	public String getProperty(String key) {
 		return this.processor.getProperty(key);
 	}
 
+	@Deprecated
 	public Object get(Object key) {
 		return this.processor.get(key);
 	}
 
+	@Deprecated
 	public boolean containsKey(String key) {
 		return this.processor.containsKey(key);
 	}
 
+	@Deprecated
 	public Set<String> stringPropertyNames() {
 		return this.processor.stringPropertyNames();
 	}
 
+	@Deprecated
 	public Map<String, String[]> getSamlAttributeNames() {
 		return this.processor.getSamlAttributeNames();
 	}
 
+	@Deprecated
 	public boolean emailEnabled() {
 		return this.processor.smtpEmailEnabled();
 	}
 
+	@Deprecated
 	public boolean pop3EmailEnabled() {
 		return this.processor.pop3EmailEnabled();
 	}
 
+	@Deprecated
 	public boolean imapEmailEnabled() {
 		return this.processor.imapEmailEnabled();
 	}
 
+	@Deprecated
 	public String getSmtpSender() {
 		return this.processor.getSmtpSender();
 	}
 
 	@Deprecated
-	public Session getEmailSession() {
-		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
-		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
-		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
-		classLogger.warn("METHOD DEPRECATED - PLEASE USE getSmtpEmailSession()");
-		return getSmtpEmailSession();
-	}
-
-	public Session getSmtpEmailSession() {
-		return this.processor.getSmtpEmailSession();
-	}
-
-	public Store getPop3EmailStore() {
-		return this.processor.getPop3EmailStore();
-	}
-
-	public Store getImapEmailStore() {
-		return this.processor.getImapEmailStore();
-	}
-
 	public Map<String, String> getEmailStaticProps() {
 		return this.processor.getSmtpEmailStaticProps();
 	}
 
+	@Deprecated
 	public void reloadProps() {
 		this.processor.reloadProps();
 	}
 
+	@Deprecated
 	public File getSocialProp() {
 		return socialProp;
 	}

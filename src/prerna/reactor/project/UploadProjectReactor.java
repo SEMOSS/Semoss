@@ -29,6 +29,7 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AuthProvider;
@@ -50,7 +52,6 @@ import prerna.auth.utils.SecurityProjectUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
 import prerna.engine.api.IEngine;
-import prerna.engine.impl.LegacyToProjectRestructurerHelper;
 import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -59,6 +60,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
@@ -90,7 +92,6 @@ public class UploadProjectReactor extends AbstractReactor {
 		// Need to check this, will the same methods work/enhanced to check the
 		// permissions on project?
 		User user = this.insight.getUser();
-		LegacyToProjectRestructurerHelper legacyToProjectRestructurerHelper = new LegacyToProjectRestructurerHelper();
 		if (user == null) {
 			NounMetadata noun = new NounMetadata(
 					"User must be signed into an account in order to create or upload a project",
@@ -110,17 +111,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-		}
-
-		if (global && (AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
-			SemossPixelException exception = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("User can upload a project but cannot make the project public"));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
@@ -133,17 +123,19 @@ public class UploadProjectReactor extends AbstractReactor {
 		List<String> fileList = new ArrayList<>();
 		String smssFileLoc = null;
 		File smssFile = null;
+		Properties projectProperties = null;
+		JsonObject agentMetadata = null;
 		// unzip files to temp project folder
 		boolean error = false;
 		try {
-			logger.info(step + ") Unzipping project");
+			logger.info("{}) Unzipping project", step);
 			filesAdded = ZipUtils.unzip(zipFilePath, randomTempUnzipFolderPath);
-			logger.info(step + ") Done");
+			logger.info("{}) Done", step);
 			step++;
 
 			// look for smss file
 			fileList = filesAdded.get("FILE");
-			logger.info(step + ") Searching for smss");
+			logger.info("{}) Searching for smss", step);
 			for (String filePath : fileList) {
 				if (!filePath.startsWith("__MACOSX/") && filePath.endsWith(Constants.SEMOSS_EXTENSION)) {
 					smssFileLoc = randomTempUnzipFolderPath + DIR_SEPARATOR + filePath;
@@ -156,13 +148,32 @@ public class UploadProjectReactor extends AbstractReactor {
 					break;
 				}
 			}
-			logger.info(step + ") Done");
+			logger.info("{}) Done", step);
 			step++;
 
 			// delete the files if we were unable to find the smss file
 			if (smssFileLoc == null) {
 				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
 			}
+
+			projectProperties = Utility.loadProperties(smssFileLoc);
+			String projectTypeString = projectProperties.getProperty(Constants.PROJECT_ENUM_TYPE);
+			IProject.PROJECT_TYPE projectType = projectTypeString == null ? IProject.PROJECT_TYPE.INSIGHTS
+					: IProject.PROJECT_TYPE.valueOf(projectTypeString.trim());
+			if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
+			}
+			if (global && AbstractSecurityUtils.adminOnlyProjectSetPublic(projectType)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				SemossPixelException exception = new SemossPixelException(NounMetadata
+						.getErrorNounMessage("User can upload a project but cannot make the project public"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			agentMetadata = AgentProjectArchiveUtils.readAgent(new File(randomTempUnzipF,
+					SmssUtilities.getUniqueName(projectProperties.getProperty(Constants.PROJECT_ALIAS),
+							projectProperties.getProperty(Constants.PROJECT))),
+					projectProperties);
 		} catch (SemossPixelException e) {
 			error = true;
 			throw e;
@@ -179,32 +190,15 @@ public class UploadProjectReactor extends AbstractReactor {
 		String projects = (String) DIHelper.getInstance().getProjectProperty(Constants.PROJECTS);
 		String projectId = null;
 		String projectName = null;
-		IProject.PROJECT_TYPE projectEnumType = IProject.PROJECT_TYPE.INSIGHTS;
-		String projectGitProvider = null;
-		String projectGitCloneUrl = null;
 
 		File finalProjectSmssF = null;
 		File finalProjectFolderF = null;
-		Boolean isLegacy = false;
 		boolean projectAddedToDIHelper = false;
 		try {
-			logger.info(step + ") Reading smss");
-			Properties prop = Utility.loadProperties(smssFileLoc);
-			if (prop.getProperty(Constants.ENGINE) != null || prop.getProperty(Constants.ENGINE_ALIAS) != null
-					|| prop.getProperty(Constants.ENGINE_TYPE) != null) {
-				isLegacy = true;
-			}
-
-			// pull some properties out for creating an smss if legacy format
-			if (isLegacy) {
-				projectId = prop.getProperty(Constants.ENGINE);
-				projectName = prop.getProperty(Constants.ENGINE_ALIAS);
-			} else {
-				projectId = prop.getProperty(Constants.PROJECT);
-				projectName = prop.getProperty(Constants.PROJECT_ALIAS);
-			}
-			projectGitProvider = prop.getProperty(Constants.PROJECT_GIT_PROVIDER);
-			projectGitCloneUrl = prop.getProperty(Constants.PROJECT_GIT_CLONE);
+			logger.info("{}) Reading smss", step);
+			Properties prop = projectProperties;
+			projectId = prop.getProperty(Constants.PROJECT);
+			projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 
 			// check if project id already exists in security db
 			if (SecurityProjectUtils.projectExists(projectId)) {
@@ -215,7 +209,7 @@ public class UploadProjectReactor extends AbstractReactor {
 				throw exception;
 			}
 
-			logger.info(step + ") Done");
+			logger.info("{}) Done", step);
 			step++;
 
 			// zip file has the smss and project folder on the same level
@@ -241,43 +235,18 @@ public class UploadProjectReactor extends AbstractReactor {
 				throw exception;
 			}
 
-			if (isLegacy) {
-				legacyToProjectRestructurerHelper.userScanAndCopyInsightsDatabaseIntoNewProjectFolder(
-						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
-								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(tempUnzippedProjectFolderPath), false);
-
-				legacyToProjectRestructurerHelper.userScanAndCopyVersionsIntoNewProjectFolder(
-						Utility.normalizePath(projectFolderPath + DIR_SEPARATOR
-								+ SmssUtilities.getUniqueName(projectName, projectId)),
-						Utility.normalizePath(tempUnzippedProjectFolderPath), false);
-
-				// move project folder
-				logger.info(step + ") Done");
-				step++;
-
-				// move smss file
-				File tempUnzippedSmssF = SmssUtilities.createTemporaryProjectSmss(projectId, projectName,
-						projectEnumType, projectGitProvider, projectGitCloneUrl, null);
-				FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
-				tempUnzippedSmssF.delete();
-				logger.info(step + ") Done");
-				step++;
-			} else {
-				// move project folder
-				logger.info(step + ") Moving project folder");
-				FileUtils.copyDirectory(tempUnzippedProjectF, finalProjectFolderF);
-				logger.info(step + ") Done");
-				step++;
-				// move smss file
-				logger.info(step + ") Moving smss file");
-				File tempUnzippedSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
-						+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
-				FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
-				logger.info(step + ") Done");
-				step++;
-			}
-
+			// move project folder
+			logger.info("{}) Moving project folder", step);
+			FileUtils.copyDirectory(tempUnzippedProjectF, finalProjectFolderF);
+			logger.info("{}) Done", step);
+			step++;
+			// move smss file
+			logger.info("{}) Moving smss file", step);
+			File tempUnzippedSmssF = new File(Utility.normalizePath(randomTempUnzipF + DIR_SEPARATOR
+					+ SmssUtilities.getUniqueName(projectName, projectId) + Constants.SEMOSS_EXTENSION));
+			FileUtils.copyFile(tempUnzippedSmssF, finalProjectSmssF);
+			logger.info("{}) Done", step);
+			step++;
 		} catch (Exception e) {
 			error = true;
 			classLogger.error("Error copying the files over from the temp zip location to the final project folder", e);
@@ -308,11 +277,12 @@ public class UploadProjectReactor extends AbstractReactor {
 					Utility.changePropertiesFileValue(finalProjectSmssF.getAbsolutePath(),
 							Constants.PROJECT_DISPLAY_NAME, projectName);
 				} catch (IOException e) {
-					classLogger.error(Constants.STACKTRACE, e);
+					classLogger.error("Failed to write {} into the smss file for project {}",
+							Constants.PROJECT_DISPLAY_NAME, projectId, e);
 				}
 			}
 
-			logger.info(step + ") Grabbing project insights");
+			logger.info("{}) Grabbing project insights", step);
 			SecurityProjectUtils.addProject(projectId, global, user);
 
 			// see if we have any dependencies or metadata to load
@@ -331,7 +301,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 				File dependenciesFile = new File(
 						finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
-				if (dependenciesFile.exists() && dependenciesFile.isFile()) {
+				if (agentMetadata == null && dependenciesFile.exists() && dependenciesFile.isFile()) {
 					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility
 							.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {
 							}.getType());
@@ -351,10 +321,20 @@ public class UploadProjectReactor extends AbstractReactor {
 				}
 			}
 
-			logger.info(step + ") Done");
+			// Consume the generated archive file before the final, atomic agent import.
+			if (agentMetadata != null) {
+				AgentProjectArchiveUtils.importDependencies(finalProjectFolderF, projectName, projectId, user);
+				Files.delete(
+						new File(finalProjectFolderF, projectName + AgentProjectArchiveUtils.FILE_SUFFIX).toPath());
+				AgentProjectArchiveUtils.importAgent(projectId, user, agentMetadata, false);
+			}
+
+			logger.info("{}) Done", step);
 		} catch (Exception e) {
 			error = true;
-			classLogger.error("Error occurred trying to synchronize the metadata and insights for the zip file", e);
+			classLogger.error(
+					"Failed to restore metadata, insights, or agent configuration for project {} from archive {}",
+					projectId, zipFilePath, e);
 			throw new SemossPixelException(
 					"Error occurred trying to synchronize the metadata and insights for the zip file", false);
 		} finally {
@@ -392,7 +372,7 @@ public class UploadProjectReactor extends AbstractReactor {
 				try {
 					FileUtils.forceDelete(f);
 				} catch (IOException e) {
-					classLogger.error("Error on clean up attempting to delete " + f.getAbsolutePath(), e);
+					classLogger.error("Error on clean up attempting to delete {}", f.getAbsolutePath(), e);
 				}
 			}
 		}

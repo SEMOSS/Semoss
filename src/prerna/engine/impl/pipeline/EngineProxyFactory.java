@@ -39,11 +39,13 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IFunctionEngine;
 import prerna.engine.api.IGuardrailReactorFunctionEngine;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IModelRouterEngine;
 import prerna.engine.api.IRCloneStorage;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRDFDatabase;
 import prerna.engine.api.IReactorFunctionEngine;
 import prerna.engine.api.IStorageEngine;
+import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.api.IVectorDatabaseEngine;
 import prerna.engine.api.IVenvEngine;
 import prerna.project.api.IProject;
@@ -74,8 +76,17 @@ public class EngineProxyFactory {
 		}
 
 		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);
+		List<Class<?>> classes = new ArrayList<>();
+		classes.add(IEngine.class);
+		classes.add(IModelEngine.class);
+		if (engine instanceof IModelRouterEngine) {
+			classes.add(IModelRouterEngine.class);
+		}
+		if (engine instanceof ITypeSafeEngine) {
+			classes.add(ITypeSafeEngine.class);
+		}
 		return (IModelEngine) Proxy.newProxyInstance(IEngine.class.getClassLoader(),
-				new Class<?>[] { IEngine.class, IModelEngine.class }, handler);
+				classes.toArray(new Class<?>[0]), handler);
 	}
 
 	/**
@@ -94,12 +105,6 @@ public class EngineProxyFactory {
 			if (pipelineValue != null && !pipelineValue.isBlank()) {
 				jsonFile = getJsonFile(engine, pipelineValue);
 			}
-		}
-
-		// TODO: we will remove this once we are okay with the update that all engines
-		// must be an interface
-		if (jsonFile == null || !jsonFile.exists() || !jsonFile.isFile()) {
-			return engine;
 		}
 
 		PipelineInvocationHandler handler = new PipelineInvocationHandler(engine, jsonFile);

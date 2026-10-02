@@ -69,7 +69,7 @@ public class DeleteWorkspaceReactor extends AbstractReactor {
 					"Workspace " + workspaceId + " is a built-in system agent and cannot be deleted");
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectDelete()) {
+		if (AbstractSecurityUtils.adminOnlyWorkspaceDelete()) {
 			throwFunctionalityOnlyExposedForAdminsError();
 		}
 

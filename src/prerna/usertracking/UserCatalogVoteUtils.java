@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -50,7 +49,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -318,28 +317,19 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		String query = "UPDATE " + VOTE_TN
 				+ " SET VOTE = ?, LAST_MODIFIED = ? WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			for (Pair<String, String> cred : creds) {
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
 				int index = 1;
 				ps.setInt(index++, vote);
 				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
 				ps.setString(index++, cred.getValue0());
 				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, catalogId);
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update votes for catalog {}", catalogId, e);
 			throw new IllegalArgumentException(
 					"An error occurred while updating the user's vote. See logs for details.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
@@ -352,24 +342,15 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 	public static void delete(List<Pair<String, String>> creds, String catalogId) {
 		String query = "DELETE FROM " + VOTE_TN + " WHERE USERID = ? AND TYPE = ? AND ENGINEID = ?";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			for (Pair<String, String> cred : creds) {
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, cred.getValue0());
 				ps.setString(parameterIndex++, cred.getValue1());
 				ps.setString(parameterIndex++, catalogId);
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete votes for catalog {}", catalogId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
@@ -384,27 +365,18 @@ public class UserCatalogVoteUtils extends UserTrackingUtils {
 		String query = "INSERT INTO " + VOTE_TN
 				+ " (USERID, TYPE, ENGINEID, VOTE, LAST_MODIFIED) VALUES (?, ?, ?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			for (Pair<String, String> cred : creds) {
+			QueryExecutionUtility.executeBatch(userTrackingDb, query, creds, (ps, cred) -> {
 				int index = 1;
 				ps.setString(index++, cred.getValue0());
 				ps.setString(index++, cred.getValue1());
 				ps.setString(index++, cid);
 				ps.setInt(index++, vote);
 				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-				ps.addBatch();
-			}
-			ps.executeBatch();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert votes for catalog {}", cid, e);
 			throw new IllegalArgumentException("An error occurred while saving the user's vote. See logs for details.");
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 }

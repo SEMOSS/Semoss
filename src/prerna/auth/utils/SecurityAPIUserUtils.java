@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -43,7 +42,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SocialPropertiesUtil;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -126,8 +125,55 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 			return false;
 		}
 
-		String typedHash = hash(secretKey, salt);
-		return saltedPassword.equals(typedHash);
+		if (!credentialMatches(secretKey, saltedPassword, salt)) {
+			return false;
+		}
+
+		if (isLegacySalt(salt)) {
+			migrateSecretKeyToApprovedHash(clientId, secretKey);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Rehash the secret key with PBKDF2 if the stored salt is still legacy. Called
+	 * after the secret key is verified, since that is when the plaintext is
+	 * available. The secret key itself does not change, so nothing has to be
+	 * reissued. Failures are logged so valid credentials are not rejected.
+	 *
+	 * @param clientId
+	 * @param secretKey
+	 */
+	private static void migrateSecretKeyToApprovedHash(String clientId, String secretKey) {
+		runCredentialMigration(clientId, () -> {
+			IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+			String salt = AbstractSecurityUtils.generateSalt();
+			String saltedPassword = AbstractSecurityUtils.hash(secretKey, salt);
+
+			String updateQuery = "UPDATE " + SMSS_USER_TABLE_NAME + " SET PASSWORD=?, SALT=? WHERE ID=? AND TYPE=?";
+
+			try {
+				QueryExecutionUtility.write(securityDb, connection -> {
+					int parameterIndex = 1;
+
+					try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+						ps.setString(parameterIndex++, saltedPassword);
+						ps.setString(parameterIndex++, salt);
+						ps.setString(parameterIndex++, clientId);
+						ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
+						ps.execute();
+
+						classLogger.info("Migrated a stored API user secret key hash to the approved scheme");
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error("Unable to migrate the stored secret key hash to the approved scheme.", e);
+			}
+		});
 	}
 
 	/**
@@ -149,33 +195,29 @@ public class SecurityAPIUserUtils extends AbstractSecurityUtils {
 				+ " (ID, NAME, USERNAME, EMAIL, TYPE, ADMIN, PASSWORD, SALT, DATECREATED, "
 				+ "LOCKED, PHONE, PHONEEXTENSION, COUNTRYCODE) " + "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-		PreparedStatement ps = null;
 		try {
-			int parameterIndex = 1;
-			ps = securityDb.getPreparedStatement(insertQuery);
-			ps.setString(parameterIndex++, clientId); // ID is the client ID
-			ps.setString(parameterIndex++, name);
-			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no username
-			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no email
-			ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
-			// shouldn't be adding API as an admin
-			ps.setBoolean(parameterIndex++, false);
-			ps.setString(parameterIndex++, hashedPassword);
-			ps.setString(parameterIndex++, salt);
-			ps.setTimestamp(parameterIndex++, timestamp);
-			// not locked ...
-			ps.setBoolean(parameterIndex++, false);
-			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, clientId); // ID is the client ID
+				ps.setString(parameterIndex++, name);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no username
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR); // no email
+				ps.setString(parameterIndex++, AuthProvider.API_USER.toString());
+				// shouldn't be adding API as an admin
+				ps.setBoolean(parameterIndex++, false);
+				ps.setString(parameterIndex++, hashedPassword);
+				ps.setString(parameterIndex++, salt);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				// not locked ...
+				ps.setBoolean(parameterIndex++, false);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+				ps.setNull(parameterIndex++, java.sql.Types.VARCHAR);
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to create API user.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 
 		details.put("clientId", clientId);

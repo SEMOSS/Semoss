@@ -37,8 +37,6 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -54,7 +52,6 @@ public class ReplayStepReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ReplayStepReactor.class);
 
-	private ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 	private Map<String, Object> response = new HashMap<>();
 	private Path recordingsDir = null;
 	private String projectId = null;
@@ -90,7 +87,8 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
 		projectId = SecurityProjectUtils.testUserProjectIdForAlias(this.insight.getUser(), projectId);
 		if (!SecurityProjectUtils.userCanViewProject(this.insight.getUser(), projectId)) {
-			throw new IllegalArgumentException("Project does not exist or user does not have access to view the project");
+			throw new IllegalArgumentException(
+					"Project does not exist or user does not have access to view the project");
 		}
 		recordingsDir = PlaywrightUtility.initRecordingsDir(projectId);
 
@@ -128,7 +126,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		String requestedTabId = (tabId != null && !tabId.isEmpty()) ? tabId : "tab-1";
 		List<List<PlaywrightStep>> allStepsList = allStepsMap.getOrDefault(requestedTabId, new ArrayList<>());
 
-		classLogger.info("Loaded steps: {}", json.valueToTree(steps).toString());
+		classLogger.info("Loaded steps: {}", GSON.toJson(steps));
 
 		// Determine viewport/dpr from the first step if available
 		int width = 1280;
@@ -284,7 +282,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		}
 
 		PlaywrightStep step = currentPage.get(stepIdx);
-		classLogger.info("Executing step: {}", json.valueToTree(step).toString());
+		classLogger.info("Executing step: {}", GSON.toJson(step));
 
 		// Check if step should be executed
 		if (!step.shouldRun()) {
@@ -334,7 +332,7 @@ public class ReplayStepReactor extends AbstractReactor {
 			}
 
 			// Get title
-			Page newTabPage = playwrightSession.tabPages.get(newTabId);
+			Page newTabPage = playwrightSession.getPage(newTabId);
 			result.newTabTitle = (newTabPage != null && newTabPage.title() != null
 					&& !newTabPage.title().trim().isEmpty()) ? newTabPage.title() : newTabId;
 
@@ -498,7 +496,7 @@ public class ReplayStepReactor extends AbstractReactor {
 		for (int i = currentStepIndex; i < steps.size(); i++) {
 			Map<String, Object> action = new HashMap<>();
 			PlaywrightStep current = steps.get(i);
-			classLogger.info("Processing step for actions: {}", json.valueToTree(current).toString());
+			classLogger.info("Processing step for actions: {}", GSON.toJson(current));
 			classLogger.info("coords: {}", current.coords());
 			switch (current.type()) {
 			case TYPE:
@@ -512,7 +510,7 @@ public class ReplayStepReactor extends AbstractReactor {
 				try {
 					String sessionId = this.keyValue.get(this.keysToGet[0]);
 					PlaywrightSession s = this.insight.getUser().getPlaywrightSession(sessionId);
-					Page page = s.tabPages.get(tabId);
+					Page page = s.getPage(tabId);
 					page.waitForLoadState(LoadState.NETWORKIDLE, new Page.WaitForLoadStateOptions().setTimeout(5_000));
 					ElementProbeResponse probeResult = ProbeElementReactor.probeElementAt(s, current.coords(), tabId);
 					typeAction.put("probe", probeResult);

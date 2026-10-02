@@ -33,7 +33,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand.ResetType;
+import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.TreeWalk;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
@@ -44,8 +48,10 @@ import prerna.engine.api.IEngine;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.AssetUtility;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -53,10 +59,69 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(ProjectCommitRestoreReactor.class);
 	private static final String COMMIT_ID_KEY = "commitId";
+	private static final String ASSETS_PATH = "assets";
 
 	public ProjectCommitRestoreReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), COMMIT_ID_KEY };
 		this.keyRequired = new int[] { 1, 1 };
+	}
+
+	/**
+	 * Restores a nested assets repository to the gitlink recorded by the selected
+	 * outer commit. A new nested commit preserves the current branch history while
+	 * reproducing the selected commit's file tree. Returns the nested HEAD the
+	 * outer restoration commit must record, or {@code null} when assets is not a
+	 * gitlink in the selected outer commit.
+	 */
+	static ObjectId restoreNestedAssetsRepository(Git outerGit, ObjectId targetOuterCommit, File versionFolder,
+			String commitId, String author, String email) throws Exception {
+		ObjectId targetAssetsCommit;
+		RevCommit targetOuter;
+		try (RevWalk outerWalk = new RevWalk(outerGit.getRepository())) {
+			targetOuter = outerWalk.parseCommit(targetOuterCommit);
+		}
+		try (TreeWalk assetsEntry = TreeWalk.forPath(outerGit.getRepository(), ASSETS_PATH,
+				targetOuter.getTree())) {
+			if (assetsEntry == null || !FileMode.GITLINK.equals(assetsEntry.getFileMode(0))) {
+				return null;
+			}
+			targetAssetsCommit = assetsEntry.getObjectId(0);
+		}
+
+		File assetsFolder = new File(versionFolder, ASSETS_PATH);
+		if (!new File(assetsFolder, ".git").exists()) {
+			throw new IllegalArgumentException(
+					"Commit " + commitId + " references a nested assets repository that is not available locally");
+		}
+
+		try (Git assetsGit = Git.open(assetsFolder);
+				RevWalk walk = new RevWalk(assetsGit.getRepository())) {
+			ObjectId originalAssetsHead = assetsGit.getRepository().resolve("HEAD");
+			if (originalAssetsHead == null) {
+				throw new IllegalArgumentException("Nested assets repository has no HEAD commit");
+			}
+			RevCommit originalCommit = walk.parseCommit(originalAssetsHead);
+			RevCommit targetCommit;
+			try {
+				targetCommit = walk.parseCommit(targetAssetsCommit);
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"Nested assets commit " + targetAssetsCommit.name() + " is not available locally", e);
+			}
+
+			// Avoid an empty restoration commit when both commits already describe the
+			// same files, while still cleaning the nested working tree.
+			if (originalCommit.getTree().getId().equals(targetCommit.getTree().getId())) {
+				assetsGit.reset().setMode(ResetType.HARD).setRef(originalAssetsHead.name()).call();
+				return originalAssetsHead;
+			}
+
+			assetsGit.reset().setMode(ResetType.HARD).setRef(targetAssetsCommit.name()).call();
+			assetsGit.reset().setMode(ResetType.SOFT).setRef(originalAssetsHead.name()).call();
+			RevCommit restored = assetsGit.commit().setMessage("Reverted to project commit: " + commitId)
+					.setAuthor(author, email).call();
+			return restored.getId();
+		}
 	}
 
 	@Override
@@ -97,16 +162,6 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 			// Save the current HEAD so we can soft-reset back to it
 			ObjectId originalHead = thisGit.getRepository().resolve("HEAD");
 
-			// Step 1: Hard reset to the target commit
-			// This sets HEAD, index, AND working tree to the target commit's state
-			thisGit.reset().setMode(ResetType.HARD).setRef(commitObjectId.name()).call();
-
-			// Step 2: Soft reset back to the original HEAD
-			// This moves HEAD back but keeps index and working tree at the target state
-			// Now the index differs from HEAD = ready to commit
-			thisGit.reset().setMode(ResetType.SOFT).setRef(originalHead.name()).call();
-
-			// Step 3: Commit the staged changes (index has target state, HEAD has original)
 			AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());
 			String author = accessToken.getResolvedUsername();
 			String email = accessToken.getEmail();
@@ -117,6 +172,24 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 				email = "semoss@semoss.org";
 			}
 
+			ObjectId restoredAssetsHead = restoreNestedAssetsRepository(thisGit, commitObjectId,
+					new File(versionFolder), commitId, author, email);
+
+			// Step 1: Hard reset to the target commit
+			// This sets HEAD, index, AND working tree to the target commit's state
+			thisGit.reset().setMode(ResetType.HARD).setRef(commitObjectId.name()).call();
+
+			// Step 2: Soft reset back to the original HEAD
+			// This moves HEAD back but keeps index and working tree at the target state
+			// Now the index differs from HEAD = ready to commit
+			thisGit.reset().setMode(ResetType.SOFT).setRef(originalHead.name()).call();
+			if (restoredAssetsHead != null) {
+				// The target outer tree contains the historical gitlink. Stage the new
+				// nested restoration commit, whose tree has the same historical content.
+				thisGit.add().addFilepattern(ASSETS_PATH).call();
+			}
+
+			// Step 3: Commit the staged changes (index has target state, HEAD has original)
 			thisGit.commit().setMessage("Reverted to commit: " + commitId).setAuthor(author, email).call();
 
 			classLogger.info("Reverted project {} to commit {}", projectId, commitId);
@@ -131,7 +204,31 @@ public class ProjectCommitRestoreReactor extends AbstractReactor {
 			ClusterUtil.pushProjectFolder(project, versionFolder);
 		}
 
+		NounMetadata buildResult = rebuildRestoredApp(project);
+		if (buildResult != null && (buildResult.getOpType().contains(PixelOperationType.ERROR)
+				|| buildResult.getOpType().contains(PixelOperationType.WARNING))) {
+			return getWarning("Project source was restored, but its app could not be rebuilt and published: "
+					+ buildResult.getValue());
+		}
+
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
+	}
+
+	/**
+	 * Generated portal bundles are intentionally not versioned. If this project has
+	 * buildable client source, regenerate and publish those bundles after restore.
+	 */
+	private NounMetadata rebuildRestoredApp(IProject project) {
+		File clientFolder = new File(
+				AssetUtility.getProjectAssetsFolder(project.getProjectName(), project.getProjectId()), "client");
+		if (!clientFolder.isDirectory()) {
+			return null;
+		}
+
+		classLogger.info("Rebuilding and publishing restored app for project {}", project.getProjectId());
+		BuildAndPublishAppReactor buildReactor = new BuildAndPublishAppReactor();
+		buildReactor.setInsight(this.insight);
+		return buildReactor.buildAndPublish(project);
 	}
 
 	@Override

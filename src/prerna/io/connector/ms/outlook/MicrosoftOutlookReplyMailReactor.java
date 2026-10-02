@@ -1,0 +1,174 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.io.connector.ms.outlook;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import prerna.auth.User;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+
+/**
+ * Answers a message in the signed in user's mailbox.
+ *
+ * <p>
+ * Required delegated Microsoft Graph scopes:
+ * </p>
+ * <ul>
+ * <li>{@code Mail.Send} for {@code POST /me/messages/{id}/reply} and
+ * {@code /replyAll}</li>
+ * <li>{@code Mail.ReadWrite} instead, when {@code asDraft} asks for
+ * {@code POST /me/messages/{id}/createReply}, which writes a draft rather than
+ * sending anything</li>
+ * </ul>
+ *
+ * <p>
+ * This is what keeps an answer in the thread it belongs to. Composing a fresh
+ * message with {@code MicrosoftOutlookSendMail} starts a new conversation
+ * however carefully the subject is copied, which is what everybody on the
+ * thread then has to untangle.
+ * </p>
+ *
+ * <p>
+ * Microsoft Outlook writes the recipients and quotes the original underneath,
+ * so what is passed here is only what the reply adds above it. Answering
+ * everybody is a choice rather than the default, since a reply to all is the
+ * one that is hard to take back.
+ * </p>
+ */
+public class MicrosoftOutlookReplyMailReactor extends AbstractMicrosoftOutlookMessageReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookReplyMailReactor.class);
+
+	private static final String REPLY_ALL = "replyAll";
+
+	public MicrosoftOutlookReplyMailReactor() {
+		this.keysToGet = new String[] { UID, COMMENT, REPLY_ALL, AS_DRAFT, "html", "overrideRecipients", "to", "cc", "attachments" };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0 };
+	}
+
+	@Override
+	protected NounMetadata executeAuthenticated() {
+		this.organizeKeys();
+		String uid = requiredUid("answer a message");
+		String comment = this.keyValue.get(COMMENT);
+		boolean replyAll = Boolean.parseBoolean(this.keyValue.get(REPLY_ALL));
+		boolean asDraft = Boolean.parseBoolean(this.keyValue.get(AS_DRAFT));
+		boolean html = Boolean.parseBoolean(this.keyValue.get("html"));
+		boolean overrideRecipients = Boolean.parseBoolean(this.keyValue.get("overrideRecipients"));
+		if (overrideRecipients && (!asDraft || !html)) {
+			throw new SemossPixelException("Recipient overrides require an HTML draft.");
+		}
+		if (html && !asDraft) {
+			throw new SemossPixelException("HTML is supported for draft saving only.");
+		}
+
+		if (comment == null || comment.trim().isEmpty()) {
+			throw new SemossPixelException("A " + COMMENT + " is required to answer a message.");
+		}
+
+		try {
+			var attachments = draftAttachments(asDraft);
+			User user = this.insight.getUser();
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+			Map<String, Object> draft = overrideRecipients
+					? helper.replyHtmlDraft(accessToken, uid, comment, replyAll, values("to"), values("cc"))
+					: html ? helper.replyHtmlDraft(accessToken, uid, comment, replyAll)
+							: helper.reply(accessToken, null, uid, comment, replyAll, asDraft);
+
+			helper.attachToDraft(accessToken, draft, attachments);
+
+			Map<String, Object> output = new LinkedHashMap<>();
+			output.put("repliedTo", uid);
+			output.put(REPLY_ALL, replyAll);
+			output.put("sent", !asDraft);
+			if (draft != null) {
+				// the draft's own id, which is what MicrosoftOutlookSendDraft takes
+				output.put(UID, draft.get("id"));
+				if (overrideRecipients) {
+					String[] to = MicrosoftOutlookMessageMapper.addressArray(draft.get("toRecipients"));
+					String[] cc = MicrosoftOutlookMessageMapper.addressArray(draft.get("ccRecipients"));
+					output.put("recipients",
+							Map.of("to", to == null ? new String[0] : to, "cc", cc == null ? new String[0] : cc));
+				}
+				MicrosoftOutlookMessageMapper.putIfPresent(output, "webLink", draft.get("webLink"));
+			}
+			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
+		} catch (SemossPixelException e) {
+			classLogger.error("Error while answering the message '{}'", uid, e);
+			throw e;
+		} catch (IllegalArgumentException e) {
+			classLogger.error("Invalid input passed to answer a message", e);
+			throw new SemossPixelException(e.getMessage());
+		} catch (Exception e) {
+			classLogger.error("Failed to answer the message '{}'", uid, e);
+			throw new SemossPixelException("An error occurred answering the message. Error message: " + e.getMessage());
+		}
+	}
+
+	@Override
+	public String getReactorDescription() {
+		return "Reply to a message in the signed in user's own Microsoft 365 mailbox, keeping the answer in its thread.";
+	}
+
+	@Override
+	protected String getDescriptionForKey(String key) {
+		if ("attachments".equals(key)) return "Optional insight-relative files to add to a saved draft; requires asDraft=true.";
+		if ("overrideRecipients".equals(key)) {
+			return "Replace the native To and Cc lists with the supplied lists, including empty lists. Requires html=true and asDraft=true.";
+		}
+		if ("to".equals(key) || "cc".equals(key)) {
+			return "Explicit email address list when overrideRecipients=true; an empty list clears these recipients.";
+		}
+		if ("html".equals(key)) {
+			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
+		}
+		if (key.equals(COMMENT)) {
+			return "What the reply says. Microsoft Outlook quotes the message being answered underneath it.";
+		} else if (key.equals(REPLY_ALL)) {
+			return "Optional boolean to answer everybody on the message rather than only whoever sent it. Defaults to false.";
+		}
+		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// sends mail as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
+	}
+}

@@ -91,13 +91,7 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/" + this.database;
 
-			if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
 
 		return this.connectionUrl;
@@ -142,13 +136,7 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 		if (this.connectionUrl == null || this.connectionUrl.isEmpty()) {
 			this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/" + this.database;
 
-			if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-				if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-					this.connectionUrl += ";" + this.additionalProps;
-				} else {
-					this.connectionUrl += this.additionalProps;
-				}
-			}
+			this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 		}
 
 		return this.connectionUrl;
@@ -181,13 +169,7 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 
 		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/" + this.database;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}
@@ -218,4 +200,13 @@ public class RedshiftQueryUtil extends AnsiSqlQueryUtil {
 	public String getDatabaseMetadataSchemaFilter() {
 		return this.schema;
 	}
+
+	@Override
+	/**
+	 * Redshift takes ?key=value&key2=value2
+	 */
+	protected String getAdditionalPropsSeparator() {
+		return "?";
+	}
+
 }

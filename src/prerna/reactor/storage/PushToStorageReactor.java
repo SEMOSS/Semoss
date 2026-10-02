@@ -28,6 +28,7 @@
 package prerna.reactor.storage;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -41,10 +42,24 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
+/**
+ * Push files from a local path to a storage path.
+ *
+ * Pixel usage: PushToStorage(storage=["<id>"], storagePath=["<path>"],
+ * filePath=["<local>"], metadata=[{}]);
+ *
+ * Parameters: storage (String, required) - The storage engine instance or id
+ * storagePath (String, required) - The storage path to upload files to filePath
+ * (String, required) - The local path(s) to upload from space (String,
+ * optional) - The project space context metadata (Map, optional) - Metadata to
+ * attach to uploaded objects
+ *
+ * Returns: MAP - containing success status and versionId (if versioning
+ * enabled), or BOOLEAN true.
+ */
 public class PushToStorageReactor extends AbstractReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(PushToStorageReactor.class);
@@ -69,13 +84,20 @@ public class PushToStorageReactor extends AbstractReactor {
 			throw new IllegalArgumentException("Unable to locate file");
 		}
 
-		Map<String, Object> metadata = getMetadata();
+		Map<String, Object> metadata = getMapFromKeyOrCurRow(ReactorKeysEnum.METADATA.getKey());
 		try {
-			storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			String versionId = storage.copyToStorage(fileLocation, storageFolderPath, metadata);
+			if (versionId != null && !versionId.isEmpty()) {
+				Map<String, Object> result = new HashMap<>();
+				result.put("success", true);
+				result.put("versionId", versionId);
+				return new NounMetadata(result, PixelDataType.MAP);
+			}
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred uploading local file to storage");
+			classLogger.error("Failed to upload local path={} to storagePath={} on storage engine={}", fileLocation,
+					storageFolderPath, storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error occurred uploading local file to storage", e);
 		}
 	}
 
@@ -100,21 +122,6 @@ public class PushToStorageReactor extends AbstractReactor {
 		throw new NullPointerException("No storage engine defined");
 	}
 
-	private Map<String, Object> getMetadata() {
-		GenRowStruct mapGrs = this.store.getGenRowStruct(ReactorKeysEnum.METADATA.getKey());
-		if (mapGrs != null && !mapGrs.isEmpty()) {
-			List<NounMetadata> mapInputs = mapGrs.getNounsOfType(PixelDataType.MAP);
-			if (mapInputs != null && !mapInputs.isEmpty()) {
-				return (Map<String, Object>) mapInputs.get(0).getValue();
-			}
-		}
-		List<NounMetadata> mapInputs = this.curRow.getNounsOfType(PixelDataType.MAP);
-		if (mapInputs != null && !mapInputs.isEmpty()) {
-			return (Map<String, Object>) mapInputs.get(0).getValue();
-		}
-		return null;
-	}
-
 	@Override
 	public String getReactorDescription() {
 		return "Push files from a local path to a storage path";
@@ -128,6 +135,8 @@ public class PushToStorageReactor extends AbstractReactor {
 			return "The storage path to upload files to";
 		} else if (key.equals(ReactorKeysEnum.FILE_PATH.getKey())) {
 			return "The local path(s) to upload from";
+		} else if (key.equals(ReactorKeysEnum.METADATA.getKey())) {
+			return "Optional metadata map to attach to uploaded objects";
 		}
 		return super.getDescriptionForKey(key);
 	}

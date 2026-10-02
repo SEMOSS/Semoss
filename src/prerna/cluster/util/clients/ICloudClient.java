@@ -451,22 +451,4 @@ public interface ICloudClient {
 	 */
 	Map<String, List<String>> listAllContainersByBucket() throws IOException, InterruptedException;
 
-	///////////////////////////////////////////////////////////////////////////////////
-
-	/*
-	 * Legacy
-	 */
-
-	@Deprecated
-	// TODO: need to make sep for db and project
-	List<String> listAllBlobContainers() throws IOException, InterruptedException;
-
-	/**
-	 * 
-	 * @param containerId
-	 * @throws IOException
-	 * @throws InterruptedException
-	 */
-	void deleteContainer(String containerId) throws IOException, InterruptedException;
-
 }

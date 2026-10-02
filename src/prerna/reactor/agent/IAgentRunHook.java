@@ -59,7 +59,8 @@ package prerna.reactor.agent;
  * {@link prerna.reactor.agent.hooks.AgentHookRegistry#register(String, java.util.function.Supplier)}.
  * The registry is the single source of truth shared by
  * {@code AgentConfigLoader.resolveHook} (read path) and
- * {@code SetAgentHooksReactor} (write-time validation).
+ * {@code AbstractWorkspaceReactor.validateHooks} (write-time validation, used
+ * by {@code EditWorkspace}).
  */
 public interface IAgentRunHook extends IAgentHook {
 

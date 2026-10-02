@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.responses.AskImageModelEngineResponse;
 import prerna.om.Insight;
 
@@ -43,13 +44,13 @@ public class KServeImageEngine extends AbstractRemoteModelEngine {
 	private static final Logger classLogger = LogManager.getLogger(KServeImageEngine.class);
 
 	@Override
-	public AskImageModelEngineResponse askCall(String question, Object fullPrompt, String context, Insight insight,
-			String roomId, Map<String, Object> hyperParameters) {
+	public AskImageModelEngineResponse askCall(InputMessage inputMessage, Insight insight, String roomId,
+			Map<String, Object> hyperParameters) {
 		classLogger.debug("Handling KServeImage Request..");
 
 		JSONObject payload = new JSONObject();
 
-		payload.put("prompt", question);
+		payload.put("prompt", inputMessage.getFullInputPrompt());
 
 		if (hyperParameters != null) {
 			if (hyperParameters.containsKey("negative_prompt")) {

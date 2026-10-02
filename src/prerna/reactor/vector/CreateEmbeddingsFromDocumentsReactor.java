@@ -128,14 +128,14 @@ public class CreateEmbeddingsFromDocumentsReactor extends AbstractReactor {
 				if (status == null) {
 					continue;
 				}
-				boolean hasError = status.getError() != null && !status.getError().isEmpty();
-				String statusValue = status.getStatus();
+				boolean hasError = status.error() != null && !status.error().isEmpty();
+				String statusValue = status.status();
 				boolean failed = "FAILED".equalsIgnoreCase(statusValue);
 				boolean partial = "PARTIAL".equalsIgnoreCase(statusValue);
 				if (failed || hasError) {
-					failedFiles.add(status.getFileName());
+					failedFiles.add(status.fileName());
 				} else if (partial) {
-					partialFiles.add(status.getFileName());
+					partialFiles.add(status.fileName());
 				}
 			}
 			if (!failedFiles.isEmpty()) {

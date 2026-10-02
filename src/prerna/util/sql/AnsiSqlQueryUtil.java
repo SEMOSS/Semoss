@@ -858,7 +858,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 	public void handleInsertionOfClob(Connection conn, PreparedStatement statement, Object object, int index, Gson gson)
 			throws SQLException, UnsupportedEncodingException {
 		if (object == null) {
-			statement.setNull(index, java.sql.Types.CLOB);
+			setNullableLargeText(statement, index, null);
 			return;
 		}
 
@@ -1965,13 +1965,7 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 		this.connectionUrl = this.dbType.getUrlPrefix() + "://" + this.hostname + port + "/" + this.schema;
 
-		if (this.additionalProps != null && !this.additionalProps.isEmpty()) {
-			if (!this.additionalProps.startsWith(";") && !this.additionalProps.startsWith("&")) {
-				this.connectionUrl += ";" + this.additionalProps;
-			} else {
-				this.connectionUrl += this.additionalProps;
-			}
-		}
+		this.connectionUrl = appendAdditionalProps(this.connectionUrl);
 
 		return this.connectionUrl;
 	}

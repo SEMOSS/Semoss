@@ -122,11 +122,13 @@ public class GetStorageFileAsBase64Reactor extends AbstractReactor {
 			return new NounMetadata(base64, PixelDataType.CONST_STRING);
 
 		} catch (UnsupportedOperationException e) {
-			classLogger.error("Failed to read storage file content as base64: {}", e.getMessage(), e);
-			throw new IllegalArgumentException("In-memory blob reading is not supported by this storage engine");
+			classLogger.error("Storage engine={} cannot read storagePath={} into memory", storage.getEngineId(),
+					storagePath, e);
+			throw new IllegalArgumentException("In-memory blob reading is not supported by this storage engine", e);
 		} catch (Exception e) {
-			classLogger.error("Failed to read storage file content as base64: {}", e.getMessage(), e);
-			throw new IllegalArgumentException("Error reading blob from storage: " + storagePath);
+			classLogger.error("Failed to read storagePath={} on storage engine={} as base64 with convertToPdf={}",
+					storagePath, storage.getEngineId(), convertToPdf, e);
+			throw new IllegalArgumentException("Error reading blob from storage: " + storagePath, e);
 		}
 	}
 
