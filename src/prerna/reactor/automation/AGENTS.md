@@ -103,8 +103,9 @@ behavior, and configured `insertData` guardrails. Generated updates always requi
 for an intentionally unbounded operation. Return a value so Java can store it under the node's `outputVar`.
 
 Node output, run inputs, and aggregate scope remain bounded by `AutomationConstants`. Row-shaped node output is
-also registered as a standard SEMOSS Python frame in that run's execution Insight. `GetAutomationRun` returns the
-ordinary `FRAME_MAP` noun while the execution Insight remains live; the UI reads it with the existing
+also registered under its `outputVar` as a standard SEMOSS Python frame in that run's execution Insight, matching
+Notebook's named-frame convention. `GetAutomationRun` returns the ordinary `FRAME_MAP` noun while the execution
+Insight remains live; the UI reads it with the existing
 `Frame | QueryAll | Offset | Limit | Collect` path. The frame is a display boundary, not a durable-data contract:
 when the run Insight has closed, callers fall back to the persisted output preview.
 

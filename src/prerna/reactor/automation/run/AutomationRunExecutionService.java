@@ -628,16 +628,20 @@ final class AutomationRunExecutionService {
 		}
 	}
 
+	/**
+	 * Promotes row-shaped output through the same Python-frame reactor used by
+	 * Notebook. The bounded JSON value remains the Automation contract; this named
+	 * frame only lets the UI inspect it through standard paged frame queries.
+	 */
 	private static void registerNodeFrame(Insight executionInsight, String outputVariable, Object value) {
 		if (!(value instanceof List<?> rows) || rows.isEmpty()
 				|| rows.stream().anyMatch(row -> !(row instanceof Map<?, ?>))) {
 			return;
 		}
 
-		String frameVariable = AutomationRuntime.frameVariable(outputVariable);
 		NounStore nounStore = new NounStore("GenerateFrameFromPyVariable");
 		nounStore.makeGenRowStruct(ReactorKeysEnum.VARIABLE.getKey())
-				.add(new NounMetadata(frameVariable, PixelDataType.CONST_STRING));
+				.add(new NounMetadata(outputVariable, PixelDataType.CONST_STRING));
 		nounStore.makeGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey())
 				.add(new NounMetadata(false, PixelDataType.BOOLEAN));
 

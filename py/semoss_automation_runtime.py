@@ -103,7 +103,7 @@ def execute_node(
     encoded_scope: str,
     encoded_source: str,
     max_output_bytes: int,
-    frame_name: str,
+    output_variable: str,
     session_globals: dict[str, Any],
 ) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
@@ -117,7 +117,7 @@ def execute_node(
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
     result = _json_result(run(scope), max_output_bytes)
-    _prepare_frame(result, frame_name, session_globals)
+    _prepare_frame(result, output_variable, session_globals)
     return result
 
 
@@ -170,10 +170,14 @@ def _is_json_compatible(value: Any) -> bool:
 
 
 def _prepare_frame(
-    value: Any, frame_name: str, session_globals: dict[str, Any]
+    value: Any, output_variable: str, session_globals: dict[str, Any]
 ) -> None:
-    """Keep row-shaped output in the run's Python session for SEMOSS framing."""
-    session_globals.pop(frame_name, None)
+    """Retain row output where the standard SEMOSS Python-frame bridge expects it.
+
+    The JSON result remains the Automation value used by history and downstream
+    scope. The DataFrame is the run-Insight view used for paged UI inspection.
+    """
+    session_globals.pop(output_variable, None)
     if not value or not isinstance(value, list):
         return
     if not all(isinstance(row, dict) for row in value):
@@ -181,7 +185,7 @@ def _prepare_frame(
 
     import pandas as pd
 
-    session_globals[frame_name] = pd.DataFrame.from_records(value)
+    session_globals[output_variable] = pd.DataFrame.from_records(value)
 
 
 def _json_result(value: Any, max_bytes: int) -> Any:

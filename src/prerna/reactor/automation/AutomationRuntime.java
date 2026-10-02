@@ -158,7 +158,7 @@ public final class AutomationRuntime {
 	 * Runs one node module with the workflow scope supplied by the Java scheduler.
 	 */
 	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable) {
-		return buildPythonInvocation("execute_node", source, scope, frameVariable(outputVariable));
+		return buildPythonInvocation("execute_node", source, scope, outputVariable);
 	}
 
 	/**
@@ -171,14 +171,14 @@ public final class AutomationRuntime {
 	}
 
 	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
-			String frameVariable) {
+			String outputVariable) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
-		String frameArguments = frameVariable == null ? ""
-				: ", " + AutomationRuntimeUtils.GSON.toJson(frameVariable) + ", globals()";
+		String frameArguments = outputVariable == null ? ""
+				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals()";
 		return """
 				import importlib.util as _automation_importlib
 				_automation_spec = _automation_importlib.spec_from_file_location(
@@ -190,10 +190,6 @@ public final class AutomationRuntime {
 				encode(AutomationRuntimeUtils.toBoundedRuntimeJson(scope != null ? scope : Map.of(),
 						AutomationConstants.RUN_SCOPE_MAX_BYTES, "Automation run scope")),
 				encode(source != null ? source : ""), AutomationConstants.NODE_OUTPUT_MAX_BYTES, frameArguments);
-	}
-
-	public static String frameVariable(String outputVariable) {
-		return "_automation_frame_" + outputVariable;
 	}
 
 	/**
