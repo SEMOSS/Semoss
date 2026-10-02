@@ -103,19 +103,23 @@ public final class CollaborationPrompts {
 
 
 			## Writing emails
-			- To write, reply to, or change an email, call ComposeEmail. It puts the email in \
+			- To write, reply to, forward, or change an email, call ComposeEmail. It puts the email in \
 			the owner's email editor, where they can edit it; it saves and sends nothing. Do \
 			not write the email in your answer: one short line is enough. Never say you changed \
 			an email without calling ComposeEmail.
 			- A reply to an email in the block: set replyTo to that email's id \
 			(selectedSourceMessageId when the block has one). Never use an id that is not an \
-			email in the block, such as the threadId.
+			email in the block, such as the threadId. Leave to and cc out: the reply goes to \
+			whoever Outlook replies to, unless the owner asks to change who gets it.
+			- To forward an email in the block: set forward to its id and to to the \
+			recipients; message is only a short note, or empty. Outlook adds the original \
+			email and its attachments, so never copy its text into message.
 			- A new email: set to and subject. The subject says what the email is about; never \
 			start it with Re: or Fwd:. Take addresses from the block or from FindPerson. \
 			FindPerson lists the owner's contacts first, most emailed first: use that person \
 			and name them in a Note. Ask which one only when no contact fits and several \
-			directory people do. Never invent an address: if no one matches, leave to empty \
-			and say so in a Note.
+			directory people do. Never invent or guess an address, not even from a name: if no \
+			one matches, leave to empty and say so in a Note.
 			- message is the whole email in plain text, greeting to sign-off, written as the \
 			owner and signed with their first name. No Markdown and no quoted earlier messages.
 			- When the block has openEmail, the owner has that email open, with any edits they \

@@ -44,11 +44,12 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	private static final String SUBJECT = "subject";
 	private static final String MESSAGE = "message";
 	private static final String REPLY_TO = "replyTo";
+	private static final String FORWARD = "forward";
 	private static final String OPEN_EMAIL_ID = "openEmailId";
 
 	public WorkComposeEmailReactor() {
-		this.keysToGet = new String[] { MESSAGE, TO, CC, BCC, SUBJECT, REPLY_TO, OPEN_EMAIL_ID };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { MESSAGE, TO, CC, BCC, SUBJECT, REPLY_TO, FORWARD, OPEN_EMAIL_ID };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -56,8 +57,12 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		getUser();
 		String message = getString(MESSAGE);
 		String openEmailId = getString(OPEN_EMAIL_ID);
-		// a change to the open email passes only the fields that change
-		if ((message == null || message.isBlank()) && (openEmailId == null || openEmailId.isBlank())) {
+		String forward = getString(FORWARD);
+		if (!isBlank(forward) && !isBlank(getString(REPLY_TO))) {
+			throw new IllegalArgumentException("Pass replyTo or forward, not both");
+		}
+		// a change to the open email passes only the fields that change; a forward may have no note
+		if (isBlank(message) && isBlank(openEmailId) && isBlank(forward)) {
 			throw new IllegalArgumentException("Must pass the email as message");
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -65,6 +70,10 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		out.put("note", "The email is in the owner's email editor, where they can edit it. Nothing was saved or "
 				+ "sent; SendEmail sends it once they press Send.");
 		return mapResult(out);
+	}
+
+	private static boolean isBlank(String value) {
+		return value == null || value.isBlank();
 	}
 
 	@Override
@@ -77,7 +86,7 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Write an email for the owner and open it in their email editor, where they review, edit, and send it. "
-				+ "Use it to write a new email, reply to one, or change the email they have open, passing only the fields "
+				+ "Use it to write a new email, reply to or forward one, or change the email they have open, passing only the fields "
 				+ "that change. It saves and sends nothing.";
 	}
 
@@ -85,20 +94,28 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	protected String getDescriptionForKey(String key) {
 		if (MESSAGE.equals(key)) {
 			return "The whole email in plain text, greeting to sign-off, written as the owner. No Markdown. "
-					+ "Required, except when openEmailId is set and the text does not change.";
+					+ "For a forward, the short note above the forwarded email. Required, except for a forward or "
+					+ "when openEmailId is set and the text does not change.";
 		} else if (TO.equals(key)) {
-			return "Optional recipients, as one comma separated value: the whole new list. Leave empty when the address "
-					+ "is not known.";
+			return "Optional recipients, as one comma separated value: the whole new list. Use only addresses from the "
+					+ "Work context, FindPerson, or the owner; never guess one, leave it empty instead. Leave it out for "
+					+ "a reply, which goes to whoever Outlook replies to, unless the owner asks to change who gets it. "
+					+ "Required for a forward.";
 		} else if (CC.equals(key)) {
-			return "Optional recipients to copy, as one comma separated value: the whole new list.";
+			return "Optional recipients to copy, as one comma separated value: the whole new list. Same address rules "
+					+ "as to; leave it out for a reply unless the owner asks to change it.";
 		} else if (BCC.equals(key)) {
 			return "Optional recipients to blind copy, as one comma separated value.";
 		} else if (SUBJECT.equals(key)) {
 			return "Optional subject line of a new email, saying what it is about. Never start it with Re: or Fwd:. "
-					+ "A reply keeps its thread's subject.";
+					+ "A reply or forward keeps its thread's subject; Outlook adds RE: or FW:.";
 		} else if (REPLY_TO.equals(key)) {
 			return "Optional id of the email to reply to, taken from the messages in the Work context. "
 					+ "The reply stays in that email's thread. Leave it out for a new email.";
+		} else if (FORWARD.equals(key)) {
+			return "Optional id of the email to forward, taken from the messages in the Work context. Outlook includes "
+					+ "that email and its attachments below the note, so do not copy its text into message. Set to. "
+					+ "Leave it out unless the owner asks to forward.";
 		} else if (OPEN_EMAIL_ID.equals(key)) {
 			return "Optional id of the email the owner has open (openEmail.id in the Work context), to change it. "
 					+ "Fields left out keep their current values. Leave it out to start a separate email.";
