@@ -140,6 +140,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 		// sends mail as the user, so an agent asks before running it
 		Map<String, String> meta = super.getMcpToolMetadata();
 		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_SEND);
 		return meta;
 	}
 }

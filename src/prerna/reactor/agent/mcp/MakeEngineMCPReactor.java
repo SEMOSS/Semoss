@@ -265,6 +265,7 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					String displayString = (displayEnum != null) ? displayEnum.getValue() : null;
 					uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayString);
 				}
+				MCPUtility.copyUiHints(uiMap, uiJson);
 			}
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 

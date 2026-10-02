@@ -55,9 +55,6 @@ import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveListSharedFilesReactor;
 import prerna.io.connector.ms.onedrive.MicrosoftOneDriveSearchFilesReactor;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookListMailReactor;
-import prerna.io.connector.ms.outlook.MicrosoftOutlookSaveDraftReactor;
-import prerna.io.connector.ms.outlook.MicrosoftOutlookSendDraftReactor;
-import prerna.io.connector.ms.outlook.MicrosoftOutlookSendMailReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadFileReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsDownloadMessageAttachmentReactor;
 import prerna.io.connector.ms.teams.MicrosoftTeamsGetChatMessageReactor;
@@ -72,10 +69,15 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.collaboration.WorkComposeEmailReactor;
+import prerna.reactor.collaboration.WorkSendEmailReactor;
 
 /**
  * Tools every agent gets in a collaboration room, next to DelegateToPerson and
- * FindPerson: the Microsoft 365 mail, calendar, Teams and OneDrive reactors.
+ * FindPerson: ComposeEmail and SendEmail, which work on the email in Work's
+ * editor and pick the mailbox themselves, and the Microsoft 365 mail reading,
+ * calendar, Teams and OneDrive reactors. Provider mail-writing reactors stay out,
+ * so the model never chooses between providers' send tools.
  * Each definition is built from its reactor (description, arguments, ask or
  * auto) under a short name; each call runs the reactor as the room's user.
  */
@@ -98,9 +100,9 @@ public final class CollaborationAgentTools {
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
 		REACTORS.put("ListMail", MicrosoftOutlookListMailReactor.class);
-		REACTORS.put("SaveDraft", MicrosoftOutlookSaveDraftReactor.class);
-		REACTORS.put("SendDraft", MicrosoftOutlookSendDraftReactor.class);
-		REACTORS.put("SendMail", MicrosoftOutlookSendMailReactor.class);
+		// the email in the Work editor: written there, sent from it once the owner presses Send
+		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
+		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
 		REACTORS.put("ListTeams", MicrosoftTeamsListTeamsReactor.class);
 		REACTORS.put("ListChannels", MicrosoftTeamsListChannelsReactor.class);
 		REACTORS.put("ListChannelFiles", MicrosoftTeamsListFilesReactor.class);

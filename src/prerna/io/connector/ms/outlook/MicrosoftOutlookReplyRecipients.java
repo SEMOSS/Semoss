@@ -49,7 +49,7 @@ final class MicrosoftOutlookReplyRecipients {
 
 	/**
 	 * Reply-To replaces From; TO takes precedence over CC and the connected account
-	 * is omitted.
+	 * is omitted unless nobody else is on the message.
 	 */
 	static Map<String, List<String>> defaults(Map<String, Object> message, String account) {
 		if (account == null || account.isBlank()) {
@@ -68,6 +68,10 @@ final class MicrosoftOutlookReplyRecipients {
 		appendUnique(to, seen, replyTo == null ? new String[] { sender } : replyTo);
 		appendUnique(to, seen, MicrosoftOutlookMessageMapper.addressArray(message.get("toRecipients")));
 		appendUnique(cc, seen, MicrosoftOutlookMessageMapper.addressArray(message.get("ccRecipients")));
+		// a message the account sent only to itself answers the account, as Outlook does
+		if (to.isEmpty() && cc.isEmpty()) {
+			to.add(account.trim());
+		}
 		return Map.of("to", to, "cc", cc);
 	}
 
