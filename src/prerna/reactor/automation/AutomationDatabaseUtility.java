@@ -1227,6 +1227,33 @@ public final class AutomationDatabaseUtility {
 	}
 
 	/**
+	 * Gets one persisted node output scoped to an exact run and node.
+	 *
+	 * @param runId  durable run identifier
+	 * @param nodeId node identifier inside that run snapshot
+	 * @return output row, or {@code null} when the run has no such node
+	 */
+	public static Map<String, Object> getNodeOutputForRun(String runId, String nodeId) {
+		IRDBMSEngine schedulerDb = getSchedulerDb();
+		if (schedulerDb == null) {
+			return null;
+		}
+
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + RUN_ID, RUN_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + NODE_ID, NODE_ID));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + RUN_ID, "==", runId,
+				PixelDataType.CONST_STRING));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(TABLE_NODE_OUTPUTS + "__" + NODE_ID, "==", nodeId,
+				PixelDataType.CONST_STRING));
+		qs.setLimit(1L);
+
+		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
+		return results == null || results.isEmpty() ? null : results.get(0);
+	}
+
+	/**
 	 * Confirms that a durable agent run was explicitly persisted as the trace for
 	 * one exact Automation project run and node. This is intentionally an existence
 	 * check rather than an agent-run lookup: callers must first establish the
@@ -1276,13 +1303,17 @@ public final class AutomationDatabaseUtility {
 	 * <p>
 	 * Each entry contains: nodeId, nodeLabel, status, durationMs, outputPreview
 	 * (falls back from outputValue when blank), outputValue, errorMessage, and an
-	 * optional trace map.
+	 * optional trace map. Outputs containing run-private data references expose only
+	 * their bounded preview; the reference identifier remains server-side. A retained
+	 * output is marked available only while its execution Insight remains live.
 	 *
 	 * @param nodeOutputs ordered rows from {@link #getNodeOutputsForRun(String)}
+	 * @param runDataAvailable whether the owning execution Insight is currently live
 	 * @return mutable list of node result maps (empty when {@code nodeOutputs} is
 	 *         null)
 	 */
-	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs) {
+	public static List<Map<String, Object>> buildNodeResults(List<Map<String, Object>> nodeOutputs,
+			boolean runDataAvailable) {
 		List<Map<String, Object>> nodeResults = new ArrayList<>();
 		if (nodeOutputs == null) {
 			return nodeResults;
@@ -1293,12 +1324,26 @@ public final class AutomationDatabaseUtility {
 			nodeResult.put(AutomationConstants.NODE_LABEL, output.get(AutomationConstants.NODE_LABEL));
 			nodeResult.put(AutomationConstants.STATUS, output.get(AutomationConstants.STATUS));
 			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
-			String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_VALUE);
+			String persistedOutput = (String) output.get(AutomationConstants.OUTPUT_VALUE);
+			Object persistedValue = null;
+			boolean containsReference = false;
+			if (persistedOutput != null && !persistedOutput.isBlank()) {
+				try {
+					persistedValue = AutomationRuntimeUtils.GSON.fromJson(persistedOutput, Object.class);
+					containsReference = AutomationDataReference.find(persistedValue) != null;
+				} catch (RuntimeException ignored) {
+					// Ordinary node output is allowed to be any valid persisted JSON value.
+				}
+			}
+			String outputForDisplay = !containsReference ? persistedOutput
+					: (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
 			if (outputForDisplay == null || outputForDisplay.isBlank()) {
 				outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
 			}
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
-			nodeResult.put(AutomationConstants.OUTPUT_VALUE, output.get(AutomationConstants.OUTPUT_VALUE));
+			nodeResult.put(AutomationConstants.OUTPUT_VALUE, !containsReference ? persistedOutput : null);
+			nodeResult.put(AutomationConstants.RESULT_HAS_RETAINED_DATA, containsReference);
+			nodeResult.put(AutomationConstants.RESULT_DATA_AVAILABLE, containsReference && runDataAvailable);
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 			Map<String, Object> trace = new LinkedHashMap<>();
 			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID, output.get(AutomationConstants.RUN_ID));

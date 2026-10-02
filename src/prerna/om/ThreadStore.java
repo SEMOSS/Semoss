@@ -50,7 +50,7 @@ public class ThreadStore {
 	}
 
 	public static void setThreadMapObject(Map<String, Object> mapValues) {
-		Map<String, Object> map = CURRENT.get();
+		Map<String, Object> map = getThreadMap();
 		map.putAll(mapValues);
 	}
 

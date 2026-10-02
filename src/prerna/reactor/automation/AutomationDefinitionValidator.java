@@ -128,7 +128,7 @@ public final class AutomationDefinitionValidator {
 		Map<String, String> nodeTypes = validateNodes(nodes);
 		Map<String, Set<String>> branchPorts = branchPorts(nodes);
 		validateEdges(edges, nodeTypes, branchPorts);
-		validateControlPath(edges, nodeTypes, branchPorts, requireExecutableGraph);
+		validateControlPath(nodes, edges, nodeTypes, branchPorts, requireExecutableGraph);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -227,56 +227,65 @@ public final class AutomationDefinitionValidator {
 		}
 
 		switch (nodeType) {
-		case DATABASE_QUERY -> {
-			requireConfigString(nodeId, config, "query");
-			validateDatabaseQueryLimit(nodeId, config);
-		}
-		case DATABASE_INSERT, DATABASE_UPDATE, DATABASE_DELETE -> requireConfigString(nodeId, config, "query");
-		case MODEL_CHAT -> {
-			requireConfigString(nodeId, config, "prompt");
-			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
-		}
-		case MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
-		case MODEL_NER -> {
-			requireConfigString(nodeId, config, "text");
-			requireConfigStringListOrPlaceholder(nodeId, config, "entities");
-		}
-		case MODEL_VISION -> {
-			requireConfigString(nodeId, config, "prompt");
-			requireConfigString(nodeId, config, "image");
-		}
-		case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
-		case STORAGE_UPLOAD -> {
-			requireConfigString(nodeId, config, "path");
-			requireConfigString(nodeId, config, "destination");
-		}
-		case STORAGE_DOWNLOAD -> requireConfigString(nodeId, config, "path");
-		case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
-		case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
-		case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
-		case AGENT_RUN -> {
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
-			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
-			validateOptionalConfigObject(nodeId, config, "paramMap");
-			validateOptionalConfigObject(nodeId, config, "agentParams");
-			Object wait = config.get(AutomationConstants.CONFIG_WAIT);
-			if (wait != null && !(wait instanceof Boolean)) {
-				throw new IllegalArgumentException(
-						"Automation agent node '" + nodeId + "' wait configuration must be a boolean when provided.");
+			case DATABASE_QUERY -> {
+				requireConfigString(nodeId, config, "query");
+				validateDatabaseQueryLimit(nodeId, config);
 			}
-		}
-		case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
-		case CONTROL_IF -> validateBranchConfig(nodeId, config);
-		case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
-		case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
-			// These node types have no additional required configuration here.
-		}
+			case DATABASE_INSERT, DATABASE_UPDATE, DATABASE_DELETE -> requireConfigString(nodeId, config, "query");
+			case MODEL_CHAT -> {
+				requireConfigString(nodeId, config, "prompt");
+				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+			}
+			case MODEL_EMBEDDINGS -> requireConfigString(nodeId, config, "text");
+			case MODEL_NER -> {
+				requireConfigString(nodeId, config, "text");
+				requireConfigStringListOrPlaceholder(nodeId, config, "entities");
+			}
+			case MODEL_VISION -> {
+				requireConfigString(nodeId, config, "prompt");
+				requireConfigString(nodeId, config, "image");
+			}
+			case STORAGE_READ, STORAGE_DELETE -> requireConfigString(nodeId, config, "path");
+			case STORAGE_UPLOAD -> {
+				requireConfigString(nodeId, config, "path");
+				requireConfigString(nodeId, config, "destination");
+			}
+			case STORAGE_DOWNLOAD -> requireConfigString(nodeId, config, "path");
+			case VECTOR_SEARCH, VECTOR_ADD, VECTOR_DELETE -> requireConfigString(nodeId, config, "value");
+			case FUNCTION_EXECUTE -> requireConfigObject(nodeId, config, "arguments");
+			case APP_PIXEL -> requireConfigString(nodeId, config, "pixel");
+			case AGENT_RUN -> {
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_WORKSPACE_ID);
+				requireConfigString(nodeId, config, AutomationConstants.CONFIG_COMMAND);
+				validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+				validateOptionalConfigObject(nodeId, config, "paramMap");
+				validateOptionalConfigObject(nodeId, config, "agentParams");
+				Object wait = config.get(AutomationConstants.CONFIG_WAIT);
+				if (wait != null && !(wait instanceof Boolean)) {
+					throw new IllegalArgumentException(
+							"Automation agent node '" + nodeId
+									+ "' wait configuration must be a boolean when provided.");
+				}
+			}
+			case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
+			case CONTROL_IF -> validateBranchConfig(nodeId, config);
+			case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
+			case CONTROL_PARALLEL -> {
+				Object joinId = config.get(AutomationConstants.CONFIG_JOIN_NODE_ID);
+				if (joinId != null && !(joinId instanceof String)) {
+					throw new IllegalArgumentException(
+							"Parallel split '" + nodeId + "' config.joinNodeId must be a string.");
+				}
+			}
+			case STORAGE_LIST, TRIGGER_START, CONTROL_JOIN, DEVELOPER_PYTHON -> {
+				// These node types have no additional required configuration here.
+			}
 		}
 	}
 
 	private static boolean isRoutingNode(AutomationNodeType nodeType) {
-		return nodeType == AutomationNodeType.CONTROL_IF || nodeType == AutomationNodeType.CONTROL_JEV;
+		return nodeType == AutomationNodeType.CONTROL_IF || nodeType == AutomationNodeType.CONTROL_JEV
+				|| nodeType == AutomationNodeType.CONTROL_PARALLEL || nodeType == AutomationNodeType.CONTROL_JOIN;
 	}
 
 	/**
@@ -429,7 +438,10 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	/** Returns the supported Jev question type, defaulting older definitions to choice. */
+	/**
+	 * Returns the supported Jev question type, defaulting older definitions to
+	 * choice.
+	 */
 	private static String jevQuestionType(String nodeId, Map<String, Object> config) {
 		Object value = config.getOrDefault(AutomationConstants.CONFIG_QUESTION_TYPE,
 				AutomationConstants.JEV_QUESTION_TYPE_CHOICE);
@@ -655,8 +667,12 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static void validateControlPath(List<Map<String, Object>> edges, Map<String, String> nodeTypes,
-			Map<String, Set<String>> branchPorts, boolean requireExecutableGraph) {
+	private static void validateControlPath(List<Map<String, Object>> nodes, List<Map<String, Object>> edges,
+			Map<String, String> nodeTypes, Map<String, Set<String>> branchPorts, boolean requireExecutableGraph) {
+		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
+		for (Map<String, Object> node : nodes) {
+			nodesById.put((String) node.get(AutomationConstants.NODE_FIELD_ID), node);
+		}
 		String start = null;
 		for (Map.Entry<String, String> node : nodeTypes.entrySet()) {
 			if (AutomationConstants.NODE_START.equals(node.getValue())) {
@@ -666,6 +682,8 @@ public final class AutomationDefinitionValidator {
 		}
 
 		Map<String, Map<String, String>> outgoing = new HashMap<>();
+		Map<String, List<String>> controlTargets = new HashMap<>();
+		Map<String, List<String>> controlSources = new HashMap<>();
 		Map<String, Integer> incomingCounts = new HashMap<>();
 		for (String nodeId : nodeTypes.keySet()) {
 			incomingCounts.put(nodeId, 0);
@@ -678,14 +696,17 @@ public final class AutomationDefinitionValidator {
 			String target = (String) edge.get(AutomationConstants.EDGE_FIELD_TARGET);
 			String sourcePort = (String) edge.get(AutomationConstants.EDGE_FIELD_SOURCE_PORT);
 			Map<String, String> targetsByPort = outgoing.computeIfAbsent(source, ignored -> new HashMap<>());
-			if (targetsByPort.putIfAbsent(sourcePort, target) != null) {
+			String previousTarget = targetsByPort.putIfAbsent(sourcePort, target);
+			if (previousTarget != null && !AutomationConstants.NODE_CONTROL_PARALLEL.equals(nodeTypes.get(source))) {
 				String guidance = AutomationConstants.NODE_CONTROL_IF.equals(nodeTypes.get(source))
 						|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeTypes.get(source))
-						? "Routing nodes allow one edge for each configured case and one else edge."
-						: "Use a control.if node for branching.";
+								? "Routing nodes allow one edge for each configured case and one else edge."
+								: "Use a control.if node for branching.";
 				throw new IllegalArgumentException("Node '" + source + "' has more than one outgoing '" + sourcePort
 						+ "' control edge. " + guidance);
 			}
+			controlTargets.computeIfAbsent(source, ignored -> new ArrayList<>()).add(target);
+			controlSources.computeIfAbsent(target, ignored -> new ArrayList<>()).add(source);
 			incomingCounts.compute(target, (ignored, count) -> count == null ? 1 : count + 1);
 		}
 
@@ -709,12 +730,15 @@ public final class AutomationDefinitionValidator {
 		while (!pending.isEmpty()) {
 			String current = pending.removeFirst();
 			if (reachable.add(current)) {
-				pending.addAll(outgoing.getOrDefault(current, Map.of()).values());
+				pending.addAll(controlTargets.getOrDefault(current, List.of()));
 			}
 		}
 		if (requireExecutableGraph && reachable.size() != nodeTypes.size()) {
 			throw new IllegalArgumentException(
 					"Every automation node must be connected to trigger.start by control edges.");
+		}
+		if (requireExecutableGraph) {
+			validateParallelBlocks(nodesById, nodeTypes, controlTargets, controlSources);
 		}
 
 		Map<String, Integer> remainingIncoming = new HashMap<>(incomingCounts);
@@ -728,7 +752,7 @@ public final class AutomationDefinitionValidator {
 		while (!roots.isEmpty()) {
 			String current = roots.removeFirst();
 			visitedCount++;
-			for (String target : outgoing.getOrDefault(current, Map.of()).values()) {
+			for (String target : controlTargets.getOrDefault(current, List.of())) {
 				int remaining = remainingIncoming.compute(target, (ignored, count) -> count - 1);
 				if (remaining == 0) {
 					roots.add(target);
@@ -737,6 +761,72 @@ public final class AutomationDefinitionValidator {
 		}
 		if (visitedCount != nodeTypes.size()) {
 			throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
+		}
+	}
+
+	private static void validateParallelBlocks(Map<String, Map<String, Object>> nodesById,
+			Map<String, String> nodeTypes, Map<String, List<String>> controlTargets,
+			Map<String, List<String>> controlSources) {
+		Set<String> matchedJoins = new HashSet<>();
+		for (Map.Entry<String, String> entry : nodeTypes.entrySet()) {
+			String splitId = entry.getKey();
+			if (!AutomationConstants.NODE_CONTROL_PARALLEL.equals(entry.getValue())) {
+				continue;
+			}
+			Map<String, Object> split = nodesById.get(splitId);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> config = (Map<String, Object>) split.get(AutomationConstants.NODE_FIELD_CONFIG);
+			String configuredJoinId = (String) config.get(AutomationConstants.CONFIG_JOIN_NODE_ID);
+			String joinId = configuredJoinId == null || configuredJoinId.isBlank() ? null : configuredJoinId;
+			if (joinId != null && !AutomationConstants.NODE_CONTROL_JOIN.equals(nodeTypes.get(joinId))) {
+				throw new IllegalArgumentException("Parallel split '" + splitId
+						+ "' joinNodeId must reference a control.join node.");
+			}
+			if (joinId != null && !matchedJoins.add(joinId)) {
+				throw new IllegalArgumentException("Parallel join '" + joinId + "' can match only one split.");
+			}
+			List<String> branches = controlTargets.getOrDefault(splitId, List.of());
+			if (branches.size() < 2) {
+				throw new IllegalArgumentException("Parallel split '" + splitId + "' must have at least two branches.");
+			}
+			if (controlSources.getOrDefault(splitId, List.of()).size() != 1) {
+				throw new IllegalArgumentException(
+						"Parallel split '" + splitId + "' must have exactly one incoming edge.");
+			}
+			for (String branchId : branches) {
+				AutomationNodeType branchType = AutomationNodeType.fromType(nodeTypes.get(branchId));
+				if (!branchType.supportsOutput() || branchType == AutomationNodeType.AGENT_RUN
+						|| branchType == AutomationNodeType.CONTROL_WAIT) {
+					throw new IllegalArgumentException("Parallel split '" + splitId
+							+ "' branches must be synchronous output-producing nodes; '" + branchId
+							+ "' is unsupported.");
+				}
+				List<String> branchTargets = controlTargets.getOrDefault(branchId, List.of());
+				if (!List.of(splitId).equals(controlSources.getOrDefault(branchId, List.of()))
+						|| (joinId == null ? !branchTargets.isEmpty() : !List.of(joinId).equals(branchTargets))) {
+					throw new IllegalArgumentException("Parallel branch '" + branchId
+							+ (joinId == null ? "' must be a terminal branch of split '" + splitId + "'."
+									: "' must connect directly from split '" + splitId + "' to join '" + joinId
+											+ "'."));
+				}
+			}
+			if (joinId != null) {
+				if (!new HashSet<>(branches).equals(new HashSet<>(controlSources.getOrDefault(joinId, List.of())))) {
+					throw new IllegalArgumentException("Parallel join '" + joinId
+							+ "' must receive exactly one incoming edge from each branch of split '" + splitId + "'.");
+				}
+				if (controlTargets.getOrDefault(joinId, List.of()).size() > 1) {
+					throw new IllegalArgumentException(
+							"Parallel join '" + joinId + "' can have at most one outgoing edge.");
+				}
+			}
+		}
+		for (Map.Entry<String, String> entry : nodeTypes.entrySet()) {
+			if (AutomationConstants.NODE_CONTROL_JOIN.equals(entry.getValue())
+					&& !matchedJoins.contains(entry.getKey())) {
+				throw new IllegalArgumentException("Parallel join '" + entry.getKey()
+						+ "' must be referenced by a matching parallel split.");
+			}
 		}
 	}
 

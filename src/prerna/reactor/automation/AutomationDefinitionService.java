@@ -310,8 +310,10 @@ public final class AutomationDefinitionService {
 			throw new IllegalArgumentException("Python source for node '" + nodeId + "' exceeds the maximum of "
 					+ AutomationConstants.NODE_SOURCE_MAX_BYTES + " UTF-8 bytes.");
 		}
-		// The trigger's setup source is optional and its globals are read from the module
-		// namespace, so only a node the runtime invokes through run(scope) needs the entry point.
+		// The trigger's setup source is optional and its globals are read from the
+		// module
+		// namespace, so only a node the runtime invokes through run(scope) needs the
+		// entry point.
 		if (!AutomationConstants.NODE_START.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))
 				&& !definesRunEntryPoint(source)) {
 			throw new IllegalArgumentException("Python source for node '" + nodeId
@@ -321,9 +323,12 @@ public final class AutomationDefinitionService {
 	}
 
 	/**
-	 * Reports whether Python source binds a module-level {@code run}, which is the entry point
-	 * {@code execute_node} looks up. Only an unindented definition or assignment counts, so a
-	 * {@code run} nested inside a class or another function is not mistaken for the entry point.
+	 * Reports whether Python source binds a module-level {@code run}, which is the
+	 * entry point
+	 * {@code execute_node} looks up. Only an unindented definition or assignment
+	 * counts, so a
+	 * {@code run} nested inside a class or another function is not mistaken for the
+	 * entry point.
 	 *
 	 * @param source persisted node source
 	 * @return {@code true} when the source binds a top-level {@code run}
@@ -592,7 +597,9 @@ public final class AutomationDefinitionService {
 	private static boolean isJavaOwnedRoutingNode(Map<String, Object> node) {
 		Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
 		return AutomationConstants.NODE_CONTROL_IF.equals(nodeType)
-				|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType);
+				|| AutomationConstants.NODE_CONTROL_JEV.equals(nodeType)
+				|| AutomationConstants.NODE_CONTROL_PARALLEL.equals(nodeType)
+				|| AutomationConstants.NODE_CONTROL_JOIN.equals(nodeType);
 	}
 
 	private static String emptyDefinition() {

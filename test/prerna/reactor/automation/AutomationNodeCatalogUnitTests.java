@@ -39,7 +39,8 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 /**
- * Covers the node catalog the canvas builds its palette from. The catalog is the
+ * Covers the node catalog the canvas builds its palette from. The catalog is
+ * the
  * only description of a node the client ever sees, so a node missing from it is
  * unreachable in the UI even though the runtime can execute it.
  */
@@ -106,6 +107,17 @@ public class AutomationNodeCatalogUnitTests {
 				fieldsByKey.get(AutomationConstants.CONFIG_QUESTION_TYPE).get("defaultValue"));
 		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
 				definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTION_TYPE));
+	}
+
+	@Test
+	void parallelSplitMakesTheJoinOptional() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_PARALLEL);
+		assertNotNull(definition);
+		Map<String, Object> joinId = definition.configFields().stream()
+				.filter(field -> AutomationConstants.CONFIG_JOIN_NODE_ID.equals(field.key())).findFirst().orElseThrow()
+				.toMap();
+		assertEquals(false, joinId.get("required"));
+		assertEquals("", joinId.get("defaultValue"));
 	}
 
 	/** Writes need edit rights on the engine; a read only needs view. */

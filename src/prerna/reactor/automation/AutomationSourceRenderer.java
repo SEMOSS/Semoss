@@ -61,30 +61,31 @@ public final class AutomationSourceRenderer {
 				? (Map<String, Object>) map
 				: Map.of();
 		String source = switch (nodeType) {
-		case TRIGGER_START -> triggerSource();
-		case CONTROL_IF, CONTROL_JEV ->
-			throw new IllegalArgumentException("Routing nodes are evaluated by Java and do not have Python source.");
-		case DATABASE_QUERY -> databaseQuerySource(config);
-		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
-		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
-		case DATABASE_DELETE -> databaseWriteSource(config, "removeData");
-		case MODEL_CHAT -> modelChatSource(config);
-		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
-		case MODEL_VISION -> modelVisionSource(config);
-		case MODEL_NER -> modelNerSource(config);
-		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
-		case STORAGE_READ -> storageReadSource(config);
-		case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
-		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
-		case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
-		case VECTOR_SEARCH -> vectorSearchSource(config);
-		case VECTOR_ADD -> vectorAddSource(config);
-		case VECTOR_DELETE -> vectorDeleteSource(config);
-		case FUNCTION_EXECUTE -> functionSource(config);
-		case APP_PIXEL -> appPixelSource(config);
-		case AGENT_RUN -> agentRunSource(config);
-		case CONTROL_WAIT -> waitSource(config);
-		case DEVELOPER_PYTHON -> defaultDeveloperSource();
+			case TRIGGER_START -> triggerSource();
+			case CONTROL_IF, CONTROL_JEV, CONTROL_PARALLEL, CONTROL_JOIN ->
+				throw new IllegalArgumentException(
+						"Routing nodes are evaluated by Java and do not have Python source.");
+			case DATABASE_QUERY -> databaseQuerySource(config);
+			case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
+			case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
+			case DATABASE_DELETE -> databaseWriteSource(config, "removeData");
+			case MODEL_CHAT -> modelChatSource(config);
+			case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
+			case MODEL_VISION -> modelVisionSource(config);
+			case MODEL_NER -> modelNerSource(config);
+			case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
+			case STORAGE_READ -> storageReadSource(config);
+			case STORAGE_UPLOAD -> storageTransferSource(config, "copyToStorage");
+			case STORAGE_DOWNLOAD -> storageDownloadSource(config);
+			case STORAGE_DELETE -> storageSource(config, "deleteFromStorage", "STORAGE_PATH");
+			case VECTOR_SEARCH -> vectorSearchSource(config);
+			case VECTOR_ADD -> vectorAddSource(config);
+			case VECTOR_DELETE -> vectorDeleteSource(config);
+			case FUNCTION_EXECUTE -> functionSource(config);
+			case APP_PIXEL -> appPixelSource(config);
+			case AGENT_RUN -> agentRunSource(config);
+			case CONTROL_WAIT -> waitSource(config);
+			case DEVELOPER_PYTHON -> defaultDeveloperSource();
 		};
 		return source;
 	}
@@ -100,8 +101,8 @@ public final class AutomationSourceRenderer {
 
 	private static String databaseQuerySource(Map<String, Object> config) {
 		return """
-				# Query through SEMOSS so SQL routing, configured engine guardrails, permissions,
-				# and row limits stay server-owned.
+				# SqlQuery owns SQL routing, permissions, guardrails, and the row limit.
+				# Retain only its task handle in this Automation execution Insight.
 				from semoss import Insight
 				import json
 
@@ -112,39 +113,19 @@ public final class AutomationSourceRenderer {
 				def _pixel_value(name, value):
 				    return name + "=[" + json.dumps(value) + "]"
 
-				def _query_rows(value):
-				    if not isinstance(value, str):
-				        output = value
-				    else:
-				        try:
-				            output = json.loads(value)
-				        except json.JSONDecodeError:
-				            return value
-				    if not isinstance(output, dict) or not isinstance(output.get("data"), dict):
-				        return output
-				    headers = output["data"].get("headers")
-				    values = output["data"].get("values")
-				    if not isinstance(headers, list) or not isinstance(values, list):
-				        return output
-				    rows = []
-				    for row in values:
-				        if not isinstance(row, list) or len(row) != len(headers):
-				            raise ValueError("SEMOSS SQL query returned an invalid row shape.")
-				        rows.append(dict(zip(headers, row)))
-				    return rows
-
 				def run(scope):
-				    query = scope.resolve(QUERY)
 				    pixel = "SqlQuery(" + ", ".join([
 				        _pixel_value("database", scope.resolve(ENGINE_ID)),
-				        'query=["<encode>' + query + '</encode>"]',
+				        _pixel_value("query", scope.resolve(QUERY)),
 				        _pixel_value("limit", int(scope.resolve(LIMIT))),
+				    ]) + ") | RetainAutomationRunData(" + ", ".join([
+				        _pixel_value("runId", scope["run_id"]),
 				    ]) + ");"
 				    response = Insight().run_pixel(pixel, raw=True)
 				    result = response[0]["pixelReturn"][-1]
 				    if "ERROR" in result.get("operationType", []):
 				        raise RuntimeError(result.get("output") or "SQL query failed")
-				    return _query_rows(result.get("output"))
+				    return result.get("output")
 				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
 				value(config, AutomationConstants.CONFIG_LIMIT));
 	}

@@ -87,6 +87,70 @@ public class AutomationDefinitionValidatorUnitTests {
 		return document(startConfig, workNode, AutomationConstants.PYTHON_DOC_CURRENT_VERSION, true);
 	}
 
+	private static Map<String, Object> graphNode(String id, String type, String outputVar, Map<String, Object> config) {
+		Map<String, Object> node = new LinkedHashMap<>();
+		node.put(AutomationConstants.NODE_FIELD_ID, id);
+		node.put(AutomationConstants.NODE_FIELD_TYPE, type);
+		node.put(AutomationConstants.NODE_FIELD_LABEL, id);
+		if (outputVar != null) {
+			node.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, outputVar);
+		}
+		node.put(AutomationConstants.NODE_FIELD_CODE_MODE,
+				AutomationConstants.NODE_DEVELOPER_PYTHON.equals(type) ? AutomationConstants.NODE_CODE_MODE_CUSTOM
+						: AutomationConstants.NODE_CODE_MODE_GENERATED);
+		node.put(AutomationConstants.NODE_FIELD_CONFIG, config);
+		return node;
+	}
+
+	private static Map<String, Object> graphEdge(String id, String source, String target) {
+		return Map.of(AutomationConstants.NODE_FIELD_ID, id, AutomationConstants.EDGE_FIELD_KIND,
+				AutomationConstants.EDGE_KIND_CONTROL, AutomationConstants.EDGE_FIELD_SOURCE, source,
+				AutomationConstants.EDGE_FIELD_SOURCE_PORT, AutomationConstants.CONTROL_PORT_OUT,
+				AutomationConstants.EDGE_FIELD_TARGET, target, AutomationConstants.EDGE_FIELD_TARGET_PORT,
+				AutomationConstants.CONTROL_PORT_IN);
+	}
+
+	private static String parallelDefinition(String branchType) {
+		return parallelDefinition(branchType, true, 2);
+	}
+
+	private static String parallelDefinition(String branchType, boolean withJoin) {
+		return parallelDefinition(branchType, withJoin, 2);
+	}
+
+	private static String parallelDefinition(String branchType, boolean withJoin, int branchCount) {
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		nodes.add(startNode(Map.of()));
+		nodes.add(graphNode("split", AutomationConstants.NODE_CONTROL_PARALLEL, null,
+				Map.of(AutomationConstants.CONFIG_JOIN_NODE_ID, withJoin ? "join" : "")));
+		List<Map<String, Object>> edges = new ArrayList<>();
+		edges.add(graphEdge("e1", "start", "split"));
+		for (int index = 0; index < branchCount; index++) {
+			String branchId = "eval-" + index;
+			String branchTypeForNode = index == 0 ? branchType : AutomationConstants.NODE_DEVELOPER_PYTHON;
+			String outputVar = "eval_" + index;
+			Map<String, Object> config = AutomationConstants.NODE_CONTROL_WAIT.equals(branchTypeForNode)
+					? Map.of("durationSeconds", 1)
+					: Map.of();
+			nodes.add(graphNode(branchId, branchTypeForNode, outputVar, config));
+			edges.add(graphEdge("e-split-" + index, "split", branchId));
+		}
+		if (withJoin) {
+			nodes.add(graphNode("join", AutomationConstants.NODE_CONTROL_JOIN, null, Map.of()));
+			nodes.add(graphNode("report", AutomationConstants.NODE_DEVELOPER_PYTHON, "report", Map.of()));
+			for (int index = 0; index < branchCount; index++) {
+				edges.add(graphEdge("e-join-" + index, "eval-" + index, "join"));
+			}
+			edges.add(graphEdge("e-report", "join", "report"));
+		}
+		Map<String, Object> graph = Map.of(AutomationConstants.DOC_NODES, nodes,
+				AutomationConstants.DOC_EDGES, edges);
+		Map<String, Object> definition = new LinkedHashMap<>();
+		definition.put(AutomationConstants.DOC_FORMAT_VERSION, AutomationConstants.PYTHON_DOC_CURRENT_VERSION);
+		definition.put(AutomationConstants.DOC_GRAPH, graph);
+		return AutomationRuntimeUtils.GSON.toJson(definition);
+	}
+
 	/**
 	 * @param startConfig trigger node configuration under test
 	 * @param workNode    optional second node, connected to the trigger when linked
@@ -168,6 +232,33 @@ public class AutomationDefinitionValidatorUnitTests {
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(definition(Map.of()));
 		assertEquals(1, validated.nodes().size());
+	}
+
+	@Test
+	void acceptsParallelEvaluationsThatConvergeAtTheirMatchingJoin() {
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidate(parallelDefinition(AutomationConstants.NODE_DEVELOPER_PYTHON));
+		assertEquals(6, validated.nodes().size());
+	}
+
+	@Test
+	void acceptsTerminalFireAndForgetParallelSplit() {
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidate(parallelDefinition(AutomationConstants.NODE_DEVELOPER_PYTHON, false));
+		assertEquals(4, validated.nodes().size());
+	}
+
+	@Test
+	void acceptsMoreThanEightParallelBranches() {
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidate(parallelDefinition(AutomationConstants.NODE_DEVELOPER_PYTHON, false, 10));
+		assertEquals(12, validated.nodes().size());
+	}
+
+	@Test
+	void rejectsHumanWaitInsideParallelEvaluationBlock() {
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator
+				.parseAndValidate(parallelDefinition(AutomationConstants.NODE_CONTROL_WAIT)));
 	}
 
 	@Test
@@ -259,7 +350,9 @@ public class AutomationDefinitionValidatorUnitTests {
 		}
 	}
 
-	/** A generated node must carry the statement its operation actually performs. */
+	/**
+	 * A generated node must carry the statement its operation actually performs.
+	 */
 	@Test
 	void databaseNodesRejectTheWrongStatementType() {
 		assertThrows(IllegalArgumentException.class,

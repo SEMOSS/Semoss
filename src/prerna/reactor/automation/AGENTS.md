@@ -12,7 +12,8 @@ in the authenticated user's Python insight.
 | `GetAutomation` | `project` | Returns the definition as the top-level map, including `trigger.start.config.globals`, `nodeSources: { nodeId: source }`, and server-derived `scopeVariables` by node ID. |
 | `SaveAutomation` | `project`, `json`, optional `nodeSources` | `json` and the `nodeSources` JSON map may be raw or Base64. `nodeSources` holds one entry per Python-backed node; trigger setup source belongs in `trigger.start.config.pythonSource`. |
 | `TriggerAutomation` | `project`, optional `inputs`, `triggerType` | Java seeds configured trigger globals, executes trigger Python, then follows the canonical control path; returned scope and `globals` include resolved values. |
-| `GetAutomationRun` | `project`, `runId` | Returns live run state and per-node outputs. |
+| `GetAutomationRun` | `project`, `runId` | Returns persisted run state and per-node results. Small outputs are returned inline; large retained outputs return only their preview and availability flags. |
+| `GetAutomationRunNodeData` | `project`, `runId`, `nodeId`, optional `offset`, `limit` | Returns one authorized, bounded page from a retained node output while that run's execution Insight remains live. |
 | `ListAutomationRuns` | `project`, optional `limit` | Returns run history, newest first. |
 | `CancelAutomationRun` | `project`, `runId` | Requests cancellation using the DB flag and same-pod fast path. |
 | `RemoveAutomationStep` | `project`, `nodeId`, optional `removeDownstream` | Removes one step and its attached edges; when `removeDownstream=true`, removes the selected step and every downstream step. Detached drafts can be saved but cannot run. |
@@ -58,15 +59,17 @@ TriggerAutomation (virtual thread)
   -> validates and snapshots the graph
   -> inserts a SUBMITTED run, bounded effective inputs, immutable node sources, and pending node outputs
   -> atomically claims that run as RUNNING
+  -> creates one authenticated execution Insight for the run
   -> Java seeds trigger globals and executes trigger Python, then visits the selected control path
   -> PyTranslator.runScriptWithExplicitAssetPaths(...) executes that node's source only
   -> Python module invokes its documented ai_server engine SDK or direct Pixel call
+  -> small outputs stay inline; large outputs are retained in the execution Insight behind an opaque reference
   -> persists the terminal status for that run
 ```
 
 Authoring may persist an acyclic draft with detached or incomplete control paths. Execution accepts
 only a connected graph rooted at `trigger.start`; each run follows one deterministic path through
-its routing nodes.
+its routing nodes, except for explicit parallel split/join blocks.
 Supported native-Python runtime types are:
 
 - `database.query`, `database.insert`, `database.update`, `database.delete`
@@ -83,8 +86,20 @@ expression evaluator. The first match selects its `case:<clause-id>` edge; other
 `questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
 model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
 Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
-below the configured threshold. Arbitrary fan-out from one port, loops, and parallel execution are
-rejected before execution; nonselected branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
+below the configured threshold. `control.parallel` names its matching `control.join` in
+`config.joinNodeId` to wait for the matching `control.join`; omit it for terminal fire-and-forget
+side effects. A split must have at least two direct branches, each a synchronous output-producing node;
+there is no server-enforced upper branch-count limit.
+Joined branches connect directly to the join, receive independent copies of the same scope, and
+their output variables are merged after every branch completes. Fire-and-forget branches must be
+terminal leaves; the trigger returns while the durable run remains `RUNNING`, and the background
+coordinator finalizes it when every branch settles. Human-wait agent nodes and control nodes are not
+supported inside the block. Fire-and-forget branches are not automatically retried after a worker
+failure; manually rerunning side-effecting branches may repeat an action. Evaluation-level failure should be returned as ordinary JSON
+data (for example, `{"status":"failed","reason":"..."}`), not raised as a Python exception, so
+the join and final report can inspect every result. Execution exceptions still fail the automation.
+Arbitrary fan-out outside `control.parallel`, loops, and nested parallel blocks are rejected before
+execution; nonselected conditional branch nodes are retained in history as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional
 setup source. Java puts defaults in the runtime scope unless
@@ -97,7 +112,10 @@ run-local `scope` mapping containing trigger inputs, globals, runtime metadata, 
 outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
 generated-node configuration fields and are not rewritten inside custom source. Generated nodes use the documented
 engine SDK unless an existing Pixel reactor owns required server policy. Generated database reads use `SqlQuery`,
-which retains SQL routing, authorization, configured engine-pipeline guardrails, and bounded row collection. Generated
+which retains SQL routing, authorization, configured engine-pipeline guardrails, and node-defined row limits. Its task is
+then piped through `RetainAutomationRunData`, which retains the existing task in the run's execution Insight rather than
+introducing another query path or cache. Downstream Python resolves the opaque result as a read-only, lazily paged
+sequence, so node source continues to use ordinary scope access without knowing the backing type. Generated
 database writes use the database SDK's `ExecQuery` path, which retains edit authorization, audit logging, commit
 behavior, and configured `insertData` guardrails. Generated updates always require a `WHERE` clause; use custom Python
 for an intentionally unbounded operation. Return a value so Java can store it under the node's `outputVar`.
@@ -107,11 +125,27 @@ insight's user/security context. It does not accept an arbitrary node definition
 id, or Java object from Python. Cancellation sets the DB flag, signals the same-pod Python socket
 job when possible, and is checked before each node and during waits.
 
+## Run data lifecycle
+
+The scheduler database remains the durable source for run metadata, definition snapshots, node status, timings,
+previews, and ordinary small JSON outputs. It does not store the full body of a retained large output. For a retained
+output it stores an internal `AutomationDataReference`, but client run-detail responses expose only the preview plus
+`hasRetainedData` and `dataAvailable` flags.
+
+The referenced task or Python value belongs to the same execution Insight as the run. `GetAutomationRunNodeData`
+first authorizes the Automation project and run, resolves that Insight server-side, and then returns a bounded page.
+Reference IDs, task IDs, and backing details must not be exposed to the browser. When the execution Insight is closed,
+evicted, or lost on process restart, the durable run history remains available but its large retained payload is not.
+Do not silently turn this live-run retention contract into durable storage; that requires an explicit lifecycle,
+authorization, quota, and cleanup design.
+
 ## Shared infrastructure
 
 | Class | Purpose |
 | --- | --- |
 | `AutomationDatabaseUtility` | Physical run records, node outputs, per-run claiming, and stale-run recovery in the scheduler DB. |
+| `AutomationDataReference` | Opaque server-side marker for a large output retained by an execution Insight. |
+| `AutomationRunData` | Provider-neutral retention and bounded paging for Insight-owned task and Python values. |
 | `SchedulerOwlCreator` | Authoritative OWL schema for both scheduler-owned and automation-owned tables in that DB. |
 | `AutomationPythonRunRegistry` | Same-pod Python socket interruption, heartbeat, and cancellation state. |
 | `AutomationRuntimeUtils` | JSON serialization, scope construction, and output previews. |

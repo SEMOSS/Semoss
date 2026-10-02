@@ -69,7 +69,8 @@ scope object - there is no module-level `resolve` function.
 
 ## Output variables
 
-Every node except `trigger.start` and `control.if` needs one, and it must be:
+Every node except `trigger.start`, `control.if`, `control.jev`, `control.parallel`, and
+`control.join` needs one, and it must be:
 
 - a valid Python identifier, not a Python keyword;
 - unique across the whole graph, because a duplicate silently overwrites the earlier
@@ -94,6 +95,16 @@ no longer in scope.
   first match, with an `else` fallback. To attach a node to one of its branches, pass
   `afterNodeId` as the `control.if` node plus `branchPort` as either `case:<clause-id>`
   or `else`. `branchPort` is required there and must be omitted for every other parent.
+- `control.parallel` starts two or more independent synchronous evaluation nodes; the server
+  does not impose an upper branch-count limit. Its
+  optional `config.joinNodeId` names a matching `control.join`. With a join, wire each
+  evaluation directly from the split to the join; all evaluations receive the same pre-split
+  scope and their outputs are available afterward. Without a join, every branch must be a
+  terminal leaf; the trigger returns after dispatch while the durable run remains active.
+- Fire-and-forget nodes are not automatically retried. Manually rerunning a side-effecting
+  branch may repeat an email, write, or other action.
+- Return evaluation-level failures as JSON results instead of raising exceptions, so the
+  final report can inspect all outcomes. Runtime exceptions still fail the automation.
 
 ## Node types and their rules
 

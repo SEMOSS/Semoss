@@ -170,6 +170,8 @@ public final class AutomationConstants {
 	public static final String NODE_CONTROL_WAIT = "control.wait";
 	public static final String NODE_CONTROL_IF = "control.if";
 	public static final String NODE_CONTROL_JEV = "control.jev";
+	public static final String NODE_CONTROL_PARALLEL = "control.parallel";
+	public static final String NODE_CONTROL_JOIN = "control.join";
 	public static final String NODE_DEVELOPER_PYTHON = "developer.python";
 
 	// -- Node config keys (node.config map fields, shared across executors)
@@ -183,6 +185,7 @@ public final class AutomationConstants {
 	public static final String CONFIG_QUESTION = "question";
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
+	public static final String CONFIG_JOIN_NODE_ID = "joinNodeId";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
 	public static final String CONFIG_PARAM_VALUES = "paramValues";
@@ -210,13 +213,27 @@ public final class AutomationConstants {
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
 	/** Largest row limit accepted by a generated database query node. */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	public static final int DB_QUERY_MAX_LIMIT = 1_000_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
 	public static final int WAIT_MAX_SECONDS = 3600;
 	public static final int NODE_SOURCE_MAX_BYTES = 100_000;
 	public static final int NODE_OUTPUT_MAX_BYTES = 5 * 1024 * 1024;
+	/** Largest node value kept inline before its execution Insight retains it by reference. */
+	public static final int DATA_REFERENCE_INLINE_MAX_BYTES = 512 * 1024;
+	/** Largest single value retained by an Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_VALUE_BYTES = 64 * 1024 * 1024;
+	/** Aggregate retained-value ceiling for one Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_RUN_BYTES = 256 * 1024 * 1024;
+	/** Largest number of values retained by one Automation execution Insight. */
+	public static final int RETAINED_DATA_MAX_RUN_VALUES = 256;
+	/** Default number of retained data rows or entries returned to a client. */
+	public static final int DEFAULT_DATA_PAGE_LIMIT = 50;
+	/** Largest retained data page a client may request. */
+	public static final int MAX_DATA_PAGE_LIMIT = 100;
+	/** Largest task-data batch transferred internally from Java to a Python node. */
+	public static final int INTERNAL_DATA_PAGE_LIMIT = 1_000;
 	public static final int RUN_INPUTS_MAX_BYTES = 5 * 1024 * 1024;
 	public static final int RUN_SCOPE_MAX_BYTES = 20 * 1024 * 1024;
 	public static final int RUNTIME_JSON_MAX_DEPTH = 64;
@@ -277,11 +294,17 @@ public final class AutomationConstants {
 	// ---------------------------------------------------------------
 
 	public static final String RESULT_NODE_RESULTS = "nodeResults";
-	/** Ephemeral Insight workspace for an active or recently completed local run. */
+	/**
+	 * Ephemeral Insight workspace for an active or recently completed local run.
+	 */
 	public static final String RESULT_EXECUTION_INSIGHT_ID = "executionInsightId";
 	public static final String RESULT_CANCEL_REQUESTED = "cancelRequested";
 	public static final String RESULT_SIGNALLED_LOCALLY = "signalledLocally";
 	public static final String RESULT_OUTPUT_VALUE = "outputValue";
+	/** Whether the live execution Insight can currently page a retained node result. */
+	public static final String RESULT_DATA_AVAILABLE = "dataAvailable";
+	/** Whether the node produced a value retained in its execution Insight. */
+	public static final String RESULT_HAS_RETAINED_DATA = "hasRetainedData";
 	public static final String RESULT_TRACE = "trace";
 	/**
 	 * Internal generated-node envelope value; removed before history/scope
