@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -123,5 +124,13 @@ public class MicrosoftOutlookMoveMailReactor extends AbstractMicrosoftOutlookMes
 			return "Where to move the message: a well known name such as archive, deleteditems or inbox, the name of a folder in the mailbox as returned by MicrosoftOutlookListMailFolders, or a folder id.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// moves the user's mail, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -136,5 +137,13 @@ public class MicrosoftOneDriveShareFileReactor extends AbstractMicrosoftOneDrive
 			return "Optional moment the link stops working, as an ISO 8601 date and time such as 2026-12-31T23:59:59Z.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// shares the user's file with others, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

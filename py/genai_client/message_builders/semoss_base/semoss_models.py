@@ -446,6 +446,9 @@ class ModelSettings(BaseModel):
     effort: Optional[str] = None
     global_param_override: Optional[Dict[str, Any]] = None
     modalities: Optional[List[str]] = None
+    # Legacy/direct-Python fallback when engine input-modalities metadata is absent.
+    # Engine metadata takes precedence; platform models need no init argument.
+    native_document_mime_types: Optional[List[str]] = None
 
 
 SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse"
