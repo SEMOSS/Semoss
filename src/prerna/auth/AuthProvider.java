@@ -30,6 +30,7 @@ package prerna.auth;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -109,7 +110,7 @@ public enum AuthProvider implements Serializable {
 
 	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass) {
 		// default the social.properties prefix to the lower-cased label
-		this(label, displayName, isOAuth, tokenFillerClass, label.toLowerCase());
+		this(label, displayName, isOAuth, tokenFillerClass, label.toLowerCase(Locale.ROOT));
 	}
 
 	AuthProvider(String label, String displayName, boolean isOAuth, String tokenFillerClass, String socialPrefix) {
@@ -171,8 +172,8 @@ public enum AuthProvider implements Serializable {
 		if (pathValue == null) {
 			return null;
 		}
-		AuthProvider provider = getSocialPropKeysToEnum().get(pathValue.toLowerCase());
-		return provider != null ? provider.getSocialPrefix() : pathValue.toLowerCase();
+		AuthProvider provider = findProvider(pathValue);
+		return provider != null ? provider.getSocialPrefix() : pathValue.toLowerCase(Locale.ROOT);
 	}
 
 	public String getDisplayName() {
@@ -192,65 +193,46 @@ public enum AuthProvider implements Serializable {
 		return getLabel();
 	}
 
+	/**
+	 * Resolve provider names and social.properties aliases, retaining the generic
+	 * fallback for unknown providers.
+	 */
 	public static AuthProvider getProviderFromString(String authProv) {
-		AuthProvider provider = null;
-		try {
-			provider = AuthProvider.valueOf(authProv.toUpperCase());
-		} catch (Exception e) {
-			provider = AuthProvider.GENERIC;
-		}
-		return provider;
+		AuthProvider provider = findProvider(authProv);
+		return provider != null ? provider : AuthProvider.GENERIC;
 	}
 
 	/**
-	 * Get the keys are they should be in the social.properties files All keys
-	 * should be the same as the enum name but lower case
-	 * 
-	 * @return
+	 * Resolve a provider name or social.properties alias to its stored label.
+	 * Unknown values (including custom group namespaces) and null are preserved.
+	 *
+	 * @param value provider name, configuration prefix, or custom group type
+	 * @return the canonical provider label, or the original unknown value
+	 */
+	public static String getProviderLabel(String value) {
+		AuthProvider provider = findProvider(value);
+		return provider != null ? provider.getLabel() : value;
+	}
+
+	private static AuthProvider findProvider(String value) {
+		return value == null ? null : getSocialPropKeysToEnum().get(value.trim().toLowerCase(Locale.ROOT));
+	}
+
+	/**
+	 * Get all recognized social.properties keys, including provider aliases.
 	 */
 	public static Set<String> getSocialPropKeys() {
-		Set<String> vals = new HashSet<>();
-		for (AuthProvider auth : AuthProvider.values()) {
-			vals.add(auth.name().toLowerCase());
-		}
-		// TODO: account for legacy MS
-		vals.add("ms");
-		return vals;
+		return new HashSet<>(getSocialPropKeysToEnum().keySet());
 	}
 
 	public static Map<String, AuthProvider> getSocialPropKeysToEnum() {
 		Map<String, AuthProvider> vals = new HashMap<>();
 		for (AuthProvider auth : AuthProvider.values()) {
-			vals.put(auth.name().toLowerCase(), auth);
-			// also register the canonical social.properties prefix (e.g. "producthunt")
+			vals.put(auth.name().toLowerCase(Locale.ROOT), auth);
+			// Prefixes also register aliases such as "ms" and "producthunt".
 			vals.put(auth.getSocialPrefix(), auth);
 		}
-		// account for legacy MS: both "ms" and "microsoft" map to MICROSOFT
-		vals.put("ms", AuthProvider.MICROSOFT);
-		vals.put("microsoft", AuthProvider.MICROSOFT);
-
 		return vals;
-	}
-
-	@Deprecated
-	public static Map<String, String> getLabelToLegacyName() {
-		Map<String, String> vals = new HashMap<>();
-		for (AuthProvider auth : AuthProvider.values()) {
-			vals.put(auth.label, auth.getLegacyName());
-		}
-		// TODO: account for legacy MS
-		vals.put(AuthProvider.MICROSOFT.label, "Ms");
-
-		return vals;
-	}
-
-	/**
-	 * Really gross looking... you get things like "Ms", "Cac"... IF CREATING NEW
-	 * LOGIC, PLEASE USE AuthProvider.name / getLabel
-	 */
-	@Deprecated
-	private String getLegacyName() {
-		return name().charAt(0) + name().substring(1).toLowerCase();
 	}
 
 }

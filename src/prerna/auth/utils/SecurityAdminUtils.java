@@ -1029,45 +1029,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			Double boundModelMaxResponseTime = modelMaxResponseTime;
 			String boundNewSalt = newSalt;
 			String boundNewHashPass = newHashPass;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement editUserPs = connection.prepareStatement(editUserQuery)) {
-					int i = 1;
-					editUserPs.setString(i++, email);
-					editUserPs.setString(i++, username);
-					editUserPs.setString(i++, name);
-					editUserPs.setBoolean(i++, boundAdminValue);
-					editUserPs.setBoolean(i++, boundPublisherValue);
-					editUserPs.setBoolean(i++, boundExporterValue);
-					editUserPs.setString(i++, boundPhone);
-					editUserPs.setString(i++, phoneExtension);
-					editUserPs.setString(i++, countryCode);
+			QueryExecutionUtility.executeUpdate(securityDb, editUserQuery, editUserPs -> {
+				int i = 1;
+				editUserPs.setString(i++, email);
+				editUserPs.setString(i++, username);
+				editUserPs.setString(i++, name);
+				editUserPs.setBoolean(i++, boundAdminValue);
+				editUserPs.setBoolean(i++, boundPublisherValue);
+				editUserPs.setBoolean(i++, boundExporterValue);
+				editUserPs.setString(i++, boundPhone);
+				editUserPs.setString(i++, phoneExtension);
+				editUserPs.setString(i++, countryCode);
 
-					securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
-							StringUtils.trim(modelUsageRestriction));
-					if (boundModelMaxTokens == null) {
-						editUserPs.setNull(i++, java.sql.Types.INTEGER);
-					} else {
-						editUserPs.setInt(i++, boundModelMaxTokens);
-					}
-					if (boundModelMaxResponseTime == null) {
-						editUserPs.setNull(i++, java.sql.Types.DOUBLE);
-					} else {
-						editUserPs.setDouble(i++, boundModelMaxResponseTime);
-					}
-					securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
-							StringUtils.trim(modelUsageFrequency));
-					// we have these to update as well for native
-					if (updatePassword) {
-						editUserPs.setString(i++, boundNewHashPass);
-						editUserPs.setString(i++, boundNewSalt);
-					}
-					// Where
-					editUserPs.setString(i++, userId);
-					editUserPs.setString(i++, type);
-					editUserPs.execute();
-
+				securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
+						StringUtils.trim(modelUsageRestriction));
+				if (boundModelMaxTokens == null) {
+					editUserPs.setNull(i++, java.sql.Types.INTEGER);
+				} else {
+					editUserPs.setInt(i++, boundModelMaxTokens);
 				}
-				return null;
+				if (boundModelMaxResponseTime == null) {
+					editUserPs.setNull(i++, java.sql.Types.DOUBLE);
+				} else {
+					editUserPs.setDouble(i++, boundModelMaxResponseTime);
+				}
+				securityDb.getQueryUtil().setStringEmptyAsNullable(editUserPs, i++,
+						StringUtils.trim(modelUsageFrequency));
+				// we have these to update as well for native
+				if (updatePassword) {
+					editUserPs.setString(i++, boundNewHashPass);
+					editUserPs.setString(i++, boundNewSalt);
+				}
+				// Where
+				editUserPs.setString(i++, userId);
+				editUserPs.setString(i++, type);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update user account information in the security database", e);
@@ -1106,14 +1101,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			for (String query : deleteQueries) {
 				try {
 					String boundQuery = query;
-					QueryExecutionUtility.write(securityDb, connection -> {
-						try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, userIdToDelete);
-							ps.execute();
-
-						}
-						return null;
+					QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userIdToDelete);
 					});
 				} catch (RuntimeException e) {
 					throw e;
@@ -1129,15 +1119,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			for (String query : deleteQueries) {
 				try {
 					String boundQuery = query;
-					QueryExecutionUtility.write(securityDb, connection -> {
-						try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, userIdToDelete);
-							ps.setString(parameterIndex++, userTypeToDelete);
-							ps.execute();
-
-						}
-						return null;
+					QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, userIdToDelete);
+						ps.setString(parameterIndex++, userTypeToDelete);
 					});
 				} catch (RuntimeException e) {
 					throw e;
@@ -1183,17 +1168,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "UPDATE SMSS_USER SET EMAIL=? WHERE ID=? AND TYPE=?";
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(newEmail));
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userType);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, StringUtils.trim(newEmail));
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, userType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1214,15 +1193,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "UPDATE SMSS_USER SET PUBLISHER=? WHERE ID=?";
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, isPublisher);
-					ps.setString(parameterIndex++, userId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, isPublisher);
+				ps.setString(parameterIndex++, userId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1243,15 +1217,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "UPDATE SMSS_USER SET EXPORTER=? WHERE ID=?";
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, isExporter);
-					ps.setString(parameterIndex++, userId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, isExporter);
+				ps.setString(parameterIndex++, userId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1277,21 +1246,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, isLocked);
-					if (!isLocked) {
-						// we reset the counter so lastlogin will be today
-						java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-						ps.setTimestamp(parameterIndex++, timestamp);
-					}
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, type);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, isLocked);
+				if (!isLocked) {
+					// we reset the counter so lastlogin will be today
+					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
+					ps.setTimestamp(parameterIndex++, timestamp);
 				}
-				return null;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, type);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1319,23 +1283,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				// first do a delete
 				String deleteQ = "DELETE FROM USERMETA WHERE METAKEY=? AND USERID=? AND TYPE=?";
 
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-					for (String field : metadata.keySet()) {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, field);
-						deletePs.setString(parameterIndex++, userId);
-						deletePs.setString(parameterIndex++, userTypeString);
-						deletePs.addBatch();
-					}
-					deletePs.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
+					int parameterIndex = 1;
+					deletePs.setString(parameterIndex++, field);
+					deletePs.setString(parameterIndex++, userId);
+					deletePs.setString(parameterIndex++, userTypeString);
+				});
 
 				// now we do the new insert with the order of the tags
 				String query = securityDb.getQueryUtil().createInsertPreparedStatementString("USERMETA",
 						new String[] { "USERID", "TYPE", "METAKEY", "METAVALUE", "METAORDER" });
 
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String field : metadata.keySet()) {
 						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
@@ -1357,9 +1316,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -1817,15 +1774,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public boolean setEngineGlobal(String engineId, boolean global) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?")) {
-					ps.setBoolean(1, global);
-					ps.setString(2, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET GLOBAL=? WHERE ENGINEID=?", ps -> {
+				ps.setBoolean(1, global);
+				ps.setString(2, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine global visibility setting", e);
@@ -1846,15 +1797,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public boolean setEngineDiscoverable(String engineId, boolean discoverable) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?")) {
-					ps.setBoolean(1, discoverable);
-					ps.setString(2, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE ENGINE SET DISCOVERABLE=? WHERE ENGINEID=?", ps -> {
+				ps.setBoolean(1, discoverable);
+				ps.setString(2, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine discoverability setting", e);
@@ -1872,15 +1817,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public boolean setProjectGlobal(String projectId, boolean global) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?")) {
-					ps.setBoolean(1, global);
-					ps.setString(2, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET GLOBAL=? WHERE PROJECTID=?", ps -> {
+				ps.setBoolean(1, global);
+				ps.setString(2, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project global visibility setting", e);
@@ -1934,16 +1873,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public boolean setProjectDiscoverable(String projectId, boolean discoverable) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?")) {
-					ps.setBoolean(1, discoverable);
-					ps.setString(2, projectId);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE PROJECT SET DISCOVERABLE=? WHERE PROJECTID=?",
+					ps -> {
+						ps.setBoolean(1, discoverable);
+						ps.setString(2, projectId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
@@ -2070,35 +2004,30 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, engineId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageRestriction));
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageFrequency));
-					if (maxTokens == 0) {
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-					} else {
-						ps.setInt(parameterIndex++, maxTokens);
-					}
-					if (maxResponseTime == 0.0) {
-						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-					} else {
-						ps.setDouble(parameterIndex++, maxResponseTime);
-					}
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, newUserId);
+				ps.setString(parameterIndex++, engineId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(usageRestriction));
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(usageFrequency));
+				if (maxTokens == 0) {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				} else {
+					ps.setInt(parameterIndex++, maxTokens);
 				}
-				return null;
+				if (maxResponseTime == 0.0) {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				} else {
+					ps.setDouble(parameterIndex++, maxResponseTime);
+				}
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add engine user", e);
@@ -2136,53 +2065,40 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					for (int i = 0; i < permission.size(); i++) {
-						Map<String, Object> thisPermissionMap = permission.get(i);
-
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
-						ps.setString(parameterIndex++, engineId);
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-						ps.setBoolean(parameterIndex++, true);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						// end date for this user
-						Timestamp verifiedEndDate = null;
-						if (thisPermissionMap.get("endDate") != null) {
-							verifiedEndDate = AbstractSecurityUtils
-									.calculateEndDate((String) thisPermissionMap.get("endDate"));
-							ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-						}
-
-						// engine usage restrictions
-						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-								StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
-						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-								StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
-						if (thisPermissionMap.get("maxTokens") != null) {
-							ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-						}
-						if (thisPermissionMap.get("maxResponseTime") != null) {
-							ps.setDouble(parameterIndex++,
-									((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-						}
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
+			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, thisPermissionMap) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
+				ps.setString(parameterIndex++, engineId);
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				}
-				return null;
+
+				// engine usage restrictions
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
+				if (thisPermissionMap.get("maxTokens") != null) {
+					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				}
+				if (thisPermissionMap.get("maxResponseTime") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add engine user permissions", e);
@@ -2220,34 +2136,24 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					for (int i = 0; i < permission.size(); i++) {
-						Map<String, String> thisPermissionMap = permission.get(i);
-
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, thisPermissionMap.get("userid"));
-						ps.setString(parameterIndex++, projectId);
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(thisPermissionMap.get("permission")));
-						ps.setBoolean(parameterIndex++, true);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						// end date for this user
-						Timestamp verifiedEndDate = null;
-						if (thisPermissionMap.get("endDate") != null) {
-							verifiedEndDate = AbstractSecurityUtils.calculateEndDate(thisPermissionMap.get("endDate"));
-							ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-						}
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
+			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, thisPermissionMap) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, thisPermissionMap.get("userid"));
+				ps.setString(parameterIndex++, projectId);
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission(thisPermissionMap.get("permission")));
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate(thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				}
-				return null;
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add project user permissions", e);
@@ -2288,25 +2194,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					for (int i = 0; i < permission.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, permission.get(i).get("userid"));
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(permission.get(i).get("permission")));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow.get("userid"));
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add insight user permissions", e);
@@ -2340,21 +2237,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// insert new user permissions in bulk
 		String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setBoolean(parameterIndex++, true);
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, newUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+				ps.setBoolean(parameterIndex++, true);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add project user", e);
@@ -2867,36 +2759,31 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageRestriction));
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							StringUtils.trim(usageFrequency));
-					if (maxTokens == 0) {
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-					} else {
-						ps.setInt(parameterIndex++, maxTokens);
-					}
-					if (maxResponseTime == 0.0) {
-						ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-					} else {
-						ps.setDouble(parameterIndex++, maxResponseTime);
-					}
-					// WHERE
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(usageRestriction));
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim(usageFrequency));
+				if (maxTokens == 0) {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				} else {
+					ps.setInt(parameterIndex++, maxTokens);
 				}
-				return null;
+				if (maxResponseTime == 0.0) {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				} else {
+					ps.setDouble(parameterIndex++, maxResponseTime);
+				}
+				// WHERE
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permission", e);
@@ -2943,54 +2830,42 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE ENGINEPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, MAXRESPONSETIME=? WHERE USERID = ? AND ENGINEID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < permission.size(); i++) {
-						Map<String, Object> thisPermissionMap = permission.get(i);
-
-						int parameterIndex = 1;
-						// SET
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						// end date for this user
-						Timestamp verifiedEndDate = null;
-						if (thisPermissionMap.get("endDate") != null) {
-							verifiedEndDate = AbstractSecurityUtils
-									.calculateEndDate((String) thisPermissionMap.get("endDate"));
-							ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-						}
-
-						// engine usage restrictions
-						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-								StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
-						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-								StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
-						if (thisPermissionMap.get("maxTokens") != null) {
-							ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-						}
-						if (thisPermissionMap.get("maxResponseTime") != null) {
-							ps.setDouble(parameterIndex++,
-									((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
-						} else {
-							ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
-						}
-
-						// WHERE
-						ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
-						ps.setString(parameterIndex++, engineId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
+			QueryExecutionUtility.executeBatch(securityDb, updateQ, permission, (ps, thisPermissionMap) -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++,
+						AccessPermissionEnum.getIdByPermission((String) thisPermissionMap.get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				// end date for this user
+				Timestamp verifiedEndDate = null;
+				if (thisPermissionMap.get("endDate") != null) {
+					verifiedEndDate = AbstractSecurityUtils.calculateEndDate((String) thisPermissionMap.get("endDate"));
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
 				}
-				return null;
+
+				// engine usage restrictions
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim((String) thisPermissionMap.get("usageRestriction")));
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
+						StringUtils.trim((String) thisPermissionMap.get("usageFrequency")));
+				if (thisPermissionMap.get("maxTokens") != null) {
+					ps.setInt(parameterIndex++, ((Number) thisPermissionMap.get("maxTokens")).intValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
+				}
+				if (thisPermissionMap.get("maxResponseTime") != null) {
+					ps.setDouble(parameterIndex++, ((Number) thisPermissionMap.get("maxResponseTime")).doubleValue());
+				} else {
+					ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
+				}
+
+				// WHERE
+				ps.setString(parameterIndex++, (String) thisPermissionMap.get("userid"));
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
@@ -3025,22 +2900,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project user permission", e);
@@ -3091,26 +2961,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE PROJECTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < requests.size(); i++) {
-						int parameterIndex = 1;
-						// SET
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						// WHERE
-						ps.setString(parameterIndex++, requests.get(i).get("userid"));
-						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, batchRow.get("userid"));
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project user permissions", e);
@@ -3160,27 +3021,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < requests.size(); i++) {
-						int parameterIndex = 1;
-						// SET
-						ps.setInt(parameterIndex++,
-								AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						// WHERE
-						ps.setString(parameterIndex++, requests.get(i).get("userid"));
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, batchRow.get("userid"));
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update insight user permissions", e);
@@ -3207,15 +3059,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -3247,18 +3094,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
-						ps.setString(parameterIndex++, engineId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow);
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine users", e);
@@ -3288,18 +3127,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
-						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove project users", e);
@@ -3327,19 +3158,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					for (int i = 0; i < existingUserIds.size(); i++) {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, existingUserIds.get(i));
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, batchRow);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove insight users", e);
@@ -3364,15 +3187,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove project user", e);
@@ -3538,21 +3356,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQ)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, insertQ, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, newUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to add insight user", e);
@@ -3642,23 +3455,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE = ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update insight user permission", e);
@@ -3686,17 +3494,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQ)) {
-					int parameterIndex = 1;
-					// WHERE
-					ps.setString(parameterIndex++, existingUserId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQ, ps -> {
+				int parameterIndex = 1;
+				// WHERE
+				ps.setString(parameterIndex++, existingUserId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to remove insight user", e);
@@ -3714,18 +3517,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// update user permissions in bulk
 		String updateQ = "UPDATE INSIGHT SET GLOBAL=? WHERE PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setBoolean(parameterIndex++, isPublic);
-					// WHERE
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setBoolean(parameterIndex++, isPublic);
+				// WHERE
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update insight global within project", e);
@@ -3878,21 +3676,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE ENGINEID=?";
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, engineId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, engineId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine user permissions", e);
@@ -3917,21 +3710,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String query = "UPDATE PROJECTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=?";
 		try {
 			String boundQuery = query;
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, projectId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, boundQuery, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, projectId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update project user permissions", e);
@@ -4063,22 +3851,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE PROJECTID=? AND INSIGHTID=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					int parameterIndex = 1;
-					// SET
-					ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setTimestamp(parameterIndex++, startDate);
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					// WHERE
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, insightId);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, updateQ, ps -> {
+				int parameterIndex = 1;
+				// SET
+				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(newPermission));
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
+				// WHERE
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update insight user permissions", e);
@@ -4119,25 +3902,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		String insertQuery = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 		int permissionLevel = AccessPermissionEnum.getIdByPermission(permission);
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					for (Map<String, Object> userMap : users) {
-						String userId = (String) userMap.get("id");
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setInt(parameterIndex++, permissionLevel);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
-				return null;
+			QueryExecutionUtility.executeBatch(securityDb, insertQuery, users, (ps, userMap) -> {
+				String userId = (String) userMap.get("id");
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, userId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, insightId);
+				ps.setInt(parameterIndex++, permissionLevel);
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setTimestamp(parameterIndex++, startDate);
+				ps.setTimestamp(parameterIndex++, verifiedEndDate);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -4164,13 +3939,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ZonedDateTime boundDateToFilter = dateToFilter;
 			String boundQuery = query;
 			numUpdated = QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
+				return QueryExecutionUtility.executeUpdate(connection, boundQuery, ps -> {
 					int parameterIndex = 1;
 					ps.setBoolean(parameterIndex++, true);
 					ps.setTimestamp(parameterIndex++, Utility.getSqlTimestampUTC(boundDateToFilter));
-					return ps.executeUpdate();
-
-				}
+				});
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -4302,13 +4075,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			try {
 				String boundQuery = query;
 				numUpdated = QueryExecutionUtility.write(securityDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(boundQuery)) {
+					return QueryExecutionUtility.executeUpdate(connection, boundQuery, ps -> {
 						int parameterIndex = 1;
 						ps.setBoolean(parameterIndex++, updateBool);
 						ps.setTimestamp(parameterIndex++, sqlTimestamp);
-						return ps.executeUpdate();
-
-					}
+					});
 				});
 			} catch (RuntimeException e) {
 				throw e;
@@ -4389,16 +4160,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				String deleteQ = "DELETE FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?";
 				try {
-					try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							deletePs.setString(parameterIndex++, engineId);
-							deletePs.addBatch();
-						}
-						deletePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
+						int parameterIndex = 1;
+						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						deletePs.setString(parameterIndex++, engineId);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve engine user access requests", e);
 					throw new IllegalArgumentException(
@@ -4408,23 +4174,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				// insert new user permissions in bulk
 				String insertQ = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 				try {
-					try (PreparedStatement insertPs = connection.prepareStatement(insertQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							insertPs.setString(parameterIndex++, engineId);
-							insertPs.setInt(parameterIndex++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							insertPs.setBoolean(parameterIndex++, true);
-							insertPs.setString(parameterIndex++, userId);
-							insertPs.setString(parameterIndex++, userType);
-							insertPs.setTimestamp(parameterIndex++, startDate);
-							insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-							insertPs.addBatch();
-						}
-						insertPs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
+						int parameterIndex = 1;
+						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						insertPs.setString(parameterIndex++, engineId);
+						insertPs.setInt(parameterIndex++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						insertPs.setBoolean(parameterIndex++, true);
+						insertPs.setString(parameterIndex++, userId);
+						insertPs.setString(parameterIndex++, userType);
+						insertPs.setTimestamp(parameterIndex++, startDate);
+						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve engine user access requests", e);
 					throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
@@ -4434,24 +4195,19 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				String updateQ = "UPDATE ENGINEACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ? AND ENGINEID = ?";
 				try {
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					try (PreparedStatement updatePs = connection.prepareStatement(updateQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int index = 1;
-							// set
-							updatePs.setInt(index++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							updatePs.setString(index++, userId);
-							updatePs.setString(index++, userType);
-							updatePs.setString(index++, "APPROVED");
-							updatePs.setTimestamp(index++, timestamp);
-							// where
-							updatePs.setString(index++, (String) requests.get(i).get("requestid"));
-							updatePs.setString(index++, engineId);
-							updatePs.addBatch();
-						}
-						updatePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
+						int index = 1;
+						// set
+						updatePs.setInt(index++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						updatePs.setString(index++, userId);
+						updatePs.setString(index++, userType);
+						updatePs.setString(index++, "APPROVED");
+						updatePs.setTimestamp(index++, timestamp);
+						// where
+						updatePs.setString(index++, (String) batchRow.get("requestid"));
+						updatePs.setString(index++, engineId);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve engine user access requests", e);
 					throw new IllegalArgumentException(
@@ -4485,22 +4241,17 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < requestIds.size(); i++) {
-						int index = 1;
-						// set
-						ps.setString(index++, userId);
-						ps.setString(index++, userType);
-						ps.setString(index++, "DENIED");
-						ps.setTimestamp(index++, timestamp);
-						// where
-						ps.setString(index++, requestIds.get(i));
-						ps.setString(index++, engineId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, updateQ, requestIds, (ps, batchRow) -> {
+					int index = 1;
+					// set
+					ps.setString(index++, userId);
+					ps.setString(index++, userType);
+					ps.setString(index++, "DENIED");
+					ps.setTimestamp(index++, timestamp);
+					// where
+					ps.setString(index++, batchRow);
+					ps.setString(index++, engineId);
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -4529,16 +4280,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				String deleteQ = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
 				try {
-					try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							deletePs.setString(parameterIndex++, projectId);
-							deletePs.addBatch();
-						}
-						deletePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
+						int parameterIndex = 1;
+						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						deletePs.setString(parameterIndex++, projectId);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve project user access requests", e);
 					throw new IllegalArgumentException(
@@ -4548,23 +4294,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				// insert new user permissions in bulk
 				String insertQ = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 				try {
-					try (PreparedStatement insertPs = connection.prepareStatement(insertQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							insertPs.setString(parameterIndex++, projectId);
-							insertPs.setInt(parameterIndex++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							insertPs.setBoolean(parameterIndex++, true);
-							insertPs.setString(parameterIndex++, userId);
-							insertPs.setString(parameterIndex++, userType);
-							insertPs.setTimestamp(parameterIndex++, startDate);
-							insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-							insertPs.addBatch();
-						}
-						insertPs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
+						int parameterIndex = 1;
+						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						insertPs.setString(parameterIndex++, projectId);
+						insertPs.setInt(parameterIndex++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						insertPs.setBoolean(parameterIndex++, true);
+						insertPs.setString(parameterIndex++, userId);
+						insertPs.setString(parameterIndex++, userType);
+						insertPs.setTimestamp(parameterIndex++, startDate);
+						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve project user access requests", e);
 					throw new IllegalArgumentException(
@@ -4575,23 +4316,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				String updateQ = "UPDATE PROJECTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 				try {
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					try (PreparedStatement updatePs = connection.prepareStatement(updateQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int index = 1;
-							// set
-							updatePs.setInt(index++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							updatePs.setString(index++, userId);
-							updatePs.setString(index++, userType);
-							updatePs.setString(index++, "APPROVED");
-							updatePs.setTimestamp(index++, timestamp);
-							// where
-							updatePs.setString(index++, (String) requests.get(i).get("requestid"));
-							updatePs.addBatch();
-						}
-						updatePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
+						int index = 1;
+						// set
+						updatePs.setInt(index++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						updatePs.setString(index++, userId);
+						updatePs.setString(index++, userType);
+						updatePs.setString(index++, "APPROVED");
+						updatePs.setTimestamp(index++, timestamp);
+						// where
+						updatePs.setString(index++, (String) batchRow.get("requestid"));
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve project user access requests", e);
 					throw new IllegalArgumentException(
@@ -4626,21 +4362,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < RequestIdList.size(); i++) {
-						int index = 1;
-						// set
-						ps.setString(index++, userId);
-						ps.setString(index++, userType);
-						ps.setString(index++, "DENIED");
-						ps.setTimestamp(index++, timestamp);
-						// where
-						ps.setString(index++, RequestIdList.get(i));
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, updateQ, RequestIdList, (ps, batchRow) -> {
+					int index = 1;
+					// set
+					ps.setString(index++, userId);
+					ps.setString(index++, userType);
+					ps.setString(index++, "DENIED");
+					ps.setTimestamp(index++, timestamp);
+					// where
+					ps.setString(index++, batchRow);
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -4670,17 +4401,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
 				try {
-					try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							deletePs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							deletePs.setString(parameterIndex++, projectId);
-							deletePs.setString(parameterIndex++, insightId);
-							deletePs.addBatch();
-						}
-						deletePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, deleteQ, requests, (deletePs, batchRow) -> {
+						int parameterIndex = 1;
+						deletePs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						deletePs.setString(parameterIndex++, projectId);
+						deletePs.setString(parameterIndex++, insightId);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve insight user access requests", e);
 					throw new IllegalArgumentException(
@@ -4690,23 +4416,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				// insert new user permissions in bulk
 				String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
 				try {
-					try (PreparedStatement insertPs = connection.prepareStatement(insertQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int parameterIndex = 1;
-							insertPs.setString(parameterIndex++, (String) requests.get(i).get("userid"));
-							insertPs.setString(parameterIndex++, projectId);
-							insertPs.setString(parameterIndex++, insightId);
-							insertPs.setInt(parameterIndex++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							insertPs.setString(parameterIndex++, userId);
-							insertPs.setString(parameterIndex++, userType);
-							insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-							insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-							insertPs.addBatch();
-						}
-						insertPs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, insertQ, requests, (insertPs, batchRow) -> {
+						int parameterIndex = 1;
+						insertPs.setString(parameterIndex++, (String) batchRow.get("userid"));
+						insertPs.setString(parameterIndex++, projectId);
+						insertPs.setString(parameterIndex++, insightId);
+						insertPs.setInt(parameterIndex++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						insertPs.setString(parameterIndex++, userId);
+						insertPs.setString(parameterIndex++, userType);
+						insertPs.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+						insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve insight user access requests", e);
 					throw new IllegalArgumentException(
@@ -4717,23 +4438,18 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
 				try {
 					java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-					try (PreparedStatement updatePs = connection.prepareStatement(updateQ)) {
-						for (int i = 0; i < requests.size(); i++) {
-							int index = 1;
-							// set
-							updatePs.setInt(index++,
-									AccessPermissionEnum.getIdByPermission((String) requests.get(i).get("permission")));
-							updatePs.setString(index++, userId);
-							updatePs.setString(index++, userType);
-							updatePs.setString(index++, "APPROVED");
-							updatePs.setTimestamp(index++, timestamp);
-							// where
-							updatePs.setString(index++, (String) requests.get(i).get("requestid"));
-							updatePs.addBatch();
-						}
-						updatePs.executeBatch();
-
-					}
+					QueryExecutionUtility.executeBatch(connection, updateQ, requests, (updatePs, batchRow) -> {
+						int index = 1;
+						// set
+						updatePs.setInt(index++,
+								AccessPermissionEnum.getIdByPermission((String) batchRow.get("permission")));
+						updatePs.setString(index++, userId);
+						updatePs.setString(index++, userType);
+						updatePs.setString(index++, "APPROVED");
+						updatePs.setTimestamp(index++, timestamp);
+						// where
+						updatePs.setString(index++, (String) batchRow.get("requestid"));
+					});
 				} catch (Exception e) {
 					classLogger.error("Failed to approve insight user access requests", e);
 					throw new IllegalArgumentException(
@@ -4769,21 +4485,16 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, connection -> {
 				java.sql.Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
 
-				try (PreparedStatement ps = connection.prepareStatement(updateQ)) {
-					for (int i = 0; i < RequestIdList.size(); i++) {
-						int index = 1;
-						// set
-						ps.setString(index++, userId);
-						ps.setString(index++, userType);
-						ps.setString(index++, "DENIED");
-						ps.setTimestamp(index++, timestamp);
-						// where
-						ps.setString(index++, RequestIdList.get(i));
-						ps.addBatch();
-					}
-					ps.executeBatch();
-
-				}
+				QueryExecutionUtility.executeBatch(connection, updateQ, RequestIdList, (ps, batchRow) -> {
+					int index = 1;
+					// set
+					ps.setString(index++, userId);
+					ps.setString(index++, userType);
+					ps.setString(index++, "DENIED");
+					ps.setTimestamp(index++, timestamp);
+					// where
+					ps.setString(index++, batchRow);
+				});
 				return null;
 			});
 		} catch (Exception e) {

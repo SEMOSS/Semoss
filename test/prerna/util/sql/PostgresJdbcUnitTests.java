@@ -27,9 +27,11 @@
  *******************************************************************************/
 package prerna.util.sql;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
@@ -37,6 +39,9 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.postgresql.core.BaseConnection;
@@ -60,15 +65,32 @@ class PostgresJdbcUnitTests {
 					"jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(5432) + "/binding_test",
 					"postgres", "test-only")) {
 				NullableParameterBindingUnitTests.roundTrip(connection, new PostgresQueryUtil());
+				try (var statement = connection.createStatement()) {
+					statement.execute("CREATE TABLE STATEMENT_VALUES (ID INT PRIMARY KEY, V TEXT)");
+				}
 				connection.setAutoCommit(false);
 				IRDBMSEngine engine = mock(IRDBMSEngine.class);
 				when(engine.getConnection()).thenReturn(connection);
-				int count = QueryExecutionUtility.read(engine, c -> {
-					try (var ps = c.prepareStatement("SELECT COUNT(*) FROM BIND_VALUES"); var rs = ps.executeQuery()) {
-						rs.next();
-						return rs.getInt(1);
-					}
-				});
+				String insert = "INSERT INTO STATEMENT_VALUES VALUES (?, ?)";
+				assertEquals(1, QueryExecutionUtility.executeUpdate(engine, insert, ps -> {
+					ps.setInt(1, 1);
+					ps.setString(2, "O'Brien ? \u03bb");
+				}));
+				assertArrayEquals(new int[] { 1, 1 },
+						QueryExecutionUtility.executeBatch(engine, insert, List.of(2, 3), (ps, id) -> {
+							ps.setInt(1, id);
+							new PostgresQueryUtil().setNullableString(ps, 2, id == 2 ? null : "");
+						}));
+				assertThrows(SQLException.class,
+						() -> QueryExecutionUtility.executeBatch(engine, insert, List.of(4, 1), (ps, id) -> {
+							ps.setInt(1, id);
+							ps.setString(2, "must roll back");
+						}));
+				assertEquals(Arrays.asList("O'Brien ? \u03bb", null, ""),
+						QueryExecutionUtility.queryList(engine, "SELECT V FROM STATEMENT_VALUES ORDER BY ID", ps -> {
+						}, rs -> rs.getString(1)));
+				int count = QueryExecutionUtility.queryOne(engine, "SELECT COUNT(*) FROM BIND_VALUES", ps -> {
+				}, rs -> rs.getInt(1));
 				assertEquals(5, count);
 				assertEquals(TransactionState.IDLE, connection.unwrap(BaseConnection.class).getTransactionState());
 				assertFalse(connection.getAutoCommit());

@@ -529,7 +529,7 @@ public final class AutomationDatabaseUtility {
 					ps.setString(5, STATUS_RUNNING);
 					requireSingleRow(ps.executeUpdate(), "mark the automation run waiting", runId, nodeId);
 				}
-				try (PreparedStatement ps = conn.prepareStatement(INSERT_RUN_WAIT)) {
+				QueryExecutionUtility.executeUpdate(conn, INSERT_RUN_WAIT, ps -> {
 					int index = 1;
 					ps.setString(index++, waitId);
 					ps.setString(index++, runId);
@@ -542,8 +542,7 @@ public final class AutomationDatabaseUtility {
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, createdBy);
 					ps.setTimestamp(index++, now);
 					ps.setTimestamp(index, toTimestamp(expiresAt));
-					ps.executeUpdate();
-				}
+				});
 
 				return waitId;
 			});
@@ -813,14 +812,11 @@ public final class AutomationDatabaseUtility {
 		}
 
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(UPDATE_RUN_SUMMARY)) {
-					schedulerDb.getQueryUtil().setNullableString(ps, 1, resultSummary);
-					ps.setString(2, runId);
-					ps.executeUpdate();
-				}
-				return true;
+			QueryExecutionUtility.executeUpdate(schedulerDb, UPDATE_RUN_SUMMARY, ps -> {
+				schedulerDb.getQueryUtil().setNullableString(ps, 1, resultSummary);
+				ps.setString(2, runId);
 			});
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -840,16 +836,13 @@ public final class AutomationDatabaseUtility {
 		}
 
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(UPDATE_HEARTBEAT)) {
-					int index = 1;
-					ps.setTimestamp(index++, toTimestamp(Instant.now()));
-					ps.setInt(index++, completedNodes);
-					ps.setString(index++, runId);
-					ps.executeUpdate();
-				}
-				return true;
+			QueryExecutionUtility.executeUpdate(schedulerDb, UPDATE_HEARTBEAT, ps -> {
+				int index = 1;
+				ps.setTimestamp(index++, toTimestamp(Instant.now()));
+				ps.setInt(index++, completedNodes);
+				ps.setString(index++, runId);
 			});
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -869,14 +862,11 @@ public final class AutomationDatabaseUtility {
 		}
 
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(TOUCH_HEARTBEAT)) {
-					ps.setTimestamp(1, toTimestamp(Instant.now()));
-					ps.setString(2, runId);
-					ps.executeUpdate();
-				}
-				return true;
+			QueryExecutionUtility.executeUpdate(schedulerDb, TOUCH_HEARTBEAT, ps -> {
+				ps.setTimestamp(1, toTimestamp(Instant.now()));
+				ps.setString(2, runId);
 			});
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -1064,15 +1054,11 @@ public final class AutomationDatabaseUtility {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting skipped automation nodes");
 
 		try {
-			QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUTS)) {
-					ps.setString(1, NODE_STATUS_SKIPPED);
-					schedulerDb.getQueryUtil().setNullableString(ps, 2, reason);
-					ps.setString(3, runId);
-					ps.setString(4, NODE_STATUS_PENDING);
-					ps.executeUpdate();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(schedulerDb, SKIP_PENDING_NODE_OUTPUTS, ps -> {
+				ps.setString(1, NODE_STATUS_SKIPPED);
+				schedulerDb.getQueryUtil().setNullableString(ps, 2, reason);
+				ps.setString(3, runId);
+				ps.setString(4, NODE_STATUS_PENDING);
 			});
 		} catch (RuntimeException e) {
 			throw e;

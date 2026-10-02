@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -157,15 +156,11 @@ public class EngineViewsUtils extends UserTrackingUtils {
 		String query = "UPDATE " + EV_TN + " SET VIEWS = ?" + " WHERE ENGINEID = ? AND DATE = ?";
 
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setInt(index++, i);
-					ps.setString(index++, engineId);
-					ps.setDate(index++, java.sql.Date.valueOf(date));
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setInt(index++, i);
+				ps.setString(index++, engineId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine view count for engine {} on {}", engineId, date, e);
@@ -183,16 +178,11 @@ public class EngineViewsUtils extends UserTrackingUtils {
 		String query = "INSERT INTO " + EV_TN + " VALUES (?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		try {
-			QueryExecutionUtility.write(userTrackingDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
-					int index = 1;
-					ps.setString(index++, engineId);
-					ps.setDate(index++, java.sql.Date.valueOf(date));
-					ps.setInt(index++, i);
-
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+				ps.setInt(index++, i);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert engine view count for engine {} on {}", engineId, date, e);

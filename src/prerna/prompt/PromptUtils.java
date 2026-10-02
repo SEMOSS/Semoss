@@ -446,14 +446,10 @@ public final class PromptUtils {
 				colToUpdate, whereCol);
 
 		try {
-			QueryExecutionUtility.write(promptDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(promptPermissionQuery)) {
-					int i = 1;
-					ps.setBoolean(i++, false);
-					ps.setString(i++, promptId);
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(promptDb, promptPermissionQuery, ps -> {
+				int i = 1;
+				ps.setBoolean(i++, false);
+				ps.setString(i++, promptId);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to mark previous versions as non-latest for prompt ID '{}'.", promptId, e);
@@ -479,10 +475,7 @@ public final class PromptUtils {
 		String deleteQ = "DELETE FROM PROMPTMETA WHERE PROMPT_ID=?";
 		try {
 			QueryExecutionUtility.write(promptDb, connection -> {
-				try (PreparedStatement statement = connection.prepareStatement(deleteQ)) {
-					statement.setString(1, promptId);
-					statement.execute();
-				}
+				QueryExecutionUtility.executeUpdate(connection, deleteQ, statement -> statement.setString(1, promptId));
 				if (insertMetadata) {
 					insertTagsAndMeta(connection, promptDb.getQueryUtil(), tags, userSelectedMeta, promptId);
 				}
@@ -813,16 +806,12 @@ public final class PromptUtils {
 				String insertQuery = promptDb.getQueryUtil().createInsertPreparedStatementString("PROMPTMETAKEYS",
 						new String[] { "METAKEY", "SINGLEMULTI", "DISPLAYOPTIONS", "DEFAULTVALUES" });
 				try {
-					QueryExecutionUtility.write(promptDb, connection -> {
-						try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-							int parameterIndex = 1;
-							ps.setString(parameterIndex++, fetchedMetaKey);
-							ps.setString(parameterIndex++, singleMulti);
-							ps.setString(parameterIndex++, displayOptions);
-							ps.setString(parameterIndex++, defaultValues);
-							ps.execute();
-						}
-						return null;
+					QueryExecutionUtility.executeUpdate(promptDb, insertQuery, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, fetchedMetaKey);
+						ps.setString(parameterIndex++, singleMulti);
+						ps.setString(parameterIndex++, displayOptions);
+						ps.setString(parameterIndex++, defaultValues);
 					});
 				} catch (Exception e) {
 					classLogger.error("Failed to copy metakey '{}' into PROMPTMETAKEYS.", metaKey, e);
@@ -852,25 +841,20 @@ public final class PromptUtils {
 		IRDBMSEngine promptDb = SystemEngineRegistry.getPromptDb();
 		Integer version = getVersionNumber(promptId);
 		try {
-			QueryExecutionUtility.write(promptDb, connection -> {
-				try (PreparedStatement promptPS = connection.prepareStatement(INSERT_PROMPT_QUERY)) {
-					int index = 1;
-					promptPS.setString(index++, promptId);
-					promptPS.setString(index++, (String) promptDetails.get("title"));
-					promptDb.getQueryUtil().setNullableLargeText(promptPS, index++,
-							(String) promptDetails.get("context"));
-					// Get version of existing prompt
-					promptPS.setInt(index++, version);
-					promptPS.setString(index++, (String) promptDetails.get("intent"));
-					promptPS.setString(index++, userId);
-					promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
-					promptPS.setBoolean(index++, true);
-					// Set GLOBAL value, default to false if not provided
-					Boolean global = (Boolean) promptDetails.get("global");
-					promptPS.setBoolean(index++, global != null ? global : false);
-					promptPS.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(promptDb, INSERT_PROMPT_QUERY, promptPS -> {
+				int index = 1;
+				promptPS.setString(index++, promptId);
+				promptPS.setString(index++, (String) promptDetails.get("title"));
+				promptDb.getQueryUtil().setNullableLargeText(promptPS, index++, (String) promptDetails.get("context"));
+				// Get version of existing prompt
+				promptPS.setInt(index++, version);
+				promptPS.setString(index++, (String) promptDetails.get("intent"));
+				promptPS.setString(index++, userId);
+				promptPS.setTimestamp(index++, java.sql.Timestamp.valueOf(LocalDateTime.now()));
+				promptPS.setBoolean(index++, true);
+				// Set GLOBAL value, default to false if not provided
+				Boolean global = (Boolean) promptDetails.get("global");
+				promptPS.setBoolean(index++, global != null ? global : false);
 			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert prompt record for prompt ID '{}'.", promptId, e);
@@ -928,13 +912,7 @@ public final class PromptUtils {
 
 		for (String deleteQuery : deletes) {
 			try {
-				QueryExecutionUtility.write(promptDb, connection -> {
-					try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-						ps.setString(1, promptId);
-						ps.execute();
-					}
-					return null;
-				});
+				QueryExecutionUtility.executeUpdate(promptDb, deleteQuery, ps -> ps.setString(1, promptId));
 			} catch (RuntimeException e) {
 				throw e;
 			} catch (Exception e) {
@@ -1122,16 +1100,12 @@ public final class PromptUtils {
 				new String[] { "PROMPT_ID", "METAKEY", "METAVALUE", "METAORDER" });
 		try {
 			QueryExecutionUtility.write(promptDb, connection -> {
-				try (PreparedStatement deletePs = connection.prepareStatement(deleteQ)) {
-					for (String field : metadata.keySet()) {
-						int parameterIndex = 1;
-						deletePs.setString(parameterIndex++, field);
-						deletePs.setString(parameterIndex++, promptId);
-						deletePs.addBatch();
-					}
-					deletePs.executeBatch();
-				}
-				try (PreparedStatement ps = connection.prepareStatement(query)) {
+				QueryExecutionUtility.executeBatch(connection, deleteQ, metadata.keySet(), (deletePs, field) -> {
+					int parameterIndex = 1;
+					deletePs.setString(parameterIndex++, field);
+					deletePs.setString(parameterIndex++, promptId);
+				});
+				QueryExecutionUtility.executeBatch(connection, query, ps -> {
 					for (String field : metadata.keySet()) {
 						Object val = metadata.get(field);
 						List<Object> values = new ArrayList<>();
@@ -1154,8 +1128,7 @@ public final class PromptUtils {
 							ps.addBatch();
 						}
 					}
-					ps.executeBatch();
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {

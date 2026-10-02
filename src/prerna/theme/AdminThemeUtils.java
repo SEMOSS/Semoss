@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.theme;
 
-import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -172,15 +171,10 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public boolean setAllThemesInactive() {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		try {
-			QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?")) {
-					int parameterIndex = 1;
-					ps.setBoolean(parameterIndex++, false);
-					ps.setBoolean(parameterIndex++, false);
-					ps.execute();
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(themeDb, "UPDATE ADMIN_THEME SET IS_ACTIVE=? WHERE IS_ACTIVE=?", ps -> {
+				int parameterIndex = 1;
+				ps.setBoolean(parameterIndex++, false);
+				ps.setBoolean(parameterIndex++, false);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -206,18 +200,14 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		String themeId = UUID.randomUUID().toString();
 
 		try {
-			QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, themeId);
-					ps.setString(parameterIndex++, themeName);
-					themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
-					ps.setBoolean(parameterIndex++, isActive);
-					ps.execute();
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(themeDb,
+					"INSERT INTO ADMIN_THEME (ID, THEME_NAME, THEME_MAP, IS_ACTIVE) VALUES (?,?,?,?)", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, themeId);
+						ps.setString(parameterIndex++, themeName);
+						themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
+						ps.setBoolean(parameterIndex++, isActive);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -243,18 +233,14 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 	public boolean editAdminTheme(String themeId, String themeName, String themeMap, boolean isActive) {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 		try {
-			QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement ps = connection
-						.prepareStatement("UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, themeName);
-					themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
-					ps.setBoolean(parameterIndex++, isActive);
-					ps.setString(parameterIndex++, themeId);
-					ps.execute();
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(themeDb,
+					"UPDATE ADMIN_THEME SET THEME_NAME=?, THEME_MAP=?, IS_ACTIVE=? WHERE ID=?", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, themeName);
+						themeDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, themeMap);
+						ps.setBoolean(parameterIndex++, isActive);
+						ps.setString(parameterIndex++, themeId);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -279,13 +265,8 @@ public class AdminThemeUtils extends AbstractThemeUtils {
 		IRDBMSEngine themeDb = SystemEngineRegistry.getThemesDb();
 
 		try {
-			QueryExecutionUtility.write(themeDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement("DELETE FROM ADMIN_THEME WHERE ID=?")) {
-					ps.setString(1, themeId);
-					ps.execute();
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(themeDb, "DELETE FROM ADMIN_THEME WHERE ID=?",
+					ps -> ps.setString(1, themeId));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

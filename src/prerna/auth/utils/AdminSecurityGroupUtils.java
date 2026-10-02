@@ -129,7 +129,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 				String query = "INSERT INTO SMSS_GROUP (ID, TYPE, DESCRIPTION, DATEADDED, USERID, USERIDTYPE) "
 						+ "VALUES (?,?,?,?,?,?)";
-				try (PreparedStatement ps = conn.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, groupId);
 					ps.setString(parameterIndex++, groupType);
@@ -137,9 +137,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -231,7 +229,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
 				// group edit
-				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+				QueryExecutionUtility.executeUpdate(conn, groupQuery, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					ps.setString(parameterIndex++, newGroupType);
@@ -242,19 +240,17 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curGroupType);
-					ps.execute();
-				}
+				});
 
 				// propagation
 				for (String query : propagateQueries) {
-					try (PreparedStatement ps = conn.prepareStatement(query)) {
+					QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
 						ps.setString(parameterIndex++, newGroupType);
 						ps.setString(parameterIndex++, curGroupId);
 						ps.setString(parameterIndex++, curGroupType);
-						ps.execute();
-					}
+					});
 				}
 				return null;
 			});
@@ -297,35 +293,32 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		try {
 			QueryExecutionUtility.write(securityDb, conn -> {
 
-				try (PreparedStatement ps = conn.prepareStatement(groupQuery)) {
+				QueryExecutionUtility.executeUpdate(conn, groupQuery, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, newDescription);
 					// where
 					ps.setString(parameterIndex++, curGroupId);
 					ps.setString(parameterIndex++, curGroupType);
-					ps.execute();
-				}
+				});
 
 				// custom groups
-				try (PreparedStatement ps = conn.prepareStatement(propagateCustomGroupQuery)) {
+				QueryExecutionUtility.executeUpdate(conn, propagateCustomGroupQuery, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, newGroupId);
 					// where
 					ps.setString(parameterIndex++, curGroupId);
-					ps.execute();
-				}
+				});
 
 				// propagation
 				for (String query : propagateQueries) {
-					try (PreparedStatement ps = conn.prepareStatement(query)) {
+					QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 						int parameterIndex = 1;
 						ps.setString(parameterIndex++, newGroupId);
 						// where
 						ps.setString(parameterIndex++, curGroupId);
 						ps.setString(parameterIndex++, curGroupType);
-						ps.execute();
-					}
+					});
 				}
 				return null;
 			});
@@ -366,7 +359,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
 						+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
 						+ "VALUES (?,?,?,?,?,?,?)";
-				try (PreparedStatement ps = conn.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, groupId);
 					ps.setString(parameterIndex++, userId);
@@ -379,9 +372,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					}
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -410,14 +401,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		try {
 			QueryExecutionUtility.write(securityDb, conn -> {
 				String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
-				try (PreparedStatement ps = conn.prepareStatement(query)) {
+				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
 					int parameterIndex = 1;
 					ps.setString(parameterIndex++, groupId);
 					ps.setString(parameterIndex++, userId);
 					ps.setString(parameterIndex++, userType);
-					ps.execute();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -685,27 +674,23 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, projectId);
-					ps.setInt(parameterIndex++, permission);
-					ps.setTimestamp(parameterIndex++, startDate);
-					if (verifiedEndDate == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					}
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, projectId);
+						ps.setInt(parameterIndex++, permission);
+						ps.setTimestamp(parameterIndex++, startDate);
+						if (verifiedEndDate == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+						} else {
+							ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						}
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -743,25 +728,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String updateQuery;
 		updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-					int parameterIndex = 1;
-					ps.setInt(parameterIndex++, permission);
-					ps.setTimestamp(parameterIndex++, startDate);
-					if (verifiedEndDate == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					}
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, groupType);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setInt(parameterIndex++, permission);
+				ps.setTimestamp(parameterIndex++, startDate);
+				if (verifiedEndDate == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				}
-				return null;
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, groupType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -788,16 +768,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String deleteQuery;
 		deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, projectId);
-					ps.setString(parameterIndex++, groupType);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, projectId);
+				ps.setString(parameterIndex++, groupType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1094,27 +1069,23 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(
-						"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)")) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, groupType);
-					ps.setString(parameterIndex++, engineId);
-					ps.setInt(parameterIndex++, permission);
-					ps.setTimestamp(parameterIndex++, startDate);
-					if (verifiedEndDate == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					}
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, groupType);
+						ps.setString(parameterIndex++, engineId);
+						ps.setInt(parameterIndex++, permission);
+						ps.setTimestamp(parameterIndex++, startDate);
+						if (verifiedEndDate == null) {
+							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+						} else {
+							ps.setTimestamp(parameterIndex++, verifiedEndDate);
+						}
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -1152,25 +1123,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String updateQuery;
 		updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
-					int parameterIndex = 1;
-					ps.setInt(parameterIndex++, permission);
-					ps.setTimestamp(parameterIndex++, startDate);
-					if (verifiedEndDate == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					}
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, engineId);
-					ps.setString(parameterIndex++, groupType);
-					ps.execute();
-
+			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setInt(parameterIndex++, permission);
+				ps.setTimestamp(parameterIndex++, startDate);
+				if (verifiedEndDate == null) {
+					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(parameterIndex++, verifiedEndDate);
 				}
-				return null;
+				ps.setString(parameterIndex++, userDetails.getValue0());
+				ps.setString(parameterIndex++, userDetails.getValue1());
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, groupType);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -1197,16 +1163,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		String deleteQuery;
 		deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, engineId);
-					ps.setString(parameterIndex++, groupType);
-					ps.execute();
-
-				}
-				return null;
+			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
+				int parameterIndex = 1;
+				ps.setString(parameterIndex++, groupId);
+				ps.setString(parameterIndex++, engineId);
+				ps.setString(parameterIndex++, groupType);
 			});
 		} catch (RuntimeException e) {
 			throw e;

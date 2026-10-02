@@ -272,24 +272,17 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String normalizedTokenName = tokenName == null ? null : tokenName.trim();
 		String normalizedTokenDescription = tokenDescription == null ? null : tokenDescription.trim();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					ps.setString(parameterIndex++, accessToken.getId());
-					ps.setString(parameterIndex++, accessToken.getProvider().getLabel());
-					ps.setString(parameterIndex++, accessKey);
-					ps.setString(parameterIndex++, saltedSecretKey);
-					ps.setString(parameterIndex++, salt);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, normalizedTokenName);
-					securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++,
-							normalizedTokenDescription);
-					ps.execute();
-
-				}
-				return null;
+				ps.setString(parameterIndex++, accessToken.getId());
+				ps.setString(parameterIndex++, accessToken.getProvider().getLabel());
+				ps.setString(parameterIndex++, accessKey);
+				ps.setString(parameterIndex++, saltedSecretKey);
+				ps.setString(parameterIndex++, salt);
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, normalizedTokenName);
+				securityDb.getQueryUtil().setStringEmptyAsNullable(ps, parameterIndex++, normalizedTokenDescription);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -321,16 +314,10 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		String insertQuery = "UPDATE " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " SET LASTUSED=? WHERE ACCESSKEY=?";
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
+			QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setString(parameterIndex++, accessKey);
-					ps.execute();
-
-				}
-				return null;
+				ps.setTimestamp(parameterIndex++, timestamp);
+				ps.setString(parameterIndex++, accessKey);
 			});
 		} catch (RuntimeException e) {
 			throw e;
@@ -354,15 +341,10 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		}
 		String insertQuery = "DELETE FROM " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " WHERE ACCESSKEY=?";
 		try {
-			return QueryExecutionUtility.write(securityDb, connection -> {
+			return QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
 				int parameterIndex = 1;
-
-				try (PreparedStatement ps = connection.prepareStatement(insertQuery)) {
-					ps.setString(parameterIndex++, accessKey);
-					int updatedRows = ps.executeUpdate();
-					return updatedRows > 0;
-				}
-			});
+				ps.setString(parameterIndex++, accessKey);
+			}) > 0;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -424,13 +406,8 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 			return QueryExecutionUtility.read(securityDb, connection -> {
 				String query = securityDb.getQueryUtil().getAllColumnDetails(SMSS_USER_ACCESS_KEYS_TABLE_NAME,
 						securityDb.getDatabase(), securityDb.getSchema());
-				List<String> allCols = new java.util.ArrayList<>();
-				try (PreparedStatement statement = connection.prepareStatement(query);
-						java.sql.ResultSet result = statement.executeQuery()) {
-					while (result.next()) {
-						allCols.add(result.getString(1).toUpperCase());
-					}
-				}
+				List<String> allCols = QueryExecutionUtility.queryList(connection, query, statement -> {
+				}, result -> result.getString(1).toUpperCase());
 				return allCols.contains(OLD_USERID_COL) || allCols.contains(OLD_USERID_COL.toLowerCase());
 			});
 		} catch (Exception e) {

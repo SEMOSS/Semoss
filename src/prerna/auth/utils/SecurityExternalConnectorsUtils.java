@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -141,7 +140,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					String sql = "UPDATE " + GITHUB_APP_TABLE + " SET SLUG = ?, APP_NAME = ?, OWNER_LOGIN = ?, "
 							+ "HTML_URL = ?, WEBHOOK_URL = ?, CLIENT_ID = ?, CLIENT_SECRET = ?, WEBHOOK_SECRET = ?, "
 							+ "PRIVATE_KEY = ?, UPDATED_ON = ? WHERE APP_ID = ?";
-					try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 						int i = 1;
 						ps.setString(i++, boundSlug);
 						ps.setString(i++, appName);
@@ -154,14 +153,12 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 						securityDb.getQueryUtil().setNullableLargeText(ps, i++, privateKey);
 						ps.setTimestamp(i++, now);
 						ps.setLong(i++, appId);
-						ps.executeUpdate();
-
-					}
+					});
 				} else {
 					String sql = "INSERT INTO " + GITHUB_APP_TABLE + " (APP_ID, SLUG, APP_NAME, OWNER_LOGIN, HTML_URL, "
 							+ "WEBHOOK_URL, CLIENT_ID, CLIENT_SECRET, WEBHOOK_SECRET, PRIVATE_KEY, CREATED_ON, UPDATED_ON) "
 							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-					try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 						int i = 1;
 						ps.setLong(i++, appId);
 						ps.setString(i++, boundSlug);
@@ -175,9 +172,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 						securityDb.getQueryUtil().setNullableLargeText(ps, i++, privateKey);
 						ps.setTimestamp(i++, now);
 						ps.setTimestamp(i++, now);
-						ps.execute();
-
-					}
+					});
 				}
 				return null;
 			});
@@ -280,7 +275,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 				if (exists) {
 					String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET APP_ID = ?, INSTALLATION_ID = ?, "
 							+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, SUBDIR = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
-					try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 						int i = 1;
 						ps.setLong(i++, appId);
 						ps.setLong(i++, installationId);
@@ -290,13 +285,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, i++, boundNormalizedSubdir);
 						ps.setTimestamp(i++, now);
 						ps.setString(i++, boundProjectId);
-						ps.executeUpdate();
-
-					}
+					});
 				} else {
 					String sql = "INSERT INTO " + GITHUB_PROJECT_LINK_TABLE + " (PROJECT_ID, APP_ID, INSTALLATION_ID, "
 							+ "REPO_ID, REPO_FULL_NAME, BRANCH, SUBDIR, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-					try (PreparedStatement ps = conn.prepareStatement(sql)) {
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 						int i = 1;
 						ps.setString(i++, boundProjectId);
 						ps.setLong(i++, appId);
@@ -307,9 +300,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, i++, boundNormalizedSubdir);
 						ps.setTimestamp(i++, now);
 						ps.setTimestamp(i++, now);
-						ps.execute();
-
-					}
+					});
 				}
 				return null;
 			});
@@ -341,13 +332,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, conn -> {
 				String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE
 						+ " SET BRANCH = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 					ps.setString(1, boundBranch);
 					ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
 					ps.setString(3, boundProjectId);
-					ps.executeUpdate();
-
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -437,16 +426,10 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		try {
 			QueryExecutionUtility.write(securityDb, conn -> {
 
-				try (PreparedStatement ps = conn
-						.prepareStatement("DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE APP_ID = ?")) {
-					ps.setLong(1, appId);
-					ps.executeUpdate();
-				}
-				try (PreparedStatement ps = conn
-						.prepareStatement("DELETE FROM " + GITHUB_APP_TABLE + " WHERE APP_ID = ?")) {
-					ps.setLong(1, appId);
-					ps.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(conn,
+						"DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE APP_ID = ?", ps -> ps.setLong(1, appId));
+				QueryExecutionUtility.executeUpdate(conn, "DELETE FROM " + GITHUB_APP_TABLE + " WHERE APP_ID = ?",
+						ps -> ps.setLong(1, appId));
 				return null;
 			});
 		} catch (SQLException | RuntimeException e) {
@@ -472,11 +455,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			String boundProjectId = projectId;
 			QueryExecutionUtility.write(securityDb, conn -> {
 				String sql = "DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE PROJECT_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					ps.setString(1, boundProjectId);
-					ps.executeUpdate();
-
-				}
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> ps.setString(1, boundProjectId));
 				return null;
 			});
 		} catch (Exception e) {
@@ -662,17 +641,15 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 				// replacing rather than updating in place: a subscription id is Graph's to
 				// issue, so the same id arriving twice is the same subscription being
 				// recreated and the old row has nothing worth keeping
-				try (PreparedStatement ps = conn.prepareStatement(
-						"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?")) {
-					ps.setString(1, boundSubscriptionId);
-					ps.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(conn,
+						"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?",
+						ps -> ps.setString(1, boundSubscriptionId));
 				String sql = "INSERT INTO " + MS_GRAPH_SUBSCRIPTION_TABLE
 						+ " (SUBSCRIPTION_ID, USER_ID, USER_PROVIDER, "
 						+ "USER_EMAIL, CLIENT_STATE, RESOURCE, CHANGE_TYPE, NOTIFICATION_URL, EXPIRATION, ACCESS_TOKEN, "
 						+ "REFRESH_TOKEN, TOKEN_EXPIRATION, CREATED_ON, UPDATED_ON) "
 						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 					int i = 1;
 					ps.setString(i++, boundSubscriptionId);
 					ps.setString(i++, userId);
@@ -688,8 +665,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 					ps.setTimestamp(i++, tokenExpiration);
 					ps.setTimestamp(i++, now);
 					ps.setTimestamp(i++, now);
-					ps.execute();
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -766,12 +742,11 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, conn -> {
 				String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE
 						+ " SET EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 					ps.setTimestamp(1, expiration);
 					ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
 					ps.setString(3, boundSubscriptionId);
-					ps.executeUpdate();
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -803,15 +778,14 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			QueryExecutionUtility.write(securityDb, conn -> {
 				String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE + " SET ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, "
 						+ "TOKEN_EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
 					int i = 1;
 					securityDb.getQueryUtil().setNullableLargeText(ps, i++, accessToken);
 					securityDb.getQueryUtil().setNullableLargeText(ps, i++, refreshToken);
 					ps.setTimestamp(i++, tokenExpiration);
 					ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
 					ps.setString(i++, boundSubscriptionId);
-					ps.executeUpdate();
-				}
+				});
 				return null;
 			});
 		} catch (Exception e) {
@@ -830,15 +804,9 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 	public static void deleteMicrosoftGraphSubscription(String subscriptionId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, conn -> {
-
-				try (PreparedStatement ps = conn.prepareStatement(
-						"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?")) {
-					ps.setString(1, subscriptionId);
-					ps.executeUpdate();
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?",
+					ps -> ps.setString(1, subscriptionId));
 		} catch (SQLException | RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

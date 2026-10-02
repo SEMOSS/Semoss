@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -134,24 +133,21 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 		String shareToken = UUID.randomUUID().toString();
 
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement(securityDb.getQueryUtil()
-						.createInsertPreparedStatementString(SESSION_SHARE_TABLE_NAME, new String[] { SHARE_VAL,
-								SESSION_VAL, ROUTE_VAL, DATE_ADDED, SESSION_SHARE, AUTH_SHARE, USERID, TYPE }))) {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, shareToken);
-					ps.setString(parameterIndex++, sessionId);
-					ps.setString(parameterIndex++, routeId);
-					ps.setTimestamp(parameterIndex++, timestamp);
-					ps.setBoolean(parameterIndex++, sessionToken);
-					ps.setBoolean(parameterIndex++, authToken);
-					ps.setString(parameterIndex++, loginDetails.getValue0());
-					ps.setString(parameterIndex++, loginDetails.getValue1());
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb,
+					securityDb.getQueryUtil()
+							.createInsertPreparedStatementString(SESSION_SHARE_TABLE_NAME, new String[] { SHARE_VAL,
+									SESSION_VAL, ROUTE_VAL, DATE_ADDED, SESSION_SHARE, AUTH_SHARE, USERID, TYPE }),
+					ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, shareToken);
+						ps.setString(parameterIndex++, sessionId);
+						ps.setString(parameterIndex++, routeId);
+						ps.setTimestamp(parameterIndex++, timestamp);
+						ps.setBoolean(parameterIndex++, sessionToken);
+						ps.setBoolean(parameterIndex++, authToken);
+						ps.setString(parameterIndex++, loginDetails.getValue0());
+						ps.setString(parameterIndex++, loginDetails.getValue1());
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -236,18 +232,13 @@ public class SecurityShareSessionUtils extends AbstractSecurityUtils {
 	public static String logSessionUsed(String shareToken, ZonedDateTime zdt, boolean success) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				try (PreparedStatement ps = connection.prepareStatement("UPDATE " + SESSION_SHARE_TABLE_NAME + " SET "
-						+ DATE_USED + "=?, " + USE_VALID + "=? " + "WHERE " + SHARE_VAL + "=?")) {
-					int parameterIndex = 1;
-					ps.setTimestamp(parameterIndex++, java.sql.Timestamp.from(zdt.toInstant()));
-					ps.setBoolean(parameterIndex++, success);
-					ps.setString(parameterIndex++, shareToken);
-					ps.execute();
-
-				}
-				return null;
-			});
+			QueryExecutionUtility.executeUpdate(securityDb, "UPDATE " + SESSION_SHARE_TABLE_NAME + " SET " + DATE_USED
+					+ "=?, " + USE_VALID + "=? " + "WHERE " + SHARE_VAL + "=?", ps -> {
+						int parameterIndex = 1;
+						ps.setTimestamp(parameterIndex++, java.sql.Timestamp.from(zdt.toInstant()));
+						ps.setBoolean(parameterIndex++, success);
+						ps.setString(parameterIndex++, shareToken);
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

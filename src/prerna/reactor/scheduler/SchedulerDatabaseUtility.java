@@ -403,15 +403,12 @@ public class SchedulerDatabaseUtility {
 	public static boolean insertIntoExecutionTable(String execId, String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(INSERT_EXECUTION_QUERY)) {
-					statement.setString(1, execId);
-					statement.setString(2, jobId);
-					statement.setString(3, jobGroup);
-					statement.executeUpdate();
-				}
-				return true;
+			QueryExecutionUtility.executeUpdate(schedulerDb, INSERT_EXECUTION_QUERY, statement -> {
+				statement.setString(1, execId);
+				statement.setString(2, jobId);
+				statement.setString(3, jobGroup);
 			});
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -431,19 +428,12 @@ public class SchedulerDatabaseUtility {
 	public static String[] executionIdExists(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.read(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(SELECT_EXECUTION_BY_ID_QUERY)) {
-					statement.setString(1, execId);
-					try (ResultSet rs = statement.executeQuery()) {
-						if (rs.next()) {
-							String jobId = rs.getString(1);
-							String jobGroup = rs.getString(2);
-							return new String[] { jobId, jobGroup };
-						}
-					}
-				}
-				return null;
-			});
+			return QueryExecutionUtility.queryOne(schedulerDb, SELECT_EXECUTION_BY_ID_QUERY,
+					statement -> statement.setString(1, execId), rs -> {
+						String jobId = rs.getString(1);
+						String jobGroup = rs.getString(2);
+						return new String[] { jobId, jobGroup };
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -462,13 +452,9 @@ public class SchedulerDatabaseUtility {
 	public static boolean removeExecutionId(String execId) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(DELETE_EXECUTION_QUERY)) {
-					statement.setString(1, execId);
-					statement.executeUpdate();
-				}
-				return true;
-			});
+			QueryExecutionUtility.executeUpdate(schedulerDb, DELETE_EXECUTION_QUERY,
+					statement -> statement.setString(1, execId));
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -503,28 +489,30 @@ public class SchedulerDatabaseUtility {
 		try {
 			return QueryExecutionUtility.write(schedulerDb, conn -> {
 
-				try (PreparedStatement updateAuditTrailStatement = conn
-						.prepareStatement(CLEAR_AUDIT_TRAIL_LATEST_QUERY)) {
-					updateAuditTrailStatement.setBoolean(1, false);
-					updateAuditTrailStatement.setString(2, jobId);
-					updateAuditTrailStatement.executeUpdate();
+				try {
+					QueryExecutionUtility.executeUpdate(conn, CLEAR_AUDIT_TRAIL_LATEST_QUERY,
+							updateAuditTrailStatement -> {
+								updateAuditTrailStatement.setBoolean(1, false);
+								updateAuditTrailStatement.setString(2, jobId);
+							});
 				} catch (SQLException e) {
 					classLogger.error("Failed to clear IS_LATEST flag in SMSS_AUDIT_TRAIL for jobId '{}': {}", jobId,
 							e.getMessage(), e);
 					throw e;
 				}
 				// now insert the new record with is_latest as true
-				try (PreparedStatement statement = conn.prepareStatement(INSERT_AUDIT_TRAIL_QUERY)) {
-					int index = 1;
-					statement.setString(index++, jobId);
-					statement.setString(index++, jobGroup);
-					statement.setTimestamp(index++, startTimeStamp);
-					statement.setTimestamp(index++, endTimeStamp);
-					statement.setString(index++, String.valueOf(end - start));
-					statement.setBoolean(index++, success);
-					statement.setBoolean(index++, true);
-					queryUtil.setNullableLargeText(statement, index++, schedulerOutput);
-					statement.executeUpdate();
+				try {
+					QueryExecutionUtility.executeUpdate(conn, INSERT_AUDIT_TRAIL_QUERY, statement -> {
+						int index = 1;
+						statement.setString(index++, jobId);
+						statement.setString(index++, jobGroup);
+						statement.setTimestamp(index++, startTimeStamp);
+						statement.setTimestamp(index++, endTimeStamp);
+						statement.setString(index++, String.valueOf(end - start));
+						statement.setBoolean(index++, success);
+						statement.setBoolean(index++, true);
+						queryUtil.setNullableLargeText(statement, index++, schedulerOutput);
+					});
 				} catch (SQLException e) {
 					classLogger.error("Failed to insert audit trail row for jobId '{}', jobGroup '{}': {}", jobId,
 							jobGroup, e.getMessage(), e);
@@ -567,7 +555,7 @@ public class SchedulerDatabaseUtility {
 
 		try {
 			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(INSERT_JOB_RECIPES_QUERY)) {
+				QueryExecutionUtility.executeUpdate(conn, INSERT_JOB_RECIPES_QUERY, statement -> {
 					int index = 1;
 					statement.setString(index++, userId);
 					statement.setString(index++, jobId);
@@ -580,9 +568,7 @@ public class SchedulerDatabaseUtility {
 					statement.setString(index++, jobCategory);
 					statement.setBoolean(index++, triggerOnLoad);
 					queryUtil.handleInsertionOfBlob(conn, statement, uiState, index++);
-
-					statement.executeUpdate();
-				}
+				});
 				updateJobTags(conn, jobId, jobTags);
 				return true;
 			});
@@ -680,7 +666,7 @@ public class SchedulerDatabaseUtility {
 
 		try {
 			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(UPDATE_JOB_RECIPES_QUERY)) {
+				QueryExecutionUtility.executeUpdate(conn, UPDATE_JOB_RECIPES_QUERY, statement -> {
 					int index = 1;
 					statement.setString(index++, userId);
 					statement.setString(index++, jobName);
@@ -696,9 +682,7 @@ public class SchedulerDatabaseUtility {
 					// where clause filters
 					statement.setString(index++, jobId);
 					statement.setString(index++, existingJobGroup);
-
-					statement.executeUpdate();
-				}
+				});
 				updateJobTags(conn, jobId, jobTags);
 				return true;
 			});
@@ -722,15 +706,11 @@ public class SchedulerDatabaseUtility {
 	public static boolean removeFromJobRecipesTable(String jobId, String jobGroup) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.write(schedulerDb, conn -> {
-				try (PreparedStatement statement = conn.prepareStatement(DELETE_JOB_RECIPES_QUERY)) {
-					statement.setString(1, jobId);
-					statement.setString(2, jobGroup);
-
-					statement.executeUpdate();
-				}
-				return true;
+			QueryExecutionUtility.executeUpdate(schedulerDb, DELETE_JOB_RECIPES_QUERY, statement -> {
+				statement.setString(1, jobId);
+				statement.setString(2, jobGroup);
 			});
+			return true;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -783,19 +763,13 @@ public class SchedulerDatabaseUtility {
 				}
 
 				if (!jobIds.isEmpty()) {
-					try (PreparedStatement deleteTags = conn.prepareStatement(DELETE_JOB_TAGS_QUERY)) {
-						for (String jobId : jobIds) {
-							deleteTags.setString(1, jobId);
-							deleteTags.addBatch();
-						}
-						deleteTags.executeBatch();
-					}
+					QueryExecutionUtility.executeBatch(conn, DELETE_JOB_TAGS_QUERY, jobIds, (deleteTags, jobId) -> {
+						deleteTags.setString(1, jobId);
+					});
 				}
 
-				try (PreparedStatement deleteRecipes = conn.prepareStatement(DELETE_PROJECT_JOB_RECIPES_QUERY)) {
-					deleteRecipes.setString(1, jobGroup);
-					deleteRecipes.executeUpdate();
-				}
+				QueryExecutionUtility.executeUpdate(conn, DELETE_PROJECT_JOB_RECIPES_QUERY,
+						deleteRecipes -> deleteRecipes.setString(1, jobGroup));
 				return null;
 			});
 		} catch (RuntimeException e) {
@@ -1184,17 +1158,8 @@ public class SchedulerDatabaseUtility {
 	public static long getOverdueTriggerCount(long beforeEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.read(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(OVERDUE_TRIGGER_COUNT_QUERY)) {
-					ps.setLong(1, beforeEpochMillis);
-					try (ResultSet rs = ps.executeQuery()) {
-						if (rs.next()) {
-							return rs.getLong(1);
-						}
-					}
-				}
-				return 0L;
-			});
+			return java.util.Objects.requireNonNullElse(QueryExecutionUtility.queryOne(schedulerDb,
+					OVERDUE_TRIGGER_COUNT_QUERY, ps -> ps.setLong(1, beforeEpochMillis), rs -> rs.getLong(1)), 0L);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -1211,20 +1176,14 @@ public class SchedulerDatabaseUtility {
 	public static Long getNextScheduledRunTime(long afterEpochMillis) {
 		IRDBMSEngine schedulerDb = SystemEngineRegistry.getSchedulerDb();
 		try {
-			return QueryExecutionUtility.read(schedulerDb, conn -> {
-				try (PreparedStatement ps = conn.prepareStatement(NEXT_SCHEDULED_RUN_QUERY)) {
-					ps.setLong(1, afterEpochMillis);
-					try (ResultSet rs = ps.executeQuery()) {
-						if (rs.next()) {
-							long next = rs.getLong(1);
-							if (!rs.wasNull() && next > 0) {
-								return next;
-							}
+			return QueryExecutionUtility.queryOne(schedulerDb, NEXT_SCHEDULED_RUN_QUERY,
+					ps -> ps.setLong(1, afterEpochMillis), rs -> {
+						long next = rs.getLong(1);
+						if (!rs.wasNull() && next > 0) {
+							return next;
 						}
-					}
-				}
-				return null;
-			});
+						return null;
+					});
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
