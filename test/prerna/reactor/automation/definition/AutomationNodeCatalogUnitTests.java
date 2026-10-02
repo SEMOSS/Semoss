@@ -81,7 +81,7 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
-	void databaseQueryAdvertisesEditablePagingOptions() {
+	void databaseQueryAdvertisesEditableLimit() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATABASE_QUERY);
 		assertNotNull(definition);
 		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
@@ -89,13 +89,8 @@ public class AutomationNodeCatalogUnitTests {
 						AutomationNodeDefinition.ConfigField::toMap));
 		assertEquals(AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
 				definition.defaultConfig().get(AutomationConstants.CONFIG_LIMIT));
-		assertEquals(AutomationConstants.DEFAULT_DB_QUERY_OFFSET,
-				definition.defaultConfig().get(AutomationConstants.CONFIG_OFFSET));
 		assertEquals(AutomationConstants.DB_QUERY_MAX_LIMIT,
 				fieldsByKey.get(AutomationConstants.CONFIG_LIMIT).get("maximum"));
-		assertEquals(AutomationConstants.DB_QUERY_MIN_OFFSET,
-				fieldsByKey.get(AutomationConstants.CONFIG_OFFSET).get("minimum"));
-		assertEquals(false, fieldsByKey.get(AutomationConstants.CONFIG_OFFSET).get("required"));
 	}
 
 	@Test

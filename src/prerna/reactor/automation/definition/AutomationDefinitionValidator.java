@@ -231,7 +231,6 @@ public final class AutomationDefinitionValidator {
 		case DATABASE_QUERY -> {
 			requireConfigString(nodeId, config, "query");
 			validateDatabaseQueryLimit(nodeId, config);
-			validateDatabaseQueryOffset(nodeId, config);
 		}
 		case DATABASE_INSERT, DATABASE_UPDATE, DATABASE_DELETE -> requireConfigString(nodeId, config, "query");
 		case MODEL_CHAT -> {
@@ -331,29 +330,6 @@ public final class AutomationDefinitionValidator {
 			throw new IllegalArgumentException("Database query node '" + nodeId
 					+ "' config.limit must be a whole number from " + AutomationConstants.DB_QUERY_MIN_LIMIT
 					+ " through " + AutomationConstants.DB_QUERY_MAX_LIMIT + ".");
-		}
-	}
-
-	/**
-	 * Validate the optional zero-based row offset used by generated database reads.
-	 *
-	 * @param nodeId node whose configuration is being validated
-	 * @param config generated node configuration
-	 */
-	private static void validateDatabaseQueryOffset(String nodeId, Map<String, Object> config) {
-		Object value = config.get(AutomationConstants.CONFIG_OFFSET);
-		if (value == null) {
-			return;
-		}
-		if (!(value instanceof Number number)) {
-			throw new IllegalArgumentException("Database query node '" + nodeId
-					+ "' config.offset must be a non-negative whole number.");
-		}
-
-		double offset = number.doubleValue();
-		if (!Double.isFinite(offset) || offset != Math.rint(offset) || offset < AutomationConstants.DB_QUERY_MIN_OFFSET) {
-			throw new IllegalArgumentException("Database query node '" + nodeId
-					+ "' config.offset must be a non-negative whole number.");
 		}
 	}
 

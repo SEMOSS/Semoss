@@ -129,7 +129,6 @@ public class AutomationDefinitionValidatorUnitTests {
 	private static Map<String, Object> databaseQueryConfig() {
 		Map<String, Object> config = databaseConfig("SELECT * FROM CLAIMS ORDER BY ID");
 		config.put(AutomationConstants.CONFIG_LIMIT, 100);
-		config.put(AutomationConstants.CONFIG_OFFSET, 25);
 		return config;
 	}
 
@@ -198,18 +197,12 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void rejectsInvalidDatabaseQueryPagingOptions() {
+	void rejectsInvalidDatabaseQueryLimit() {
 		Map<String, Object> invalidLimit = databaseQueryConfig();
 		invalidLimit.put(AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT + 1);
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
 						workNode(AutomationConstants.NODE_DATABASE_QUERY, invalidLimit))));
-
-		Map<String, Object> invalidOffset = databaseQueryConfig();
-		invalidOffset.put(AutomationConstants.CONFIG_OFFSET, -1);
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(),
-						workNode(AutomationConstants.NODE_DATABASE_QUERY, invalidOffset))));
 	}
 
 	@Test

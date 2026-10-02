@@ -59,7 +59,6 @@ public class AutomationSourceRendererUnitTests {
 		config.put("engineId", "engine-1");
 		config.put("query", "SELECT 1");
 		config.put("limit", 50);
-		config.put("offset", 0);
 		return config;
 	}
 
@@ -69,20 +68,8 @@ public class AutomationSourceRendererUnitTests {
 				node(AutomationConstants.NODE_DATABASE_QUERY, databaseConfig()));
 		assertTrue(source.contains("def run(scope):"), "every node source defines the run entry point");
 		assertTrue(source.contains("_pixel_value(\"limit\", int(scope.resolve(LIMIT)))"));
-		assertTrue(source.contains("_pixel_value(\"offset\", int(scope.resolve(OFFSET)))"));
 		assertFalse(source.contains("insertData"));
 		assertFalse(source.contains("removeData"));
-	}
-
-	@Test
-	void databaseQueryDefaultsAnAbsentOffsetToZero() {
-		Map<String, Object> config = databaseConfig();
-		config.remove(AutomationConstants.CONFIG_OFFSET);
-
-		String source = AutomationSourceRenderer
-				.renderNode(node(AutomationConstants.NODE_DATABASE_QUERY, config));
-
-		assertTrue(source.contains("OFFSET = 0"));
 	}
 
 	/**

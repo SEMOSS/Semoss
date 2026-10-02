@@ -100,15 +100,11 @@ public final class AutomationNodeCatalog {
 
 		definitions.add(definition(AutomationNodeType.DATABASE_QUERY, "Query database",
 				"Retrieve bounded rows with a database query.",
-				orderedConfig("engineId", "", "query", "", "limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
-						"offset", AutomationConstants.DEFAULT_DB_QUERY_OFFSET),
+				orderedConfig("engineId", "", "query", "", "limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT),
 				List.of(engineField(IEngine.CATALOG_TYPE.DATABASE),
 						field("query", ConfigFieldType.CODE, "Query", true, ""),
 						boundedIntegerField("limit", "Result limit", AutomationConstants.DEFAULT_DB_QUERY_LIMIT,
-								AutomationConstants.DB_QUERY_MIN_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT),
-						new ConfigField("offset", ConfigFieldType.INTEGER, "Rows to skip", false,
-								AutomationConstants.DEFAULT_DB_QUERY_OFFSET, AutomationConstants.DB_QUERY_MIN_OFFSET, null,
-								null)),
+								AutomationConstants.DB_QUERY_MIN_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT)),
 				controlInputs(), controlAndResultOutputs()));
 		definitions.add(databaseWriteDefinition(AutomationNodeType.DATABASE_INSERT, "Insert database rows",
 				"Add records to a database table."));

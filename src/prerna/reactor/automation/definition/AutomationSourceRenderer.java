@@ -110,7 +110,6 @@ public final class AutomationSourceRenderer {
 				ENGINE_ID = %s
 				QUERY = %s
 				LIMIT = %s
-				OFFSET = %s
 
 				def _pixel_value(name, value):
 				    return name + "=[" + json.dumps(value) + "]"
@@ -139,20 +138,17 @@ public final class AutomationSourceRenderer {
 				def run(scope):
 				    query = scope.resolve(QUERY)
 				    pixel = "SqlQuery(" + ", ".join([
-				        _pixel_value("database", scope.resolve(ENGINE_ID)),
-				        'query=["<encode>' + query + '</encode>"]',
-				        _pixel_value("limit", int(scope.resolve(LIMIT))),
-				        _pixel_value("offset", int(scope.resolve(OFFSET))),
-				    ]) + ");"
+					    _pixel_value("database", scope.resolve(ENGINE_ID)),
+					    'query=["<encode>' + query + '</encode>"]',
+					    _pixel_value("limit", int(scope.resolve(LIMIT))),
+					]) + ");"
 				    response = Insight().run_pixel(pixel, raw=True)
 				    result = response[0]["pixelReturn"][-1]
 				    if "ERROR" in result.get("operationType", []):
 				        raise RuntimeError(result.get("output") or "SQL query failed")
 				    return _query_rows(result.get("output"))
 				""".formatted(value(config, AutomationConstants.CONFIG_ENGINE_ID), value(config, "query"),
-				value(config, AutomationConstants.CONFIG_LIMIT),
-				valueOrDefault(config, AutomationConstants.CONFIG_OFFSET,
-						AutomationConstants.DEFAULT_DB_QUERY_OFFSET));
+				value(config, AutomationConstants.CONFIG_LIMIT));
 	}
 
 	private static String databaseWriteSource(Map<String, Object> config, String method) {

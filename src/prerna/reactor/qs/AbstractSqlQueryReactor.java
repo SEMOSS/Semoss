@@ -90,8 +90,8 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 
 	public AbstractSqlQueryReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.QUERY_KEY.getKey(), ReactorKeysEnum.DATABASE.getKey(),
-				ReactorKeysEnum.LIMIT.getKey(), ReactorKeysEnum.OFFSET.getKey(), "commit" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+				ReactorKeysEnum.LIMIT.getKey(), "commit" };
+		this.keyRequired = new int[] { 1, 1, 0, 0 };
 	}
 
 	@Override
@@ -109,8 +109,7 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		String sqlQuery = getDecodedQuery();
 		String databaseId = this.keyValue.get(this.keysToGet[1]);
 		String limitStr = this.keyValue.get(this.keysToGet[2]);
-		String offsetStr = this.keyValue.get(this.keysToGet[3]);
-		String commitStr = this.keyValue.get(this.keysToGet[4]);
+		String commitStr = this.keyValue.get(this.keysToGet[3]);
 
 		if (sqlQuery == null || sqlQuery.trim().isEmpty()) {
 			throw new SemossPixelException("SQL query cannot be empty");
@@ -135,10 +134,9 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			}
 
 			if (statements.size() == 1) {
-				return delegateToAppropriateReactor(sqlQuery, databaseId, statements.get(0).route, limitStr, offsetStr,
-						commitStr);
+				return delegateToAppropriateReactor(sqlQuery, databaseId, statements.get(0).route, limitStr, commitStr);
 			}
-			return executeBatch(statements, databaseId, limitStr, offsetStr, commitStr);
+			return executeBatch(statements, databaseId, limitStr, commitStr);
 		} catch (Exception e) {
 			classLogger.error("Error executing SQL query for database {}", databaseId, e);
 			throw new SemossPixelException("Error executing SQL query: " + e.getMessage());
@@ -291,24 +289,24 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	 * @return
 	 */
 	private NounMetadata delegateToAppropriateReactor(String sqlQuery, String databaseId, QueryRoute queryRoute,
-			String limitStr, String offsetStr, String commitStr) {
+			String limitStr, String commitStr) {
 
 		if (queryRoute.returnsRows) {
-			return executeSelectQuery(sqlQuery, databaseId, limitStr, offsetStr);
+			return executeSelectQuery(sqlQuery, databaseId, limitStr);
 		} else {
 			return executeModificationQuery(sqlQuery, databaseId, commitStr);
 		}
 	}
 
 	private NounMetadata executeBatch(List<ParsedSqlStatement> statements, String databaseId, String limitStr,
-			String offsetStr, String commitStr) {
+			String commitStr) {
 		List<Map<String, Object>> results = new ArrayList<>(statements.size());
 		for (int index = 0; index < statements.size(); index++) {
 			ParsedSqlStatement statement = statements.get(index);
 			long startedAt = System.nanoTime();
 			try {
 				NounMetadata execution = delegateToAppropriateReactor(statement.sql, databaseId, statement.route,
-						limitStr, offsetStr, commitStr);
+						limitStr, commitStr);
 				results.add(toBatchSuccess(index, statement, execution, startedAt));
 			} catch (Exception e) {
 				results.add(toBatchError(index, statement, e, elapsedMillis(startedAt)));
@@ -383,27 +381,13 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 	 * @param sqlQuery
 	 * @param databaseId
 	 * @param limitStr
-	 * @param offsetStr number of rows to skip before collecting results
-	 * @return query task
+	 * @return
 	 */
-	private NounMetadata executeSelectQuery(String sqlQuery, String databaseId, String limitStr, String offsetStr) {
+	private NounMetadata executeSelectQuery(String sqlQuery, String databaseId, String limitStr) {
 		try {
+			HardSelectQueryStruct qs = getQs(sqlQuery, databaseId);
+			// set limit if provided
 			int limit = parseLimit(limitStr);
-			long offset = parseOffset(offsetStr);
-			IDatabaseEngine database = Utility.getDatabase(databaseId);
-			if (!(database instanceof IRDBMSEngine)) {
-				throw new IllegalArgumentException("The database is not a RDBMS engine that accepts SQL");
-			}
-			String pagedQuery = sqlQuery;
-			if (offset > 0) {
-				String queryWithoutTerminator = sqlQuery.trim();
-				if (queryWithoutTerminator.endsWith(";")) {
-					queryWithoutTerminator = queryWithoutTerminator.substring(0, queryWithoutTerminator.length() - 1);
-				}
-				pagedQuery = ((IRDBMSEngine) database).getQueryUtil()
-						.addLimitOffsetToQuery(new StringBuilder(queryWithoutTerminator), limit, offset).toString();
-			}
-			HardSelectQueryStruct qs = getQs(pagedQuery, databaseId);
 			BasicIteratorTask task = new BasicIteratorTask(qs);
 			task.setNumCollect(limit);
 			task.setCollectLimit(limit);
@@ -477,23 +461,6 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 		return limit;
 	}
 
-	private long parseOffset(String offsetStr) {
-		if (offsetStr == null || offsetStr.trim().isEmpty()) {
-			return 0;
-		}
-		try {
-			long offset = Long.parseLong(offsetStr.trim());
-			if (offset < 0) {
-				classLogger.warn("Invalid offset value: {}, using default 0", offsetStr);
-				return 0;
-			}
-			return offset;
-		} catch (NumberFormatException e) {
-			classLogger.warn("Invalid offset value: {}, using default 0", offsetStr);
-			return 0;
-		}
-	}
-
 	@Override
 	public String getReactorDescription() {
 		return "Execute one or more SQL statements against a database";
@@ -505,8 +472,6 @@ public abstract class AbstractSqlQueryReactor extends AbstractReactor {
 			return "The database id";
 		} else if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
 			return "Limits the number of rows retrieved by a select query";
-		} else if (key.equals(ReactorKeysEnum.OFFSET.getKey())) {
-			return "Skips this many rows before retrieving select query results";
 		} else {
 			return super.getDescriptionForKey(key);
 		}
