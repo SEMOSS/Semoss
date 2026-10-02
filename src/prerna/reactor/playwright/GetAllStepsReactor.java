@@ -173,6 +173,7 @@ public class GetAllStepsReactor extends AbstractReactor {
 		stepMap.put("required", step.required());
 		stepMap.put("sendToPlayground", step.sendToPlayground());
 		stepMap.put("tag", step.tag());
+		stepMap.put("downloadExpected", step.downloadExpected());
 		return stepMap;
 	}
 

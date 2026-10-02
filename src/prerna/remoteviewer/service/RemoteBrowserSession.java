@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.microsoft.playwright.BrowserContext;
 import com.microsoft.playwright.Page;
@@ -45,6 +46,7 @@ import com.microsoft.playwright.Page;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.reactor.playwright.PlaywrightStep;
 import prerna.reactor.playwright.StepsEnvelope;
+import prerna.remoteviewer.model.RemoteBrowserDebugEvent;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
 
@@ -65,6 +67,7 @@ import prerna.remoteviewer.model.RemoteBrowserRecordedStep;
  * </ul>
  */
 public class RemoteBrowserSession {
+	private static final int MAX_DEBUG_EVENTS = 1_000;
 
 	private final String sessionId;
 	private final String userId;
@@ -77,6 +80,10 @@ public class RemoteBrowserSession {
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 	private final AtomicBoolean navigationLoading = new AtomicBoolean(false);
+	private final AtomicBoolean debugEnabled = new AtomicBoolean(false);
+	private final AtomicLong debugSequence = new AtomicLong();
+	private final AtomicLong droppedDebugEvents = new AtomicLong();
+	private final BlockingQueue<RemoteBrowserDebugEvent> debugEventQueue = new LinkedBlockingQueue<>(MAX_DEBUG_EVENTS);
 
 	/** Queue of input events waiting to be processed by the session thread. */
 	public final BlockingQueue<RemoteBrowserInputEvent> eventQueue = new LinkedBlockingQueue<>(256);
@@ -111,6 +118,10 @@ public class RemoteBrowserSession {
 
 	/** Last TYPE step currently being aggregated. */
 	private PlaywrightStep pendingTypeStep;
+
+	/** A download can arrive before the live click has been appended to history. */
+	private boolean pendingDownloadExpected;
+	private boolean downloadClickInFlight;
 
 	/** Whether the next recorded action should start a new replay page group. */
 	private final Set<String> tabsStartingNextRecordedPage = new HashSet<>();
@@ -216,6 +227,45 @@ public class RemoteBrowserSession {
 		return navigationLoading.getAndSet(loading) != loading;
 	}
 
+	public boolean isDebugEnabled() {
+		return debugEnabled.get();
+	}
+
+	public void setDebugEnabled(boolean enabled) {
+		debugEnabled.set(enabled);
+		if (!enabled) {
+			clearDebugEvents();
+		}
+	}
+
+	public void clearDebugEvents() {
+		debugEventQueue.clear();
+		droppedDebugEvents.set(0);
+	}
+
+	public String nextDebugEventId() {
+		return "debug-" + debugSequence.incrementAndGet();
+	}
+
+	public void enqueueDebugEvent(RemoteBrowserDebugEvent event) {
+		if (!debugEnabled.get() || event == null) {
+			return;
+		}
+		if (!debugEventQueue.offer(event)) {
+			droppedDebugEvents.incrementAndGet();
+		}
+	}
+
+	public List<RemoteBrowserDebugEvent> drainDebugEvents(int maximum) {
+		List<RemoteBrowserDebugEvent> events = new ArrayList<>(Math.max(0, maximum));
+		debugEventQueue.drainTo(events, Math.max(0, maximum));
+		return events;
+	}
+
+	public long consumeDroppedDebugEvents() {
+		return droppedDebugEvents.getAndSet(0);
+	}
+
 	public List<RemoteBrowserRecordedStep> getRemoteBrowserRecordedSteps() {
 		return recordedSteps;
 	}
@@ -242,6 +292,8 @@ public class RemoteBrowserSession {
 		recordedSteps.clear();
 		recordingTabIds.clear();
 		recordingTabIds.put(normalizeTabId(activeTabId), "tab-1");
+		pendingDownloadExpected = false;
+		downloadClickInFlight = false;
 		clearPendingTypeStep();
 		tabsStartingNextRecordedPage.clear();
 		ensureRecordingTab();
@@ -253,6 +305,10 @@ public class RemoteBrowserSession {
 		ensureRecordingTab(resolvedTabId);
 
 		PlaywrightStep newStep = withStepId(step, ++recordingLastStepId);
+		if (pendingDownloadExpected && newStep.type() == prerna.reactor.playwright.PlaywrightStepType.CLICK) {
+			newStep = newStep.withDownloadExpected(true);
+			pendingDownloadExpected = false;
+		}
 		List<List<PlaywrightStep>> pages = recordingHistory.steps().get(resolvedTabId);
 		if (startNewPage || pages.isEmpty()) {
 			pages.add(new ArrayList<>(List.of(newStep)));
@@ -273,6 +329,71 @@ public class RemoteBrowserSession {
 			return;
 		}
 		currentPage.set(currentPage.size() - 1, step);
+	}
+
+	/** Marks a recorded click after the download registry observes its native file. */
+	public synchronized void markDownloadExpected(Integer stepId) {
+		if (stepId == null || recordingHistory == null || recordingHistory.steps() == null) {
+			return;
+		}
+		for (List<List<PlaywrightStep>> pages : recordingHistory.steps().values()) {
+			if (pages == null) {
+				continue;
+			}
+			for (List<PlaywrightStep> pageSteps : pages) {
+				if (pageSteps == null) {
+					continue;
+				}
+				for (int index = 0; index < pageSteps.size(); index++) {
+					PlaywrightStep step = pageSteps.get(index);
+					if (step != null && step.id() == stepId.intValue() && step.type() == prerna.reactor.playwright.PlaywrightStepType.CLICK
+							&& !Boolean.TRUE.equals(step.downloadExpected())) {
+						pageSteps.set(index, step.withDownloadExpected(true));
+						return;
+					}
+				}
+			}
+		}
+	}
+
+	/** Marks the most recent live click, or defers the mark until that click is appended. */
+	public synchronized void markLatestDownloadExpected() {
+		if (downloadClickInFlight) {
+			pendingDownloadExpected = true;
+			return;
+		}
+		for (List<List<PlaywrightStep>> pages : recordingHistory.steps().values()) {
+			if (pages == null) {
+				continue;
+			}
+			for (int pageIndex = pages.size() - 1; pageIndex >= 0; pageIndex--) {
+				List<PlaywrightStep> pageSteps = pages.get(pageIndex);
+				if (pageSteps == null) {
+					continue;
+				}
+				for (int index = pageSteps.size() - 1; index >= 0; index--) {
+					PlaywrightStep step = pageSteps.get(index);
+					if (step != null && step.type() == prerna.reactor.playwright.PlaywrightStepType.CLICK) {
+						if (!Boolean.TRUE.equals(step.downloadExpected())) {
+							pageSteps.set(index, step.withDownloadExpected(true));
+						}
+						return;
+					}
+				}
+			}
+		}
+		pendingDownloadExpected = true;
+	}
+
+	public synchronized void beginDownloadClickCandidate() {
+		if (recordingEnabled) {
+			downloadClickInFlight = true;
+			pendingDownloadExpected = false;
+		}
+	}
+
+	public synchronized void finishDownloadClickCandidate() {
+		downloadClickInFlight = false;
 	}
 
 	public synchronized PlaywrightStep getPendingTypeStep(String signature) {
@@ -453,6 +574,6 @@ public class RemoteBrowserSession {
 				step.text(), step.pressEnter(), step.deltaY(), step.waitUntil(), step.waitAfterMs(), step.viewport(),
 				step.timestamp(), step.label(), step.description(), step.isPassword(), step.storeValue(),
 				step.selector(), step.isTriggerNewTab(), step.shouldRun(), step.required(), step.sendToPlayground(),
-				step.tag());
+				step.tag(), step.downloadExpected());
 	}
 }

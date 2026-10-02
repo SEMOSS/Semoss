@@ -27,56 +27,11 @@
  *******************************************************************************/
 package prerna.remoteviewer.model;
 
-import prerna.reactor.playwright.Viewport;
-
-public class RemoteBrowserSessionCreateResponse {
-
-	/**
-	 * Device scale factor for remote browser sessions (see RemoteBrowserSessionManager).
-	 */
-	private static final double DEVICE_SCALE_FACTOR = 1.0;
-
-	private String sessionId;
-	private String webSocketUrl;
-	private Viewport viewport;
-	private String currentUrl;
-	private RemoteBrowserContextLimits contextLimits;
-
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight) {
-		this(sessionId, webSocketUrl, vpWidth, vpHeight, null);
-	}
-
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
-			String currentUrl) {
-		this(sessionId, webSocketUrl, vpWidth, vpHeight, currentUrl, null);
-	}
-
-	public RemoteBrowserSessionCreateResponse(String sessionId, String webSocketUrl, int vpWidth, int vpHeight,
-			String currentUrl, RemoteBrowserContextLimits contextLimits) {
-		this.sessionId = sessionId;
-		this.webSocketUrl = webSocketUrl;
-		this.viewport = new Viewport(vpWidth, vpHeight, DEVICE_SCALE_FACTOR);
-		this.currentUrl = currentUrl;
-		this.contextLimits = contextLimits;
-	}
-
-	public String getSessionId() {
-		return sessionId;
-	}
-
-	public String getWebSocketUrl() {
-		return webSocketUrl;
-	}
-
-	public Viewport getViewport() {
-		return viewport;
-	}
-
-	public String getCurrentUrl() {
-		return currentUrl;
-	}
-
-	public RemoteBrowserContextLimits getContextLimits() {
-		return contextLimits;
-	}
+/**
+ * Authoritative browser-context capture and return policy sent to the browser
+ * automation app so capture ceilings and Playground return budgets are never
+ * guessed by the client.
+ */
+public record RemoteBrowserContextLimits(int selectedCaptureHardLimitChars, int fullPageCaptureHardLimitChars,
+		int maxCapturedContexts, int defaultReturnBudgetChars, int maximumReturnBudgetChars) {
 }

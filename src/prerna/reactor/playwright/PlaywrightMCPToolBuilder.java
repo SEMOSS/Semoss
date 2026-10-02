@@ -78,6 +78,9 @@ public final class PlaywrightMCPToolBuilder {
 	/** Input schema property holding the optional pre-replay URL override. */
 	public static final String START_URL = "start_url";
 
+	/** Input schema property requesting a best-effort full-page capture after replay. */
+	public static final String CAPTURE_FULL_PAGE_AT_END = "capture_full_page_at_end";
+
 	/** Input schema property holding the recording's purpose. */
 	public static final String INTENT = "intent";
 
@@ -103,7 +106,8 @@ public final class PlaywrightMCPToolBuilder {
 	 *     "type": "object",
 	 *     "title": "bing_web_search_query_Arguments",
 	 *     "properties": { "recording_file": {...}, "intent": {...},
-	 *                     "start_url": {...}, "paramValues": {...} },
+	 *                     "start_url": {...}, "capture_full_page_at_end": {...},
+	 *                     "paramValues": {...} },
 	 *     "required": ["recording_file"]
 	 *   },
 	 *   "_meta": { "SMSS_MCP_EXECUTION": "ask", "SMSS_MCP_UI": {...}, ... }
@@ -154,6 +158,7 @@ public final class PlaywrightMCPToolBuilder {
 		// not just title. Example: "Replay: Football highlights - opens YouTube
 		// and navigates to football highlight videos."
 		String richDescription = "Replay: " + resolveRecordingIntent(envelope, title) + " - " + baseDescription;
+		richDescription += " Native browser downloads are captured automatically, saved as individual assets in the current insight under /browser-downloads/<run-id>/, and returned as insight paths; binary contents are not placed in MCP JSON.";
 
 		JSONObject properties = new JSONObject();
 		JSONArray required = new JSONArray();
@@ -190,6 +195,14 @@ public final class PlaywrightMCPToolBuilder {
 		startUrlProp.put("title", START_URL);
 		startUrlProp.put("description", "Optional URL override before replay.");
 		properties.put(START_URL, startUrlProp);
+
+		JSONObject fullPageProp = new JSONObject();
+		fullPageProp.put("type", "boolean");
+		fullPageProp.put("title", CAPTURE_FULL_PAGE_AT_END);
+		fullPageProp.put("description",
+				"After successful replay, auto-scroll the final page and return its rendered text as context. Native browser downloads are also automatically saved to the current insight and returned as individual insight paths. Best effort; capture errors do not fail replay.");
+		fullPageProp.put("default", false);
+		properties.put(CAPTURE_FULL_PAGE_AT_END, fullPageProp);
 
 		// One field per TYPE step flagged storeValue; free-form string map when none.
 		properties.put(PARAM_VALUES,
