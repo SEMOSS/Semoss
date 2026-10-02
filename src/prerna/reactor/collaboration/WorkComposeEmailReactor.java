@@ -29,6 +29,13 @@ package prerna.reactor.collaboration;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.IOException;
+
+import org.json.JSONObject;
+import prerna.collaboration.EmailAttachmentFiles;
+import prerna.sablecc2.om.GenRowStruct;
 
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -46,10 +53,11 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 	private static final String REPLY_TO = "replyTo";
 	private static final String FORWARD = "forward";
 	private static final String OPEN_EMAIL_ID = "openEmailId";
+	private static final String ATTACHMENTS = "attachments";
 
 	public WorkComposeEmailReactor() {
-		this.keysToGet = new String[] { MESSAGE, TO, CC, BCC, SUBJECT, REPLY_TO, FORWARD, OPEN_EMAIL_ID };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { MESSAGE, TO, CC, BCC, SUBJECT, REPLY_TO, FORWARD, OPEN_EMAIL_ID, ATTACHMENTS };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -66,6 +74,21 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 			throw new IllegalArgumentException("Must pass the email as message");
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
+		GenRowStruct files = this.store.getGenRowStruct(ATTACHMENTS);
+		if (files != null && !files.isEmpty()) {
+			if (this.insight.getRoomId() == null) throw new IllegalArgumentException("Open the email's room first.");
+			List<String> paths = new ArrayList<>();
+			for (int i = 0; i < files.size(); i++) {
+				Object value = files.getNoun(i).getValue();
+				if (!(value instanceof String)) throw new IllegalArgumentException("Attachments must be room-relative file paths.");
+				paths.add((String) value);
+			}
+			try {
+				out.put(ATTACHMENTS, EmailAttachmentFiles.snapshot(this.insight.getInsightFolder(), paths));
+			} catch (IOException e) {
+				throw new IllegalArgumentException("An attachment could not be prepared. Check that every file exists in this room.", e);
+			}
+		}
 		out.put("shown", true);
 		out.put("note", "The email is in the owner's email editor, where they can edit it. Nothing was saved or "
 				+ "sent; SendEmail sends it once they press Send.");
@@ -74,6 +97,13 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 
 	private static boolean isBlank(String value) {
 		return value == null || value.isBlank();
+	}
+
+	@Override
+	public JSONObject getMcpProperties() {
+		JSONObject properties = super.getMcpProperties();
+		properties.getJSONObject(ATTACHMENTS).put("type", "array").put("items", new JSONObject().put("type", "string"));
+		return properties;
 	}
 
 	@Override
@@ -92,7 +122,12 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (MESSAGE.equals(key)) {
+		if (ATTACHMENTS.equals(key)) {
+			return "Optional array of files in this room's working directory, using relative paths such as hello.txt. "
+					+ "Adds files to the email's attachment list for the owner to review; existing attachments stay. "
+					+ "Use openEmailId to attach to the open email without changing its text. At most 10 files, 2.5 MB total per call. "
+					+ "Never pass absolute paths. Nothing is sent until the owner presses Send.";
+		} else if (MESSAGE.equals(key)) {
 			return "The whole email in plain text, greeting to sign-off, written as the owner. No Markdown. "
 					+ "For a forward, the short note above the forwarded email. Required, except for a forward or "
 					+ "when openEmailId is set and the text does not change.";

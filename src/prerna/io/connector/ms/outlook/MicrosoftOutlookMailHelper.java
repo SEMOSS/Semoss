@@ -468,19 +468,43 @@ public class MicrosoftOutlookMailHelper {
 		putRecipients(message, "bccRecipients", bcc);
 
 		if (attachments != null && attachments.length > 0) {
-			List<Map<String, Object>> attached = new ArrayList<>();
-			for (String path : attachments) {
-				File file = new File(path);
-				Map<String, Object> attachment = new LinkedHashMap<>();
-				// the only attachment type the simple send takes inline
-				attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
-				attachment.put("name", file.getName());
-				attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
-				attached.add(attachment);
-			}
-			message.put("attachments", attached);
+			message.put("attachments", fileAttachments(attachments));
 		}
 		return message;
+	}
+
+	/** Materialize files before creating a remote draft, so local failures cannot send anything. */
+	public static List<Map<String, Object>> fileAttachments(String[] paths) throws IOException {
+		List<Map<String, Object>> attached = new ArrayList<>();
+		if (paths == null) return attached;
+		for (String path : paths) {
+			File file = new File(path);
+			Map<String, Object> attachment = new LinkedHashMap<>();
+			attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
+			// The editor gives uploads a UUID prefix to prevent same-name collisions.
+			attachment.put("name", file.getName().replaceFirst("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-", ""));
+			attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
+			attached.add(attachment);
+		}
+		return attached;
+	}
+
+	/** Add authored files without replacing the native forward's existing attachments. */
+	public void attachToDraft(String accessToken, Map<String, Object> draft, List<Map<String, Object>> files) {
+		if (files.isEmpty()) return;
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
+		}
+		String url = userPath(null) + "/messages/" + encode((String) draft.get("id")) + "/attachments";
+		for (Map<String, Object> file : files) {
+			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(file),
+					ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "attach a file to the draft email");
+			Map<String, Object> receipt = readMap(response);
+			if (!(receipt.get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
+				throw new IllegalArgumentException("The draft attachment could not be confirmed. Check the draft in Outlook.");
+			}
+		}
 	}
 
 	/**

@@ -66,8 +66,8 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 	private static final String TO = "to";
 
 	public MicrosoftOutlookForwardMailReactor() {
-		this.keysToGet = new String[] { UID, TO, COMMENT, AS_DRAFT, "html" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+		this.keysToGet = new String[] { UID, TO, COMMENT, AS_DRAFT, "html", "attachments" };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -87,11 +87,15 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 		}
 
 		try {
+			var attachments = draftAttachments(asDraft);
 			User user = this.insight.getUser();
 			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
 			Map<String, Object> draft = html
-					? new MicrosoftOutlookMailHelper().forwardHtmlDraft(accessToken, uid, to, comment)
-					: new MicrosoftOutlookMailHelper().forward(accessToken, null, uid, to, comment, asDraft);
+					? helper.forwardHtmlDraft(accessToken, uid, to, comment)
+					: helper.forward(accessToken, null, uid, to, comment, asDraft);
+
+			helper.attachToDraft(accessToken, draft, attachments);
 
 			Map<String, Object> output = new LinkedHashMap<>();
 			output.put("forwarded", uid);
@@ -122,6 +126,7 @@ public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlook
 
 	@Override
 	protected String getDescriptionForKey(String key) {
+		if ("attachments".equals(key)) return "Optional insight-relative files to add to a saved draft, preserving original attachments; requires asDraft=true.";
 		if ("html".equals(key)) {
 			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
 		}
