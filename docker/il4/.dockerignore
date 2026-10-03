@@ -6,6 +6,7 @@
 !audio_compat.py
 !python_check.py
 !refresh_bases.py
+!pin_dev_artifacts.py
 !AccpCheck.java
 !JdbcCheck.java
 !JdbcTls.java
@@ -25,6 +26,7 @@ conf/**
 !tests/
 tests/**
 !tests/test_assemble.py
+!tests/test_pin_dev_artifacts.py
 !tests/test_accp_support.py
 !tests/test_accp_runtime.py
 !tests/test_python_check.py

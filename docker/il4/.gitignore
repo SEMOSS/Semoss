@@ -10,6 +10,8 @@
 !audio_compat.py
 !python_check.py
 !refresh_bases.py
+!pin_dev_artifacts.py
+!build-dev-artifacts.Dockerfile
 !readiness.py
 !compose.dev.yml
 !prepare_dev_tls.py

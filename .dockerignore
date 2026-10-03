@@ -1,0 +1,4 @@
+# Context filter for docker/il4/build-dev-artifacts.Dockerfile, which builds
+# from the repo root (the application source, not just docker/il4/).
+.git
+docker/il4/dev-build-artifacts/
