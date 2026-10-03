@@ -34,7 +34,7 @@ import java.util.Map;
 /**
  * Thrown by {@link prerna.reactor.agent.runtime.HarnessToolExecutor} when the
  * model's tool-call batch contains one or more MCP tools whose
- * {@code SMSS_MCP_EXECUTION} is {@code "ask"}. The harness catches this to
+ * {@code SMSS_MCP_EXECUTION} is {@code "ask"} or {@code "yesno"}. The harness catches this to
  * transition the run to {@code INPUT_REQUIRED}, persist pending actions, and
  * release the worker thread. The run resumes when the user approves, edits,
  * rejects, or responds via {@code RunMCPTool} with agent-context parameters.
