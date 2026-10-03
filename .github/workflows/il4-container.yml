@@ -3,9 +3,6 @@ name: Build IL4 test container
 on:
   push:
     branches: [IL4-dev]
-    paths:
-      - docker/il4/**
-      - .github/workflows/il4-container.yml
   workflow_dispatch:
     inputs:
       image_reports:
