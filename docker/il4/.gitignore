@@ -18,6 +18,7 @@
 !TLS.md
 !RDS.md
 !RdsTrust.java
+!FipsPreferredSecureRandom.java
 !compare_containers.py
 !database_fixtures.py
 !AccpCheck.java

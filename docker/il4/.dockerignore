@@ -11,6 +11,7 @@
 !JdbcCheck.java
 !JdbcTls.java
 !RdsTrust.java
+!FipsPreferredSecureRandom.java
 !entrypoint.sh
 !dev-build-artifacts/
 dev-build-artifacts/**
