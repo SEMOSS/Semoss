@@ -10,6 +10,13 @@
 !JdbcTls.java
 !RdsTrust.java
 !entrypoint.sh
+!dev-build-artifacts/
+dev-build-artifacts/**
+!dev-build-artifacts/semoss-0.0.1-SNAPSHOT.jar
+!dev-build-artifacts/semoss-0.0.1-SNAPSHOT-shaded-dependencies.jar
+!dev-build-artifacts/semoss-0.0.1-SNAPSHOT-semosshome.tar.gz
+!dev-build-artifacts/monolith-0.0.1-SNAPSHOT.war
+!dev-build-artifacts/monolith-0.0.1-SNAPSHOT-libraries.tar.gz
 !conf/
 conf/**
 !conf/server.xml

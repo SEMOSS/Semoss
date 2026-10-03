@@ -9,6 +9,23 @@ WORKDIR /build
 COPY artifacts.lock.json assemble.py audio_compat.py python_check.py refresh_bases.py ./
 COPY tests/ tests/
 RUN python3 -m unittest discover -s tests -v
+# EXPERIMENTAL: locally built from SEMOSS/Monolith dev HEAD (FIPS-compliant PBKDF2 password
+# hashing, commit 612f0c9, not yet in any published release). Not reproducible from this
+# Dockerfile alone; see docker/il4/RDS_TRUST_HANDOFF.md or session notes for the build steps.
+# semossweb remains pinned to the published 5.4.0 release.
+COPY dev-build-artifacts/ /build/dev-build-artifacts/
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/semoss-0.0.1-SNAPSHOT-semosshome.tar.gz \
+      -DgroupId=org.semoss -DartifactId=semoss -Dversion=0.0.1-SNAPSHOT \
+      -Dclassifier=semosshome -Dpackaging=tar.gz && \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/monolith-0.0.1-SNAPSHOT.war \
+      -DgroupId=org.semoss -DartifactId=monolith -Dversion=0.0.1-SNAPSHOT -Dpackaging=war && \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/monolith-0.0.1-SNAPSHOT-libraries.tar.gz \
+      -DgroupId=org.semoss -DartifactId=monolith -Dversion=0.0.1-SNAPSHOT \
+      -Dclassifier=libraries -Dpackaging=tar.gz
 RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=secret,id=maven_settings,target=/root/.m2/settings.xml \
     python3 assemble.py

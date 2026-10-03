@@ -43,3 +43,4 @@
 !python-dependencies/*.json
 !python-dependencies/install.sh
 !python-dependencies/validate.py
+/dev-build-artifacts/

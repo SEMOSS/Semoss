@@ -2,7 +2,7 @@
 import hashlib
 
 
-EXPECTED_SHA256 = "87db7f8b98eec660ff54bb92e5db4082fc92672dd3d01c78c921b8b82ee7be1f"
+EXPECTED_SHA256 = "6571aa7eb66e286c317970a3c7392cb920b1750dbc92f2a1dfc583e113839f31"
 
 OLD_HANDLER = '''        @transcript.event_handler("on_transcript_update")
         async def on_transcript_update(processor, frame):
