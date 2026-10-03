@@ -31,10 +31,25 @@ public class RdsTrust {
         return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(certificate.getEncoded()));
     }
 
+    /** A directly instantiated, never globally registered BC-FIPS instance, or null if not on the classpath. */
+    static Provider bcFips() {
+        try {
+            return (Provider) Class.forName("org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider")
+                .getConstructor().newInstance();
+        } catch (ClassNotFoundException e) {
+            return null;
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException("BC-FIPS is on the classpath but failed to construct", e);
+        }
+    }
+
     static List<X509Certificate> certificates(byte[] pem) throws Exception {
         var result = new ArrayList<X509Certificate>();
-        for (var certificate : CertificateFactory.getInstance("X.509")
-                .generateCertificates(new ByteArrayInputStream(pem))) {
+        var bcFips = bcFips();
+        var factory = bcFips != null
+            ? CertificateFactory.getInstance("X.509", bcFips)
+            : CertificateFactory.getInstance("X.509");
+        for (var certificate : factory.generateCertificates(new ByteArrayInputStream(pem))) {
             result.add((X509Certificate) certificate);
         }
         if (result.isEmpty()) throw new CertificateException("Empty RDS CA bundle");
@@ -91,7 +106,8 @@ public class RdsTrust {
         var certificates = new ArrayList<X509Certificate>();
         for (int i = 2; i < 4; i++) certificates.addAll(certificates(Files.readAllBytes(Path.of(args[i]))));
         var roots = roots(certificates, new Date());
-        var store = KeyStore.getInstance(args[1]);
+        var bcFips = bcFips();
+        var store = bcFips != null ? KeyStore.getInstance(args[1], bcFips) : KeyStore.getInstance(args[1]);
         char[] password = "changeit".toCharArray(); // Integrity password for public certificates only.
         try (var input = Files.newInputStream(Path.of(args[0]))) {
             store.load(input, password);

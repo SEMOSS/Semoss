@@ -87,7 +87,7 @@ def check_database(client, database, password):
     result = checked_pixel(client, registration_expression(database, password), "Registration")
     engine = pixel_outputs(result)[-1]
     if (not isinstance(engine, dict) or not isinstance(engine.get("database_id"), str)
-            or not engine["database_id"] or engine.get("database_global") is not False):
+            or not engine["database_id"] or engine.get("engine_global") is not False):
         raise RuntimeError("Registration did not return a private database engine")
 
     def query(sql):

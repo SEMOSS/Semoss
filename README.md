@@ -42,8 +42,11 @@ Existing `IL4-dev` deployments are unchanged.
 See [HTTPS certificate provisioning](docker/il4/TLS.md) for unique opt-in
 development certificates and organization-issued chain replacement, and
 [AWS GovCloud RDS trust](docker/il4/RDS.md) for strict database TLS configuration.
-This candidate is **NONVALIDATED**: PBKDF2/PKCS12 use SunJCE fallback and exact
-module certificate coverage remains unresolved. Startup requires explicit
+This candidate is **NONVALIDATED**: exact module certificate coverage remains
+unresolved, and ACCP does not implement PBKDF2 or a PKCS12 keystore. The
+GovCloud RDS truststore explicitly uses a directly instantiated, never
+globally registered BC-FIPS instance for those two operations instead; other
+bare PBKDF2/PKCS12 callers retain the SunJCE fallback. Startup requires explicit
 development acknowledgment. It does not establish FIPS compliance or IL4
 authorization, and it does not replace the existing application source builds.
 

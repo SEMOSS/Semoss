@@ -11,6 +11,24 @@ COPY entrypoint.sh ./
 COPY conf/ conf/
 COPY tests/ tests/
 RUN python3 -m unittest discover -s tests -v
+# EXPERIMENTAL: locally built from SEMOSS/Monolith dev HEAD (FIPS-compliant PBKDF2 password
+# hashing, commit 612f0c9, not yet in any published release; Monolith's dev HEAD also requires
+# Tomcat 11/Jakarta EE 11, hence the Tomcat 9->11 bump below). Not reproducible from this
+# Dockerfile alone; see docker/il4/RDS_TRUST_HANDOFF.md or session notes for the build steps.
+# semossweb remains pinned to the published 5.4.0 release.
+COPY dev-build-artifacts/ /build/dev-build-artifacts/
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/semoss-0.0.1-SNAPSHOT-semosshome.tar.gz \
+      -DgroupId=org.semoss -DartifactId=semoss -Dversion=0.0.1-SNAPSHOT \
+      -Dclassifier=semosshome -Dpackaging=tar.gz && \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/monolith-0.0.1-SNAPSHOT.war \
+      -DgroupId=org.semoss -DartifactId=monolith -Dversion=0.0.1-SNAPSHOT -Dpackaging=war && \
+    mvn -B -ntp install:install-file \
+      -Dfile=/build/dev-build-artifacts/monolith-0.0.1-SNAPSHOT-libraries.tar.gz \
+      -DgroupId=org.semoss -DartifactId=monolith -Dversion=0.0.1-SNAPSHOT \
+      -Dclassifier=libraries -Dpackaging=tar.gz
 RUN --mount=type=cache,target=/root/.m2 \
     --mount=type=secret,id=maven_settings,target=/root/.m2/settings.xml \
     python3 assemble.py
@@ -103,8 +121,9 @@ RUN java -version && \
     rpm -qa | sort > /opt/provenance/rpm-packages.txt
 
 RUN --network=none javac -d /opt/rds-check /opt/rds-check/RdsTrust.java /opt/rds-check/RdsTrustTest.java && \
-    java -cp /opt/rds-check RdsTrustTest /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
-    java -cp /opt/rds-check RdsTrust /opt/accp/cacerts.p12 PKCS12 \
+    java -Dorg.bouncycastle.native.cpu_variant=java -cp '/opt/rds-check:/opt/accp/*' RdsTrustTest \
+      /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
+    java -Dorg.bouncycastle.native.cpu_variant=java -cp '/opt/rds-check:/opt/accp/*' RdsTrust /opt/accp/cacerts.p12 PKCS12 \
       /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
     chmod 0644 /opt/semoss-ca/* && \
     cp /opt/semoss-ca/roots-sha256.txt /opt/provenance/aws-rds-govcloud-roots.txt
@@ -118,7 +137,7 @@ RUN --network=none /opt/semoss-python/bin/python /opt/python-check/python_check.
 RUN --network=none cd /tmp && /opt/semoss-python/bin/python /opt/python-check/check_audio.py && \
     rm /tmp/pipecat.log
 LABEL org.opencontainers.image.title="SEMOSS 5.4.0 UBI10 experimental nonvalidated ACCP development variant" \
-      org.opencontainers.image.description="ACCP 2.5.0 with AWS-LC FIPS 3.0.0, SunJSSE, PKCS12 and nonvalidated SunJCE PBKDF2 fallback; no certificate coverage or compliance claim" \
+      org.opencontainers.image.description="ACCP 2.5.0 with AWS-LC FIPS 3.0.0, SunJSSE, PKCS12; GovCloud RDS truststore PBKDF2/PKCS12 use a directly instantiated unregistered BC-FIPS instance, other bare PBKDF2/PKCS12 callers retain nonvalidated SunJCE fallback; no certificate coverage or compliance claim" \
       org.opencontainers.image.version="5.4.0" \
       org.opencontainers.image.source="https://github.com/SEMOSS/Semoss" \
       org.opencontainers.image.revision="565b2c1825011304a93eabcb21cf2cd33135a42a"

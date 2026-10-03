@@ -83,7 +83,7 @@ class ApplicationAcceptanceTests(unittest.TestCase):
         ):
             client = Mock()
             client.pixel.side_effect = [
-                pixel({"database_id": "fixture-engine", "database_global": False}),
+                pixel({"database_id": "fixture-engine", "engine_global": False}),
                 table([[3, 12]]), table(tls), table(grants),
             ]
             result = acceptance.check_database(client, database, "synthetic")
@@ -95,11 +95,11 @@ class ApplicationAcceptanceTests(unittest.TestCase):
     def test_database_failures_cannot_be_reported_as_passes(self):
         invalid = [
             [pixel({})],
-            [pixel({"database_id": "fixture-engine", "database_global": True})],
-            [pixel({"database_id": "fixture-engine", "database_global": False}), table([[0, 0]])],
-            [pixel({"database_id": "fixture-engine", "database_global": False}),
+            [pixel({"database_id": "fixture-engine", "engine_global": True})],
+            [pixel({"database_id": "fixture-engine", "engine_global": False}), table([[0, 0]])],
+            [pixel({"database_id": "fixture-engine", "engine_global": False}),
              table([[3, 12]]), table([[False]])],
-            [pixel({"database_id": "fixture-engine", "database_global": False}),
+            [pixel({"database_id": "fixture-engine", "engine_global": False}),
              table([[3, 12]]), table([[True]]), table([[True, False, False, False]])],
         ]
         for outputs in invalid:
@@ -110,7 +110,7 @@ class ApplicationAcceptanceTests(unittest.TestCase):
         for grants in ([], [["GRANT ALL PRIVILEGES ON *.* TO reader"]]):
             client = Mock()
             client.pixel.side_effect = [
-                pixel({"database_id": "fixture-engine", "database_global": False}),
+                pixel({"database_id": "fixture-engine", "engine_global": False}),
                 table([[3, 12]]), table([["Ssl_cipher", "cipher"]]), table(grants),
             ]
             with self.assertRaises(RuntimeError):

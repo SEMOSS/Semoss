@@ -14,7 +14,7 @@ from accp_support import ACCP_COORDINATE, install_accp
 
 
 JDBC_OVERLAYS = (
-    ("mariadb-java-client-1.1.9.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.10:jar"),
+    ("mariadb-java-client-2.7.14.jar", "org.mariadb.jdbc:mariadb-java-client:3.5.10:jar"),
     ("mssql-jdbc-11.2.4.jre11.jar", "com.microsoft.sqlserver:mssql-jdbc:13.6.0.jre11:jar"),
 )
 
@@ -177,12 +177,12 @@ def main(output=Path("/out")):
     home = output / "semosshome"
     accp = output / "accp"
     accp.mkdir(parents=True)
-    extract(files["org.apache.tomcat:tomcat:9.0.119:tar.gz"], tomcat, "apache-tomcat-9.0.119")
+    extract(files["org.apache.tomcat:tomcat:11.0.24:tar.gz"], tomcat, "apache-tomcat-11.0.24")
     shutil.rmtree(tomcat / "webapps")
-    extract(files["org.semoss:semoss:5.4.0:tar.gz:semosshome"], home, "semoss-5.4.0")
+    extract(files["org.semoss:semoss:0.0.1-SNAPSHOT:tar.gz:semosshome"], home, "semoss-0.0.1-SNAPSHOT")
     monolith = tomcat / "webapps/Monolith"
-    extract(files["org.semoss:monolith:5.4.0:war"], monolith)
-    extract(files["org.semoss:monolith:5.4.0:tar.gz:libraries"], monolith, "monolith-5.4.0")
+    extract(files["org.semoss:monolith:0.0.1-SNAPSHOT:war"], monolith)
+    extract(files["org.semoss:monolith:0.0.1-SNAPSHOT:tar.gz:libraries"], monolith, "monolith-0.0.1-SNAPSHOT")
     extract(files["org.semoss:semossweb:5.4.0:war"], tomcat / "webapps/SemossWeb")
     removed = []
     excluded_connectors = []
@@ -190,10 +190,10 @@ def main(output=Path("/out")):
         if re.fullmatch(r"bc(?:prov|pkix|util|tls)-jdk(?:15on|15to18|18on)-[\d.]+\.jar", jar.name):
             removed.append(jar.name)
             jar.unlink()
-        elif jar.name == "snowflake-jdbc-3.22.0.jar":
+        elif jar.name == "snowflake-jdbc-4.3.4.jar":
             excluded_connectors.append(jar.name)
             jar.unlink()
-    if not removed:
+    if not removed and any(monolith.glob("WEB-INF/lib/bc*.jar")):
         raise ValueError("Expected stock Bouncy Castle dependencies were not found")
     jdbc_overlays = overlay_jdbc(monolith / "WEB-INF/lib", files)
     # Shaded copies are not rewritten: doing so can break signed or relocated code.

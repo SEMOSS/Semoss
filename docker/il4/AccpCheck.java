@@ -30,7 +30,9 @@ public final class AccpCheck {
     }
 
     private static void checkTrustStore() throws Exception {
-        KeyStore trust = KeyStore.getInstance("PKCS12", "SUN");
+        var bcFips = RdsTrust.bcFips();
+        require(bcFips != null, "BC-FIPS unavailable for truststore integrity verification");
+        KeyStore trust = KeyStore.getInstance("PKCS12", bcFips);
         try (var input = java.nio.file.Files.newInputStream(
                 Path.of(System.getProperty("javax.net.ssl.trustStore")))) {
             trust.load(input, "changeit".toCharArray());
@@ -114,8 +116,10 @@ public final class AccpCheck {
                 factory.generateSecret(spec);
                 require(factory.getProvider().getName().equals("SunJCE"),
                         "Unexpected PBKDF2 fallback provider");
-                System.err.println("KNOWN NONVALIDATED FALLBACK: " + algorithm
-                        + "=SunJCE; ACCP 2.5.0 does not implement this algorithm");
+                System.err.println("KNOWN ACCP GAP: " + algorithm
+                        + "=SunJCE when requested without a provider; ACCP 2.5.0 does not implement "
+                        + "this algorithm. The GovCloud RDS truststore itself explicitly uses a "
+                        + "directly instantiated, never globally registered BC-FIPS instance instead.");
             } finally {
                 spec.clearPassword();
             }

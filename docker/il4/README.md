@@ -4,7 +4,12 @@
 `IL4-dev-ACCP` publishes to `ghcr.io/semoss/semoss-il4-accp`; `IL4-dev` and its
 `ghcr.io/semoss/semoss-il4` BC-FIPS image remain unchanged. ACCP-FIPS 2.5.0
 contains AWS-LC-FIPS 3.0.0, whose exact certificate coverage is unresolved here.
-PBKDF2 and PKCS12 use SunJCE fallback. Do not interpret successful startup,
+ACCP does not implement PBKDF2 or a PKCS12 keystore; the GovCloud RDS truststore
+explicitly uses a directly instantiated, never globally registered BC-FIPS
+instance for those two operations instead (see [RDS.md](./RDS.md)). Any other
+code path that requests PBKDF2/PKCS12 without specifying a provider — for
+example pgjdbc's SCRAM-SHA-256 authentication — still falls back to SunJCE.
+Do not interpret successful startup,
 self-tests, TLS handshakes, or the artifact's FIPS name as compliance.
 
 Actual startup requires `SEMOSS_ALLOW_NONVALIDATED_ACCP=true`; the development
@@ -594,8 +599,14 @@ provider self-tests must succeed; the candidate must not silently start without
 ACCP. BCFIPS and BCJSSE are not registered. Their API-compatible libraries remain
 available for existing CAC/PEM parsing dependencies, which need separate review.
 
-ACCP-FIPS 2.5.0 lacks the required PBKDF2 implementations, so PBKDF2 and PKCS12
-handling retain explicit SunJCE fallback. The startup acknowledgment allows
+ACCP-FIPS 2.5.0 lacks the required PBKDF2 implementations and a PKCS12 keystore.
+[RdsTrust.java](./RdsTrust.java) and [AccpCheck.java](./AccpCheck.java) work
+around this specifically for the GovCloud RDS truststore by directly
+instantiating BC-FIPS for those two operations, without ever calling
+`Security.addProvider` — BCFIPS/BCJSSE/BC remain unregistered, and every other
+algorithm continues resolving through ACCP or the stock JDK exactly as before.
+Any other code path that requests PBKDF2/PKCS12 without naming a provider
+still retains the explicit SunJCE fallback. The startup acknowledgment allows
 compatibility testing; it is not an exception approval or a FIPS mode switch.
 Successful TLS handshakes do not prove every cryptographic operation uses a
 validated implementation.

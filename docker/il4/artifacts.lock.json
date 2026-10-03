@@ -1,9 +1,9 @@
 [
-  {"coordinate":"org.semoss:semoss:5.4.0:tar.gz:semosshome","sha256":"7019eaea3c14e0fc72d4495448df10b1550882cfd1ad436b8a8a91e8859008d7"},
-  {"coordinate":"org.semoss:monolith:5.4.0:war","sha256":"d9ffd33c225c0a5a67c0ba8e4f0695450e5d8604d6522b9d9127c6cf4d04571e"},
-  {"coordinate":"org.semoss:monolith:5.4.0:tar.gz:libraries","sha256":"0842b3b5c9f5a004be68502f75c7bd4f3e69e2afa6f8a3ef278b5fca5e61e27c"},
+  {"coordinate":"org.semoss:semoss:0.0.1-SNAPSHOT:tar.gz:semosshome","sha256":"243dd26d47bfb373fe2870cf2662ad6cfb9b52eb2c55c3312d21db71610073fe"},
+  {"coordinate":"org.semoss:monolith:0.0.1-SNAPSHOT:war","sha256":"5ec2a3b653e70b311a6089c3b772e898aede9de29e305b1babfb8d24dee51a36"},
+  {"coordinate":"org.semoss:monolith:0.0.1-SNAPSHOT:tar.gz:libraries","sha256":"15937d79c0f8a9b127f1ded9997394875b31659dfb199de65ed9d2981f6e18b5"},
   {"coordinate":"org.semoss:semossweb:5.4.0:war","sha256":"47f2e785db31def67b01bdb30c88d4b94ce541b8e45f7750ec6762238f7cee3c"},
-  {"coordinate":"org.apache.tomcat:tomcat:9.0.119:tar.gz","sha256":"bc4fd2fb7040fd2f574fd726e4d0274af0c18cb343c450179c3a63104a971964"},
+  {"coordinate":"org.apache.tomcat:tomcat:11.0.24:tar.gz","sha256":"10efed90bf330114af66279e43dcf211ecfcf7b88e618757954ac88329600cba"},
   {"coordinate":"software.amazon.cryptools:AmazonCorrettoCryptoProvider-FIPS:2.5.0:jar:linux-x86_64","sha256":"55f20ce012de076137c35bb6d505ac87334e8315b4c762289bf1a225a4da3796"},
   {"coordinate":"org.bouncycastle:bc-fips:2.1.3:jar","sha256":"f55fc476ede820d5c03fe87e6ced5bb0095e1dc30b387445846a3ff0274f8c0e"},
   {"coordinate":"org.bouncycastle:bctls-fips:2.1.24:jar","sha256":"d2233207daecc2dfccdc317a53bd874b12c21a6dc5be78e390d8826eb726194c"},

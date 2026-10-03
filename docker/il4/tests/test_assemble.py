@@ -189,36 +189,36 @@ class AssemblyTests(unittest.TestCase):
             base = Path(temporary)
             files = {}
             tomcat = base / "tomcat.tar.gz"
-            make_tar(tomcat, {"apache-tomcat-9.0.119/webapps/ROOT/index.html": b"remove",
-                             "apache-tomcat-9.0.119/bin/catalina.sh": b"test"})
-            files["org.apache.tomcat:tomcat:9.0.119:tar.gz"] = tomcat
+            make_tar(tomcat, {"apache-tomcat-11.0.24/webapps/ROOT/index.html": b"remove",
+                             "apache-tomcat-11.0.24/bin/catalina.sh": b"test"})
+            files["org.apache.tomcat:tomcat:11.0.24:tar.gz"] = tomcat
             home = base / "home.tar.gz"
-            make_tar(home, {"semoss-5.4.0/RDF_Map.prop":
+            make_tar(home, {"semoss-0.0.1-SNAPSHOT/RDF_Map.prop":
                            b"USE_PYTHON false\nPYTHONHOME /missing\nNETTY_PYTHON false\n"
                            b"NATIVE_PY_SERVER false\nDEFAULT_SCRIPTING_LANGUAGE R\n"
                            b"R_KILL_ON_STARTUP true\nNOTIFICATION_DATABASE_ENABLED true\n",
-                           "semoss-5.4.0/social.properties":
+                           "semoss-0.0.1-SNAPSHOT/social.properties":
                            b"native_registration true\nredirect http://localhost:9090/SemossWeb/\n"})
-            files["org.semoss:semoss:5.4.0:tar.gz:semosshome"] = home
+            files["org.semoss:semoss:0.0.1-SNAPSHOT:tar.gz:semosshome"] = home
             war = base / "monolith.war"
             war.write_bytes(zip_bytes({"WEB-INF/web.xml": b"<web-app/>"}))
-            files["org.semoss:monolith:5.4.0:war"] = war
+            files["org.semoss:monolith:0.0.1-SNAPSHOT:war"] = war
             ui = base / "ui.war"
             ui.write_bytes(zip_bytes({"index.html": b"UI"}))
             files["org.semoss:semossweb:5.4.0:war"] = ui
             libraries = base / "libraries.tar.gz"
             standard = zip_bytes({"org/bouncycastle/Test.class": b"test"})
-            entries = {"monolith-5.4.0/WEB-INF/lib/bcprov-jdk18on-1.78.1.jar": standard,
-                       "monolith-5.4.0/WEB-INF/lib/snowflake-jdbc-3.22.0.jar": standard,
-                       "monolith-5.4.0/WEB-INF/lib/sqlite-jdbc-3.43.2.1.jar":
+            entries = {"monolith-0.0.1-SNAPSHOT/WEB-INF/lib/bcprov-jdk18on-1.78.1.jar": standard,
+                       "monolith-0.0.1-SNAPSHOT/WEB-INF/lib/snowflake-jdbc-4.3.4.jar": standard,
+                       "monolith-0.0.1-SNAPSHOT/WEB-INF/lib/sqlite-jdbc-3.43.2.1.jar":
                        zip_bytes({"org/sqlite/native/Linux/x86_64/libsqlitejdbc.so": b"native fixture"}),
-                       "monolith-5.4.0/WEB-INF/lib/app.jar": zip_bytes({"App.class": b"test"})}
+                       "monolith-0.0.1-SNAPSHOT/WEB-INF/lib/app.jar": zip_bytes({"App.class": b"test"})}
             jdbc_library, jdbc_files = self.jdbc_fixtures(base)
             files.update(jdbc_files)
             for jar in jdbc_library.iterdir():
-                entries["monolith-5.4.0/WEB-INF/lib/" + jar.name] = jar.read_bytes()
+                entries["monolith-0.0.1-SNAPSHOT/WEB-INF/lib/" + jar.name] = jar.read_bytes()
             make_tar(libraries, entries)
-            files["org.semoss:monolith:5.4.0:tar.gz:libraries"] = libraries
+            files["org.semoss:monolith:0.0.1-SNAPSHOT:tar.gz:libraries"] = libraries
             fips = base / "bc-fips-2.1.3.jar"
             fips.write_bytes(standard)
             files["org.bouncycastle:bc-fips:2.1.3:jar"] = fips
@@ -232,7 +232,7 @@ class AssemblyTests(unittest.TestCase):
                 report = json.loads((output / "provenance/assembly.json").read_text())
                 audio_patch.assert_called_once_with(output / "semosshome/py/audio/lk_to_pcat.py")
                 self.assertEqual(report["audio_compatibility_patch"], {"change": "tested separately"})
-                self.assertEqual(report["excluded_connectors"], ["snowflake-jdbc-3.22.0.jar"])
+                self.assertEqual(report["excluded_connectors"], ["snowflake-jdbc-4.3.4.jar"])
                 self.assertEqual(len(report["jdbc_overlays"]), 2)
                 self.assertFalse((output / "tomcat/webapps/ROOT").exists())
                 self.assertEqual((output / "accp/bc-fips-2.1.3.jar").read_bytes(), standard)
@@ -251,14 +251,21 @@ class AssemblyTests(unittest.TestCase):
                 social = (output / "semosshome/social.properties").read_text()
                 self.assertIn("native_registration\tfalse", social)
                 self.assertIn("redirect\thttps://localhost:8443/SemossWeb/", social)
-                entries["monolith-5.4.0/WEB-INF/lib/hidden.jar"] = standard
+                entries["monolith-0.0.1-SNAPSHOT/WEB-INF/lib/hidden.jar"] = standard
                 make_tar(libraries, entries)
                 with self.assertRaisesRegex(ValueError, "Bundled Bouncy Castle"):
                     main(base / "hidden")
-                make_tar(libraries, {"monolith-5.4.0/WEB-INF/lib/app.jar":
+                make_tar(libraries, {"monolith-0.0.1-SNAPSHOT/WEB-INF/lib/bcweird-9.9.9.jar": standard,
+                                     "monolith-0.0.1-SNAPSHOT/WEB-INF/lib/app.jar":
                                      zip_bytes({"App.class": b"test"})})
                 with self.assertRaisesRegex(ValueError, "Expected stock Bouncy Castle"):
                     main(base / "missing")
+                # A Monolith war built with the "fips" Maven profile bundles no stock
+                # Bouncy Castle jars at all; that is a valid, already-clean state.
+                clean_entries = {key: value for key, value in entries.items()
+                                 if "bcprov-jdk18on" not in key and "hidden.jar" not in key}
+                make_tar(libraries, clean_entries)
+                main(base / "already-clean")
 
 
 if __name__ == "__main__":
