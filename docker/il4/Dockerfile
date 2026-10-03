@@ -6,14 +6,21 @@ ARG PYTHON_IMAGE=registry1.dso.mil/ironbank/opensource/python:v3.14@sha256:eb433
 FROM ${MAVEN_IMAGE} AS assembly
 USER 0
 WORKDIR /build
-COPY artifacts.lock.json assemble.py audio_compat.py python_check.py refresh_bases.py ./
+COPY artifacts.lock.json assemble.py audio_compat.py python_check.py refresh_bases.py pin_dev_artifacts.py ./
 COPY tests/ tests/
 RUN python3 -m unittest discover -s tests -v
-# EXPERIMENTAL: locally built from SEMOSS/Monolith dev HEAD (FIPS-compliant PBKDF2 password
-# hashing, commit 612f0c9, not yet in any published release). Not reproducible from this
-# Dockerfile alone; see docker/il4/RDS_TRUST_HANDOFF.md or session notes for the build steps.
-# semossweb remains pinned to the published 5.4.0 release.
+# EXPERIMENTAL: built from SEMOSS/Monolith dev HEAD (FIPS-compliant PBKDF2 password hashing,
+# commit 612f0c9, not yet in any published release). CI produces dev-build-artifacts/ with
+# build-dev-artifacts.Dockerfile before this Dockerfile ever runs (see il4-container.yml's
+# "Build dev-HEAD Monolith/semosshome artifacts" step); a local build must populate that
+# directory the same way first. semossweb remains pinned to the published 5.4.0 release.
 COPY dev-build-artifacts/ /build/dev-build-artifacts/
+# Maven output isn't byte reproducible between builds of the same commit (javadoc
+# timestamps, archive member ordering), so these 3 coordinates can't carry a fixed
+# sha256 in artifacts.lock.json the way an externally fetched release artifact can;
+# pin_dev_artifacts.py repins them to what was actually just built, immediately
+# before assemble.py's resolve() enforces an exact match on every coordinate.
+RUN python3 pin_dev_artifacts.py
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -ntp install:install-file \
       -Dfile=/build/dev-build-artifacts/semoss-0.0.1-SNAPSHOT-semosshome.tar.gz \

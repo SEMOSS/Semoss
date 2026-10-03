@@ -106,6 +106,36 @@ jobs:
             printf '```\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Clone Monolith dev-HEAD source
+        working-directory: .
+        env:
+          MONOLITH_COMMIT: 78bd2a7185540059bd39a37c13aa6bd7cb643754
+        run: |
+          set -euo pipefail
+          git clone --no-checkout https://github.com/SEMOSS/Monolith.git \
+            "$RUNNER_TEMP/monolith-src"
+          git -C "$RUNNER_TEMP/monolith-src" checkout "$MONOLITH_COMMIT"
+          echo "MONOLITH_SRC=$RUNNER_TEMP/monolith-src" >> "$GITHUB_ENV"
+
+      - name: Build dev-HEAD Monolith/semosshome artifacts
+        working-directory: .
+        env:
+          MAVEN_SETTINGS: ${{ secrets.MAVEN_SETTINGS }}
+        run: |
+          set -euo pipefail
+          secrets=()
+          if [[ -n "$MAVEN_SETTINGS" ]]; then
+            secrets+=(--secret "id=maven_settings,env=MAVEN_SETTINGS")
+          fi
+          docker buildx build --builder default \
+            --build-arg "MAVEN_IMAGE=$MAVEN_IMAGE" \
+            --build-context "monolith-src=$MONOLITH_SRC" \
+            --target artifacts \
+            --output "type=local,dest=docker/il4/dev-build-artifacts" \
+            "${secrets[@]}" \
+            -f docker/il4/build-dev-artifacts.Dockerfile .
+          ls -la docker/il4/dev-build-artifacts/
+
       - name: Build and load candidate
         id: build
         env:
