@@ -24,6 +24,14 @@ x-semoss-env: &semoss-env
   CHROOT_SYMLINK_PATHS: /usr/lib/python
   FAKECHROOT_EXCLUDE_PATH: /dev
 
+  # node agent execution environment (ExecuteNodeCode agent tool)
+  NODE_HOME: /opt/node
+  AGENT_DEFAULT_TOOLS_ENABLE_NODE: 'true'
+
+  # semoss-maintained services, run from engines/semoss-maintained/
+  UNOSERVER: 'http://semoss-unoserver:8080'
+  NODE_SERVER_ENDPOINT: 'http://semoss-node-builder:3000'
+
   # local master
   CUSTOM_LM_RDBMS_TYPE: "postgres"
   CUSTOM_LM_DRIVER: "org.postgresql.Driver"
