@@ -31,6 +31,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Connection;
@@ -84,6 +85,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.security.BcFipsProvider;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -3621,7 +3623,10 @@ public abstract class AbstractSecurityUtils {
 
 		PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), saltBytes, iterations, PBKDF2_DERIVED_KEY_LENGTH_BITS);
 		try {
-			byte[] derived = SecretKeyFactory.getInstance(PBKDF2_ALGORITHM).generateSecret(spec).getEncoded();
+			Provider bcFips = BcFipsProvider.get();
+			SecretKeyFactory factory = bcFips != null ? SecretKeyFactory.getInstance(PBKDF2_ALGORITHM, bcFips)
+					: SecretKeyFactory.getInstance(PBKDF2_ALGORITHM);
+			byte[] derived = factory.generateSecret(spec).getEncoded();
 			return Base64.getEncoder().encodeToString(derived);
 		} catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
 			throw new IllegalStateException("Unable to hash the password with " + PBKDF2_ALGORITHM, e);
