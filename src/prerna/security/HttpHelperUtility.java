@@ -41,8 +41,6 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -72,7 +70,7 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.DefaultClientTlsStrategy;
-import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
+import org.apache.hc.client5.http.ssl.DefaultHostnameVerifier;
 import org.apache.hc.core5.http.ClassicHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
@@ -88,7 +86,6 @@ import org.apache.hc.core5.http.message.BasicNameValuePair;
 import org.apache.hc.core5.http.ssl.TLS;
 import org.apache.hc.core5.reactor.ssl.SSLBufferMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
-import org.apache.hc.core5.ssl.TrustStrategy;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -111,8 +108,11 @@ public final class HttpHelperUtility {
 	/**
 	 * Builds a custom Apache HttpClient instance for connector requests.
 	 * <p>
-	 * The client is configured to trust all certificates and can optionally load
-	 * client key material from a keystore for mutual TLS scenarios.
+	 * The client validates the server certificate chain against the JVM's
+	 * default trust manager (the system truststore - BCFIPS-backed on the
+	 * BC-FIPS IL4 variant) and checks the hostname against the certificate, and
+	 * can optionally load client key material from a keystore for mutual TLS
+	 * scenarios.
 	 * </p>
 	 *
 	 * @param cookieStore  optional cookie store to attach to the client
@@ -125,18 +125,13 @@ public final class HttpHelperUtility {
 	 */
 	public static CloseableHttpClient getCustomClient(CookieStore cookieStore, String keyStore, String keyStorePass,
 			String keyPass) {
-		TrustStrategy trustStrategy = new TrustStrategy() {
-			@Override
-			public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-				return true;
-			}
-		};
-
-		HostnameVerifier verifier = NoopHostnameVerifier.INSTANCE;
+		HostnameVerifier verifier = new DefaultHostnameVerifier();
 		DefaultClientTlsStrategy tlsStrategy = null;
 
 		try {
-			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create().loadTrustMaterial(trustStrategy);
+			// No loadTrustMaterial() call: use the JVM's default trust managers
+			// (the system truststore) rather than trusting every certificate.
+			SSLContextBuilder sslContextBuilder = SSLContextBuilder.create();
 
 			// add the cert if required
 			if (keyStore != null && !keyStore.isEmpty() && keyStorePass != null && !keyStorePass.isEmpty()) {

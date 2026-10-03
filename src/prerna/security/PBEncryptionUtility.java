@@ -30,6 +30,7 @@ package prerna.security;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.Provider;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -204,7 +205,10 @@ public class PBEncryptionUtility {
 		}
 		PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, PBKDF2_ITERATIONS, DERIVED_KEY_LENGTH_BITS);
 		try {
-			byte[] keyBytes = SecretKeyFactory.getInstance(KDF_ALGORITHM).generateSecret(spec).getEncoded();
+			Provider bcFips = BcFipsProvider.get();
+			SecretKeyFactory factory = bcFips != null ? SecretKeyFactory.getInstance(KDF_ALGORITHM, bcFips)
+					: SecretKeyFactory.getInstance(KDF_ALGORITHM);
+			byte[] keyBytes = factory.generateSecret(spec).getEncoded();
 			return new SecretKeySpec(keyBytes, KEY_ALGORITHM);
 		} finally {
 			spec.clearPassword();

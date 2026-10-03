@@ -49,7 +49,6 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.cookie.ClientCookie;
 import org.apache.http.impl.auth.DigestScheme;
 import org.apache.http.impl.client.BasicAuthCache;
@@ -184,8 +183,7 @@ public class LinOTPUtil {
 
 			// first, request for challenge request using user pin
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
+			CloseableHttpClient httpclient = HttpClients.custom().build();
 			try {
 				HttpEntity entity = null;
 				HttpPost httpPost = new HttpPost(requestURL);
@@ -274,8 +272,7 @@ public class LinOTPUtil {
 		} else {
 			// subsequent challenge request with otp
 			// Create HTTP request via ssl port (https) and pass post parameters
-			CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-					.build();
+			CloseableHttpClient httpclient = HttpClients.custom().build();
 			try {
 				HttpPost httpPost = new HttpPost(requestURL);
 				HttpSession session = request.getSession();
@@ -474,8 +471,7 @@ public class LinOTPUtil {
 		context.setCookieStore(cstore);
 
 		// Create HTTP request via ssl port (https) and pass post parameters
-		CloseableHttpClient httpclient = HttpClients.custom().setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				.build();
+		CloseableHttpClient httpclient = HttpClients.custom().build();
 		try {
 			HttpPost httpPost = new HttpPost(requestURL);
 
