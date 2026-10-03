@@ -53,6 +53,7 @@ import prerna.util.BeanFiller;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.EngineUtility;
+import prerna.util.PathSecurityUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -100,9 +101,11 @@ public class ExternalAuthorizationHelper {
 					properties.put(Constants.OWL, Constants.DATABASE_FOLDER+"/@ENGINE@/"+engineName+"_OWL.OWL");
 				}
 				
+				// the temp smss is contained in the engine folder by createTemporaryEngineSmss
 				File tempSmss = UploadUtilities.createTemporaryEngineSmss(engineType, engineId, engineName, engineClass, properties);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, tempSmss.getAbsolutePath());
-				File smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
+				// swap the extension on the file name only
+				File smssFile = new File(tempSmss.getParentFile(), tempSmss.getName().replace(".temp", ".smss"));
 				FileUtils.copyFile(tempSmss, smssFile);
 				DIHelper.getInstance().setEngineProperty(engineId + "_" + Constants.STORE, smssFile.getAbsolutePath());
 				tempSmss.delete();
@@ -192,9 +195,18 @@ public class ExternalAuthorizationHelper {
 			for (JsonNode detail : parsedJsonNode) {
 				Map<String, Object> permissionMap = new HashMap<>();
 				
-				// these are mandatory
-				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
-				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
+				// these are mandatory; ids/names end up in file paths, so skip any record that is not one segment
+				String engineId;
+				String engineName;
+				try {
+					engineId = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINEID_KEY).asText(), "External engine ID");
+					engineName = PathSecurityUtils.requireSinglePathSegment(detail.path(ENGINENAME_KEY).asText(), "External engine name");
+				} catch (IllegalArgumentException e) {
+					classLogger.warn("Skipping external engine record with an unusable id or name: " + e.getMessage());
+					continue;
+				}
+				permissionMap.put("engineId", engineId);
+				permissionMap.put("engineName", engineName);
 				
 				IEngine.CATALOG_TYPE engineType = null;
 				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {

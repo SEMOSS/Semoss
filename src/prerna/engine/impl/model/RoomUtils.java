@@ -71,6 +71,7 @@ import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 /**
@@ -389,9 +390,10 @@ public final class RoomUtils {
 			return;
 		}
 		try {
-			Path folderPath = Paths.get(roomFolderPath);
+			File roomRoot = new File(Utility.getBaseFolder(), Constants.ROOM_FOLDER);
+			Path folderPath = PathSecurityUtils.requireDirectChild(roomRoot, new File(roomFolderPath)).toPath();
 			Files.createDirectories(folderPath);
-			insight.getUser().getUserSymlinkHelper().symlinkFolder(roomFolderPath);
+			insight.getUser().getUserSymlinkHelper().symlinkFolder(folderPath.toString());
 		} catch (IOException e) {
 			classLogger.warn("Failed to symlink room folder into chroot: " + roomFolderPath, e);
 		}
@@ -790,9 +792,9 @@ public final class RoomUtils {
 			return roomFilePaths;
 		}
 		for (String relPath : relativePathToFiles) {
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+			File srcFile = resolveInsightFile(insightFolder, relPath);
+			if (srcFile == null || !srcFile.exists() || !srcFile.isFile()) {
+				classLogger.info("Source file does not exist in insight folder: " + relPath);
 				continue;
 			}
 			String fileName = srcFile.getName();
@@ -823,8 +825,7 @@ public final class RoomUtils {
 		}
 		classLogger.info("Need to copy file paths from the insight to the room");
 		String insightFolder = insight.getInsightFolder(); // absolute path to insight folder
-		String roomFolder = room.getRoomFolderPath(); // absolute path to room folder
-		Path targetDir = Paths.get(roomFolder);
+		Path targetDir = Paths.get(Room.roomFolderPath(room.getId()));
 		try {
 			Files.createDirectories(targetDir);
 		} catch (IOException e) {
@@ -839,9 +840,9 @@ public final class RoomUtils {
 				}
 				continue;
 			}
-			File srcFile = new File(insightFolder, relPath);
-			if (!srcFile.exists() || !srcFile.isFile()) {
-				classLogger.info("Source file does not exist in insight folder: " + srcFile.getAbsolutePath());
+			File srcFile = resolveInsightFile(insightFolder, relPath);
+			if (srcFile == null || !srcFile.exists() || !srcFile.isFile()) {
+				classLogger.info("Source file does not exist in insight folder: " + relPath);
 				continue;
 			}
 			String fileName = srcFile.getName();
@@ -854,6 +855,19 @@ public final class RoomUtils {
 			}
 		}
 		return copiedFileNames;
+	}
+
+	// only files inside the insight folder can be attached to a room
+	private static File resolveInsightFile(String insightFolder, String relPath) {
+		if (insightFolder == null || relPath == null) {
+			return null;
+		}
+		try {
+			return PathSecurityUtils.resolveWithin(new File(insightFolder), relPath);
+		} catch (IOException | IllegalArgumentException e) {
+			classLogger.warn("Rejected media path outside the insight folder: " + relPath);
+			return null;
+		}
 	}
 
 	/**

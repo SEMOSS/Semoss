@@ -112,7 +112,7 @@ public class GitHubCopilotPyManager {
 		String insightId = insight.getInsightId();
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String roomFolderPath = Room.roomFolderPath(roomId);
 		Files.createDirectories(Paths.get(roomFolderPath));
 
 		String workingDir = (filePath != null && !filePath.trim().isEmpty()) ? filePath : roomFolderPath;

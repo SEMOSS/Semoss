@@ -84,7 +84,7 @@ public class ClaudeCodeManager {
 		String localProtocol = ThreadStore.getLocalProtocol();
 		String baseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/model/anthropic";
 		String mcpBaseUrl = localProtocol + "://" + "localhost" + ":" + localPort + "/Monolith/api/ext/mcp/";
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		String roomFolderPath = Room.roomFolderPath(roomId);
 		boolean agentHistoryExists = agentHistoryExists(roomFolderPath, roomId);
 
 		String allowedToolsLiteral;
@@ -221,7 +221,7 @@ public class ClaudeCodeManager {
 		classLogger.debug("InsightID for this query is {} and the roomId is {}", insightId, roomId);
 
 		String finalFilePath = (filePath != null && !filePath.trim().isEmpty()) ? filePath
-				: Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+				: Room.roomFolderPath(roomId);
 
 		String[] keyPair = user.createCachedTemporalAccessSecretKey();
 		String accessKey = keyPair[0];

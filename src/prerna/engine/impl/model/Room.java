@@ -28,6 +28,7 @@
 package prerna.engine.impl.model;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -84,6 +85,7 @@ import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 public class Room implements Serializable {
@@ -1351,6 +1353,7 @@ public class Room implements Serializable {
 		}
 
 		// normal engine/project mcp
+		engineId = PathSecurityUtils.requireSinglePathSegment(engineId, "MCP engine ID");
 		IEngine engine = null;
 		try {
 			engine = Utility.getEngine(engineId);
@@ -2196,7 +2199,13 @@ public class Room implements Serializable {
 	 * @return the room folder path
 	 */
 	public static String roomFolderPath(String roomId) {
-		return Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
+		roomId = PathSecurityUtils.requireSinglePathSegment(roomId, "Room ID");
+		try {
+			File roomRoot = new File(Utility.getBaseFolder(), "room");
+			return PathSecurityUtils.requireDirectChild(roomRoot, new File(roomRoot, roomId)).getAbsolutePath();
+		} catch (IOException e) {
+			throw new IllegalArgumentException("Unable to resolve the room folder path", e);
+		}
 	}
 
 	// Core message accessors
