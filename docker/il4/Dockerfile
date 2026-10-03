@@ -105,6 +105,11 @@ COPY conf/server.xml conf/context.xml conf/logging.properties /opt/tomcat/conf/
 COPY conf/setenv.sh /opt/tomcat/bin/setenv.sh
 COPY entrypoint.sh /usr/local/bin/semoss-entrypoint
 COPY RdsTrust.java tests/RdsTrustTest.java /opt/rds-check/
+# Compiled into Tomcat's own lib/, not the application WAR: CsrfPreventionFilterBase's
+# single-argument Class.forName(randomClass) resolves using ITS OWN (Tomcat's shared)
+# classloader, which has no visibility into any webapp's WEB-INF/lib - confirmed by
+# reproducing the resulting ClassNotFoundException with the class bundled in the WAR.
+COPY FipsPreferredSecureRandom.java /opt/tomcat/lib/
 ADD --checksum=sha256:cffb079b116f6bb731b10b1dc3e026287758b0c2fdc81144e218da0a58650454 \
     https://truststore.pki.us-gov-west-1.rds.amazonaws.com/us-gov-west-1/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-west-1-bundle.pem
 ADD --checksum=sha256:701cd34b338d4199cd09a669bbc3d11000febe52393d08a689d0b21c50ea3974 \
@@ -134,6 +139,7 @@ RUN java -version && \
     chown -R 10001:10001 /opt/tomcat/work /opt/tomcat/temp /opt/tomcat/logs && \
     rpm -qa | sort > /opt/provenance/rpm-packages.txt
 
+RUN --network=none javac -d /opt/tomcat/lib /opt/tomcat/lib/FipsPreferredSecureRandom.java
 RUN --network=none javac -d /opt/rds-check /opt/rds-check/RdsTrust.java /opt/rds-check/RdsTrustTest.java && \
     java -cp /opt/rds-check RdsTrustTest /opt/semoss-ca/us-gov-west-1-bundle.pem /opt/semoss-ca/us-gov-east-1-bundle.pem && \
     java -Dorg.bouncycastle.native.cpu_variant=java -cp '/opt/rds-check:/opt/fips/*' RdsTrust /opt/fips/cacerts.bcfks BCFKS \

@@ -19,6 +19,7 @@
 !TLS.md
 !RDS.md
 !RdsTrust.java
+!FipsPreferredSecureRandom.java
 !FipsCheck.java
 !JdbcCheck.java
 !JdbcTls.java
