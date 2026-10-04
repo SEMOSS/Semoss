@@ -30,6 +30,7 @@ package prerna.io.connector.secrets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -51,6 +52,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.om.Insight;
 import prerna.sablecc2.om.execptions.InsightEncryptionException;
+import prerna.security.BcFipsProvider;
 
 public class SecretsUtility {
 
@@ -85,7 +87,10 @@ public class SecretsUtility {
 		try {
 			IvParameterSpec ivspec = new IvParameterSpec(iv);
 
-			SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+			Provider bcFips = BcFipsProvider.get();
+			SecretKeyFactory factory = bcFips != null
+					? SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256", bcFips)
+					: SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
 			KeySpec spec = new PBEKeySpec(secret.toCharArray(), salt.getBytes(), 65536, 256);
 			SecretKey tmp = factory.generateSecret(spec);
 			SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
@@ -128,7 +133,10 @@ public class SecretsUtility {
 		try {
 			IvParameterSpec ivspec = new IvParameterSpec(iv);
 
-			SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+			Provider bcFips = BcFipsProvider.get();
+			SecretKeyFactory factory = bcFips != null
+					? SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256", bcFips)
+					: SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
 			KeySpec spec = new PBEKeySpec(secret.toCharArray(), salt.getBytes(), 65536, 256);
 			SecretKey tmp = factory.generateSecret(spec);
 			SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
