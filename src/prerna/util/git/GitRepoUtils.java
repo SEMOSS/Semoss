@@ -33,8 +33,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -81,7 +79,6 @@ import org.eclipse.jgit.treewalk.TreeWalk;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
-import prerna.security.InstallCertNow;
 import prerna.util.Utility;
 
 /**
@@ -474,34 +471,6 @@ public class GitRepoUtils {
 			}
 		}
 		return comm;
-	}
-
-	/**
-	 * Installs the SSL certificate for the host of the given repository URL into
-	 * the local trust store. The host is parsed from {@code repoName} as a URI and
-	 * any leading {@code www.} prefix is stripped before installing the
-	 * certificate.
-	 *
-	 * @param repoName the repository URL from which the host/domain is extracted
-	 * @return {@code true} if the certificate was installed, {@code false} if the
-	 *         URL was malformed or the install failed
-	 */
-	// install the certificate
-	public static boolean addCertForDomain(String repoName) {
-		try {
-			URI uri = new URI(repoName);
-			String domain = uri.getHost();
-			domain = domain.startsWith("www.") ? domain.substring(4) : domain;
-
-			InstallCertNow.please(domain, null, null);
-			return true;
-		} catch (URISyntaxException use) {
-			classLogger.error("Failed to install certificate for repository domain: {}", use.getMessage(), use);
-			return false;
-		} catch (Exception e) {
-			classLogger.error("Failed to install certificate for repository domain: {}", e.getMessage(), e);
-			return false;
-		}
 	}
 
 	/**

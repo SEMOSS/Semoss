@@ -49,7 +49,6 @@ import org.apache.logging.log4j.Logger;
 import prerna.om.AbstractValueObject;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
-import prerna.util.git.GitRepoUtils;
 
 public class AppTokens extends AbstractValueObject {
 
@@ -142,9 +141,6 @@ public class AppTokens extends AbstractValueObject {
 				classLogger.warn("Twitter credentials not configured");
 				return;
 			}
-
-			// Add SSL certificate support
-			GitRepoUtils.addCertForDomain("https://twitter.com");
 
 			// Create and encode credentials
 			String jointString = credentials.getEncodedCredentials();
