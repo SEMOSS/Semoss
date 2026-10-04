@@ -33,9 +33,17 @@ import prerna.io.connector.AbstractOAuthTokenFiller;
  * ADFS OIDC provider. The authorize/token endpoints and the claim parsing
  * ({@code jsonPattern}/{@code beanProps}) are configured entirely via social
  * properties. The user's claims are carried in the {@code id_token} JWT, so the
- * token exchange requests an id token and the profile is read from the decoded
- * JWT payload instead of a userinfo endpoint. Scope is sent in the token
- * exchange.
+ * token exchange requests an id token and the profile is read from the
+ * verified JWT payload instead of a userinfo endpoint. Scope is sent in the
+ * token exchange.
+ *
+ * <p>
+ * {@code {prefix}jwks_url} and {@code {prefix}issuer} must both be configured
+ * for this provider: the id_token's signature is verified against the
+ * provider's published JWKS and its {@code iss}/{@code aud} claims are
+ * checked against them (see {@link prerna.security.OidcIdTokenVerifier}).
+ * Login fails rather than trusting an unverified token when either is
+ * missing.
  */
 public class AdfsTokenFiller extends AbstractOAuthTokenFiller {
 

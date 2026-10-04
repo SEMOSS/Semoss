@@ -30,7 +30,6 @@ package prerna.io.connector;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -43,12 +42,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nimbusds.jwt.JWTClaimsSet;
 
 import prerna.auth.AccessToken;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.security.HttpHelperUtility;
+import prerna.security.OidcIdTokenVerifier;
 import prerna.util.BeanFiller;
 import prerna.util.SocialPropertiesUtil;
 
@@ -74,6 +76,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	protected static final Logger classLogger = LogManager.getLogger(AbstractOAuthTokenFiller.class);
 	protected static final SocialPropertiesUtil socialData = SocialPropertiesUtil.getInstance();
 	private static final String UTF8 = StandardCharsets.UTF_8.name();
+	private static final ObjectMapper JSON = new ObjectMapper();
 
 	public static final String REFRESH_TOKEN_KEY = "refresh_token";
 
@@ -292,7 +295,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		String output;
 		if (usesIdToken()) {
 			// OIDC: the claims live in the id_token JWT itself, no userinfo call
-			output = decodeJwtPayload(accessToken.getAccess_token());
+			output = verifyIdTokenAndGetClaimsJson(accessToken.getAccess_token(), prefix);
 		} else {
 			String userInfoUrl = resolve(socialData.getProperty(prefix + "userinfo_url"),
 					getDefaultUserInfoUrl(prefix));
@@ -428,15 +431,28 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	}
 
 	/**
-	 * Decode the JSON payload (claims) segment of a JWT / id_token.
+	 * Verifies an id_token's signature against the provider's published JWKS
+	 * (see {@link OidcIdTokenVerifier}) and returns its claims as a JSON string.
+	 * Requires {@code {prefix}jwks_url} and {@code {prefix}issuer} to be
+	 * configured; fails closed (throws) rather than trusting an unverified
+	 * token when they are not, or when verification itself fails for any
+	 * reason - a wrong signature, an unexpected algorithm, an issuer/audience
+	 * mismatch, or an expired token.
 	 *
-	 * @param token a compact JWS ({@code header.payload.signature})
-	 * @return the decoded JSON payload
+	 * @param idToken a compact JWS id_token ({@code header.payload.signature})
+	 * @param prefix  social.properties prefix for the provider
+	 * @return the verified claims, serialized as a JSON string
 	 */
-	protected static String decodeJwtPayload(String token) {
-		String[] parts = token.split("\\.");
-		byte[] bytes = Base64.getUrlDecoder().decode(parts[1]);
-		return new String(bytes, StandardCharsets.UTF_8);
+	private static String verifyIdTokenAndGetClaimsJson(String idToken, String prefix) {
+		String jwksUrl = socialData.getProperty(prefix + "jwks_url");
+		String issuer = socialData.getProperty(prefix + "issuer");
+		String clientId = socialData.getProperty(prefix + "client_id");
+		try {
+			JWTClaimsSet claims = OidcIdTokenVerifier.verify(idToken, jwksUrl, issuer, clientId);
+			return JSON.writeValueAsString(claims.toJSONObject());
+		} catch (Exception e) {
+			throw new SemossPixelException("Failed to verify id_token", e);
+		}
 	}
 
 	private static String encode(String value) {
