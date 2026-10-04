@@ -161,6 +161,8 @@ public final class BrainThreadUtils {
 
 		Timestamp now = CollaborationDbUtils.now();
 		CollaborationDbUtils.batch(conn -> {
+			BrainTopicReviewProfiles.lock(ownerId, ownerType);
+			BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
 			List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
 			Map<String, Object> existing = links.stream().filter(link -> topicId.equals(link.get("topicId")))

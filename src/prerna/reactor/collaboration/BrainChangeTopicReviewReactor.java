@@ -26,6 +26,6 @@ public class BrainChangeTopicReviewReactor extends AbstractCollaborationReactor 
 
 	@Override
 	public String getReactorDescription() {
-		return "Revision-checked, idempotent topic-review draft correction. Changes: confirm/reject/move/also_link with topicKey, threadIds, preview versions and targetKey where needed; undo with changeId. Real links are applied only by BrainApplyTopicReview";
+		return "Revision-checked, idempotent topic-review draft correction. Changes: confirm/reject/move/also_link with topicKey, threadIds, preview versions and targetKey where needed; organize with reviewed groups and scopeVersion; undo with changeId. Real links and combinations are applied only by BrainApplyTopicReview";
 	}
 }

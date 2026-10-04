@@ -181,6 +181,13 @@ public final class BrainTopicChangeUtils {
 	// them changed since
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> undo(User user, String changeId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> undoInReview(user, changeId));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> undoInReview(User user, String changeId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
