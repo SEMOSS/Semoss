@@ -423,9 +423,10 @@ public final class BrainTopicUtils {
 				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?)";
 
 		String[] changeId = new String[1];
-		CollaborationDbUtils.inTransaction(conn -> {
+		CollaborationDbUtils.batch(conn -> {
 			BrainTopicChangeUtils.Snapshot snapshot = BrainTopicChangeUtils.capture(conn, ownerId, ownerType,
 					sourceTopicId, targetTopicId);
+			BrainThreadTopicDecisions.merge(conn, ownerId, ownerType, sourceTopicId, targetTopicId);
 			// threads on both topics: the target link inherits primary, the source link
 			// goes
 			CollaborationDbUtils.update(conn,
@@ -514,7 +515,7 @@ public final class BrainTopicUtils {
 							thread.getValue0());
 				}
 			}
-			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
+			for (String table : new String[] { "BRAIN_THREAD_TOPIC", "BRAIN_THREAD_TOPIC_REJECTION", "BRAIN_TOPIC_PERSON", "BRAIN_TOPIC_NOTE",
 					"BRAIN_RULE", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}

@@ -157,16 +157,13 @@ public final class BrainThreadUtils {
 		requireThread(ownerId, ownerType, threadId);
 		BrainTopicUtils.requireTopic(ownerId, ownerType, topicId);
 
-		List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
-		Map<String, Object> current = null;
-		for (Map<String, Object> link : links) {
-			if (topicId.equals(link.get("topicId"))) {
-				current = link;
-			}
-		}
-		Map<String, Object> existing = current;
 		Timestamp now = CollaborationDbUtils.now();
-		CollaborationDbUtils.inTransaction(conn -> {
+		CollaborationDbUtils.batch(conn -> {
+			BrainThreadTopicDecisions.lockThread(ownerId, ownerType, threadId);
+			List<Map<String, Object>> links = getLinks(ownerId, ownerType, threadId);
+			Map<String, Object> existing = links.stream().filter(link -> topicId.equals(link.get("topicId")))
+					.findFirst().orElse(null);
+			BrainThreadTopicDecisions.remember(ownerId, ownerType, threadId, topicId, remove);
 			if (remove) {
 				if (existing == null) {
 					return;
