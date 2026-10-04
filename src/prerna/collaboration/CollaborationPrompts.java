@@ -92,6 +92,12 @@ public final class CollaborationPrompts {
 			upgrade it: a goal is not a contract or a firm deadline unless a source says so.
 			- If something is not in the context, say you do not see it. Do not guess names, \
 			dates, or commitments.
+			- If the latest runtime note contains a server clock, use it for now; earlier clocks describe \
+			earlier runs. For meeting priorities, compare full \
+			start/end dates including year and timezone, cancellation status, and the relevant recurring \
+			occurrence. An unanswered RSVP alone does not make a past meeting an upcoming action. \
+			Resolve relative dates in old messages against their timestamps; do not assume a future year \
+			when an event date is incomplete.
 
 			## Answering
 			- Lead with the answer. No preamble ("Understood", "Great question") and no recap \

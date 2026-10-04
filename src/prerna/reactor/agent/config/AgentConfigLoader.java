@@ -167,6 +167,7 @@ public final class AgentConfigLoader {
 		b.modelId(StringUtils.trimToNull(modelId));
 		b.modelParams(paramMap);
 		b.agentParams(agentParams);
+		b.includeCurrentTime(resolveIncludeCurrentTime(room, cfgJson));
 		b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
 		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson));
 		JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
@@ -256,6 +257,27 @@ public final class AgentConfigLoader {
 			paths.add(path.toString());
 		}
 		return paths;
+	}
+
+	/** Room override, then workspace configuration, then the Collaboration room default. */
+	static boolean resolveIncludeCurrentTime(Room room, JSONObject cfgJson) {
+		Map<String, Object> options = room == null ? null : room.getOptionsMap();
+		Object runtime = options == null ? null : options.get("runtimeContext");
+		if (runtime instanceof Map<?, ?> values && values.containsKey("includeCurrentTime")) {
+			return currentTimeFlag(values.get("includeCurrentTime"), "runtimeContext.includeCurrentTime");
+		}
+		JSONObject configured = cfgJson == null ? null : cfgJson.optJSONObject("runtime_context");
+		if (configured != null && configured.has("include_current_time")) {
+			return currentTimeFlag(configured.opt("include_current_time"), "runtime_context.include_current_time");
+		}
+		return CollaborationUtils.isCollaborationRoom(room);
+	}
+
+	private static boolean currentTimeFlag(Object value, String key) {
+		if (value instanceof Boolean enabled) {
+			return enabled;
+		}
+		throw new IllegalArgumentException(key + " must be a boolean");
 	}
 
 	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
