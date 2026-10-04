@@ -4,6 +4,8 @@ import static prerna.collaboration.BrainTopicReviewEvidence.map;
 import static prerna.collaboration.BrainTopicReviewEvidence.maps;
 import static prerna.collaboration.BrainTopicReviewEvidence.strings;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -31,8 +33,25 @@ final class BrainTopicReviewOperations {
 			out.put("changeId", text(input.get("changeId"), "Change ID", 100));
 			return out;
 		}
+		if ("organize".equals(type)) {
+			out.put("groups", BrainTopicReviewStructure.groups(input.get("groups")));
+			String version = text(input.get("scopeVersion"), "Grouping preview version", 64);
+			if (!version.matches("[a-f0-9]{64}")) throw new IllegalArgumentException("Pass the current grouping preview version");
+			out.put("scopeVersion", version);
+			return out;
+		}
+		if ("reconcile_profile".equals(type)) {
+			out.put("topicKey", text(input.get("topicKey"), "Topic key", 100));
+			String version = text(input.get("profileVersion"), "Saved profile version", 64);
+			if (!version.matches("[a-f0-9]{64}")) throw new IllegalArgumentException("Pass the saved profile comparison version");
+			out.put("profileVersion", version);
+			String choice = text(input.get("choice"), "Profile choice", 10);
+			if (!Set.of("saved", "draft").contains(choice)) throw new IllegalArgumentException("Choose the saved profile or your draft profile");
+			out.put("choice", choice);
+			return out;
+		}
 		if (!Set.of("confirm", "reject", "move", "also_link").contains(type)) {
-			throw new IllegalArgumentException("Choose confirm, reject, move, also_link or undo");
+			throw new IllegalArgumentException("Choose confirm, reject, move, also_link, organize, reconcile_profile or undo");
 		}
 		out.put("topicKey", text(input.get("topicKey"), "Topic key", 100));
 		List<String> ids = strings(input.get("threadIds"));
@@ -66,24 +85,51 @@ final class BrainTopicReviewOperations {
 		return false;
 	}
 
-	static void change(String ownerId, String ownerType, Map<String, Object> review, String operationId,
-			Map<String, Object> request) {
+	static void change(Connection conn, String ownerId, String ownerType, Map<String, Object> review, String operationId,
+			Map<String, Object> request) throws SQLException {
 		Map<String, Object> draft = map(review.get("draft"));
 		String type = (String) request.get("type");
 		List<Map<String, Object>> history = new ArrayList<>(maps(draft.get("history")));
 		if ("undo".equals(type)) {
 			if (history.isEmpty() || !request.get("changeId").equals(history.get(history.size() - 1).get("id"))) {
-				throw new IllegalArgumentException("Only the latest unapplied conversation change can be undone");
+				throw new IllegalArgumentException("Only the latest unapplied review change can be undone");
 			}
 			Map<String, Object> latest = history.get(history.size() - 1);
 			if (!Objects.equals(latest.get("after"), state(draft))) {
-				throw new IllegalArgumentException("Conversation changes advanced; undo would overwrite them");
+				throw new IllegalArgumentException("Review changes advanced; undo would overwrite them");
 			}
 			Map<String, Object> before = map(latest.get("before"));
+			BrainTopicReviewStructure.undo(draft, latest);
 			draft.put("corrections", maps(before.get("corrections")));
 			draft.put("baseVersions", map(before.get("baseVersions")));
 			history.remove(history.size() - 1);
 			draft.put("lastChange", "Undid " + latest.get("summary"));
+		} else if ("reconcile_profile".equals(type)) {
+			Map<String, Object> before = state(draft);
+			Map<String, Object> patch = BrainTopicReviewProfiles.reconcile(ownerId, ownerType, draft,
+					(String) request.get("topicKey"), (String) request.get("profileVersion"), (String) request.get("choice"));
+			String summary = "Reconciled the saved profile for " + map(patch.get("after")).get("name");
+			history.add(Map.of("id", operationId, "type", type, "summary", summary, "before", before,
+					"after", state(draft), "topicPatches", List.of(patch)));
+			draft.put("lastChange", summary);
+		} else if ("organize".equals(type)) {
+			List<Map<String, Object>> groups = maps(request.get("groups"));
+			Map<String, Object> preview = BrainTopicReviewStructure.preview(conn, ownerId, ownerType, review, groups);
+			if (!Objects.equals(preview.get("scopeVersion"), request.get("scopeVersion"))) {
+				throw new IllegalArgumentException("The grouping preview changed. Refresh it before accepting this proposal.");
+			}
+			if (maps(preview.get("groups")).stream().anyMatch(group -> !Boolean.TRUE.equals(group.get("canApply")))) {
+				throw new IllegalArgumentException("A proposed combination has non-email links and needs exchange-aware review");
+			}
+			Map<String, Object> before = state(draft);
+			List<Map<String, Object>> patches = BrainTopicReviewStructure.organize(ownerId, ownerType, review, groups, (String) request.get("scopeVersion"));
+			draft = map(review.get("draft"));
+			int contributors = groups.stream().mapToInt(group -> strings(group.get("topicKeys")).size()).sum();
+			String summary = contributors == groups.size() ? "Refined " + groups.size() + " topic profile(s)"
+					: "Combined " + contributors + " topics into " + groups.size();
+			history.add(Map.of("id", operationId, "type", type, "summary", summary, "before", before,
+					"after", state(draft), "topicPatches", patches));
+			draft.put("lastChange", summary);
 		} else {
 			Map<String, Object> source = kept(review, (String) request.get("topicKey"));
 			String sourceKey = (String) source.get("key");
@@ -125,11 +171,9 @@ final class BrainTopicReviewOperations {
 			default -> "Also linked " + ids.size() + " conversation(s) to " + target.get("name");
 			};
 			history.add(Map.of("id", operationId, "type", type, "summary", summary, "before", before, "after", state(draft)));
-			if (history.size() > KEEP_HISTORY) {
-				history.remove(0);
-			}
 			draft.put("lastChange", summary);
 		}
+		if (history.size() > KEEP_HISTORY) history.remove(0);
 		draft.put("history", history);
 		List<Map<String, Object>> receipts = new ArrayList<>(maps(draft.get("operationReceipts")));
 		receipts.add(Map.of("id", operationId, "request", request));
@@ -210,7 +254,11 @@ final class BrainTopicReviewOperations {
 	}
 
 	private static Map<String, Object> state(Map<String, Object> draft) {
-		return Map.of("corrections", new ArrayList<>(maps(draft.get("corrections"))), "baseVersions", map(draft.get("baseVersions")));
+		Map<String, Object> state = new LinkedHashMap<>();
+		state.put("corrections", new ArrayList<>(maps(draft.get("corrections"))));
+		state.put("baseVersions", map(draft.get("baseVersions")));
+		if (!maps(draft.get("combinations")).isEmpty()) state.put("combinations", new ArrayList<>(maps(draft.get("combinations"))));
+		return state;
 	}
 
 	private static Map<String, Object> kept(Map<String, Object> review, String key) {

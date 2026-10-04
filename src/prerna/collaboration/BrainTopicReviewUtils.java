@@ -24,7 +24,44 @@ public final class BrainTopicReviewUtils {
 	/** Read without generating suggestions or changing topic profiles. */
 	public static Map<String, Object> get(User user) {
 		var owner = CollaborationDbUtils.ownerOf(user);
-		return envelope(user, read(owner.getValue0(), owner.getValue1(), false));
+		Map<String, Object> review = read(owner.getValue0(), owner.getValue1(), false);
+		if (review != null) {
+			Map<String, Object> draft = map(review.get("draft"));
+			BrainTopicReviewProfiles.initialize(owner.getValue0(), owner.getValue1(), draft);
+			review.put("draft", draft);
+		}
+		return envelope(user, review);
+	}
+
+	/** Optional contextual suggestions. The model runs outside the transaction; no draft or room is changed. */
+	public static Map<String, Object> suggestOrganization(User user, String reviewId, int revision) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> context = new LinkedHashMap<>();
+		CollaborationDbUtils.batch(conn -> {
+			Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, true);
+			requireRevision(review, revision);
+			BrainTopicReviewProfiles.validate(owner.getValue0(), owner.getValue1(), map(review.get("draft")));
+			context.putAll(BrainTopicReviewAssistant.context(owner.getValue0(), owner.getValue1(), review));
+		});
+		Map<String, Object> result = new LinkedHashMap<>(BrainTopicReviewAssistant.ask(user, context));
+		requireRevision(requireReview(owner.getValue0(), owner.getValue1(), reviewId, false), revision);
+		result.put("reviewId", reviewId);
+		result.put("revision", revision);
+		return result;
+	}
+
+	/** Preview the exact impact for manually chosen groups or assistant proposals. */
+	public static Map<String, Object> previewOrganization(User user, String reviewId, int revision, Object groups) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		List<Map<String, Object>> requested = BrainTopicReviewStructure.groups(groups);
+		Map<String, Object> result = new LinkedHashMap<>();
+		CollaborationDbUtils.batch(conn -> {
+			Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, true);
+			requireRevision(review, revision);
+			BrainTopicReviewProfiles.validate(owner.getValue0(), owner.getValue1(), map(review.get("draft")));
+			result.putAll(BrainTopicReviewStructure.preview(conn, owner.getValue0(), owner.getValue1(), review, requested));
+		});
+		return result;
 	}
 
 	/** Read bounded real metadata without applying the suggestion's provisional membership. */
@@ -61,7 +98,7 @@ public final class BrainTopicReviewUtils {
 					return;
 				}
 				requireRevision(current, revision);
-				BrainTopicReviewOperations.change(ownerId, ownerType, current, operationId, request);
+				BrainTopicReviewOperations.change(conn, ownerId, ownerType, current, operationId, request);
 				int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, REVISION = ?, "
 						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? AND REVISION = ?",
 						CollaborationDbUtils.toJson(current.get("draft")), revision + 1, CollaborationDbUtils.now(),
@@ -82,7 +119,14 @@ public final class BrainTopicReviewUtils {
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
 			Map<String, Object> current = read(ownerId, ownerType, false);
 			if (current != null) {
-				return envelope(user, current);
+				CollaborationDbUtils.batch(conn -> {
+					Map<String, Object> locked = requireReview(ownerId, ownerType, (String) current.get("id"), true);
+					Map<String, Object> draft = map(locked.get("draft"));
+					BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
+					CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ?",
+							CollaborationDbUtils.toJson(draft), ownerId, ownerType, locked.get("id"));
+				});
+				return envelope(user, read(ownerId, ownerType, false));
 			}
 			Map<String, Object> suggestions = BrainTopicSuggest.topics(user);
 			List<Map<String, Object>> topics = new ArrayList<>();
@@ -104,6 +148,7 @@ public final class BrainTopicReviewUtils {
 			Map<String, Object> draft = new LinkedHashMap<>();
 			draft.put("topics", topics);
 			draft.put("modelError", Objects.toString(suggestions.get("modelError"), ""));
+			BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
 			Timestamp now = CollaborationDbUtils.now();
 			CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_REVIEW (OWNER_ID, OWNER_TYPE, REVIEW_ID, REVISION, "
 					+ "DRAFT_JSON, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
@@ -124,9 +169,14 @@ public final class BrainTopicReviewUtils {
 			CollaborationDbUtils.batch(conn -> {
 				Map<String, Object> current = requireReview(ownerId, ownerType, reviewId, true);
 				Map<String, Object> draft = map(current.get("draft"));
+				BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
 				List<Map<String, Object>> topics = normalize(changes.get("topics"), maps(draft.get("topics")));
+				String guidance = changes.containsKey("guidance") ? text(changes.get("guidance"), "Work context", 6000) : Objects.toString(draft.get("guidance"), "");
+				String granularity = changes.containsKey("granularity") ? text(changes.get("granularity"), "Topic detail", 20) : Objects.toString(draft.get("granularity"), "broad");
+				if (!Set.of("broad", "projects", "detailed").contains(granularity)) throw new IllegalArgumentException("Choose broad, projects or detailed topic grouping");
 				// A retry after a committed-but-lost response is a no-op when the complete draft agrees.
-				if (topics.equals(maps(draft.get("topics")))) {
+				if (topics.equals(maps(draft.get("topics"))) && Objects.equals(guidance, draft.get("guidance"))
+						&& Objects.equals(granularity, draft.get("granularity"))) {
 					if (revision > integer(current.get("revision"))) {
 						throw conflict();
 					}
@@ -134,6 +184,8 @@ public final class BrainTopicReviewUtils {
 				}
 				requireRevision(current, revision);
 				draft.put("topics", topics);
+				draft.put("guidance", guidance);
+				draft.put("granularity", granularity);
 				int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, "
 						+ "REVISION = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? "
 						+ "AND REVISION = ?", CollaborationDbUtils.toJson(draft), revision + 1,
@@ -163,6 +215,10 @@ public final class BrainTopicReviewUtils {
 						throw new IllegalArgumentException("Import or sorting is still running. Your review draft is saved; try again after it finishes.");
 					}
 					Map<String, Object> draft = map(current.get("draft"));
+					BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
+					current.put("draft", draft);
+					BrainTopicReviewProfiles.validate(ownerId, ownerType, draft);
+					BrainTopicReviewStructure.validateApply(conn, ownerId, ownerType, current);
 					BrainTopicReviewOperations.validateApply(ownerId, ownerType, current);
 					List<Map<String, Object>> topics = maps(draft.get("topics"));
 					List<Map<String, Object>> kept = new ArrayList<>();
@@ -170,6 +226,7 @@ public final class BrainTopicReviewUtils {
 					for (Map<String, Object> topic : topics) {
 						String topicId = nullableText(topic.get("id"));
 						if (!Boolean.TRUE.equals(topic.get("keep"))) {
+							if (topic.get("mergedIntoKey") != null) continue;
 							if (topicId != null) {
 								if (!BrainTopicUtils.SUGGESTED.equals(BrainTopicUtils.requireTopic(ownerId, ownerType, topicId))) {
 									throw new IllegalArgumentException("This topic is already saved. Manage its removal from Topics instead of skipping it in onboarding.");
@@ -192,6 +249,7 @@ public final class BrainTopicReviewUtils {
 						edit.put("name", name);
 						edit.put("short", alias.isEmpty() ? name : alias);
 						edit.put("description", text(topic.get("description"), "Description", 12000).trim());
+						edit.put("keywords", BrainTopicReviewProfiles.terms(topic.get("terms")));
 						edit.put("status", BrainTopicUtils.ACTIVE);
 						if (topicId == null && nullableText(topic.get("kind")) != null) {
 							edit.put("kind", topic.get("kind"));
@@ -225,8 +283,23 @@ public final class BrainTopicReviewUtils {
 						kept.add(receipt);
 					}
 					draft.put("topics", topics);
+					List<Map<String, Object>> merges = BrainTopicReviewStructure.apply(user, draft);
+					// The retained owner's profile and clues win over the merge helper's keyword union.
+					for (Map<String, Object> topic : maps(draft.get("topics"))) {
+						if (!Boolean.TRUE.equals(topic.get("keep"))) continue;
+						String id = BrainTopicReviewProfiles.id(topic);
+						Map<String, Object> saved = BrainTopicUtils.saveTopic(user, Map.of("id", id, "keywords", BrainTopicReviewProfiles.terms(topic.get("terms"))));
+						for (String personId : strings(topic.get("removedPeople"))) BrainTopicUtils.setTopicPerson(user, id, personId, BrainTopicUtils.REMOVED, null);
+						BrainTopicReviewProfiles.accept(ownerId, ownerType, topic);
+						Map<String, Object> receipt = kept.stream().filter(row -> Objects.equals(row.get("key"), topic.get("key"))).findFirst().orElseThrow();
+						receipt.put("keywords", saved.get("keywords"));
+					}
 					List<Map<String, Object>> corrections = BrainTopicReviewOperations.apply(user, ownerId, ownerType, draft, kept);
-					Map<String, Object> result = Map.of("topics", kept, "skipped", skipped, "corrections", corrections);
+					// maps() returns copies; retain the refreshed profile bases in the durable draft.
+					List<Map<String, Object>> finalTopics = maps(draft.get("topics"));
+					finalTopics.forEach(topic -> BrainTopicReviewProfiles.accept(ownerId, ownerType, topic));
+					draft.put("topics", finalTopics);
+					Map<String, Object> result = Map.of("topics", kept, "skipped", skipped, "corrections", corrections, "merges", merges);
 					int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, "
 							+ "APPLIED_REVISION = ?, RESULT_JSON = ?, FILING_JOB_ID = NULL, UPDATED_AT = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? AND REVISION = ?",
@@ -320,7 +393,10 @@ public final class BrainTopicReviewUtils {
 			if (!(edit.get("keep") instanceof Boolean)) {
 				throw new IllegalArgumentException("Each draft topic needs a keep choice");
 			}
-			if (original != null && Boolean.TRUE.equals(original.get("accepted")) && !Boolean.TRUE.equals(edit.get("keep"))) {
+			if (original != null && original.get("mergedIntoKey") != null && Boolean.TRUE.equals(edit.get("keep"))) {
+				throw new IllegalArgumentException("Undo the grouping instead of reselecting a combined topic");
+			}
+			if (original != null && original.get("mergedIntoKey") == null && Boolean.TRUE.equals(original.get("accepted")) && !Boolean.TRUE.equals(edit.get("keep"))) {
 				throw new IllegalArgumentException("This topic is already saved. Manage its removal from Topics instead of skipping it in onboarding.");
 			}
 			Map<String, Object> topic = original == null ? new LinkedHashMap<>() : new LinkedHashMap<>(original);
@@ -331,6 +407,9 @@ public final class BrainTopicReviewUtils {
 			for (String field : List.of("name", "description", "short")) {
 				topic.put(field, text(edit.get(field), field, "description".equals(field) ? 12000 : 255));
 			}
+			String clues = edit.containsKey("terms") ? text(edit.get("terms"), "Topic clues", 4000) : Objects.toString(topic.get("terms"), "");
+			BrainTopicReviewProfiles.terms(clues);
+			topic.put("terms", clues);
 			topic.put("keep", edit.get("keep"));
 			Set<String> allowedPeople = new HashSet<>();
 			maps(topic.get("people")).forEach(person -> allowedPeople.add((String) person.get("id")));
@@ -384,6 +463,8 @@ public final class BrainTopicReviewUtils {
 
 	private static Map<String, Object> envelope(User user, Map<String, Object> review) {
 		if (review != null) {
+			var owner = CollaborationDbUtils.ownerOf(user);
+			review.put("profileConflicts", BrainTopicReviewProfiles.conflicts(owner.getValue0(), owner.getValue1(), map(review.get("draft"))));
 			String jobId = nullableText(review.get("filingJobId"));
 			review.put("filingJob", jobId == null ? null : CollaborationJobUtils.get(user, jobId));
 		}

@@ -178,6 +178,13 @@ public final class BrainTopicUtils {
 	// it
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> saveTopic(User user, Map<String, Object> changes) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> saveTopicInReview(user, changes));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> saveTopicInReview(User user, Map<String, Object> changes) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -249,6 +256,12 @@ public final class BrainTopicUtils {
 	}
 
 	public static Map<String, Object> setTopicStatus(User user, String topicId, String status) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> setTopicStatusInReview(user, topicId, status));
+	}
+
+	private static Map<String, Object> setTopicStatusInReview(User user, String topicId, String status) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -266,6 +279,13 @@ public final class BrainTopicUtils {
 
 	// goals take open|done, notes take draft|confirmed; no noteId creates
 	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind, String text,
+			String state) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> saveTopicNoteInReview(user, topicId, noteId, kind, text, state));
+	}
+
+	private static Map<String, Object> saveTopicNoteInReview(User user, String topicId, String noteId, String kind, String text,
 			String state) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -309,6 +329,12 @@ public final class BrainTopicUtils {
 	}
 
 	public static Map<String, Object> deleteTopicNote(User user, String topicId, String noteId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> deleteTopicNoteInReview(user, topicId, noteId));
+	}
+
+	private static Map<String, Object> deleteTopicNoteInReview(User user, String topicId, String noteId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -336,6 +362,13 @@ public final class BrainTopicUtils {
 	// owner sets member, suggested (undo), or removed; a removed row stays so Brain
 	// never re-suggests it
 	public static Map<String, Object> setTopicPerson(User user, String topicId, String personId, String state,
+			String role) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> setTopicPersonInReview(user, topicId, personId, state, role));
+	}
+
+	private static Map<String, Object> setTopicPersonInReview(User user, String topicId, String personId, String state,
 			String role) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -397,6 +430,12 @@ public final class BrainTopicUtils {
 	// moves thread links, people, notes, keywords, rules, and work-item links into
 	// the target, then drops the source
 	public static Map<String, Object> mergeTopics(User user, String sourceTopicId, String targetTopicId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> mergeTopicsInReview(user, sourceTopicId, targetTopicId));
+	}
+
+	private static Map<String, Object> mergeTopicsInReview(User user, String sourceTopicId, String targetTopicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -486,6 +525,12 @@ public final class BrainTopicUtils {
 	// thread that loses
 	// its primary link gets its next most confident link as primary
 	public static Map<String, Object> deleteTopic(User user, String topicId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> deleteTopicInReview(user, topicId));
+	}
+
+	private static Map<String, Object> deleteTopicInReview(User user, String topicId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();

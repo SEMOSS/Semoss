@@ -852,6 +852,8 @@ public final class BrainThreadClassifier {
 		Timestamp now = CollaborationDbUtils.now();
 		boolean[] written = { false };
 		CollaborationDbUtils.batch(conn -> {
+			BrainTopicReviewProfiles.lock(ctx.ownerId(), ctx.ownerType());
+			BrainTopicUtils.requireTopic(ctx.ownerId(), ctx.ownerType(), topicId);
 			BrainThreadTopicDecisions.lockThread(ctx.ownerId(), ctx.ownerType(), threadId);
 			if (BrainThreadTopicDecisions.rejected(ctx.ownerId(), ctx.ownerType(), threadId).contains(topicId)
 					|| hasKeptLink(ctx, threadId)) {
