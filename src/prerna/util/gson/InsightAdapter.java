@@ -37,7 +37,6 @@ import java.util.Vector;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import javax.crypto.Cipher;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
@@ -65,6 +64,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
+import prerna.security.InsightCipher;
 import prerna.util.Constants;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
@@ -86,7 +86,7 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 	private ZipOutputStream zos = null;
 	private String folderDir = null;
 	private boolean encrypt = false;
-	private Cipher cipher = null;
+	private InsightCipher cipher = null;
 	
 	private Set<String> varsToExclude;
 
@@ -487,11 +487,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 		this.encrypt = encrypt;
 	}
 
-	public Cipher getCipher() {
+	public InsightCipher getCipher() {
 		return cipher;
 	}
 
-	public void setCipher(Cipher cipher) {
+	public void setCipher(InsightCipher cipher) {
 		this.cipher = cipher;
 	}
 	

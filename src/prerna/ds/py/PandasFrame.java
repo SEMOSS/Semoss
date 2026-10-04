@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.logging.log4j.LogManager;
@@ -887,7 +887,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 		// save frame
 		String frameFilePath = folderDir + DIR_SEPARATOR + this.frameName + ".pkl";
@@ -906,7 +906,7 @@ public class PandasFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) {
+	public void open(CachePropFileFrameObject cf, InsightCipher cipher) {
 		// open the meta details
 		this.openCacheMeta(cf, cipher);
 		// this will get set when we open the cf
