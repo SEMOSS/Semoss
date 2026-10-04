@@ -29,19 +29,25 @@ package prerna.collaboration;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.util.RuntimeTimeContext;
 
 // Brain "you": BRAIN_PROFILE, BRAIN_SETTINGS, and the overview counts
 public final class BrainProfileUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainProfileUtils.class);
 
 	public static final int DEFAULT_FILE_AT = 85;
 	public static final int DEFAULT_ASK_AT = 40;
@@ -56,6 +62,22 @@ public final class BrainProfileUtils {
 	}
 
 	// ---- profile ----
+
+	/** Read only the owner's timezone without creating a profile or loading its other fields. */
+	public static ZoneId timeZone(User user) {
+		ZoneId userZone = user == null ? null : user.getZoneId();
+		String profileZone = null;
+		if (user != null) {
+			try {
+				Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+				profileZone = CollaborationDbUtils.queryOne("SELECT TIMEZONE FROM BRAIN_PROFILE WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ?", rs -> rs.getString(1), owner.getValue0(), owner.getValue1());
+			} catch (RuntimeException e) {
+				classLogger.warn("Could not read the Collaboration timezone; using the authenticated user's timezone");
+			}
+		}
+		return RuntimeTimeContext.resolveZone(profileZone, userZone);
+	}
 
 	// creates the row on first read, seeded from the login's name and email
 	public static Map<String, Object> getProfile(User user) {

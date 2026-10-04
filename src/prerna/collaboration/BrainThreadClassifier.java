@@ -28,6 +28,7 @@
 package prerna.collaboration;
 
 import java.sql.Timestamp;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -53,6 +54,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.RuntimeTimeContext;
 import prerna.util.Utility;
 
 // Sorts permitted thread content into Work state. Onboarding discovers topics afterward, then startTopics files
@@ -278,7 +280,7 @@ public final class BrainThreadClassifier {
 	private record Context(User user, Insight insight, String ownerId, String ownerType, BrainClassifier classifier,
 			BrainClassifier.Cutoffs cutoffs, List<BrainClassifier.TopicOption> topics, int fileAt, int askAt,
 			boolean dryRun, Self self, Set<String> vips, Set<String> followed, Set<String> automatedSenders,
-			Map<String, BrainClassifier.Scores> scored, Window window) {
+			Map<String, BrainClassifier.Scores> scored, Window window, ZoneId timeZone) {
 	}
 
 	// how much of a thread one model call carries; budget is characters for all messages together
@@ -311,7 +313,8 @@ public final class BrainThreadClassifier {
 				rs -> rs.getString(1), ownerId, ownerType, BrainFollow.FOLLOWING));
 		return new Context(user, insight, ownerId, ownerType, classifier, cutoffs(engine, classifier), topics,
 				(Integer) settings.get("fileAt"), (Integer) settings.get("askAt"), dryRun, self(ownerId, ownerType),
-				vips, followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>(), window(engine));
+				vips, followed, ConcurrentHashMap.newKeySet(), new ConcurrentHashMap<>(), window(engine),
+				BrainProfileUtils.timeZone(user));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -531,7 +534,8 @@ public final class BrainThreadClassifier {
 					footer == null || footer.isEmpty() ? null : footer));
 		}
 		return ctx.classifier().score(new BrainClassifier.ThreadInput(threadId, ctx.self().name(), subject,
-				participants(ctx, threadId), input, window.earlier()), kept ? List.of() : ctx.topics(), ctx.insight());
+				participants(ctx, threadId), input, window.earlier(), RuntimeTimeContext.capture(ctx.timeZone())),
+				kept ? List.of() : ctx.topics(), ctx.insight());
 	}
 
 	private static String clip(Object value, int max) {
