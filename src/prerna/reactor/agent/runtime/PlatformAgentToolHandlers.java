@@ -64,6 +64,7 @@ import prerna.ds.node.NodeTranslator;
 import prerna.ds.node.NodeUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
+import prerna.engine.api.IEngine;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -76,6 +77,7 @@ import prerna.util.CmdExecUtil;
 import prerna.util.Constants;
 import prerna.util.FileSystemUtil;
 import prerna.util.Utility;
+import prerna.util.EngineUtility;
 import prerna.util.pptx.SemossPptxInspector;
 
 final class PlatformAgentToolHandlers {
@@ -729,7 +731,30 @@ final class PlatformAgentToolHandlers {
 						SocketClient sc = user.getPythonSocketClient(true);
 						PyTranslator translator = new PyTranslator(sc, roomInsight);
 						try {
-							return translator.runScript(code);
+							// Associate the agent room's working directory with this
+							// execution: the worker chdirs to asset_paths[0] when the
+							// insight has no stored cwd, so the room dir as assetsDir is
+							// what makes open()/listdir() resolve like the file tools
+							// (one root for every tool). If this run lives in an app /
+							// project space, that project's assets (+ /py) are appended
+							// via the additional paths so its modules and helpers remain
+							// importable — the app-space capability stays; only the cwd
+							// convention changes (it was the sandbox root when the room
+							// had no context project, which broke every relative read).
+							// Plain user-space Py() pixels use AbstractPyCodeReactor and
+							// are unaffected by this change.
+							List<String> extraAssets = new ArrayList<>();
+							if (roomInsight.getContextProjectId() != null) {
+								String appAssets = EngineUtility.getSpecificEngineAssetsFolder(
+										IEngine.CATALOG_TYPE.PROJECT, roomInsight.getContextProjectId(),
+										roomInsight.getContextProjectName());
+								if (appAssets != null && !appAssets.isEmpty()) {
+									extraAssets.add(appAssets.replace('\\', '/'));
+									extraAssets.add(appAssets.replace('\\', '/') + "/py");
+								}
+							}
+							return translator.runScriptWithExplicitAssetPaths(roomInsight, code, tc.root,
+									extraAssets.toArray(new String[0]));
 						} catch (RuntimeException e) {
 							interruptRoomExecutionIfCancelled(sc, roomInsight, tc.ctx);
 							throw e;
