@@ -372,7 +372,12 @@ public class SystemAgentSeeder {
 			config.put("subagents",
 					new JSONArray().put(new JSONObject().put("workspaceId", Constants.AGENT_PPTX_REVIEWER)));
 			config.put("budgets", new JSONObject().put("finishing_turns", 6));
-			config.put("spawn_policy", new JSONObject().put("max_subagents_per_run", 2).put("max_spawns_per_turn", 1));
+			// Opt this agent into spawning explicitly: the harness default depth is now 0
+			// (subagent payload is opt-in — see AgentConfig.SubAgentSpawnPolicy), so an
+			// agent that ships a reviewer subagent MUST set max_subagent_depth >= 1.
+			config.put("spawn_policy",
+					new JSONObject().put("max_subagent_depth", 1).put("max_subagents_per_run", 2)
+							.put("max_spawns_per_turn", 1));
 			config.put("tool_policy",
 					new JSONObject()
 							.put("default_tools",

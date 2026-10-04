@@ -602,9 +602,16 @@ public final class AgentConfig {
 
 		// Default depth cap. 0 disables spawning, 1 = root only, 2 = root + one nested
 		// level, etc.
-		// Workspaces opt into deeper trees via
-		// CONFIG_JSON.spawn_policy.max_subagent_depth.
-		public static final int DEFAULT_MAX_SUBAGENT_DEPTH = 1;
+		// Workspaces opt into spawning via CONFIG_JSON.spawn_policy.max_subagent_depth.
+		//
+		// Harness-efficiency default (oracle analysis 2026-10-04): the subagent tool
+		// schemas (~901 tok: SpawnSubAgent/CheckSubAgentStatus/WaitForSubAgent) AND the
+		// subagent prompt block (~932 tok) are both gated on canSpawn, so a default of 1
+		// prepends ~1,800 tokens to EVERY model call of EVERY plain run -- even though 0
+		// of 2,895 recorded tool calls ever spawned a subagent. Default 0 makes that
+		// payload opt-in: a workspace that wants subagents sets spawn_policy
+		// .max_subagent_depth >= 1 (or AgentConfig.SubAgentSpawnPolicy.of(...)).
+		public static final int DEFAULT_MAX_SUBAGENT_DEPTH = 0;
 		// Lifetime cap across the whole tree under one root.
 		public static final int DEFAULT_MAX_SUBAGENTS_PER_RUN = 10;
 		// Per tool batch (one model turn).
