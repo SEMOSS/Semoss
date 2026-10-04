@@ -36,27 +36,38 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class BrainGetJobReactor extends AbstractCollaborationReactor {
 
 	private static final String KIND = "kind";
+	private static final String JOB_ID = "jobId";
+	private static final String MODE = "mode";
 
 	public BrainGetJobReactor() {
-		this.keysToGet = new String[] { KIND };
-		this.keyRequired = new int[] { 0 };
+		this.keysToGet = new String[] { KIND, JOB_ID, MODE };
+		this.keyRequired = new int[] { 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		var job = CollaborationJobUtils.latest(getUser(), getString(KIND));
+		var user = getUser();
+		String jobId = getString(JOB_ID);
+		var job = jobId == null ? CollaborationJobUtils.latest(user, getString(KIND), getString(MODE))
+				: CollaborationJobUtils.get(user, jobId);
 		return mapResult(job == null ? new HashMap<>() : job);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The newest background job (import, classify): status, step, progress, counts, error";
+		return "Read an owner-scoped background job by exact ID or the newest import/classify job, optionally filtered by sort/topics mode: status, progress, counts and error";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (KIND.equals(key)) {
 			return "Job kind, for example import; omit for the newest of any kind";
+		}
+		if (JOB_ID.equals(key)) {
+			return "Exact job ID belonging to the signed-in owner; takes precedence over kind and mode";
+		}
+		if (MODE.equals(key)) {
+			return "With kind classify: sort or topics; omit for the newest job of either mode";
 		}
 		return super.getDescriptionForKey(key);
 	}

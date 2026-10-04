@@ -117,6 +117,17 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("ASK_AT", INTEGER_DATATYPE_NAME),
 				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
+		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("REVIEW_ID", VARCHAR_50),
+				Pair.with("REVISION", INTEGER_DATATYPE_NAME),
+				Pair.with("DRAFT_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("APPLIED_REVISION", INTEGER_DATATYPE_NAME),
+				Pair.with("RESULT_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FILING_JOB_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: people ---
 		addTable("BRAIN_ACCOUNT", Arrays.asList(

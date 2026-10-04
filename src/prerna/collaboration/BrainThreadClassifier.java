@@ -134,9 +134,16 @@ public final class BrainThreadClassifier {
 	// onboarding, after topics are picked: real mail the sort kept (not automated, no topic link) is filed against
 	// the kept topics; Work items keep their state and only gain the topic
 	public static Map<String, Object> startTopics(User user) {
+		return startTopics(user, Map.of());
+	}
+
+	/** Topic-review provenance is retained on the filing job for exact resume/retry. */
+	static Map<String, Object> startTopics(User user, Map<String, Object> provenance) {
 		requireEngine(user);
 		var owner = CollaborationDbUtils.ownerOf(user);
-		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), JOB_KIND, Map.of("mode", "topics"),
+		Map<String, Object> params = new LinkedHashMap<>(provenance);
+		params.put("mode", "topics");
+		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), JOB_KIND, params,
 				job -> {
 					Insight insight = new Insight();
 					insight.setUser(user);
