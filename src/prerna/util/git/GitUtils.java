@@ -37,13 +37,11 @@ import org.apache.logging.log4j.Logger;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
-import prerna.security.InstallCertNow;
-
 /**
  * Static utility methods for interacting with GitHub and for small git-related
- * helpers, including OAuth-based GitHub login (with certificate-install retry),
- * building timestamped commit messages, and identifying file types that should
- * be ignored.
+ * helpers, including OAuth-based GitHub login (with retry), building
+ * timestamped commit messages, and identifying file types that should be
+ * ignored.
  */
 public class GitUtils {
 
@@ -70,9 +68,8 @@ public class GitUtils {
 	/**
 	 * Attempts to log in to GitHub using the given OAuth token, retrying on
 	 * {@link HttpException} up to a fixed limit of attempts (only attempts less
-	 * than 3 are tried). On an {@link HttpException} the GitHub certificate is
-	 * (re)installed via {@link InstallCertNow#please(String, String, String)}, the
-	 * attempt counter is incremented, and the login is retried recursively.
+	 * than 3 are tried). On an {@link HttpException} the attempt counter is
+	 * incremented and the login is retried recursively.
 	 *
 	 * @param oAuth   the GitHub OAuth token used to authenticate
 	 * @param attempt the current attempt number; logins are only tried while this
@@ -94,13 +91,8 @@ public class GitUtils {
 				return gh;
 			} catch (HttpException ex) {
 				classLogger.error("Failed to login to github using oAuth on attempt {}", attempt, ex);
-				try {
-					InstallCertNow.please("github.com", null, null);
-				} catch (Exception e) {
-					classLogger.error("Failed to install certificate for github.com", e);
-				}
 				attempt = attempt + 1;
-				login(oAuth, attempt);
+				return login(oAuth, attempt);
 			} catch (IOException e) {
 				classLogger.error("Failed to login to github using oAuth", e);
 				throw new IllegalArgumentException("Invalid Git Credentials for username = \"" + oAuth + "\"");

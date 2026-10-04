@@ -53,12 +53,11 @@ public class GitFetchUtils {
 
 	/**
 	 * Clones the remote repository into the given local folder, replacing any
-	 * existing copy. The SSL certificate for the remote's domain is first installed
-	 * via {@link GitRepoUtils#addCertForDomain(String)}. If {@code localFolder}
-	 * already exists as a directory it is deleted, and then the remote repository
-	 * is cloned fresh into that location. The cloned {@link Git} instance is opened
-	 * and closed within this call. Invalid remote, transport, IO, and other git API
-	 * failures are logged and swallowed rather than propagated.
+	 * existing copy. If {@code localFolder} already exists as a directory it is
+	 * deleted, and then the remote repository is cloned fresh into that location.
+	 * The cloned {@link Git} instance is opened and closed within this call.
+	 * Invalid remote, transport, IO, and other git API failures are logged and
+	 * swallowed rather than propagated.
 	 *
 	 * @param remoteRepo  the URI of the remote git repository to clone
 	 * @param localFolder the local file system path where the repository is cloned
@@ -66,7 +65,6 @@ public class GitFetchUtils {
 	 */
 	// wipes it and puts a new clone
 	public static void cloneApp(String remoteRepo, String localFolder) {
-		GitRepoUtils.addCertForDomain(remoteRepo);
 		// tries to find if the local folder is available
 		// deletes it and then clones it back
 		try {
