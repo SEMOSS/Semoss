@@ -27,7 +27,11 @@ references/
 
 The existing Python package remains a separate default. PPTX is not automatically
 added to collaboration rooms; an explicitly configured presentation agent or skill
-can still supply it for presentation work. Collaboration references
+can still supply it for presentation work. `InspectPptx` is disabled in collaboration
+rooms through the resolved default-tool policy, so it is omitted from their tool
+catalog and stale calls are rejected. The dedicated presentation workflow retains
+its managed review; ordinary Playground tools remain unchanged.
+Collaboration references
 distinguish Python's process directory from the execution's `ROOT`. Document reading
 prefers the base image's Docling converter for structured Markdown, with bounded
 conversion, local model checks, notes/provenance handling, and native-reader fallbacks

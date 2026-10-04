@@ -168,7 +168,7 @@ public final class AgentConfigLoader {
 		b.modelParams(paramMap);
 		b.agentParams(agentParams);
 		b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
-		b.disabledDefaultTools(resolveDisabledDefaultTools(cfgJson));
+		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson));
 		JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
 		b.resultTool(toolPolicy == null ? null : StringUtils.trimToNull(toolPolicy.optString("result_tool", null)));
 		b.readOnlyPaths(resolveReadOnlyPaths(toolPolicy));
@@ -258,23 +258,23 @@ public final class AgentConfigLoader {
 		return paths;
 	}
 
-	/** Reads {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
-	private static Set<String> resolveDisabledDefaultTools(JSONObject cfgJson) {
-		if (cfgJson == null) {
-			return Collections.emptySet();
+	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
+	private static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson) {
+		LinkedHashSet<String> names = new LinkedHashSet<>();
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			// Ordinary document reading uses the shared extraction helper. Managed
+			// presentation workflows perform their own review without this tool.
+			names.add("InspectPptx");
 		}
-		JSONObject toolPolicy = cfgJson.optJSONObject("tool_policy");
+		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
 		JSONArray disabled = defaultTools != null ? defaultTools.optJSONArray("disabled") : null;
-		if (disabled == null) {
-			return Collections.emptySet();
-		}
-
-		LinkedHashSet<String> names = new LinkedHashSet<>();
-		for (int i = 0; i < disabled.length(); i++) {
-			Object value = disabled.opt(i);
-			if (value instanceof String) {
-				names.add((String) value);
+		if (disabled != null) {
+			for (int i = 0; i < disabled.length(); i++) {
+				Object value = disabled.opt(i);
+				if (value instanceof String) {
+					names.add((String) value);
+				}
 			}
 		}
 		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
