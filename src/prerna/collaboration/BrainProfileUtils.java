@@ -1,0 +1,288 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.collaboration;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.javatuples.Pair;
+
+import prerna.auth.AccessToken;
+import prerna.auth.User;
+
+// Brain "you": BRAIN_PROFILE, BRAIN_SETTINGS, and the overview counts
+public final class BrainProfileUtils {
+
+	public static final int DEFAULT_FILE_AT = 85;
+	public static final int DEFAULT_ASK_AT = 40;
+
+	// ROLE_STATE and STYLE_STATE values
+	public static final String LEARNED = "learned";
+	public static final String CONFIRMED = "confirmed";
+	public static final String YOU = "you";
+
+	private BrainProfileUtils() {
+
+	}
+
+	// ---- profile ----
+
+	// creates the row on first read, seeded from the login's name and email
+	public static Map<String, Object> getProfile(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		ensureProfile(owner.getValue0(), owner.getValue1(), user);
+		return getProfile(owner.getValue0(), owner.getValue1());
+	}
+
+	public static Map<String, Object> getProfile(String ownerId, String ownerType) {
+		Map<String, Object> profile = CollaborationDbUtils
+				.queryOne(
+						"SELECT DISPLAY_NAME, EMAIL, ORG, ROLE, ROLE_STATE, ROLE_NOTE, TIMEZONE, WORKING_HOURS_JSON, "
+								+ "STYLE_SUMMARY, STYLE_STATE, STYLE_EXAMPLES_JSON FROM BRAIN_PROFILE "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+						BrainProfileUtils::mapProfile, ownerId, ownerType);
+		if (profile != null) {
+			profile.put("vips", getVipIds(ownerId, ownerType));
+		}
+		return profile;
+	}
+
+	// partial Profile: only keys present are written; a field the owner types
+	// becomes source "you"
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> saveProfile(User user, Map<String, Object> changes) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		ensureProfile(ownerId, ownerType, user);
+
+		List<String> sets = new ArrayList<>();
+		List<Object> params = new ArrayList<>();
+		CollaborationDbUtils.setIfPresent(changes, "name", "DISPLAY_NAME", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "email", "EMAIL", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "org", "ORG", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "timezone", "TIMEZONE", sets, params);
+		CollaborationDbUtils.setIfPresent(changes, "workingHours", "WORKING_HOURS_JSON", sets, params);
+		if (changes.get("role") instanceof Map) {
+			Map<String, Object> role = (Map<String, Object>) changes.get("role");
+			if (role.containsKey("value")) {
+				CollaborationDbUtils.addSet(sets, params, "ROLE", CollaborationDbUtils.asString(role.get("value")));
+				CollaborationDbUtils.addSet(sets, params, "ROLE_STATE", YOU);
+			}
+			CollaborationDbUtils.setIfPresent(role, "note", "ROLE_NOTE", sets, params);
+		}
+		if (changes.get("style") instanceof Map) {
+			Map<String, Object> style = (Map<String, Object>) changes.get("style");
+			if (style.containsKey("summary")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_SUMMARY",
+						CollaborationDbUtils.asString(style.get("summary")));
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE", YOU);
+			} else if (style.containsKey("confirmed")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_STATE",
+						Boolean.TRUE.equals(style.get("confirmed")) ? CONFIRMED : LEARNED);
+			}
+			if (style.containsKey("examples")) {
+				CollaborationDbUtils.addSet(sets, params, "STYLE_EXAMPLES_JSON",
+						CollaborationDbUtils.toJson(style.get("examples")));
+			}
+		}
+		List<String> vips = changes.get("vips") instanceof List
+				? CollaborationDbUtils.toStringList((List<Object>) changes.get("vips"))
+				: null;
+
+		CollaborationDbUtils.inTransaction(conn -> {
+			if (!sets.isEmpty()) {
+				CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
+				params.add(ownerId);
+				params.add(ownerType);
+				CollaborationDbUtils.update(conn, "UPDATE BRAIN_PROFILE SET " + String.join(", ", sets)
+						+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ?", params.toArray());
+			}
+			if (vips != null) {
+				CollaborationDbUtils.update(conn,
+						"UPDATE BRAIN_PERSON SET IS_VIP = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND IS_VIP = ?",
+						false, ownerId, ownerType, true);
+				for (String personId : vips) {
+					CollaborationDbUtils.update(conn,
+							"UPDATE BRAIN_PERSON SET IS_VIP = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
+							true, ownerId, ownerType, personId);
+				}
+			}
+		});
+		return getProfile(ownerId, ownerType);
+	}
+
+	private static void ensureProfile(String ownerId, String ownerType, User user) {
+		if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_PROFILE WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId,
+				ownerType)) {
+			return;
+		}
+		AccessToken token = user.getAccessToken(user.getPrimaryLogin());
+		// time zone comes from the browser (runPixel tz), so no MailboxSettings.Read is
+		// needed
+		CollaborationDbUtils.update(
+				"INSERT INTO BRAIN_PROFILE (OWNER_ID, OWNER_TYPE, DISPLAY_NAME, EMAIL, TIMEZONE, ROLE_STATE, "
+						+ "STYLE_STATE, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+				ownerId, ownerType, token == null ? null : token.getName(), token == null ? null : token.getEmail(),
+				user.getZoneId() == null ? null : user.getZoneId().getId(), LEARNED, LEARNED,
+				CollaborationDbUtils.now());
+	}
+
+	private static Map<String, Object> mapProfile(ResultSet rs) throws SQLException {
+		String roleState = CollaborationDbUtils.getString(rs, "ROLE_STATE");
+		Map<String, Object> role = new LinkedHashMap<>();
+		role.put("value", CollaborationDbUtils.getString(rs, "ROLE"));
+		role.put("source", YOU.equals(roleState) ? YOU : LEARNED);
+		String roleNote = CollaborationDbUtils.getString(rs, "ROLE_NOTE");
+		if (roleNote != null) {
+			role.put("note", roleNote);
+		}
+
+		// learned = suggested, confirmed = learned and accepted, you = typed by the
+		// owner
+		String styleState = CollaborationDbUtils.getString(rs, "STYLE_STATE");
+		Map<String, Object> style = new LinkedHashMap<>();
+		style.put("summary", CollaborationDbUtils.getString(rs, "STYLE_SUMMARY"));
+		style.put("source", YOU.equals(styleState) ? YOU : LEARNED);
+		style.put("confirmed", YOU.equals(styleState) || CONFIRMED.equals(styleState));
+		style.put("examples",
+				CollaborationDbUtils.parseList(CollaborationDbUtils.getString(rs, "STYLE_EXAMPLES_JSON")));
+
+		Map<String, Object> profile = new LinkedHashMap<>();
+		profile.put("id", "me");
+		profile.put("name", CollaborationDbUtils.getString(rs, "DISPLAY_NAME"));
+		profile.put("email", CollaborationDbUtils.getString(rs, "EMAIL"));
+		profile.put("org", CollaborationDbUtils.getString(rs, "ORG"));
+		profile.put("role", role);
+		profile.put("timezone", CollaborationDbUtils.getString(rs, "TIMEZONE"));
+		profile.put("workingHours", CollaborationDbUtils.getString(rs, "WORKING_HOURS_JSON"));
+		profile.put("style", style);
+		return profile;
+	}
+
+	private static List<String> getVipIds(String ownerId, String ownerType) {
+		return CollaborationDbUtils
+				.query("SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND IS_VIP = ? "
+						+ "ORDER BY PERSON_ID", rs -> rs.getString("PERSON_ID"), ownerId, ownerType, true);
+	}
+
+	// ---- settings ----
+
+	public static Map<String, Object> getSettings(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> settings = getSettings(owner.getValue0(), owner.getValue1());
+		// read-only: the platform agent behind each thread's assistant, when this user
+		// can use it
+		settings.put("assistantAgent", CollaborationUtils.threadAgent(user));
+		return settings;
+	}
+
+	// creates the row with FILE_AT 85 / ASK_AT 40 on first read
+	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
+		ensureSettings(ownerId, ownerType);
+		Map<String, Object> settings = CollaborationDbUtils.queryOne(
+				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> {
+					Map<String, Object> row = new LinkedHashMap<>();
+					// read-only: one platform classifier (RDF_Map)
+					row.put("classifierEngineId", BrainThreadClassifier.platformEngine());
+					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
+					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
+					row.put("version", CollaborationDbUtils.getInteger(rs, "VERSION"));
+					return row;
+				}, ownerId, ownerType);
+		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
+		return settings;
+	}
+
+	// partial Settings; a version, when sent, must match or the save is refused
+	@SuppressWarnings("unchecked")
+	public static Map<String, Object> saveSettings(User user, Map<String, Object> changes) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		Map<String, Object> current = getSettings(ownerId, ownerType);
+		int currentVersion = (Integer) current.get("version");
+		if (changes.containsKey("version")
+				&& CollaborationDbUtils.toInt(changes.get("version"), "version") != currentVersion) {
+			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
+		}
+
+		int fileAt = changes.containsKey("fileAt") ? CollaborationDbUtils.toInt(changes.get("fileAt"), "fileAt")
+				: (Integer) current.get("fileAt");
+		int askAt = changes.containsKey("askAt") ? CollaborationDbUtils.toInt(changes.get("askAt"), "askAt")
+				: (Integer) current.get("askAt");
+		if (askAt < 0 || fileAt > 100 || askAt >= fileAt) {
+			throw new IllegalArgumentException("Bands must satisfy 0 <= askAt < fileAt <= 100");
+		}
+		Map<String, Object> sources = changes.get("sourcesJson") instanceof Map
+				? (Map<String, Object>) changes.get("sourcesJson")
+				: Collections.emptyMap();
+		for (String source : sources.keySet()) {
+			if (!CollaborationSourceUtils.isKnownSource(source)) {
+				throw new IllegalArgumentException("Unknown source: " + source);
+			}
+		}
+
+		List<String> sets = new ArrayList<>();
+		List<Object> params = new ArrayList<>();
+		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
+		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
+		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
+		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
+		params.add(ownerId);
+		params.add(ownerType);
+		params.add(currentVersion);
+		int updated = CollaborationDbUtils.update("UPDATE BRAIN_SETTINGS SET " + String.join(", ", sets)
+				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND VERSION = ?", params.toArray());
+		if (updated == 0) {
+			throw new IllegalArgumentException("Settings were changed elsewhere; reload and try again");
+		}
+		for (Map.Entry<String, Object> source : sources.entrySet()) {
+			CollaborationSourceUtils.setSourceEnabled(ownerId, ownerType, source.getKey(),
+					Boolean.TRUE.equals(source.getValue()));
+		}
+		return getSettings(ownerId, ownerType);
+	}
+
+	private static void ensureSettings(String ownerId, String ownerType) {
+		if (CollaborationDbUtils.exists("SELECT 1 FROM BRAIN_SETTINGS WHERE OWNER_ID = ? AND OWNER_TYPE = ?", ownerId,
+				ownerType)) {
+			return;
+		}
+		CollaborationDbUtils.update(
+				"INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, UPDATED_AT) "
+						+ "VALUES (?, ?, ?, ?, ?, ?)",
+				ownerId, ownerType, DEFAULT_FILE_AT, DEFAULT_ASK_AT, 1, CollaborationDbUtils.now());
+	}
+}
