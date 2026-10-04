@@ -107,11 +107,14 @@ public final class BrainThreadUtils {
 		}
 
 		List<Map<String, Object>> items = CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT "
-				+ THREAD_COLUMNS + ", t.SUMMARY, " + OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t" + where
+				+ THREAD_COLUMNS + ", t.SUMMARY, t.SUMMARY_REF, t.SUMMARY_AT, " + OPEN_TOPIC_CHOICE
+				+ " AS NEEDS_CHOICE FROM BRAIN_THREAD t" + where
 				+ " ORDER BY COALESCE(t.LAST_MESSAGE_AT, t.CREATED_AT) DESC, t.THREAD_ID", limit, offset), rs -> {
 					Map<String, Object> row = mapThread(rs);
 					if (detail) {
 						row.put("summary", CollaborationDbUtils.getString(rs, "SUMMARY"));
+						row.put("summaryRef", CollaborationDbUtils.getString(rs, "SUMMARY_REF"));
+						row.put("summaryAt", CollaborationDbUtils.getTimestamp(rs, "SUMMARY_AT"));
 					}
 					return row;
 				}, params.toArray());
@@ -119,6 +122,15 @@ public final class BrainThreadUtils {
 		if (detail) {
 			addParticipants(ownerId, ownerType, items);
 			addLatestMessage(ownerId, ownerType, items);
+			// whether the summary was made from the newest message, and whether one is being made now
+			for (Map<String, Object> row : items) {
+				String ref = (String) row.remove("summaryRef");
+				row.put("summaryAt", row.remove("summaryAt"));
+				row.put("summaryCurrent", WorkThreadInsights.covers(ref, (String) row.get("latestMessageId")));
+				if (WorkThreadInsights.isPending(ownerId, ownerType, (String) row.get("id"))) {
+					row.put("summaryPending", true);
+				}
+			}
 		}
 
 		Map<String, Object> page = new LinkedHashMap<>();
@@ -234,6 +246,8 @@ public final class BrainThreadUtils {
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND PERSON_ID = ?",
 					included, included ? null : BrainProfileUtils.YOU, included ? null : CollaborationDbUtils.now(),
 					ownerId, ownerType, threadId, personId);
+			// the summary may hold what this person wrote, or miss it
+			WorkThreadInsights.markStale(ownerId, ownerType, threadId);
 		}
 		return CollaborationDbUtils.queryOne("SELECT tp.PERSON_ID, tp.ROLES_JSON, tp.INCLUDED, tp.EXCLUDED_BY, "
 				+ "tp.EXCLUDED_AT, tp.HIDDEN_COUNT, p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_THREAD_PARTICIPANT tp "

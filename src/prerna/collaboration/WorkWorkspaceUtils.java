@@ -47,9 +47,13 @@ public final class WorkWorkspaceUtils {
 	public static final Set<String> STEP_KINDS = Set.of("reply", "task", "waiting_on", "errand", "approve");
 	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready");
 	public static final Set<String> FACT_STATUSES = Set.of("draft", "confirmed");
+	// a generated step the owner deleted: kept, unlisted, so a later summary does not add it again
+	static final String DISMISSED = "dismissed";
+	// a step changed in any of these is the owner's: thread insights no longer rewrite or drop it
+	private static final Set<String> CONTENT_KEYS = Set.of("text", "kind", "ownerId", "due");
 
 	private static final String STEP_COLUMNS = "STEP_ID, THREAD_ID, TEXT, KIND, STATUS, STEP_OWNER_ID, DUE_AT, "
-			+ "ITEM_ID, LINK_TOPIC_ID";
+			+ "ITEM_ID, LINK_TOPIC_ID, ORIGIN";
 	private static final String FACT_COLUMNS = "FACT_ID, THREAD_ID, TEXT, FROM_LABEL, STATUS, SOURCE_PERSON_ID";
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
 
@@ -77,7 +81,8 @@ public final class WorkWorkspaceUtils {
 			workspace(workspaces, (String) row.get("threadId")).put("goal", row.get("goal"));
 		}
 		for (Map<String, Object> step : CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP"
-				+ OWNED + oneThread + " ORDER BY CREATED_AT, STEP_ID", WorkWorkspaceUtils::mapStep, params)) {
+				+ OWNED + oneThread + " AND (STATUS IS NULL OR STATUS <> '" + DISMISSED + "') ORDER BY CREATED_AT, STEP_ID",
+				WorkWorkspaceUtils::mapStep, params)) {
 			list(workspace(workspaces, (String) step.remove("threadId")), "steps").add(step);
 		}
 		for (Map<String, Object> fact : CollaborationDbUtils.query("SELECT " + FACT_COLUMNS + " FROM WORK_THREAD_FACT"
@@ -147,6 +152,9 @@ public final class WorkWorkspaceUtils {
 			if (step.containsKey("linkTopicId")) {
 				CollaborationDbUtils.addSet(sets, values, "LINK_TOPIC_ID", topicId);
 			}
+			if (CONTENT_KEYS.stream().anyMatch(step::containsKey)) {
+				CollaborationDbUtils.addSet(sets, values, "EDITED", true);
+			}
 			CollaborationDbUtils.addSet(sets, values, "UPDATED_AT", now);
 			values.addAll(List.of(ownerId, ownerType, threadId, stepId));
 			if (CollaborationDbUtils.update("UPDATE WORK_THREAD_STEP SET " + String.join(", ", sets) + OWNED
@@ -159,7 +167,17 @@ public final class WorkWorkspaceUtils {
 				WorkWorkspaceUtils::mapStep, ownerId, ownerType, stepId);
 	}
 
+	// a generated step stays behind as dismissed, so the next summary of the thread knows the owner dropped it
 	public static Map<String, Object> deleteStep(User user, String threadId, String stepId) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		if (CollaborationDbUtils.update("UPDATE WORK_THREAD_STEP SET STATUS = ?, UPDATED_AT = ?" + OWNED
+				+ " AND THREAD_ID = ? AND STEP_ID = ? AND ORIGIN = ?", DISMISSED, CollaborationDbUtils.now(),
+				owner.getValue0(), owner.getValue1(), threadId, stepId, WorkThreadInsights.BRAIN) > 0) {
+			Map<String, Object> result = new LinkedHashMap<>();
+			result.put("id", stepId);
+			result.put("deleted", true);
+			return result;
+		}
 		return delete(user, "WORK_THREAD_STEP", "STEP_ID", "Step", threadId, stepId);
 	}
 
@@ -238,6 +256,10 @@ public final class WorkWorkspaceUtils {
 		step.put("due", CollaborationDbUtils.getTimestamp(rs, "DUE_AT"));
 		step.put("itemId", CollaborationDbUtils.getString(rs, "ITEM_ID"));
 		step.put("linkTopicId", CollaborationDbUtils.getString(rs, "LINK_TOPIC_ID"));
+		String origin = CollaborationDbUtils.getString(rs, "ORIGIN");
+		if (origin != null) {
+			step.put("origin", origin);
+		}
 		return step;
 	}
 
