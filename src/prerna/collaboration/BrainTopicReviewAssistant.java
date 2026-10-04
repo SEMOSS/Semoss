@@ -86,7 +86,7 @@ final class BrainTopicReviewAssistant {
 		String prompt = CollaborationDbUtils.toJson(context);
 		if (prompt.length() > 120000) throw new IllegalArgumentException("These topic profiles exceed the assistant's review window. Use direct combinations or shorten the topic descriptions and clues.");
 		String response = caller.ask(prompt, INSTRUCTIONS,
-				Map.of("temperature", 0, "max_tokens", 8000, "schema", schema(keys)));
+				Map.of("temperature", 0, "schema", schema(keys)));
 		if (response == null || response.length() > 100000) throw invalid();
 		String text = response.replaceAll("(?s)<think>.*?</think>", "").trim();
 		if (text.startsWith("```")) {
