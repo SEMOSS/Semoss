@@ -48,6 +48,9 @@ import java.util.Map;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.safety.Safelist;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -90,8 +93,8 @@ public class MicrosoftOutlookMailHelper {
 	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 	/** The fields a message listing asks for when the caller wants the body. */
-	private static final String MESSAGE_FIELDS = "id,subject,from,toRecipients,ccRecipients,receivedDateTime,"
-			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,conversationId";
+	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,receivedDateTime,"
+			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,conversationId";
 
 	/**
 	 * What a thread asks for: the body, and the part of it that is the message's
@@ -288,6 +291,96 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * Save HTML in a native reply draft while keeping Outlook's original quoted
+	 * body and recipients.
+	 */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll) {
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html);
+	}
+
+	/** Save an HTML note above the native forwarded message and its attachments. */
+	public Map<String, Object> forwardHtmlDraft(String accessToken, String uid, String[] to, String html) {
+		return fillHtmlDraft(accessToken, forward(accessToken, null, uid, to, null, true), html);
+	}
+
+	/**
+	 * Save an edited envelope on the same native reply draft as the formatted body.
+	 */
+	public Map<String, Object> replyHtmlDraft(String accessToken, String uid, String html, boolean replyAll,
+			String[] to, String[] cc) {
+		String[] validatedTo = MicrosoftOutlookReplyRecipients.validate(to);
+		String[] validatedCc = MicrosoftOutlookReplyRecipients.validate(cc);
+		return fillHtmlDraft(accessToken, reply(accessToken, null, uid, null, replyAll, true), html, validatedTo,
+				validatedCc);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html) {
+		return fillHtmlDraft(accessToken, draft, html, null, null);
+	}
+
+	private Map<String, Object> fillHtmlDraft(String accessToken, Map<String, Object> draft, String html, String[] to,
+			String[] cc) {
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalStateException("The reply draft could not be confirmed. Check Outlook before retrying.");
+		}
+		Map<String, Object> original = draft.get("body") instanceof Map<?, ?> ? draft
+				: getMessage(accessToken, null, id);
+		if (original == null || !(original.get("body") instanceof Map<?, ?> body)) {
+			throw new IllegalStateException("The created draft body could not be read. Check Outlook before retrying.");
+		}
+		Map<String, Object> request = new LinkedHashMap<>();
+		request.put("body", Map.of("contentType", "HTML", "content", prependHtml(html, body)));
+		if (to != null && cc != null) {
+			// Empty lists are intentional removals, not omitted properties.
+			request.put("toRecipients", List.of());
+			request.put("ccRecipients", List.of());
+			request.put("bccRecipients", List.of());
+			putRecipients(request, "toRecipients", to);
+			putRecipients(request, "ccRecipients", cc);
+		}
+		String response = HttpHelperUtility.patchRequestStringBody(userPath(null) + "/messages/" + encode(id),
+				headers(accessToken), GSON.toJson(request), ContentType.APPLICATION_JSON, null, null, null);
+		throwOnError(response, "format the draft");
+		Map<String, Object> updated = readMap(response);
+		if (updated == null || !id.equals(updated.get("id"))) {
+			throw new IllegalStateException(
+					"The formatted draft could not be confirmed. Check Outlook before retrying.");
+		}
+		if (to != null && cc != null
+				&& (!MicrosoftOutlookReplyRecipients.matches(updated.get("toRecipients"), to)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("ccRecipients"), cc)
+						|| !MicrosoftOutlookReplyRecipients.matches(updated.get("bccRecipients"), new String[0]))) {
+			throw new IllegalStateException(
+					"The saved reply recipients could not be confirmed. Check Outlook before retrying.");
+		}
+		if (!updated.containsKey("webLink") && draft.get("webLink") instanceof String link) {
+			updated.put("webLink", link);
+		}
+		return updated;
+	}
+
+	/**
+	 * Compose only the newly authored fragment with the draft's native source body.
+	 */
+	static String prependHtml(String html, Map<?, ?> body) {
+		String content = body.get("content") instanceof String text ? text : "";
+		Document original;
+		if ("html".equalsIgnoreCase(String.valueOf(body.get("contentType")))) {
+			original = Jsoup.parse(content);
+		} else {
+			original = Jsoup.parse("");
+			original.body().appendElement("pre").text(content);
+		}
+		Safelist allowed = Safelist.relaxed().addTags("span", "h1", "h2", "h3", "s").addAttributes(":all", "style")
+				.addAttributes("td", "colspan", "rowspan").addAttributes("th", "colspan", "rowspan", "scope");
+		original.outputSettings().prettyPrint(false);
+		String clean = Jsoup.clean(html == null ? "" : html, "", allowed,
+				new Document.OutputSettings().prettyPrint(false));
+		original.body().prepend(clean + "<br>");
+		return original.outerHtml();
+	}
+
+	/**
 	 * Read one attachment, including its bytes when it is a file.
 	 *
 	 * @param accessToken  the token to read with
@@ -375,19 +468,43 @@ public class MicrosoftOutlookMailHelper {
 		putRecipients(message, "bccRecipients", bcc);
 
 		if (attachments != null && attachments.length > 0) {
-			List<Map<String, Object>> attached = new ArrayList<>();
-			for (String path : attachments) {
-				File file = new File(path);
-				Map<String, Object> attachment = new LinkedHashMap<>();
-				// the only attachment type the simple send takes inline
-				attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
-				attachment.put("name", file.getName());
-				attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
-				attached.add(attachment);
-			}
-			message.put("attachments", attached);
+			message.put("attachments", fileAttachments(attachments));
 		}
 		return message;
+	}
+
+	/** Materialize files before creating a remote draft, so local failures cannot send anything. */
+	public static List<Map<String, Object>> fileAttachments(String[] paths) throws IOException {
+		List<Map<String, Object>> attached = new ArrayList<>();
+		if (paths == null) return attached;
+		for (String path : paths) {
+			File file = new File(path);
+			Map<String, Object> attachment = new LinkedHashMap<>();
+			attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
+			// The editor gives uploads a UUID prefix to prevent same-name collisions.
+			attachment.put("name", file.getName().replaceFirst("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-", ""));
+			attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
+			attached.add(attachment);
+		}
+		return attached;
+	}
+
+	/** Add authored files without replacing the native forward's existing attachments. */
+	public void attachToDraft(String accessToken, Map<String, Object> draft, List<Map<String, Object>> files) {
+		if (files.isEmpty()) return;
+		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
+			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
+		}
+		String url = userPath(null) + "/messages/" + encode((String) draft.get("id")) + "/attachments";
+		for (Map<String, Object> file : files) {
+			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(file),
+					ContentType.APPLICATION_JSON, null, null, null);
+			throwOnError(response, "attach a file to the draft email");
+			Map<String, Object> receipt = readMap(response);
+			if (!(receipt.get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
+				throw new IllegalArgumentException("The draft attachment could not be confirmed. Check the draft in Outlook.");
+			}
+		}
 	}
 
 	/**

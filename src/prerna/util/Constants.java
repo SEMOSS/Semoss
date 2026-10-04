@@ -1081,6 +1081,20 @@ public class Constants {
 	public static final String NOTIFICATION_DATABASE_ENABLED = "NOTIFICATION_DATABASE_ENABLED";
 	public static final String NOTIFICATION_DB = "Notification";
 
+	// collaboration db (Brain and Work)
+	public static final String COLLABORATION_DATABASE_ENABLED = "COLLABORATION_DATABASE_ENABLED";
+	public static final String COLLABORATION_DB = "Collaboration";
+	// one brain classifier model for the whole platform, and its cutoffs per engine id
+	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
+	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
+	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
+	// a general text model for topic grouping and naming, and thread summaries and action items
+	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
+	// threads the classifier sorts at once (default 8)
+	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
+	// the platform agent (workspace id) that powers a Work thread's assistant
+	public static final String COLLAB_THREAD_AGENT_ID = "COLLAB_THREAD_AGENT_ID";
+
 	// default model key
 	public static final String DEFAULT_TEXT_GENERATION_MODEL_KEY = "text-generation-model";
 	public static final String DEFAULT_CODE_GENERATION_MODEL_KEY = "code-generation-model";

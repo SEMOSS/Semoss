@@ -38,6 +38,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationAgentTools;
+import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -181,6 +183,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
+		// Microsoft 365 tools for every agent in a collaboration room
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.addAll(CollaborationAgentTools.definitions());
+		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -207,7 +213,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
+				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
@@ -1119,7 +1126,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
 			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
-			if (isAsk || isSubAgentTool) {
+			// a tool with a native UI component needs its _meta on the call, auto or not
+			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
+			boolean hasComponent = ui instanceof Map && ((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null;
+			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}
 		}
