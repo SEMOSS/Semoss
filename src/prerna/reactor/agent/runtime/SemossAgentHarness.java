@@ -1027,6 +1027,36 @@ public class SemossAgentHarness implements IAgentHarness {
 				$(), backticks, absolute paths, ~ paths, or .. . \
 				Use working-directory-relative paths and read output from the tool result.\
 				""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
+		sb.append("""
+
+				- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
+				Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
+				Python's current directory may differ from ROOT. Do not change the shared process directory.
+				- Verify generated outputs through working-directory file tools before reporting completion. \
+				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
+				""");
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			sb.append("""
+
+
+					## Collaboration file delivery
+					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+					and python. For source text, use from smssutil import get_document_markdown, then \
+					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+					or visual inspection for a text-reading task; use visual tools when visuals matter.
+					- Before creating or repairing files, load the relevant collaboration references and the \
+					python or pptx skill for that execution route. Continue truncated reads as needed.
+					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+					Do not offer email as a substitute for returning the file.
+					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+					a rejected external action. Finish with the verified artifact and a concise outcome.\
+					""");
+		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
 

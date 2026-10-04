@@ -41,6 +41,7 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelCapabilityEnum;
@@ -59,6 +60,7 @@ import prerna.reactor.agent.sandbox.SandboxPolicyBuilder;
 import prerna.reactor.agent.skill.SkillStager;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.util.AssetUtility;
+import prerna.util.Constants;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
 
@@ -279,6 +281,12 @@ public final class AgentRunner {
 				maxReflections, explicitWorkspaceId);
 
 		try {
+			if (target.isInsight() && CollaborationUtils.isCollaborationRoom(room)
+					&& agentConfig.getSkills().stream().noneMatch(ref -> ref != null
+							&& Constants.SKILL_PPTX.equals(ref.get("skill_id")))) {
+				// Existing rooms may still contain the former managed default copy.
+				SkillStager.unstage(filePath, Constants.SKILL_PPTX);
+			}
 			SkillStager.stage(filePath, agentConfig.getSkills());
 		} catch (Exception e) {
 			logger.warn("AgentRunner: skill staging failed for room='{}': {}", roomId, e.getMessage(), e);

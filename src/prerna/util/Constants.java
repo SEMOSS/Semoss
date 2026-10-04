@@ -1107,6 +1107,7 @@ public class Constants {
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
 	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_COLLABORATION = "collaboration";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";

@@ -232,7 +232,10 @@ final class PlatformAgentToolHandlers {
 					USER_ROOT variables are available with the same semantics as PyReactor: ROOT is the \
 					agent working directory and USER_ROOT is the authenticated user's asset-app root. \
 					APP_ROOT is additionally available when the insight has a current app context. \
-					smss_get_runtime_var is also available for thread-local access. The value of the \
+					For file I/O, import Path from pathlib and smss_get_runtime_var from smssutil, then use \
+					Path(smss_get_runtime_var("ROOT")) / "<filename>". Python's current directory may differ \
+					from ROOT; a relative Python filename is not proof of a room file. Verify outputs through \
+					working-directory file tools before claiming success. The value of the \
 					last expression is returned.\
 					""",
 					objectSchema(props(prop("code", stringProp("Inline Python source to execute."))), List.of("code")),

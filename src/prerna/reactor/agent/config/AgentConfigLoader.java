@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -59,6 +60,7 @@ import prerna.reactor.agent.IAgentRunHook;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.runtime.AgentsMdLoader;
+import prerna.util.SystemDefaultEngines;
 
 /**
  * Builds the resolved {@link AgentConfig} for one run.
@@ -166,7 +168,7 @@ public final class AgentConfigLoader {
 		b.modelParams(paramMap);
 		b.agentParams(agentParams);
 		b.useDefaultAgentTools(cfgJson == null || cfgJson.optBoolean("use_default_agent_tools", true));
-		b.disabledDefaultTools(resolveDisabledDefaultTools(cfgJson));
+		b.disabledDefaultTools(resolveDisabledDefaultTools(room, cfgJson));
 		JSONObject toolPolicy = cfgJson == null ? null : cfgJson.optJSONObject("tool_policy");
 		b.resultTool(toolPolicy == null ? null : StringUtils.trimToNull(toolPolicy.optString("result_tool", null)));
 		b.readOnlyPaths(resolveReadOnlyPaths(toolPolicy));
@@ -256,23 +258,23 @@ public final class AgentConfigLoader {
 		return paths;
 	}
 
-	/** Reads {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
-	private static Set<String> resolveDisabledDefaultTools(JSONObject cfgJson) {
-		if (cfgJson == null) {
-			return Collections.emptySet();
+	/** Combines room defaults with {@code CONFIG_JSON.tool_policy.default_tools.disabled}. */
+	private static Set<String> resolveDisabledDefaultTools(Room room, JSONObject cfgJson) {
+		LinkedHashSet<String> names = new LinkedHashSet<>();
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			// Ordinary document reading uses the shared extraction helper. Managed
+			// presentation workflows perform their own review without this tool.
+			names.add("InspectPptx");
 		}
-		JSONObject toolPolicy = cfgJson.optJSONObject("tool_policy");
+		JSONObject toolPolicy = cfgJson != null ? cfgJson.optJSONObject("tool_policy") : null;
 		JSONObject defaultTools = toolPolicy != null ? toolPolicy.optJSONObject("default_tools") : null;
 		JSONArray disabled = defaultTools != null ? defaultTools.optJSONArray("disabled") : null;
-		if (disabled == null) {
-			return Collections.emptySet();
-		}
-
-		LinkedHashSet<String> names = new LinkedHashSet<>();
-		for (int i = 0; i < disabled.length(); i++) {
-			Object value = disabled.opt(i);
-			if (value instanceof String) {
-				names.add((String) value);
+		if (disabled != null) {
+			for (int i = 0; i < disabled.length(); i++) {
+				Object value = disabled.opt(i);
+				if (value instanceof String) {
+					names.add((String) value);
+				}
 			}
 		}
 		return names.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(names);
@@ -360,8 +362,9 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, and room
-	 * options, deduped by {@code skill_id}.
+	 * Builds the skill-ref list from workspace resources, CONFIG_JSON, room options,
+	 * and collaboration defaults, deduped by {@code skill_id}. Explicit references
+	 * retain their pinned version when also present in the defaults.
 	 */
 	private static List<Map<String, String>> resolveSkills(String workspaceId, Room room, JSONObject cfgJson) {
 		List<Map<String, String>> out = new ArrayList<>();
@@ -424,6 +427,18 @@ public final class AgentConfigLoader {
 				continue;
 			}
 			out.add(entry);
+		}
+
+		// Resolve on every run, including agentless rooms, follow-ups, and resumes.
+		// Preserve explicit workspace/room references before adding unpinned defaults.
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			for (String skillId : SystemDefaultEngines.getCollaborationSkills()) {
+				if (seen.add(skillId)) {
+					out.add(skillRef(skillId, null));
+				}
+			}
+			logger.info("AgentConfigLoader: collaboration skills room={} defaults={} effective={}", room.getId(),
+					SystemDefaultEngines.getCollaborationSkills(), out.stream().map(ref -> ref.get("skill_id")).toList());
 		}
 
 		return out;
