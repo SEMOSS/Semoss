@@ -43,7 +43,7 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
@@ -59,7 +59,21 @@ public class SecretsUtility {
 	private static final Logger classLogger = LogManager.getLogger(SecretsUtility.class);
 
 	private static final int SALT_BYTE_LENGTH = 16;
-	private static final int IV_BYTE_LENGTH = 16;
+	// 12 bytes is the NIST SP 800-38D recommended/standard GCM IV length; unlike
+	// CBC, a 16-byte IV here would still work but is not the recommended size.
+	private static final int IV_BYTE_LENGTH = 12;
+	private static final int GCM_TAG_LENGTH_BITS = 128;
+	// AES-GCM, not AES-CBC: CBC has no built-in integrity check, so a tampered
+	// ciphertext or a key derived from the wrong secret decrypts to garbage
+	// instead of failing loudly - the classic padding-oracle/bit-flipping
+	// exposure. Matches PBEncryptionUtility's AES-256-GCM choice elsewhere in
+	// this codebase. Changing the transformation changes the ciphertext layout,
+	// so entries already written under the old CBC scheme will fail to decrypt;
+	// callers already treat that as an ordinary cache miss (delete and
+	// regenerate), not an error - confirmed via InsightCacheUtility.readInsightCache's
+	// and getCachedInsightData's declared throws (IOException, RuntimeException/
+	// JsonSyntaxException) and OpenInsightReactor's surrounding catch blocks.
+	private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
 
 	private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -85,7 +99,7 @@ public class SecretsUtility {
 
 		Cipher cipher = null;
 		try {
-			IvParameterSpec ivspec = new IvParameterSpec(iv);
+			GCMParameterSpec ivspec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
 
 			Provider bcFips = BcFipsProvider.get();
 			SecretKeyFactory factory = bcFips != null
@@ -95,7 +109,7 @@ public class SecretsUtility {
 			SecretKey tmp = factory.generateSecret(spec);
 			SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
 
-			cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+			cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 			cipher.init(Cipher.ENCRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
@@ -131,7 +145,7 @@ public class SecretsUtility {
 		byte[] iv = (byte[]) cacheData.get(ISecrets.IV);
 		Cipher cipher = null;
 		try {
-			IvParameterSpec ivspec = new IvParameterSpec(iv);
+			GCMParameterSpec ivspec = new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv);
 
 			Provider bcFips = BcFipsProvider.get();
 			SecretKeyFactory factory = bcFips != null
@@ -141,7 +155,7 @@ public class SecretsUtility {
 			SecretKey tmp = factory.generateSecret(spec);
 			SecretKeySpec secretKey = new SecretKeySpec(tmp.getEncoded(), "AES");
 
-			cipher = Cipher.getInstance("AES/CBC/PKCS5PADDING");
+			cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
 			cipher.init(Cipher.DECRYPT_MODE, secretKey, ivspec);
 		} catch (NoSuchAlgorithmException | InvalidKeyException | InvalidAlgorithmParameterException
 				| NoSuchPaddingException | InvalidKeySpecException e1) {
