@@ -260,6 +260,13 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
 				Pair.with("CHANGED_BY", VARCHAR_255),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Relationship-level rejections protect explicit corrections from later automatic filing.
+		addTable("BRAIN_THREAD_TOPIC_REJECTION", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("CHANGED_BY", VARCHAR_255),
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("BRAIN_THREAD_PARTICIPANT", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("THREAD_ID", VARCHAR_50),

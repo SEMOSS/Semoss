@@ -67,6 +67,7 @@ public final class BrainTopicChangeUtils {
 		TOPIC_TABLES.put("BRAIN_TOPIC", "TOPIC_ID");
 		TOPIC_TABLES.put("BRAIN_TOPIC_NOTE", "NOTE_ID");
 		TOPIC_TABLES.put("BRAIN_TOPIC_PERSON", "TOPIC_ID, PERSON_ID");
+		TOPIC_TABLES.put("BRAIN_THREAD_TOPIC_REJECTION", "TOPIC_ID, THREAD_ID");
 		TOPIC_TABLES.put("BRAIN_RULE", "RULE_ID");
 	}
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
@@ -213,8 +214,17 @@ public final class BrainTopicChangeUtils {
 					ownerId, ownerType, UNDO, changeId).isEmpty()) {
 				throw new IllegalArgumentException("Change already undone");
 			}
-			String current = CollaborationDbUtils
-					.toJson(scopeRows(conn, ownerId, ownerType, topicIds, threadIds, memoryIds));
+			Map<String, List<Map<String, Object>>> currentRows = scopeRows(conn, ownerId, ownerType, topicIds, threadIds,
+					memoryIds);
+			// Old snapshots predate rejection storage. They remain undoable only while that scope has no new decisions.
+			Map<String, Object> expectedAfter = CollaborationDbUtils.parseMap((String) saved.get("after"));
+			if (!expectedAfter.containsKey("BRAIN_THREAD_TOPIC_REJECTION")) {
+				if (!currentRows.get("BRAIN_THREAD_TOPIC_REJECTION").isEmpty()) {
+					throw new IllegalArgumentException("Topic corrections changed since; undo not applied");
+				}
+				currentRows.remove("BRAIN_THREAD_TOPIC_REJECTION");
+			}
+			String current = CollaborationDbUtils.toJson(currentRows);
 			if (!current.equals(saved.get("after"))) {
 				throw new IllegalArgumentException("The topic changed since; undo not applied");
 			}

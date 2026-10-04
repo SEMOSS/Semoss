@@ -27,6 +27,53 @@ public final class BrainTopicReviewUtils {
 		return envelope(user, read(owner.getValue0(), owner.getValue1(), false));
 	}
 
+	/** Read bounded real metadata without applying the suggestion's provisional membership. */
+	public static Map<String, Object> evidence(User user, String reviewId, int revision, String topicKey,
+			String query, int offset, int limit) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> result = new LinkedHashMap<>();
+		CollaborationDbUtils.batch(conn -> {
+			Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, true);
+			requireRevision(review, revision);
+			result.putAll(BrainTopicReviewEvidence.list(owner.getValue0(), owner.getValue1(), review, topicKey, query, offset, limit));
+		});
+		return result;
+	}
+
+	/** One revision-checked, idempotent draft correction; profiles and real links wait for final apply. */
+	public static Map<String, Object> change(User user, String reviewId, int revision, String operationId,
+			Map<String, Object> operation) {
+		if (revision < 1) {
+			throw conflict();
+		}
+		BrainTopicReviewOperations.text(operationId, "Operation ID", 100);
+		Map<String, Object> request = BrainTopicReviewOperations.request(operation);
+		var owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
+			CollaborationDbUtils.batch(conn -> {
+				Map<String, Object> current = requireReview(ownerId, ownerType, reviewId, true);
+				if (BrainTopicReviewOperations.wasApplied(map(current.get("draft")), operationId, request)) {
+					if (revision > integer(current.get("revision"))) {
+						throw conflict();
+					}
+					return;
+				}
+				requireRevision(current, revision);
+				BrainTopicReviewOperations.change(ownerId, ownerType, current, operationId, request);
+				int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, REVISION = ?, "
+						+ "UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? AND REVISION = ?",
+						CollaborationDbUtils.toJson(current.get("draft")), revision + 1, CollaborationDbUtils.now(),
+						ownerId, ownerType, reviewId, revision);
+				if (updated != 1) {
+					throw conflict();
+				}
+			});
+			return envelope(user, read(ownerId, ownerType, false));
+		}
+	}
+
 	/** Initialize once, or resume the same draft. Generation is outside the database transaction. */
 	public static Map<String, Object> start(User user) {
 		var owner = CollaborationDbUtils.ownerOf(user);
@@ -116,6 +163,7 @@ public final class BrainTopicReviewUtils {
 						throw new IllegalArgumentException("Import or sorting is still running. Your review draft is saved; try again after it finishes.");
 					}
 					Map<String, Object> draft = map(current.get("draft"));
+					BrainTopicReviewOperations.validateApply(ownerId, ownerType, current);
 					List<Map<String, Object>> topics = maps(draft.get("topics"));
 					List<Map<String, Object>> kept = new ArrayList<>();
 					List<String> skipped = new ArrayList<>();
@@ -177,7 +225,8 @@ public final class BrainTopicReviewUtils {
 						kept.add(receipt);
 					}
 					draft.put("topics", topics);
-					Map<String, Object> result = Map.of("topics", kept, "skipped", skipped);
+					List<Map<String, Object>> corrections = BrainTopicReviewOperations.apply(user, ownerId, ownerType, draft, kept);
+					Map<String, Object> result = Map.of("topics", kept, "skipped", skipped, "corrections", corrections);
 					int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, "
 							+ "APPLIED_REVISION = ?, RESULT_JSON = ?, FILING_JOB_ID = NULL, UPDATED_AT = ? "
 							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? AND REVISION = ?",
