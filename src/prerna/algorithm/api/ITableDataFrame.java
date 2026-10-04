@@ -32,7 +32,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.apache.logging.log4j.Logger;
 
@@ -185,7 +185,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @return
 	 * @throws IOException
 	 */
-	CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException;
+	CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException;
 
 	/**
 	 * Deserialize the dataframe
@@ -194,7 +194,7 @@ public interface ITableDataFrame extends IDataMaker {
 	 * @param cipher
 	 * @throws IOException
 	 */
-	void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException;
+	void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException;
 
 	/**
 	 * Get the number of rows for the frame

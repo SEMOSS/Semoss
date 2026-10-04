@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -369,13 +369,13 @@ public class RiGraph extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String fileName, Cipher cipher) {
+	public CachePropFileFrameObject save(String fileName, InsightCipher cipher) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) {
+	public void open(CachePropFileFrameObject cf, InsightCipher cipher) {
 		// TODO Auto-generated method stub
 
 	}

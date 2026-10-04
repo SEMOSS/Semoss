@@ -39,8 +39,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -75,6 +73,7 @@ import prerna.sablecc2.om.task.AbstractTask;
 import prerna.sablecc2.om.task.BasicIteratorTask;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.ITask;
+import prerna.security.InsightCipher;
 import prerna.util.Utility;
 import prerna.util.gson.GsonUtility;
 import prerna.util.gson.InsightPanelAdapter;
@@ -185,7 +184,7 @@ public class PixelStreamUtility {
 	 *                    null
 	 * @return the {@code fileToWrite} reference for chaining
 	 */
-	public static File writePixelData(PixelRunner runner, File fileToWrite, Cipher cipher) {
+	public static File writePixelData(PixelRunner runner, File fileToWrite, InsightCipher cipher) {
 		return writePixelData(runner, fileToWrite, cipher, null);
 	}
 
@@ -201,7 +200,7 @@ public class PixelStreamUtility {
 	 *                    may be null
 	 * @return the {@code fileToWrite} reference for chaining
 	 */
-	public static File writePixelData(PixelRunner runner, File fileToWrite, Cipher cipher, Runnable afterWrite) {
+	public static File writePixelData(PixelRunner runner, File fileToWrite, InsightCipher cipher, Runnable afterWrite) {
 		// get the default gson object
 		Gson gson = GsonUtility.getDefaultGson();
 
@@ -209,9 +208,8 @@ public class PixelStreamUtility {
 		PrintStream ps = null;
 		try {
 			if (cipher != null) {
-				ps = new PrintStream(
-						new BufferedOutputStream(new CipherOutputStream(new FileOutputStream(fileToWrite), cipher)),
-						false, StandardCharsets.UTF_8);
+				ps = new PrintStream(new BufferedOutputStream(cipher.wrap(new FileOutputStream(fileToWrite))), false,
+						StandardCharsets.UTF_8);
 			} else {
 				ps = new PrintStream(new FileOutputStream(fileToWrite), false, StandardCharsets.UTF_8);
 			}

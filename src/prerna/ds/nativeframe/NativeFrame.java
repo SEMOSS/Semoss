@@ -37,6 +37,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,10 +46,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
-
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -76,6 +73,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.security.InsightCipher;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.util.Utility;
 import prerna.util.gson.SelectQueryStructAdapter;
@@ -490,7 +488,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String randFrameName = "Native" + Utility.getRandomString(6);
@@ -501,8 +499,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		JsonWriter jWriter = null;
 		try {
 			if (cipher != null) {
-				writer = new BufferedWriter(
-						new OutputStreamWriter(new CipherOutputStream(new FileOutputStream(frameFile), cipher)));
+				writer = new BufferedWriter(new OutputStreamWriter(cipher.wrap(new FileOutputStream(frameFile))));
 			} else {
 				writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(frameFile)));
 			}
@@ -511,7 +508,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			adapter.write(jWriter, this.originalQs);
 			jWriter.flush();
 			jWriter.close();
-		} catch (IOException e) {
+		} catch (IOException | GeneralSecurityException e) {
 			logger.error("Failed to save the native frame to {}", frameFileName);
 			classLogger.error("Failed to save the native frame to {}", frameFileName, e);
 			throw new IOException("Error occurred attempting to save native frame");
@@ -539,7 +536,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) {
+	public void open(CachePropFileFrameObject cf, InsightCipher cipher) {
 		// load the frame
 		// this is just the QS
 		Reader reader = null;
@@ -547,8 +544,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 		try {
 			File frameFile = new File(Utility.normalizePath(cf.getFrameCacheLocation()));
 			if (cipher != null) {
-				reader = new BufferedReader(
-						new InputStreamReader(new CipherInputStream(new FileInputStream(frameFile), cipher)));
+				reader = new BufferedReader(new InputStreamReader(cipher.wrap(new FileInputStream(frameFile))));
 			} else {
 				reader = new BufferedReader(new InputStreamReader(new FileInputStream(frameFile)));
 			}
@@ -556,7 +552,7 @@ public class NativeFrame extends AbstractTableDataFrame {
 			SelectQueryStructAdapter adapter = new SelectQueryStructAdapter();
 			this.originalQs = adapter.read(jReader);
 			this.queryQs = this.originalQs;
-		} catch (IOException e) {
+		} catch (IOException | GeneralSecurityException e) {
 			logger.error("Failed to open the native frame from cache");
 			classLogger.error("Failed to open the native frame from cache", e);
 		} finally {

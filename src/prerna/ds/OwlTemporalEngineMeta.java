@@ -35,16 +35,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -70,6 +67,7 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.IQuerySelector.SELECTOR_TYPE;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.security.InsightCipher;
 import prerna.util.Constants;
 
 public class OwlTemporalEngineMeta {
@@ -121,7 +119,7 @@ public class OwlTemporalEngineMeta {
 		this.myEng.setEngineId(Constants.OWL_TEMPORAL_ENGINE_META);
 	}
 
-	public OwlTemporalEngineMeta(String filePath, Cipher cipher) {
+	public OwlTemporalEngineMeta(String filePath, InsightCipher cipher) {
 		// generate the in memory rc
 		RepositoryConnection rc = null;
 		try {
@@ -132,8 +130,7 @@ public class OwlTemporalEngineMeta {
 			File file = new File(filePath);
 			// load in the meta from saved file
 			if (cipher != null) {
-				try (InputStreamReader is = new InputStreamReader(
-						new CipherInputStream(new FileInputStream(file), cipher))) {
+				try (InputStreamReader is = new InputStreamReader(cipher.wrap(new FileInputStream(file)))) {
 					rc.add(is, SEMOSS_BASE, RDFFormat.RDFXML);
 				}
 			} else {
@@ -146,6 +143,8 @@ public class OwlTemporalEngineMeta {
 		} catch (RDFParseException e) {
 			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		} catch (IOException e) {
+			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
+		} catch (GeneralSecurityException e) {
 			classLogger.error("Failed to load OWL metadata from file {}", filePath, e);
 		}
 
@@ -2688,7 +2687,7 @@ public class OwlTemporalEngineMeta {
 	 * 
 	 * @param fileName
 	 */
-	public void save(String fileName, Cipher cipher) throws IOException {
+	public void save(String fileName, InsightCipher cipher) throws IOException {
 		RepositoryConnection rc = this.myEng.getRepositoryConnection();
 		if (cipher == null) {
 			try (FileWriter fw = new FileWriter(fileName)) {
@@ -2698,8 +2697,7 @@ public class OwlTemporalEngineMeta {
 				throw new IOException("Error occurred attempting to save frame metadata");
 			}
 		} else {
-			try (OutputStream os = new BufferedOutputStream(
-					new CipherOutputStream(new FileOutputStream(fileName), cipher))) {
+			try (OutputStream os = new BufferedOutputStream(cipher.wrap(new FileOutputStream(fileName)))) {
 				RDFXMLWriter writer = new RDFXMLWriter(os);
 				rc.export(writer);
 			} catch (Exception e) {

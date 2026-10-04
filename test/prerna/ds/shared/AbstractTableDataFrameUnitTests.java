@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,7 +56,8 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 
-import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
@@ -79,12 +81,13 @@ import prerna.query.querystruct.filters.GenRowFilters;
 import prerna.query.querystruct.filters.IQueryFilter;
 import prerna.query.querystruct.filters.IQueryFilter.QUERY_FILTER_TYPE;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.InsightCipher;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
 
 public class AbstractTableDataFrameUnitTests extends SemossUnitTest {
-    Cipher cipher;
+    SecretKey cipherKey;
     GenRowFilters grf;
     IQueryFilter iFilter;
     SelectQueryStruct sqs;
@@ -98,8 +101,10 @@ public class AbstractTableDataFrameUnitTests extends SemossUnitTest {
     List<String> selectors;
 
     @BeforeEach
-    void setup() {
-        cipher = mock(Cipher.class);
+    void setup() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256, new SecureRandom());
+        cipherKey = keyGen.generateKey();
         grf = mock(GenRowFilters.class);
         iFilter = mock(IQueryFilter.class);
         sqs = mock(SelectQueryStruct.class);
@@ -132,13 +137,13 @@ public class AbstractTableDataFrameUnitTests extends SemossUnitTest {
             }
 
             @Override
-            public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+            public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
                 // TODO Auto-generated method stub
                 throw new UnsupportedOperationException("Unimplemented method 'save'");
             }
 
             @Override
-            public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+            public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
                 // TODO Auto-generated method stub
                 throw new UnsupportedOperationException("Unimplemented method 'open'");
             }
@@ -430,7 +435,7 @@ public class AbstractTableDataFrameUnitTests extends SemossUnitTest {
             when(iFilter.getQueryFilterType()).thenReturn(QUERY_FILTER_TYPE.SIMPLE);
             iFilterStatic.when(() -> IQueryFilter.getAdapterForFilter(QUERY_FILTER_TYPE.SIMPLE)).thenReturn(mock(TypeAdapter.class));
 
-            reactor.saveMeta(cf, tempDir.toAbsolutePath().toString(), "name", cipher);
+            reactor.saveMeta(cf, tempDir.toAbsolutePath().toString(), "name", InsightCipher.forEncryption(cipherKey));
             reactor.saveMeta(cf, tempDir.toAbsolutePath().toString(), "name", null);
 
             verify(grf, times(4)).getFilters();
@@ -450,7 +455,7 @@ public class AbstractTableDataFrameUnitTests extends SemossUnitTest {
         when(cf.getFrameMetaCacheLocation()).thenReturn(metaFileName.toAbsolutePath().toString());
         when(cf.getFrameStateCacheLocation()).thenReturn(frameStateFileName.toAbsolutePath().toString());
 
-        reactor.openCacheMeta(cf, cipher);
+        reactor.openCacheMeta(cf, InsightCipher.forDecryption(cipherKey));
         reactor.openCacheMeta(cf, null);
 
         verify(cf, times(2)).getFrameName();

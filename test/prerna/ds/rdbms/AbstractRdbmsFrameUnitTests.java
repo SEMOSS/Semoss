@@ -67,7 +67,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -98,12 +98,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 		frame = new AbstractRdbmsFrame() {
 			@Override
-			public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+			public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 				return null;
 			}
 
 			@Override
-			public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+			public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 			}
 
 			@Override
@@ -131,12 +131,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 				frame = new AbstractRdbmsFrame() {
 					@Override
-					public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+					public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 						return null;
 					}
 
 					@Override
-					public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+					public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 					}
 
 					@Override
@@ -159,12 +159,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 				frame = new AbstractRdbmsFrame("tableName") {
 					@Override
-					public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+					public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 						return null;
 					}
 
 					@Override
-					public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+					public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 					}
 
 					@Override
@@ -180,12 +180,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 				frame = new AbstractRdbmsFrame("") {
 					@Override
-					public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+					public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 						return null;
 					}
 
 					@Override
-					public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+					public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 					}
 
 					@Override
@@ -211,12 +211,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 				frame = new AbstractRdbmsFrame(headers) {
 					@Override
-					public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+					public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 						return null;
 					}
 
 					@Override
-					public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+					public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 					}
 
 					@Override
@@ -245,12 +245,12 @@ public class AbstractRdbmsFrameUnitTests {
 
 				frame = new AbstractRdbmsFrame(headers, types) {
 					@Override
-					public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+					public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 						return null;
 					}
 
 					@Override
-					public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+					public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 					}
 
 					@Override

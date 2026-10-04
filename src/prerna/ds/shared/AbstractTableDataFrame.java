@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
@@ -46,9 +47,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
-import javax.crypto.CipherOutputStream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,6 +67,7 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.security.InsightCipher;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 import prerna.ui.components.playsheets.datamakers.IDataMaker;
 import prerna.ui.components.playsheets.datamakers.ISEMOSSTransformation;
@@ -650,7 +649,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	 * Caching methods
 	 */
 
-	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName, Cipher cipher)
+	protected void saveMeta(CachePropFileFrameObject cf, String folderDir, String fileName, InsightCipher cipher)
 			throws IOException {
 		// save frame metadata
 		String metaFileName = folderDir + DIR_SEPARATOR + "METADATA__" + fileName + ".owl";
@@ -663,8 +662,12 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			String frameStateFileName = folderDir + DIR_SEPARATOR + "FRAME_STATE__" + fileName + ".json";
 			Writer writer = null;
 			if (cipher != null) {
-				writer = new OutputStreamWriter(new CipherOutputStream(
-						new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))), cipher));
+				try {
+					writer = new OutputStreamWriter(cipher
+							.wrap(new FileOutputStream(new File(Utility.normalizePath(frameStateFileName)))));
+				} catch (GeneralSecurityException e) {
+					throw new IOException("Error occurred trying to encrypt filter state on frame", e);
+				}
 			} else {
 				writer = new OutputStreamWriter(
 						new FileOutputStream(new File(Utility.normalizePath(frameStateFileName))));
@@ -689,7 +692,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		cf.setFrameName(this.frameName);
 	}
 
-	protected void openCacheMeta(CachePropFileFrameObject cf, Cipher cipher) {
+	protected void openCacheMeta(CachePropFileFrameObject cf, InsightCipher cipher) {
 		// set the frame name
 		this.frameName = cf.getFrameName();
 
@@ -703,14 +706,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 			try {
 				if (cipher != null) {
 					reader = new InputStreamReader(
-							new CipherInputStream(new FileInputStream(new File(frameStateFileName)), cipher));
+							cipher.wrap(new FileInputStream(new File(frameStateFileName))));
 				} else {
 					reader = new InputStreamReader(new FileInputStream(new File(frameStateFileName)));
 				}
 				JsonReader jReader = new JsonReader(reader);
 				GenRowFiltersAdapter adapter = new GenRowFiltersAdapter();
 				this.grf = adapter.read(jReader);
-			} catch (IOException e) {
+			} catch (IOException | GeneralSecurityException e) {
 				logger.error(Constants.STACKTRACE, e);
 			} finally {
 				if (reader != null) {

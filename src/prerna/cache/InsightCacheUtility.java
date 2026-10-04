@@ -41,6 +41,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.ParseException;
@@ -57,8 +58,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 
-import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
@@ -78,6 +77,7 @@ import prerna.io.connector.secrets.SecretsUtility;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.cluster.VersionReactor;
+import prerna.security.InsightCipher;
 import prerna.util.AssetUtility;
 import prerna.util.Constants;
 import prerna.util.EngineUtility;
@@ -163,7 +163,7 @@ public class InsightCacheUtility {
 		}
 
 		boolean encrypt = insight.isCacheEncrypt();
-		Cipher cipher = null;
+		InsightCipher cipher = null;
 		if (encrypt) {
 			cipher = SecretsUtility.generateCipherForInsight(projectId, projectName, rdbmsId);
 		}
@@ -194,11 +194,11 @@ public class InsightCacheUtility {
 
 			try {
 				if (encrypt) {
-					FileUtils.writeByteArrayToFile(insightFile, cipher.doFinal(writer.toString().getBytes()));
+					FileUtils.writeByteArrayToFile(insightFile, cipher.encryptToBytes(writer.toString().getBytes()));
 				} else {
 					FileUtils.writeStringToFile(insightFile, writer.toString());
 				}
-			} catch (IOException e) {
+			} catch (IOException | GeneralSecurityException e) {
 				classLogger.error(Constants.STACKTRACE, e);
 			}
 			addToZipFile(insightFile, zos);
@@ -373,7 +373,7 @@ public class InsightCacheUtility {
 		}
 
 		boolean encrypt = existingInsight.isCacheEncrypt();
-		Cipher cipher = null;
+		InsightCipher cipher = null;
 		if (encrypt) {
 			cipher = SecretsUtility.retrieveCipherForInsight(existingInsight);
 		}
@@ -390,11 +390,13 @@ public class InsightCacheUtility {
 
 			if (cipher != null) {
 				try (BufferedReader br = new BufferedReader(
-						new InputStreamReader(new CipherInputStream(zip.getInputStream(entry), cipher)))) {
+						new InputStreamReader(cipher.wrap(zip.getInputStream(entry))))) {
 					String line;
 					while ((line = br.readLine()) != null) {
 						sb.append(line);
 					}
+				} catch (GeneralSecurityException e) {
+					throw new IOException("Failed to decrypt cached insight", e);
 				}
 			} else {
 				try (BufferedReader br = new BufferedReader(new InputStreamReader(zip.getInputStream(entry)))) {
@@ -450,7 +452,7 @@ public class InsightCacheUtility {
 		}
 
 		boolean encrypt = insight.isCacheEncrypt();
-		Cipher cipher = null;
+		InsightCipher cipher = null;
 		if (encrypt) {
 			cipher = SecretsUtility.retrieveCipherForInsight(insight);
 		}
@@ -475,11 +477,13 @@ public class InsightCacheUtility {
 
 			if (cipher != null) {
 				try (BufferedReader br = new BufferedReader(
-						new InputStreamReader(new CipherInputStream(zip.getInputStream(entry), cipher)))) {
+						new InputStreamReader(cipher.wrap(zip.getInputStream(entry))))) {
 					String line;
 					while ((line = br.readLine()) != null) {
 						sb.append(line);
 					}
+				} catch (GeneralSecurityException e) {
+					throw new IOException("Failed to decrypt cached insight view data", e);
 				}
 			} else {
 				try (BufferedReader br = new BufferedReader(new InputStreamReader(zip.getInputStream(entry)))) {

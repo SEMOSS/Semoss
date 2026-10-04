@@ -35,7 +35,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -130,7 +130,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getName();
@@ -171,7 +171,7 @@ public class SQLiteFrame extends AbstractRdbmsFrame {
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) throws IOException {
+	public void open(CachePropFileFrameObject cf, InsightCipher cipher) throws IOException {
 		// set the frame name to that of the cached frame name
 		this.frameName = cf.getFrameName();
 

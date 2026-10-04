@@ -40,7 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
 
-import javax.crypto.Cipher;
+import prerna.security.InsightCipher;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -355,7 +355,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public CachePropFileFrameObject save(String folderDir, Cipher cipher) throws IOException {
+	public CachePropFileFrameObject save(String folderDir, InsightCipher cipher) throws IOException {
 		CachePropFileFrameObject cf = new CachePropFileFrameObject();
 
 		String frameName = this.getName();
@@ -380,7 +380,7 @@ public class RDataTable extends AbstractTableDataFrame {
 	}
 
 	@Override
-	public void open(CachePropFileFrameObject cf, Cipher cipher) {
+	public void open(CachePropFileFrameObject cf, InsightCipher cipher) {
 		// set the frame name
 		this.builder.dataTableName = cf.getFrameName();
 		// load the environment
