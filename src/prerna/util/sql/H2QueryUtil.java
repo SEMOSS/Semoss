@@ -247,14 +247,16 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getAllColumnDetails(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+		// H2 2.x renamed INFORMATION_SCHEMA.COLUMNS.TYPE_NAME to DATA_TYPE (column was
+		// removed, not just renamed - the name is reused with different semantics)
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
 				+ tableName.toUpperCase() + "';";
 	}
 
 	@Override
 	public String columnDetailsQuery(String tableName, String columnName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT COLUMN_NAME, TYPE_NAME, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
+		return "SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '"
 				+ tableName.toUpperCase() + "' AND COLUMN_NAME='" + columnName.toUpperCase() + "';";
 	}
 
@@ -267,14 +269,16 @@ public class H2QueryUtil extends AnsiSqlQueryUtil {
 	@Override
 	public String getIndexDetails(String indexName, String tableName, String database, String schema) {
 		// do not use the schema
-		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE INDEX_NAME='"
+		// H2 2.x moved per-column index membership out of INFORMATION_SCHEMA.INDEXES
+		// (COLUMN_NAME no longer exists there) and into INFORMATION_SCHEMA.INDEX_COLUMNS
+		return "SELECT TABLE_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE INDEX_NAME='"
 				+ indexName.toUpperCase() + "' AND TABLE_NAME='" + tableName.toUpperCase() + "';";
 	}
 
 	@Override
 	public String allIndexForTableQuery(String tableName, String database, String schema) {
 		// do not need to use the schema
-		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEXES WHERE TABLE_NAME='"
+		return "SELECT INDEX_NAME, COLUMN_NAME FROM INFORMATION_SCHEMA.INDEX_COLUMNS WHERE TABLE_NAME='"
 				+ tableName.toUpperCase() + "';";
 	}
 

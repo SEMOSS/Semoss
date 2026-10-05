@@ -62,6 +62,9 @@ social.properties
 
 # local engines
 /db/**
+!/db/migration/
+!/db/migration/h2-1.4.200-to-2.2.220/
+!/db/migration/h2-1.4.200-to-2.2.220/**
 /function/**
 /guardrail/**
 /model/**
