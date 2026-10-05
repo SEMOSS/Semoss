@@ -42,6 +42,7 @@ class OpenAiClient(AbstractTextGenerationClient):
         "thinking_budget",
         "global_param_override",
         "simplify_messages",
+        "native_document_mime_types",
     }
 
     def __init__(
@@ -140,6 +141,7 @@ class OpenAiClient(AbstractTextGenerationClient):
             semoss_messages = self.build_semoss_messages(
                 model_settings=self.model_settings, **kwargs
             )
+            kwargs.pop("_semoss_input_modalities", None)
 
             if self.model_settings.model_type == "audio":
                 return self.audio_client.ask(semoss_messages, **kwargs)

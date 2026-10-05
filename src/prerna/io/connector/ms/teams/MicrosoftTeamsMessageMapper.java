@@ -37,7 +37,8 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jsoup.Jsoup;
+
+import prerna.io.connector.ms.MicrosoftMessageDisplay;
 
 /**
  * Turns the json Graph returns for Teams chats and messages into the maps the
@@ -269,7 +270,7 @@ public class MicrosoftTeamsMessageMapper {
 		Map<?, ?> bodyMap = (Map<?, ?>) body;
 		String content = bodyMap.get(CONTENT) == null ? "" : bodyMap.get(CONTENT).toString();
 		if (HTML.equalsIgnoreCase(String.valueOf(bodyMap.get(CONTENT_TYPE)))) {
-			return Jsoup.parse(content).text().trim();
+			return MicrosoftMessageDisplay.text(message);
 		}
 		return content.trim();
 	}

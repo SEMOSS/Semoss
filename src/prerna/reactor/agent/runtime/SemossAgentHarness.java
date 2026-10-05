@@ -38,6 +38,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.CollaborationAgentTools;
+import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
@@ -181,6 +183,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
 			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
 		}
+		// Microsoft 365 tools for every agent in a collaboration room
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.addAll(CollaborationAgentTools.definitions());
+		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
 		// Register on root only; descendants look up the shared per-tree budget.
@@ -207,7 +213,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
+		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
+				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
@@ -1020,6 +1027,36 @@ public class SemossAgentHarness implements IAgentHarness {
 				$(), backticks, absolute paths, ~ paths, or .. . \
 				Use working-directory-relative paths and read output from the tool result.\
 				""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
+		sb.append("""
+
+				- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
+				Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
+				Python's current directory may differ from ROOT. Do not change the shared process directory.
+				- Verify generated outputs through working-directory file tools before reporting completion. \
+				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
+				""");
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			sb.append("""
+
+
+					## Collaboration file delivery
+					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+					and python. For source text, use from smssutil import get_document_markdown, then \
+					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+					or visual inspection for a text-reading task; use visual tools when visuals matter.
+					- Before creating or repairing files, load the relevant collaboration references and the \
+					python or pptx skill for that execution route. Continue truncated reads as needed.
+					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+					Do not offer email as a substitute for returning the file.
+					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+					a rejected external action. Finish with the verified artifact and a concise outcome.\
+					""");
+		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
 
@@ -1119,7 +1156,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
 			boolean isAsk = MCPUtility.isAskLikeExecution(String.valueOf(execution));
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
-			if (isAsk || isSubAgentTool) {
+			// a tool with a native UI component needs its _meta on the call, auto or not
+			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
+			boolean hasComponent = ui instanceof Map && ((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null;
+			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}
 		}

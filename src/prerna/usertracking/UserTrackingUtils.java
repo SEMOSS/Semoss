@@ -27,9 +27,7 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.Set;
 import java.util.UUID;
@@ -38,13 +36,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
-import com.google.gson.Gson;
-
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.owl.AbstractOwlCreator;
 import prerna.util.ConnectionUtils;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -114,20 +111,13 @@ public class UserTrackingUtils {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ?";
 
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, projectId);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, projectId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking engine usage for project {}", projectId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
@@ -145,22 +135,15 @@ public class UserTrackingUtils {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "DELETE FROM ENGINE_USES WHERE PROJECTID = ? AND INSIGHTID = ?";
 
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, projectId);
-			ps.setString(index++, insightId);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, projectId);
+				ps.setString(index++, insightId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking engine usage for project {} insight {}", projectId,
 					insightId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
@@ -184,100 +167,33 @@ public class UserTrackingUtils {
 			return;
 		}
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		boolean allowClob = userTrackingDb.getQueryUtil().allowClobJavaObject();
 
 		String query = "INSERT INTO EMAIL_TRACKING (ID, SENT_TIME, SUCCESSFUL, E_FROM, E_TO, E_CC, E_BCC, E_SUBJECT, BODY, ATTACHMENTS, IS_HTML) "
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, UUID.randomUUID().toString());
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.setBoolean(index++, successful);
-			ps.setString(index++, from);
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, UUID.randomUUID().toString());
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setBoolean(index++, successful);
+				ps.setString(index++, from);
 
-			if (toRecipients != null) {
-				String toStr = String.join(", ", toRecipients);
-				if (allowClob) {
-					Clob toclob = userTrackingDb.getConnection().createClob();
-					toclob.setString(1, toStr);
-					ps.setClob(index++, toclob);
-				} else {
-					ps.setString(index++, toStr);
-				}
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						toRecipients == null ? null : String.join(", ", toRecipients));
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						ccRecipients == null ? null : String.join(", ", ccRecipients));
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						bccRecipients == null ? null : String.join(", ", bccRecipients));
+				userTrackingDb.getQueryUtil().setNullableString(ps, index++, subject);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, emailMessage);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++,
+						attachments == null ? null : String.join(", ", attachments));
 
-			if (ccRecipients != null) {
-				String ccStr = String.join(", ", ccRecipients);
-				if (allowClob) {
-					Clob ccclob = userTrackingDb.getConnection().createClob();
-					ccclob.setString(1, ccStr);
-					ps.setClob(index++, ccclob);
-				} else {
-					ps.setString(index++, ccStr);
-				}
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-
-			if (bccRecipients != null) {
-				String bccStr = String.join(", ", bccRecipients);
-				if (allowClob) {
-					Clob bccclob = userTrackingDb.getConnection().createClob();
-					bccclob.setString(1, bccStr);
-					ps.setClob(index++, bccclob);
-				} else {
-					ps.setString(index++, bccStr);
-				}
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-
-			if (subject != null) {
-				ps.setString(index++, subject);
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-
-			if (emailMessage != null) {
-				if (allowClob) {
-					Clob bodyClob = userTrackingDb.getConnection().createClob();
-					bodyClob.setString(1, emailMessage);
-					ps.setClob(index++, bodyClob);
-				} else {
-					ps.setString(index++, emailMessage);
-				}
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-
-			if (attachments != null) {
-				String attachmentStr = String.join(", ", attachments);
-				if (allowClob) {
-					Clob attachmentClob = userTrackingDb.getConnection().createClob();
-					attachmentClob.setString(1, attachmentStr);
-					ps.setClob(index++, attachmentClob);
-				} else {
-					ps.setString(index++, attachmentStr);
-				}
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-
-			ps.setBoolean(index++, isHtml);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+				ps.setBoolean(index++, isHtml);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track email from {} (subject {}, successful={})", from, subject, successful,
 					e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
@@ -294,25 +210,19 @@ public class UserTrackingUtils {
 		}
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
 		String query = "INSERT INTO INSIGHT_OPENS (INSIGHTID, USERID, OPENED_ON, ORIGIN) " + "VALUES (?, ?, ?, ?)";
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, insightId);
-			ps.setString(index++, userId);
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.setString(index++, origin);
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, insightId);
+				ps.setString(index++, userId);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(index++, origin);
 
-			// execute
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+				// execute
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track insight open for insight {} by user {} (origin {})", insightId, userId,
 					origin, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
@@ -325,20 +235,13 @@ public class UserTrackingUtils {
 	 */
 	private static void doDeleteEngine(String query, String engineId) {
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, engineId);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete user-tracking rows for engine {} [query: {}]", engineId, query, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 
@@ -364,7 +267,7 @@ public class UserTrackingUtils {
 		String insertQuery = "INSERT INTO QUERY_TRACKING "
 				+ "(ID, USERID, USERTYPE, DATABASEID, QUERY_EXECUTED, START_TIME, END_TIME, TOTAL_EXECUTION_TIME, FAILED_EXECUTION) "
 				+ "VALUES(?,?,?,?,?,?,?,?,?)";
-		PreparedStatement ps = null;
+
 		String userId = null;
 		String userType = null;
 		String id = UUID.randomUUID().toString();
@@ -373,36 +276,32 @@ public class UserTrackingUtils {
 			userId = userIdType.getValue0();
 			userType = userIdType.getValue1();
 		}
+		String trackingUserId = userId;
+		String trackingUserType = userType;
 		try {
-			ps = userTrackingDb.getPreparedStatement(insertQuery);
-			int index = 1;
-			ps.setString(index++, id);
-			ps.setString(index++, userId);
-			ps.setString(index++, userType);
-			ps.setString(index++, databaseId);
-			userTrackingDb.getQueryUtil().handleInsertionOfClob(ps.getConnection(), ps, queryExecuted, index++,
-					new Gson());
-			ps.setTimestamp(index++, startTime);
-			if (endTime == null) {
-				ps.setNull(index++, java.sql.Types.TIMESTAMP);
-			} else {
-				ps.setTimestamp(index++, endTime);
-			}
-			if (executionTime == null) {
-				ps.setNull(index++, java.sql.Types.BIGINT);
-			} else {
-				ps.setLong(index++, executionTime);
-			}
-			ps.setBoolean(index++, failed);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, insertQuery, ps -> {
+				int index = 1;
+				ps.setString(index++, id);
+				ps.setString(index++, trackingUserId);
+				ps.setString(index++, trackingUserType);
+				ps.setString(index++, databaseId);
+				userTrackingDb.getQueryUtil().setNullableLargeText(ps, index++, queryExecuted);
+				ps.setTimestamp(index++, startTime);
+				if (endTime == null) {
+					ps.setNull(index++, java.sql.Types.TIMESTAMP);
+				} else {
+					ps.setTimestamp(index++, endTime);
+				}
+				if (executionTime == null) {
+					ps.setNull(index++, java.sql.Types.BIGINT);
+				} else {
+					ps.setLong(index++, executionTime);
+				}
+				ps.setBoolean(index++, failed);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to track query execution against database {} for user {} (failed={})", databaseId,
 					userId, failed, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps, null);
 		}
 	}
 

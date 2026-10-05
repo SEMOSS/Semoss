@@ -169,7 +169,7 @@ public abstract class AbstractMicrosoftTeamsMessageReactor extends AbstractMicro
 		} else if (key.equals(MENTIONS)) {
 			return "Optional email addresses or user ids to mention, which is what notifies those people. Passed as several values or as one comma separated value.";
 		} else if (key.equals(ATTACHMENT_URLS)) {
-			return "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl returned by MicrosoftOneDriveUploadFile or MicrosoftTeamsUploadFile.";
+			return "Optional urls of files already in OneDrive or SharePoint to attach, such as the webUrl a OneDrive or Teams channel upload returns.";
 		} else if (key.equals(ATTACHMENT_NAMES)) {
 			return "Optional names to show the attached files under, in the same order as the urls. The name each url ends in is used when omitted.";
 		} else if (key.equals(MAX_BODY_CHARS)) {

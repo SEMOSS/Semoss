@@ -1,0 +1,27 @@
+name: semoss-unoserver
+
+# unoserver - LibreOffice document conversion over HTTP (file conversion, pptx
+# inspection).
+#
+# Run:    docker compose -f semoss-unoserver.yml up -d
+# Stop:   docker compose -f semoss-unoserver.yml down
+# Check:  curl http://localhost:8082/health
+#
+# Equivalent to:
+#   docker run -d --name semoss-unoserver --platform linux/amd64 -p 8082:8080 quay.io/semoss/unoserver:latest
+services:
+  unoserver:
+    image: quay.io/semoss/unoserver:latest
+    container_name: semoss-unoserver
+    pull_policy: always
+    # published for amd64 only, so it runs under emulation on Apple Silicon
+    platform: linux/amd64
+    ports:
+      - "8082:8080"   # HTTP API
+    networks:
+      - semoss-net
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true
