@@ -54,6 +54,7 @@ import prerna.sablecc2.om.VarStore;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 import prerna.util.insight.InsightUtility;
 
 @Deprecated
@@ -267,7 +268,12 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 
 			ITableDataFrame frame;
 			try {
-				frame = (ITableDataFrame) Class.forName(cf.getFrameType()).newInstance();
+				String className = cf.getFrameType();
+				if (!SafeClassNameValidator.isAllowed(className)) {
+					classLogger.error("Refusing to instantiate disallowed frame class '{}'", className);
+					throw new IllegalArgumentException("Disallowed frame class: " + className);
+				}
+				frame = (ITableDataFrame) Class.forName(className).newInstance();
 				// need to set the exector for pandas
 				if(frame instanceof PandasFrame) {
 					frame = new PandasFrame(insight.getPyTranslator());

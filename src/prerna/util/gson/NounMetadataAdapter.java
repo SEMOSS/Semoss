@@ -50,6 +50,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 
 public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata> {
 
@@ -113,6 +114,10 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 						objList.add(null);
 					} else {
 						String className = classNames.get(counter);
+						if (!SafeClassNameValidator.isAllowed(className)) {
+							classLogger.error("Refusing to deserialize disallowed class '{}' in NounMetadata value", className);
+							throw new IllegalArgumentException("Disallowed class in NounMetadata value: " + className);
+						}
 						Class c = null;
 						// get the class
 						try {
@@ -143,13 +148,18 @@ public class NounMetadataAdapter extends AbstractSemossTypeAdapter<NounMetadata>
 			Map<String, Object> reactorMap = (Map<String, Object>) objList.get(0);
 			String className = (String) reactorMap.get("reactorType");
 			Map<String, List<Map<String, Object>>> nounStoreMap = (Map<String, List<Map<String, Object>>>) reactorMap.get("value");
-			
+
+			if (!SafeClassNameValidator.isAllowed(className)) {
+				classLogger.error("Refusing to instantiate disallowed lambda reactor class '{}'", className);
+				throw new IllegalArgumentException("Unable to create lambda " + className);
+			}
+
 			try {
 				IReactor thisClass = (IReactor) Class.forName(className).newInstance();
 				thisClass.setNounStore(NounStore.generateNounFromMap(nounStoreMap));
-				
+
 				return new NounMetadata(thisClass, PixelDataType.LAMBDA);
-			} catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+			} catch (InstantiationException | IllegalAccessException | ClassCastException | ClassNotFoundException e) {
 				throw new IllegalArgumentException("Unable to create lambda " + className);
 			}
 		} if(isArray) {
