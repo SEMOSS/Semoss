@@ -81,6 +81,7 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
@@ -272,6 +273,11 @@ public class Room implements Serializable {
 
 			// if it is full prompt, process that first.
 			if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+				if (Boolean.TRUE.equals(kwArgMap.get(DeferredAgentTools.RUN_AGENT_PARAM))) {
+					appendToolsToParams(kwArgMap, modelEngine);
+				} else {
+					kwArgMap.remove(DeferredAgentTools.RUN_AGENT_PARAM);
+				}
 				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
@@ -1110,11 +1116,18 @@ public class Room implements Serializable {
 	 * @param modelEngine model engine used to determine max tool name length
 	 */
 	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
+		boolean deferredLoading = Boolean.TRUE.equals(params.remove(DeferredAgentTools.RUN_AGENT_PARAM));
 		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
 		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength,
 				MCPUtility.requiresLLMNameSanitization(modelEngine));
 		Object existing = params.get("tools");
-		if (existing instanceof List<?>) {
+		if (deferredLoading) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> tools = existing instanceof List<?>
+					? new ArrayList<>((List<Map<String, Object>>) existing) : new ArrayList<>();
+			tools.addAll(newTools);
+			params.put("tools", DeferredAgentTools.filterForModel(this, tools));
+		} else if (existing instanceof List<?>) {
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
 			toolsList.addAll(newTools);

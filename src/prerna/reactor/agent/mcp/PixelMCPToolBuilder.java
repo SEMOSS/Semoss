@@ -185,6 +185,13 @@ public class PixelMCPToolBuilder {
 			// Determine if explicit mcpMetadata was provided for this reactor
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
 			applyExecutionMode(meta, additionalMeta, reactorName);
+			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_DEFERRED)) {
+				Object deferred = additionalMeta.get(MCPUtility.SMSS_MCP_DEFERRED);
+				if (!(deferred instanceof Boolean)) {
+					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_DEFERRED + " must be a Boolean for " + reactorName);
+				}
+				meta.put(MCPUtility.SMSS_MCP_DEFERRED, deferred);
+			}
 			applyUiMetadata(meta, additionalMeta, reactorName);
 
 			reactorTool.put("_meta", meta);

@@ -189,9 +189,13 @@ public final class AgentToolDecisionHandler {
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
-			// The stored action holds the aliased name the model produced; undo it
-			// from the room's own map. See Room#resolveOriginalToolName.
-			toolName = executionRoom.resolveOriginalToolName(toolName);
+			// A reloaded room may not have rebuilt its alias lookup yet. Prefer
+			// the original name persisted with the action before using that lookup.
+			Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
+			String originalToolName = storedToolMeta != null
+					? stringValue(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) : null;
+			toolName = originalToolName != null && !originalToolName.isBlank()
+					? originalToolName : executionRoom.resolveOriginalToolName(toolName);
 		}
 
 		if (!AgentRunActionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
