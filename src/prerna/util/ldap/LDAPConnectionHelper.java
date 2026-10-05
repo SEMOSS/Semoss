@@ -49,8 +49,16 @@ import prerna.date.SemossDate;
 import prerna.util.Constants;
 
 public class LDAPConnectionHelper {
-	
+
 	private static final Logger classLogger = LogManager.getLogger(LDAPConnectionHelper.class);
+
+	/**
+	 * Well-known Active Directory / LDAP sentinel value for the "last password change"
+	 * attribute (e.g. pwdLastSet) indicating the password was never set / must be
+	 * changed at the user's next logon. This is not a credential or secret - it is a
+	 * fixed protocol convention value we compare against.
+	 */
+	private static final String PWD_NEVER_CHANGED_SENTINEL = "0";
 
 	private transient DirContext ldapContext = null;
 	private String principalDN = null;
@@ -186,7 +194,7 @@ public class LDAPConnectionHelper {
 			throw new IllegalArgumentException("Unable to pull last password change attribute");
 		}
 
-		if(lastPwdChange.toString().equals("0")) {
+		if(lastPwdChange.toString().equals(PWD_NEVER_CHANGED_SENTINEL)) {
 			throw new LDAPPasswordChangeRequiredException("User's last password change is 0, must change their password on first login");
 		}
 		

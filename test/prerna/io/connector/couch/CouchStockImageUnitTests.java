@@ -30,6 +30,8 @@ package prerna.io.connector.couch;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
@@ -56,6 +58,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicStatusLine;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -64,6 +67,7 @@ import org.mockito.MockedStatic;
 import jakarta.ws.rs.core.Response;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.engine.api.IEngine;
 import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
@@ -230,6 +234,57 @@ class CouchStockImageUnitTests {
 		Response response = CouchUtil.download(partition, Map.of(partition, "resource-id"), "dark");
 		assertArrayEquals(new byte[] { 7, 8, 9 }, (byte[]) response.getEntity());
 		assertEquals(List.of("POST", "GET"), methods);
+		stock.verifyNoInteractions();
+	}
+
+	/**
+	 * Path traversal hardening: if the resolved local image directory for a
+	 * database/project ever escapes the engine's own trusted base directory (for
+	 * example because a crafted id produced a "../.." in the path that
+	 * EngineUtility.getSpecificEngineVersionFolder built), download() must refuse
+	 * to read from it rather than silently serving whatever file happens to live
+	 * there.
+	 */
+	@Test
+	void downloadRejectsADatabaseImagePathThatEscapesTheExpectedBaseDirectory() throws Exception {
+		Path trustedBase = Files.createDirectories(temp.resolve("db-trusted-base"));
+		// a sibling directory outside of trustedBase - standing in for wherever a
+		// crafted id's "../.." could have redirected the resolved path to
+		Path escaped = Files.createDirectories(temp.resolve("db-escaped-elsewhere"));
+		Files.write(escaped.resolve("image.png"), new byte[] { 1, 1, 1 });
+		engines.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+				.thenReturn(trustedBase.toString());
+		engines.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE, "resource-id",
+				"Example")).thenReturn(escaped.toString());
+
+		// download() must fail closed before ever reading a file from "escaped"
+		CouchException ex = assertThrows(CouchException.class,
+				() -> CouchUtil.download("database", Map.of("database", "resource-id")));
+		assertTrue(ex.getMessage().toLowerCase().contains("outside"));
+		images.verifyNoInteractions();
+		stock.verifyNoInteractions();
+	}
+
+	/**
+	 * Non-regression companion to the above: a resolved path that legitimately
+	 * stays within the engine's trusted base directory must still be served
+	 * normally.
+	 */
+	@Test
+	void downloadAcceptsADatabaseImagePathWithinTheExpectedBaseDirectory() throws Exception {
+		Path trustedBase = Files.createDirectories(temp.resolve("db-trusted-base"));
+		Path within = Files.createDirectories(trustedBase.resolve("resource-id-version"));
+		Files.write(within.resolve("image.png"), new byte[] { 2, 2, 2 });
+		engines.when(() -> EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE))
+				.thenReturn(trustedBase.toString());
+		engines.when(() -> EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE, "resource-id",
+				"Example")).thenReturn(within.toString());
+		images.when(() -> InsightUtility.findImageFile(within.toString()))
+				.thenReturn(new File[] { within.resolve("image.png").toFile() });
+
+		Response response = CouchUtil.download("database", Map.of("database", "resource-id"));
+
+		assertArrayEquals(new byte[] { 2, 2, 2 }, (byte[]) response.getEntity());
 		stock.verifyNoInteractions();
 	}
 }

@@ -257,6 +257,11 @@ public final class ZipUtils {
 	public static Map<String, List<String>> unzip(String zipFilePath, String destination) throws IOException {
 		// grab list of files that are being unzipped
 		Map<String, List<String>> files = listFilesInZip(Paths.get(zipFilePath));
+		// Canonicalize the destination once so every entry can be checked against
+		// it. A malicious entry name (e.g. "../../../../etc/passwd" - a "Zip Slip")
+		// must not be allowed to resolve to a path outside of it.
+		File destinationDir = new File(Utility.normalizePath(destination));
+		String destinationCanonicalPath = destinationDir.getCanonicalPath();
 		// unzip files
 		ZipFile zipIn = null;
 		try {
@@ -265,11 +270,17 @@ public final class ZipUtils {
 			while (entries.hasMoreElements()) {
 				ZipEntry entry = entries.nextElement();
 				String filePath = destination + FILE_SEPARATOR + Utility.normalizePath(entry.getName());
+				File outFile = new File(filePath);
+				String outFileCanonicalPath = outFile.getCanonicalPath();
+				if (!outFileCanonicalPath.equals(destinationCanonicalPath)
+						&& !outFileCanonicalPath.startsWith(destinationCanonicalPath + File.separator)) {
+					throw new IOException("Zip entry '" + entry.getName()
+							+ "' would be extracted outside of the target directory '" + destination + "'");
+				}
 				if (entry.isDirectory()) {
-					File file = new File(filePath);
-					file.mkdirs();
+					outFile.mkdirs();
 				} else {
-					File parent = new File(filePath).getParentFile();
+					File parent = outFile.getParentFile();
 					if (!parent.exists()) {
 						parent.mkdirs();
 					}

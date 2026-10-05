@@ -30,12 +30,15 @@ package prerna.io.connector.couch;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -127,7 +130,50 @@ public class CouchUtil {
 	private static final String COUCH_AUTH = "Basic "
 			+ new String(Base64.encodeBase64(COUCH_CREDS.getBytes(StandardCharsets.ISO_8859_1)));
 
+	/**
+	 * The scheme/host/port of the configured, admin-controlled CouchDB endpoint,
+	 * parsed once at class load. Whenever this is non-null, every outgoing
+	 * request URI is re-validated against it in <a href="#{@link}">{@link
+	 * CouchUtil#buildCouchUri}</a> so that no caller-supplied value (a document
+	 * id, partition, or revision) can ever redirect a CouchDB request to a
+	 * different, attacker-chosen host. Null if COUCH_ENDPOINT is unset (CouchDB
+	 * support not configured, e.g. COUCH_ENABLED is false) or is not a valid
+	 * absolute URI; in that case there is no trusted host to pin requests to, so
+	 * buildCouchUri falls back to its pre-existing behavior rather than refusing
+	 * every request outright.
+	 */
+	private static final URI COUCH_ENDPOINT_URI = parseEndpointUri(COUCH_ENDPOINT);
+
 	private static final ObjectMapper MAPPER = new ObjectMapper();
+
+	/**
+	 * Parse and validate the configured CouchDB endpoint once at class load.
+	 *
+	 * @param endpoint The configured COUCH_ENDPOINT value
+	 * @return The parsed URI if endpoint is a valid absolute URI with a host,
+	 *         otherwise null
+	 */
+	// package-private (rather than private) so it can be unit tested directly
+	static URI parseEndpointUri(String endpoint) {
+		if (StringUtils.isEmpty(endpoint)) {
+			return null;
+		}
+		try {
+			URI parsed = new URI(endpoint);
+			if (parsed.getScheme() == null || parsed.getHost() == null) {
+				classLogger.error(
+						"COUCH_ENDPOINT '{}' is not an absolute URI with a host, so CouchDB requests cannot be pinned to it. Configure an absolute URI (e.g. http://host:port/db/) to enable SSRF host validation.",
+						endpoint);
+				return null;
+			}
+			return parsed;
+		} catch (URISyntaxException e) {
+			classLogger.error(
+					"COUCH_ENDPOINT '{}' is not a valid URI, so CouchDB requests cannot be pinned to it. Configure a valid absolute URI to enable SSRF host validation.",
+					endpoint, e);
+			return null;
+		}
+	}
 
 	/**
 	 * Retrieve the image attachment data from a CouchDB document in the given
@@ -433,26 +479,25 @@ public class CouchUtil {
 	 * used to form a document selector with key = value over all key-value pairs in
 	 * the map. The JSON created is of the form: {"selector": { "key1": {"$eq":
 	 * "value1"}, "key2": {"$eq": "value2"}, ... }}
-	 * 
+	 *
+	 * Keys and values are written through Jackson's JSON generator rather than by
+	 * hand-concatenating strings, so a value containing a double quote or
+	 * backslash cannot break out of its {@code $eq} clause and inject additional
+	 * Mango selector operators (for example {@code $regex} or {@code $or}) that
+	 * would widen the search beyond the intended partition/field match.
+	 *
 	 * @param referenceData A map whose key-value pairs are used to build the
 	 *                      selector
 	 * @return The selector JSON String
 	 */
-	private static String getSelectorString(Map<String, String> referenceData) {
-		StringBuilder selectorBuilder = new StringBuilder("{\"selector\": {");
-		for (String key : referenceData.keySet()) {
-			String searchValue = referenceData.get(key);
-			selectorBuilder.append("\"").append(key).append("\":{\"$eq\":");
-			if (searchValue == null) {
-				selectorBuilder.append("null");
-			} else {
-				selectorBuilder.append("\"").append(searchValue).append("\"");
-			}
-			selectorBuilder.append("},");
+	// package-private (rather than private) so it can be unit tested directly
+	static String getSelectorString(Map<String, String> referenceData) {
+		ObjectNode selectorNode = MAPPER.createObjectNode();
+		ObjectNode fieldsNode = selectorNode.putObject("selector");
+		for (Map.Entry<String, String> entry : referenceData.entrySet()) {
+			fieldsNode.putObject(entry.getKey()).put("$eq", entry.getValue());
 		}
-		selectorBuilder.replace(selectorBuilder.length() - 1, selectorBuilder.length(), "");
-		selectorBuilder.append("}}");
-		return selectorBuilder.toString();
+		return selectorNode.toString();
 	}
 
 	/**
@@ -518,6 +563,8 @@ public class CouchUtil {
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.DATABASE,
 							databaseId, databaseName);
+					requireWithinBase(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.DATABASE),
+							imagePath);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 
@@ -541,6 +588,8 @@ public class CouchUtil {
 				} else {
 					String imagePath = EngineUtility.getSpecificEngineVersionFolder(IEngine.CATALOG_TYPE.PROJECT,
 							projectId, projectName);
+					requireWithinBase(EngineUtility.getLocalEngineBaseDirectory(IEngine.CATALOG_TYPE.PROJECT),
+							imagePath);
 					images = InsightUtility.findImageFile(imagePath);
 				}
 
@@ -556,8 +605,9 @@ public class CouchUtil {
 				}
 			} else {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
-				String imagePath = AssetUtility.getProjectVersionFolder(projectName, projectId) + DIR_SEPARATOR
-						+ insightId;
+				String projectVersionFolder = AssetUtility.getProjectVersionFolder(projectName, projectId);
+				String imagePath = projectVersionFolder + DIR_SEPARATOR + insightId;
+				requireWithinBase(projectVersionFolder, imagePath);
 				File[] images = InsightUtility.findImageFile(imagePath);
 
 				File insightImageFile = null;
@@ -596,6 +646,102 @@ public class CouchUtil {
 	}
 
 	/**
+	 * Canonicalize a directory path built from a caller-supplied identifier
+	 * (database, project, or insight id) and verify it still resides within the
+	 * expected, trusted base directory before any file in it is read. This
+	 * guards against path traversal if an id ever contains sequences such as
+	 * {@code ../} that could otherwise walk the resolved path outside of the
+	 * intended image directory.
+	 *
+	 * @param expectedBase  The trusted root directory the resolved path must stay
+	 *                      under. A null is treated as "unknown" and skips the
+	 *                      check, since there is nothing trustworthy to compare
+	 *                      against
+	 * @param candidatePath The directory path built using caller-supplied
+	 *                      identifiers. A null is likewise treated as nothing to
+	 *                      validate
+	 * @return The canonicalized <a href="#{@link}">{@link File}</a> for
+	 *         candidatePath, or null if either argument was null
+	 * @throws CouchException If the path cannot be canonicalized or resolves
+	 *                         outside of expectedBase
+	 */
+	// package-private (rather than private) so it can be unit tested directly
+	static File requireWithinBase(String expectedBase, String candidatePath) throws CouchException {
+		if (expectedBase == null || candidatePath == null) {
+			return null;
+		}
+		File base;
+		File candidate;
+		try {
+			base = new File(expectedBase).getCanonicalFile();
+			candidate = new File(candidatePath).getCanonicalFile();
+		} catch (IOException e) {
+			throw new CouchException("Unable to resolve image directory path", e);
+		}
+		String basePath = base.getPath();
+		String candidatePathStr = candidate.getPath();
+		if (!candidatePathStr.equals(basePath) && !candidatePathStr.startsWith(basePath + File.separator)) {
+			classLogger.error("Rejected image path '{}' which resolves outside of the expected base directory '{}'.",
+					candidatePath, expectedBase);
+			throw new CouchException("Resolved image path is outside of the expected base directory");
+		}
+		return candidate;
+	}
+
+	/**
+	 * Build and validate the URI for a CouchDB request from a caller-supplied
+	 * path and query suffix (e.g. a document id, partition, or revision). The
+	 * resulting URI's scheme, host, and port are compared against the
+	 * configured, admin-controlled <a href="#{@link}">{@link
+	 * CouchUtil#COUCH_ENDPOINT_URI}</a> so that a crafted suffix can never
+	 * redirect the request to a different, attacker-chosen host (SSRF).
+	 *
+	 * @param pathAndQuery The path (and optional query string) to append to
+	 *                      COUCH_ENDPOINT
+	 * @return A validated <a href="#{@link}">{@link URI}</a> safe to use for an
+	 *         HTTP request to CouchDB
+	 * @throws CouchException If the suffix cannot be resolved into a valid URI,
+	 *                         or a configured COUCH_ENDPOINT is set but the
+	 *                         resulting URI does not target that host
+	 */
+	// package-private (rather than private) so it can be unit tested directly
+	static URI buildCouchUri(String pathAndQuery) throws CouchException {
+		URI requestUri;
+		try {
+			requestUri = new URI(COUCH_ENDPOINT + pathAndQuery);
+		} catch (URISyntaxException e) {
+			throw new CouchException("Unable to build a valid CouchDB request URI", e);
+		}
+		// only enforce host pinning when a valid, absolute endpoint is configured;
+		// there is otherwise no trusted authority to compare against
+		if (COUCH_ENDPOINT_URI != null && !matchesAuthority(requestUri, COUCH_ENDPOINT_URI)) {
+			classLogger.error("Rejected CouchDB request URI '{}' which does not target the configured endpoint '{}'.",
+					requestUri, COUCH_ENDPOINT_URI);
+			throw new CouchException("Rejected CouchDB request outside of the configured endpoint host");
+		}
+		return requestUri;
+	}
+
+	/**
+	 * Compare the scheme, host, and port that a request URI would actually be
+	 * sent to against the expected, trusted authority. Used to confirm a CouchDB
+	 * request URI built from caller-supplied data still resolves to the
+	 * configured, admin-controlled CouchDB instance rather than an
+	 * attacker-chosen host.
+	 *
+	 * @param requestUri The URI that would be used for the outgoing request
+	 * @param expected   The trusted URI whose scheme/host/port the request must
+	 *                   match
+	 * @return true if scheme, host, and port all match
+	 */
+	// package-private (rather than private) so it can be unit tested directly
+	static boolean matchesAuthority(URI requestUri, URI expected) {
+		return Objects.equals(requestUri.getScheme(), expected.getScheme())
+				&& Objects.equals(requestUri.getHost(), expected.getHost())
+				&& requestUri.getPort() == expected.getPort();
+	}
+
+	/**
 	 * Call CouchDB with an HTTP HEAD request to /{db}/{docid} to lookup document
 	 * information.
 	 * 
@@ -609,7 +755,7 @@ public class CouchUtil {
 	 * @throws CouchException If an exception is encountered during the request
 	 */
 	private static CouchResponse retrieveDocumentInfo(String documentId) throws CouchException {
-		HttpHead documentInfoGet = new HttpHead(COUCH_ENDPOINT + documentId);
+		HttpHead documentInfoGet = new HttpHead(buildCouchUri(documentId));
 		CouchResponse response = executeRequest(documentInfoGet);
 		classLogger.debug("Successfully retrieved info: {}", response);
 		return response;
@@ -690,9 +836,9 @@ public class CouchUtil {
 		try {
 			HttpPut docCreate;
 			if (revisionId == null) {
-				docCreate = new HttpPut(COUCH_ENDPOINT + documentId);
+				docCreate = new HttpPut(buildCouchUri(documentId));
 			} else {
-				docCreate = new HttpPut(COUCH_ENDPOINT + documentId + "?rev=" + revisionId);
+				docCreate = new HttpPut(buildCouchUri(documentId + "?rev=" + revisionId));
 			}
 			docCreate.setEntity(new StringEntity(documentData.toString()));
 			CouchResponse response = executeRequest(docCreate);
@@ -726,7 +872,7 @@ public class CouchUtil {
 	private static CouchResponse retrieveDocumentsInPartitionForSelector(String partitionId, String selector)
 			throws CouchException {
 		try {
-			HttpPost findPost = new HttpPost(COUCH_ENDPOINT + "_partition/" + partitionId + "/_find");
+			HttpPost findPost = new HttpPost(buildCouchUri("_partition/" + partitionId + "/_find"));
 			findPost.setEntity(new StringEntity(selector));
 			// Explicitly tell CouchDB to expect a JSON to avoid 415 errors
 			findPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
@@ -755,7 +901,7 @@ public class CouchUtil {
 	 * @throws CouchException If an exception is encountered
 	 */
 	private static CouchResponse retrieveDocument(String documentId, boolean withAttachments) throws CouchException {
-		HttpGet documentGet = new HttpGet(COUCH_ENDPOINT + documentId + "?attachments=" + withAttachments);
+		HttpGet documentGet = new HttpGet(buildCouchUri(documentId + "?attachments=" + withAttachments));
 		// add accepts application/json to get the attachment data in the JSON structure
 		// instead of as multipart
 		documentGet.setHeader(HttpHeaders.ACCEPT, "application/json");
@@ -780,7 +926,7 @@ public class CouchUtil {
 	 * @throws CouchException If an exception is encountered
 	 */
 	private static CouchResponse deleteDocument(String documentId, String revisionId) throws CouchException {
-		HttpDelete documentDelete = new HttpDelete(COUCH_ENDPOINT + documentId + "?rev=" + revisionId);
+		HttpDelete documentDelete = new HttpDelete(buildCouchUri(documentId + "?rev=" + revisionId));
 		CouchResponse response = executeRequest(documentDelete);
 		classLogger.debug("Successful document deletion: {}", response);
 		return response;
