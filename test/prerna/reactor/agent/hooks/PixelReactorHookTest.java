@@ -41,6 +41,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -117,6 +120,26 @@ class PixelReactorHookTest {
 						.put(PixelReactorHook.EVT_AFTER_TOOL).put(PixelReactorHook.EVT_AFTER_RUN)
 						.put(PixelReactorHook.EVT_BEFORE_AGENT_DEINIT));
 		hook.configure(spec); // no throw
+	}
+
+	@Test
+	void configureRejectsBindingUnavailableAtSelectedEvent() {
+		JSONObject spec = new JSONObject();
+		spec.put("pixel", "LogIt([hookOutput]);");
+		spec.put("events", new JSONArray().put(PixelReactorHook.EVT_BEFORE_RUN));
+		spec.put("bindings", new JSONObject().put("hookOutput", "result.finalText"));
+
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () -> hook.configure(spec));
+		assertTrue(ex.getMessage().contains("not available"));
+	}
+
+	@Test
+	void configureRejectsEventSpecificBindingWhenHookFiresOnAllEvents() {
+		JSONObject spec = new JSONObject();
+		spec.put("pixel", "LogIt([hookOutput]);");
+		spec.put("bindings", new JSONObject().put("hookOutput", "tool.resultContent"));
+
+		assertThrows(IllegalArgumentException.class, () -> hook.configure(spec));
 	}
 
 	// ---------- event firing ----------
@@ -248,7 +271,7 @@ class PixelReactorHookTest {
 	}
 
 	@Test
-	void keepsBindingAndPixelExecutionAtomicOnTheVarStore() {
+	void hidesTemporaryBindingFromConcurrentVarStoreReads() throws Exception {
 		VarStore varStore = new VarStore();
 		when(insight.getVarStore()).thenReturn(varStore);
 		JSONObject spec = new JSONObject();
@@ -257,15 +280,26 @@ class PixelReactorHookTest {
 		spec.put("bindings", new JSONObject().put("hookOutput", "tool.resultContent"));
 		hook.configure(spec);
 
+		CountDownLatch concurrentReadStarted = new CountDownLatch(1);
+		CompletableFuture<Object> concurrentRead = new CompletableFuture<>();
 		doAnswer(invocation -> {
 			assertTrue(Thread.holdsLock(varStore),
 					"The VarStore monitor must cover binding, Pixel execution, and restoration");
 			assertEquals("result-text", varStore.get("hookOutput").getValue());
+			Thread reader = new Thread(() -> {
+				concurrentReadStarted.countDown();
+				concurrentRead.complete(varStore.get("hookOutput"));
+			});
+			reader.start();
+			assertTrue(concurrentReadStarted.await(1, TimeUnit.SECONDS));
+			assertFalse(concurrentRead.isDone(),
+					"Concurrent reads must wait until temporary bindings are removed");
 			return null;
 		}).when(insight).runPixel("LogIt();");
 
 		hook.afterTool(ctx, "Bash", "c", new HashMap<>(), "result-text", 42L, true, 3);
 
 		assertFalse(varStore.containsKey("hookOutput"), "Temporary binding must be removed after the Pixel runs");
+		assertEquals(null, concurrentRead.get(1, TimeUnit.SECONDS));
 	}
 }

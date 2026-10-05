@@ -122,13 +122,13 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	@Override
-	public NounMetadata get(String varName) {
+	public synchronized NounMetadata get(String varName) {
 		varName = cleanVarName(varName);
 		return varMap.get(varName);
 	}
 	
 	@Override
-	public NounMetadata getEvaluatedValue(String varName) {
+	public synchronized NounMetadata getEvaluatedValue(String varName) {
 		varName = cleanVarName(varName);
 		NounMetadata valueNoun = varMap.get(varName);
 		if(valueNoun != null) {
@@ -152,7 +152,7 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 	
 	@Override
-	public boolean containsKey(String varName) {
+	public synchronized boolean containsKey(String varName) {
 		varName = cleanVarName(varName);
 		return varMap.containsKey(varName);
 	}

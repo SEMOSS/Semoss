@@ -131,17 +131,7 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
                 EVT_BEFORE_TOOL, EVT_AFTER_TOOL, EVT_AFTER_RUN, EVT_BEFORE_AGENT_DEINIT);
         List<Map<String, Object>> bindingSources = new ArrayList<>();
         for (String source : BINDING_SOURCES) {
-            Set<String> sourceEvents;
-            if (source.equals("result") || source.startsWith("result.")) {
-                sourceEvents = RESULT_EVENTS;
-            } else if (source.equals("tool.resultContent") || source.equals("tool.durationMs")
-                    || source.equals("tool.success")) {
-                sourceEvents = AFTER_TOOL_EVENTS;
-            } else if (source.equals("tool") || source.startsWith("tool.")) {
-                sourceEvents = TOOL_EVENTS;
-            } else {
-                sourceEvents = KNOWN_EVENTS;
-            }
+            Set<String> sourceEvents = eventsForBindingSource(source);
             Map<String, Object> definition = new LinkedHashMap<>();
             definition.put("source", source);
             definition.put("events", events.stream().filter(sourceEvents::contains).toList());
@@ -207,6 +197,29 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
                 this.eventFilter = filter;
             }
         }
+
+        Set<String> firingEvents = eventFilter.isEmpty() ? KNOWN_EVENTS : eventFilter;
+        for (Map.Entry<String, String> binding : bindings.entrySet()) {
+            if (!eventsForBindingSource(binding.getValue()).containsAll(firingEvents)) {
+                throw new IllegalArgumentException("PixelReactorHook: binding '" + binding.getKey()
+                        + "' source '" + binding.getValue()
+                        + "' is not available at every configured event");
+            }
+        }
+    }
+
+    private static Set<String> eventsForBindingSource(String source) {
+        if (source.equals("result") || source.startsWith("result.")) {
+            return RESULT_EVENTS;
+        }
+        if (source.equals("tool.resultContent") || source.equals("tool.durationMs")
+                || source.equals("tool.success")) {
+            return AFTER_TOOL_EVENTS;
+        }
+        if (source.equals("tool") || source.startsWith("tool.")) {
+            return TOOL_EVENTS;
+        }
+        return KNOWN_EVENTS;
     }
 
     // IAgentRunHook lifecycle
