@@ -752,6 +752,53 @@ public final class FileSystemUtil {
 	}
 
 	/**
+	 * Copies a single file between two already-resolved absolute paths, typically in
+	 * different asset spaces. Directories are rejected, and an existing destination
+	 * is only replaced when {@code override} is true. Error messages only mention
+	 * file names, never absolute paths.
+	 *
+	 * @param sourceAbsolutePath the file to copy
+	 * @param targetAbsolutePath where to copy it
+	 * @param override           replace an existing destination file
+	 * @return the size of the copied file in bytes
+	 */
+	public static long copyResolvedFile(String sourceAbsolutePath, String targetAbsolutePath, boolean override) {
+		File source = new File(sourceAbsolutePath);
+		File target = new File(targetAbsolutePath);
+		if (!source.exists()) {
+			throw new IllegalArgumentException("Cannot find file to copy: " + source.getName());
+		}
+		if (source.isDirectory()) {
+			throw new IllegalArgumentException("Only files can be copied. '" + source.getName() + "' is a directory");
+		}
+		Path sourcePath = source.toPath().toAbsolutePath().normalize();
+		Path targetPath = target.toPath().toAbsolutePath().normalize();
+		if (sourcePath.equals(targetPath)) {
+			throw new IllegalArgumentException("Source and destination are the same file");
+		}
+		if (target.exists()) {
+			if (target.isDirectory()) {
+				throw new IllegalArgumentException("The destination '" + target.getName() + "' is an existing directory");
+			}
+			if (!override) {
+				throw new IllegalArgumentException(
+						"A file already exists at the destination: " + target.getName() + ". Pass override=true to replace it");
+			}
+		}
+		try {
+			FileUtils.forceMkdirParent(target);
+			FileUtils.copyFile(source, target);
+		} catch (IOException e) {
+			classLogger.error("Error copying file {} to {}", sourceAbsolutePath, targetAbsolutePath, e);
+			SemossPixelException ex = new SemossPixelException(
+					NounMetadata.getErrorNounMessage("Failed to copy " + source.getName()));
+			ex.setContinueThreadOfExecution(false);
+			throw ex;
+		}
+		return target.length();
+	}
+
+	/**
 	 * Copies a file or directory within the asset folder.
 	 * 
 	 * @param assetFolder    The base folder for the assets.
@@ -913,9 +960,10 @@ public final class FileSystemUtil {
 
 			String filePath = assetFolder + "/" + fileName;
 			String content = contents.get(i);
+			byte[] decodedBytes = null;
 			if (decodeBase64) {
 				try {
-					content = new String(Base64.getDecoder().decode(content), StandardCharsets.UTF_8);
+					decodedBytes = Base64.getDecoder().decode(content);
 				} catch (Exception e) {
 					throw new IllegalArgumentException(
 							"Failed to decode string input: input is not base64-encoded utf-8 string", e);
@@ -924,7 +972,13 @@ public final class FileSystemUtil {
 
 			File file = new File(filePath);
 			try {
-				FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				if (decodedBytes != null) {
+					// write the decoded bytes directly - routing them through a
+					// String corrupts binary content (pptx, images, pdf, etc.)
+					FileUtils.writeByteArrayToFile(file, decodedBytes);
+				} else {
+					FileUtils.writeStringToFile(file, content, StandardCharsets.UTF_8);
+				}
 			} catch (IOException e) {
 				classLogger.error("Error saving asset file {}", fileName, e);
 				NounMetadata error = NounMetadata.getErrorNounMessage("Unable to save file: " + fileName);

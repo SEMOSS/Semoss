@@ -98,7 +98,7 @@ public class PBEncryptionUtility {
 	private static final SecureRandom RANDOM = new SecureRandom();
 
 	private PBEncryptionUtility() {
-		// static utility
+
 	}
 
 	/**

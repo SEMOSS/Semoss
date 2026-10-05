@@ -25,51 +25,23 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *******************************************************************************/
 package prerna.reactor.agent.run;
 
-public final class AgentRunRecord {
-
-	private final String runId;
-	private final String roomId;
-	private final AgentRunStatus status;
-	private final RunAgentRequest request;
-	private final String userId;
-	private final String jobId;
-
-	public AgentRunRecord(String runId, String roomId, AgentRunStatus status, RunAgentRequest request, String userId,
-			String jobId) {
-		this.runId = runId;
-		this.roomId = roomId;
-		this.status = status;
-		this.request = request;
-		this.userId = userId;
-		this.jobId = jobId;
-	}
-
-	public String getRunId() {
-		return runId;
-	}
-
-	public String getRoomId() {
-		return roomId;
-	}
-
-	public AgentRunStatus getStatus() {
-		return status;
-	}
-
-	public RunAgentRequest getRequest() {
-		return request;
-	}
-
-	public String getUserId() {
-		return userId;
-	}
-
-	public String getJobId() {
-		return jobId;
-	}
+/**
+ * One {@code AGENT_RUN} row, read back into memory.
+ *
+ * <p>
+ * Holds the run's identity and status alongside the {@link AgentRunRequest}
+ * rehydrated from the {@code REQUEST_JSON} column, which is what lets the
+ * worker execute a run it did not receive itself.
+ *
+ * @param runId   durable id of the run
+ * @param roomId  room the run belongs to
+ * @param status  status as of the read
+ * @param request the submission this run was created from
+ * @param userId  owner of the run
+ * @param jobId   id the streaming and logging layers key on
+ */
+public record AgentRunRecord(String runId, String roomId, AgentRunStatus status, AgentRunRequest request, String userId,
+		String jobId) {
 }

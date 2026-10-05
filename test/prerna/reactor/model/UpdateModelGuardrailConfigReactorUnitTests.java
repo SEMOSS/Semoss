@@ -38,6 +38,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 import prerna.reactor.interceptor.GenericGuardrailInputReactor;
+import prerna.reactor.interceptor.GenericGuardrailOutputReactor;
 
 class UpdateModelGuardrailConfigReactorUnitTests {
 
@@ -118,6 +119,50 @@ class UpdateModelGuardrailConfigReactorUnitTests {
 		assertTrue(overridden.getMessage().contains("does not override"));
 	}
 
+	@Test
+	void toolContinuationSkipIsOffUntilAMountAsksForIt() {
+		// the settings a mount leaves out keep it screening tool-result turns
+		assertDoesNotThrow(() -> UpdateModelGuardrailConfigReactor.validateConfigStructure(config(validParams())));
+
+		Map<String, Object> blanket = validParams();
+		blanket.put("skipOnToolContinuationForAllTools", true);
+		blanket.put("toolContinuationArg", "arg0");
+		assertDoesNotThrow(() -> UpdateModelGuardrailConfigReactor.validateConfigStructure(config(blanket)));
+
+		Map<String, Object> allowlisted = validParams();
+		allowlisted.put("skipOnToolContinuationForTools", List.of("a1234_search"));
+		assertDoesNotThrow(() -> UpdateModelGuardrailConfigReactor.validateConfigStructure(config(allowlisted)));
+	}
+
+	@Test
+	void validatesToolContinuationSkipTypes() {
+		assertInvalidParam("skipOnToolContinuationForAllTools", "true", "must be a boolean");
+		assertInvalidParam("skipOnToolContinuationForTools", "search", "must be a list of tool names");
+		assertInvalidParam("skipOnToolContinuationForTools", List.of(" "), "must contain non-empty tool names");
+		assertInvalidParam("toolContinuationArg", true, "must be a non-empty string");
+	}
+
+	@Test
+	void rejectsAToolContinuationArgWithoutASkip() {
+		Map<String, Object> params = validParams();
+		params.put("toolContinuationArg", "arg0");
+
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> UpdateModelGuardrailConfigReactor.validateConfigStructure(config(params)));
+		assertTrue(exception.getMessage().contains("can only be set when"));
+	}
+
+	@Test
+	void rejectsToolContinuationSkipOnAnOutputGuardrail() {
+		Map<String, Object> params = validParams();
+		params.put("skipOnToolContinuationForAllTools", true);
+
+		// a tool-result continuation is an argument, so there is nothing to skip on the way out
+		IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+				() -> UpdateModelGuardrailConfigReactor.validateConfigStructure(outputConfig(params)));
+		assertTrue(exception.getMessage().contains("skipping tool-result continuations requires an 'input' guardrail"));
+	}
+
 	private static void assertInvalidParam(String key, Object value, String expectedMessage) {
 		Map<String, Object> params = validParams();
 		params.put(key, value);
@@ -132,6 +177,13 @@ class UpdateModelGuardrailConfigReactorUnitTests {
 		params.put("guardrailEngineId", "guardrail-engine-id");
 		params.put("inputMapping", Map.of("prompt", "arg0"));
 		return params;
+	}
+
+	private static Map<String, Object> outputConfig(Map<String, Object> params) {
+		Map<String, Object> guardrail = Map.of("reactorClass", GenericGuardrailOutputReactor.class.getName(), "params",
+				params);
+		Map<String, Object> pipeline = Map.of("output", List.of(guardrail));
+		return Map.of("pipelines", Map.of("askCall", pipeline));
 	}
 
 	private static Map<String, Object> config(Map<String, Object> params) {

@@ -128,12 +128,12 @@ Each row in `output.data.values` is a 6-tuple:
 
 `pixelReturn[0].output` contains:
 
-- `data.values` — 2D array of rows; each row is a tuple whose cells align with `data.headers`
-- `data.headers` — display column names (aliased where the query aliased them)
-- `data.rawHeaders` — raw underlying column names
-- `headerInfo[]` — per-column metadata `{ dataType, alias, header, type, derived }`
-- `sources[]` — engines that served the query: `{ name, type }`
-- `numCollected` — number of rows actually returned (bounded by `limit`)
+- `data.values` - 2D array of rows; each row is a tuple whose cells align with `data.headers`
+- `data.headers` - display column names (aliased where the query aliased them)
+- `data.rawHeaders` - raw underlying column names
+- `headerInfo[]` - per-column metadata `{ dataType, alias, header, type, derived }`
+- `sources[]` - engines that served the query: `{ name, type }`
+- `numCollected` - number of rows actually returned (bounded by `limit`)
 
 For the full response schema, see `references/response-schema.md`.
 
@@ -166,10 +166,10 @@ const databases = pixelReturn[0].output as Array<{
 
 `MyEngines` accepts several optional arguments. All are arrays, even when passing a single value:
 
-- `filterWord=["sales"]` — substring match against engine name.
-- `limit=[50]`, `offset=[0]` — paging. Omit both to return all results.
-- `onlyFavorites=[true]` — restrict to the user's favorited engines.
-- `sort={"ENGINENAME": "ASC"}` — sort by `ENGINENAME` or `DATECREATED`, direction `ASC` or `DESC`.
+- `filterWord=["sales"]` - substring match against engine name.
+- `limit=[50]`, `offset=[0]` - paging. Omit both to return all results.
+- `onlyFavorites=[true]` - restrict to the user's favorited engines.
+- `sort={"ENGINENAME": "ASC"}` - sort by `ENGINENAME` or `DATECREATED`, direction `ASC` or `DESC`.
 
 ```
 MyEngines(engineTypes=["DATABASE"], filterWord=["sales"], sort={"ENGINENAME": "ASC"}, limit=[20], offset=[0]);
@@ -177,9 +177,9 @@ MyEngines(engineTypes=["DATABASE"], filterWord=["sales"], sort={"ENGINENAME": "A
 
 ### Response field conventions
 
-Use `engine_*` fields (`engine_id`, `engine_name`, `engine_display_name`, `engine_subtype`, etc.). The response also contains `app_*` and `database_*` fields with the same values — these are legacy aliases and should not be used in new code.
+Use `engine_*` fields (`engine_id`, `engine_name`, `engine_display_name`, `engine_subtype`, etc.). The response also contains `app_*` and `database_*` fields with the same values - these are legacy aliases and should not be used in new code.
 
-Common pattern — render a picker and use the selected `engine_id` as `DATABASE_ID` in the `SqlQuery()` call above:
+Common pattern - render a picker and use the selected `engine_id` as `DATABASE_ID` in the `SqlQuery()` call above:
 
 ```typescript
 const [databases, setDatabases] = useState<Database[]>([]);
@@ -239,26 +239,26 @@ Full response shape returned from a `runPixel` call that wraps a `SqlQuery()` or
 
 ## Envelope fields
 
-- `insightID` — The insight ID used for the pixel execution.
-- `pixelReturn[]` — array of results, one per pixel command in the call. For a single query pixel, always index `[0]`.
+- `insightID` - The insight ID used for the pixel execution.
+- `pixelReturn[]` - array of results, one per pixel command in the call. For a single query pixel, always index `[0]`.
 
 ## pixelReturn[0] fields
 
-- `pixelId` — sequence ID of the command within the call.
-- `pixelExpression` — the parsed pixel string the platform actually executed. Useful for debugging encoding issues.
-- `isMeta` — internal flag; ignore for query responses.
-- `timeToRun` — execution time in milliseconds.
-- `operationType` — categorization of the pixel; `["OPERATION"]` for database queries.
+- `pixelId` - sequence ID of the command within the call.
+- `pixelExpression` - the parsed pixel string the platform actually executed. Useful for debugging encoding issues.
+- `isMeta` - internal flag; ignore for query responses.
+- `timeToRun` - execution time in milliseconds.
+- `operationType` - categorization of the pixel; `["OPERATION"]` for database queries.
 
-## pixelReturn[0].output fields — the query response
+## pixelReturn[0].output fields - the query response
 
-- `data.values` _(array of arrays)_ — rows returned by the query. Each row is a tuple whose cells align positionally with `data.headers`. **Use this as the primary payload.**
-- `data.headers` _(string[])_ — display column names. Aliased where the query aliased them.
-- `data.rawHeaders` _(string[])_ — raw underlying column names as reported by the engine (before any aliasing).
-- `headerInfo[]` — per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a platform transform rather than the underlying SQL.
-- `sources[]` — `{ name, type }` identifying the engine(s) queried. `name` is the database engine ID; `type` is typically `"RAW_ENGINE_QUERY"`.
-- `numCollected` _(number)_ — number of rows actually returned, bounded by the `limit` argument.
-- `taskId` _(string | "null")_ — background-task ID when the query streamed; the literal string `"null"` for synchronous returns.
+- `data.values` _(array of arrays)_ - rows returned by the query. Each row is a tuple whose cells align positionally with `data.headers`. **Use this as the primary payload.**
+- `data.headers` _(string[])_ - display column names. Aliased where the query aliased them.
+- `data.rawHeaders` _(string[])_ - raw underlying column names as reported by the engine (before any aliasing).
+- `headerInfo[]` - per-column metadata, one entry per column, each `{ dataType, alias, header, type, derived }`. `dataType` / `type` values include `"STRING"`, `"NUMBER"`, `"DATE"`, etc. `derived` is `true` for columns produced by a platform transform rather than the underlying SQL.
+- `sources[]` - `{ name, type }` identifying the engine(s) queried. `name` is the database engine ID; `type` is typically `"RAW_ENGINE_QUERY"`.
+- `numCollected` _(number)_ - number of rows actually returned, bounded by the `limit` argument.
+- `taskId` _(string | "null")_ - background-task ID when the query streamed; the literal string `"null"` for synchronous returns.
 
 ## Variant: `GetDatabaseTableStructure`
 

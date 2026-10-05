@@ -87,6 +87,9 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 	private static final String BLOCK_ERROR_MESSAGE_KEY = "blockErrorMessage";
 	private static final String INPUT_MAPPING_KEY = "inputMapping";
 	private static final String DIRECT_PARAMETERS_KEY = "directParameters";
+	private static final String SKIP_TOOL_CONTINUATION_ALL_KEY = "skipOnToolContinuationForAllTools";
+	private static final String SKIP_TOOL_CONTINUATION_TOOLS_KEY = "skipOnToolContinuationForTools";
+	private static final String TOOL_CONTINUATION_ARG_KEY = "toolContinuationArg";
 	private static final String DEFAULT_PIPELINE_FILE = "pipeline.json";
 
 	private static final Set<String> INPUT_REACTOR_WHITELIST = new HashSet<>(
@@ -96,7 +99,8 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 
 	private static final Set<String> ALLOWED_PARAM_KEYS = new HashSet<>(Arrays.asList(GUARDRAIL_ENGINE_ID_KEY,
 			BLOCK_ON_FAILURE_KEY, MASK_ON_FAILURE_KEY, RESPOND_WITH_GUARDRAIL_MESSAGE_KEY, CLOSE_ROOM_ON_BLOCK_KEY,
-			BLOCK_ERROR_MESSAGE_KEY, INPUT_MAPPING_KEY, DIRECT_PARAMETERS_KEY));
+			BLOCK_ERROR_MESSAGE_KEY, INPUT_MAPPING_KEY, DIRECT_PARAMETERS_KEY, SKIP_TOOL_CONTINUATION_ALL_KEY,
+			SKIP_TOOL_CONTINUATION_TOOLS_KEY, TOOL_CONTINUATION_ARG_KEY));
 
 	public UpdateModelGuardrailConfigReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey() };
@@ -267,6 +271,57 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 		return entries.size();
 	}
 
+	/**
+	 * Validates the settings that let one guardrail stop screening the agent loop's
+	 * tool-result turns. Both switches are off unless a mount sets them, so leaving
+	 * them out keeps that mount screening every turn; they are also input-only,
+	 * since a tool-result continuation is an argument rather than a result.
+	 *
+	 * @param path         config path, for error messages
+	 * @param params       the mount's params map
+	 * @param slotName     input or output
+	 * @param reactorClass the interceptor the mount runs
+	 */
+	private static void validateToolContinuationSkip(String path, Map<?, ?> params, String slotName,
+			String reactorClass) {
+		Object skipForAllTools = params.get(SKIP_TOOL_CONTINUATION_ALL_KEY);
+		if (skipForAllTools != null && !(skipForAllTools instanceof Boolean)) {
+			throw new IllegalArgumentException(path + "." + SKIP_TOOL_CONTINUATION_ALL_KEY + " must be a boolean");
+		}
+
+		Object skipForTools = params.get(SKIP_TOOL_CONTINUATION_TOOLS_KEY);
+		if (skipForTools != null) {
+			if (!(skipForTools instanceof List)) {
+				throw new IllegalArgumentException(
+						path + "." + SKIP_TOOL_CONTINUATION_TOOLS_KEY + " must be a list of tool names");
+			}
+			for (Object toolName : (List<?>) skipForTools) {
+				if (!(toolName instanceof String) || ((String) toolName).trim().isEmpty()) {
+					throw new IllegalArgumentException(path + "." + SKIP_TOOL_CONTINUATION_TOOLS_KEY
+							+ " must contain non-empty tool names, each named as the model sees it");
+				}
+			}
+		}
+
+		Object toolContinuationArg = params.get(TOOL_CONTINUATION_ARG_KEY);
+		if (toolContinuationArg != null
+				&& (!(toolContinuationArg instanceof String) || ((String) toolContinuationArg).trim().isEmpty())) {
+			throw new IllegalArgumentException(path + "." + TOOL_CONTINUATION_ARG_KEY + " must be a non-empty string");
+		}
+
+		boolean skipsAllTools = Boolean.TRUE.equals(skipForAllTools);
+		boolean skipsListedTools = skipForTools instanceof List && !((List<?>) skipForTools).isEmpty();
+		if (toolContinuationArg != null && !skipsAllTools && !skipsListedTools) {
+			throw new IllegalArgumentException(path + "." + TOOL_CONTINUATION_ARG_KEY + " can only be set when "
+					+ SKIP_TOOL_CONTINUATION_ALL_KEY + " or " + SKIP_TOOL_CONTINUATION_TOOLS_KEY + " is enabled");
+		}
+		if ((skipForAllTools != null || skipForTools != null || toolContinuationArg != null) && (!INPUT_KEY
+				.equals(slotName) || !GenericGuardrailInputReactor.class.getName().equals(reactorClass))) {
+			throw new IllegalArgumentException(path + ": skipping tool-result continuations requires an '" + INPUT_KEY
+					+ "' guardrail using " + GenericGuardrailInputReactor.class.getName());
+		}
+	}
+
 	private static void validateParams(String path, Map<?, ?> params, String slotName, String reactorClass) {
 		for (Object paramKey : params.keySet()) {
 			if (!ALLOWED_PARAM_KEYS.contains(paramKey)) {
@@ -324,6 +379,8 @@ public class UpdateModelGuardrailConfigReactor extends AbstractReactor {
 			throw new IllegalArgumentException(
 					path + "." + BLOCK_ERROR_MESSAGE_KEY + " can only be set when blocking on failure");
 		}
+
+		validateToolContinuationSkip(path, params, slotName, reactorClass);
 
 		// without a mapping the interceptor calls the guardrail engine with no
 		// parameters at all, which fails inside the engine at request time

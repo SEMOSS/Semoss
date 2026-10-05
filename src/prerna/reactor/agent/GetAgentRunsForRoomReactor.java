@@ -35,7 +35,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import prerna.reactor.AbstractReactor;
-import prerna.reactor.agent.run.AgentRuntimeManager;
+import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStore;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
@@ -65,7 +65,7 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 		}
 		boolean includeMessages = Boolean.parseBoolean(this.keyValue.get(INCLUDE_MESSAGES_KEY));
 
-		List<Map<String, Object>> runs = new AgentRunStore().getRunsForRoom(this.insight, roomId);
+		List<Map<String, Object>> runs = AgentRunStore.getRunsForRoom(this.insight, roomId);
 		// The store is newest-first for activity logs. Conversation playback is
 		// chronological and only needs top-level runs; children are loaded through
 		// GetSubagentRuns using the durable parentRunId relationship.
@@ -74,7 +74,7 @@ public class GetAgentRunsForRoomReactor extends AbstractReactor {
 		if (includeMessages) {
 			List<Map<String, Object>> enriched = new ArrayList<>(runs.size());
 			for (Map<String, Object> run : runs) {
-				enriched.add(AgentRuntimeManager.get().getRun(String.valueOf(run.get("runId")), this.insight, true));
+				enriched.add(AgentRunService.get().getRun(String.valueOf(run.get("runId")), this.insight, true));
 			}
 			runs = enriched;
 		}

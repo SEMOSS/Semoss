@@ -11,10 +11,6 @@
 			<outputDirectory>config</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>config/docx4j</directory>
-			<outputDirectory>config/docx4j</outputDirectory>
-		</fileSet>
-		<fileSet>
 			<directory>db</directory>
 			<outputDirectory>db</outputDirectory>
 			<includes>
@@ -60,10 +56,6 @@
 			<outputDirectory>guardrail</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>venv</directory>
-			<outputDirectory>venv</outputDirectory>
-		</fileSet>
-		<fileSet>
 			<directory>project</directory>
 			<outputDirectory>project</outputDirectory>
 		</fileSet>
@@ -85,6 +77,18 @@
 		<fileSet>
 			<directory>py</directory>
 			<outputDirectory>py</outputDirectory>
+			<excludes>
+				<exclude>testing/**</exclude>
+				<exclude>install_config/.venv/**</exclude>
+				<exclude>**/__pycache__/**</exclude>
+			</excludes>
+		</fileSet>
+		<fileSet>
+			<directory>js</directory>
+			<outputDirectory>js</outputDirectory>
+			<excludes>
+				<exclude>node_env/node_modules/**</exclude>
+			</excludes>
 		</fileSet>
 		<fileSet>
 			<directory>images</directory>
@@ -102,16 +106,8 @@
 			<outputDirectory>R</outputDirectory>
 		</fileSet>
 		<fileSet>
-			<directory>RDFGraphLib</directory>
-			<outputDirectory>RDFGraphLib</outputDirectory>
-		</fileSet>
-		<fileSet>
 			<directory>rpa</directory>
 			<outputDirectory>rpa</outputDirectory>
-		</fileSet>
-		<fileSet>
-			<directory>upload</directory>
-			<outputDirectory>upload</outputDirectory>
 		</fileSet>
 		<fileSet>
 			<directory>GeoIp2Artifacts</directory>

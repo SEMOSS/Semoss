@@ -5,14 +5,14 @@ description: Use when writing code in an app that saves, retrieves, lists, syncs
 
 # Storage Engine
 
-A **storage engine** is a durable blob/file store the platform proxies for you — S3, Azure Blob, Google Cloud Storage, MinIO, Ceph, SFTP, SMB, or a server-local file system. All storage calls go through `runPixel` from `@semoss/sdk`.
+A **storage engine** is a durable blob/file store the platform proxies for you - S3, Azure Blob, Google Cloud Storage, MinIO, Ceph, SFTP, SMB, or a server-local file system. All storage calls go through `runPixel` from `@semoss/sdk`.
 
-The critical mental model: **the browser never talks to the storage engine directly.** Files move between a *server-side space* (the insight workspace by default) and the storage engine. Getting a browser file into storage — or a storage file back to the user — is therefore always two steps:
+The critical mental model: **the browser never talks to the storage engine directly.** Files move between a *server-side space* (the insight workspace by default) and the storage engine. Getting a browser file into storage - or a storage file back to the user - is therefore always two steps:
 
-- **Upload:** browser → insight space (`uploadInsight`), then `PushToStorage` (insight space → storage).
-- **Download:** `PullFromStorage` (storage → insight space), then serve it to the user (`DownloadAsset` flow) — or skip the round trip with `GetStorageFileAsBase64` for in-page display.
+- **Upload:** browser -> insight space (`uploadInsight`), then `PushToStorage` (insight space -> storage).
+- **Download:** `PullFromStorage` (storage -> insight space), then serve it to the user (`DownloadAsset` flow) - or skip the round trip with `GetStorageFileAsBase64` for in-page display.
 
-## Usage — save a user's file into storage
+## Usage - save a user's file into storage
 
 ```typescript
 import { runPixel, uploadInsight } from "@semoss/sdk";
@@ -54,7 +54,7 @@ const details = await runPixel(
 const rows = details.pixelReturn[0].output as Record<string, unknown>[];
 ```
 
-Folder entries typically end with `/`. Treat the detail-map keys as engine-specific — inspect one response before binding UI to field names.
+Folder entries typically end with `/`. Treat the detail-map keys as engine-specific - inspect one response before binding UI to field names.
 
 ### Pull a file back to the insight space
 
@@ -79,7 +79,7 @@ const base64 = b64.pixelReturn[0].output as string;
 // e.g. <img src={`data:image/png;base64,${base64}`} /> or a PDF viewer blob
 ```
 
-Optional `convertToPdf=[true]` converts doc/docx, xlsx, pptx, and txt content to PDF before encoding — useful for a uniform preview pane. Not every engine supports in-memory reads; the pixel errors with "In-memory blob reading is not supported" when the engine cannot do it, so keep the `PullFromStorage` path as the fallback. Base64 inflates size by ~33% — do not use this for large files.
+Optional `convertToPdf=[true]` converts doc/docx, xlsx, pptx, and txt content to PDF before encoding - useful for a uniform preview pane. Not every engine supports in-memory reads; the pixel errors with "In-memory blob reading is not supported" when the engine cannot do it, so keep the `PullFromStorage` path as the fallback. Base64 inflates size by ~33% - do not use this for large files.
 
 ## Writing and deleting
 
@@ -111,15 +111,15 @@ await runPixel(
 
 `PushToStorage` also accepts `metadata=[{...}]` to tag the object at upload time. Metadata support varies by engine; local file system engines ignore it.
 
-All mutation pixels return `true` in `pixelReturn[0].output`, or an `ERROR` operationType with a message — check `errors` on every call.
+All mutation pixels return `true` in `pixelReturn[0].output`, or an `ERROR` operationType with a message - check `errors` on every call.
 
 ## The space argument
 
 `PushToStorage`, `PullFromStorage`, and both sync pixels accept an optional `space` controlling where `filePath` resolves:
 
-- omitted — the current insight workspace (the default; matches where `uploadInsight` puts files)
-- `space=["<projectId>"]` — the project's asset folder
-- `space=["user"]` — the logged-in user's personal space
+- omitted - the current insight workspace (the default; matches where `uploadInsight` puts files)
+- `space=["<projectId>"]` - the project's asset folder
+- `space=["user"]` - the logged-in user's personal space
 
 ## Access control
 

@@ -45,20 +45,21 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 
 /**
  * Computes agent effectiveness metrics from the canonical AgentRun activity
- * contract: the run map returned by {@code AgentRuntimeManager.getRun(runId,
+ * contract: the run map returned by {@code AgentRunService.getRun(runId,
  * insight, true)}, whose {@code messages} list is already normalized across
  * harnesses (semoss parts come from RoomUtils.getMessagesForClient, claude_code
- * parts are projected from the JSONL transcript by ClaudeCodeRunActivityAdapter).
+ * parts are projected from the JSONL transcript by
+ * ClaudeCodeRunActivityAdapter).
  *
  * Everything here is derived from that one shape so the metrics stay
- * harness-agnostic. Known cross-harness quirks handled below:
- * - toolStatus vocabularies differ (success/error vs COMPLETED/FAILED)
- * - part payload keys have snake_case aliases (tool_call, tool_status, ...)
- * - server-side tools (server_tool=true) never produce a local TOOL_RESULT
- *   and are excluded from failure denominators
- * - per-tool durationMs only exists for claude_code (inside toolParameterValues)
- * - token counts only exist on semoss envelopes; room-level token truth for
- *   both harnesses lives in the inference logs MESSAGE table
+ * harness-agnostic. Known cross-harness quirks handled below: - toolStatus
+ * vocabularies differ (success/error vs COMPLETED/FAILED) - part payload keys
+ * have snake_case aliases (tool_call, tool_status, ...) - server-side tools
+ * (server_tool=true) never produce a local TOOL_RESULT and are excluded from
+ * failure denominators - per-tool durationMs only exists for claude_code
+ * (inside toolParameterValues) - token counts only exist on semoss envelopes;
+ * room-level token truth for both harnesses lives in the inference logs MESSAGE
+ * table
  */
 public final class AgentEffectivenessCalculator {
 
@@ -143,8 +144,7 @@ public final class AgentEffectivenessCalculator {
 					Map<String, Object> toolResult = asMap(
 							firstNonNull(part.get("toolResult"), part.get("tool_result")));
 					if (toolResult != null) {
-						String callId = stringValue(
-								firstNonNull(toolResult.get("toolCallId"), toolResult.get("id")));
+						String callId = stringValue(firstNonNull(toolResult.get("toolCallId"), toolResult.get("id")));
 						if (callId != null) {
 							resultsByCallId.put(callId, toolResult);
 						}
@@ -173,8 +173,7 @@ public final class AgentEffectivenessCalculator {
 			}
 			String callId = stringValue(toolCall.get("id"));
 			Map<String, Object> arguments = asMap(toolCall.get("arguments"));
-			boolean serverTool = booleanValue(
-					firstNonNull(toolCall.get("server_tool"), toolCall.get("serverTool")));
+			boolean serverTool = booleanValue(firstNonNull(toolCall.get("server_tool"), toolCall.get("serverTool")));
 
 			Map<String, Object> toolStats = byTool.computeIfAbsent(name, k -> newToolStats());
 			increment(toolStats, "calls");
@@ -418,8 +417,7 @@ public final class AgentEffectivenessCalculator {
 		rollup.put("runsCancelled", cancelled);
 		rollup.put("runsInFlight", inFlight);
 		rollup.put("runsHitMaxTurns", maxTurnsRuns);
-		rollup.put("runCompletionRate",
-				terminalRuns == 0 ? null : round(completed / (double) terminalRuns));
+		rollup.put("runCompletionRate", terminalRuns == 0 ? null : round(completed / (double) terminalRuns));
 		rollup.put("toolCalls", toolCalls);
 		rollup.put("toolFailures", toolFailures);
 		rollup.put("toolSuccessRate", answered == 0 ? null : round(toolSucceeded / (double) answered));
@@ -431,10 +429,10 @@ public final class AgentEffectivenessCalculator {
 		rollup.put("skillLoadFailures", skillLoadFailures);
 		rollup.put("distinctSkillsLoaded", new ArrayList<>(distinctSkills));
 		rollup.put("byTool", byTool);
-		rollup.put("averageScore", scores.isEmpty() ? null
-				: round(scores.stream().mapToDouble(Double::doubleValue).average().orElse(0)));
-		rollup.put("minScore", scores.isEmpty() ? null
-				: round(scores.stream().mapToDouble(Double::doubleValue).min().orElse(0)));
+		rollup.put("averageScore",
+				scores.isEmpty() ? null : round(scores.stream().mapToDouble(Double::doubleValue).average().orElse(0)));
+		rollup.put("minScore",
+				scores.isEmpty() ? null : round(scores.stream().mapToDouble(Double::doubleValue).min().orElse(0)));
 		rollup.put("scoredRuns", scores.size());
 		return rollup;
 	}
@@ -532,8 +530,8 @@ public final class AgentEffectivenessCalculator {
 	}
 
 	private static Long extractDurationMs(Map<String, Object> toolResult) {
-		Map<String, Object> parameters = asMap(firstNonNull(toolResult.get("toolParameterValues"),
-				toolResult.get("tool_parameter_values")));
+		Map<String, Object> parameters = asMap(
+				firstNonNull(toolResult.get("toolParameterValues"), toolResult.get("tool_parameter_values")));
 		if (parameters == null) {
 			return null;
 		}
@@ -546,10 +544,10 @@ public final class AgentEffectivenessCalculator {
 	// ------------------------------------------------------------------
 
 	/**
-	 * Tracks skill activity across both harness vocabularies: the claude_code
-	 * CLI exposes one "Skill" tool (arguments.skill), while the semoss harness
-	 * exposes "ListSkill" and a paged "LoadSkill" (arguments.skill_name). Loads
-	 * are deduplicated by skill name so LoadSkill paging is not overcounted.
+	 * Tracks skill activity across both harness vocabularies: the claude_code CLI
+	 * exposes one "Skill" tool (arguments.skill), while the semoss harness exposes
+	 * "ListSkill" and a paged "LoadSkill" (arguments.skill_name). Loads are
+	 * deduplicated by skill name so LoadSkill paging is not overcounted.
 	 */
 	private static final class SkillTally {
 		private int listSkillCalls = 0;
@@ -621,8 +619,8 @@ public final class AgentEffectivenessCalculator {
 	}
 
 	/**
-	 * Order-insensitive canonical form of a tool argument payload, used to
-	 * detect byte-identical retries regardless of map key ordering.
+	 * Order-insensitive canonical form of a tool argument payload, used to detect
+	 * byte-identical retries regardless of map key ordering.
 	 */
 	private static String canonicalize(Object value) {
 		if (value == null) {
@@ -693,8 +691,7 @@ public final class AgentEffectivenessCalculator {
 		if (output == null) {
 			return null;
 		}
-		return output.length() <= OUTPUT_PREVIEW_CHARS ? output
-				: output.substring(0, OUTPUT_PREVIEW_CHARS) + "...";
+		return output.length() <= OUTPUT_PREVIEW_CHARS ? output : output.substring(0, OUTPUT_PREVIEW_CHARS) + "...";
 	}
 
 	private static double round(double value) {
