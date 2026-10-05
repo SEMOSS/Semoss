@@ -34,6 +34,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
+import java.io.IOException;
+import java.util.Map;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
@@ -65,6 +68,20 @@ public abstract class AbstractMicrosoftOutlookMessageReactor extends AbstractMic
 
 	/** How much of a body comes back before it is cut short. */
 	protected static final int DEFAULT_MAX_BODY_CHARS = 10_000;
+
+	/** Attachments are supported only while saving drafts, never by a direct reply/forward send. */
+	protected List<Map<String, Object>> draftAttachments(boolean asDraft) throws IOException {
+		GenRowStruct files = this.store.getGenRowStruct("attachments");
+		if (files == null || files.isEmpty()) return List.of();
+		if (!asDraft) throw new IllegalArgumentException("Attachments require asDraft=true.");
+		String[] paths = new String[files.size()];
+		for (int i = 0; i < files.size(); i++) {
+			Object value = files.getNoun(i).getValue();
+			if (!(value instanceof String)) throw new IllegalArgumentException("Attachments must be relative file paths.");
+			paths[i] = MCPUtility.resolveContainedMcpFile(this.insight.getInsightFolder(), (String) value).toString();
+		}
+		return MicrosoftOutlookMailHelper.fileAttachments(paths);
+	}
 
 	/**
 	 * Read the message this reactor was pointed at.

@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -107,5 +108,13 @@ public class MicrosoftCalendarDeleteEventReactor extends AbstractMicrosoftCalend
 			return "Id of the event to delete, as returned by MicrosoftCalendarListEvents.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// changes the user's calendar and can notify attendees, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

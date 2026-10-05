@@ -38,6 +38,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.reactor.automation.definition.AutomationDefinitionService;
+
 /**
  * Covers how the trigger node contributes to a run. The trigger is the only node
  * whose Python lives inside the definition rather than in its own file, so the

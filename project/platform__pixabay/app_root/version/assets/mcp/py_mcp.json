@@ -1,0 +1,112 @@
+{
+    "_meta": {
+        "last_modified_date": "2026-09-28",
+        "file_last_modified_date": "2026-09-28",
+        "source_file": "assets/py/mcp_driver.py"
+    },
+    "tools": [
+        {
+            "name": "search_pixabay_images",
+            "title": "Search Pixabay Images",
+            "description": "Search Pixabay for images and return image URLs, metadata, and attribution links.\n\nArgs:\n    query: URL-search-style keywords, up to 100 characters.\n    image_type: all, photo, illustration, or vector.\n    orientation: all, horizontal, or vertical.\n    category: Optional Pixabay category such as nature, people, or business.\n    min_width: Minimum image width in pixels.\n    min_height: Minimum image height in pixels.\n    colors: Optional comma-separated colors, for example \"blue,green\".\n    editors_choice: Only return images selected by Pixabay editors.\n    safesearch: Only return images suitable for all ages.\n    order: Sort by popular or latest.\n    page: Results page, beginning at 1.\n    per_page: Results per page, from 3 through 200.\n    language: Pixabay query language code, such as en, es, de, or ja.",
+            "inputSchema": {
+                "properties": {
+                    "query": {
+                        "title": "Query",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "image_type": {
+                        "title": "Image Type",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "orientation": {
+                        "title": "Orientation",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "category": {
+                        "title": "Category",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "min_width": {
+                        "title": "Min Width",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "number"
+                    },
+                    "min_height": {
+                        "title": "Min Height",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "number"
+                    },
+                    "colors": {
+                        "title": "Colors",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "editors_choice": {
+                        "title": "Editors Choice",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "boolean"
+                    },
+                    "safesearch": {
+                        "title": "Safesearch",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "boolean"
+                    },
+                    "order": {
+                        "title": "Order",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    },
+                    "page": {
+                        "title": "Page",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "number"
+                    },
+                    "per_page": {
+                        "title": "Per Page",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "number"
+                    },
+                    "language": {
+                        "title": "Language",
+                        "description": "No docstring present or unable to parse docstring from function",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "query",
+                    "image_type",
+                    "orientation",
+                    "category",
+                    "min_width",
+                    "min_height",
+                    "colors",
+                    "editors_choice",
+                    "safesearch",
+                    "order",
+                    "page",
+                    "per_page",
+                    "language"
+                ],
+                "title": "Search Pixabay Images Arguments",
+                "type": "object"
+            },
+            "_meta": {
+                "generated_on": "2026-09-28",
+                "SMSS_MCP_EXECUTION": "auto",
+                "SMSS_MCP_UI": {
+                    "loadingMessage": "Searching Pixabay for images...",
+                    "displayLocation": "inline",
+                    "resourceURI": null
+                },
+                "SMSS_FUNCTION_NAME": "search_pixabay_images",
+                "SMSS_MCP_GENERATOR": "MakePythonMCP"
+            },
+            "_type": "python"
+        }
+    ]
+}

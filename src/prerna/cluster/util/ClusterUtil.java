@@ -95,9 +95,10 @@ public class ClusterUtil {
 
 	public static String IMAGES_FOLDER_PATH = Utility.getBaseFolder() + DIR_SEPARATOR + "images";
 	// A successful folder refresh covers every resource in that catalog. Keep only
-	// a short, bounded in-memory record so stock-only cards do not each pull it again.
-	private static final Cache<String, Boolean> IMAGE_FOLDER_REFRESHES = CacheBuilder.newBuilder()
-			.maximumSize(64).expireAfterWrite(30, TimeUnit.SECONDS).build();
+	// a short, bounded in-memory record so stock-only cards do not each pull it
+	// again.
+	private static final Cache<String, Boolean> IMAGE_FOLDER_REFRESHES = CacheBuilder.newBuilder().maximumSize(64)
+			.expireAfterWrite(30, TimeUnit.SECONDS).build();
 	private static final String SCHEDULER_EXECUTOR_KEY = "SCHEDULER_EXECUTOR";
 
 	private static final String IS_CLUSTERED_SCHEDULER_KEY = "SEMOSS_SCHEDULER_IS_CLUSTER";
@@ -1160,9 +1161,16 @@ public class ClusterUtil {
 	 * Returns an existing resource image, refreshing the cloud image folder at most
 	 * once per 30 seconds when an image is missing. A missing custom image uses the
 	 * shared stock file without creating or uploading a per-resource copy. Locally
-	 * available uploads take precedence immediately, even during the refresh window.
+	 * available uploads take precedence immediately, even during the refresh
+	 * window.
 	 */
 	public static File getEngineAndProjectImage(String engineId, IEngine.CATALOG_TYPE engineType) throws Exception {
+		return getEngineAndProjectImage(engineId, engineType, null);
+	}
+
+	/** Uses the request's theme only when the resource has no uploaded image. */
+	public static File getEngineAndProjectImage(String engineId, IEngine.CATALOG_TYPE engineType, String theme)
+			throws Exception {
 		File localEngineImageFolder = new File(EngineUtility.getLocalEngineImageDirectory(engineType));
 		File image = findEngineAndProjectImage(localEngineImageFolder, engineId);
 		if (image != null) {
@@ -1179,7 +1187,7 @@ public class ClusterUtil {
 			return image;
 		}
 		String imageFilePath = localEngineImageFolder.getAbsolutePath() + DIR_SEPARATOR + engineId + ".png";
-		return DefaultImageGeneratorUtil.getStockImageForPath(imageFilePath);
+		return DefaultImageGeneratorUtil.getStockImageForPath(imageFilePath, theme);
 	}
 
 	private static File findEngineAndProjectImage(File folder, String engineId) {

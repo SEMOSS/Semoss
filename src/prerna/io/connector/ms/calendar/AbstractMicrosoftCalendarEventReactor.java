@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 
 /**
@@ -183,4 +184,10 @@ public abstract class AbstractMicrosoftCalendarEventReactor extends AbstractMicr
 		return super.getDescriptionForKey(key);
 	}
 
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_CALENDAR_EVENT);
+		return meta;
+	}
 }

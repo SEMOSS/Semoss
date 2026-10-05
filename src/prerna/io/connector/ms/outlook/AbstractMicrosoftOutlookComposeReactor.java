@@ -264,9 +264,9 @@ public abstract class AbstractMicrosoftOutlookComposeReactor extends AbstractMic
 		if (key.equals(TO)) {
 			return "Recipients of the email.";
 		} else if (key.equals(CC)) {
-			return "Recipients to copy on the email.";
+			return "Optional recipients to copy on the email.";
 		} else if (key.equals(BCC)) {
-			return "Recipients to blind copy on the email.";
+			return "Optional recipients to blind copy on the email.";
 		} else if (key.equals(SUBJECT)) {
 			return "Subject line of the email.";
 		} else if (key.equals(MESSAGE)) {

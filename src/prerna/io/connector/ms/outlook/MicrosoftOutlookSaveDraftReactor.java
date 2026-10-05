@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -104,6 +105,13 @@ public class MicrosoftOutlookSaveDraftReactor extends AbstractMicrosoftOutlookCo
 			classLogger.error("Failed to save a draft for the signed in user", e);
 			throw new SemossPixelException("An error occurred saving the draft. Error message: " + e.getMessage());
 		}
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_DRAFT);
+		return meta;
 	}
 
 	@Override

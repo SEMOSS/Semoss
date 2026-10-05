@@ -253,8 +253,9 @@ public final class SubAgentToolSynthesizer {
         tool.put("name", TOOL_DELEGATE_TO_PERSON);
         tool.put("description",
                 "Send a request to another person, by name or email, for their input, review, opinion, or "
-                        + "approval. Use it whenever the user asks to send something to someone, share it with them, "
-                        + "or get their feedback; it is how you reach people, and there is no separate email tool. "
+                        + "approval, worked on in a room of their own. Use it when the user asks to hand work to "
+                        + "someone or get their feedback on it here. It is not email: to email someone, write the "
+                        + "email (drafts, SaveDraft, SendMail) and use FindPerson for their address. "
                         + "Call it right away: the user reviews and can edit the request, files, and links in a card "
                         + "before anything is sent, so do not ask them to confirm first. The person gets their own "
                         + "room to work in and responds when ready, which may take hours or days. Returns once sent; "
@@ -272,7 +273,7 @@ public final class SubAgentToolSynthesizer {
         return tool;
     }
 
-    /** Directory lookup by name, email, or username; runs without confirmation. */
+    /** Contacts, directory, and platform lookup by name or email; runs without confirmation. */
     public static Map<String, Object> buildFindPersonTool() {
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("query", schemaString("A name, email, or username, full or partial, such as \"John Smith\"."));
@@ -286,10 +287,12 @@ public final class SubAgentToolSynthesizer {
         Map<String, Object> tool = new LinkedHashMap<>();
         tool.put("name", HumanDelegationService.FIND_PERSON_TOOL_NAME);
         tool.put("description",
-                "Look up people on this platform by name, email, or username. Returns up to 10 matches with name "
-                        + "and email. Use it when the user asks who someone is or to check a name. Before "
-                        + TOOL_DELEGATE_TO_PERSON + " it is optional: that tool accepts a name and the user picks the "
-                        + "exact person in its card.");
+                "Find a person's email address by name or email, full or partial. Searches the owner's contacts "
+                        + "(people they have emailed with), their Microsoft 365 directory, and accounts on this "
+                        + "platform; returns up to 10 matches with name, email, title, and where each came from. "
+                        + "Use it before writing an email to someone named but not in the context, or when the "
+                        + "user asks who someone is. Before " + TOOL_DELEGATE_TO_PERSON + " it is optional: that "
+                        + "tool accepts a name and the user picks the exact person in its card.");
         tool.put("inputSchema", inputSchema);
 
         Map<String, Object> meta = new LinkedHashMap<>();
