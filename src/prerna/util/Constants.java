@@ -1088,7 +1088,7 @@ public class Constants {
 	public static final String COLLAB_CLASSIFIER_ENGINE_ID = "COLLAB_CLASSIFIER_ENGINE_ID";
 	public static final String COLLAB_CLASSIFIER_CUTOFFS = "COLLAB_CLASSIFIER_CUTOFFS";
 	public static final String COLLAB_CLASSIFIER_WINDOW = "COLLAB_CLASSIFIER_WINDOW";
-	// a general text model for topic grouping and naming
+	// a general text model for topic grouping and naming, and thread summaries and action items
 	public static final String COLLAB_LLM_ENGINE_ID = "COLLAB_LLM_ENGINE_ID";
 	// threads the classifier sorts at once (default 8)
 	public static final String COLLAB_CLASSIFY_PARALLEL = "COLLAB_CLASSIFY_PARALLEL";
@@ -1107,6 +1107,7 @@ public class Constants {
 	public static final String SKILL_APP_BOOTSTRAP = "app-bootstrap";
 	public static final String SKILL_APP_DATA = "app-data";
 	public static final String SKILL_BUILD_AND_PUBLISH = "build-and-publish";
+	public static final String SKILL_COLLABORATION = "collaboration";
 	public static final String SKILL_DATABASE = "database";
 	public static final String SKILL_EXPORTS = "exports";
 	public static final String SKILL_FILE_UPLOADS = "file-uploads";
