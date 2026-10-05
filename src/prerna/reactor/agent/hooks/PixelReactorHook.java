@@ -290,10 +290,8 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
             logger.warn("[pixel-hook] event={} room={} skipped — no variable store on insight", event, roomId);
             return;
         }
-        // Parallel tool calls share one Insight and therefore one VarStore. Keep the
-        // bind/run/restore sequence atomic so one hook cannot observe or restore
-        // another tool call's temporary values. VarStore's synchronized methods are
-        // reentrant on this same monitor while the Pixel executes.
+        // Parallel tool calls share one Insight and therefore one VarStore. Serialize
+        // hook binding lifecycles so one hook cannot restore another hook's values.
         synchronized (varStore) {
             Map<String, NounMetadata> previousValues = new LinkedHashMap<>();
             Set<String> absentVariables = new HashSet<>();

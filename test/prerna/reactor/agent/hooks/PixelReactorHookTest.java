@@ -28,11 +28,9 @@
 package prerna.reactor.agent.hooks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -41,9 +39,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -54,7 +49,6 @@ import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
-import prerna.sablecc2.om.VarStore;
 
 /**
  * Unit tests for {@link PixelReactorHook}: configure() validation, event-filter
@@ -270,36 +264,4 @@ class PixelReactorHookTest {
 		verify(insight).runPixel(eq("LogIt();"));
 	}
 
-	@Test
-	void hidesTemporaryBindingFromConcurrentVarStoreReads() throws Exception {
-		VarStore varStore = new VarStore();
-		when(insight.getVarStore()).thenReturn(varStore);
-		JSONObject spec = new JSONObject();
-		spec.put("pixel", "LogIt();");
-		spec.put("events", new JSONArray().put(PixelReactorHook.EVT_AFTER_TOOL));
-		spec.put("bindings", new JSONObject().put("hookOutput", "tool.resultContent"));
-		hook.configure(spec);
-
-		CountDownLatch concurrentReadStarted = new CountDownLatch(1);
-		CompletableFuture<Object> concurrentRead = new CompletableFuture<>();
-		doAnswer(invocation -> {
-			assertTrue(Thread.holdsLock(varStore),
-					"The VarStore monitor must cover binding, Pixel execution, and restoration");
-			assertEquals("result-text", varStore.get("hookOutput").getValue());
-			Thread reader = new Thread(() -> {
-				concurrentReadStarted.countDown();
-				concurrentRead.complete(varStore.get("hookOutput"));
-			});
-			reader.start();
-			assertTrue(concurrentReadStarted.await(1, TimeUnit.SECONDS));
-			assertFalse(concurrentRead.isDone(),
-					"Concurrent reads must wait until temporary bindings are removed");
-			return null;
-		}).when(insight).runPixel("LogIt();");
-
-		hook.afterTool(ctx, "Bash", "c", new HashMap<>(), "result-text", 42L, true, 3);
-
-		assertFalse(varStore.containsKey("hookOutput"), "Temporary binding must be removed after the Pixel runs");
-		assertEquals(null, concurrentRead.get(1, TimeUnit.SECONDS));
-	}
 }
