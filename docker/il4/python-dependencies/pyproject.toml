@@ -57,7 +57,7 @@ dependencies = [
     "pip-system-certs>=5.3",
     "pipecat-ai==1.0.0",
     "protobuf>=6.33.5",
-    "pyarrow==22.0.0",
+    "pyarrow==23.0.1",
     "pydantic>=2.13.4",
     "pyenchant>=3.3.0",
     "pyjarowinkler>=2.0.0",
