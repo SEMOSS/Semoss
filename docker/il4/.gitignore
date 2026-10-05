@@ -4,6 +4,7 @@
 !.dockerignore
 !Dockerfile
 !README.md
+!DEPLOYMENT-CHECKLIST.md
 !artifacts.lock.json
 !assemble.py
 !accp_support.py
