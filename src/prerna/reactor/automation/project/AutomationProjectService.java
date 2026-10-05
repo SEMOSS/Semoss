@@ -184,7 +184,9 @@ public final class AutomationProjectService {
 					definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
 			syncDefinitionAssets(projectId, user, "Update automation definition");
-			return files;
+			// Return the same normalized aggregate a subsequent GetAutomation call will
+			// read. This keeps the optimistic-concurrency token stable after Save.
+			return AutomationDefinitionService.load(projectId);
 		} finally {
 			projectLock.unlock();
 		}
@@ -238,6 +240,8 @@ public final class AutomationProjectService {
 				validateAgentWorkspaceReference(node, config, user);
 			} else if (typedNode == AutomationNodeType.APP_PIXEL) {
 				validateAppProjectReference(node, config, user);
+			} else if (typedNode == AutomationNodeType.BROWSER_PLAYWRIGHT) {
+				validateBrowserProjectReference(node, config, user);
 			}
 
 			IEngine.CATALOG_TYPE expectedType = typedNode.getEngineType();
@@ -330,10 +334,33 @@ public final class AutomationProjectService {
 		}
 	}
 
+	private static void validateBrowserProjectReference(Map<String, Object> node, Map<String, Object> config,
+			User user) {
+		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+		Object rawProjectId = config.get(AutomationConstants.CONFIG_PROJECT_ID);
+		if (!(rawProjectId instanceof String projectId) || projectId.isBlank()) {
+			throw invalidBrowserProjectReference(nodeId, String.valueOf(rawProjectId));
+		}
+		projectId = projectId.trim();
+		if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
+			throw invalidBrowserProjectReference(nodeId, projectId);
+		}
+		String projectType = SecurityProjectUtils.getProjectTypeForId(projectId);
+		if (!(IProject.PROJECT_TYPE.CODE.name().equals(projectType)
+				|| IProject.PROJECT_TYPE.BLOCKS.name().equals(projectType))) {
+			throw invalidBrowserProjectReference(nodeId, projectId);
+		}
+	}
+
 	private static IllegalArgumentException invalidAppReference(String nodeId, String appId) {
 		return new IllegalArgumentException("Automation node '" + nodeId + "' appId '" + appId
 				+ "' is not an accessible CODE or BLOCKS app. Call MyProjects with "
 				+ "projectType=['CODE','BLOCKS'] and use its project_id value.");
+	}
+
+	private static IllegalArgumentException invalidBrowserProjectReference(String nodeId, String projectId) {
+		return new IllegalArgumentException("Automation browser node '" + nodeId + "' projectId '" + projectId
+				+ "' is not an accessible CODE or BLOCKS app with a Playwright recording.");
 	}
 
 	private static IllegalArgumentException invalidEngineReference(String nodeId, String engineId,

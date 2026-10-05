@@ -143,6 +143,62 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
+	void dataExtractReadsOnlyFromTheCurrentInsightWorkspace() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_SOURCE, "${download.filePath}");
+		config.put(AutomationConstants.CONFIG_PATH, "orders[0].id");
+		config.put(AutomationConstants.CONFIG_FORMAT, "json");
+		config.put(AutomationConstants.CONFIG_MISSING_VALUE, "missing");
+		config.put(AutomationConstants.CONFIG_NULL_VALUE, "null");
+
+		String source = AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_DATA_EXTRACT, config));
+
+		assertTrue(source.contains("GetInsightAssetsBase64("));
+		assertTrue(source.contains("extract_data_element("));
+		assertTrue(source.contains("source=scope.resolve(SOURCE)"));
+		assertFalse(source.contains("open("));
+	}
+
+	@Test
+	void dataTransformUsesTheSharedAutomationRuntime() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_SOURCE, "${query_rows}");
+		config.put(AutomationConstants.CONFIG_OPERATION, "filter");
+		config.put(AutomationConstants.CONFIG_COLUMNS, java.util.List.of());
+		config.put(AutomationConstants.CONFIG_MAPPING, Map.of());
+		config.put(AutomationConstants.CONFIG_PATH, "status");
+		config.put(AutomationConstants.CONFIG_OPERATOR, "equals");
+		config.put(AutomationConstants.CONFIG_VALUE, "active");
+		config.put(AutomationConstants.CONFIG_DESCENDING, false);
+
+		String source = AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_DATA_TRANSFORM, config));
+
+		assertTrue(source.contains("from semoss_automation_runtime import transform_records"));
+		assertTrue(source.contains("records=scope.resolve(SOURCE)"));
+	}
+
+	@Test
+	void browserRecordingUsesAutomationOwnedBrowserSession() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put(AutomationConstants.CONFIG_PROJECT_ID, "project-1");
+		config.put(AutomationConstants.CONFIG_RECORDING_FILE, "intake.json");
+		config.put(AutomationConstants.CONFIG_INPUTS, Map.of("Order number", "123"));
+		config.put(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "https://example.com/complete");
+		config.put(AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS, 45);
+
+		String source = AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, config));
+
+		assertTrue(source.contains("run_pixel(\"AutomationBrowserSession();\", raw=True)"));
+		assertTrue(source.contains("ReplayStep("));
+		assertTrue(source.contains("CheckNetworkIdle("));
+		assertTrue(source.contains("final_url.startswith(expected_prefix)"));
+		assertTrue(source.contains("\"finalUrl\": final_url"));
+		assertTrue(source.contains("_pixel_value(\"project\", project_id)"));
+		assertFalse(source.contains("Playwright.create"));
+	}
+
+	@Test
 	void visionAcceptsOneOrManyMediaPathsWithoutNestingThem() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("engineId", "model-1");
@@ -215,7 +271,8 @@ public class AutomationSourceRendererUnitTests {
 	@Test
 	void everyNodeSourceResolvesThroughScope() {
 		for (AutomationNodeType type : AutomationNodeType.values()) {
-			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV) {
+			if (type == AutomationNodeType.CONTROL_IF || type == AutomationNodeType.CONTROL_JEV
+					|| type == AutomationNodeType.CONTROL_LOOP) {
 				continue;
 			}
 			String source = AutomationSourceRenderer.renderNode(node(type.getType(), databaseConfig()));

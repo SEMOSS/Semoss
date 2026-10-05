@@ -118,6 +118,40 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void dataExtractAdvertisesOneGenericJsonXmlContract() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_EXTRACT);
+		assertNotNull(definition);
+		assertEquals("data", definition.toMap().get("category"));
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals("textarea", fieldsByKey.get(AutomationConstants.CONFIG_SOURCE).get("type"));
+		assertEquals("string", fieldsByKey.get(AutomationConstants.CONFIG_PATH).get("type"));
+		assertEquals("auto", definition.defaultConfig().get(AutomationConstants.CONFIG_FORMAT));
+		assertEquals(false, definition.nodeType().supportsCustomCode());
+	}
+
+	@Test
+	void dataTransformAndBrowserRecordingAreBackendOwned() {
+		AutomationNodeDefinition transform = find(AutomationConstants.NODE_DATA_TRANSFORM);
+		AutomationNodeDefinition browser = find(AutomationConstants.NODE_BROWSER_PLAYWRIGHT);
+		assertNotNull(transform);
+		assertNotNull(browser);
+		assertEquals("data", transform.toMap().get("category"));
+		assertEquals("browser", browser.toMap().get("category"));
+		assertEquals("VIEW", browser.toMap().get("requiredPermission"));
+		assertEquals(false, transform.nodeType().supportsCustomCode());
+		assertEquals(false, browser.nodeType().supportsCustomCode());
+		assertEquals(Map.of(), browser.defaultConfig().get(AutomationConstants.CONFIG_INPUTS));
+		assertEquals("", browser.defaultConfig().get(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX));
+		assertEquals(AutomationConstants.BROWSER_DEFAULT_TIMEOUT_SECONDS,
+				browser.defaultConfig().get(AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS));
+		assertEquals(Set.of("status", "recordingFile", "passes", "finalUrl"),
+				browser.outputFields().stream().map(AutomationNodeDefinition.OutputField::key)
+						.collect(java.util.stream.Collectors.toSet()));
+	}
+
+	@Test
 	void optionalEngineParametersAreBackendOwned() {
 		Map<String, Map<String, Object>> uploadFields = find(AutomationConstants.NODE_STORAGE_UPLOAD).configFields()
 				.stream().collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,

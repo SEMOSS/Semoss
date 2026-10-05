@@ -79,6 +79,9 @@ public final class AutomationSourceRenderer {
 		case STORAGE_UPLOAD -> storageUploadSource(config);
 		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
 		case STORAGE_DELETE -> storageDeleteSource(config);
+		case DATA_EXTRACT -> dataExtractSource(config);
+		case DATA_TRANSFORM -> dataTransformSource(config);
+		case BROWSER_PLAYWRIGHT -> browserPlaywrightSource(config);
 		case VECTOR_SEARCH -> vectorSearchSource(config);
 		case VECTOR_ADD -> vectorAddSource(config);
 		case VECTOR_DELETE -> vectorDeleteSource(config);
@@ -499,6 +502,192 @@ public final class AutomationSourceRenderer {
 				    }
 				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"),
 				valueOrDefault(config, "version", ""));
+	}
+
+	private static String dataExtractSource(Map<String, Object> config) {
+		return """
+				# Extract a nested value from inline JSON/XML or a file in this run's Insight workspace.
+				from semoss import Insight
+				from semoss_automation_runtime import extract_data_element
+				import base64
+				import json
+
+				SOURCE = %s
+				PATH = %s
+				FORMAT = %s
+				MISSING_VALUE = %s
+				NULL_VALUE = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def _read_insight_asset(file_path):
+				    pixel = "GetInsightAssetsBase64(" + _pixel_value("filePath", file_path) + ");"
+				    encoded = Insight().run_pixel(pixel, raw=False)
+				    return base64.b64decode(encoded).decode("utf-8-sig")
+
+				def run(scope):
+				    return extract_data_element(
+				        source=scope.resolve(SOURCE),
+				        path=str(scope.resolve(PATH)),
+				        source_format=str(scope.resolve(FORMAT) or "auto"),
+				        missing_value=scope.resolve(MISSING_VALUE),
+				        null_value=scope.resolve(NULL_VALUE),
+				        asset_reader=_read_insight_asset,
+				    )
+				""".formatted(value(config, AutomationConstants.CONFIG_SOURCE),
+				value(config, AutomationConstants.CONFIG_PATH),
+				valueOrDefault(config, AutomationConstants.CONFIG_FORMAT, "auto"),
+				value(config, AutomationConstants.CONFIG_MISSING_VALUE),
+				value(config, AutomationConstants.CONFIG_NULL_VALUE));
+	}
+
+	private static String dataTransformSource(Map<String, Object> config) {
+		return """
+				# Apply a bounded business transformation to row-shaped Automation data.
+				from semoss_automation_runtime import transform_records
+
+				SOURCE = %s
+				OPERATION = %s
+				COLUMNS = %s
+				MAPPING = %s
+				COLUMN = %s
+				OPERATOR = %s
+				VALUE = %s
+				DESCENDING = %s
+
+				def run(scope):
+				    return transform_records(
+				        records=scope.resolve(SOURCE),
+				        operation=OPERATION,
+				        columns=scope.resolve(COLUMNS),
+				        mapping=scope.resolve_config(MAPPING),
+				        column=scope.resolve(COLUMN),
+				        operator=OPERATOR,
+				        value=scope.resolve(VALUE),
+				        descending=bool(DESCENDING),
+				    )
+				""".formatted(value(config, AutomationConstants.CONFIG_SOURCE),
+				value(config, AutomationConstants.CONFIG_OPERATION),
+				valueOrDefault(config, AutomationConstants.CONFIG_COLUMNS, List.of()),
+				valueOrDefault(config, AutomationConstants.CONFIG_MAPPING, Map.of()),
+				valueOrDefault(config, AutomationConstants.CONFIG_PATH, ""),
+				valueOrDefault(config, AutomationConstants.CONFIG_OPERATOR, "equals"),
+				value(config, AutomationConstants.CONFIG_VALUE),
+				valueOrDefault(config, AutomationConstants.CONFIG_DESCENDING, false));
+	}
+
+	private static String browserPlaywrightSource(Map<String, Object> config) {
+		return """
+				# Replay a saved SEMOSS Playwright recording in this Automation run.
+				from semoss import Insight
+				import json
+				import time
+				from urllib.parse import urlsplit
+
+				PROJECT_ID = %s
+				RECORDING_FILE = %s
+				INPUTS = %s
+				SUCCESS_URL_PREFIX = %s
+				TIMEOUT_SECONDS = %s
+				MAX_PASSES = 100
+				POLL_SECONDS = 0.25
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def _safe_url(value):
+				    parts = urlsplit(str(value or ""))
+				    if parts.scheme and parts.netloc:
+				        return parts.scheme + "://" + parts.netloc + parts.path
+				    return str(value or "").split("?", 1)[0].split("#", 1)[0]
+
+				def _browser_state(session_id, tab_id):
+				    pixel = "CheckNetworkIdle(" + ", ".join([
+				        _pixel_value("sessionId", session_id),
+				        _pixel_value("tabId", tab_id),
+				        _pixel_value("quietMillis", 500),
+				    ]) + ");"
+				    response = Insight().run_pixel(pixel, raw=True)
+				    result = response[0]["pixelReturn"][-1]
+				    if "ERROR" in result.get("operationType", []):
+				        raise RuntimeError(result.get("output") or "Unable to inspect the browser result")
+				    state = result.get("output")
+				    if not isinstance(state, dict):
+				        raise RuntimeError("Browser result did not include page state")
+				    return state
+
+				def _wait_for_success(session_id, tab_id, expected_prefix, timeout_seconds):
+				    deadline = time.monotonic() + timeout_seconds
+				    final_url = ""
+				    while True:
+				        state = _browser_state(session_id, tab_id)
+				        final_url = _safe_url(state.get("currentUrl"))
+				        if state.get("isNetworkIdle") is True and final_url.startswith(expected_prefix):
+				            return final_url
+				        if time.monotonic() >= deadline:
+				            raise RuntimeError(
+				                "Browser recording did not reach the expected page. "
+				                + "Expected a page starting with " + expected_prefix
+				                + "; final page was " + (final_url or "unavailable")
+				            )
+				        time.sleep(POLL_SECONDS)
+
+				def run(scope):
+				    session_response = Insight().run_pixel("AutomationBrowserSession();", raw=True)
+				    session_result = session_response[0]["pixelReturn"][-1]
+				    if "ERROR" in session_result.get("operationType", []):
+				        raise RuntimeError(session_result.get("output") or "Unable to start browser session")
+				    session_id = session_result.get("output")
+				    if not isinstance(session_id, str) or not session_id:
+				        raise RuntimeError("Browser session did not return an id")
+				    project_id = scope.resolve(PROJECT_ID)
+				    recording_file = scope.resolve(RECORDING_FILE)
+				    inputs = scope.resolve_config(INPUTS)
+				    success_url_prefix = _safe_url(scope.resolve(SUCCESS_URL_PREFIX))
+				    timeout_seconds = int(TIMEOUT_SECONDS)
+				    latest = {}
+				    tab_id = "tab-1"
+				    tab_stack = []
+				    for pass_number in range(1, MAX_PASSES + 1):
+				        pixel = "ReplayStep(" + ", ".join([
+				            _pixel_value("sessionId", session_id),
+				            _pixel_value("fileName", recording_file),
+				            "paramValues=[" + json.dumps(inputs) + "]",
+				            "executeAll=[true]",
+				            _pixel_value("tabId", tab_id),
+				            _pixel_value("project", project_id),
+				        ]) + ");"
+				        response = Insight().run_pixel(pixel, raw=True)
+				        result = response[0]["pixelReturn"][-1]
+				        if "ERROR" in result.get("operationType", []):
+				            raise RuntimeError(result.get("output") or "Browser recording failed")
+				        latest = result.get("output") or {}
+				        new_tab_id = latest.get("newTabId")
+				        if isinstance(new_tab_id, str) and new_tab_id and new_tab_id != tab_id:
+				            tab_stack.append(tab_id)
+				            tab_id = new_tab_id
+				            continue
+				        if latest.get("isLastPage") is True:
+				            if tab_stack:
+				                tab_id = tab_stack.pop()
+				                continue
+				            final_url = _wait_for_success(
+				                session_id, tab_id, success_url_prefix, timeout_seconds
+				            )
+				            return {
+				                "status": "completed",
+				                "recordingFile": recording_file,
+				                "passes": pass_number,
+				                "finalUrl": final_url,
+				            }
+				    raise RuntimeError("Browser recording exceeded the maximum replay passes.")
+				""".formatted(value(config, AutomationConstants.CONFIG_PROJECT_ID),
+				value(config, AutomationConstants.CONFIG_RECORDING_FILE),
+				valueOrDefault(config, AutomationConstants.CONFIG_INPUTS, Map.of()),
+				value(config, AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX),
+				valueOrDefault(config, AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS,
+						AutomationConstants.BROWSER_DEFAULT_TIMEOUT_SECONDS));
 	}
 
 	private static String vectorSearchSource(Map<String, Object> config) {
