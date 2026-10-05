@@ -107,6 +107,17 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void storageListAdvertisesOptionalFileTypes() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_LIST);
+		assertNotNull(definition);
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals("string[]", fieldsByKey.get("extensions").get("type"));
+		assertEquals(List.of(), definition.defaultConfig().get("extensions"));
+	}
+
+	@Test
 	void optionalEngineParametersAreBackendOwned() {
 		Map<String, Map<String, Object>> uploadFields = find(AutomationConstants.NODE_STORAGE_UPLOAD).configFields()
 				.stream().collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
@@ -154,6 +165,13 @@ public class AutomationNodeCatalogUnitTests {
 		assertEquals(AutomationConstants.LOOP_MAX_ITERATIONS,
 				fieldsByKey.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS).get("maximum"));
 		assertEquals(1, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE).get("minimum"));
+		assertEquals(1, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_COUNT).get("minimum"));
+		assertEquals(false, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_ITEMS).get("required"));
+		assertEquals(false, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_COUNT).get("required"));
+		assertNotNull(fieldsByKey.get(AutomationConstants.CONFIG_LOOP_CONDITION));
+		assertEquals(AutomationNodeDefinition.OutputFieldType.OBJECT_LIST,
+				definition.outputFields().stream().filter(field -> "results".equals(field.key())).findFirst().orElseThrow()
+						.type());
 	}
 
 	/** Writes need edit rights on the engine; a read only needs view. */

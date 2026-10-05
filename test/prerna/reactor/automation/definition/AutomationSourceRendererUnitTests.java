@@ -125,6 +125,21 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
+	void storageListCanFilterFileTypesWithoutChangingTheStorageEngine() {
+		Map<String, Object> config = new LinkedHashMap<>();
+		config.put("engineId", "storage-1");
+		config.put("path", "incoming");
+		config.put("extensions", java.util.List.of("pdf", ".png"));
+
+		String source = AutomationSourceRenderer
+				.renderNode(node(AutomationConstants.NODE_STORAGE_LIST, config));
+
+		assertTrue(source.contains("paths = storage.list(scope.resolve(STORAGE_PATH))"));
+		assertTrue(source.contains("path.rstrip(\"/\").lower().endswith(suffixes)"));
+		assertTrue(source.contains("FILE_TYPES = [\"pdf\",\".png\"]"));
+	}
+
+	@Test
 	void visionAcceptsOneOrManyMediaPathsWithoutNestingThem() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("engineId", "model-1");

@@ -210,8 +210,12 @@ public final class AutomationConstants {
 	public static final String CONFIG_LOOP_MODE = "mode";
 	public static final String CONFIG_LOOP_ITEMS = "items";
 	public static final String CONFIG_LOOP_BATCH_SIZE = "batchSize";
+	public static final String CONFIG_LOOP_COUNT = "count";
+	public static final String CONFIG_LOOP_CONDITION = "condition";
 	public static final String CONFIG_LOOP_MAX_ITERATIONS = "maxIterations";
 	public static final String LOOP_MODE_FOR_EACH = "forEach";
+	public static final String LOOP_MODE_REPEAT = "repeat";
+	public static final String LOOP_MODE_WHILE = "while";
 	public static final String CONFIG_WAIT_TIMEOUT_MS = "waitTimeoutMs";
 	public static final String CONFIG_APP_ID = "appId";
 

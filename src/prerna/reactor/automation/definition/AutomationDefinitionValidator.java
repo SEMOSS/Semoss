@@ -304,7 +304,8 @@ public final class AutomationDefinitionValidator {
 		case CONTROL_IF -> validateBranchConfig(nodeId, config);
 		case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
 		case CONTROL_LOOP -> validateLoopConfig(nodeId, config);
-		case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
+		case STORAGE_LIST -> validateOptionalStringListOrPlaceholder(nodeId, config, "extensions");
+		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
 		}
@@ -321,21 +322,38 @@ public final class AutomationDefinitionValidator {
 	private static void validateLoopConfig(String nodeId, Map<String, Object> config) {
 		Object mode = config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE,
 				AutomationConstants.LOOP_MODE_FOR_EACH);
-		if (!AutomationConstants.LOOP_MODE_FOR_EACH.equals(mode)) {
-			throw new IllegalArgumentException("Loop node '" + nodeId + "' config.mode must be '"
-					+ AutomationConstants.LOOP_MODE_FOR_EACH + "'.");
-		}
-		Object items = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
-		boolean scopeReference = items instanceof String value
-				&& value.trim().matches("\\$\\{[A-Za-z_][A-Za-z0-9_]*}");
-		if (!(items instanceof List<?>) && !scopeReference) {
-			throw new IllegalArgumentException("Loop node '" + nodeId
-					+ "' config.items must be an array or an exact ${scope_value} reference.");
-		}
-		validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_BATCH_SIZE,
-				AutomationConstants.LOOP_MIN_BATCH_SIZE, AutomationConstants.LOOP_MAX_BATCH_SIZE);
 		validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 1,
 				AutomationConstants.LOOP_MAX_ITERATIONS);
+		if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(mode)) {
+			Object items = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
+			boolean scopeReference = items instanceof String value && isScopePlaceholder(value.trim());
+			if (!(items instanceof List<?>) && !scopeReference) {
+				throw new IllegalArgumentException("Loop node '" + nodeId
+						+ "' config.items must be an array or an exact scope reference such as ${files} or ${download.files}.");
+			}
+			validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_BATCH_SIZE,
+					AutomationConstants.LOOP_MIN_BATCH_SIZE, AutomationConstants.LOOP_MAX_BATCH_SIZE);
+			return;
+		}
+		if (AutomationConstants.LOOP_MODE_REPEAT.equals(mode)) {
+			validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_COUNT, 1,
+					AutomationConstants.LOOP_MAX_ITERATIONS);
+			int count = ((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+			if (count > maximumIterations) {
+				throw new IllegalArgumentException("Loop node '" + nodeId
+						+ "' config.count cannot exceed config.maxIterations.");
+			}
+			return;
+		}
+		if (AutomationConstants.LOOP_MODE_WHILE.equals(mode)) {
+			String condition = requireNonblankString(config.get(AutomationConstants.CONFIG_LOOP_CONDITION),
+					"Loop node '" + nodeId + "' config.condition");
+			AutomationConditionEvaluator.validate(condition);
+			return;
+		}
+		throw new IllegalArgumentException("Loop node '" + nodeId
+				+ "' config.mode must be 'forEach', 'repeat', or 'while'.");
 	}
 
 	private static void validateBoundedInteger(String nodeId, Map<String, Object> config, String key, int minimum,

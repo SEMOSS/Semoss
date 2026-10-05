@@ -74,7 +74,7 @@ public final class AutomationSourceRenderer {
 		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
 		case MODEL_VISION -> modelVisionSource(config);
 		case MODEL_NER -> modelNerSource(config);
-		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
+		case STORAGE_LIST -> storageListSource(config);
 		case STORAGE_READ -> storageReadSource(config);
 		case STORAGE_UPLOAD -> storageUploadSource(config);
 		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
@@ -332,6 +332,39 @@ public final class AutomationSourceRenderer {
 				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
 				    return storage.%s(scope.resolve(%s))
 				""".formatted(value(config, "engineId"), valueOrDefault(config, "path", ""), method, argument);
+	}
+
+	private static String storageListSource(Map<String, Object> config) {
+		return """
+				# List storage paths through the existing SEMOSS storage SDK.
+				from ai_server import StorageEngine
+
+				ENGINE_ID = %s
+				STORAGE_PATH = %s
+				FILE_TYPES = %s
+
+				def _normalized_suffixes(values):
+				    return tuple(
+				        "." + str(value).strip().lower().lstrip(".")
+				        for value in values
+				        if str(value).strip()
+				    )
+
+				def run(scope):
+				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
+				    paths = storage.list(scope.resolve(STORAGE_PATH))
+				    file_types = scope.resolve(FILE_TYPES)
+				    if not file_types:
+				        return paths
+				    if isinstance(file_types, str):
+				        file_types = [file_types]
+				    suffixes = _normalized_suffixes(file_types)
+				    return [
+				        path for path in paths
+				        if isinstance(path, str) and path.rstrip("/").lower().endswith(suffixes)
+				    ]
+				""".formatted(value(config, "engineId"), valueOrDefault(config, "path", ""),
+				valueOrDefault(config, "extensions", List.of()));
 	}
 
 	private static String storageReadSource(Map<String, Object> config) {

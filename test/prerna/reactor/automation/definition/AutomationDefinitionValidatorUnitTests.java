@@ -383,6 +383,45 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void acceptsDottedForEachRepeatAndWhileLoopConfiguration() {
+		Map<String, Object> dottedForEach = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, "${download.files}",
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), dottedForEach));
+
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 5,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "${status} != \"complete\"",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop));
+	}
+
+	@Test
+	void rejectsRepeatCountAboveItsSafetyLimitAndInvalidWhileCondition() {
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 11,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat)));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "status is complete",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop)));
+	}
+
+	@Test
 	void permitsAnIncompleteLoopBodyOnlyWhileAuthoring() {
 		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
 				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,

@@ -83,11 +83,13 @@ expression evaluator. The first match selects its `case:<clause-id>` edge; other
 `questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
 model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
 Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
-below the configured threshold. `control.loop` owns a nested acyclic graph and currently supports
-bounded sequential `forEach`/batch execution. Java owns iteration, cancellation, and server-side
-limits; body nodes continue to use the ordinary node executors and appear under their parent loop
-in run history. Nested loops, agent waits inside a loop, arbitrary fan-out from one port, and
-parallel execution are rejected before execution. Nonselected branch nodes are retained in history
+below the configured threshold. `control.loop` owns a nested acyclic graph and supports bounded,
+sequential `forEach`, fixed-count `repeat`, and condition-based `while` execution. Java owns each
+pass, cancellation, and server-side limits; body nodes continue to use the ordinary node executors
+and appear under their parent loop in run history. Loop context exposes the current item/group or
+pass number. A `while` loop also exposes only the prior pass's named body outputs. Nested loops,
+agent waits inside a loop, arbitrary fan-out from one port, and parallel execution are rejected
+before execution. Nonselected branch nodes are retained in history
 as `SKIPPED`. Trigger globals use the canonical
 `trigger.start.config.globals` list: each entry is `{ name, defaultValue, description? }`, with a
 non-private Python-identifier name. `trigger.start.config.pythonSource` holds the optional

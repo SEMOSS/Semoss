@@ -121,6 +121,8 @@ public class AutomationRunExecutionServiceUnitTests {
 	void resolvesLoopItemsWithoutCoercingNativeValues() {
 		List<Object> items = List.of(Map.of("id", 1), Map.of("id", 2));
 		assertEquals(items, AutomationRunExecutionService.loopItems("${records}", Map.of("records", items), "loop"));
+		assertEquals(items, AutomationRunExecutionService.loopItems("${query.data.rows}",
+				Map.of("query", Map.of("data", Map.of("rows", items))), "loop"));
 		assertEquals(List.of("a", "b"),
 				AutomationRunExecutionService.loopItems(new String[] { "a", "b" }, Map.of(), "loop"));
 	}

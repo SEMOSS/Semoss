@@ -752,45 +752,41 @@ public final class AutomationRunStore {
 	public static Map<String, String> insertLoopIterationNodes(String runId, String loopNodeId, int iterationIndex,
 			List<Map<String, Object>> orderedNodes, Map<String, String> traceRoomIds) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("initialize an automation loop iteration");
-		Map<String, String> executionNodeIds = new LinkedHashMap<>();
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement total = conn.prepareStatement(INCREMENT_RUN_TOTAL_NODES);
-					PreparedStatement output = conn.prepareStatement(INSERT_LOOP_NODE_OUTPUT)) {
-				total.setInt(1, orderedNodes.size());
-				total.setString(2, runId);
-				requireSingleRow(total.executeUpdate(), "extend the loop run node count", runId, loopNodeId);
-				for (int index = 0; index < orderedNodes.size(); index++) {
-					Map<String, Object> node = orderedNodes.get(index);
-					String sourceNodeId = (String) node.get(NODE_FIELD_ID);
-					String executionNodeId = UUID.randomUUID().toString();
-					executionNodeIds.put(sourceNodeId, executionNodeId);
-					int parameter = 1;
-					output.setString(parameter++, runId);
-					output.setString(parameter++, executionNodeId);
-					output.setString(parameter++, (String) node.get(NODE_FIELD_LABEL));
-					output.setInt(parameter++, LOOP_EXECUTION_ORDER_OFFSET
-							+ iterationIndex * Math.max(1, orderedNodes.size()) + index);
-					output.setString(parameter++, NODE_STATUS_PENDING);
-					setNullableString(output, parameter++, traceRoomIds == null ? null : traceRoomIds.get(sourceNodeId));
-					setNullableString(output, parameter++, AutomationRuntime.configuredAgentWorkspaceId(node));
-					output.setString(parameter++, loopNodeId);
-					output.setInt(parameter++, iterationIndex);
-					output.setString(parameter++, sourceNodeId);
-					output.addBatch();
+			return QueryExecutionUtility.write(schedulerDb, conn -> {
+				Map<String, String> executionNodeIds = new LinkedHashMap<>();
+				try (PreparedStatement total = conn.prepareStatement(INCREMENT_RUN_TOTAL_NODES);
+						PreparedStatement output = conn.prepareStatement(INSERT_LOOP_NODE_OUTPUT)) {
+					total.setInt(1, orderedNodes.size());
+					total.setString(2, runId);
+					requireSingleRow(total.executeUpdate(), "extend the loop run node count", runId, loopNodeId);
+					for (int index = 0; index < orderedNodes.size(); index++) {
+						Map<String, Object> node = orderedNodes.get(index);
+						String sourceNodeId = (String) node.get(NODE_FIELD_ID);
+						String executionNodeId = UUID.randomUUID().toString();
+						executionNodeIds.put(sourceNodeId, executionNodeId);
+						int parameter = 1;
+						output.setString(parameter++, runId);
+						output.setString(parameter++, executionNodeId);
+						output.setString(parameter++, (String) node.get(NODE_FIELD_LABEL));
+						output.setInt(parameter++, LOOP_EXECUTION_ORDER_OFFSET
+								+ iterationIndex * Math.max(1, orderedNodes.size()) + index);
+						output.setString(parameter++, NODE_STATUS_PENDING);
+						schedulerDb.getQueryUtil().setNullableString(output, parameter++,
+								traceRoomIds == null ? null : traceRoomIds.get(sourceNodeId));
+						schedulerDb.getQueryUtil().setNullableString(output, parameter++,
+								AutomationRuntime.configuredAgentWorkspaceId(node));
+						output.setString(parameter++, loopNodeId);
+						output.setInt(parameter++, iterationIndex);
+						output.setString(parameter++, sourceNodeId);
+						output.addBatch();
+					}
+					output.executeBatch();
 				}
-				output.executeBatch();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-			return executionNodeIds;
+				return executionNodeIds;
+			});
 		} catch (Exception e) {
-			rollback(conn, e);
 			throw new IllegalStateException("Unable to initialize the automation loop iteration.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1156,28 +1152,23 @@ public final class AutomationRunStore {
 			return;
 		}
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persist skipped automation loop nodes");
-		Connection conn = null;
 		try {
-			conn = schedulerDb.getConnection();
-			try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUT)) {
-				for (String nodeId : nodeIds) {
-					ps.setString(1, NODE_STATUS_SKIPPED);
-					setNullableString(ps, 2, reason);
-					ps.setString(3, runId);
-					ps.setString(4, nodeId);
-					ps.setString(5, NODE_STATUS_PENDING);
-					ps.addBatch();
+			QueryExecutionUtility.write(schedulerDb, conn -> {
+				try (PreparedStatement ps = conn.prepareStatement(SKIP_PENDING_NODE_OUTPUT)) {
+					for (String nodeId : nodeIds) {
+						ps.setString(1, NODE_STATUS_SKIPPED);
+						schedulerDb.getQueryUtil().setNullableString(ps, 2, reason);
+						ps.setString(3, runId);
+						ps.setString(4, nodeId);
+						ps.setString(5, NODE_STATUS_PENDING);
+						ps.addBatch();
+					}
+					ps.executeBatch();
 				}
-				ps.executeBatch();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} catch (SQLException e) {
-			rollback(conn, e);
+				return null;
+			});
+		} catch (Exception e) {
 			throw new IllegalStateException("Unable to persist skipped automation loop nodes.", e);
-		} finally {
-			closeConnection(schedulerDb, conn);
 		}
 	}
 
@@ -1512,13 +1503,6 @@ public final class AutomationRunStore {
 		throw new IllegalStateException("Unable to " + operation + " for run '" + runId + "'" + nodeContext
 				+ ": expected one row but updated " + updatedRows + ".");
 	}
-
-	/**
-	 * Binds a nullable VARCHAR column value, using {@code setNull(Types.VARCHAR)}
-	 * instead of {@code setString(index, null)} when the value is absent - some
-	 * JDBC drivers require an explicit SQL type for a null bind rather than
-	 * inferring it from a null String argument.
-	 */
 
 	private static Timestamp toTimestamp(Instant instant) {
 		return Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(instant, ZoneOffset.UTC));

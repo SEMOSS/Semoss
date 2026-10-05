@@ -19,9 +19,10 @@ contract.
 - Execute only the definition, inputs, and source captured for that run.
 - Keep node transitions, cancellation, waits, and terminal status durable.
 - A structured loop materializes independent child history rows for each
-  iteration. Keep the parent graph acyclic, use the ordinary node executors for
-  body work, enforce iteration and total-execution bounds before materializing
-  rows, and keep iteration scope isolated from the parent scope.
+  pass. Keep the parent graph acyclic, use the ordinary node executors for body
+  work, enforce pass and total-execution bounds before materializing rows, and
+  keep scope isolated from the parent. A `while` loop may carry only the prior
+  pass's declared body outputs into its next isolated scope.
 - Keep frame display data scoped to the execution Insight. A frame is not a
   durable-history contract.
 - Do not pass engine objects, arbitrary Java objects, or unbounded payloads
