@@ -33,7 +33,7 @@ Control references are starting points for mapping, not full control satisfactio
 | Area | Generic setting or pattern | Current state and site-specific limits | Example control mapping |
 | --- | --- | --- | --- |
 | Image identity | Deploy an approved immutable image digest; record source and base digests. | Build records digests. Select and approve the deployment digest separately; do not automatically promote each refreshed development build. | CM-2, CM-8, SI-7 |
-| Process privilege | Non-root, no privileged mode, drop capabilities, prevent privilege escalation; no Docker socket or unnecessary host namespaces/devices. | Image uses UID/GID 10001. Optional Compose profile supplies runtime restrictions. Sites using arbitrary UIDs need a tested adaptation, not a blanket root override. | AC-6, CM-7 |
+| Process privilege | Non-root, no privileged mode, drop capabilities, prevent privilege escalation; no Docker socket or unnecessary host namespaces/devices. Any folder shared with a separately-privileged worker process is scoped to that worker's owner/group, not opened to every local account. | Image uses UID/GID 10001. Optional Compose profile supplies runtime restrictions. Sites using arbitrary UIDs need a tested adaptation, not a blanket root override. | AC-6, CM-7 |
 | Filesystem | Read-only root; explicit writable home; separate noexec/nosuid/nodev temporary storage where supported. | Available in the opt-in profile. Enforce equivalent mounts in the target platform and verify application/native-library behavior. | CM-6, CM-7 |
 | Resource bounds | Set CPU, memory, PID, temporary-storage, and persistent-storage limits; define graceful termination. | Profile starts with 4 CPUs, 8 GiB RAM, 512 PIDs, and 60 seconds to stop. These are development defaults, not IL4-prescribed values. Size storage and all limits for the workload. | SC-5, CP-10 |
 | Exposure | Expose only the intended application endpoint through the approved ingress. | Tomcat listens on HTTPS 8443 without HTTP/AJP/shutdown listeners. Loopback publishing in the Compose example is local-development behavior, not a production ingress design. | CM-7, SC-7 |
@@ -180,7 +180,12 @@ disrupt shared or production services.
   supported connector secret integration, rotation/reload, and redacted logs.
   Check for credentials persisted in `.smss` files and address them according to
   approved policy; do not print their contents. Generic `${ENV}` substitution is
-  not established by this template. Evidence: access/rotation results and design.
+  not established by this template. Some bundled configuration templates (for
+  example the embedded scheduler's datasource file) ship with intentionally
+  blank placeholder credentials that application startup is expected to
+  overwrite with the real connection; confirm that override actually happens in
+  this deployment rather than assuming an unpopulated placeholder is inert.
+  Evidence: access/rotation results and design.
 - [ ] **D10 - Network controls.** Verify approved routes, ingress sources,
   segmentation, administrative access, and runtime egress. Stage deny policies
   only after approved destinations are identified. Test both permitted and
@@ -199,8 +204,14 @@ disrupt shared or production services.
 - [ ] **D13 - Connectors and external services.** Validate required databases,
   model endpoints, and storage with test credentials and synthetic data.
   Verify server identity, least privilege, unauthorized-write denial, approved
-  destination/data residency, and errors on failed trust/authentication.
-  Evidence: connector matrix and positive/negative acceptance results.
+  destination/data residency, and errors on failed trust/authentication. For
+  any connector whose destination-pinning or signature verification is
+  conditional on a configuration value being present (a document-store
+  endpoint, an identity provider's key-set URL and issuer), confirm the value
+  is actually set to this deployment's real endpoint, not merely that the
+  application starts without it: an absent value can silently disable that
+  verification rather than block the connector outright. Evidence: connector
+  matrix and positive/negative acceptance results.
 - [ ] **D14 - Monitoring and drift.** Verify health, resource, certificate-expiry,
   failed backup/build, missing scan, and security alerts reach accountable owners.
   Establish read-only drift comparison to approved manifests; do not silently
@@ -223,7 +234,11 @@ disrupt shared or production services.
   image, host, runtime, ingress, and applicable application STIG/SRG settings.
   Triage findings, false positives, remediation deadlines, and approved risk
   dispositions. Retain reports in the approved repository, not merely 14-day
-  development artifacts. Evidence: assessment results and POA&M/dispositions.
+  development artifacts. As of this writing, the embedded relational-cache
+  dependency has open advisories with no fix in its current major version;
+  confirm its current disposition (upgrade scheduled, or risk formally
+  accepted) rather than assuming a prior triage still applies. Evidence:
+  assessment results and POA&M/dispositions.
 - [ ] **O04 - Incident response and operations.** Assign on-call ownership,
   incident reporting/escalation, evidence preservation, access revocation,
   and isolation procedures. Exercise them safely. Evidence: runbooks and exercise.
