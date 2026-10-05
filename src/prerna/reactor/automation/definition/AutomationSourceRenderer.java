@@ -352,7 +352,12 @@ public final class AutomationSourceRenderer {
 
 				def run(scope):
 				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
-				    paths = storage.list(scope.resolve(STORAGE_PATH))
+				    details = storage.listDetails(scope.resolve(STORAGE_PATH))
+				    paths = [
+				        item.get("Path")
+				        for item in details
+				        if isinstance(item, dict) and isinstance(item.get("Path"), str)
+				    ]
 				    file_types = scope.resolve(FILE_TYPES)
 				    if not file_types:
 				        return paths
@@ -482,6 +487,8 @@ public final class AutomationSourceRenderer {
 				            localPath=destination,
 				        )
 				    files = _destination_files(destination)
+				    if not files:
+				        raise RuntimeError("No file was downloaded from storage path: " + storage_path)
 				    return {
 				        "success": copied,
 				        "storagePath": storage_path,

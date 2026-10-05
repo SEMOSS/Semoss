@@ -118,6 +118,8 @@ public class AutomationSourceRendererUnitTests {
 		assertTrue(source.contains("_pixel_value(\"options\", \"regex\")"));
 		assertTrue(source.contains("\"files\": files"));
 		assertTrue(source.contains("\"filePath\": files[0] if len(files) == 1 else None"));
+		assertTrue(source.contains("if not files:"));
+		assertTrue(source.contains("No file was downloaded from storage path"));
 		assertTrue(source.contains("or \"/\""));
 		assertFalse(source.contains("pathlib"));
 		assertFalse(source.contains(".replace("));
@@ -134,7 +136,8 @@ public class AutomationSourceRendererUnitTests {
 		String source = AutomationSourceRenderer
 				.renderNode(node(AutomationConstants.NODE_STORAGE_LIST, config));
 
-		assertTrue(source.contains("paths = storage.list(scope.resolve(STORAGE_PATH))"));
+		assertTrue(source.contains("details = storage.listDetails(scope.resolve(STORAGE_PATH))"));
+		assertTrue(source.contains("item.get(\"Path\")"));
 		assertTrue(source.contains("path.rstrip(\"/\").lower().endswith(suffixes)"));
 		assertTrue(source.contains("FILE_TYPES = [\"pdf\",\".png\"]"));
 	}
