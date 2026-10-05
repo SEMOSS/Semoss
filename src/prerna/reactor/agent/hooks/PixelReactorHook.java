@@ -267,6 +267,12 @@ public final class PixelReactorHook implements IAgentRunHook, IToolHook {
         }
         Room room = ctx.getRoom();
         String roomId = room == null ? null : room.getId();
+        if (result == null && bindings.values().stream()
+                .anyMatch(source -> source.equals("result") || source.startsWith("result."))) {
+            logger.warn("[pixel-hook] event={} room={} skipped — configured result bindings are unavailable because the run did not complete",
+                    event, roomId);
+            return;
+        }
         Map<String, Object> payload = lifecyclePayload(ctx, roomId, event, result, tool);
         if (bindings.isEmpty()) {
             try {

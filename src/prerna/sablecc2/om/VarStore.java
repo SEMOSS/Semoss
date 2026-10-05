@@ -201,8 +201,8 @@ public class VarStore implements InMemStore<String, NounMetadata> {
 	}
 
 	@Override
-	public Set<String> getKeys() {
-		return varMap.keySet();
+	public synchronized Set<String> getKeys() {
+		return new HashSet<>(varMap.keySet());
 	}
 	
 	public List<String> getFrameKeysCopy() {
