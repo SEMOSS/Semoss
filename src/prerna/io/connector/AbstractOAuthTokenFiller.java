@@ -154,6 +154,17 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		return null;
 	}
 
+	/**
+	 * The scope the sign in asks for: {@code {prefix}scope} from social.properties,
+	 * or the provider's default when that is not set.
+	 *
+	 * @param prefix social.properties prefix for the provider, such as {@code ms_}
+	 * @return the requested scopes as one string, or null when there are none
+	 */
+	public String getRequestedScope(String prefix) {
+		return resolve(socialData.getProperty(prefix + "scope"), getDefaultScope(prefix));
+	}
+
 	/** Extra provider-specific query params appended to the authorize redirect. */
 	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
 		return new LinkedHashMap<>();
@@ -203,7 +214,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 	public String buildAuthorizeRedirect(String prefix, String state) {
 		String clientId = socialData.getProperty(prefix + "client_id");
 		String redirectUri = resolveRedirectUri(prefix);
-		String scope = resolve(socialData.getProperty(prefix + "scope"), getDefaultScope(prefix));
+		String scope = getRequestedScope(prefix);
 		String authUrl = resolve(socialData.getProperty(prefix + "auth_url"), getDefaultAuthorizeUrl(prefix));
 
 		if (isBlank(authUrl)) {
@@ -242,7 +253,7 @@ public abstract class AbstractOAuthTokenFiller implements IAccessTokenFiller {
 		String clientId = socialData.getProperty(prefix + "client_id");
 		String clientSecret = socialData.getProperty(prefix + "secret_key");
 		String redirectUri = resolveRedirectUri(prefix);
-		String scope = resolve(socialData.getProperty(prefix + "scope"), getDefaultScope(prefix));
+		String scope = getRequestedScope(prefix);
 		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), getDefaultTokenUrl(prefix));
 
 		if (isBlank(tokenUrl)) {

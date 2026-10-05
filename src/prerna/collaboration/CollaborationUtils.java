@@ -27,10 +27,19 @@
  *******************************************************************************/
 package prerna.collaboration;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.json.JSONObject;
+
+import prerna.auth.User;
+import prerna.auth.utils.SecurityProjectUtils;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
+import prerna.util.Constants;
+import prerna.util.Utility;
 
 /**
  * Collaboration rooms are playground-style rooms under their own system project
@@ -45,6 +54,9 @@ public final class CollaborationUtils {
 	// Only the server sets these; client option writes cannot add, change, or drop
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
+	// Set by Work on a thread's assistant room (threadId, contextRevision,
+	// modelId).
+	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
 
 	private CollaborationUtils() {
 	}
@@ -66,4 +78,36 @@ public final class CollaborationUtils {
 	public static boolean isCollaborationRoom(Room room) {
 		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
 	}
+
+	/** A collaboration room that Work opened for one thread's assistant. */
+	public static boolean isThreadRoom(Room room) {
+		if (!isCollaborationRoom(room)) {
+			return false;
+		}
+		Map<String, Object> options = room.getOptionsMap();
+		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
+	}
+
+	/**
+	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name,
+	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
+	 */
+	public static Map<String, Object> threadAgent(User user) {
+		String id = Utility.getDIHelperProperty(Constants.COLLAB_THREAD_AGENT_ID);
+		if (id == null || id.isBlank() || user == null || !SecurityProjectUtils.userCanViewProject(user, id.trim())) {
+			return null;
+		}
+		id = id.trim();
+		Map<String, Object> row = ModelInferenceLogsUtils.getWorkspaceEntry(id);
+		if (row == null || Boolean.FALSE.equals(row.get("is_active"))) {
+			return null;
+		}
+		JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(id);
+		Map<String, Object> agent = new LinkedHashMap<>();
+		agent.put("id", id);
+		agent.put("name", row.get("name") == null ? "Assistant" : String.valueOf(row.get("name")));
+		agent.put("modelId", config == null ? null : config.optString("model_id", null));
+		return agent;
+	}
+
 }

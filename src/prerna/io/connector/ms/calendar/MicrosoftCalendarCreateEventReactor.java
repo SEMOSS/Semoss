@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -98,5 +99,13 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 	@Override
 	public String getReactorDescription() {
 		return "Create an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, inviting anybody named as an attendee.";
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// changes the user's calendar and can invite people, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

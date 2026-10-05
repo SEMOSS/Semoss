@@ -199,7 +199,7 @@ public final class HttpHelperUtility {
 			HttpGet httpGet = new HttpGet(url);
 			if (headerMap != null && !headerMap.isEmpty()) {
 				for (String key : headerMap.keySet()) {
-					httpGet.addHeader(key, headerMap.get(key));
+					httpGet.addHeader(requireSafeHeaderValue(key), requireSafeHeaderValue(headerMap.get(key)));
 				}
 			}
 
@@ -447,7 +447,7 @@ public final class HttpHelperUtility {
 			HttpPost httpPost = new HttpPost(url);
 			if (headersMap != null && !headersMap.isEmpty()) {
 				for (String key : headersMap.keySet()) {
-					httpPost.addHeader(key, headersMap.get(key));
+					httpPost.addHeader(requireSafeHeaderValue(key), requireSafeHeaderValue(headersMap.get(key)));
 				}
 			}
 			if (body != null && !body.isEmpty()) {
@@ -1686,6 +1686,26 @@ public final class HttpHelperUtility {
 		}
 
 		return retString;
+	}
+
+	/**
+	 * Rejects header and cookie fields containing line breaks or NUL. Valid values
+	 * are returned unchanged, including whitespace and credential/signature bytes.
+	 * A null value is left to the calling API's existing handling.
+	 *
+	 * @param value header or cookie field
+	 * @return the value without header delimiters
+	 * @throws IllegalArgumentException if the value contains CR, LF or NUL
+	 */
+	public static String requireSafeHeaderValue(String value) {
+		if (value == null) {
+			return null;
+		}
+		String safeValue = value.replace("\r", "").replace("\n", "").replace("\0", "");
+		if (!safeValue.equals(value)) {
+			throw new IllegalArgumentException("Header and cookie fields must not contain CR, LF or NUL");
+		}
+		return safeValue;
 	}
 
 	/**

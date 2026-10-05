@@ -1,0 +1,168 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
+package prerna.collaboration;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import prerna.engine.api.ITypeSafeEngine;
+import prerna.om.Insight;
+
+// Jev (TypeSafe) models: typed choice / noul / score questions. Tuned on brain-mail-v1: no "none of these"
+// choice (it drew most answers), and "is this only informing?" beats "does it ask me?".
+// The policy always adds a "Something else" choice itself (real mail is mostly not about any topic).
+final class JevBrainClassifier implements BrainClassifier {
+
+	private static final String[] URGENCY = { "Whenever", "This week", "Today", "Right now" };
+
+	private final String engineId;
+	private final ITypeSafeEngine engine;
+
+	JevBrainClassifier(String engineId, ITypeSafeEngine engine) {
+		this.engineId = engineId;
+		this.engine = engine;
+	}
+
+	@Override
+	public String version() {
+		return "jev-v2:" + engineId;
+	}
+
+	@Override
+	public Scores score(ThreadInput thread, List<TopicOption> topics, Insight insight) {
+		Map<String, Object> questions = new LinkedHashMap<>();
+		// choice labels are topic names; a repeated name gets its id so labels stay
+		// unique
+		Map<String, String> labelToId = new LinkedHashMap<>();
+		if (topics.size() > 1) {
+			Map<String, Object> criteria = new LinkedHashMap<>();
+			for (TopicOption topic : topics) {
+				String label = labelToId.containsKey(topic.name()) ? topic.name() + " (" + topic.id() + ")"
+						: topic.name();
+				labelToId.put(label, topic.id());
+				criteria.put(label, topic.description());
+			}
+			questions.put("topic",
+					question("choice", "Which of these work topics is this email thread about?", criteria));
+		}
+		questions.put("fyi", question("noul", "Is the newest message only informing (an update, heads-up, approval, "
+				+ "or sign-off) with nothing for anyone to do?", null));
+		questions.put("automated", question("noul", "Is this an automated or bulk message (newsletter, notification, "
+				+ "no-reply, alert) rather than a person writing?", null));
+		questions.put("urgency",
+				question("score", "How urgently does the newest message need a response as of currentTime? "
+						+ "Compare full dates including year, and resolve relative source dates against the message's at timestamp. "
+						+ "An unanswered invitation to a past meeting is not an upcoming response need. "
+						+ "Do not assume a future year for an incomplete event date.", List.of(URGENCY)));
+
+		Map<String, Object> answers = map(
+				engine.evaluate(state(thread), questions, insight, null).getResponse().get("answers"));
+		if (answers == null) {
+			throw new IllegalStateException("The classifier model returned no answers");
+		}
+		// an answer missing any score is an error for this thread, never a default that
+		// files it
+		Map<String, Double> topicScores = new LinkedHashMap<>();
+		if (!labelToId.isEmpty()) {
+			Map<String, Object> topic = map(answers.get("topic"));
+			if (topic != null && topic.get("probabilities") instanceof Map<?, ?> probs) {
+				for (Map.Entry<?, ?> e : probs.entrySet()) {
+					String id = labelToId.get(String.valueOf(e.getKey()));
+					if (id != null && e.getValue() instanceof Number n) {
+						topicScores.put(id, n.doubleValue());
+					}
+				}
+			}
+			if (topicScores.values().stream().noneMatch(p -> p > 0)) {
+				throw new IllegalStateException("The classifier model scored no topic");
+			}
+		}
+		Map<String, Object> urgency = map(answers.get("urgency"));
+		if (urgency == null || !(urgency.get("score") instanceof Number score)) {
+			throw new IllegalStateException("The classifier model gave no urgency score");
+		}
+		return new Scores(topicScores, noul(answers, "fyi"), noul(answers, "automated"), score.doubleValue(), answers);
+	}
+
+	// the thread as Jev state; laya did best on the newest message alone (two
+	// messages and the owner's name dropped topic accuracy in the fixture eval), so
+	// earlier messages go in only when the engine's window is set for them
+	static Map<String, Object> state(ThreadInput thread) {
+		Map<String, Object> state = new LinkedHashMap<>();
+		state.put("subject", thread.subject());
+		state.put("participants", thread.participants());
+		state.put("messageCount", thread.messages().size());
+		List<Message> messages = thread.messages();
+		if (!messages.isEmpty()) {
+			state.put("newestMessage", message(messages.get(messages.size() - 1)));
+			if (thread.earlier() && messages.size() > 1) {
+				state.put("earlierMessages",
+						messages.subList(0, messages.size() - 1).stream().map(JevBrainClassifier::message).toList());
+			}
+		}
+		state.put("currentTime", thread.currentTime().toMap());
+		return state;
+	}
+
+	private static Map<String, Object> message(Message m) {
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("from", m.from());
+		message.put("to", m.to());
+		message.put("cc", m.cc());
+		message.put("at", m.at());
+		message.put("text", m.text());
+		if (m.footer() != null && !m.footer().isBlank()) {
+			message.put("footer", m.footer());
+		}
+		return message;
+	}
+
+	private static Map<String, Object> question(String type, String instructions, Object criteria) {
+		Map<String, Object> q = new LinkedHashMap<>();
+		q.put("type", type);
+		q.put("instructions", instructions);
+		if (criteria != null) {
+			q.put("criteria", criteria);
+		}
+		return q;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> map(Object value) {
+		return value instanceof Map<?, ?> m ? (Map<String, Object>) m : null;
+	}
+
+	private static double noul(Map<String, Object> answers, String key) {
+		Map<String, Object> a = map(answers.get(key));
+		if (a == null || !(a.get("noul") instanceof Number n)) {
+			throw new IllegalStateException("The classifier model gave no " + key + " score");
+		}
+		return n.doubleValue();
+	}
+}

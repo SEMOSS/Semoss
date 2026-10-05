@@ -75,6 +75,7 @@ import prerna.util.Utility;
 public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 
 	private static final Logger classLogger = LogManager.getLogger(AbstractPythonModelEngine.class);
+	private static final String INPUT_MODALITIES_PARAM = "_semoss_input_modalities";
 
 	// python server
 	protected String prefix = null;
@@ -263,6 +264,47 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 				|| parameters.containsKey("max_output_tokens") || parameters.containsKey("max_new_tokens");
 	}
 
+	/** Clients using the shared genai_client document preparation step. */
+	private boolean supportsDocumentInputProcessing() {
+		return switch (getModelType()) {
+		case OPEN_AI, AZURE_OPEN_AI, ANTHROPIC, BEDROCK, VERTEX, TEXT_GENERATION -> true;
+		default -> false;
+		};
+	}
+
+	/**
+	 * Documents can reach the Python client for text extraction even when the
+	 * model does not accept them natively. Python rejects unsupported formats or
+	 * failed conversions before calling the provider. FILE is treated as broad
+	 * native document support, including PDF. Other media keep their usual gate.
+	 */
+	@Override
+	protected void requireInputModalityAllowed(ModelModalityEnum modality) {
+		if (supportsDocumentInputProcessing() && this.inputModalities != null
+				&& (modality == ModelModalityEnum.PDF || modality == ModelModalityEnum.FILE)
+				&& (this.inputModalities.contains(ModelModalityEnum.TEXT)
+						|| this.inputModalities.contains(ModelModalityEnum.FILE))) {
+			return;
+		}
+		super.requireInputModalityAllowed(modality);
+	}
+
+	/**
+	 * Carry the selected engine's capabilities to Python without persisting them
+	 * in conversation history or requiring an init-script argument. The shared
+	 * message builder consumes this internal parameter before building API params.
+	 * Caller-supplied values never override engine metadata (including in routers).
+	 */
+	private Map<String, Object> withInputModalities(Map<String, Object> parameters) {
+		Map<String, Object> prepared = parameters == null ? new HashMap<>() : new HashMap<>(parameters);
+		prepared.remove(INPUT_MODALITIES_PARAM);
+		if (supportsDocumentInputProcessing() && this.inputModalities != null) {
+			prepared.put(INPUT_MODALITIES_PARAM,
+					this.inputModalities.stream().map(Enum::name).sorted().toList());
+		}
+		return prepared;
+	}
+
 	/**
 	 * This method checks whether the socket client is instantiated and connected.
 	 */
@@ -291,6 +333,8 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 					"The room being referenced has been permanently closed. Please open a new room");
 		}
 		checkSocketStatus();
+
+		parameters = withInputModalities(parameters);
 
 		// ride the engine's saved built-in tool selection and max output
 		// tokens along on the request unless the caller supplied their own
@@ -477,7 +521,13 @@ public abstract class AbstractPythonModelEngine extends AbstractModelEngine {
 	public BatchSubmissionResponse submitBatch(List<Map<String, Object>> requests, Map<String, Object> parameters) {
 		assertBatchSupported();
 		checkSocketStatus();
-		String requestsJson = BATCH_GSON.toJson(requests);
+		// SEMOSS histories use the same preparation as synchronous asks. Already
+		// assembled provider-native batch bodies retain their existing behavior.
+		List<Map<String, Object>> prepared = requests == null ? null : requests.stream()
+				.map(request -> request != null && request.containsKey("message_json")
+						? withInputModalities(request) : request)
+				.toList();
+		String requestsJson = BATCH_GSON.toJson(prepared);
 		StringBuilder callMaker = new StringBuilder(varName + ".submit_batch(");
 		callMaker.append("requests=").append(PyUtils.determineStringType(requestsJson));
 		appendKwargs(callMaker, parameters, true);

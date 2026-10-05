@@ -262,8 +262,29 @@ public class RdbmsImporter extends AbstractImporter {
 		}
 		try {
 			// the new headers are the keys for the merge
+			String safeLeftTable = leftTableName.replaceAll("[^A-Za-z0-9_$]", "");
+			String safeMergeTable = mergeTable.replaceAll("[^A-Za-z0-9_$]", "");
+			if (!safeLeftTable.equals(leftTableName) || !safeMergeTable.equals(mergeTable)
+					|| !safeLeftTable.matches("[A-Za-z_][A-Za-z0-9_$]*")
+					|| !safeMergeTable.matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+				throw new IllegalArgumentException("Invalid frame table name");
+			}
+			String[] safeKeys = new String[keyColumns.length];
+			for (int i = 0; i < keyColumns.length; i++) {
+				safeKeys[i] = keyColumns[i].replaceAll("[^A-Za-z0-9_$]", "");
+				if (!safeKeys[i].equals(keyColumns[i]) || !safeKeys[i].matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+					throw new IllegalArgumentException("Invalid frame key column");
+				}
+			}
+			String[] safeHeaders = new String[origHeaders.length];
+			for (int i = 0; i < origHeaders.length; i++) {
+				safeHeaders[i] = origHeaders[i].replaceAll("[^A-Za-z0-9_$]", "");
+				if (!safeHeaders[i].equals(origHeaders[i]) || !safeHeaders[i].matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+					throw new IllegalArgumentException("Invalid frame column");
+				}
+			}
 			this.dataframe.getBuilder()
-					.runQuery(RdbmsQueryBuilder.makeMergeIntoQuery(leftTableName, mergeTable, keyColumns, origHeaders));
+					.runQuery(RdbmsQueryBuilder.makeMergeIntoQuery(safeLeftTable, safeMergeTable, safeKeys, safeHeaders));
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 		}

@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -123,5 +124,13 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 			return "Optional title for a group chat. Microsoft Teams does not let a one on one chat have one.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// starts a chat as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

@@ -226,6 +226,26 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public void setNullableLargeText(java.sql.PreparedStatement statement, int index, String value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.LONGVARCHAR);
+		} else {
+			statement.setString(index, value);
+		}
+	}
+
+	@Override
+	public void setNullableBinary(java.sql.PreparedStatement statement, int index, byte[] value)
+			throws java.sql.SQLException {
+		if (value == null) {
+			statement.setNull(index, java.sql.Types.LONGVARBINARY);
+		} else {
+			statement.setBytes(index, value);
+		}
+	}
+
+	@Override
 	public boolean allowBlobDataType() {
 		return false;
 	}
