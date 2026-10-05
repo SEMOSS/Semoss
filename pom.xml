@@ -59,9 +59,9 @@
 		<!-- Jackson 2.x. jackson-annotations tracks the minor line (2.22), while
 		     core/databind/datatype ship patch releases off it (2.22.2), so the two
 		     cannot share a single property. -->
-		<jackson2.version>2.22.2</jackson2.version>
+		<jackson2.version>2.22.3</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
-		<jackson3.version>3.1.5</jackson3.version>
+		<jackson3.version>3.1.7</jackson3.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
@@ -1046,6 +1046,13 @@
 			<artifactId>commons-codec</artifactId>
 			<version>1.19.0</version>
 		</dependency>
+		<!-- No fixed release exists in the 1.x line for CVE-2025-46392 (low severity).
+		     Pinned explicitly (rather than left to resolve transitively through
+		     org.janusgraph:janusgraph-core, which depends on it) specifically so the
+		     "exclude everything" below can strip ITS OWN transitive dependencies
+		     (e.g. an old commons-logging) without touching anything else. SEMOSS's
+		     own code never calls org.apache.commons.configuration.* directly -
+		     confirmed via direct search - so this exists only to satisfy JanusGraph. -->
 		<dependency>
 			<groupId>commons-configuration</groupId>
 			<artifactId>commons-configuration</artifactId>
