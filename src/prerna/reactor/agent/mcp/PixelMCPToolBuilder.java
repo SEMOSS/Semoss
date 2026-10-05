@@ -301,6 +301,12 @@ public class PixelMCPToolBuilder {
 			}
 			uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayEnum != null ? displayEnum.getValue() : null);
 		}
+		// the reactor's own component and autoOpen stay unless the supplied metadata sets them
+		JSONObject declared = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
+		if (declared != null) {
+			MCPUtility.copyUiHints(declared.toMap(), uiJson);
+		}
+		MCPUtility.copyUiHints(uiMap, uiJson);
 		meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 	}
 

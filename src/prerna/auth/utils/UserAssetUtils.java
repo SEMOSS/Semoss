@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.io.File;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -50,9 +49,9 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.util.AssetUtility;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -142,21 +141,18 @@ public class UserAssetUtils extends AbstractSecurityUtils {
 	 */
 	public static void registerUserAssetProject(AccessToken token, String projectId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)");
-			int parameterIndex = 1;
-			ps.setString(parameterIndex++, token.getProvider().name());
-			ps.setString(parameterIndex++, token.getId());
-			ps.setString(parameterIndex++, projectId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"INSERT INTO ASSETENGINE(TYPE, USERID, PROJECTID) VALUES(?,?,?)", ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, token.getProvider().name());
+						ps.setString(parameterIndex++, token.getId());
+						ps.setString(parameterIndex++, projectId);
+					});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Unable to register user asset project.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 

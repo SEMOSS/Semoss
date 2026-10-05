@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.usertracking;
 
-import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +44,6 @@ import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 
@@ -157,21 +155,15 @@ public class EngineViewsUtils extends UserTrackingUtils {
 
 		String query = "UPDATE " + EV_TN + " SET VIEWS = ?" + " WHERE ENGINEID = ? AND DATE = ?";
 
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setInt(index++, i);
-			ps.setString(index++, engineId);
-			ps.setDate(index++, java.sql.Date.valueOf(date));
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setInt(index++, i);
+				ps.setString(index++, engineId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update engine view count for engine {} on {}", engineId, date, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 
@@ -185,22 +177,15 @@ public class EngineViewsUtils extends UserTrackingUtils {
 	private static void add(String engineId, LocalDate date, int i) {
 		String query = "INSERT INTO " + EV_TN + " VALUES (?, ?, ?)";
 		IRDBMSEngine userTrackingDb = SystemEngineRegistry.getUserTrackingDb();
-		PreparedStatement ps = null;
 		try {
-			ps = userTrackingDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, engineId);
-			ps.setDate(index++, java.sql.Date.valueOf(date));
-			ps.setInt(index++, i);
-
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(userTrackingDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, engineId);
+				ps.setDate(index++, java.sql.Date.valueOf(date));
+				ps.setInt(index++, i);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert engine view count for engine {} on {}", engineId, date, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, ps);
 		}
 	}
 

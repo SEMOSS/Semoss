@@ -12,6 +12,44 @@ from gaas_tcp_server_thread_local import smss_clear_app_imports, smss_get_runtim
 logger = logging.getLogger("SocketServer")
 
 
+def get_document_markdown(
+    file_path: str | os.PathLike,
+    *,
+    max_file_bytes: int = 20 * 1024 * 1024,
+    max_pages: int = 200,
+    max_chars: int = 1_000_000,
+) -> str:
+    """Read a local document through Docling and return its Markdown.
+
+    Relative paths resolve against this execution's ROOT, never the process cwd.
+    Absolute paths can identify an already authorized local file. Source files
+    stay unchanged; no output file is written. Notes and page/slide/sheet labels
+    are included, and partial, empty or oversized extraction raises an error.
+    PDF/OCR requires available local model artifacts. Conversion is local, with
+    a cooperative pipeline timeout; imports/model initialization are not bounded
+    by that timeout. Native readers remain necessary for exact Office semantics.
+    """
+    from pathlib import Path
+    from genai_client.message_builders.semoss_base.document_input import (
+        DocumentInputProcessor,
+    )
+
+    source = Path(file_path)
+    if not source.is_absolute():
+        root = smss_get_runtime_var("ROOT")
+        if not root:
+            raise RuntimeError("ROOT is unavailable; provide an absolute file path")
+        root_path = Path(root).resolve()
+        source = (root_path / source).resolve()
+        if not source.is_relative_to(root_path):
+            raise ValueError("Relative document paths must stay within ROOT")
+    return DocumentInputProcessor(
+        max_file_bytes=max_file_bytes,
+        max_pages=max_pages,
+        max_text_chars=max_chars,
+    ).extract_file(source)
+
+
 def deprecated(reason: str = "", version: str = ""):
     """Lightweight marker decorator, akin to Java's @Deprecated.
 

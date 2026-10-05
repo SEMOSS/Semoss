@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -73,7 +74,7 @@ import sun.misc.Unsafe;
 
 class ClusterUtilUnitTests {
 
-	// Force-load EngineUtility safely - its clinit calls Utility.getBaseFolder()
+	// Force-load EngineUtility safely - its client calls Utility.getBaseFolder()
 	// which returns null in test context, causing NPE on .replace().
 	static {
 		try (MockedStatic<Utility> util = mockStatic(Utility.class)) {
@@ -2616,8 +2617,8 @@ class ClusterUtilUnitTests {
 						.thenReturn(imgFolder.toString());
 
 				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
-				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(imgFolder.resolve("engNew.png").toString()))
-						.thenReturn(stock);
+				dig.when(() -> DefaultImageGeneratorUtil
+						.getStockImageForPath(imgFolder.resolve("engNew.png").toString(), null)).thenReturn(stock);
 
 				File result = ClusterUtil.getEngineAndProjectImage("engNew", IEngine.CATALOG_TYPE.VECTOR);
 				assertSame(stock, result);
@@ -2639,8 +2640,8 @@ class ClusterUtilUnitTests {
 				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
 						.thenReturn(imgFolder.toString());
 				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
-				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(imgFolder.resolve("project-id.png").toString()))
-						.thenReturn(stock);
+				dig.when(() -> DefaultImageGeneratorUtil
+						.getStockImageForPath(imgFolder.resolve("project-id.png").toString(), null)).thenReturn(stock);
 				assertSame(stock, ClusterUtil.getEngineAndProjectImage("project-id", IEngine.CATALOG_TYPE.PROJECT));
 				assertFalse(Files.exists(imgFolder));
 				verify(storage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
@@ -2659,14 +2660,42 @@ class ClusterUtilUnitTests {
 				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
 						.thenReturn(imgFolder.toString());
 				File stock = Files.createFile(tempDir.resolve("stock.png")).toFile();
-				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(anyString())).thenReturn(stock);
+				dig.when(() -> DefaultImageGeneratorUtil.getStockImageForPath(anyString(), isNull())).thenReturn(stock);
 				assertSame(stock, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
 				assertSame(stock, ClusterUtil.getEngineAndProjectImage("second", IEngine.CATALOG_TYPE.PROJECT));
 				assertSame(stock, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
 				File uploaded = Files.createFile(imgFolder.resolve("first.png")).toFile();
 				assertEquals(uploaded, ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT));
+				assertEquals(uploaded,
+						ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT, "dark"));
+				assertEquals(uploaded,
+						ClusterUtil.getEngineAndProjectImage("first", IEngine.CATALOG_TYPE.PROJECT, "light"));
 				verify(storage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
 				verify(storage, never()).pushEngineAndProjectImage(any(), anyString());
+			}
+		}
+
+		@Test
+		void themeChangesSelectStockWithoutRepeatingTheCloudRefresh() throws Exception {
+			Path imgFolder = Files.createDirectory(tempDir.resolve("themed-catalog"));
+			try (MockedStatic<CentralCloudStorage> ccs = mockStatic(CentralCloudStorage.class);
+					MockedStatic<EngineUtility> eu = mockStatic(EngineUtility.class);
+					MockedStatic<DefaultImageGeneratorUtil> dig = mockStatic(DefaultImageGeneratorUtil.class)) {
+				CentralCloudStorage storage = mock(CentralCloudStorage.class);
+				ccs.when(CentralCloudStorage::getInstance).thenReturn(storage);
+				eu.when(() -> EngineUtility.getLocalEngineImageDirectory(IEngine.CATALOG_TYPE.PROJECT))
+						.thenReturn(imgFolder.toString());
+				for (String theme : new String[] { "light", "dark" }) {
+					File stock = Files.createFile(tempDir.resolve(theme + ".png")).toFile();
+					dig.when(() -> DefaultImageGeneratorUtil
+							.getStockImageForPath(imgFolder.resolve("project-id.png").toString(), theme))
+							.thenReturn(stock);
+					assertSame(stock,
+							ClusterUtil.getEngineAndProjectImage("project-id", IEngine.CATALOG_TYPE.PROJECT, theme));
+				}
+				verify(storage).pullEngineAndProjectImageFolder(IEngine.CATALOG_TYPE.PROJECT);
+				verify(storage, never()).pushEngineAndProjectImage(any(), anyString());
+				assertEquals(0, imgFolder.toFile().list().length);
 			}
 		}
 	}

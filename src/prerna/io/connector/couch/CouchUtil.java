@@ -151,6 +151,15 @@ public class CouchUtil {
 	 * @throws CouchException           If another exception is encountered
 	 */
 	public static Response download(String partitionId, Map<String, String> referenceData) throws CouchException {
+		return download(partitionId, referenceData, null);
+	}
+
+	/**
+	 * The requested theme applies only to stock fallbacks, never stored
+	 * attachments.
+	 */
+	public static Response download(String partitionId, Map<String, String> referenceData, String theme)
+			throws CouchException {
 		if (referenceData == null || referenceData.isEmpty()) {
 			throw new IllegalArgumentException("Selector list is empty");
 		}
@@ -195,7 +204,7 @@ public class CouchUtil {
 					docJson.put(key, referenceData.get(key));
 				}
 			}
-			attachmentBytes = createDefault(partitionId, docJson);
+			attachmentBytes = createDefault(partitionId, docJson, theme);
 		}
 
 		String eTag = null;
@@ -205,10 +214,10 @@ public class CouchUtil {
 			classLogger.error("Error building byte digest", e);
 		}
 
-		// the default image has no stored attachment name; strip header delimiters instead of throwing
-		String safeAttachmentId = (attachmentId == null ? "image" : attachmentId)
-				.replace("\r", "").replace("\n", "").replace("\0", "")
-				.replace("\\", "\\\\").replace("\"", "\\\"");
+		// the default image has no stored attachment name; strip header delimiters
+		// instead of throwing
+		String safeAttachmentId = (attachmentId == null ? "image" : attachmentId).replace("\r", "").replace("\n", "")
+				.replace("\0", "").replace("\\", "\\\\").replace("\"", "\\\"");
 		ResponseBuilder builder = Response.ok(attachmentBytes).header("Content-Disposition",
 				"attachment; filename=\"" + safeAttachmentId + "\"");
 		if (eTag != null) {
@@ -467,7 +476,8 @@ public class CouchUtil {
 	 * @see AbstractSecurityUtils#getStockImage
 	 * @throws CouchException If an exception is encountered
 	 */
-	private static byte[] createDefault(String partitionId, ObjectNode documentData) throws CouchException {
+	private static byte[] createDefault(String partitionId, ObjectNode documentData, String theme)
+			throws CouchException {
 		String documentId = null;
 		String revisionId = null;
 		if (documentData.has("_id")) {
@@ -519,7 +529,7 @@ public class CouchUtil {
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
 					return DefaultImageGeneratorUtil
-							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName));
+							.pickRandomImageBytes(buildStockSeed(partitionId, databaseId, databaseName), theme);
 				}
 			} else if (PROJECT.equals(partitionId)) {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -542,7 +552,7 @@ public class CouchUtil {
 					fileContent = FileUtils.readFileToByteArray(insightImageFile);
 				} else {
 					return DefaultImageGeneratorUtil
-							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName));
+							.pickRandomImageBytes(buildStockSeed(partitionId, projectId, projectName), theme);
 				}
 			} else {
 				String projectName = SecurityProjectUtils.getProjectAliasForId(projectId);
@@ -572,23 +582,17 @@ public class CouchUtil {
 	}
 
 	/**
-	 * Builds the deterministic seed used to pick a stock image. Formatted as
-	 * {@code <partition>|<alias>__<id>} so that DefaultImageGeneratorUtil can strip
-	 * the random id suffix and drive selection off the human alias - this keeps
-	 * differently-named entities (e.g. "TestCSV" vs "TestDB1") on distinct images.
-	 * The id is retained so a same-named pair still varies if the alias is missing.
+	 * Uses the resource ID to match local and cluster stock-image selection. A
+	 * missing ID falls back to the full alias, then the partition as a last resort.
 	 */
 	private static String buildStockSeed(String partitionId, String entityId, String entityName) {
-		StringBuilder builder = new StringBuilder();
-		builder.append(partitionId == null ? "" : partitionId).append("|");
-		String id = entityId == null ? "" : entityId;
-		if (entityName == null || entityName.isBlank()) {
-			// no alias to drive selection - fall back to the id (kept whole, no "__")
-			builder.append(id);
-		} else {
-			builder.append(entityName).append("__").append(id);
+		if (entityId != null && !entityId.isBlank()) {
+			return entityId;
 		}
-		return builder.toString();
+		if (entityName != null && !entityName.isBlank()) {
+			return entityName;
+		}
+		return partitionId == null ? "" : partitionId;
 	}
 
 	/**

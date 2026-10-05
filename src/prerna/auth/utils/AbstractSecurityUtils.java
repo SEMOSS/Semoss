@@ -83,6 +83,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
@@ -2708,8 +2709,9 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("SMSS_USER_ACCESS_KEYS", new String[] { "TYPE" });
 		allValues.put("USERINSIGHTPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 
-		// grab the new fixed names to the old names
-		Map<String, String> newTypesMap = AuthProvider.getLabelToLegacyName();
+		// Use the same aliases as request parsing, including the legacy Microsoft
+		// prefix.
+		Map<String, AuthProvider> providersByKey = AuthProvider.getSocialPropKeysToEnum();
 
 		// repeat for all tables
 		for (String tableName : allValues.keySet()) {
@@ -2723,12 +2725,14 @@ public abstract class AbstractSecurityUtils {
 					conn = securityDb.getConnection();
 					StringBuilder query = new StringBuilder();
 					query.append("UPDATE ").append(tableName).append(" SET ").append(columnName).append("=? WHERE ")
-							.append(columnName).append("=?");
+							.append("LOWER(").append(columnName).append(")=? AND ").append(columnName).append("<>?");
 					ps = conn.prepareStatement(query.toString());
 
-					for (String newType : newTypesMap.keySet()) {
-						ps.setString(1, newType);
-						ps.setString(2, newTypesMap.get(newType));
+					for (Map.Entry<String, AuthProvider> entry : providersByKey.entrySet()) {
+						String label = entry.getValue().getLabel();
+						ps.setString(1, label);
+						ps.setString(2, entry.getKey());
+						ps.setString(3, label);
 						ps.addBatch();
 					}
 					ps.executeBatch();
@@ -3323,6 +3327,62 @@ public abstract class AbstractSecurityUtils {
 			creators.add(Pair.with(id.toString().trim(), type.toString().trim()));
 		}
 		return creators;
+	}
+
+	/**
+	 * Match active grants to the user's provider groups and custom groups. A group
+	 * identity includes both its type and ID; IDs alone are not unique across
+	 * providers.
+	 *
+	 * @param user             the user whose memberships are checked
+	 * @param permissionPrefix the group permission table followed by {@code __}
+	 */
+	static IQueryFilter getUserGroupPermissionFilter(User user, String permissionPrefix) {
+		OrQueryFilter memberships = new OrQueryFilter();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				AccessToken token = user.getAccessToken(login);
+				Collection<String> customGroups = AdminSecurityGroupUtils.getUserCustomGroups(token);
+				if (!customGroups.isEmpty()) {
+					AndQueryFilter custom = new AndQueryFilter();
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==", "CUSTOM"));
+					custom.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", customGroups));
+					memberships.addFilter(custom);
+				}
+				if (!token.getUserGroups().isEmpty()) {
+					AndQueryFilter provider = new AndQueryFilter();
+					provider.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "TYPE", "==",
+							token.getUserGroupType()));
+					provider.addFilter(
+							SimpleQueryFilter.makeColToValFilter(permissionPrefix + "ID", "==", token.getUserGroups()));
+					memberships.addFilter(provider);
+				}
+			}
+		}
+		if (memberships.isEmpty()) {
+			// An empty membership list must never become an unrestricted query.
+			return new SimpleQueryFilter(new NounMetadata(1, PixelDataType.CONST_INT), "==",
+					new NounMetadata(0, PixelDataType.CONST_INT));
+		}
+		AndQueryFilter activeGrants = new AndQueryFilter();
+		activeGrants.addFilter(memberships);
+		activeGrants.addFilter(SimpleQueryFilter.makeColToValFilter(permissionPrefix + "PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		activeGrants.addFilter(getUnexpiredFilter(permissionPrefix + "ENDDATE"));
+		return activeGrants;
+	}
+
+	/**
+	 * Match unlimited or unexpired permissions/memberships, whose end dates are
+	 * stored in UTC.
+	 */
+	static IQueryFilter getUnexpiredFilter(String endDateColumn) {
+		OrQueryFilter active = new OrQueryFilter();
+		active.addFilter(
+				SimpleQueryFilter.makeColToValFilter(endDateColumn, "==", null, PixelDataType.CONST_TIMESTAMP));
+		active.addFilter(SimpleQueryFilter.makeColToValFilter(endDateColumn, ">",
+				new SemossDate(Utility.getCurrentZonedDateTimeUTC()), PixelDataType.CONST_TIMESTAMP));
+		return active;
 	}
 
 	/**

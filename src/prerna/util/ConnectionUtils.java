@@ -59,6 +59,17 @@ public class ConnectionUtils {
 	private static final Logger classLogger = LogManager.getLogger(ConnectionUtils.class);
 
 	/**
+	 * Returns a pooled connection while allowing the transaction owner to preserve
+	 * a release failure. Non-pooled engine connections remain open. The existing
+	 * closeAllConnectionsIfPooling methods retain their log-and-swallow contract.
+	 */
+	public static void closeConnectionIfPooling(IRDBMSEngine engine, Connection connection) throws SQLException {
+		if (engine != null && engine.isConnectionPooling() && connection != null) {
+			connection.close();
+		}
+	}
+
+	/**
 	 * Close a result set, statement, and connection that belong to a pooling-aware
 	 * engine. The result set and statement are always closed. If {@code con} is
 	 * {@code null} and the engine is pooling, the connection backing the statement
