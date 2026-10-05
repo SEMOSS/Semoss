@@ -70,6 +70,7 @@ public final class AgentConfig {
 
 	// Agent specific params
 	private final Map<String, Object> agentParams;
+	private final boolean includeCurrentTime;
 
 	// Tool policy
 	private final boolean useDefaultAgentTools;
@@ -130,6 +131,7 @@ public final class AgentConfig {
 				: Collections.emptyMap();
 		this.agentParams = b.agentParams != null ? Collections.unmodifiableMap(new HashMap<>(b.agentParams))
 				: Collections.emptyMap();
+		this.includeCurrentTime = b.includeCurrentTime;
 		this.useDefaultAgentTools = b.useDefaultAgentTools;
 		this.disabledDefaultTools = b.disabledDefaultTools != null ? Set.copyOf(b.disabledDefaultTools)
 				: Collections.emptySet();
@@ -255,6 +257,11 @@ public final class AgentConfig {
 	 */
 	public Map<String, Object> getAgentParams() {
 		return agentParams;
+	}
+
+	/** Whether server clock data should accompany the dynamic conversation-tail runtime notes. */
+	public boolean includeCurrentTime() {
+		return includeCurrentTime;
 	}
 
 	/** Whether the harness may expose its general built-in tools for this agent. */
@@ -393,6 +400,7 @@ public final class AgentConfig {
 		private Map<String, Object> modelParams;
 		private Map<String, Object> agentParams;
 		private boolean useDefaultAgentTools = true;
+		private boolean includeCurrentTime;
 		private Set<String> disabledDefaultTools;
 		private String resultTool;
 		private Set<String> readOnlyPaths;
@@ -460,6 +468,11 @@ public final class AgentConfig {
 
 		public Builder useDefaultAgentTools(boolean v) {
 			this.useDefaultAgentTools = v;
+			return this;
+		}
+
+		public Builder includeCurrentTime(boolean v) {
+			this.includeCurrentTime = v;
 			return this;
 		}
 

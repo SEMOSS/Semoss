@@ -51,6 +51,7 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.collaboration.CollaborationAgentTools;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -511,6 +512,15 @@ final class HarnessToolExecutor {
 			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
 					result.isSuccess());
 		}
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(tc.rawToolName)) {
+			ToolExecutionResult result = CollaborationAgentTools.execute(tc.rawToolName, tc.toolParams,
+					ctx.getInsight());
+			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();
+			if (result.isSuccess()) {
+				output = MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
+			}
+			return new ToolExecOutcome(output, result.isSuccess());
+		}
 		if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
 			try {
 				String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
@@ -710,9 +720,9 @@ final class HarnessToolExecutor {
 			functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
 			reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-			// Always attach paramValues — RunMCPToolReactor declares it required, so
+			// Always attach paramValues - RunMCPToolReactor declares it required, so
 			// no-arg
-			// tools (ListSkill, TodoRead, …) would otherwise blow up with "Required
+			// tools (ListSkill, TodoRead, ...) would otherwise blow up with "Required
 			// input(s)
 			// missing: paramValues". Pass an empty map when the model sent no args.
 			GenRowStruct paramGrs = new GenRowStruct();

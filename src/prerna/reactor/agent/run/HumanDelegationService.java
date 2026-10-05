@@ -58,6 +58,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.BrainPeopleUtils;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
@@ -807,28 +808,61 @@ public final class HumanDelegationService {
 	}
 
 	/**
-	 * FindPerson tool: names and emails only, so the model can pass one to
-	 * DelegateToPerson.
+	 * FindPerson tool: the owner's contacts, then their Microsoft directory, then
+	 * accounts on this platform. canDelegate marks who can take a DelegateToPerson
+	 * request.
 	 */
 	public static ToolExecutionResult findPersonFromTool(Insight insight, Room room, Map<String, Object> params) {
 		try {
 			if (!CollaborationUtils.isCollaborationRoom(room) || delegationActionId(room) != null) {
 				throw new IllegalStateException(FIND_PERSON_TOOL_NAME + " is only available in collaboration rooms");
 			}
-			requireUser(insight);
+			User user = requireUser(insight);
 			String query = bounded(params, "query", 200, true);
-			List<Map<String, Object>> people = new ArrayList<>();
+			Map<String, Map<String, Object>> byEmail = new LinkedHashMap<>();
+			Map<String, Person> accounts = new LinkedHashMap<>();
 			for (PersonMatch match : matchPeople(query, FIND_PERSON_LIMIT)) {
-				Map<String, Object> entry = new LinkedHashMap<>();
-				entry.put("name", match.person().name());
-				entry.put("email", match.person().email());
-				people.add(entry);
+				String email = lowerOrEmpty(match.person().email());
+				accounts.putIfAbsent(email.isEmpty() ? match.person().userId() : email, match.person());
 			}
+			List<Map<String, Object>> found;
+			try {
+				found = BrainPeopleUtils.findPeople(user, query, FIND_PERSON_LIMIT);
+			} catch (RuntimeException e) {
+				// no Brain yet, or the directory is unreachable: platform accounts still answer
+				logger.warn("FindPerson could not search contacts: {}", e.getMessage());
+				found = List.of();
+			}
+			for (Map<String, Object> person : found) {
+				String email = lowerOrEmpty(person.get("email"));
+				Map<String, Object> entry = new LinkedHashMap<>();
+				person.forEach((key, value) -> {
+					if (value != null) {
+						entry.put(key, value);
+					}
+				});
+				entry.put("canDelegate", accounts.containsKey(email));
+				byEmail.putIfAbsent(email, entry);
+			}
+			accounts.forEach((key, person) -> {
+				if (!byEmail.containsKey(key) && byEmail.size() < FIND_PERSON_LIMIT) {
+					Map<String, Object> entry = new LinkedHashMap<>();
+					entry.put("name", person.name());
+					entry.put("email", person.email());
+					entry.put("source", "platform");
+					entry.put("canDelegate", true);
+					byEmail.put(key, entry);
+				}
+			});
+			List<Map<String, Object>> people = new ArrayList<>(byEmail.values());
 			Map<String, Object> out = new LinkedHashMap<>();
 			out.put("query", query);
 			out.put("people", people);
-			out.put("note", people.isEmpty() ? "No active user matches. Ask the user who they mean."
-					: "Pass the name or email to " + TOOL_NAME + "; the user confirms the exact person in the card.");
+			out.put("note", people.isEmpty()
+					? "No one matches in the owner's contacts, directory, or this platform. Ask the owner for the address."
+					: "source: contacts = people the owner emails with, most emailed first; directory = their "
+							+ "Microsoft 365 directory. The first contact is usually who the owner means. Only people "
+							+ "with canDelegate can take a " + TOOL_NAME + " request.");
 			return ToolExecutionResult.success(GSON.toJson(out));
 		} catch (RuntimeException e) {
 			return ToolExecutionResult.error(null, e.getMessage());
