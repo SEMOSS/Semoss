@@ -31,6 +31,7 @@ import java.lang.reflect.Constructor;
 
 import net.sf.cglib.proxy.MethodInterceptor;
 import prerna.engine.api.IVectorDatabaseEngine;
+import prerna.util.SafeClassNameValidator;
 
 public abstract class AbstractInterceptor implements MethodInterceptor {
 	
@@ -49,6 +50,9 @@ public abstract class AbstractInterceptor implements MethodInterceptor {
 	
 	@SuppressWarnings("unchecked")
 	public static MethodInterceptor buildInterceptor(String interceptorClassName,IVectorDatabaseEngine proxy, IVectorDatabaseEngine target, Object[] constructorArgs) throws Exception {
+		if (!SafeClassNameValidator.isAllowed(interceptorClassName)) {
+			throw new IllegalArgumentException("Disallowed interceptor class: " + interceptorClassName);
+		}
 		Class<? extends MethodInterceptor> interceptorClass;
 		try {
 			interceptorClass = (Class<? extends MethodInterceptor>) Class.forName(interceptorClassName);

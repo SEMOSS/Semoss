@@ -61,6 +61,7 @@ import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.engine.impl.model.responses.EmbeddingsModelEngineResponse;
 import prerna.om.Insight;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 import prerna.util.Settings;
 
 /**
@@ -151,6 +152,10 @@ public class AbstractRemoteModelEngine extends AbstractModelEngine {
 		String initEngineType = smssProp.getProperty(initEngineTypeKey);
 
 		if (initEngineType != null && !initEngineType.isEmpty()) {
+			if (!SafeClassNameValidator.isAllowed(initEngineType)) {
+				classLogger.error("Refusing to instantiate disallowed implementing engine class '{}'", initEngineType);
+				throw new IllegalArgumentException("Disallowed implementing engine class: " + initEngineType);
+			}
 			implementingEngineClass = (AbstractModelEngine) Class.forName(initEngineType).newInstance();
 			Properties implEngineSmss = new Properties();
 			for (Object key : smssProp.keySet()) {

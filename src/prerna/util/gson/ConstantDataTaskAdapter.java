@@ -40,6 +40,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.sablecc2.om.task.ConstantDataTask;
 import prerna.sablecc2.om.task.options.TaskOptions;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 
 public class ConstantDataTaskAdapter extends AbstractSemossTypeAdapter<ConstantDataTask> {
 	
@@ -82,6 +83,10 @@ public class ConstantDataTaskAdapter extends AbstractSemossTypeAdapter<ConstantD
 		task.setTaskOptions(tOptions);
 
 		Object outputData = null;
+		if (!SafeClassNameValidator.isAllowed(objClass)) {
+			classLogger.error("Refusing to deserialize disallowed class '{}' as task output data", objClass);
+			throw new IllegalArgumentException("Disallowed class in task output data: " + objClass);
+		}
 		try {
 			Class c = Class.forName(objClass);
 			outputData = GSON.fromJson(objStr, c);

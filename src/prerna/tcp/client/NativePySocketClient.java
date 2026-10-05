@@ -65,6 +65,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 import prerna.util.Utility;
 
 public class NativePySocketClient extends SocketClient implements Runnable, Closeable {
@@ -458,6 +459,10 @@ public class NativePySocketClient extends SocketClient implements Runnable, Clos
 			for (int classIndex = 0; classIndex < input.payloadClassNames.length; classIndex++) {
 				try {
 					String className = input.payloadClassNames[classIndex];
+					if (!SafeClassNameValidator.isAllowed(className)) {
+						classLogger.error("Refusing to resolve disallowed payload class '{}'", className);
+						continue;
+					}
 					input.payloadClasses[classIndex] = Class.forName(className);
 					if (input.payloadClasses[classIndex] == Insight.class) {
 						String insightId = input.insightId;

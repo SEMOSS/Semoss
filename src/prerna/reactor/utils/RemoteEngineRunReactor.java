@@ -43,6 +43,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.tcp.PayloadStruct;
 import prerna.tcp.client.workers.NativePyEngineWorker;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 
 public class RemoteEngineRunReactor extends AbstractReactor {
 
@@ -88,6 +89,10 @@ public class RemoteEngineRunReactor extends AbstractReactor {
     		for(int classIndex = 0;classIndex < input.payloadClassNames.length;classIndex++) {
     			try {
 					String className = input.payloadClassNames[classIndex];
+					if (!SafeClassNameValidator.isAllowed(className)) {
+						classLogger.error("Refusing to resolve disallowed payload class '{}'", className);
+						continue;
+					}
 					input.payloadClasses[classIndex] = Class.forName(className);
 					if(input.payloadClasses[classIndex] == Insight.class)
 					{

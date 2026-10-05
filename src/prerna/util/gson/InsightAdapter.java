@@ -66,6 +66,7 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.TaskStore;
 import prerna.security.InsightCipher;
 import prerna.util.Constants;
+import prerna.util.SafeClassNameValidator;
 import prerna.util.Utility;
 import prerna.util.insight.InsightUtility;
 
@@ -352,8 +353,11 @@ public class InsightAdapter extends TypeAdapter<Insight> {
 				}
 				else if(className.equalsIgnoreCase(RDataTable.class.getName())) {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
-				} else {
+				} else if (SafeClassNameValidator.isAllowed(className)) {
 					frame = (ITableDataFrame) Class.forName(className).newInstance();
+				} else {
+					classLogger.error("Refusing to instantiate disallowed frame class '{}'", className);
+					throw new IllegalArgumentException("Disallowed frame class: " + className);
 				}
 				
 				frame.open(cf, this.cipher);
