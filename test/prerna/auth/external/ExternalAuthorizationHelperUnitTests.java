@@ -41,4 +41,39 @@ public class ExternalAuthorizationHelperUnitTests {
                 () -> ExternalAuthorizationHelper.updateEnginePermissionsBasedOnApiCall(u));
         assertNotNull(e.getMessage());
     }
+
+    @Test
+    void testIsSafeEngineIdentifierAcceptsOrdinaryValues() {
+        assertTrue(ExternalAuthorizationHelper.isSafeEngineIdentifier("my-engine_01"));
+        assertTrue(ExternalAuthorizationHelper.isSafeEngineIdentifier("5f1d9c3a-1234-4abc-8def-0123456789ab"));
+        assertTrue(ExternalAuthorizationHelper.isSafeEngineIdentifier("My Engine (Prod)"));
+    }
+
+    @Test
+    void testIsSafeEngineIdentifierRejectsNullOrBlank() {
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier(null));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier(""));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("   "));
+    }
+
+    @Test
+    void testIsSafeEngineIdentifierRejectsPathTraversalSequences() {
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("../../etc/passwd"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("engine/../../secrets"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("..\\..\\windows\\system32"));
+    }
+
+    @Test
+    void testIsSafeEngineIdentifierRejectsPathSeparators() {
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("foo/bar"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("foo\\bar"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("/etc/passwd"));
+    }
+
+    @Test
+    void testIsSafeEngineIdentifierRejectsControlCharacters() {
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("engine\u0000name"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("engine\nname"));
+        assertFalse(ExternalAuthorizationHelper.isSafeEngineIdentifier("engine\rname"));
+    }
 }

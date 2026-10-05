@@ -396,7 +396,29 @@ public class LinOTPUtil {
 	}
 
 	/**
-	 * 
+	 * Builds the "admin_session" cookie sent alongside the LinOTP admin reset call.
+	 * The cookie value is a random, single-use token (paired with the same value
+	 * sent in the request body) used as a CSRF-style double-submit check - it is not
+	 * itself a long-lived credential, but it is still security-relevant, so it is
+	 * marked Secure (never sent over a non-TLS connection) and HttpOnly for defense
+	 * in depth, consistent with how session-identifying cookies are hardened
+	 * elsewhere in this codebase.
+	 *
+	 * @param domain the LinOTP server hostname the cookie is scoped to
+	 * @param token  the random session token value
+	 * @return a configured cookie ready to add to a CookieStore
+	 */
+	static BasicClientCookie buildAdminSessionCookie(String domain, String token) {
+		BasicClientCookie cookie = new BasicClientCookie("admin_session", token);
+		cookie.setDomain(domain);
+		cookie.setAttribute(ClientCookie.DOMAIN_ATTR, "true");
+		cookie.setSecure(true);
+		cookie.setAttribute("httponly", "true");
+		return cookie;
+	}
+
+	/**
+	 *
 	 * @param linotpResponse
 	 * @param username
 	 * @return
@@ -464,9 +486,7 @@ public class LinOTPUtil {
 
 		// must send the token in the cookie as well as the session key in the body
 		CookieStore cstore = new BasicCookieStore();
-		BasicClientCookie cookie = new BasicClientCookie("admin_session", token);
-		cookie.setDomain(cleanHostname);
-		cookie.setAttribute(ClientCookie.DOMAIN_ATTR, "true");
+		BasicClientCookie cookie = buildAdminSessionCookie(cleanHostname, token);
 		cstore.addCookie(cookie);
 		context.setCookieStore(cstore);
 

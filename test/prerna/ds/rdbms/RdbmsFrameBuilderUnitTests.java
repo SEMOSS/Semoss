@@ -259,6 +259,64 @@ public class RdbmsFrameBuilderUnitTests {
     }
 
     @Test
+    void isEmptyTestRejectsMaliciousTableName() throws Exception {
+        // an identifier that would break out of the FROM clause if concatenated
+        // directly into the query without validation
+        String maliciousTableName = "TABLE; DROP TABLE OTHER;--";
+
+        assertThrows(IllegalArgumentException.class, () -> reactor.isEmpty(maliciousTableName));
+        // the query should never even be built/sent to the driver
+        verify(conn, Mockito.never()).prepareStatement(anyString());
+    }
+
+    @Test
+    void isEmptyTestAllowsLegitimateTableName() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        String legitTableName = "RDBMSFRAME_1234_ABCD";
+
+        when(absSqlQueryUtil.tableExists(conn, legitTableName, DATABASE_NAME, SCHEMA)).thenReturn(true);
+        when(conn.prepareStatement("SELECT * FROM " + legitTableName + " LIMIT 1")).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(false);
+        doNothing().when(rs).close();
+        doNothing().when(stmt).close();
+
+        boolean ans = reactor.isEmpty(legitTableName);
+
+        assertTrue(ans);
+    }
+
+    @Test
+    void getNumRecordsTestRejectsMaliciousTableName() throws Exception {
+        String maliciousTableName = "TABLE; DROP TABLE OTHER;--";
+
+        assertThrows(IllegalArgumentException.class, () -> reactor.getNumRecords(maliciousTableName));
+        // the query should never even be built/sent to the driver
+        verify(conn, Mockito.never()).prepareStatement(anyString());
+    }
+
+    @Test
+    void getNumRecordsTestAllowsLegitimateTableName() throws Exception {
+        PreparedStatement stmt = mock(PreparedStatement.class);
+        ResultSet rs = mock(ResultSet.class);
+        String legitTableName = "RDBMSFRAME_1234_ABCD";
+
+        when(absSqlQueryUtil.getTableColumns(conn, legitTableName, DATABASE_NAME, SCHEMA))
+            .thenReturn(new ArrayList(){{add("col1");}});
+        when(conn.prepareStatement("SELECT COUNT(*) * ? FROM " + legitTableName)).thenReturn(stmt);
+        when(stmt.executeQuery()).thenReturn(rs);
+        when(rs.next()).thenReturn(true);
+        when(rs.getInt(1)).thenReturn(5);
+        doNothing().when(rs).close();
+        doNothing().when(stmt).close();
+
+        int ans = reactor.getNumRecords(legitTableName);
+
+        assertEquals(5, ans);
+    }
+
+    @Test
     void addRowTest() throws Exception {
         String createQuery = "CREATE TABLE TABLE COL1 INT";
         String insertQuery = "INSERT INTO TABLE (?) VALUES (?)";

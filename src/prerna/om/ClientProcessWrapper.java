@@ -876,9 +876,19 @@ public class ClientProcessWrapper {
 
 				File pythonProcessFolder = new File(finalDir);
 				if (pythonProcessFolder.exists() && pythonProcessFolder.isDirectory()) {
-					pythonProcessFolder.setReadable(true, false);
-					pythonProcessFolder.setWritable(true, false);
-					pythonProcessFolder.setExecutable(true, false);
+					// Grant the sudo'd PY_SERVER_USER access via owner+group (chmod -R 770)
+					// rather than world-readable/writable/executable permissions - mirrors
+					// AbstractVectorDatabaseEngine#setVectorFolderPermissions, which solves
+					// the same cross-user access problem for the vector schema folder.
+					try {
+						Utility.setOwnerAndGroupPermissionsRecursively(pythonProcessFolder);
+					} catch (IOException e) {
+						classLogger.error("Failed to set owner/group permissions on python process folder: '{}'",
+								pythonProcessFolder.getAbsolutePath(), e);
+					} catch (InterruptedException e) {
+						classLogger.error("Failed to set owner/group permissions on python process folder: '{}'",
+								pythonProcessFolder.getAbsolutePath(), e);
+					}
 				}
 			}
 

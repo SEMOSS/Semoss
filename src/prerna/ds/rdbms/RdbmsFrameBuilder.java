@@ -604,16 +604,34 @@ public class RdbmsFrameBuilder {
 	}
 
 	/**
+	 * Table names cannot be bound as PreparedStatement parameters, so any table
+	 * name that is concatenated directly into a dynamically built query must
+	 * first be validated against a strict allowlist to prevent SQL injection.
+	 * This mirrors the identifier validation convention already used in
+	 * {@code prerna.reactor.imports.RdbmsImporter}.
+	 *
+	 * @param tableName
+	 * @return the validated table name
+	 */
+	private static String validateTableIdentifier(String tableName) {
+		if (tableName == null || !tableName.matches("[A-Za-z_][A-Za-z0-9_$]*")) {
+			throw new IllegalArgumentException("Invalid table name");
+		}
+		return tableName;
+	}
+
+	/**
 	 * See if the table is empty
-	 * 
+	 *
 	 * @param tableName
 	 * @return
 	 */
 	public boolean isEmpty(String tableName) {
+		String safeTableName = validateTableIdentifier(tableName);
 		// first check if the table exists
 		if (this.queryUtil.tableExists(this.conn, tableName, this.database, this.schema)) {
 			// now check if there is at least one row
-			String query = "SELECT * FROM " + tableName + " LIMIT 1";
+			String query = "SELECT * FROM " + safeTableName + " LIMIT 1";
 			PreparedStatement stmt = null;
 			ResultSet rs = null;
 			try {
@@ -638,8 +656,9 @@ public class RdbmsFrameBuilder {
 	 * @return
 	 */
 	public int getNumRecords(String tableName) {
+		String safeTableName = validateTableIdentifier(tableName);
 		int columnCount = getHeaders(tableName).length;
-		String query = "SELECT COUNT(*) * ? FROM " + tableName;
+		String query = "SELECT COUNT(*) * ? FROM " + safeTableName;
 		PreparedStatement stmt = null;
 		ResultSet rs = null;
 		try {

@@ -147,7 +147,37 @@ public class ExternalAuthorizationHelper {
 	}
 
 	/**
-	 * 
+	 * engineId/engineName are parsed out of the response body of a third-party,
+	 * externally-configured permission management API (see
+	 * {@link Constants#EXTERNAL_PERMISSION_MANAGEMENT_URL}). Callers further down
+	 * the chain (e.g. {@link #updateEnginePermissionsBasedOnApiCall(User)}) use
+	 * these values unescaped to build filesystem paths - temporary smss files,
+	 * engine data folders, etc. Reject path separators, parent directory
+	 * references, and control characters here, at the point this externally
+	 * sourced data first enters the system, so that a compromised or malicious
+	 * external API response cannot smuggle path traversal sequences into those
+	 * downstream path computations.
+	 *
+	 * @param value
+	 * @return
+	 */
+	static boolean isSafeEngineIdentifier(String value) {
+		if (value == null || value.isBlank()) {
+			return false;
+		}
+		if (value.contains("..") || value.contains("/") || value.contains("\\")) {
+			return false;
+		}
+		for (int i = 0; i < value.length(); i++) {
+			if (Character.isISOControl(value.charAt(i))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 *
 	 * @param user
 	 * @param apiResponse
 	 * @return
@@ -190,12 +220,19 @@ public class ExternalAuthorizationHelper {
 				throw new IllegalArgumentException("Unable to process api response = " + apiResponse + " to determine user permissions");
 			}
 			for (JsonNode detail : parsedJsonNode) {
-				Map<String, Object> permissionMap = new HashMap<>();
-				
 				// these are mandatory
-				permissionMap.put("engineId", detail.path(ENGINEID_KEY).asText());
-				permissionMap.put("engineName", detail.path(ENGINENAME_KEY).asText());
-				
+				String engineId = detail.path(ENGINEID_KEY).asText();
+				String engineName = detail.path(ENGINENAME_KEY).asText();
+				if (!isSafeEngineIdentifier(engineId) || !isSafeEngineIdentifier(engineName)) {
+					classLogger.warn("Skipping external authorization engine permission entry because the "
+							+ ENGINEID_KEY + "/" + ENGINENAME_KEY + " value was not a safe identifier");
+					continue;
+				}
+
+				Map<String, Object> permissionMap = new HashMap<>();
+				permissionMap.put("engineId", engineId);
+				permissionMap.put("engineName", engineName);
+
 				IEngine.CATALOG_TYPE engineType = null;
 				if(ENGINETYPE_KEY != null && !ENGINETYPE_KEY.isEmpty() && detail.has(ENGINETYPE_KEY)) {
 					String engineTypeStr = detail.path(ENGINETYPE_KEY).asText();
