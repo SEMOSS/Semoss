@@ -55,6 +55,11 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 	}
 
 	@Override
+	public boolean runtimeAvailable() {
+		return PlatformAgentTools.isDefaultTool("ExecuteNodeCode");
+	}
+
+	@Override
 	public JSONObject build(Map<String, Object> args) throws Exception {
 		// The report is handed back in a file: ExecuteNodeCode caps its output at 40,000
 		// characters, and a long deck's advisory warnings alone exceed that.

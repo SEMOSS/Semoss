@@ -35,6 +35,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.ds.node.NodeUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.playground.PlaygroundUtils;
@@ -98,6 +99,9 @@ public final class CollaborationUtils {
 
 	/** An accessible managed PPTX agent, defaulting to the platform's seeded workspace. */
 	public static Map<String, Object> presentationAgent(User user) {
+		if (!NodeUtils.isNodeToolEnabled()) {
+			return null;
+		}
 		String id = Utility.getDIHelperProperty(Constants.COLLAB_PPTX_AGENT_ID);
 		if (id == null || id.isBlank()) {
 			id = Constants.AGENT_PPTX;

@@ -78,6 +78,10 @@ final class PptxWorkflow {
 		JSONObject build(Map<String, Object> arguments) throws Exception;
 
 		JSONObject review(String file, List<Integer> slides, String instructions, String engine) throws Exception;
+
+		default boolean runtimeAvailable() {
+			return true;
+		}
 	}
 
 	private final Path root;
@@ -356,6 +360,10 @@ final class PptxWorkflow {
 	/** Must be called on the harness thread; BuildPptx is never a parallel tool. */
 	JSONObject build(Map<String, Object> args, int round) {
 		if (isTerminal()) {
+			return toolResult();
+		}
+		if (!operations.runtimeAvailable()) {
+			finish("PowerPoint generation is not enabled on this server: the Node.js runtime (ExecuteNodeCode) is unavailable.");
 			return toolResult();
 		}
 		try {
