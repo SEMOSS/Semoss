@@ -1,16 +1,10 @@
 name: Mirror IL4 ACCP database fixture images to GHCR
 
 on:
-  workflow_dispatch:
-    inputs:
-      postgres_ref:
-        description: Upstream postgres image to mirror (tag or digest reference)
-        type: string
-        default: postgres@sha256:724292da1f2e50bdccfc3302ce75bbba7f4a6076701b588cc795fcac65683550
-      mariadb_ref:
-        description: Upstream mariadb image to mirror (tag or digest reference)
-        type: string
-        default: mariadb@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
+  push:
+    branches: [IL4-dev-ACCP]
+    paths:
+      - .github/workflows/il4-accp-mirror-db-fixtures.yml
 
 permissions:
   contents: read
@@ -28,6 +22,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      # Deliberate version bump: edit these two refs and push to IL4-dev-ACCP.
+      # That push is itself the trigger (see the path filter above).
+      POSTGRES_SOURCE_REF: postgres@sha256:724292da1f2e50bdccfc3302ce75bbba7f4a6076701b588cc795fcac65683550
+      MARIADB_SOURCE_REF: mariadb@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
     steps:
       - name: Install Python for digest extraction
         run: |
@@ -53,13 +52,11 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Mirror postgres to GHCR
-        env:
-          SOURCE_REF: ${{ inputs.postgres_ref }}
         run: |
           set -euo pipefail
           target="$REPO_PREFIX/postgres"
-          docker pull --platform linux/amd64 "$SOURCE_REF"
-          docker tag "$SOURCE_REF" "$target"
+          docker pull --platform linux/amd64 "$POSTGRES_SOURCE_REF"
+          docker tag "$POSTGRES_SOURCE_REF" "$target"
           docker push "$target"
           REPO_DIGESTS="$(docker image inspect "$target" --format '{{json .RepoDigests}}')" \
             TARGET_PREFIX="$target@sha256:" python3 - <<'PY' >> "$GITHUB_ENV"
@@ -73,13 +70,11 @@ jobs:
           PY
 
       - name: Mirror mariadb to GHCR
-        env:
-          SOURCE_REF: ${{ inputs.mariadb_ref }}
         run: |
           set -euo pipefail
           target="$REPO_PREFIX/mariadb"
-          docker pull --platform linux/amd64 "$SOURCE_REF"
-          docker tag "$SOURCE_REF" "$target"
+          docker pull --platform linux/amd64 "$MARIADB_SOURCE_REF"
+          docker tag "$MARIADB_SOURCE_REF" "$target"
           docker push "$target"
           REPO_DIGESTS="$(docker image inspect "$target" --format '{{json .RepoDigests}}')" \
             TARGET_PREFIX="$target@sha256:" python3 - <<'PY' >> "$GITHUB_ENV"
