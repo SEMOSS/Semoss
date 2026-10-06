@@ -2,25 +2,31 @@ absl-py==2.5.0 \
     --hash=sha256:0c996f25c0490700fadabe6351630f6111534fa0ae252cc6d2014ea3b141135f \
     --hash=sha256:0f17b89f2a4eaaedc4f28c622998aa690564b3012a396a4ffad0821007fe03ba
     # via
+    #   -c requirements-cpu.lock
     #   langextract
     #   ml-collections
     # from https://pypi.org/simple
 accelerate==1.15.0 \
     --hash=sha256:5654f8c5eaa0d4fa68b33e287a97765da6849bf6d51dcac874e73fbbddfb6134 \
     --hash=sha256:97eacca0b73e45cb867dbf8c5d5d4dc32219544300e0c8992c7334dc2ef33cec
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 aiofiles==25.1.0 \
     --hash=sha256:a8d728f0a29de45dc521f18f07297428d56992a742f0cd2701ba86e44d23d5b2 \
     --hash=sha256:abe311e527c862958650f9438e859c1fa7568a141b22abcd015e120e86a85695
     # via
+    #   -c requirements-cpu.lock
     #   livekit
     #   pipecat-ai
     # from https://pypi.org/simple
 aiohappyeyeballs==2.7.1 \
     --hash=sha256:065665c041c42a5938ed220bdcd7230f22527fbec085e1853d2402c8a3615d9d \
     --hash=sha256:9243213661e29250eb41368e5daa826fc017156c3b8a11440826b2e3ed376472
-    # via aiohttp
+    # via
+    #   -c requirements-cpu.lock
+    #   aiohttp
     # from https://pypi.org/simple
 aiohttp==3.14.3 \
     --hash=sha256:03cd2bde3d7f085b64e549c985f4bb928cad7e8ecf5323bfca320db548d81b39 \
@@ -143,6 +149,7 @@ aiohttp==3.14.3 \
     --hash=sha256:fa9467a8113aa69d3d7c55a70ef0b7c636010a40993f3df9d9d0d73b3eb7ef24 \
     --hash=sha256:fd51ebf9d3a00c074df4ede271023f4d2dba289bcc740b88191872716014e3c5
     # via
+    #   -c requirements-cpu.lock
     #   fsspec
     #   langchain-community
     #   langextract
@@ -151,32 +158,43 @@ aiohttp==3.14.3 \
 aiosignal==1.4.0 \
     --hash=sha256:053243f8b92b990551949e63930a839ff0cf0b0ebbe0597b0f3fb19e1a0fe82e \
     --hash=sha256:f47eecd9468083c2029cc99945502cb7708b082c232f9aca65da147157b251c7
-    # via aiohttp
+    # via
+    #   -c requirements-cpu.lock
+    #   aiohttp
     # from https://pypi.org/simple
 annotated-doc==0.0.5 \
     --hash=sha256:117bac03a25ede5df5440e855b32d556049ca169ead221505badf432fed4b101 \
     --hash=sha256:c7e58ce09192557605d8bbd92836d7e1d520ac9580096042c0bfd197efacf1bb
-    # via typer
+    # via
+    #   -c requirements-cpu.lock
+    #   typer
     # from https://pypi.org/simple
 annotated-types==0.8.0 \
     --hash=sha256:13b2beaad985e05e2d6407ee4c4f35590b11f8d693a258a561055cac8f64cab7 \
     --hash=sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
-    # via pydantic
+    # via
+    #   -c requirements-cpu.lock
+    #   pydantic
     # from https://pypi.org/simple
 annoy==1.17.3 \
     --hash=sha256:9cbfebefe0a5f843eba29c6be4c84d601f4f41ad4ded0486f1b88c3b07739c15 \
     --hash=sha256:c33a5d4d344c136c84976bfb2825760142a8bb25335165e24e11c9afbfa8c2e9
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 anthropic==0.116.0 \
     --hash=sha256:5fc248fbb9fe03ef686f8a774f81586bca31a043260aab88b387ea3660f4a396 \
     --hash=sha256:6c0a7698e8d652455da3499978279bb2588c7264d0a35be3666009a4258c8256
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 anyio==4.15.1 \
     --hash=sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101 \
     --hash=sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   claude-agent-sdk
     #   google-genai
@@ -191,22 +209,29 @@ anyio==4.15.1 \
 asksageclient==1.42 \
     --hash=sha256:3bace22c4a9881c41af7aee918a694147042160800d563b704b1b2462e5e1f6f \
     --hash=sha256:aa86978cb187134a9320784676b810a3a41c3f7779ad3ab235a7bc6e8835957a
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 asttokens==3.0.2 \
     --hash=sha256:3ecdbd8f2cc195f53ccada3a613538bb5f9ef6f6869129f13e03c30a677b8fe2 \
     --hash=sha256:9da13157f5b28becde0bd374fc677dcd3c290614264eff096f167c469cd9f933
-    # via stack-data
+    # via
+    #   -c requirements-cpu.lock
+    #   stack-data
     # from https://pypi.org/simple
 async-timeout==5.0.1 \
     --hash=sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c \
     --hash=sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3
-    # via langextract
+    # via
+    #   -c requirements-cpu.lock
+    #   langextract
     # from https://pypi.org/simple
 attrs==26.1.0 \
     --hash=sha256:c647aa4a12dfbad9333ca4e71fe62ddc36f4e63b2d260a37a8b83d2f043ac309 \
     --hash=sha256:d03ceb89cb322a8fd706d4fb91940737b6642aa36998fe130a9bc96c985eff32
     # via
+    #   -c requirements-cpu.lock
     #   aiohttp
     #   jsonschema
     #   referencing
@@ -261,17 +286,22 @@ audioop-lts==0.2.2 \
     --hash=sha256:f9ee9b52f5f857fbaf9d605a360884f034c92c1c23021fb90b2e39b8e64bede6 \
     --hash=sha256:fbdd522624141e40948ab3e8cdae6e04c748d78710e9f0f8d4dae2750831de19 \
     --hash=sha256:fd3d4602dc64914d462924a08c1a9816435a2155d74f325853c1f1ac3b2d9800
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 azure-ai-formrecognizer==3.3.3 \
     --hash=sha256:81fc1abda8bd898426ee3bbc1b9c6bd164514201ce282129a31d4664f9d1f3bc \
     --hash=sha256:9fc09788bbb65866630fa870cca1933bfd7298b8055236530bcc0e40d81fcccf
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 azure-common==1.1.28 \
     --hash=sha256:4ac0cd3214e36b6a1b6a442686722a5d8cc449603aa833f3f0f40bda836704a3 \
     --hash=sha256:5c12d3dcf4ec20599ca6b0d3e09e86e146353d443e7fcc050c9a19c1f9df20ad
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   azure-ai-formrecognizer
     # from https://pypi.org/simple
@@ -279,6 +309,7 @@ azure-core==1.41.0 \
     --hash=sha256:522b4011e8180b1a3dcd2024396a4e7fe9ac37fb8597db47163d230b5efe892d \
     --hash=sha256:f46ff5dfcd230f25cf1c19e8a34b8dc08a337b2503e268bb600a16c00db8ad5a
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   azure-ai-formrecognizer
     #   azure-search-documents
@@ -287,32 +318,43 @@ azure-core==1.41.0 \
 azure-search-documents==12.0.0 \
     --hash=sha256:8e6d73ec0ed1623083435b757e34324db65d72d4e09cca061a59fc7e90c8ddbc \
     --hash=sha256:d88114e4179cd753845711042380a4571e7faa8619addf5e017928ebe37fc0d1
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 babel==2.18.0 \
     --hash=sha256:b80b99a14bd085fcacfa15c9165f651fbb3406e66cc603abf11c5750937c992d \
     --hash=sha256:e2b422b277c2b9a9630c1d7903c2a00d0830c409c59ac8cae9081c92f1aeba35
-    # via courlan
+    # via
+    #   -c requirements-cpu.lock
+    #   courlan
     # from https://pypi.org/simple
 beautifulsoup4==4.15.0 \
     --hash=sha256:288e3ca7d54b06f2ac191970bc275c1939cb46d450b255bf6718b04aa37ab4f7 \
     --hash=sha256:d6f88de62e1d4e38ecb1077eb9724cd0eff29d2a08ca16a401e9b9e93f117cf9
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 blinker==1.9.0 \
     --hash=sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf \
     --hash=sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc
-    # via flask
+    # via
+    #   -c requirements-cpu.lock
+    #   flask
     # from https://pypi.org/simple
 bm25s==0.3.11 \
     --hash=sha256:3d1d28badb299d6fc9324111e5c8276927e990b908607b39ff9bd65b102e9a24 \
     --hash=sha256:8ae0f0707d279969829383c7aaeef00fb09ca343101160222571d6bfc969f889
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 boto3==1.43.103 \
     --hash=sha256:524821052527f6446d249bf710847b032d9b12135e346c9751777a0a2811cf04 \
     --hash=sha256:574796187eb4e4fcaaf5c1b88c1724a1ba5a95bc27aeae5573676178666acc71
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   anthropic
     # from https://pypi.org/simple
@@ -320,6 +362,7 @@ botocore==1.43.103 \
     --hash=sha256:6a6a561a6de43845ae42bc7ff7e2c798742bfa277f5215398f9c15ed9b1bd67c \
     --hash=sha256:8c7f220e09f3b7ec99c59c716aa66cf6f5b2b57fd8731544054f3778aa744c6a
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   boto3
     #   s3transfer
@@ -437,12 +480,15 @@ cachebox==5.2.3 \
     --hash=sha256:fa325306084aa2dc0b21e07723d7700f4d43dece3732c7fdaf7a269dc5e35aa7 \
     --hash=sha256:fb0bdcd9e28686e3b91d5210c843542858f0f10de151181aee27a7978fe4992e \
     --hash=sha256:fdb74294bdc33e39e26606919a9b2229038d5fac0edb80c9056683c08584d4a9
-    # via deepdiff
+    # via
+    #   -c requirements-cpu.lock
+    #   deepdiff
     # from https://pypi.org/simple
 certifi==2026.7.22 \
     --hash=sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775 \
     --hash=sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55
     # via
+    #   -c requirements-cpu.lock
     #   httpcore
     #   httpx
     #   langchain-openai
@@ -551,7 +597,9 @@ cffi==2.1.1 \
     --hash=sha256:f8ec5e643a9a937f64e1999eb9f75d072263751912dc5cd06d3c85f8f44be7c3 \
     --hash=sha256:fb92203a88b3d3053034db775110081c49d28be6551923805e039924093761e4 \
     --hash=sha256:fcd22650c908d7b7da162bbfaab594a1227a15d1643a98c68b122ac642fa2264
-    # via cryptography
+    # via
+    #   -c requirements-cpu.lock
+    #   cryptography
     # from https://pypi.org/simple
 charset-normalizer==3.5.1 \
     --hash=sha256:00668ebb0609751758682eb0b5857e7c35b9f00e84dfdef062e103244ec94d45 \
@@ -727,6 +775,7 @@ charset-normalizer==3.5.1 \
     --hash=sha256:fd0a274c0e5f9a21565cd9d3dd749b61f96b7aa1e20a93aa1ba4029518f2e5c0 \
     --hash=sha256:fdb8a068947befafba9952162645dc2fecaeb400e64584829ed5e9b2fbe21a7f
     # via
+    #   -c requirements-cpu.lock
     #   htmldate
     #   pdfminer-six
     #   requests
@@ -735,7 +784,9 @@ charset-normalizer==3.5.1 \
 chonky==0.1.7 \
     --hash=sha256:603e0c76b6587bc8c5103114c544b571cd45baeac5353bad4bd113468789e322 \
     --hash=sha256:e9f0113d1ceea5189a239af5c1f0e9b3a5f066f905a01e2a7ba28b2635804256
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 claude-agent-sdk==0.2.116 \
     --hash=sha256:37d6c9d98960c7ea41d1a7fd3331ad0b1bef68e559ed9cc5ccf9d00ae68adfcd \
@@ -744,12 +795,15 @@ claude-agent-sdk==0.2.116 \
     --hash=sha256:d5e420912378cf66a90cf898bdd4567cc8f994308bd8011d7bd71968066f3894 \
     --hash=sha256:e130166e5b1054b4e3741d957fd6759546fa657fa765385955a9ef12fdc545f9 \
     --hash=sha256:fb8dbc73f52d103e08b30fe865199ea1d89e7b2197652a19a97a15b040cf685b
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 click==8.5.0 \
     --hash=sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360 \
     --hash=sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34
     # via
+    #   -c requirements-cpu.lock
     #   dask
     #   flask
     #   huggingface-hub
@@ -760,13 +814,16 @@ cloudpickle==3.1.2 \
     --hash=sha256:7fda9eb655c9c230dab534f1983763de5835249750e85fbcef43aaa30a9a2414 \
     --hash=sha256:9acb47f6afd73f60dc1df93bb801b472f05ff42fa6c84167d25cb206be1fbf4a
     # via
+    #   -c requirements-cpu.lock
     #   dask
     #   joblib
     # from https://pypi.org/simple
 comm==0.2.3 \
     --hash=sha256:2dc8048c10962d55d7ad693be1e7045d891b7ce8d999c97963a5e3e99c055971 \
     --hash=sha256:c615d91d75f7f04f095b30d1c1711babd43bdc6419c1be9886a85f2f4e489417
-    # via ipywidgets
+    # via
+    #   -c requirements-cpu.lock
+    #   ipywidgets
     # from https://pypi.org/simple
 contourpy==1.4.0 \
     --hash=sha256:018227e134b73090b06f911e773a526c77c9af426be29065500ce096a5accd4c \
@@ -839,12 +896,16 @@ contourpy==1.4.0 \
     --hash=sha256:f863c6100bf926cf47d13f3cd75f9bb8ebd98aaab230eeb4468b91f98f39a6b3 \
     --hash=sha256:fa1b787362a3856e63dd2b89449f6c384d55ee1beb8f94f4bcc871b40f02462c \
     --hash=sha256:fc9feef8f1f001c5b87decadc67c4a5d1eebb62ca39c4763d1237ff62cf2b707
-    # via matplotlib
+    # via
+    #   -c requirements-cpu.lock
+    #   matplotlib
     # from https://pypi.org/simple
 courlan==1.4.0 \
     --hash=sha256:ad1dbdefd912ca7238d4607dc855df5df097f56bac175dd662c84eed3802f49e \
     --hash=sha256:fbbac7b7fcde2195ea08e707609503c81cf39c891e8d26cdb1fed4585782d63d
-    # via trafilatura
+    # via
+    #   -c requirements-cpu.lock
+    #   trafilatura
     # from https://pypi.org/simple
 cryptography==50.0.1 \
     --hash=sha256:01f41478cf33fc605a6a089cd56d28b45c6c0b45a1928b61797f2621a04bac71 \
@@ -894,6 +955,7 @@ cryptography==50.0.1 \
     --hash=sha256:fd3718b960d0b5dd213cdf03f3bcb7000e69dda0de8b956061947ff6bcff5558 \
     --hash=sha256:ff838d62ec1bfce4f9ba7fa16f4a7b554cd8d0c299e6be37502161a660c84eef
     # via
+    #   -c requirements-cpu.lock
     #   google-auth
     #   pdfminer-six
     #   pyjwt
@@ -901,43 +963,58 @@ cryptography==50.0.1 \
 cycler==0.12.1 \
     --hash=sha256:85cef7cff222d8644161529808465972e51340599459b8ac3ccbac5a854e0d30 \
     --hash=sha256:88bb128f02ba341da8ef447245a9e138fae777f6a23943da4540077d3601eb1c
-    # via matplotlib
+    # via
+    #   -c requirements-cpu.lock
+    #   matplotlib
     # from https://pypi.org/simple
 dask==2026.8.0 \
     --hash=sha256:8a94c37b5de6d869343340dc26c3c3acca7ec48a3abdabe00ea3abb1125884d5 \
     --hash=sha256:ccc0c83a189b0398602435189771d28dad7b5773b6089bb8dce14ae732dd782c
-    # via swifter
+    # via
+    #   -c requirements-cpu.lock
+    #   swifter
     # from https://pypi.org/simple
 datasets==4.4.0 \
     --hash=sha256:0430d39b9f13b53c37afb80c23c7e5d8c6ceccc014c14a14d15fa2b4e8688d2a \
     --hash=sha256:b7e6d1d48c2e1d3a95d6b378e8fc3d7ab29f24f14ddf505a8d417dd09c692f19
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 dateparser==1.4.3 \
     --hash=sha256:bab8c43a746266e68142f4926e69438ce551441aa88e54e78bb6410bf3ee7000 \
     --hash=sha256:cbce86c64e0cea5c54c84c015d34c903d46c51bfad50632bf2f05a6141d10c05
-    # via htmldate
+    # via
+    #   -c requirements-cpu.lock
+    #   htmldate
     # from https://pypi.org/simple
 deepdiff==9.1.0 \
     --hash=sha256:07e9e366fab4297755153c4eab795ad4ef3cbd0d51660e847f5751c6bd727687 \
     --hash=sha256:80c0460e1993b04f6f0ca79abf25548b129fd218478c4ebb08f80560f5d10610
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
-    # via nltk
+    # via
+    #   -c requirements-cpu.lock
+    #   nltk
     # from https://pypi.org/simple
 detoxify==0.5.2 \
     --hash=sha256:c119d0b47545bb076190ff583faad9aa3bb0a90ac01c7c4144758606d21da5b1 \
     --hash=sha256:e6135a2d85ad17bfb19d8cf53756a1b499e6d9c03cb1976ddefdc013bf29d32a
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 dill==0.4.0 \
     --hash=sha256:0633f1d2df477324f53a895b02c901fb961bdbf65a17122586ea7019292cbcf0 \
     --hash=sha256:44f54bf6412c2c8464c14e8243eb163690a9800dbe2c367330883b19c7561049
     # via
     #   -c compatibility-constraints.in
+    #   -c requirements-cpu.lock
     #   datasets
     #   multiprocess
     # from https://pypi.org/simple
@@ -945,6 +1022,7 @@ distro==1.9.0 \
     --hash=sha256:2fa77c6fd8940f116ee1d6b94a2f90b13b5ea8d019b98bc8bafdcabcdd9bdbed \
     --hash=sha256:7bffd925d65168f85027d8da9af6bddab658135b840670a223589bc0c8ef02b2
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   google-genai
     #   langsmith
@@ -954,23 +1032,30 @@ docstring-parser==0.18.0 \
     --hash=sha256:292510982205c12b1248696f44959db3cdd1740237a968ea1e2e7a900eeb2015 \
     --hash=sha256:b3fcbed555c47d8479be0796ef7e19c2670d428d72e96da63f3a40122860374b
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   pipecat-ai
     # from https://pypi.org/simple
 et-xmlfile==2.0.0 \
     --hash=sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa \
     --hash=sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54
-    # via openpyxl
+    # via
+    #   -c requirements-cpu.lock
+    #   openpyxl
     # from https://pypi.org/simple
 exceptiongroup==1.3.1 \
     --hash=sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219 \
     --hash=sha256:a7a39a3bd276781e98394987d3a5701d0c4edffb633bb7a5144577f82c773598
-    # via langextract
+    # via
+    #   -c requirements-cpu.lock
+    #   langextract
     # from https://pypi.org/simple
 executing==2.2.1 \
     --hash=sha256:3632cc370565f6648cc328b32435bd120a1e4ebb20c77e3fdde9a13cd1e533c4 \
     --hash=sha256:760643d3452b4d777d295bb167ccc74c64a81df23fb5e08eff250c425a4b2017
-    # via stack-data
+    # via
+    #   -c requirements-cpu.lock
+    #   stack-data
     # from https://pypi.org/simple
 faiss-cpu==1.14.3 \
     --hash=sha256:0a5eb27184123c7ac1060c6b862978eabf0e30c1369ccf8bdb1497d35c06ad3d \
@@ -984,12 +1069,15 @@ faiss-cpu==1.14.3 \
     --hash=sha256:ea2340f675db59af8db6da4535b541ce6948d68a008989c656c292c7b0c77127 \
     --hash=sha256:f278003d00c30c90cf118b98428bb96f73eba4b9dadac6993c788966d2e983bd \
     --hash=sha256:f9d0e84d909194f63f027bbd3c1e35e905e48c9345c2db6e6f24da09a6bc5906
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 filelock==4.0.3 \
     --hash=sha256:30cd166e2aee2c7534ce2c33c6367c4cd051b8368e20e2c4eb0c34f699bacfab \
     --hash=sha256:87296d60478e14204fd9406e79831400fef76693bae2895deec236c98e87a8aa
     # via
+    #   -c requirements-cpu.lock
     #   datasets
     #   huggingface-hub
     #   torch
@@ -997,11 +1085,15 @@ filelock==4.0.3 \
 flask==3.1.3 \
     --hash=sha256:0ef0e52b8a9cd932855379197dd8f94047b359ca0a78695144304cb45f87c9eb \
     --hash=sha256:f4bcbefc124291925f1a26446da31a5178f9483862233b23c0c96a20701f670c
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 flatbuffers==25.12.19 \
     --hash=sha256:7634f50c427838bb021c2d66a3d1168e9d199b0607e6329399f04846d42e20b4
-    # via onnxruntime
+    # via
+    #   -c requirements-cpu.lock
+    #   onnxruntime
     # from https://pypi.org/simple
 fonttools==4.66.0 \
     --hash=sha256:02117d05dddb51e39b5c5a6eed0702ed8e0e1c341cb138101b2446eb479858f8 \
@@ -1062,7 +1154,9 @@ fonttools==4.66.0 \
     --hash=sha256:fa995d96ced196388d8ed7a67ee001b181459d230e24bb68b193ae859f5609da \
     --hash=sha256:fd3dcb69d65c05a2fffa5d9b743b77e0cdc13832665ba435065493dad2b57f83 \
     --hash=sha256:fd9297a5f670f3e59ae697289ddad5902d3c4a86188e83e7823bde06334a560c
-    # via matplotlib
+    # via
+    #   -c requirements-cpu.lock
+    #   matplotlib
     # from https://pypi.org/simple
 frozenlist==1.8.0 \
     --hash=sha256:0325024fe97f94c41c08872db482cf8ac4800d80e79222c6b0b7b162d5b13686 \
@@ -1196,6 +1290,7 @@ frozenlist==1.8.0 \
     --hash=sha256:fb30f9626572a76dfe4293c7194a09fb1fe93ba94c7d4f720dfae3b646b45027 \
     --hash=sha256:fe3c58d2f5db5fbd18c2987cba06d51b0529f52bc3a6cdc33d3f4eab725104bd
     # via
+    #   -c requirements-cpu.lock
     #   aiohttp
     #   aiosignal
     # from https://pypi.org/simple
@@ -1203,6 +1298,7 @@ fsspec==2023.10.0 \
     --hash=sha256:330c66757591df346ad3091a53bd907e15348c2ba17d63fd54f5c39c4457d2a5 \
     --hash=sha256:346a8f024efeb749d2a5fca7ba8854474b1ff9af7c3faaf636a4548781136529
     # via
+    #   -c requirements-cpu.lock
     #   dask
     #   datasets
     #   huggingface-hub
@@ -1215,17 +1311,22 @@ github-copilot-sdk==0.3.0 \
     --hash=sha256:c5712d57a2c6291b805c79e039c55c48d858034b1a37fc8e1653925403a028e9 \
     --hash=sha256:ed8f27989158824c754d7febb473bdf25744a1e6bc07a06f114f7e7deebd2c22 \
     --hash=sha256:f4d98a67b8f038885ddd38bd7033d1ac20c3010f04c72ee0fc74ba4984b69ffa
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 gliner==0.2.29 \
     --hash=sha256:0c8cfb9f5c2daf7aff329ebb5ab1609052d7ad0aca0ef26049b9476b018b3fde \
     --hash=sha256:39fa8f33c027627e1d6724bff972ab197bf37cea27e401cd3d40f2f95909b0a4
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 google-api-core==2.39.0 \
     --hash=sha256:40a5d1c892bc1798f3b75ab10c665b85717979088519c714ca5774ee81d1e3c5 \
     --hash=sha256:824ee414a10adefefae33fc5e2ba28dc6f0f7089d011c9cc98ea9178e61299e9
     # via
+    #   -c requirements-cpu.lock
     #   google-cloud-core
     #   google-cloud-storage
     # from https://pypi.org/simple
@@ -1233,6 +1334,7 @@ google-auth==2.58.1 \
     --hash=sha256:1480461d8b2347e679af758f4003700ea79a59b603c9134e18bfa95e8004ee70 \
     --hash=sha256:66a63572d0ab629554768544df04018d79178c0bd7439ba31683ac576b79024d
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   anthropic
     #   google-api-core
@@ -1243,12 +1345,16 @@ google-auth==2.58.1 \
 google-cloud-core==2.7.0 \
     --hash=sha256:874aaf89765db87a9b911b7a2ca7c5068554868eed9e75c7766affe342a2913d \
     --hash=sha256:c18a250904cfdda021eb3ae8b8238c9f9ca272a4cbbfb5cba946b3fe3022eed1
-    # via google-cloud-storage
+    # via
+    #   -c requirements-cpu.lock
+    #   google-cloud-storage
     # from https://pypi.org/simple
 google-cloud-storage==3.15.0 \
     --hash=sha256:110041ee1cb566114015aa7c2492f1ff18c92af528588386663f4b41b6279989 \
     --hash=sha256:248905def997a300ad456c0696cf7fad04b8c38412c1103ebb2a60cc6341579f
-    # via langextract
+    # via
+    #   -c requirements-cpu.lock
+    #   langextract
     # from https://pypi.org/simple
 google-crc32c==1.9.0 \
     --hash=sha256:0568b17ed90ac596f29400d99e243fd0cc6276766183def888d1bf8d1dc13827 \
@@ -1283,6 +1389,7 @@ google-crc32c==1.9.0 \
     --hash=sha256:fb63a8d7fa2e95dcff1ca16af2f4d88b526fa5ff72d1696285884ac2d49b6963 \
     --hash=sha256:fbef61a3794e011c65fb4396a196cf123a7f474fe5a443db8e5dd7d751b9e6d4
     # via
+    #   -c requirements-cpu.lock
     #   google-cloud-storage
     #   google-resumable-media
     # from https://pypi.org/simple
@@ -1290,18 +1397,22 @@ google-genai==2.11.0 \
     --hash=sha256:4c5e524d24b145c96be327f9a7f8f04b0fe4efee0533877795e9848afed01749 \
     --hash=sha256:5bc8186100e1d34d691fbe0cba392b7e04e98d286ca952323a6672d054accf95
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   langextract
     # from https://pypi.org/simple
 google-resumable-media==2.10.2 \
     --hash=sha256:1de441703cd298d75a419bfdc0066e9fc7b0a1de630df96eea8ce8f5c759358c \
     --hash=sha256:e3cedc827a4ea41e216582d74346f1fb9fceb625a8c3c53912f2ca1d663334d7
-    # via google-cloud-storage
+    # via
+    #   -c requirements-cpu.lock
+    #   google-cloud-storage
     # from https://pypi.org/simple
 googleapis-common-protos==1.75.4 \
     --hash=sha256:4587babdc82a8d7e5a3d4f5a6697e064bf44a598b4d08341c212b68185eadbcd \
     --hash=sha256:e8eb9cffa9a9f3423090cc7a086012004196abab388a0561690e81887fd79cc1
     # via
+    #   -c requirements-cpu.lock
     #   google-api-core
     #   grpcio-status
     # from https://pypi.org/simple
@@ -1367,32 +1478,43 @@ grpcio==1.84.0 \
     --hash=sha256:fbdbcd06986ede3ce584083b1dc2afe6808e8943e5cf50ad11183c03aceda25a \
     --hash=sha256:fc66cb50c93554b86db0b6625ab5c6e9051dbf8847c08d93c84918e02e413fb7 \
     --hash=sha256:fff5ef3fe1bba7d6147e5f19e01e5e122ac2c076486887ddcb8d42e663400fbe
-    # via grpcio-status
+    # via
+    #   -c requirements-cpu.lock
+    #   grpcio-status
     # from https://pypi.org/simple
 grpcio-status==1.84.0 \
     --hash=sha256:0c182ca0d6e60acbfd0e14499cf39a155e4827a1c3fd9f7638e49af15a74c30a \
     --hash=sha256:5caf28ba7184b81f618b5f7f094859fd2541bf429d2189bbbcd715c9c2cdcee2
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 guidance==0.3.1 \
     --hash=sha256:60fe7e308596aecb7676d9165a14630992ee3eeb48f0dd086ce2ea9d40e01ca8 \
     --hash=sha256:6d69dee7fb9ca3d5d50928571a5a34a6fb4de92d454c6dcfccd805501ee6987f
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 guidance-stitch==0.1.5 \
     --hash=sha256:22ab8c5e9b5db36eeb0d54822797d02c8de658595dea3b9662708edb2274f6d1 \
     --hash=sha256:2a0d0ede865db387857d494a7bcb1a903621c13f571869cde1109c2c5569cd95
-    # via guidance
+    # via
+    #   -c requirements-cpu.lock
+    #   guidance
     # from https://pypi.org/simple
 gunicorn==26.2.0 \
     --hash=sha256:62b864895d9ebff0b2f9867ba04fe811c93121596540830c9c916d0769668447 \
     --hash=sha256:bd249d0b3f7972f7432f0a6b6ff3b3ee2d129f70cd1ff6c09a9dd9e29a2b88e3
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 h11==0.16.0 \
     --hash=sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1 \
     --hash=sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86
     # via
+    #   -c requirements-cpu.lock
     #   httpcore
     #   httpcore2
     #   uvicorn
@@ -1415,27 +1537,36 @@ hf-xet==1.6.0 \
     --hash=sha256:f0906082d9932ae0c0057fa194041c22b4e2cdb46b2592ef3b91f020d62a081a \
     --hash=sha256:f2f7278c05c22fd60cb436cda1269649b3e81db65ecdc8496e5e164aa4143e7b \
     --hash=sha256:fb4fadde1b2b70bf4c0c14a6dccbe7194b1c28947fefd5bbe3fed9d940676c3b
-    # via huggingface-hub
+    # via
+    #   -c requirements-cpu.lock
+    #   huggingface-hub
     # from https://pypi.org/simple
 htmldate==1.10.0 \
     --hash=sha256:9211dae35ab94147c8ed9e5fc2c9287a5cf31d2394cb7857e7f5dd814eb2aad6 \
     --hash=sha256:a38df10772ab5d7dbb11896e3f6a852a8491fb1b0965465bc174e23fc2baae58
-    # via trafilatura
+    # via
+    #   -c requirements-cpu.lock
+    #   trafilatura
     # from https://pypi.org/simple
 httpcore==1.0.9 \
     --hash=sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55 \
     --hash=sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8
-    # via httpx
+    # via
+    #   -c requirements-cpu.lock
+    #   httpx
     # from https://pypi.org/simple
 httpcore2==2.13.1 \
     --hash=sha256:e0aa977abe17e69a3b820a24542a6fa88702676d83880b8d194dcd18408e5103 \
     --hash=sha256:e1e05d4f25f7d7d496bfb96748f6f4b67657b03da069b3a68c36069f3db73d0a
-    # via httpx2
+    # via
+    #   -c requirements-cpu.lock
+    #   httpx2
     # from https://pypi.org/simple
 httpx==0.28.1 \
     --hash=sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc \
     --hash=sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   datasets
     #   google-genai
@@ -1449,18 +1580,22 @@ httpx-sse==0.4.3 \
     --hash=sha256:0ac1c9fe3c0afad2e0ebb25a934a59f4c7823b60792691f779fad2c5568830fc \
     --hash=sha256:9b1ed0127459a66014aec3c56bebd93da3c1bc8bb6618c8082039a44889a755d
     # via
+    #   -c requirements-cpu.lock
     #   langchain-community
     #   mcp
     # from https://pypi.org/simple
 httpx2==2.13.1 \
     --hash=sha256:6dff50fabc270ee5fd25d845d0b078ed20564579744d6d962850975996d2f9a4 \
     --hash=sha256:e48744a19e3af5ee48313d0ce5fe941d5422fae5705ea922a4aabf94d7800dfa
-    # via langsmith
+    # via
+    #   -c requirements-cpu.lock
+    #   langsmith
     # from https://pypi.org/simple
 huggingface-hub==1.33.0 \
     --hash=sha256:04e434b06e100eddbce9a6e817d72693a7884b10a79bd67ab48080d5c07eb899 \
     --hash=sha256:367be21a201db9523eddf8aeac7048f2602c1b308691c97640d5e72ed188007e
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   accelerate
     #   datasets
@@ -1474,6 +1609,7 @@ idna==3.20 \
     --hash=sha256:a7db850025b95ded1eae8a46181a1a6c56c92c96f0e2b005d9ff8dc0210cab44 \
     --hash=sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c
     # via
+    #   -c requirements-cpu.lock
     #   anyio
     #   httpx
     #   httpx2
@@ -1483,49 +1619,65 @@ idna==3.20 \
 iniconfig==2.3.0 \
     --hash=sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730 \
     --hash=sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12
-    # via pytest
+    # via
+    #   -c requirements-cpu.lock
+    #   pytest
     # from https://pypi.org/simple
 interegular==0.3.3 \
     --hash=sha256:b0c07007d48c89d6d19f7204972d369b2a77222722e126b6aa63aa721dc3b19c \
     --hash=sha256:d9b697b21b34884711399ba0f0376914b81899ce670032486d0d048344a76600
-    # via lm-format-enforcer
+    # via
+    #   -c requirements-cpu.lock
+    #   lm-format-enforcer
     # from https://pypi.org/simple
 ipython==9.17.1 \
     --hash=sha256:6d1645743cfd1a07eb695d85aa2b5fa66721f8cbae9431d4049f7084bbf06509 \
     --hash=sha256:8919be8c27f20a6f4423145028063f6637b42a03ce57665bb12015ee1f073529
-    # via ipywidgets
+    # via
+    #   -c requirements-cpu.lock
+    #   ipywidgets
     # from https://pypi.org/simple
 ipython-pygments-lexers==1.1.1 \
     --hash=sha256:09c0138009e56b6854f9535736f4171d855c8c08a563a0dcd8022f78355c7e81 \
     --hash=sha256:a9462224a505ade19a605f71f8fa63c2048833ce50abc86768a0d81d876dc81c
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 ipywidgets==8.1.9 \
     --hash=sha256:bcccba38a6ec3253f7a39c943cea5b9ad01999ce071396171adbc51c6a6a8613 \
     --hash=sha256:f2b8cbcaae10252b809fbe4d7470db75c09b769a32cbf816d20e5ca6d3c5a79d
-    # via guidance-stitch
+    # via
+    #   -c requirements-cpu.lock
+    #   guidance-stitch
     # from https://pypi.org/simple
 isodate==0.7.2 \
     --hash=sha256:28009937d8031054830160fce6d409ed342816b543597cece116d966c6d99e15 \
     --hash=sha256:4cd1aa0f43ca76f4a6c6c0292a85f40b35ec2e43e315b59f06e6d32171a953e6
     # via
+    #   -c requirements-cpu.lock
     #   azure-search-documents
     #   msrest
     # from https://pypi.org/simple
 itsdangerous==2.2.0 \
     --hash=sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef \
     --hash=sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173
-    # via flask
+    # via
+    #   -c requirements-cpu.lock
+    #   flask
     # from https://pypi.org/simple
 jedi==0.20.0 \
     --hash=sha256:7bdd9c2634f56713299976f4cbd59cb3fa92165cc5e05ea811fb253480728b67 \
     --hash=sha256:c3f4ccbd276696f4b19c54618d4fb18f9fc24b0aef02acf704b23f487daa1011
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 jinja2==3.1.6 \
     --hash=sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d \
     --hash=sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67
     # via
+    #   -c requirements-cpu.lock
     #   flask
     #   guidance
     #   torch
@@ -1651,6 +1803,7 @@ jiter==0.17.0 \
     --hash=sha256:fe15ddf316f1f1f643347d3a474e74ce61880c79a11ec5dca53df20c071bd3e8 \
     --hash=sha256:ffa0380ad091de7d3fc33e17a97ff479851ee18a0a2a3ee56ff3215cdc886656
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   openai
     # from https://pypi.org/simple
@@ -1658,6 +1811,7 @@ jmespath==1.1.0 \
     --hash=sha256:472c87d80f36026ae83c6ddd0f1d05d4e510134ed462851fd5f754c8c3cbb88d \
     --hash=sha256:a5663118de4908c91729bea0acadca56526eb2698e83de10cd116ae0f4e97c64
     # via
+    #   -c requirements-cpu.lock
     #   boto3
     #   botocore
     # from https://pypi.org/simple
@@ -1665,48 +1819,65 @@ joblib==1.6.0 \
     --hash=sha256:2ccc96785b12046c08fd6d55839c12857831b54a3c1673ffadd2f04bfc4eda03 \
     --hash=sha256:3dbbf9f6e4b592a2357b854608e980fe6390d131d7a82f011a377ef2ebef7aba
     # via
+    #   -c requirements-cpu.lock
     #   nltk
     #   scikit-learn
     # from https://pypi.org/simple
 jsonpatch==1.33 \
     --hash=sha256:0ae28c0cd062bbd8b8ecc26d7d164fbbea9652a1a3693f3b956c1eae5145dade \
     --hash=sha256:9fcd4009c41e6d12348b4a0ff2563ba56a2923a7dfee731d004e212e1ee5030c
-    # via langchain-core
+    # via
+    #   -c requirements-cpu.lock
+    #   langchain-core
     # from https://pypi.org/simple
 jsonpickle==4.1.2 \
     --hash=sha256:7ffe34426bc797684dbf1dc84185558bd864cd25b1ff5fb01b7405e392d0a937 \
     --hash=sha256:8afed18aa189fd81e2e833b426bb4af485594921f0b1d36c2001fc5637a2f210
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 jsonpointer==3.1.1 \
     --hash=sha256:0b801c7db33a904024f6004d526dcc53bbb8a4a0f4e32bfd10beadf60adf1900 \
     --hash=sha256:8ff8b95779d071ba472cf5bc913028df06031797532f08a7d5b602d8b2a488ca
-    # via jsonpatch
+    # via
+    #   -c requirements-cpu.lock
+    #   jsonpatch
     # from https://pypi.org/simple
 jsonschema==4.26.0 \
     --hash=sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326 \
     --hash=sha256:d489f15263b8d200f8387e64b4c3a75f06629559fb73deb8fdfb525f2dab50ce
-    # via mcp
+    # via
+    #   -c requirements-cpu.lock
+    #   mcp
     # from https://pypi.org/simple
 jsonschema-specifications==2025.9.1 \
     --hash=sha256:98802fee3a11ee76ecaca44429fda8a41bff98b00a0f2838151b113f210cc6fe \
     --hash=sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d
-    # via jsonschema
+    # via
+    #   -c requirements-cpu.lock
+    #   jsonschema
     # from https://pypi.org/simple
 jupyterlab-widgets==3.0.17 \
     --hash=sha256:40ac1e9955acf116c4d995d9bfa082d86ad9ec6d91c4f134827cf5e0a5eb75e0 \
     --hash=sha256:6e61fe21ca8a66039180a5cc52a433e07279d2fee79c8be963e00d55193f17a8
-    # via ipywidgets
+    # via
+    #   -c requirements-cpu.lock
+    #   ipywidgets
     # from https://pypi.org/simple
 justext==3.0.2 \
     --hash=sha256:13496a450c44c4cd5b5a75a5efcd9996066d2a189794ea99a49949685a0beb05 \
     --hash=sha256:62b1c562b15c3c6265e121cc070874243a443bfd53060e869393f09d6b6cc9a7
-    # via trafilatura
+    # via
+    #   -c requirements-cpu.lock
+    #   trafilatura
     # from https://pypi.org/simple
 keybert==0.9.0 \
     --hash=sha256:afa2f300a72f69d279e4482bc85d8b34493b119876dc0818cb4f260466285b36 \
     --hash=sha256:eec8ebd37d3d9fa238d7075e727adb993de4f3ed67c94112840e4cc0e55d7657
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 kiwisolver==1.5.1 \
     --hash=sha256:007a5553dfc4f4e8d184f588a0200e2cd4b63a59cc8796df3c39909e679dc7a0 \
@@ -1850,27 +2021,36 @@ kiwisolver==1.5.1 \
     --hash=sha256:f9b1c4900736e489a812c529100de4b8fb617d4db075e931e213c57424b83d9b \
     --hash=sha256:fc271a6f0a2126958f4090e5507b9da5848927dae331f8f763bd4aa642b3d2cd \
     --hash=sha256:febcce10f2bcdbb80b4ea919238a6a4ac13dbc4c7cadbe8d5d75c3682f8b5404
-    # via matplotlib
+    # via
+    #   -c requirements-cpu.lock
+    #   matplotlib
     # from https://pypi.org/simple
 langchain==1.4.2 \
     --hash=sha256:30a27c34cfa0004bf659dcdef488b99a9b90acb08bcc514a5a74264755da536c \
     --hash=sha256:5b476418cacbfb8f0da6e63b3b263eefdcec13b48abd6117565a25728ec10b77
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 langchain-classic==1.0.8 \
     --hash=sha256:1a11ea7fbe630c4f2af2f3873d27718ceac9488cf32d0821030be7cf039a6213 \
     --hash=sha256:ada0cc341a8a5b80fb24d73bdfaaeb849056ee2d8a41cc468355163fd3667484
-    # via langchain-community
+    # via
+    #   -c requirements-cpu.lock
+    #   langchain-community
     # from https://pypi.org/simple
 langchain-community==0.4.2 \
     --hash=sha256:84dd8c5122532394d5b6849a5fc9995ef28e4f77227daeb09f24b3d942e9e466 \
     --hash=sha256:a99308160d53d7e9b5965ee665e5173709914338210089fd5788ad724432c21e
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 langchain-core==1.6.5 \
     --hash=sha256:54c7b0e9314b9084fb04405bb33dc5d32986d512d92b7b8863899cd5f6267556 \
     --hash=sha256:bdb059fef65473fd444558dbb18f50901657402c43ceed9dc0fdc7b76a393c6b
     # via
+    #   -c requirements-cpu.lock
     #   langchain
     #   langchain-classic
     #   langchain-community
@@ -1884,12 +2064,15 @@ langchain-core==1.6.5 \
 langchain-openai==1.6.6 \
     --hash=sha256:60dcaa443ddfdf1559feaf1d25916f394c7dda809aebe22a769fc39f02705be7 \
     --hash=sha256:7b3848f42825aca40165463aa37757051165eb292ba7f24658a2f58f9bb221f9
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 langchain-protocol==0.0.19 \
     --hash=sha256:4cdf879a492a35980fd859ae792d3c65458ccaae504e183c9a10d7eac1f0720f \
     --hash=sha256:79d90a1425122ac87e8052e2ec054fbd09c3edbf341bdfb6397112a495c7bf8c
     # via
+    #   -c requirements-cpu.lock
     #   langchain-core
     #   langgraph-sdk
     # from https://pypi.org/simple
@@ -1897,18 +2080,22 @@ langchain-text-splitters==1.1.2 \
     --hash=sha256:782a723db0a4746ac91e251c7c1d57fd23636e4f38ed733074e28d7a86f41627 \
     --hash=sha256:a2de0d799ff31886429fd6e2e0032df275b60ec817c19059a7b46181cc1c2f10
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   langchain-classic
     # from https://pypi.org/simple
 langextract==1.7.0 \
     --hash=sha256:908f8ec696ab13578cdc3862efcf1a4fda929ae426410d99e86977d50e52136d \
     --hash=sha256:cb6dc515583b0fdc0f9eff9dce61b2a3c7c84b0668add4dd4e7be364f4c188ba
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 langgraph==1.2.12 \
     --hash=sha256:5fae9fa4ce771e90f10ff19ce0d5aaef4b41d7632c713d769e89cbce1241a4b9 \
     --hash=sha256:95403af7b510de8d79164742f71daaf866c69ca804a8cb72bef2cc1fa1ab9813
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   langchain
     # from https://pypi.org/simple
@@ -1916,23 +2103,29 @@ langgraph-checkpoint==4.2.0 \
     --hash=sha256:0547fd228935a0b758865de3a3d6d7a2537c308895d0f9ab092ce9151b5da942 \
     --hash=sha256:51a593b6bee684b0818e5d6e58e28ab340c6db7794575056ce7bd1b746a84ed7
     # via
+    #   -c requirements-cpu.lock
     #   langgraph
     #   langgraph-prebuilt
     # from https://pypi.org/simple
 langgraph-prebuilt==1.1.0 \
     --hash=sha256:3c579cf6eed2d17f9c157c2d0fcaddcd8688524e7022d3b22b37a3bf4589d528 \
     --hash=sha256:51e311747d755b751d5c6b39b0c1446124d3a7643d2515017e6714b323508fc9
-    # via langgraph
+    # via
+    #   -c requirements-cpu.lock
+    #   langgraph
     # from https://pypi.org/simple
 langgraph-sdk==0.4.5 \
     --hash=sha256:d49a98a2ee8e0c494b101a7caf8061c8b4b94d3ee5ada0ea2dbe50903a5487b1 \
     --hash=sha256:e03ef033a20d21288af496e9b6c08ae3afcc1b58dc5abcd37575bfd1a93045de
-    # via langgraph
+    # via
+    #   -c requirements-cpu.lock
+    #   langgraph
     # from https://pypi.org/simple
 langsmith==0.14.1 \
     --hash=sha256:0b5cd2473420c9c5acef33a9bafe6c812a7cf96741e9a5af465b1d93bf77f7ae \
     --hash=sha256:dcfd8a25ba72d8663024bd87df02e372e470f43e18f4a726f37fbacc772c0193
     # via
+    #   -c requirements-cpu.lock
     #   langchain-classic
     #   langchain-community
     #   langchain-core
@@ -1944,7 +2137,9 @@ livekit==1.1.20 \
     --hash=sha256:93f0ed9e8ee9ef356da6cbf71f98edcc891678da6872946a87e34e1458528c9c \
     --hash=sha256:a29120a0278a20ede380ac719cd084e39241546cfd3b415aa503c7b8a21afb4e \
     --hash=sha256:c29a5f966806db961a0607ca8e2e4957e6900bbd44710f5f618b284043be584c
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 llguidance==1.5.0 \
     --hash=sha256:2ea30af852590449dce8acf7fed809a3aeccbc890bb90e446654c26d812a17f6 \
@@ -1955,7 +2150,9 @@ llguidance==1.5.0 \
     --hash=sha256:c4aa5ae0ebdfacd574cfd8d38dec40aed2b105eb08bcc547399f1901cf81f4b1 \
     --hash=sha256:c8242348a26cb2cc9eae97598117a63ee71c6811b4b3af50c48e8c1be36c5190 \
     --hash=sha256:d7070530eacf00fa1c320f4c4457238e3519ba7331e2f33d8cfbc05954af14f4
-    # via guidance
+    # via
+    #   -c requirements-cpu.lock
+    #   guidance
     # from https://pypi.org/simple
 llvmlite==0.49.0 \
     --hash=sha256:00f16db782f4a13c78c5804aedc434e46794a77e89999a168f9401106270e50a \
@@ -1984,22 +2181,30 @@ llvmlite==0.49.0 \
     --hash=sha256:e32adb84fdaae28aeb86fdb6253084ee707ee157289a2e98fe3caf48a62bee82 \
     --hash=sha256:ee81e96c15a6f870918f1eb60c913551c16aa23defb4f5f1acfa660d6a0aaac2 \
     --hash=sha256:f3f2ff0aeb17d34fcce9f79b99baac441cfd3efa41b83e233ca4530a72381f72
-    # via numba
+    # via
+    #   -c requirements-cpu.lock
+    #   numba
     # from https://pypi.org/simple
 lm-format-enforcer==0.11.3 \
     --hash=sha256:cf586350875def1ae7a8fba84fcbbfc8371424b6c9d05c1fcba70aa233fbf06f \
     --hash=sha256:e68081c108719cce284a9bcc889709b26ffb085a1945b5eba3a12cfa96d528da
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 locket==1.0.0 \
     --hash=sha256:5c0d4c052a8bbbf750e056a8e65ccd309086f4f0f18a2eac306a8dfa4112a632 \
     --hash=sha256:b6c819a722f7b6bd955b80781788e4a66a55628b858d347536b7e81325a3a5e3
-    # via partd
+    # via
+    #   -c requirements-cpu.lock
+    #   partd
     # from https://pypi.org/simple
 loguru==0.7.3 \
     --hash=sha256:19480589e77d47b8d85b2c827ad95d49bf31b0dcde16593892eb51dd18706eb6 \
     --hash=sha256:31a33c10c8e1e10422bfd431aeb5d351c7cf7fa671e3c4df004162264b28220c
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 lxml==6.1.3 \
     --hash=sha256:032a0a97eed428bd143c75a11118238546424ceb2fa311cca5f073aa44658dc4 \
@@ -2179,6 +2384,7 @@ lxml==6.1.3 \
     --hash=sha256:febd35ef45f603c2d74b74655efdbf45e14f55fc0aef4ac82b663ca829b283e0 \
     --hash=sha256:ff88a92cafde90888511242d1c54afcc1a8adbb6dc0a88fa7f87e29e92400d4a
     # via
+    #   -c requirements-cpu.lock
     #   --override (workspace)
     #   htmldate
     #   justext
@@ -2190,13 +2396,16 @@ markdown==3.11 \
     --hash=sha256:180224db6aed87ba9ce1f2781ebcd5826253de8ff637112090e24b84502bbf9f \
     --hash=sha256:cd6c89e7eb308c8b332ed673215a52d208a43f8bacc030b1419376129408719e
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   pipecat-ai
     # from https://pypi.org/simple
 markdown-it-py==4.2.0 \
     --hash=sha256:04a21681d6fbb623de53f6f364d352309d4094dd4194040a10fd51833e418d49 \
     --hash=sha256:9f7ebbcd14fe59494226453aed97c1070d83f8d24b6fc3a3bcf9a38092641c4a
-    # via rich
+    # via
+    #   -c requirements-cpu.lock
+    #   rich
     # from https://pypi.org/simple
 markupsafe==3.0.3 \
     --hash=sha256:0303439a41979d9e74d18ff5e2dd8c43ed6c6001fd40e5bf2e43f7bd9bbc523f \
@@ -2289,6 +2498,7 @@ markupsafe==3.0.3 \
     --hash=sha256:f9e130248f4462aaa8e2552d547f36ddadbeaa573879158d721bbd33dfe4743a \
     --hash=sha256:fed51ac40f757d41b7c48425901843666a6677e3e8eb0abcff09e4ba6e664f50
     # via
+    #   -c requirements-cpu.lock
     #   flask
     #   jinja2
     #   werkzeug
@@ -2348,43 +2558,58 @@ matplotlib==3.11.2 \
     --hash=sha256:f2ac30cf5eb5dff1b584627ae0b0e1186551a4f69ae3c75073911da497a29170 \
     --hash=sha256:fea03cf56568cc1cba08b470be6a0559e71c3a5b688d54b7179bb35ba23d0821
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   seaborn
     # from https://pypi.org/simple
 matplotlib-inline==0.2.2 \
     --hash=sha256:3c821cf1c209f59fb2d2d64abbf5b23b67bcb2210d663f9918dd851c6da1fcf6 \
     --hash=sha256:72f3fe8fce36b70d4a5b612f899090cd0401deddc4ea90e1572b9f4bfb058c79
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 mcp==1.30.0 \
     --hash=sha256:445414625fce5c295faa505bb11bacece661ab6f4028d57c935db57820b7a3e4 \
     --hash=sha256:666edb5009503e1047c9d60346a756f94b261f05cc2625f23d41c728ffc484d0
-    # via claude-agent-sdk
+    # via
+    #   -c requirements-cpu.lock
+    #   claude-agent-sdk
     # from https://pypi.org/simple
 mdurl==0.1.2 \
     --hash=sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8 \
     --hash=sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba
-    # via markdown-it-py
+    # via
+    #   -c requirements-cpu.lock
+    #   markdown-it-py
     # from https://pypi.org/simple
 ml-collections==1.1.0 \
     --hash=sha256:0ac1ac6511b9f1566863e0bb0afad0c64e906ea278ad3f4d2144a55322671f6f \
     --hash=sha256:23b6fa4772aac1ae745a96044b925a5746145a70734f087eaca6626e92c05cbc
-    # via langextract
+    # via
+    #   -c requirements-cpu.lock
+    #   langextract
     # from https://pypi.org/simple
 more-itertools==11.1.0 \
     --hash=sha256:48e8f4d9e7e5878571ecf6f2b4e57634f93cd474cc8cfbd2376f2d11b396e30d \
     --hash=sha256:4b65538ae22f6fed0ce4874efd317463a7489796a0939fa66824dd542125a192
-    # via langextract
+    # via
+    #   -c requirements-cpu.lock
+    #   langextract
     # from https://pypi.org/simple
 mpmath==1.3.0 \
     --hash=sha256:7a28eb2a9774d00c7bc92411c19a89209d5da7c4c9a9e227be8330a23a25b91f \
     --hash=sha256:a0b2b9fe80bbcd81a6647ff13108738cfb482d481d826cc0e02f5b35e5c88d2c
-    # via sympy
+    # via
+    #   -c requirements-cpu.lock
+    #   sympy
     # from https://pypi.org/simple
 msrest==0.7.1 \
     --hash=sha256:21120a810e1233e5e6cc7fe40b474eeb4ec6f757a15d7cf86702c369f9567c32 \
     --hash=sha256:6e7661f46f3afd88b75667b7187a92829924446c7ea1d169be8c4bb7eeb788b9
-    # via azure-ai-formrecognizer
+    # via
+    #   -c requirements-cpu.lock
+    #   azure-ai-formrecognizer
     # from https://pypi.org/simple
 multidict==6.9.1 \
     --hash=sha256:006c4478de0a1876f4834e14255776286f09b9846b505fe63f67f9d173a9487c \
@@ -2559,6 +2784,7 @@ multidict==6.9.1 \
     --hash=sha256:fc0dcb22fa9aeabfe3fa4e0430099acff985ec5d77a851382f76cc6146e780e5 \
     --hash=sha256:fd882aa29bf402b62bf1fd7c19fd5df4b6528cf468a908864b39368572b662a9
     # via
+    #   -c requirements-cpu.lock
     #   aiohttp
     #   yarl
     # from https://pypi.org/simple
@@ -2579,22 +2805,29 @@ multiprocess==0.70.15 \
     --hash=sha256:e73f497e6696a0f5433ada2b3d599ae733b87a6e8b008e387c62ac9127add177 \
     --hash=sha256:f20eed3036c0ef477b07a4177cf7c1ba520d9a2677870a4f47fe026f0cd6787e \
     --hash=sha256:f7d4a1629bccb433114c3b4885f69eccc200994323c80f6feee73b0edc9199c5
-    # via datasets
+    # via
+    #   -c requirements-cpu.lock
+    #   datasets
     # from https://pypi.org/simple
 narwhals==2.26.0 \
     --hash=sha256:29326d74f107c347fd1009bd58e38d9f7c7c5b51e6de97bc93dbc325d9038b54 \
     --hash=sha256:6b9cadca82f375c7e4cf584fdc86ca25da54827307a9c58f94547ee6104b82dd
-    # via scikit-learn
+    # via
+    #   -c requirements-cpu.lock
+    #   scikit-learn
     # from https://pypi.org/simple
 networkx==3.7 \
     --hash=sha256:e3fd2c13a7814cee3746340d8d7f8598a67f16a58bf47fb7f8793fab6efca1b0 \
     --hash=sha256:fd77a511bd90f39f3d016351345b52cf5319b813bdca01de3f755d3cca62e96a
-    # via torch
+    # via
+    #   -c requirements-cpu.lock
+    #   torch
     # from https://pypi.org/simple
 nltk==3.10.3 \
     --hash=sha256:bb9327a461c3811c2fa4900e03840401f2126adfb30c0072827c433bd2444ea4 \
     --hash=sha256:ff9598a8e20518ee0d557745890cc4435b9578489e2dcbc69c4f81fa060caf7c
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   pipecat-ai
     # from https://pypi.org/simple
@@ -2626,6 +2859,7 @@ numba==0.67.0 \
     --hash=sha256:f63d43db06b4756424d6d2484737c902e0ae944a0eec3e8b0b4de2c695b15caa \
     --hash=sha256:f99f880ff25f418a67f9a1d00d0ddfbc63430f627b523e515085a592a7567f4b
     # via
+    #   -c requirements-cpu.lock
     #   pipecat-ai
     #   resampy
     # from https://pypi.org/simple
@@ -2697,6 +2931,7 @@ numpy==2.5.3 \
     --hash=sha256:fc36dc566135b5eceec4cf89758fcb719266a019ef07dae1754ae7c9f617ef3e \
     --hash=sha256:ffdc76bfcae6b255dff75202c5e7feaf95b40246bc0a17944facc1fecf9f79ab
     # via
+    #   -c requirements-cpu.lock
     #   --override (workspace)
     #   semoss (pyproject.toml)
     #   accelerate
@@ -2730,7 +2965,9 @@ numpy==2.5.3 \
 oauthlib==3.3.1 \
     --hash=sha256:0f0f8aa759826a193cf66c12ea1af1637f87b9b4622d46e866952bb022e538c9 \
     --hash=sha256:88119c938d2b8fb88561af5f6ee0eec8cc8d552b7bb1f712743136eb7523b7a1
-    # via requests-oauthlib
+    # via
+    #   -c requirements-cpu.lock
+    #   requests-oauthlib
     # from https://pypi.org/simple
 onnxruntime==1.24.4 \
     --hash=sha256:046ff290045a387676941a02a8ae5c3ebec6b4f551ae228711968c4a69d8f6b7 \
@@ -2757,12 +2994,15 @@ onnxruntime==1.24.4 \
     --hash=sha256:e6214096e14b7b52e3bee1903dc12dc7ca09cb65e26664668a4620cc5e6f9a90 \
     --hash=sha256:e99a48078baaefa2b50fe5836c319499f71f13f76ed32d0211f39109147a49e0 \
     --hash=sha256:fbff2a248940e3398ae78374c5a839e49a2f39079b488bc64439fa0ec327a3e4
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 openai==2.45.0 \
     --hash=sha256:10d34ca9c5643bce775852fddbfc172505cb1d4de1ccd101696c3ecff358765d \
     --hash=sha256:5df105f5f8c9b711fcb9d06d2d3888cebc82506db216484c14a4e53cdf651777
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   langchain-openai
     #   pipecat-ai
@@ -2770,22 +3010,30 @@ openai==2.45.0 \
 openpyxl==3.1.5 \
     --hash=sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2 \
     --hash=sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 opentelemetry-api==1.45.0 \
     --hash=sha256:711ede81773c8025c2c03dac0450bc89f3d30aea6eabcc815c570d4e35a963f7 \
     --hash=sha256:80e068aba7cd56c8b58512d6a36f8d25cb1dfaa0c0a4cc1c938ccf9f362d9cb3
-    # via google-api-core
+    # via
+    #   -c requirements-cpu.lock
+    #   google-api-core
     # from https://pypi.org/simple
 ordered-set==4.1.0 \
     --hash=sha256:046e1132c71fcf3330438a539928932caf51ddbc582496833e23de611de14562 \
     --hash=sha256:694a8e44c87657c59292ede72891eb91d34131f6531463aab3009191c77364a8
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 orderly-set==5.5.0 \
     --hash=sha256:46f0b801948e98f427b412fcabb831677194c05c3b699b80de260374baa0b1e7 \
     --hash=sha256:e87185c8e4d8afa64e7f8160ee2c542a475b738bc891dc3f58102e654125e6ce
-    # via deepdiff
+    # via
+    #   -c requirements-cpu.lock
+    #   deepdiff
     # from https://pypi.org/simple
 orjson==3.12.0 \
     --hash=sha256:010811c1b69773450a01cef97727a67b223242f350b77d4ca000e59a9ef2155a \
@@ -2854,6 +3102,7 @@ orjson==3.12.0 \
     --hash=sha256:f3c0683136acdc29afdf88a5bc2f7d3d0e34087788d1d63c0144b805a87a196f \
     --hash=sha256:fb2539159dfe8d371914f354360fa50e4a577cc89222a3828b9650a5e5040252
     # via
+    #   -c requirements-cpu.lock
     #   langgraph-sdk
     #   langsmith
     # from https://pypi.org/simple
@@ -2907,12 +3156,15 @@ ormsgpack==1.12.2 \
     --hash=sha256:f04b5e896d510b07c0ad733d7fce2d44b260c5e6c402d272128f8941984e4285 \
     --hash=sha256:f3601f19afdbea273ed70b06495e5794606a8b690a568d6c996a90d7255e51c1 \
     --hash=sha256:fcd55e5f6ba0dbce624942adf9f152062135f991a0126064889f68eb850de0dd
-    # via langgraph-checkpoint
+    # via
+    #   -c requirements-cpu.lock
+    #   langgraph-checkpoint
     # from https://pypi.org/simple
 packaging==26.3 \
     --hash=sha256:94edc256424af38762eb31306eed28beb9f0efc50a8837492c9d6fd6004aed79 \
     --hash=sha256:d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c
     # via
+    #   -c requirements-cpu.lock
     #   accelerate
     #   dask
     #   datasets
@@ -2985,6 +3237,7 @@ pandas==2.3.3 \
     --hash=sha256:f086f6fe114e19d92014a1966f43a3e62285109afe874f067f5abbdcbb10e59c \
     --hash=sha256:f8bfc0e12dc78f777f323f55c58649591b2cd0c43534e8355c51d3fede5f4dee
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   dask
     #   datasets
@@ -2995,32 +3248,44 @@ pandas==2.3.3 \
     # from https://pypi.org/simple
 pandasql==0.7.3 \
     --hash=sha256:1eb248869086435a7d85281ebd9fe525d69d9d954a0dceb854f71a8d0fd8de69
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 parso==0.8.7 \
     --hash=sha256:a8926eb2a1b915486941fdbd31e86a4baf88fe8c210f25f2f35ecec5b574ca1c \
     --hash=sha256:eaaac4c9fdd5e9e8852dc778d2d7405897ec510f2a298071453e5e3a07914bb1
-    # via jedi
+    # via
+    #   -c requirements-cpu.lock
+    #   jedi
     # from https://pypi.org/simple
 partd==1.4.2 \
     --hash=sha256:978e4ac767ec4ba5b86c6eaa52e5a2a3bc748a2ca839e8cc798f1cc6ce6efb0f \
     --hash=sha256:d022c33afbdc8405c226621b015e8067888173d85f7f5ecebb3cafed9a20f02c
-    # via dask
+    # via
+    #   -c requirements-cpu.lock
+    #   dask
     # from https://pypi.org/simple
 pdfminer-six==20260107 \
     --hash=sha256:366585ba97e80dffa8f00cebe303d2f381884d8637af4ce422f1df3ef38111a9 \
     --hash=sha256:96bfd431e3577a55a0efd25676968ca4ce8fd5b53f14565f85716ff363889602
-    # via pdfplumber
+    # via
+    #   -c requirements-cpu.lock
+    #   pdfplumber
     # from https://pypi.org/simple
 pdfplumber==0.11.10 \
     --hash=sha256:7741ea81bf165b474b153e6789d10d18e06b6ddcf3ec84289c3ef2fed6802580 \
     --hash=sha256:b95b2d28c66efb0a794a83b88c6c6aea5987532a445d20a1cbcfa657022e6e57
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pexpect==4.9.0 \
     --hash=sha256:7236d1e080e4936be2dc3e326cec0af72acf9212a7e1d060210e70a47e253523 \
     --hash=sha256:ee7d41123f3c9911050ea2c2dac107568dc43b2d3b0c7557a33212c398ead30f
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 pillow==12.3.0 \
     --hash=sha256:00808c5e14ef63ac5161091d242999076604ff74b883423a11e5d7bbb38bf756 \
@@ -3111,6 +3376,7 @@ pillow==12.3.0 \
     --hash=sha256:fe3cca2e4e8a592be0f269a1ca4835c25199d9f3ce815c8491048f785b0a0198 \
     --hash=sha256:ffd0c5368496f41b0944be820fcb7a838aa6e623d250b01acf2643939c3f99d7
     # via
+    #   -c requirements-cpu.lock
     #   matplotlib
     #   pdfplumber
     #   pipecat-ai
@@ -3121,27 +3387,37 @@ pillow==12.3.0 \
 pip==26.2.1 \
     --hash=sha256:71138adf1f4ca900cdb7d289c21b7494329f2332b6d85f0e1c42108c0384ed3e \
     --hash=sha256:f6ad667e89a1fe78046c8f13232b247200f5258d7828f3f7883d660878e0813f
-    # via pip-system-certs
+    # via
+    #   -c requirements-cpu.lock
+    #   pip-system-certs
     # from https://pypi.org/simple
 pip-system-certs==5.3 \
     --hash=sha256:19c8bf9957bcce7d69c4dbc2d0b2ef13de1984d53f50a59012e6dbbad0af67c6 \
     --hash=sha256:3fbb5de62e374a99b688b1ad06e64ee5c4aeb633ef23e3a677d32e3e84fd863c
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pipecat-ai==1.0.0 \
     --hash=sha256:24eb7d84c72d5845e50cbd8b95871bd132ca863cfecf6ebae236101a56c428be \
     --hash=sha256:7acc813f8eb744ca37ae5a803d98c78bceb1e9a5b1503205030c071ca243b820
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
     --hash=sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746
-    # via pytest
+    # via
+    #   -c requirements-cpu.lock
+    #   pytest
     # from https://pypi.org/simple
 prompt-toolkit==3.0.53 \
     --hash=sha256:01c0891d7f9237d5e339f7d3e42cdae80b7534abb1c7c0e3352efba6231492f2 \
     --hash=sha256:9ec8a0ad96d5c56148b3f914aa79c1564c3fde5d2e6b876e7bc327e353cf8fa6
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 propcache==0.5.4 \
     --hash=sha256:004e685b315646c410771836e72a44f143bbe624f29653a42687815069a303d5 \
@@ -3283,13 +3559,16 @@ propcache==0.5.4 \
     --hash=sha256:fc2461ecc45f17893f8207e73b46ea8ba93e33630e51cf4af3fbc21d47462b1a \
     --hash=sha256:ff6b113f50bc066a698db5d944d2c6dc7507168dd3341e255a8892fd0715a558
     # via
+    #   -c requirements-cpu.lock
     #   aiohttp
     #   yarl
     # from https://pypi.org/simple
 proto-plus==1.28.4 \
     --hash=sha256:4b01341272f8a348db3f003b6143109f83ab43091019d5181b3fcdf500ab32aa \
     --hash=sha256:5ff7ecad828e032a491fcb86947801768e32237f99dd049b649965b892ae9a63
-    # via google-api-core
+    # via
+    #   -c requirements-cpu.lock
+    #   google-api-core
     # from https://pypi.org/simple
 protobuf==6.33.6 \
     --hash=sha256:0cd27b587afca21b7cfa59a74dcbd48a50f0a6400cfb59391340ad729d91d326 \
@@ -3304,6 +3583,7 @@ protobuf==6.33.6 \
     --hash=sha256:f443a394af5ed23672bc6c486be138628fbe5c651ccbc536873d7da23d1868cf
     # via
     #   -c compatibility-constraints.in
+    #   -c requirements-cpu.lock
     #   --override (workspace)
     #   semoss (pyproject.toml)
     #   google-api-core
@@ -3337,6 +3617,7 @@ psutil==7.2.2 \
     --hash=sha256:eed63d3b4d62449571547b60578c5b2c4bcccc5387148db46e0c2313dad0ee00 \
     --hash=sha256:fd04ef36b4a6d599bbdb225dd1d3f51e00105f6d48a28f006da7f9822f2606d8
     # via
+    #   -c requirements-cpu.lock
     #   accelerate
     #   guidance
     #   ipython
@@ -3345,64 +3626,68 @@ psutil==7.2.2 \
 ptyprocess==0.7.0 \
     --hash=sha256:4b41f3967fce3af57cc7e94b888626c18bf37a083e3651ca8feeb66d492fef35 \
     --hash=sha256:5c5d0a3b48ceee0b48485e0c26037c0acd7d29765ca3fbb5cb3831d347423220
-    # via pexpect
+    # via
+    #   -c requirements-cpu.lock
+    #   pexpect
     # from https://pypi.org/simple
 pure-eval==0.2.4 \
     --hash=sha256:260c2774686e651b79f8b8e7fc9d80b3599ea6a66334b47d5f4abb69fc2c0ea1 \
     --hash=sha256:96cae060a313cfaad51bb761278bfb0e62dc0248d9315a81173752dc546cd37a
-    # via stack-data
+    # via
+    #   -c requirements-cpu.lock
+    #   stack-data
     # from https://pypi.org/simple
-pyarrow==22.0.0 \
-    --hash=sha256:001ea83a58024818826a9e3f89bf9310a114f7e26dfe404a4c32686f97bd7901 \
-    --hash=sha256:00626d9dc0f5ef3a75fe63fd68b9c7c8302d2b5bbc7f74ecaedba83447a24f84 \
-    --hash=sha256:0c34fe18094686194f204a3b1787a27456897d8a2d62caf84b61e8dfbc0252ae \
-    --hash=sha256:12fe549c9b10ac98c91cf791d2945e878875d95508e1a5d14091a7aaa66d9cf8 \
-    --hash=sha256:1a812a5b727bc09c3d7ea072c4eebf657c2f7066155506ba31ebf4792f88f016 \
-    --hash=sha256:252be4a05f9d9185bb8c18e83764ebcfea7185076c07a7a662253af3a8c07941 \
-    --hash=sha256:334f900ff08ce0423407af97e6c26ad5d4e3b0763645559ece6fbf3747d6a8f5 \
-    --hash=sha256:35ad0f0378c9359b3f297299c3309778bb03b8612f987399a0333a560b43862d \
-    --hash=sha256:3d600dc583260d845c7d8a6db540339dd883081925da2bd1c5cb808f720b3cd9 \
-    --hash=sha256:3e294c5eadfb93d78b0763e859a0c16d4051fc1c5231ae8956d61cb0b5666f5a \
-    --hash=sha256:3e739edd001b04f654b166204fc7a9de896cf6007eaff33409ee9e50ceaff754 \
-    --hash=sha256:44729980b6c50a5f2bfcc2668d36c569ce17f8b17bccaf470c4313dcbbf13c9d \
-    --hash=sha256:44d2d26cda26d18f7af7db71453b7b783788322d756e81730acb98f24eb90ace \
-    --hash=sha256:4c19236ae2402a8663a2c8f21f1870a03cc57f0bef7e4b6eb3238cc82944de80 \
-    --hash=sha256:69763ab2445f632d90b504a815a2a033f74332997052b721002298ed6de40f2e \
-    --hash=sha256:6dda1ddac033d27421c20d7a7943eec60be44e0db4e079f33cc5af3b8280ccde \
-    --hash=sha256:6f9762274496c244d951c819348afbcf212714902742225f649cf02823a6a10f \
-    --hash=sha256:710624ab925dc2b05a6229d47f6f0dac1c1155e6ed559be7109f684eba048a48 \
-    --hash=sha256:7388ac685cab5b279a41dfe0a6ccd99e4dbf322edfb63e02fc0443bf24134e91 \
-    --hash=sha256:77718810bd3066158db1e95a63c160ad7ce08c6b0710bc656055033e39cdad88 \
-    --hash=sha256:7a820d8ae11facf32585507c11f04e3f38343c1e784c9b5a8b1da5c930547fe2 \
-    --hash=sha256:8382ad21458075c2e66a82a29d650f963ce51c7708c7c0ff313a8c206c4fd5e8 \
-    --hash=sha256:84378110dd9a6c06323b41b56e129c504d157d1a983ce8f5443761eb5256bafc \
-    --hash=sha256:854794239111d2b88b40b6ef92aa478024d1e5074f364033e73e21e3f76b25e0 \
-    --hash=sha256:92843c305330aa94a36e706c16209cd4df274693e777ca47112617db7d0ef3d7 \
-    --hash=sha256:9bddc2cade6561f6820d4cd73f99a0243532ad506bc510a75a5a65a522b2d74d \
-    --hash=sha256:a4893d31e5ef780b6edcaf63122df0f8d321088bb0dee4c8c06eccb1ca28d145 \
-    --hash=sha256:a9d9ffdc2ab696f6b15b4d1f7cec6658e1d788124418cb30030afbae31c64746 \
-    --hash=sha256:ac93252226cf288753d8b46280f4edf3433bf9508b6977f8dd8526b521a1bbb9 \
-    --hash=sha256:b41f37cabfe2463232684de44bad753d6be08a7a072f6a83447eeaf0e4d2a215 \
-    --hash=sha256:b883fe6fd85adad7932b3271c38ac289c65b7337c2c132e9569f9d3940620730 \
-    --hash=sha256:b9d71701ce97c95480fecb0039ec5bb889e75f110da72005743451339262f4ce \
-    --hash=sha256:ba95112d15fd4f1105fb2402c4eab9068f0554435e9b7085924bcfaac2cc306f \
-    --hash=sha256:bba208d9c7decf9961998edf5c65e3ea4355d5818dd6cd0f6809bec1afb951cc \
-    --hash=sha256:bd0d42297ace400d8febe55f13fdf46e86754842b860c978dfec16f081e5c653 \
-    --hash=sha256:bea79263d55c24a32b0d79c00a1c58bb2ee5f0757ed95656b01c0fb310c5af3d \
-    --hash=sha256:c064e28361c05d72eed8e744c9605cbd6d2bb7481a511c74071fd9b24bc65d7d \
-    --hash=sha256:c3200cb41cdbc65156e5f8c908d739b0dfed57e890329413da2748d1a2cd1a4e \
-    --hash=sha256:c6c791b09c57ed76a18b03f2631753a4960eefbbca80f846da8baefc6491fcfe \
-    --hash=sha256:c6ec3675d98915bf1ec8b3c7986422682f7232ea76cad276f4c8abd5b7319b70 \
-    --hash=sha256:ce20fe000754f477c8a9125543f1936ea5b8867c5406757c224d745ed033e691 \
-    --hash=sha256:cedb9dd9358e4ea1d9bce3665ce0797f6adf97ff142c8e25b46ba9cdd508e9b6 \
-    --hash=sha256:e0a15757fccb38c410947df156f9749ae4a3c89b2393741a50521f39a8cf202a \
-    --hash=sha256:e6e95176209257803a8b3d0394f21604e796dadb643d2f7ca21b66c9c0b30c9a \
-    --hash=sha256:e70ff90c64419709d38c8932ea9fe1cc98415c4f87ea8da81719e43f02534bc9 \
-    --hash=sha256:ec1a15968a9d80da01e1d30349b2b0d7cc91e96588ee324ce1b5228175043e95 \
-    --hash=sha256:ec5d40dd494882704fb876c16fa7261a69791e784ae34e6b5992e977bd2e238c \
-    --hash=sha256:f633074f36dbc33d5c05b5dc75371e5660f1dbf9c8b1d95669def05e5425989c \
-    --hash=sha256:f7fe3dbe871294ba70d789be16b6e7e52b418311e166e0e3cba9522f0f437fb1 \
-    --hash=sha256:f963ba8c3b0199f9d6b794c90ec77545e05eadc83973897a4523c9e8d84e9340
+pyarrow==23.0.1 \
+    --hash=sha256:00be9576d970c31defb5c32eb72ef585bf600ef6d0a82d5eccaae96639cf9d07 \
+    --hash=sha256:07deae7783782ac7250989a7b2ecde9b3c343a643f82e8a4df03d93b633006f0 \
+    --hash=sha256:0ae6e17c828455b6265d590100c295193f93cc5675eb0af59e49dbd00d2de350 \
+    --hash=sha256:0b95a3994f015be13c63148fef8832e8a23938128c185ee951c98908a696e0eb \
+    --hash=sha256:17cd28e906c18af486a499422740298c52d7c6795344ea5002a7720b4eadf16d \
+    --hash=sha256:26d50dee49d741ac0e82185033488d28d35be4d763ae6f321f97d1140eb7a0e9 \
+    --hash=sha256:29f7f7419a0e30264ea261fdc0e5fe63ce5a6095003db2945d7cd78df391a7e1 \
+    --hash=sha256:33d648dc25b51fd8055c19e4261e813dfc4d2427f068bcecc8b53d01b81b0500 \
+    --hash=sha256:3a4c85ef66c134161987c17b147d6bffdca4566f9a4c1d81a0a01cdf08414ea5 \
+    --hash=sha256:3c30143b17161310f151f4a2bcfe41b5ff744238c1039338779424e38579d701 \
+    --hash=sha256:3f91c038b95f71ddfc865f11d5876c42f343b4495535bd262c7b321b0b94507c \
+    --hash=sha256:3fab8f82571844eb3c460f90a75583801d14ca0cc32b1acc8c361650e006fd56 \
+    --hash=sha256:46718a220d64677c93bc243af1d44b55998255427588e400677d7192671845c7 \
+    --hash=sha256:4982d71350b1a6e5cfe1af742c53dfb759b11ce14141870d05d9e540d13bc5d1 \
+    --hash=sha256:527e8d899f14bd15b740cd5a54ad56b7f98044955373a17179d5956ddb93d9ce \
+    --hash=sha256:564baf97c858ecc03ec01a41062e8f4698abc3e6e2acd79c01c2e97880a19730 \
+    --hash=sha256:5abde149bb3ce524782d838eb67ac095cd3fd6090eba051130589793f1a7f76d \
+    --hash=sha256:5c16ed4f53247fa3ffb12a14d236de4213a4415d127fe9cebed33d51671113e2 \
+    --hash=sha256:5df1161da23636a70838099d4aaa65142777185cc0cdba4037a18cee7d8db9ca \
+    --hash=sha256:5f4763b83c11c16e5f4c15601ba6dfa849e20723b46aa2617cb4bffe8768479f \
+    --hash=sha256:6b8fda694640b00e8af3c824f99f789e836720aa8c9379fb435d4c4953a756b8 \
+    --hash=sha256:6f0147ee9e0386f519c952cc670eb4a8b05caa594eeffe01af0e25f699e4e9bb \
+    --hash=sha256:7044b442f184d84e2351e5084600f0d7343d6117aabcbc1ac78eb1ae11eb4125 \
+    --hash=sha256:71c5be5cbf1e1cb6169d2a0980850bccb558ddc9b747b6206435313c47c37677 \
+    --hash=sha256:76e823d0e86b4fb5e1cf4a58d293036e678b5a4b03539be933d3b31f9406859f \
+    --hash=sha256:7707d2b6673f7de054e2e83d59f9e805939038eebe1763fe811ee8fa5c0cd1a7 \
+    --hash=sha256:813d99f31275919c383aab17f0f455a04f5a429c261cc411b1e9a8f5e4aaaa05 \
+    --hash=sha256:86ff03fb9f1a320266e0de855dee4b17da6794c595d207f89bba40d16b5c78b9 \
+    --hash=sha256:8ff51b1addc469b9444b7c6f3548e19dc931b172ab234e995a60aea9f6e6025f \
+    --hash=sha256:9b6f4f17b43bc39d56fec96e53fe89d94bac3eb134137964371b45352d40d0c2 \
+    --hash=sha256:9fc13fc6c403d1337acab46a2c4346ca6c9dec5780c3c697cf8abfd5e19b6b37 \
+    --hash=sha256:a09f3876e87f48bc2f13583ab551f0379e5dfb83210391e68ace404181a20690 \
+    --hash=sha256:a35581e856a2fafa12f3f54fce4331862b1cfb0bef5758347a858a4aa9d6bae8 \
+    --hash=sha256:a62e1899e3078bf65943078b3ad2a6ddcacf2373bc06379aac61b1e548a75814 \
+    --hash=sha256:b8c5873e33440b2bc2f4a79d2b47017a89c5a24116c055625e6f2ee50523f019 \
+    --hash=sha256:bf5842f960cddd2ef757d486041d57c96483efc295a8c4a0e20e704cbbf39c67 \
+    --hash=sha256:c2139549494445609f35a5cda4eb94e2c9e4d704ce60a095b342f82460c73a83 \
+    --hash=sha256:c250248f1fe266db627921c89b47b7c06fee0489ad95b04d50353537d74d6886 \
+    --hash=sha256:c33b5bf406284fd0bba436ed6f6c3ebe8e311722b441d89397c54f871c6863a2 \
+    --hash=sha256:cd395abf8f91c673dd3589cadc8cc1ee4e8674fa61b2e923c8dd215d9c7d1f41 \
+    --hash=sha256:cecfb12ef629cf6be0b1887f9f86463b0dd3dc3195ae6224e74006be4736035a \
+    --hash=sha256:d0744403adabef53c985a7f8a082b502a368510c40d184df349a0a8754533258 \
+    --hash=sha256:db2190fa79c80a23fdd29fef4b8992893f024ae7c17d2f5f4db7171fa30c2c78 \
+    --hash=sha256:ddf743e82f69dcd6dbbcb63628895d7161e04e56794ef80550ac6f3315eeb1d5 \
+    --hash=sha256:df088e8f640c9fae3b1f495b3c64755c4e719091caf250f3a74d095ddf3c836d \
+    --hash=sha256:e052a211c5ac9848ae15d5ec875ed0943c0221e2fcfe69eee80b604b4e703222 \
+    --hash=sha256:f00f993a8179e0e1c9713bcc0baf6d6c01326a406a9c23495ec1ba9c9ebf2919 \
+    --hash=sha256:f4b0dbfa124c0bb161f8b5ebb40f1a680b70279aa0c9901d44a2b5a20806039f \
+    --hash=sha256:fa8e51cb04b9f8c9c5ace6bab63af9a1f88d35c0d6cbf53e8c17c098552285e1 \
+    --hash=sha256:fed7020203e9ef273360b9e45be52a2a47d3103caf156a30ace5247ffb51bdbd
     # via
     #   semoss (pyproject.toml)
     #   dask
@@ -3412,23 +3697,29 @@ pyasn1==0.6.4 \
     --hash=sha256:9c447d8431c947fe4c8febc4ed9e760bc29011a5b01e5c74b67025bd9fb8ce81 \
     --hash=sha256:deda9277cfd454080ec40b207fb6df82206a3a2688735233cdcd8d3d565f088b
     # via
+    #   -c requirements-cpu.lock
     #   --override (workspace)
     #   pyasn1-modules
     # from https://pypi.org/simple
 pyasn1-modules==0.4.2 \
     --hash=sha256:29253a9207ce32b64c3ac6600edc75368f98473906e8fd1043bd6b5b1de2c14a \
     --hash=sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6
-    # via google-auth
+    # via
+    #   -c requirements-cpu.lock
+    #   google-auth
     # from https://pypi.org/simple
 pycparser==3.0 \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
-    # via cffi
+    # via
+    #   -c requirements-cpu.lock
+    #   cffi
     # from https://pypi.org/simple
 pydantic==2.13.5 \
     --hash=sha256:346a034f080da3755d8e9cb5e00e8b07de1d39e4f6e2c87d8ab7cafa0b269a73 \
     --hash=sha256:51a9c5f7b2f8e636f04c6cada605d9b6a3bf1348fdf945a3d8869b19bba0ee08
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   anthropic
     #   github-copilot-sdk
@@ -3567,12 +3858,15 @@ pydantic-core==2.46.5 \
     --hash=sha256:fc5d783bd4a2387e97b8a2d5ec781cfb92b3d893bf82370548e99db5915935d3 \
     --hash=sha256:fc8515076c11f3cfdf4fb142dcca0fe384b1230a3b5415458ac84f3e0903ec13 \
     --hash=sha256:ff218293c9c806138dca139765e3b067621be52bcd93cdc14c7711be7ddc90a9
-    # via pydantic
+    # via
+    #   -c requirements-cpu.lock
+    #   pydantic
     # from https://pypi.org/simple
 pydantic-settings==2.15.0 \
     --hash=sha256:0ba092c291c94baceb5eff768aa0d56400a457585bc0175925a5a5510303da42 \
     --hash=sha256:694b793e84f766ba76a90ebdefc01d0a9a045dab0382bee70393da93712ad117
     # via
+    #   -c requirements-cpu.lock
     #   langchain-community
     #   mcp
     # from https://pypi.org/simple
@@ -3581,12 +3875,15 @@ pyenchant==3.3.0 \
     --hash=sha256:1d55e075645a6edbb3c590fb42f9e02b4d455e4affe28a2227d5cb6d4868e626 \
     --hash=sha256:3da00b1d01314d85aac733bb997415d7a3e875666dc81735ddcf320aa36b7a70 \
     --hash=sha256:825288246b5debc9436f91967650974ef0d5636458502619e322c476f1283891
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pygments==2.21.0 \
     --hash=sha256:2363c69b61c4a97c838da3b130dcd6468f4848992b21a82f2a63ec34377137d9 \
     --hash=sha256:610ca751c9bc2492b38eb9a38a7fbc93edbbb2d7182edaf34e66ae493dee5c8c
     # via
+    #   -c requirements-cpu.lock
     #   ipython
     #   ipython-pygments-lexers
     #   pytest
@@ -3595,27 +3892,37 @@ pygments==2.21.0 \
 pyjarowinkler==3.0.0 \
     --hash=sha256:0622f704e8467d9471b33865ed7af480632d50a5c5d1799f51f46da5c4f0b47a \
     --hash=sha256:f9d1005c562b21b0815e0e23d0386442772ca57d444b37a1adfed2407c317b21
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pyjwt==2.15.0 \
     --hash=sha256:7a3742debf6b879e912dbb9819ceec1594be812452b78c5f2e2dfc56564954f8 \
     --hash=sha256:b11c5f9791d7bf51c2b39a81ed669f6b2dbbd669df2942f6c60167e9e3d1abe4
-    # via mcp
+    # via
+    #   -c requirements-cpu.lock
+    #   mcp
     # from https://pypi.org/simple
 pyloudnorm==0.2.0 \
     --hash=sha256:8bf597658ea4e1975c275adf490f6deb5369ea409f2901f939915efa4b681b16 \
     --hash=sha256:9bb69afb904f59d007a7f9ba3d75d16fb8aeef35c44d6df822a9f192d69cf13f
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 pyparsing==3.3.3 \
     --hash=sha256:928ae7e20211f3b6f3915a72f06a0cfd29ab9d24279dd6346b6b1a7146397d36 \
     --hash=sha256:ece8c00a69cf01b45d0b1dedabb469c90d8caf996d4fda40f147627a122849a4
-    # via matplotlib
+    # via
+    #   -c requirements-cpu.lock
+    #   matplotlib
     # from https://pypi.org/simple
 pypdf==6.19.0 \
     --hash=sha256:7e5d6e730e7dae87d560a2cee218b852f6498c8be61966f3cd02ead971e48d14 \
     --hash=sha256:bbc43aca292369ccc6cbc8a921991ecf2538a3587ab5a116eff06c321d647155
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pypdfium2==5.13.0 \
     --hash=sha256:07f58e91b8c45ca144a1ff3008faf3c73ef8a5e9fb32988831788363288228cd \
@@ -3640,7 +3947,9 @@ pypdfium2==5.13.0 \
     --hash=sha256:d96929bde3bd64c771ab3558ca1ffd7704cc4d872ab92cd9f8f8b8a20f7f36b8 \
     --hash=sha256:d96beb7f379e6c76d874ca93fcd182ac3168dd499056407070f9927fb1061b8e \
     --hash=sha256:da5c7b74eebf40b5c1fbe1de01aa1edc8827a79fb1efd999616bc20dcaf77ba4
-    # via pdfplumber
+    # via
+    #   -c requirements-cpu.lock
+    #   pdfplumber
     # from https://pypi.org/simple
 pystemmer==3.1.0 \
     --hash=sha256:033fbad2c93fbaacc9e3f2a64c8edd9c6797c7bbf024a06ed4666b497bb30f68 \
@@ -3715,22 +4024,29 @@ pystemmer==3.1.0 \
     --hash=sha256:f0e9e8c19dded337ea7ed744f6c5b7aa629fedbc1bf326feeb50aa72b5226b65 \
     --hash=sha256:f411c36a18bdbc7074dc318c83383f859bf965ea47b8c8e225f540810ad3e2ef \
     --hash=sha256:f6b619268ba66e54d4f7befed283bc7fe2354417ad8c399a166ffd3468632e7e
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pytesseract==0.3.13 \
     --hash=sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9 \
     --hash=sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pytest==9.1.1 \
     --hash=sha256:1088fbde8f2b49d95a549a195707afa7a76a3ce9bcadc26b6d71f0ffda5fe313 \
     --hash=sha256:37a86b45efb9a47a61a36449063e8e18d0cab3161329fc099eb21783169c4f0c
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 python-dateutil==2.9.0.post0 \
     --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
     --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via
+    #   -c requirements-cpu.lock
     #   botocore
     #   dateparser
     #   github-copilot-sdk
@@ -3741,29 +4057,37 @@ python-dateutil==2.9.0.post0 \
 python-docx==1.2.0 \
     --hash=sha256:3fd478f3250fbbbfd3b94fe1e985955737c145627498896a8a6bf81f4baf66c7 \
     --hash=sha256:7bc9d7b7d8a69c9c02ca09216118c86552704edc23bac179283f2e38f86220ce
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 python-dotenv==1.2.3 \
     --hash=sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9 \
     --hash=sha256:a20a594dabeaa385725aa239d5244871c143ecb356add8a20fcf23773a6c3a35
     # via
+    #   -c requirements-cpu.lock
     #   langextract
     #   pydantic-settings
     # from https://pypi.org/simple
 python-multipart==0.0.32 \
     --hash=sha256:be54b7f3fa167bb83e4fcd936b887b708f4e57fe75911c02aebf53efaf8d938e \
     --hash=sha256:ff6d3f776f16878c894e52e107296ffc890e913c611b1a4ec6c44e2821fe2e23
-    # via mcp
+    # via
+    #   -c requirements-cpu.lock
+    #   mcp
     # from https://pypi.org/simple
 python-pptx==1.0.2 \
     --hash=sha256:160838e0b8565a8b1f67947675886e9fea18aa5e795db7ae531606d68e785cba \
     --hash=sha256:479a8af0eaf0f0d76b6f00b0887732874ad2e3188230315290cd1f9dd9cc7095
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pytz==2026.4 \
     --hash=sha256:464303645bafafd72418898368b2429458f709cf1eb6a15372fbcc396b64da63 \
     --hash=sha256:9d514388fbc89ca0833203464272ac485b8828568ab73532f5020f17e892a0ff
     # via
+    #   -c requirements-cpu.lock
     #   dateparser
     #   pandas
     # from https://pypi.org/simple
@@ -3842,6 +4166,7 @@ pyyaml==6.0.3 \
     --hash=sha256:fa160448684b4e94d80416c0fa4aac48967a969efe22931448d853ada8baf926 \
     --hash=sha256:fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0
     # via
+    #   -c requirements-cpu.lock
     #   accelerate
     #   dask
     #   datasets
@@ -3959,12 +4284,15 @@ rapidfuzz==3.14.6 \
     --hash=sha256:faebff9b9a287fb673f9a66465a7e03043601c9bfe5e71c3f91b3f2e7b8a37f6 \
     --hash=sha256:fc166efa4ca2fc9cc52e43784a54cbea95fc0e03e533f8266ef66b1c04c7cb76 \
     --hash=sha256:fc950bb77105a2717d03d9f9c9e21e9ace7df2b8e864dd91edef7e32fa143be2
-    # via thefuzz
+    # via
+    #   -c requirements-cpu.lock
+    #   thefuzz
     # from https://pypi.org/simple
 referencing==0.37.0 \
     --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231 \
     --hash=sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8
     # via
+    #   -c requirements-cpu.lock
     #   jsonschema
     #   jsonschema-specifications
     # from https://pypi.org/simple
@@ -4100,6 +4428,7 @@ regex==2026.9.10 \
     --hash=sha256:ff6b3267318661dfddf6b3628663e00e5946bd0a5c8fa678537a1401f0388f91 \
     --hash=sha256:ffc2da104e43db716ce30cef9f28049a1faa6aca385dd8771b033268d0730b07
     # via
+    #   -c requirements-cpu.lock
     #   dateparser
     #   langextract
     #   nltk
@@ -4110,6 +4439,7 @@ requests==2.34.2 \
     --hash=sha256:2a0d60c172f83ac6ab31e4554906c0f3b3588d37b5cb939b1c061f4907e278e0 \
     --hash=sha256:f288924cae4e29463698d6d60bc6a4da69c89185ad1e0bcc4104f584e960b9ed
     # via
+    #   -c requirements-cpu.lock
     #   azure-core
     #   datasets
     #   fsspec
@@ -4130,22 +4460,29 @@ requests==2.34.2 \
 requests-oauthlib==2.0.0 \
     --hash=sha256:7dd8a5c40426b779b0868c404bdef9768deccf22749cde15852df527e6269b36 \
     --hash=sha256:b3dffaebd884d8cd778494369603a9e7b58d29111bf6b41bdc2dcd87203af4e9
-    # via msrest
+    # via
+    #   -c requirements-cpu.lock
+    #   msrest
     # from https://pypi.org/simple
 requests-toolbelt==1.0.0 \
     --hash=sha256:7681a0a3d047012b5bdc0ee37d7f8f07ebe76ab08caeccfc3921ce23c88d5bc6 \
     --hash=sha256:cccfdd665f0a24fcf4726e690f65639d272bb0637b9b92dfd91a5568ccf6bd06
-    # via langsmith
+    # via
+    #   -c requirements-cpu.lock
+    #   langsmith
     # from https://pypi.org/simple
 resampy==0.4.3 \
     --hash=sha256:a0d1c28398f0e55994b739650afef4e3974115edbe96cd4bb81968425e916e47 \
     --hash=sha256:ad2ed64516b140a122d96704e32bc0f92b23f45419e8b8f478e5a05f83edcebd
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 rich==15.0.0 \
     --hash=sha256:33bd4ef74232fb73fe9279a257718407f169c09b78a87ad3d296f548e27de0bb \
     --hash=sha256:edd07a4824c6b40189fb7ac9bc4c52536e9780fbbfbddf6f1e2502c31b068c36
     # via
+    #   -c requirements-cpu.lock
     #   keybert
     #   typer
     # from https://pypi.org/simple
@@ -4267,13 +4604,16 @@ rpds-py==2026.6.3 \
     --hash=sha256:f90938e92afda60266da758ee7d363447f7f0138c9559f9e1811629580582d90 \
     --hash=sha256:faa679d19a6696fd54259ad321251ad77a13e70e03dd834daa762a44fb6196ef
     # via
+    #   -c requirements-cpu.lock
     #   jsonschema
     #   referencing
     # from https://pypi.org/simple
 s3transfer==0.19.2 \
     --hash=sha256:ba0309fd86be3c27dbf78cdd813c13c5e1df16e5874b99d2535ebbdfb9892993 \
     --hash=sha256:d8168eccca828cbb2cd573675333f3bddd254313a9c42494b84c76b539e8ba25
-    # via boto3
+    # via
+    #   -c requirements-cpu.lock
+    #   boto3
     # from https://pypi.org/simple
 safetensors==0.8.0 \
     --hash=sha256:040070828e36dc8e122178bbbd5830ff9e97920affb84cbe0f46442497bed358 \
@@ -4294,6 +4634,7 @@ safetensors==0.8.0 \
     --hash=sha256:fcdd41ec4628fee5799f807c73c353629130fbd942aa23d83c623dd6c9d52d78 \
     --hash=sha256:fd6f3f93c9a0a7cc2788ee63fb763353d4bd2e89b0751bc78fcf7dda00bea774
     # via
+    #   -c requirements-cpu.lock
     #   accelerate
     #   gliner
     #   timm
@@ -4344,6 +4685,7 @@ scikit-learn==1.9.1 \
     --hash=sha256:e5d7b18a5b9dca241a74695f3275fa4c895a9dadc72b3d8df5fa9d1083c9b83e \
     --hash=sha256:ffbcbbbb44202fbe9bc64bced25a145759adb9ef010b3d37a8064958ac13df2a
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   keybert
     #   sentence-transformers
@@ -4411,6 +4753,7 @@ scipy==1.18.1 \
     --hash=sha256:f55fa87b6c612ecd6b058f167c53231b1d14e412efe361d3d6e38b3631c73218 \
     --hash=sha256:fdaf5ea890a6183d0565f51a61799d67081bd5b1cf03c5f4b3fd3732108625c9
     # via
+    #   -c requirements-cpu.lock
     #   pyloudnorm
     #   scikit-learn
     #   sentence-transformers
@@ -4418,7 +4761,9 @@ scipy==1.18.1 \
 seaborn==0.13.2 \
     --hash=sha256:636f8336facf092165e27924f223d3c62ca560b1f2bb5dff7ab7fad265361987 \
     --hash=sha256:93e60a40988f4d65e9f4885df477e2fdaff6b73a9ded434c1ab356dd57eefff7
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 semantic-text-splitter==0.18.1 \
     --hash=sha256:129015010f162b5906b01ad2b45475ab5f6bfd6957d3c30ba2527b6846e9c466 \
@@ -4432,12 +4777,15 @@ semantic-text-splitter==0.18.1 \
     --hash=sha256:e8d7e5946db4aafa01aaa2076c522e7313744738e21850d0255f9c0fd39ae892 \
     --hash=sha256:f085598659b84d1adc18b83dfb0a690098ca98a7870c3186281f65fcd8b49131 \
     --hash=sha256:f29104c61230b9c94a6795e5c4766e8034ae60f64d13362898cd1a5581228a80
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 sentence-transformers==6.1.0 \
     --hash=sha256:299025df51550dc1a38f05be27a9b0bf881c4e5e70542b3b7757d05e00aa3868 \
     --hash=sha256:eb8122f4d180f552eda26dc3d77e84e8c11dc2b1d456a406b9f24abb70ceeadd
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   keybert
     # from https://pypi.org/simple
@@ -4500,28 +4848,36 @@ sentencepiece==0.2.2 \
     --hash=sha256:fa9f5ef0e2a82233dd0b8b32ea3f5710e0c44afbc07ed3620219f32601e56090 \
     --hash=sha256:fd523c4992041faa5c2b3cde62253d11a96c30d73a34afe48a486e8e2254cd1c
     # via
+    #   -c requirements-cpu.lock
     #   detoxify
     #   gliner
     # from https://pypi.org/simple
 setuptools==84.0.0 \
     --hash=sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670 \
     --hash=sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73
-    # via torch
+    # via
+    #   -c requirements-cpu.lock
+    #   torch
     # from https://pypi.org/simple
 shellingham==1.5.4 \
     --hash=sha256:7ecfff8f2fd72616f7481040475a65b2bf8af90a56c89140852d1120324e8686 \
     --hash=sha256:8dbca0739d487e5bd35ab3ca4b36e11c4078f3a234bfce294b0a0291363404de
-    # via typer
+    # via
+    #   -c requirements-cpu.lock
+    #   typer
     # from https://pypi.org/simple
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
     --hash=sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81
-    # via python-dateutil
+    # via
+    #   -c requirements-cpu.lock
+    #   python-dateutil
     # from https://pypi.org/simple
 sniffio==1.3.1 \
     --hash=sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2 \
     --hash=sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   claude-agent-sdk
     #   google-genai
@@ -4531,7 +4887,9 @@ sniffio==1.3.1 \
 soupsieve==2.10 \
     --hash=sha256:49e9380d7d2905463583bafe285e818c7366a9ed7b3aee221c1ac79c905d8bc0 \
     --hash=sha256:8596eb8967d744174820280fa62b4542a2e955bfaccca73ed8a13c6eb8e9b502
-    # via beautifulsoup4
+    # via
+    #   -c requirements-cpu.lock
+    #   beautifulsoup4
     # from https://pypi.org/simple
 soxr==1.0.0 \
     --hash=sha256:158a4a9055958c4b95ef91dbbe280cabb00946b5423b25a9b0ce31bd9e0a271e \
@@ -4560,7 +4918,9 @@ soxr==1.0.0 \
     --hash=sha256:e973d487ee46aa8023ca00a139db6e09af053a37a032fe22f9ff0cc2e19c94b4 \
     --hash=sha256:f8dc69fc18884e53b72f6141fdf9d80997edbb4fec9dc2942edcb63abbe0d023 \
     --hash=sha256:fdc41a1027ba46777186f26a8fba7893be913383414135577522da2fcc684490
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 sqlalchemy==2.1.1 \
     --hash=sha256:0220e0d1d1ad2391a03cd6713ca5d795419033cc40baa1233f9ad454dffa25e6 \
@@ -4636,6 +4996,7 @@ sqlalchemy==2.1.1 \
     --hash=sha256:fcf3cbb33bb23bad75d2150157c21804618745731e9931ab27e61879a9f6123b \
     --hash=sha256:fdef70d59afce463bedef54580ba6a832f9f2313c1d0054e15cbb4ff46f37a97
     # via
+    #   -c requirements-cpu.lock
     #   langchain-classic
     #   langchain-community
     #   pandasql
@@ -4643,28 +5004,36 @@ sqlalchemy==2.1.1 \
 sse-starlette==3.4.11 \
     --hash=sha256:1bae716c02f3e6f294be41ff333220692dae7c3cbab077c900f159676719dade \
     --hash=sha256:c7b2244bdff016fe7f64e10075e89a3e6bbf899649cc89b0fe884b5545042453
-    # via mcp
+    # via
+    #   -c requirements-cpu.lock
+    #   mcp
     # from https://pypi.org/simple
 stack-data==0.6.3 \
     --hash=sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9 \
     --hash=sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695
-    # via ipython
+    # via
+    #   -c requirements-cpu.lock
+    #   ipython
     # from https://pypi.org/simple
 starlette==1.7.0 \
     --hash=sha256:67f8e99895493dd2911a03f11314af6ceebeae4e704bb9f43dfc6a9db151c93e \
     --hash=sha256:c79f74ea63cff761804fbbfb182f1e0b440c2d07b164d24700c5a1bab5d6ff5d
     # via
+    #   -c requirements-cpu.lock
     #   mcp
     #   sse-starlette
     # from https://pypi.org/simple
 swifter==1.4.0 \
     --hash=sha256:e1bb74476a21b3f07a17aa18c97fdcba8599726bd17da732f09dabcc50e26ba0
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 sympy==1.14.0 \
     --hash=sha256:d3d3fe8df1e5a0b42f0e7bdf50541697dbe7d23746e894990c030e2b05e72517 \
     --hash=sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5
     # via
+    #   -c requirements-cpu.lock
     #   onnxruntime
     #   torch
     # from https://pypi.org/simple
@@ -4672,6 +5041,7 @@ tenacity==9.1.4 \
     --hash=sha256:6095a360c919085f28c6527de529e76a06ad89b23659fa881ae0649b867a9d55 \
     --hash=sha256:adb31d4c263f2bd041081ab33b498309a57c77f9acf2db65aadf0898179cf93a
     # via
+    #   -c requirements-cpu.lock
     #   google-genai
     #   langchain-community
     #   langchain-core
@@ -4679,12 +5049,16 @@ tenacity==9.1.4 \
 thefuzz==0.22.1 \
     --hash=sha256:59729b33556850b90e1093c4cf9e618af6f2e4c985df193fdf3c5b5cf02ca481 \
     --hash=sha256:7138039a7ecf540da323792d8592ef9902b1d79eb78c147d4f20664de79f3680
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 threadpoolctl==3.7.0 \
     --hash=sha256:61348cfb77d53b9242e0017029244b559b810c142ced65b4e21eeca1843959a7 \
     --hash=sha256:cd8b60b5641b45c67bbf73c64c843235fc2d8a480c87389f52f5dbee893b86be
-    # via scikit-learn
+    # via
+    #   -c requirements-cpu.lock
+    #   scikit-learn
     # from https://pypi.org/simple
 tiktoken==0.14.0 \
     --hash=sha256:087538c080e5ff421abd3a0785ed63c5111d06af98e6cd0d374dbe5969147ca3 \
@@ -4752,18 +5126,23 @@ tiktoken==0.14.0 \
     --hash=sha256:f5e7665f6624e052e5e7f6a36919ab69279decdc976d7b16b4fa15e1897d0513 \
     --hash=sha256:f702e0aeeb6506e57687e881c59e844ebe8f0a6a097ddafe20e3ab25f387be4e
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   langchain-openai
     # from https://pypi.org/simple
 timm==1.0.30 \
     --hash=sha256:1444a3af7e17fdba5440ac2bcf6e4b728da96dd62289ed9e1bcba31a545f5935 \
     --hash=sha256:c8e27adf6801a2fdfb570dbbdd171f2f084756eefc673df8cfaab06bd14864f3
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 tld==0.13.2 \
     --hash=sha256:9b8fdbdb880e7ba65b216a4937f2c94c49a7226723783d5838fc958ac76f4e0c \
     --hash=sha256:d983fa92b9d717400742fca844e29d5e18271079c7bcfabf66d01b39b4a14345
-    # via courlan
+    # via
+    #   -c requirements-cpu.lock
+    #   courlan
     # from https://pypi.org/simple
 tokenizers==0.23.2 \
     --hash=sha256:12f0835dc2ee694746a76adf7b1567d4346a4a502ebe93fb1f5f80ea49799b78 \
@@ -4784,6 +5163,7 @@ tokenizers==0.23.2 \
     --hash=sha256:eb2f9c8a24da020ea8c11a01a19c1c2547912d92121ae4a01cfbca46125dee40 \
     --hash=sha256:f486f402f6f9abee5bb032553736813af0c710a86b2e0ca592634c55cea1f835
     # via
+    #   -c requirements-cpu.lock
     #   sentence-transformers
     #   transformers
     # from https://pypi.org/simple
@@ -4791,6 +5171,7 @@ toolz==1.1.0 \
     --hash=sha256:15ccc861ac51c53696de0a5d6d4607f99c210739caf987b5d2054f3efed429d8 \
     --hash=sha256:27a5c770d068c110d9ed9323f24f1543e83b2f300a687b7891c1a6d56b697b5b
     # via
+    #   -c requirements-cpu.lock
     #   dask
     #   partd
     # from https://pypi.org/simple
@@ -4829,6 +5210,7 @@ torch==2.14.0+cpu \
     --hash=sha256:f2ffdacd95d7090a8bdfa8426f5d1557625874b19a96ba23a41f640d4a0c9c28 \
     --hash=sha256:ff2e3a049e4c6d406d2f87acad9b2907d5052a3fa6d0e658b5f6e48d46bae11b
     # via
+    #   -c requirements-cpu.lock
     #   -r cpu.in
     #   semoss (pyproject.toml)
     #   accelerate
@@ -4861,6 +5243,7 @@ torchaudio==2.11.0+cpu \
     --hash=sha256:fa0c22f58f60c3537b7d28ed2501e0995acb2a65d9af2708f21edaad67186cd8 \
     --hash=sha256:fae220128cbfe060c663fbb2a1967b88c605f9eb49b535903cca694011662534
     # via
+    #   -c requirements-cpu.lock
     #   -r cpu.in
     #   semoss (pyproject.toml)
     # from https://download.pytorch.org/whl/cpu
@@ -4890,6 +5273,7 @@ torchvision==0.29.0+cpu \
     --hash=sha256:eb44d9535d16ff11572960b241917f1adbcd133531d838b7bc4a32316d27efee \
     --hash=sha256:f32547706851d8bf7665ba8503c8ed9a46a8b3ebba384bfe9778e635476f99f4
     # via
+    #   -c requirements-cpu.lock
     #   -r cpu.in
     #   semoss (pyproject.toml)
     #   timm
@@ -4898,6 +5282,7 @@ tqdm==4.70.1 \
     --hash=sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73 \
     --hash=sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4
     # via
+    #   -c requirements-cpu.lock
     #   datasets
     #   gliner
     #   huggingface-hub
@@ -4911,12 +5296,15 @@ tqdm==4.70.1 \
 trafilatura==2.2.0 \
     --hash=sha256:8c2cabb84066465228d03183fb698ce0b1245b81c58140b8ae0de57fddf3aae7 \
     --hash=sha256:ac43592a6201264dfc4f9c361cbe3eb3fea96e54437010a159d5e7365360ed98
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 traitlets==5.16.1 \
     --hash=sha256:ed900c2b631aa3a112811139fa97b8d2c3bad5e989656bba4b7e52c7852c18c1 \
     --hash=sha256:f775618166caa0396c8e337099240f2bd3e5e917d203b2e6fbe21a58d3cb1f6b
     # via
+    #   -c requirements-cpu.lock
     #   ipython
     #   ipywidgets
     #   matplotlib-inline
@@ -4925,6 +5313,7 @@ transformers==5.16.1 \
     --hash=sha256:17b0eac726ddc55e84ac58946063e0c6d37fd000c456b581f050ea0f4e822869 \
     --hash=sha256:2f2d5b98a5ad3718713653734298fa620754ed683702a635ebb587df3ed29c7e
     # via
+    #   -c requirements-cpu.lock
     #   semoss (pyproject.toml)
     #   chonky
     #   detoxify
@@ -4936,23 +5325,29 @@ truststore==0.10.4 \
     --hash=sha256:9d91bd436463ad5e4ee4aba766628dd6cd7010cf3e2461756b3303710eebc301 \
     --hash=sha256:adaeaecf1cbb5f4de3b1959b42d41f6fab57b2b1666adb59e89cb0b53361d981
     # via
+    #   -c requirements-cpu.lock
     #   httpcore2
     #   httpx2
     # from https://pypi.org/simple
 typer==0.27.2 \
     --hash=sha256:269b7eb9d3c202ca84b4bc9618cb04ebb43d3d4d1e567e4c768607232c05f945 \
     --hash=sha256:b3a5fc4342d5fc8fda8fc3010b1cf117e9249aab7fae800c2eff62fd3842d97d
-    # via transformers
+    # via
+    #   -c requirements-cpu.lock
+    #   transformers
     # from https://pypi.org/simple
 types-protobuf==7.35.1.20260906 \
     --hash=sha256:5155e48569e0dabff303fdf578db96cd31ea9a4a63b18018a4ceac6b0ae17462 \
     --hash=sha256:efd1a3862d4c967dad5512ef8d56b1530ac84f182c41735b94004756518c4998
-    # via livekit
+    # via
+    #   -c requirements-cpu.lock
+    #   livekit
     # from https://pypi.org/simple
 typing-extensions==4.16.0 \
     --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8 \
     --hash=sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5
     # via
+    #   -c requirements-cpu.lock
     #   anthropic
     #   anyio
     #   azure-ai-formrecognizer
@@ -4982,6 +5377,7 @@ typing-inspection==0.4.4 \
     --hash=sha256:547274fa6b0a561ccf549cc9524b999a578e737d015d8709d021f9d0d13bea47 \
     --hash=sha256:65b8397ba37ccbce054456aaccddfc91e6e3083c92824df348d96ca832f3f147
     # via
+    #   -c requirements-cpu.lock
     #   mcp
     #   pydantic
     #   pydantic-settings
@@ -4989,17 +5385,22 @@ typing-inspection==0.4.4 \
 tzdata==2026.4 \
     --hash=sha256:c2169a8b0a7a5e9674da5a135ccdfb2b3e671b333ed9fed17b41f73c34476e81 \
     --hash=sha256:f1b8bd365d8d210c55353f4d7f8d6d8561c0ba50d704b700d195a9424bba0d79
-    # via pandas
+    # via
+    #   -c requirements-cpu.lock
+    #   pandas
     # from https://pypi.org/simple
 tzlocal==5.4.4 \
     --hash=sha256:8dbb8660838688a7b6ba4fed31d18dedf842afb4d47ca050d6d891c2c15f3be4 \
     --hash=sha256:aae09f0126a8a86fa736be266eb4a471380d26a0de3bc14844e7821fee3e2a15
-    # via dateparser
+    # via
+    #   -c requirements-cpu.lock
+    #   dateparser
     # from https://pypi.org/simple
 urllib3==2.8.0 \
     --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3 \
     --hash=sha256:63bf2ead4c879426ebf22ef2a781eeb4aa3b4ae798a0435506f8687fd5bb9b63
     # via
+    #   -c requirements-cpu.lock
     #   botocore
     #   courlan
     #   htmldate
@@ -5102,13 +5503,16 @@ uuid-utils==0.17.1 \
     --hash=sha256:f9f9f6835ab3163818156022c627eda60c38c874b369642b249b483384021743 \
     --hash=sha256:fa1a1c9a72ef9757176c069f7bd8014b7f4abf5f9930ec62b883dc864ba28092
     # via
+    #   -c requirements-cpu.lock
     #   langchain-core
     #   langsmith
     # from https://pypi.org/simple
 uvicorn==0.54.0 \
     --hash=sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf \
     --hash=sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620
-    # via mcp
+    # via
+    #   -c requirements-cpu.lock
+    #   mcp
     # from https://pypi.org/simple
 wcwidth==0.9.1 \
     --hash=sha256:03cfca3dcbffa86564290fe3c9978a6191ba003e8ced7f7dbda315fcb3fbe725 \
@@ -5132,12 +5536,16 @@ wcwidth==0.9.1 \
     --hash=sha256:e0c3a1c45c5b9550c6919a4449e95f5b177f6e165786376981db8f1addae9b21 \
     --hash=sha256:eab587e18e7cadf1a750b0098fc8bebfb62c125eb9306f2268f0443a282a3d78 \
     --hash=sha256:fe021c4d8de9d36c31a0cb41d0d2546dadd3b0708a301f1a0c66ce200851831f
-    # via prompt-toolkit
+    # via
+    #   -c requirements-cpu.lock
+    #   prompt-toolkit
     # from https://pypi.org/simple
 websocket-client==1.9.2 \
     --hash=sha256:0fcb57545848be86992e128218fd96dd87a6769ffdb1a968dff79632b85604d0 \
     --hash=sha256:e1a673830a9c7bfa47b1cd3d5e4178f4c9651d80a4eab02c9c23a1c3ec6250ce
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 websockets==16.1.1 \
     --hash=sha256:01fbdcbac298efe19360b94bc0039c8f746f0220ba570f327577bfee81059175 \
@@ -5250,6 +5658,7 @@ websockets==16.1.1 \
     --hash=sha256:fce6c48559c86d1ac3632ccb1bebc7d5442fbe79bd9bb0e40379ee54be2a4051 \
     --hash=sha256:fd46fff7eb62c24804d234f0051c7a8ea81285ad63e0337d3dcf33ca82aee58a
     # via
+    #   -c requirements-cpu.lock
     #   google-genai
     #   langgraph-sdk
     #   langsmith
@@ -5257,22 +5666,30 @@ websockets==16.1.1 \
 werkzeug==3.1.8 \
     --hash=sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50 \
     --hash=sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44
-    # via flask
+    # via
+    #   -c requirements-cpu.lock
+    #   flask
     # from https://pypi.org/simple
 widgetsnbextension==4.0.16 \
     --hash=sha256:a31a8774885b96fe825462f5d6496166f0c7cae111195b6465c801d230eb5a4e \
     --hash=sha256:adeea0ae78f0856ee4945f413299801b82a0a01416303301f39a704282a37b73
-    # via ipywidgets
+    # via
+    #   -c requirements-cpu.lock
+    #   ipywidgets
     # from https://pypi.org/simple
 xlrd==2.0.2 \
     --hash=sha256:08b5e25de58f21ce71dc7db3b3b8106c1fa776f3024c54e45b45b374e89234c9 \
     --hash=sha256:ea762c3d29f4cca48d82df517b6d89fbce4db3107f9d78713e48cd321d5c9aa9
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 xlsxwriter==3.2.9 \
     --hash=sha256:254b1c37a368c444eac6e2f867405cc9e461b0ed97a3233b2ac1e574efb4140c \
     --hash=sha256:9a5db42bc5dff014806c58a20b9eae7322a134abb6fce3c92c181bfb275ec5b3
-    # via python-pptx
+    # via
+    #   -c requirements-cpu.lock
+    #   python-pptx
     # from https://pypi.org/simple
 xxhash==4.0.1 \
     --hash=sha256:0163b5d259de23ae9e07b7eabf435ce4704f6f205589a2b154e6af4be985ce1b \
@@ -5490,6 +5907,7 @@ xxhash==4.0.1 \
     --hash=sha256:ff48915bf1871a1f19f74c11834c6329443d306cedc0c05fe7fe617810422a80 \
     --hash=sha256:ffa44b4c7c5d0ffa31356b4428659516c0e47647825c74079a296b3857b6d99d
     # via
+    #   -c requirements-cpu.lock
     #   datasets
     #   langgraph
     #   langsmith
@@ -5633,7 +6051,9 @@ yarl==1.25.1 \
     --hash=sha256:f53dcd26694f148f738edc052b5a69234833e739f10f4c3287bdfd8ec0f7b326 \
     --hash=sha256:f61964f235a43738bfac50da46fc4254943a7eea3051aeb0b6fc7c992c29fadc \
     --hash=sha256:fe01645169a2112aa1d4ebc3e4c5f029c5c8f97adfc32e5d37c993b39a994d75
-    # via aiohttp
+    # via
+    #   -c requirements-cpu.lock
+    #   aiohttp
     # from https://pypi.org/simple
 zstandard==0.25.0 \
     --hash=sha256:011d388c76b11a0c165374ce660ce2c8efa8e5d87f34996aa80f9c0816698b64 \
@@ -5735,5 +6155,7 @@ zstandard==0.25.0 \
     --hash=sha256:f67e8f1a324a900e75b5e28ffb152bcac9fbed1cc7b43f99cd90f395c4375344 \
     --hash=sha256:fd7a5004eb1980d3cefe26b2685bcb0b17989901a70a1040d1ac86f1d898c551 \
     --hash=sha256:ffef5a74088f1e09947aecf91011136665152e0b4b359c42be3373897fb39b01
-    # via langsmith
+    # via
+    #   -c requirements-cpu.lock
+    #   langsmith
     # from https://pypi.org/simple

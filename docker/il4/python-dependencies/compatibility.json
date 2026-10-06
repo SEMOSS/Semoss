@@ -28,8 +28,9 @@
     {
       "requirement": "pyarrow",
       "from": "20.0.0",
-      "to": "22.0.0",
-      "reason": "First version with CPython 3.14 wheels; original exact pin has no cp314 wheel."
+      "to": "23.0.1",
+      "reason": "22.0.0 was the first version with CPython 3.14 wheels (original exact pin 20.0.0 has no cp314 wheel). Further bumped 22.0.0 -> 23.0.1 to close CVE-2026-25087 (AWS Inspector2 finding against the published container image); 23.0.1 also ships cp314 wheels, confirmed via PyPI's published file listing for manylinux_2_28_x86_64 before relocking.",
+      "verification": "requirements-cpu.lock was regenerated with the documented regenerate_preserving_pins command (pyarrow's prior exact pin removed from the constraint input first, since an unmet exact pin there is otherwise unsatisfiable against pyproject.toml's own updated requirement); a full version diff of the regenerated lock against the prior one confirmed pyarrow is the only package whose resolved version changed. Reinstalled pyarrow==23.0.1 alone with hash verification inside the pinned target image and confirmed pyarrow.__version__ and a basic pa.table() round trip; the full 260-package environment and its 29 offline checks were not rerun since nothing else in the lock moved."
     },
     {
       "requirement": "datasets",
@@ -84,7 +85,7 @@
     }
   },
   "locks_sha256": {
-    "requirements-cpu.lock": "73c2fe6f98c40983574ad034681d31e5a008f902bc01a9a4c7004348eb384e05",
+    "requirements-cpu.lock": "695d3e1acc4a07304fd40f98e3c128cae865165e1e4bf750bd0032046e870c8c",
     "overrides.lock": "ebb547eb190bca7b3090d9900087ecc9cbb8eeafc941aae6e9d2a6919e0611a5",
     "build-requirements.lock": "859f97043fdf3cc94b9f9dd3e8d5163bc37e2cae402fdd2f6a162514cd0b3bee",
     "resolver-requirements.lock": "49968559cda4ccb40d5b53a656b57d1c8b2974f5d38372b4d736a9fa7d83f14f"
