@@ -7,5 +7,5 @@ RDBMS_TYPE	H2_DB
 DRIVER	org.h2.Driver
 USERNAME	sa
 PASSWORD	
-CONNECTION_URL	jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+CONNECTION_URL	jdbc:h2:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;query_cache_size=24;cache_size=32768
 USE_CONNECTION_POOLING	false
