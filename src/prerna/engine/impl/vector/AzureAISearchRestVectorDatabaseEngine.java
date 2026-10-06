@@ -531,9 +531,10 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 		JsonObject search = new JsonObject();
 		{
 			JsonArray facets = new JsonArray();
-			facets.add(VectorDatabaseCSVTable.SOURCE);
+			facets.add(VectorDatabaseCSVTable.SOURCE + ",count:0,sort:value");
 			search.addProperty("search", "*");
 			search.addProperty("select", VectorDatabaseCSVTable.SOURCE);
+			search.addProperty("top", 0);
 			search.add("facets", facets);
 		}
 		String response = HttpHelperUtility.postRequestStringBody(url, headersMap, search.toString(),
@@ -692,6 +693,9 @@ public class AzureAISearchRestVectorDatabaseEngine extends AbstractVectorDatabas
 						field.addProperty("sortable", false);
 					} else {
 						field.addProperty("filterable", true);
+						if (propName.equals(VectorDatabaseCSVTable.SOURCE)) {
+							field.addProperty("facetable", true);
+						}
 					}
 
 					fields.add(field);
