@@ -1908,13 +1908,13 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			throw new RuntimeException("Configuration map is null or empty");
 		}
 
-		this.connectionUrl = (String) configMap.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.hostname = (String) configMap.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) configMap.get(AbstractSqlQueryUtil.PORT);
-		this.schema = (String) configMap.get(AbstractSqlQueryUtil.SCHEMA);
-		this.additionalProps = (String) configMap.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.username = (String) configMap.get(AbstractSqlQueryUtil.USERNAME);
-		this.password = (String) configMap.get(AbstractSqlQueryUtil.PASSWORD);
+		this.connectionUrl = getOptionalStringValue(configMap, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.hostname = getOptionalStringValue(configMap, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PORT, null);
+		this.schema = getOptionalStringValue(configMap, AbstractSqlQueryUtil.SCHEMA, null);
+		this.additionalProps = getOptionalStringValue(configMap, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.username = getOptionalStringValue(configMap, AbstractSqlQueryUtil.USERNAME, null);
+		this.password = getOptionalStringValue(configMap, AbstractSqlQueryUtil.PASSWORD, null);
 
 		return buildConnectionString();
 	}
@@ -1928,13 +1928,13 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			throw new RuntimeException("Properties object is null or empty");
 		}
 
-		this.connectionUrl = (String) prop.get(AbstractSqlQueryUtil.CONNECTION_URL);
-		this.hostname = (String) prop.get(AbstractSqlQueryUtil.HOSTNAME);
-		this.port = (String) prop.get(AbstractSqlQueryUtil.PORT);
-		this.schema = (String) prop.get(AbstractSqlQueryUtil.SCHEMA);
-		this.additionalProps = (String) prop.get(AbstractSqlQueryUtil.ADDITIONAL);
-		this.username = (String) prop.get(AbstractSqlQueryUtil.USERNAME);
-		this.password = (String) prop.get(AbstractSqlQueryUtil.PASSWORD);
+		this.connectionUrl = getOptionalStringValue(prop, AbstractSqlQueryUtil.CONNECTION_URL, null);
+		this.hostname = getOptionalStringValue(prop, AbstractSqlQueryUtil.HOSTNAME, null);
+		this.port = getOptionalStringValue(prop, AbstractSqlQueryUtil.PORT, null);
+		this.schema = getOptionalStringValue(prop, AbstractSqlQueryUtil.SCHEMA, null);
+		this.additionalProps = getOptionalStringValue(prop, AbstractSqlQueryUtil.ADDITIONAL, null);
+		this.username = getOptionalStringValue(prop, AbstractSqlQueryUtil.USERNAME, null);
+		this.password = getOptionalStringValue(prop, AbstractSqlQueryUtil.PASSWORD, null);
 
 		return buildConnectionString();
 	}
@@ -1948,13 +1948,8 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 			return this.connectionUrl;
 		}
 
-		if (this.hostname == null || this.hostname.isEmpty()) {
-			throw new RuntimeException("Must pass in a hostname");
-		}
-
-		if (this.schema == null || this.schema.isEmpty()) {
-			throw new RuntimeException("Must pass in schema name");
-		}
+		requireNonBlank(AbstractSqlQueryUtil.HOSTNAME, this.hostname);
+		requireNonBlank(AbstractSqlQueryUtil.SCHEMA, this.schema);
 
 		String port = getPort();
 		if (port != null && !port.isEmpty()) {

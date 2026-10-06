@@ -28,6 +28,7 @@
 package prerna.util.sql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -40,9 +41,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import prerna.engine.impl.CaseInsensitiveProperties;
 
 /**
  * These exercise a real H2 2.2.220 driver/engine (no mocks) specifically
@@ -183,5 +187,91 @@ class H2QueryUtilUnitTests {
 				assertTrue(rs.getLong(1) > 0);
 			}
 		}
+	}
+
+	@Test
+	void missingHostnameWithoutConnectionUrlFailsFastNamingTheKey() {
+		Map<String, Object> connDetails = new HashMap<>();
+		// present but irrelevant key, so this exercises the hostname check and not
+		// the null-or-empty-map guard
+		connDetails.put(AbstractSqlQueryUtil.USERNAME, "sa");
+
+		H2QueryUtil util = new H2QueryUtil();
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.HOSTNAME),
+				"message should name the missing key: " + ex.getMessage());
+	}
+
+	@Test
+	void wrongTypeHostnameFailsFastNamingTheKeyAndType() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, Integer.valueOf(12345));
+
+		H2QueryUtil util = new H2QueryUtil();
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.HOSTNAME),
+				"message should name the offending key: " + ex.getMessage());
+		assertTrue(ex.getMessage().contains("Integer"), "message should name the actual type: " + ex.getMessage());
+	}
+
+	@Test
+	void wrongTypeForceFileFailsFastNamingTheKey() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, "db.example.com");
+		connDetails.put(AbstractSqlQueryUtil.FORCE_FILE, java.util.List.of("not", "a", "boolean"));
+
+		H2QueryUtil util = new H2QueryUtil();
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.FORCE_FILE),
+				"message should name the offending key: " + ex.getMessage());
+	}
+
+	@Test
+	void connectionUrlProvidedDirectlyBypassesHostnameRequirement() {
+		Map<String, Object> connDetails = new HashMap<>();
+		String rawUrl = "jdbc:h2:mem:bypass_" + UUID.randomUUID();
+		connDetails.put(AbstractSqlQueryUtil.CONNECTION_URL, rawUrl);
+
+		H2QueryUtil util = new H2QueryUtil();
+		String connectionUrl = util.setConnectionDetailsfromMap(connDetails);
+		assertEquals(rawUrl, connectionUrl);
+	}
+
+	@Test
+	void forceFileDefaultsToFalseWhenAbsent() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, "/path/that/definitely/does/not/exist/" + UUID.randomUUID());
+
+		H2QueryUtil util = new H2QueryUtil();
+		String connectionUrl = util.setConnectionDetailsfromMap(connDetails);
+		assertTrue(connectionUrl.contains(":tcp://"),
+				"forceFile should default to false, using tcp mode for a nonexistent path: " + connectionUrl);
+	}
+
+	@Test
+	void missingHostnameFromSmssPropertiesFailsFastNamingTheKey() {
+		CaseInsensitiveProperties prop = new CaseInsensitiveProperties();
+		prop.put(AbstractSqlQueryUtil.USERNAME, "sa");
+
+		H2QueryUtil util = new H2QueryUtil();
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> util.setConnectionDetailsFromSMSS(prop));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.HOSTNAME),
+				"message should name the missing key: " + ex.getMessage());
+	}
+
+	@Test
+	void wrongTypeHostnameFromSmssPropertiesFailsFastNamingTheKey() {
+		CaseInsensitiveProperties prop = new CaseInsensitiveProperties();
+		prop.put(AbstractSqlQueryUtil.HOSTNAME, Integer.valueOf(12345));
+
+		H2QueryUtil util = new H2QueryUtil();
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> util.setConnectionDetailsFromSMSS(prop));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.HOSTNAME),
+				"message should name the offending key: " + ex.getMessage());
 	}
 }
