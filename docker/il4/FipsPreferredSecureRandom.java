@@ -21,7 +21,7 @@ import java.security.SecureRandom;
  * WAR is invisible to it no matter how it's packaged there. This class is
  * instead compiled directly into Tomcat's own {@code $CATALINA_HOME/lib/},
  * where the common classloader can actually find it (confirmed by
- * decompiling the real tomcat-catalina-11.0.24.jar and, the first time
+ * decompiling the real tomcat-catalina-11.0.26.jar and, the first time
  * around, by reproducing the exact ClassNotFoundException locally).
  *
  * <p>

@@ -14,7 +14,7 @@ class PinDevArtifactsTests(unittest.TestCase):
             {"coordinate": "org.semoss:monolith:0.0.1-SNAPSHOT:war", "sha256": war_sha},
             {"coordinate": "org.semoss:monolith:0.0.1-SNAPSHOT:tar.gz:libraries",
              "sha256": libraries_sha},
-            {"coordinate": "org.apache.tomcat:tomcat:11.0.24:tar.gz", "sha256": "unrelated"},
+            {"coordinate": "org.apache.tomcat:tomcat:11.0.26:tar.gz", "sha256": "unrelated"},
         ]
 
     def test_repins_only_the_three_dev_build_coordinates(self):
