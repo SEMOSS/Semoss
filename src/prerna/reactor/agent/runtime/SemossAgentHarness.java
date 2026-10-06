@@ -67,6 +67,7 @@ import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.ChildRunCompletionService;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
@@ -140,6 +141,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		DeferredAgentTools.refreshLoadedState(room);
 		AgentConfig agentConfig = ctx.getAgentConfig();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
@@ -158,6 +160,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
 			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
 		}
+		defaultAndExplicitTools.removeIf(tool -> DeferredAgentTools.isControlTool(String.valueOf(tool.get("name"))));
+		defaultAndExplicitTools.addAll(DeferredAgentTools.definitions());
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
@@ -215,6 +219,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
 				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
@@ -509,6 +514,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		} finally {
 			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
 			// Always restore -- we always mutated options.instructions above.
+			opts = room.getOptionsMap();
 			if (hadInstructions) {
 				opts.put("instructions", originalInstructions);
 			} else {
@@ -890,6 +896,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			// onto toolCall; carry it in _meta so the FE (which only ever sees
 			// toolName/toolMeta for a pending action, never toolCall itself) can
 			// display it instead of the raw, engine-id-prefixed tool name.
+			// Kept apart from SMSS_ORIGINAL_TOOL_NAME, which approval executes.
 			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
 				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
 						: toolCall.get("original_name");
@@ -897,7 +904,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					if (meta == null) {
 						meta = new HashMap<>();
 					}
-					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+					meta.put(MCPUtility.SMSS_TOOL_TITLE, resolvedTitle);
 				}
 			}
 			action.put("toolMeta", meta);
@@ -1027,6 +1034,36 @@ public class SemossAgentHarness implements IAgentHarness {
 				$(), backticks, absolute paths, ~ paths, or .. . \
 				Use working-directory-relative paths and read output from the tool result.\
 				""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
+		sb.append("""
+
+				- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
+				Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
+				Python's current directory may differ from ROOT. Do not change the shared process directory.
+				- Verify generated outputs through working-directory file tools before reporting completion. \
+				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
+				""");
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			sb.append("""
+
+
+					## Collaboration file delivery
+					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+					and python. For source text, use from smssutil import get_document_markdown, then \
+					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+					or visual inspection for a text-reading task; use visual tools when visuals matter.
+					- Before creating or repairing files, load the relevant collaboration references and the \
+					python or pptx skill for that execution route. Continue truncated reads as needed.
+					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+					Do not offer email as a substitute for returning the file.
+					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+					a rejected external action. Finish with the verified artifact and a concise outcome.\
+					""");
+		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
 
@@ -1089,6 +1126,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (paramMap == null) {
 			return;
 		}
+		paramMap.put(DeferredAgentTools.RUN_AGENT_PARAM, true);
 		paramMap.remove("tools");
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (baseTools != null && !baseTools.isEmpty()) {

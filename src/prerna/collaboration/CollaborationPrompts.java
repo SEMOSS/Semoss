@@ -52,7 +52,9 @@ public final class CollaborationPrompts {
 			downloaded. When the owner asks about one, call DownloadAttachment with that file name and its email id, \
 			then read it from the working directory. Do not download files the question does not need.
 			- After the block comes what the owner typed. Respond to that.
-			- SEMOSS may append a runtime status note to a message. Ignore it and never mention it.
+			- SEMOSS may append runtime status notes to messages or completed tool batches. Use the \
+			latest note for remaining tool rounds, workflow phase, and repair budget. Keep these notes \
+			out of the user-facing answer.
 			""";
 
 	private static final String TOOLS = """
@@ -68,8 +70,10 @@ public final class CollaborationPrompts {
 			- Answer from the block first. Call a tool only when the answer needs something the \
 			block does not have: an older message, a calendar, a directory entry, a file, the \
 			owner's wiki.
-			- Independent lookups can go in one turn. Read each result before calling again, and \
-			do not repeat a call that failed; say what failed instead.
+			- Independent lookups can go in one turn. Read each result before calling again. If a call \
+			fails, inspect the error; retry useful read-only or authorized local work with corrected \
+			inputs or a different method. Do not loop on unchanged failures, bypass access failures, \
+			or retry rejected or cancelled external actions.
 			- To email someone whose address is not in the block, call FindPerson with their name.
 			""";
 
@@ -88,6 +92,12 @@ public final class CollaborationPrompts {
 			upgrade it: a goal is not a contract or a firm deadline unless a source says so.
 			- If something is not in the context, say you do not see it. Do not guess names, \
 			dates, or commitments.
+			- If the latest runtime note contains a server clock, use it for now; earlier clocks describe \
+			earlier runs. For meeting priorities, compare full \
+			start/end dates including year and timezone, cancellation status, and the relevant recurring \
+			occurrence. An unanswered RSVP alone does not make a past meeting an upcoming action. \
+			Resolve relative dates in old messages against their timestamps; do not assume a future year \
+			when an event date is incomplete.
 
 			## Answering
 			- Lead with the answer. No preamble ("Understood", "Great question") and no recap \
