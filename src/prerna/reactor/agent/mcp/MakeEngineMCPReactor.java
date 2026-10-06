@@ -246,8 +246,12 @@ public class MakeEngineMCPReactor extends AbstractReactor {
 					classLogger.error(
 							"Invalid type for SMSS_MCP_UI in reactor '{}'; expected a map of key-value pairs.",
 							reactorNames.get(i));
-					throw new IllegalArgumentException("Invalid type for SMSS_MCP_UI in reactor '" + uiMap
+					throw new IllegalArgumentException("Invalid type for SMSS_MCP_UI in reactor '" + reactorNames.get(i)
 							+ "'; expected a map of key-value pairs.");
+				}
+				// an entry may set only the execution mode
+				if (uiMap == null) {
+					uiMap = new HashMap<>();
 				}
 				if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
 					uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));

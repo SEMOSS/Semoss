@@ -128,7 +128,7 @@ public class PixelMCPToolBuilder {
 		// reactor are provided
 		Set<String> addedReactorNames = new LinkedHashSet<>();
 
-		// Phase 1: Scan for reactors that override getMcpToolMetadata()
+		// Phase 1: Scan reactors with non-null getMcpToolMetadata() (the default)
 		// If neither reactor nor package is provided, scans every reactor in the app
 		// If package is provided, filters by package prefix
 		if (project != null && (scanAll || hasPackages)) {
