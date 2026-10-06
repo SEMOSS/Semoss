@@ -341,6 +341,10 @@ Provision these prerequisites in the destination repository:
 4. The owner confirmed repository secrets `REPO_ONE_USERNAME` and
    `REPO_ONE_PASSWORD` are the existing Iron Bank credentials. They must
    authorize pulling all three pinned images and should be least-privilege.
+   Add repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a free
+   Docker Hub account's personal access token is sufficient) so the
+   concurrent baseline comparison can pull the pinned `postgres`/`mariadb`
+   fixture images without hitting Docker Hub's anonymous pull rate limit.
    Optionally add `MAVEN_SETTINGS` containing the approved Maven settings XML;
    it is passed only as a BuildKit secret, never as a build argument.
    Do not add production TLS keys, database credentials, AWS credentials, or
@@ -349,8 +353,8 @@ Provision these prerequisites in the destination repository:
    only `contents: read` and `packages: write`; it does not require a PAT.
    If the GHCR package already exists, grant this repository Actions write access
    to it. Verify package visibility and repository linkage after the first push.
-6. Approve runner egress to GitHub/Actions, GHCR, Iron Bank and the dependency
-   sources listed above, including the approved UBI repositories. Configure
+6. Approve runner egress to GitHub/Actions, GHCR, Iron Bank, Docker Hub and the
+   dependency sources listed above, including the approved UBI repositories. Configure
    organization trust roots and any required mirrors on the runner/daemon;
    do not bypass TLS validation. Destroy the ephemeral runner and its disks
    after every job, including failures/cancellation. Login actions log out at
