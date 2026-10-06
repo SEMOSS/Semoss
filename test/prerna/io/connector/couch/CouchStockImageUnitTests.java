@@ -27,9 +27,17 @@
  *******************************************************************************/
 package prerna.io.connector.couch;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_SELF;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -56,11 +64,11 @@ import org.mockito.MockedStatic;
 import jakarta.ws.rs.core.Response;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.util.DefaultImageGeneratorUtil;
 import prerna.util.EngineUtility;
-import prerna.util.insight.InsightUtility;
 import prerna.util.Utility;
-import prerna.masterdatabase.utility.MasterDatabaseUtility;
+import prerna.util.insight.InsightUtility;
 
 class CouchStockImageUnitTests {
 
@@ -126,24 +134,33 @@ class CouchStockImageUnitTests {
 
 	@AfterEach
 	void tearDown() {
-		if (responses != null)
+		if (responses != null) {
 			responses.close();
-		if (http != null)
+		}
+		if (http != null) {
 			http.close();
-		if (projects != null)
+		}
+		if (projects != null) {
 			projects.close();
-		if (databases != null)
+		}
+		if (databases != null) {
 			databases.close();
-		if (stock != null)
+		}
+		if (stock != null) {
 			stock.close();
-		if (images != null)
+		}
+		if (images != null) {
 			images.close();
-		if (engines != null)
+		}
+		if (engines != null) {
 			engines.close();
-		if (cluster != null)
+		}
+		if (cluster != null) {
 			cluster.close();
-		if (utility != null)
+		}
+		if (utility != null) {
 			utility.close();
+		}
 	}
 
 	@ParameterizedTest

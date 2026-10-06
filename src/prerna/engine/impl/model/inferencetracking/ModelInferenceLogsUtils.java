@@ -297,20 +297,13 @@ public class ModelInferenceLogsUtils {
 			return false;
 		}
 		String query = "SELECT COUNT(*) FROM MESSAGE WHERE TRANSACTION_ID = ? AND USER_ID = ? AND MESSAGE_METHOD = 'batch_submit'";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = db.getPreparedStatement(query);
-			ps.setString(1, providerBatchId);
-			ps.setString(2, userId);
-			rs = ps.executeQuery();
-			if (rs.next()) {
-				return rs.getInt(1) > 0;
-			}
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(db, query, ps -> {
+				ps.setString(1, providerBatchId);
+				ps.setString(2, userId);
+			}, rs -> rs.getInt(1) > 0));
 		} catch (Exception e) {
 			classLogger.warn("Batch ownership check failed for batch '{}': {}", providerBatchId, e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 		return false;
 	}
@@ -328,15 +321,12 @@ public class ModelInferenceLogsUtils {
 		String query = "SELECT TRANSACTION_ID, DATE_CREATED, AGENT_ID, MESSAGE_DATA FROM MESSAGE"
 				+ " WHERE USER_ID = ? AND AGENT_ID = ? AND MESSAGE_METHOD = 'batch_submit'"
 				+ " ORDER BY DATE_CREATED DESC LIMIT ?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = db.getPreparedStatement(query);
-			ps.setString(1, userId);
-			ps.setString(2, engineId);
-			ps.setInt(3, limit);
-			rs = ps.executeQuery();
-			while (rs.next()) {
+			QueryExecutionUtility.queryList(db, query, ps -> {
+				ps.setString(1, userId);
+				ps.setString(2, engineId);
+				ps.setInt(3, limit);
+			}, rs -> {
 				Map<String, Object> row = new HashMap<>();
 				row.put("batchId", rs.getString("TRANSACTION_ID"));
 				row.put("submittedAt", rs.getString("DATE_CREATED"));
@@ -349,12 +339,10 @@ public class ModelInferenceLogsUtils {
 						// non-numeric stored data
 					}
 				}
-				out.add(row);
-			}
+				return row;
+			}, out);
 		} catch (Exception e) {
 			classLogger.warn("Failed to list batches for user '{}'", userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 		return out;
 	}
@@ -375,24 +363,26 @@ public class ModelInferenceLogsUtils {
 		String prefix = providerBatchId + ".";
 		String query = "SELECT TRANSACTION_ID, MESSAGE_DATA FROM MESSAGE"
 				+ " WHERE ROOM_ID = ? AND USER_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = db.getPreparedStatement(query);
-			ps.setString(1, roomId);
-			ps.setString(2, userId);
-			rs = ps.executeQuery();
-			while (rs.next()) {
-				String txnId = rs.getString("TRANSACTION_ID");
-				String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
-				if (txnId != null && txnId.startsWith(prefix) && command != null) {
-					out.put(txnId.substring(prefix.length()), command);
+			QueryExecutionUtility.read(db, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					ps.setString(1, roomId);
+					ps.setString(2, userId);
+
+					try (ResultSet rs = ps.executeQuery()) {
+						while (rs.next()) {
+							String txnId = rs.getString("TRANSACTION_ID");
+							String command = db.getQueryUtil().handleBlobRetrieval(rs, "MESSAGE_DATA");
+							if (txnId != null && txnId.startsWith(prefix) && command != null) {
+								out.put(txnId.substring(prefix.length()), command);
+							}
+						}
+					}
 				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.warn("Failed to retrieve batch inputs for batch '{}'", providerBatchId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, rs);
 		}
 		return out;
 	}
@@ -414,20 +404,14 @@ public class ModelInferenceLogsUtils {
 		}
 		String query = "UPDATE MESSAGE SET MESSAGE_TOKENS = ?, INPUT_TOKENS = ?"
 				+ " WHERE TRANSACTION_ID = ? AND MESSAGE_TYPE = 'INPUT' AND MESSAGE_METHOD = 'batch'";
-		PreparedStatement ps = null;
 		try {
-			ps = db.getPreparedStatement(query);
-			ps.setInt(1, inputTokens);
-			ps.setInt(2, inputTokens);
-			ps.setString(3, transactionId);
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(db, query, ps -> {
+				ps.setInt(1, inputTokens);
+				ps.setInt(2, inputTokens);
+				ps.setString(3, transactionId);
+			});
 		} catch (Exception e) {
 			classLogger.warn("Failed to update batch input tokens for transaction '{}'", transactionId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(db, null, ps, null);
 		}
 	}
 
@@ -483,23 +467,17 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO FEEDBACK (MESSAGE_ID, FEEDBACK_TEXT, FEEDBACK_DATE, RATING) "
 				+ "VALUES (?, ?, ?, ?)";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, feedback.getMessageId());
-			ps.setString(index++, feedback.getFeedbackText());
-			ps.setTimestamp(index++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
-			ps.setBoolean(index++, feedback.getRating());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, feedback.getMessageId());
+				ps.setString(index++, feedback.getFeedbackText());
+				ps.setTimestamp(index++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
+				ps.setBoolean(index++, feedback.getRating());
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to insert feedback for messageId '{}'.", feedback.getMessageId(), e);
 			throw new SemossPixelException("Unable to insert feedback: " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -511,28 +489,29 @@ public class ModelInferenceLogsUtils {
 	public static void updateFeedback(MessageFeedback feedback) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
-			PreparedStatement ps = modelInferenceLogsDb.getPreparedStatement(
-					"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=?");
-			if (ps == null) {
-				throw new IllegalArgumentException("Error generating prepared statement to update feedback");
-			}
-			try {
-				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, feedback.getFeedbackText(),
-						parameterIndex++, GSON);
-				ps.setTimestamp(parameterIndex++, Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
-				ps.setBoolean(parameterIndex++, feedback.getRating());
-				ps.setString(parameterIndex++, feedback.getMessageId());
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(
+						"UPDATE FEEDBACK SET FEEDBACK_TEXT=?, FEEDBACK_DATE=?, RATING=? WHERE MESSAGE_ID=?")) {
+					if (ps == null) {
+						throw new IllegalArgumentException("Error generating prepared statement to update feedback");
+					}
+					try {
+						int parameterIndex = 1;
+						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++,
+								feedback.getFeedbackText());
+						ps.setTimestamp(parameterIndex++,
+								Timestamp.valueOf(feedback.getFeedbackDate().getLocalDateTime()));
+						ps.setBoolean(parameterIndex++, feedback.getRating());
+						ps.setString(parameterIndex++, feedback.getMessageId());
+						ps.executeUpdate();
+					} catch (Exception e) {
+						classLogger.error("Failed to update feedback row for messageId '{}'.", feedback.getMessageId(),
+								e);
+						throw e;
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Failed to update feedback row for messageId '{}'.", feedback.getMessageId(), e);
-				throw e;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Feedback update flow failed for messageId '{}'.", feedback.getMessageId(), e);
 		}
@@ -812,71 +791,29 @@ public class ModelInferenceLogsUtils {
 				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		// boolean allowClob =
 		// modelInferenceLogsDb.getQueryUtil().allowClobJavaObject();
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, insightId);
-			ps.setString(index++, roomId);
-			if (roomName != null) {
-				ps.setString(index++, roomName);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (roomContext != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, roomContext, index++, GSON);
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-			ps.setString(index++, userId);
-			if (userName != null) {
-				ps.setString(index++, userName);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (userEmail != null) {
-				ps.setString(index++, userEmail);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (agentType != null) {
-				ps.setString(index++, agentType);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (agentId != null) {
-				ps.setString(index++, agentId);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			ps.setBoolean(index++, isActive);
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.setString(index++, projectId);
-			ps.setString(index++, projectName);
-			if (workspaceId != null) {
-				ps.setString(index++, workspaceId);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (options != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-			if (parentRoomId != null) {
-				ps.setString(index++, parentRoomId);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, insightId);
+				ps.setString(index++, roomId);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, roomName);
+				modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, roomContext);
+				ps.setString(index++, userId);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, agentType);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, agentId);
+				ps.setBoolean(index++, isActive);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+				ps.setString(index++, projectId);
+				ps.setString(index++, projectName);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, workspaceId);
+				modelInferenceLogsDb.getQueryUtil().setNullableJson(ps, index++, options, GSON);
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, parentRoomId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to create conversation room record for roomId '{}' and userId '{}'.", roomId,
 					userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -889,22 +826,16 @@ public class ModelInferenceLogsUtils {
 	public static boolean doCheckRoomExists(String roomId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, roomId);
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				if (rs.next()) {
-					int count = rs.getInt(1);
-					return count >= 1;
-				}
-			}
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, roomId);
+			}, rs -> {
+				int count = rs.getInt(1);
+				return count >= 1;
+			}));
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether room exists for roomId '{}'.", roomId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -927,24 +858,18 @@ public class ModelInferenceLogsUtils {
 	public static boolean doCheckRoomExistsForUser(String roomId, String userId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, roomId);
-			ps.setString(index++, userId);
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				if (rs.next()) {
-					int count = rs.getInt(1);
-					return count >= 1;
-				}
-			}
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, roomId);
+				ps.setString(index++, userId);
+			}, rs -> {
+				int count = rs.getInt(1);
+				return count >= 1;
+			}));
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether room exists for roomId '{}' and userId '{}'.", roomId, userId,
 					e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -973,34 +898,36 @@ public class ModelInferenceLogsUtils {
 				+ "SUM(THINKING_TOKENS), SUM(CACHE_READ_TOKENS), SUM(CACHE_CREATION_TOKENS), "
 				+ "SUM(RESPONSE_TIME), AVG(RESPONSE_TIME), MAX(RESPONSE_TIME) "
 				+ "FROM MESSAGE WHERE ROOM_ID = ? GROUP BY MESSAGE_TYPE";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			ps.setString(1, roomId);
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				while (rs.next()) {
-					String messageType = rs.getString(1);
-					if ("RESPONSE".equalsIgnoreCase(messageType)) {
-						stats.put("available", true);
-						stats.put("llmCalls", rs.getLong(2));
-						stats.put("outputTokens", rs.getLong(4));
-						stats.put("thinkingTokens", rs.getLong(5));
-						stats.put("totalResponseTimeMs", rs.getDouble(8));
-						stats.put("avgResponseTimeMs", Math.round(rs.getDouble(9) * 100.0) / 100.0);
-						stats.put("maxResponseTimeMs", rs.getDouble(10));
-					} else if ("INPUT".equalsIgnoreCase(messageType)) {
-						stats.put("available", true);
-						stats.put("inputTokens", rs.getLong(3));
-						stats.put("cacheReadTokens", rs.getLong(6));
-						stats.put("cacheCreationTokens", rs.getLong(7));
+			QueryExecutionUtility.read(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(query)) {
+					ps.setString(1, roomId);
+					if (ps.execute()) {
+						try (ResultSet rs = ps.getResultSet()) {
+							while (rs.next()) {
+								String messageType = rs.getString(1);
+								if ("RESPONSE".equalsIgnoreCase(messageType)) {
+									stats.put("available", true);
+									stats.put("llmCalls", rs.getLong(2));
+									stats.put("outputTokens", rs.getLong(4));
+									stats.put("thinkingTokens", rs.getLong(5));
+									stats.put("totalResponseTimeMs", rs.getDouble(8));
+									stats.put("avgResponseTimeMs", Math.round(rs.getDouble(9) * 100.0) / 100.0);
+									stats.put("maxResponseTimeMs", rs.getDouble(10));
+								} else if ("INPUT".equalsIgnoreCase(messageType)) {
+									stats.put("available", true);
+									stats.put("inputTokens", rs.getLong(3));
+									stats.put("cacheReadTokens", rs.getLong(6));
+									stats.put("cacheCreationTokens", rs.getLong(7));
+								}
+							}
+						}
 					}
 				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to aggregate inference stats for roomId '{}'.", roomId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return stats;
 	}
@@ -1016,25 +943,18 @@ public class ModelInferenceLogsUtils {
 	public static boolean doCheckMessageIdMigration(String roomId, String messageId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM MESSAGE WHERE ROOM_ID = ? AND MESSAGE_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, roomId);
-			ps.setString(index++, messageId);
-			ps.execute();
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				if (rs.next()) {
-					int count = rs.getInt(1);
-					return count >= 1;
-				}
-			}
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, roomId);
+				ps.setString(index++, messageId);
+			}, rs -> {
+				int count = rs.getInt(1);
+				return count >= 1;
+			}));
 		} catch (Exception e) {
 			classLogger.error("Failed to validate message migration for roomId '{}' and messageId '{}'.", roomId,
 					messageId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -1048,23 +968,16 @@ public class ModelInferenceLogsUtils {
 	public static boolean doModelIsRegistered(String agentId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT COUNT(*) FROM AGENT WHERE AGENT_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, agentId);
-			ps.execute();
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				if (rs.next()) {
-					int count = rs.getInt(1);
-					return count >= 1;
-				}
-			}
+			return Boolean.TRUE.equals(QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, agentId);
+			}, rs -> {
+				int count = rs.getInt(1);
+				return count >= 1;
+			}));
 		} catch (Exception e) {
 			classLogger.error("Failed to check whether agent is registered for agentId '{}'.", agentId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return false;
 	}
@@ -1098,24 +1011,18 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, "
 				+ "AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, agentId);
-			ps.setString(index++, agentName);
-			ps.setString(index++, agentDescription);
-			ps.setString(index++, agentType);
-			ps.setString(index++, author);
-			ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, agentId);
+				ps.setString(index++, agentName);
+				ps.setString(index++, agentDescription);
+				ps.setString(index++, agentType);
+				ps.setString(index++, author);
+				ps.setTimestamp(index++, Utility.getCurrentSqlTimestampUTC());
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to create agent record for agentId '{}'.", agentId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -1217,82 +1124,67 @@ public class ModelInferenceLogsUtils {
 				+ " INPUT_TOKENS, OUTPUT_TOKENS, CACHE_READ_TOKENS, CACHE_CREATION_TOKENS, THINKING_TOKENS, RESPONSE_TIME,"
 				+ " DATE_CREATED, AGENT_ID, INSIGHT_ID, ROOM_ID, SESSIONID, USER_ID, USER_NAME, USER_EMAIL_ID) "
 				+ "	VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, messageId);
-			if (transactionId != null) {
-				ps.setString(index++, transactionId);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			ps.setString(index++, messageType);
-			if (messageData != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfBlob(ps.getConnection(), ps, messageData, index++);
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-			ps.setString(index++, messageMethod);
-			if (tokenSize != null) {
-				ps.setInt(index++, tokenSize);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (inputTokens != null) {
-				ps.setInt(index++, inputTokens);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (outputTokens != null) {
-				ps.setInt(index++, outputTokens);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (cacheReadTokens != null) {
-				ps.setInt(index++, cacheReadTokens);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (cacheCreationTokens != null) {
-				ps.setInt(index++, cacheCreationTokens);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (thinkingTokens != null) {
-				ps.setInt(index++, thinkingTokens);
-			} else {
-				ps.setNull(index++, java.sql.Types.INTEGER);
-			}
-			if (reponseTime != null) {
-				ps.setDouble(index++, reponseTime);
-			} else {
-				ps.setNull(index++, java.sql.Types.DOUBLE);
-			}
-			ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
-			ps.setString(index++, agentId);
-			ps.setString(index++, insightId);
-			ps.setString(index++, roomId);
-			ps.setString(index++, sessionId);
-			ps.setString(index++, userId);
-			if (userName != null) {
-				ps.setString(index++, userName);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			if (userEmail != null) {
-				ps.setString(index++, userEmail);
-			} else {
-				ps.setNull(index++, java.sql.Types.VARCHAR);
-			}
-			ps.execute();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				QueryExecutionUtility.executeUpdate(connection, query, ps -> {
+					int index = 1;
+					ps.setString(index++, messageId);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, transactionId);
+					ps.setString(index++, messageType);
+					if (messageData != null) {
+						modelInferenceLogsDb.getQueryUtil().handleInsertionOfBlob(connection, ps, messageData, index++);
+					} else {
+						ps.setNull(index++, java.sql.Types.NULL);
+					}
+					ps.setString(index++, messageMethod);
+					if (tokenSize != null) {
+						ps.setInt(index++, tokenSize);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (inputTokens != null) {
+						ps.setInt(index++, inputTokens);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (outputTokens != null) {
+						ps.setInt(index++, outputTokens);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (cacheReadTokens != null) {
+						ps.setInt(index++, cacheReadTokens);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (cacheCreationTokens != null) {
+						ps.setInt(index++, cacheCreationTokens);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (thinkingTokens != null) {
+						ps.setInt(index++, thinkingTokens);
+					} else {
+						ps.setNull(index++, java.sql.Types.INTEGER);
+					}
+					if (reponseTime != null) {
+						ps.setDouble(index++, reponseTime);
+					} else {
+						ps.setNull(index++, java.sql.Types.DOUBLE);
+					}
+					ps.setTimestamp(index++, java.sql.Timestamp.valueOf(dateCreatedUTC.toLocalDateTime()));
+					ps.setString(index++, agentId);
+					ps.setString(index++, insightId);
+					ps.setString(index++, roomId);
+					ps.setString(index++, sessionId);
+					ps.setString(index++, userId);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userName);
+					modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, userEmail);
+				});
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to record message '{}' for roomId '{}'.", messageId, roomId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -1306,26 +1198,26 @@ public class ModelInferenceLogsUtils {
 	public static boolean doSetRoomToInactive(String userId, String roomId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
-			PreparedStatement ps = modelInferenceLogsDb
-					.getPreparedStatement("UPDATE ROOM SET IS_ACTIVE=? WHERE USER_ID=? AND ROOM_ID=?");
-			if (ps == null) {
-				throw new IllegalArgumentException("Error generating prepared statement to set room inactive");
-			}
-			try {
-				int parameterIndex = 1;
-				ps.setBoolean(parameterIndex++, false);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, roomId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ROOM SET IS_ACTIVE=? WHERE USER_ID=? AND ROOM_ID=?")) {
+					if (ps == null) {
+						throw new IllegalArgumentException("Error generating prepared statement to set room inactive");
+					}
+					try {
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, false);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, roomId);
+						ps.executeUpdate();
+					} catch (Exception e) {
+						classLogger.error("Failed to set room inactive for userId '{}' and roomId '{}'.", userId,
+								roomId, e);
+						throw e;
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Failed to set room inactive for userId '{}' and roomId '{}'.", userId, roomId, e);
-				throw e;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Room deactivation flow failed for userId '{}' and roomId '{}'.", userId, roomId, e);
 			return false;
@@ -1369,26 +1261,26 @@ public class ModelInferenceLogsUtils {
 	public static boolean doSetRoomToPinned(String userId, String roomId, boolean pinned) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
-			PreparedStatement ps = modelInferenceLogsDb
-					.getPreparedStatement("UPDATE ROOM SET PINNED=? WHERE USER_ID=? AND ROOM_ID=?");
-			if (ps == null) {
-				throw new IllegalArgumentException("Error generating prepared statement to set room pinned");
-			}
-			try {
-				int parameterIndex = 1;
-				ps.setBoolean(parameterIndex++, pinned);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, roomId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ROOM SET PINNED=? WHERE USER_ID=? AND ROOM_ID=?")) {
+					if (ps == null) {
+						throw new IllegalArgumentException("Error generating prepared statement to set room pinned");
+					}
+					try {
+						int parameterIndex = 1;
+						ps.setBoolean(parameterIndex++, pinned);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, roomId);
+						ps.executeUpdate();
+					} catch (Exception e) {
+						classLogger.error("Failed to update pinned state for roomId '{}' and userId '{}'.", roomId,
+								userId, e);
+						throw e;
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Failed to update pinned state for roomId '{}' and userId '{}'.", roomId, userId, e);
-				throw e;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Room pin update flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 			return false;
@@ -1486,26 +1378,26 @@ public class ModelInferenceLogsUtils {
 	public static boolean doSetNameForRoom(String userId, String roomId, String roomName) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
-			PreparedStatement ps = modelInferenceLogsDb
-					.getPreparedStatement("UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=?");
-			if (ps == null) {
-				throw new IllegalArgumentException("Error generating prepared statement to set room name");
-			}
-			try {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, roomName);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, roomId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=?")) {
+					if (ps == null) {
+						throw new IllegalArgumentException("Error generating prepared statement to set room name");
+					}
+					try {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, roomName);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, roomId);
+						ps.executeUpdate();
+					} catch (Exception e) {
+						classLogger.error("Failed to update room name for roomId '{}' and userId '{}'.", roomId, userId,
+								e);
+						throw e;
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Failed to update room name for roomId '{}' and userId '{}'.", roomId, userId, e);
-				throw e;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Room rename flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 			return false;
@@ -1524,22 +1416,14 @@ public class ModelInferenceLogsUtils {
 	public static String doGetRoomName(String userId, String roomId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT ROOM_NAME FROM ROOM WHERE USER_ID = ? AND ROOM_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, userId);
-			ps.setString(index++, roomId);
-			if (ps.execute()) {
-				ResultSet rs = ps.getResultSet();
-				if (rs.next()) {
-					return rs.getString(1);
-				}
-			}
+			return QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, userId);
+				ps.setString(index++, roomId);
+			}, rs -> rs.getString(1));
 		} catch (Exception e) {
 			classLogger.error("Failed to get room name for roomId '{}' and userId '{}'.", roomId, userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 		return null;
 	}
@@ -1559,25 +1443,18 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET ROOM_NAME=? WHERE USER_ID=? AND ROOM_ID=? "
 				+ "AND (ROOM_NAME IS NULL OR ROOM_NAME='' OR ROOM_NAME=?)";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			ps.setString(index++, roomName);
-			ps.setString(index++, userId);
-			ps.setString(index++, roomId);
-			ps.setString(index++, defaultName);
-			int rows = ps.executeUpdate();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
-			return rows > 0;
+			return QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				ps.setString(index++, roomName);
+				ps.setString(index++, userId);
+				ps.setString(index++, roomId);
+				ps.setString(index++, defaultName);
+			}) > 0;
 		} catch (Exception e) {
 			classLogger.error("Failed to conditionally update room name for roomId '{}' and userId '{}'.", roomId,
 					userId, e);
 			return false;
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
 		}
 	}
 
@@ -1873,29 +1750,23 @@ public class ModelInferenceLogsUtils {
 	 * @param options options map (nullable)
 	 */
 	public static void setRoomOptions(String roomId, String userId, Map<String, Object> options) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
-
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			if (options != null) {
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, options, index++, GSON);
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-			ps.setString(index++, userId);
-			ps.setString(index++, roomId);
-			ps.executeUpdate();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			updateRoomOptions(roomId, userId, options);
 		} catch (Exception e) {
 			classLogger.error("Failed to update room options for roomId '{}' and userId '{}'.", roomId, userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
+	}
+
+	/** Same write as {@link #setRoomOptions}, but throws and returns the updated row count. */
+	public static int updateRoomOptions(String roomId, String userId, Map<String, Object> options) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
+		return QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+			int index = 1;
+			modelInferenceLogsDb.getQueryUtil().setNullableJson(ps, index++, options, GSON);
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+		});
 	}
 
 	/**
@@ -1909,26 +1780,15 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?";
 
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(query);
-			int index = 1;
-			if (workspaceId != null) {
-				ps.setString(index++, workspaceId);
-				;
-			} else {
-				ps.setNull(index++, java.sql.Types.NULL);
-			}
-			ps.setString(index++, userId);
-			ps.setString(index++, roomId);
-			ps.executeUpdate();
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+				int index = 1;
+				modelInferenceLogsDb.getQueryUtil().setNullableString(ps, index++, workspaceId);
+				ps.setString(index++, userId);
+				ps.setString(index++, roomId);
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to set workspaceId for roomId '{}' and userId '{}'.", roomId, userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -1942,26 +1802,26 @@ public class ModelInferenceLogsUtils {
 	public static void setRoomContext(String roomId, String userId, String context) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		try {
-			PreparedStatement ps = modelInferenceLogsDb
-					.getPreparedStatement("UPDATE ROOM SET ROOM_CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?");
-			if (ps == null) {
-				throw new IllegalArgumentException("Error generating prepared statement to set room context");
-			}
-			try {
-				int parameterIndex = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(ps, context, parameterIndex++, GSON);
-				ps.setString(parameterIndex++, userId);
-				ps.setString(parameterIndex++, roomId);
-				ps.executeUpdate();
-				if (!ps.getConnection().getAutoCommit()) {
-					ps.getConnection().commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection
+						.prepareStatement("UPDATE ROOM SET ROOM_CONTEXT=? WHERE USER_ID=? AND ROOM_ID=?")) {
+					if (ps == null) {
+						throw new IllegalArgumentException("Error generating prepared statement to set room context");
+					}
+					try {
+						int parameterIndex = 1;
+						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, context);
+						ps.setString(parameterIndex++, userId);
+						ps.setString(parameterIndex++, roomId);
+						ps.executeUpdate();
+					} catch (Exception e) {
+						classLogger.error("Failed to update room context for roomId '{}' and userId '{}'.", roomId,
+								userId, e);
+						throw e;
+					}
 				}
-			} catch (Exception e) {
-				classLogger.error("Failed to update room context for roomId '{}' and userId '{}'.", roomId, userId, e);
-				throw e;
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, ps);
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Room context update flow failed for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
@@ -1975,25 +1835,23 @@ public class ModelInferenceLogsUtils {
 	private static void deleteFeedbackEntry(String messageId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String deleteQuery = "DELETE FROM FEEDBACK WHERE MESSAGE_ID = ?";
-		PreparedStatement ps = null;
 		try {
-			ps = modelInferenceLogsDb.getPreparedStatement(deleteQuery);
-			int index = 1;
-			ps.setString(index++, messageId);
-			int affectedRows = ps.executeUpdate();
-			if (affectedRows == 0) {
-				classLogger.warn(
-						"No changes made while attempting to delete feedback for MESSAGE_ID: {}. Please verify the state of the feedback.",
-						messageId);
-			}
-			if (!ps.getConnection().getAutoCommit()) {
-				ps.getConnection().commit();
-			}
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+					int index = 1;
+					ps.setString(index++, messageId);
+					int affectedRows = ps.executeUpdate();
+					if (affectedRows == 0) {
+						classLogger.warn(
+								"No changes made while attempting to delete feedback for MESSAGE_ID: {}. Please verify the state of the feedback.",
+								messageId);
+					}
+				}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete feedback entry for messageId '{}'.", messageId, e);
 			throw new SemossPixelException("Error while deleting feedback: " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, ps, null);
 		}
 	}
 
@@ -2177,30 +2035,24 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		PreparedStatement updateStmt = null;
 		try {
-			// Update messages and timestamp where room and user match
-			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?";
-			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+			return QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				// Update messages and timestamp where room and user match
+				String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? WHERE ROOM_ID = ? AND USER_ID = ?";
 
-			// Prepare statement
-			updateStmt.setString(1, messageHistory);
-			updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
-			updateStmt.setString(3, roomId);
-			updateStmt.setString(4, userId);
+				return QueryExecutionUtility.executeUpdate(connection, query, updateStmt -> {
+					// Prepare statement
+					updateStmt.setString(1, messageHistory);
+					updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+					updateStmt.setString(3, roomId);
+					updateStmt.setString(4, userId);
 
-			// Execute update
-			int rows = updateStmt.executeUpdate();
-			if (!updateStmt.getConnection().getAutoCommit()) {
-				updateStmt.getConnection().commit();
-			}
-			return rows > 0;
-
+					// Execute update
+				}) > 0;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update room messages for roomId '{}' and userId '{}'.", roomId, userId, e);
 			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
 		}
 	}
 
@@ -2227,24 +2079,23 @@ public class ModelInferenceLogsUtils {
 			return;
 		}
 
-		PreparedStatement updateStmt = null;
+		String persistedMessageType = mType;
 		try {
-			String updateQuery = "UPDATE MESSAGE SET MESSAGE_ID=?, TRANSACTION_ID=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?";
-			updateStmt = modelInferenceLogsDb.getPreparedStatement(updateQuery);
-			updateStmt.setString(1, newMessageId);
-			updateStmt.setString(2, transactionId);
-			updateStmt.setString(3, transactionId);
-			updateStmt.setString(4, mType);
-			updateStmt.execute();
-			if (!updateStmt.getConnection().getAutoCommit()) {
-				updateStmt.getConnection().commit();
-			}
+			QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				String updateQuery = "UPDATE MESSAGE SET MESSAGE_ID=?, TRANSACTION_ID=? WHERE MESSAGE_ID=? AND MESSAGE_TYPE=?";
+
+				QueryExecutionUtility.executeUpdate(connection, updateQuery, updateStmt -> {
+					updateStmt.setString(1, newMessageId);
+					updateStmt.setString(2, transactionId);
+					updateStmt.setString(3, transactionId);
+					updateStmt.setString(4, persistedMessageType);
+				});
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error(
 					"Failed to migrate message ids for transactionId '{}' to newMessageId '{}' for messageType '{}'.",
 					transactionId, newMessageId, messageType, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
 		}
 	}
 
@@ -2261,32 +2112,26 @@ public class ModelInferenceLogsUtils {
 	public static boolean llm2_updateRoomMessages(String roomId, String userId, String messageHistory, String roomName,
 			String engineId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		PreparedStatement updateStmt = null;
 		try {
-			// Update messages and timestamp where room and user match
-			String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?";
-			updateStmt = modelInferenceLogsDb.getPreparedStatement(query);
+			return QueryExecutionUtility.write(modelInferenceLogsDb, connection -> {
+				// Update messages and timestamp where room and user match
+				String query = "UPDATE ROOM SET MESSAGES = ?, UPDATED_AT = ? , ROOM_NAME = ?, MODEL_ID = ?  WHERE ROOM_ID = ? AND USER_ID = ?";
 
-			// Prepare statement
-			updateStmt.setString(1, messageHistory);
-			updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
-			updateStmt.setString(3, roomName);
-			updateStmt.setString(4, engineId);
-			updateStmt.setString(5, roomId);
-			updateStmt.setString(6, userId);
+				return QueryExecutionUtility.executeUpdate(connection, query, updateStmt -> {
+					// Prepare statement
+					updateStmt.setString(1, messageHistory);
+					updateStmt.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+					updateStmt.setString(3, roomName);
+					updateStmt.setString(4, engineId);
+					updateStmt.setString(5, roomId);
+					updateStmt.setString(6, userId);
 
-			// Execute update
-			int rows = updateStmt.executeUpdate();
-			if (!updateStmt.getConnection().getAutoCommit()) {
-				updateStmt.getConnection().commit();
-			}
-			return rows > 0;
-
+					// Execute update
+				}) > 0;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update room messages for roomId '{}' and userId '{}'.", roomId, userId, e);
 			throw new IllegalArgumentException("Error updating room messages: " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, updateStmt, null);
 		}
 	}
 
@@ -2300,26 +2145,21 @@ public class ModelInferenceLogsUtils {
 	public static Room getRoomById(String roomId, String userId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		String query = "SELECT * FROM ROOM WHERE ROOM_ID = ? and USER_ID = ?";
-		PreparedStatement stmt = null;
-		ResultSet resultSet = null;
 		try {
-			stmt = modelInferenceLogsDb.getPreparedStatement(query);
-			stmt.setString(1, roomId);
-			stmt.setString(2, userId);
-			resultSet = stmt.executeQuery();
-			if (resultSet.next()) {
-				return new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
-						resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"),
-						resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
-						resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
-						resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
-						resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
-						resultSet.getString("PARENT_ROOM_ID"));
-			}
-		} catch (SQLException e) {
+			return QueryExecutionUtility.queryOne(modelInferenceLogsDb, query, stmt -> {
+				stmt.setString(1, roomId);
+				stmt.setString(2, userId);
+			}, resultSet -> new Room(resultSet.getString("ROOM_ID"), resultSet.getString("USER_ID"),
+					resultSet.getString("ROOM_NAME"), resultSet.getString("ROOM_CONTEXT"),
+					resultSet.getString("PROJECT_ID"), resultSet.getString("SHARE_ID"),
+					resultSet.getBoolean("IS_ACTIVE"), resultSet.getTimestamp("DATE_CREATED"),
+					resultSet.getTimestamp("UPDATED_AT"), resultSet.getString("MESSAGES"),
+					resultSet.getBoolean("PINNED"), resultSet.getString("OPTIONS"), resultSet.getString("MODEL_ID"),
+					resultSet.getString("PARENT_ROOM_ID")));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve room for roomId '{}' and userId '{}'.", roomId, userId, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, null, stmt, resultSet);
 		}
 		return null;
 	}
@@ -2377,76 +2217,51 @@ public class ModelInferenceLogsUtils {
 			String systemPrompt, boolean active, String configJson, List<Map<String, String>> resources,
 			boolean replace) throws SQLException {
 		IRDBMSEngine database = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection connection = null;
-		Boolean autoCommit = null;
 		try {
-			connection = database.getConnection();
-			autoCommit = connection.getAutoCommit();
-			connection.setAutoCommit(false);
-			boolean exists;
-			try (PreparedStatement statement = connection
-					.prepareStatement("SELECT WORKSPACE_ID FROM WORKSPACE WHERE WORKSPACE_ID = ?")) {
-				statement.setString(1, workspaceId);
-				try (ResultSet result = statement.executeQuery()) {
-					exists = result.next();
+			QueryExecutionUtility.write(database, connection -> {
+				boolean exists;
+				try (PreparedStatement statement = connection
+						.prepareStatement("SELECT WORKSPACE_ID FROM WORKSPACE WHERE WORKSPACE_ID = ?")) {
+					statement.setString(1, workspaceId);
+					try (ResultSet result = statement.executeQuery()) {
+						exists = result.next();
+					}
 				}
-			}
-			if (exists && !replace) {
-				throw new SQLException("Agent workspace already exists: " + workspaceId);
-			}
-			Timestamp now = Utility.getCurrentSqlTimestampUTC();
-			String sql = exists
-					? "UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?"
-					: "INSERT INTO WORKSPACE (NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, CONFIG_JSON, DATE_UPDATED, WORKSPACE_ID, OWNER, DATE_CREATED) VALUES (?,?,?,?,?,?,?,?,?)";
-			try (PreparedStatement statement = connection.prepareStatement(sql)) {
-				statement.setString(1, name);
-				database.getQueryUtil().handleInsertionOfClob(connection, statement, description, 2, GSON);
-				database.getQueryUtil().handleInsertionOfClob(connection, statement, systemPrompt, 3, GSON);
-				statement.setBoolean(4, active);
-				database.getQueryUtil().handleInsertionOfClob(connection, statement, configJson, 5, GSON);
-				statement.setTimestamp(6, now);
-				statement.setString(7, workspaceId);
-				if (!exists) {
-					statement.setString(8, ownerId);
-					statement.setTimestamp(9, now);
+				if (exists && !replace) {
+					throw new SQLException("Agent workspace already exists: " + workspaceId);
 				}
-				statement.executeUpdate();
-			}
-			try (PreparedStatement statement = connection
-					.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
-				statement.setString(1, workspaceId);
-				statement.executeUpdate();
-			}
-			try (PreparedStatement statement = connection.prepareStatement(
-					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")) {
-				for (Map<String, String> resource : resources) {
-					statement.setString(1, resource.get("workspace_resource_id"));
-					statement.setString(2, workspaceId);
-					statement.setString(3, resource.get("resource_id"));
-					statement.setString(4, resource.get("resource_type"));
-					statement.setString(5, resource.get("resource_subtype"));
-					statement.addBatch();
-				}
-				statement.executeBatch();
-			}
-			connection.commit();
+				Timestamp now = Utility.getCurrentSqlTimestampUTC();
+				String sql = exists
+						? "UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?"
+						: "INSERT INTO WORKSPACE (NAME, DESCRIPTION, SYSTEM_PROMPT, IS_ACTIVE, CONFIG_JSON, DATE_UPDATED, WORKSPACE_ID, OWNER, DATE_CREATED) VALUES (?,?,?,?,?,?,?,?,?)";
+				QueryExecutionUtility.executeUpdate(connection, sql, statement -> {
+					statement.setString(1, name);
+					database.getQueryUtil().setNullableLargeText(statement, 2, description);
+					database.getQueryUtil().setNullableLargeText(statement, 3, systemPrompt);
+					statement.setBoolean(4, active);
+					database.getQueryUtil().setNullableLargeText(statement, 5, configJson);
+					statement.setTimestamp(6, now);
+					statement.setString(7, workspaceId);
+					if (!exists) {
+						statement.setString(8, ownerId);
+						statement.setTimestamp(9, now);
+					}
+				});
+				QueryExecutionUtility.executeUpdate(connection, "DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?",
+						statement -> statement.setString(1, workspaceId));
+				QueryExecutionUtility.executeBatch(connection,
+						"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)",
+						resources, (statement, resource) -> {
+							statement.setString(1, resource.get("workspace_resource_id"));
+							statement.setString(2, workspaceId);
+							statement.setString(3, resource.get("resource_id"));
+							statement.setString(4, resource.get("resource_type"));
+							statement.setString(5, resource.get("resource_subtype"));
+						});
+				return null;
+			});
 		} catch (Exception e) {
-			if (connection != null && autoCommit != null) {
-				try {
-					connection.rollback();
-				} catch (SQLException rollbackError) {
-					e.addSuppressed(rollbackError);
-				}
-			}
 			throw new SQLException("Unable to import agent workspace " + workspaceId, e);
-		} finally {
-			try {
-				if (connection != null && autoCommit != null) {
-					connection.setAutoCommit(autoCommit);
-				}
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(database, connection, null, null);
-			}
 		}
 	}
 
@@ -2466,51 +2281,41 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)")) {
-				int index = 1;
-				ps.setString(index++, workspaceId);
-				ps.setString(index++, workspaceName);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
-				ps.setString(index++, ownerId);
-				ps.setBoolean(index++, true);
-				ps.setTimestamp(index++, now);
-				ps.setTimestamp(index++, now);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.write(modelInferenceLogsDb, con -> {
+				QueryExecutionUtility.executeUpdate(con,
+						"INSERT INTO WORKSPACE (WORKSPACE_ID, NAME, DESCRIPTION, SYSTEM_PROMPT, OWNER, IS_ACTIVE, DATE_CREATED, DATE_UPDATED) VALUES (?,?,?,?,?,?,?,?)",
+						ps -> {
+							int index = 1;
+							ps.setString(index++, workspaceId);
+							ps.setString(index++, workspaceName);
+							modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, workspaceDescription);
+							modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, systemPrompt);
+							ps.setString(index++, ownerId);
+							ps.setBoolean(index++, true);
+							ps.setTimestamp(index++, now);
+							ps.setTimestamp(index++, now);
+						});
 
-			if (resources == null || resources.isEmpty()) {
-				return;
-			}
-			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")) {
-				for (Map<String, String> res : resources) {
-					int index = 1;
-					ps.setString(index++, res.get("workspace_resource_id"));
-					ps.setString(index++, res.get("workspace_id"));
-					ps.setString(index++, res.get("resource_id"));
-					ps.setString(index++, res.get("resource_type"));
-					ps.setString(index++, res.get("resource_subtype"));
-					ps.addBatch();
+				if (resources == null || resources.isEmpty()) {
+					return null;
 				}
-				ps.executeBatch();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+				QueryExecutionUtility.executeBatch(con,
+						"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)",
+						resources, (ps, res) -> {
+							int index = 1;
+							ps.setString(index++, res.get("workspace_resource_id"));
+							ps.setString(index++, res.get("workspace_id"));
+							ps.setString(index++, res.get("resource_id"));
+							ps.setString(index++, res.get("resource_type"));
+							ps.setString(index++, res.get("resource_subtype"));
+						});
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to create workspace '{}' for owner '{}' with resources.", workspaceId, ownerId,
 					e);
 			throw new IllegalArgumentException("Error creating workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -2540,57 +2345,44 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
-				int index = 1;
-				ps.setString(index++, workspaceName);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, workspaceDescription, index++, GSON);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
-				ps.setBoolean(index++, isActive);
-				ps.setTimestamp(index++, now);
-				ps.setString(index++, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.write(modelInferenceLogsDb, con -> {
+				QueryExecutionUtility.executeUpdate(con,
+						"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, IS_ACTIVE = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?",
+						ps -> {
+							int index = 1;
+							ps.setString(index++, workspaceName);
+							modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, workspaceDescription);
+							modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, systemPrompt);
+							ps.setBoolean(index++, isActive);
+							ps.setTimestamp(index++, now);
+							ps.setString(index++, workspaceId);
+						});
 
-			try (PreparedStatement ps = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?")) {
-				int index = 1;
-				ps.setString(index++, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+				QueryExecutionUtility.executeUpdate(con, "DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?",
+						ps -> {
+							int index = 1;
+							ps.setString(index++, workspaceId);
+						});
 
-			if (resources == null || resources.isEmpty()) {
-				return;
-			}
-			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")) {
-				for (Map<String, String> res : resources) {
-					int index = 1;
-					ps.setString(index++, res.get("workspace_resource_id"));
-					ps.setString(index++, res.get("workspace_id"));
-					ps.setString(index++, res.get("resource_id"));
-					ps.setString(index++, res.get("resource_type"));
-					ps.setString(index++, res.get("resource_subtype"));
-					ps.addBatch();
+				if (resources == null || resources.isEmpty()) {
+					return null;
 				}
-				ps.executeBatch();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+				QueryExecutionUtility.executeBatch(con,
+						"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)",
+						resources, (ps, res) -> {
+							int index = 1;
+							ps.setString(index++, res.get("workspace_resource_id"));
+							ps.setString(index++, res.get("workspace_id"));
+							ps.setString(index++, res.get("resource_id"));
+							ps.setString(index++, res.get("resource_type"));
+							ps.setString(index++, res.get("resource_subtype"));
+						});
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update workspace '{}' and refresh workspace resources.", workspaceId, e);
 			throw new IllegalArgumentException("Error updating workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -2601,28 +2393,25 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void deleteWorkspaceEntry(String workspaceId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps1 = con.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?");
-					PreparedStatement ps2 = con
-							.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = NULL WHERE WORKSPACE_ID = ?");
-					PreparedStatement ps3 = con.prepareStatement("DELETE FROM WORKSPACE WHERE WORKSPACE_ID = ?");) {
-				ps1.setString(1, workspaceId);
-				ps2.setString(1, workspaceId);
-				ps3.setString(1, workspaceId);
-				ps1.execute();
-				ps2.execute();
-				ps3.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
+			QueryExecutionUtility.write(modelInferenceLogsDb, con -> {
+				try (PreparedStatement ps1 = con
+						.prepareStatement("DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?");
+						PreparedStatement ps2 = con
+								.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = NULL WHERE WORKSPACE_ID = ?");
+						PreparedStatement ps3 = con.prepareStatement("DELETE FROM WORKSPACE WHERE WORKSPACE_ID = ?");) {
+					ps1.setString(1, workspaceId);
+					ps2.setString(1, workspaceId);
+					ps3.setString(1, workspaceId);
+					ps1.execute();
+					ps2.execute();
+					ps3.execute();
 				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete workspace '{}' and related room/resource links.", workspaceId, e);
 			throw new IllegalArgumentException("Error deleting workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -2731,25 +2520,17 @@ public class ModelInferenceLogsUtils {
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 		String serialized = configJson == null ? null : configJson.toString();
 
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
-				int index = 1;
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, serialized, index++, GSON);
-				ps.setTimestamp(index++, now);
-				ps.setString(index++, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"UPDATE WORKSPACE SET CONFIG_JSON = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?", ps -> {
+						int index = 1;
+						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, serialized);
+						ps.setTimestamp(index++, now);
+						ps.setString(index++, workspaceId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update CONFIG_JSON for workspaceId '{}'.", workspaceId, e);
 			throw new SQLException("Failed to update workspace CONFIG_JSON: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -2782,27 +2563,20 @@ public class ModelInferenceLogsUtils {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
 		Timestamp now = Utility.getCurrentSqlTimestampUTC();
 
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?")) {
-				int index = 1;
-				ps.setString(index++, name);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, description, index++, GSON);
-				modelInferenceLogsDb.getQueryUtil().handleInsertionOfClob(con, ps, systemPrompt, index++, GSON);
-				ps.setTimestamp(index++, now);
-				ps.setString(index++, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"UPDATE WORKSPACE SET NAME = ?, DESCRIPTION = ?, SYSTEM_PROMPT = ?, DATE_UPDATED = ? WHERE WORKSPACE_ID = ?",
+					ps -> {
+						int index = 1;
+						ps.setString(index++, name);
+						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, description);
+						modelInferenceLogsDb.getQueryUtil().setNullableLargeText(ps, index++, systemPrompt);
+						ps.setTimestamp(index++, now);
+						ps.setString(index++, workspaceId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to update core fields for workspaceId '{}'.", workspaceId, e);
 			throw new SQLException("Failed to update workspace core fields: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -3248,28 +3022,21 @@ public class ModelInferenceLogsUtils {
 	public static void createNewWorkspaceResource(String workspaceResourceId, String workspaceId, String resourceId,
 			String resourceType, String resourceSubType) throws Exception {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)")) {
-				int index = 1;
-				ps.setString(index++, workspaceResourceId);
-				ps.setString(index++, workspaceId);
-				ps.setString(index++, resourceId);
-				ps.setString(index++, resourceType);
-				ps.setString(index++, resourceSubType);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"INSERT INTO WORKSPACE_RESOURCE (WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE) VALUES (?,?,?,?,?)",
+					ps -> {
+						int index = 1;
+						ps.setString(index++, workspaceResourceId);
+						ps.setString(index++, workspaceId);
+						ps.setString(index++, resourceId);
+						ps.setString(index++, resourceType);
+						ps.setString(index++, resourceSubType);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to create workspace resource '{}' for workspaceId '{}'.", workspaceResourceId,
 					workspaceId, e);
 			throw new IllegalArgumentException("Error creating workspace resource: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -3287,17 +3054,15 @@ public class ModelInferenceLogsUtils {
 	public static Map<String, Object> findWorkspaceResource(String workspaceId, String resourceId,
 			String resourceType) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
+			return QueryExecutionUtility.queryOne(modelInferenceLogsDb,
 					"SELECT WORKSPACE_RESOURCE_ID, WORKSPACE_ID, RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE "
-							+ "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
-				ps.setString(1, workspaceId);
-				ps.setString(2, resourceId);
-				ps.setString(3, resourceType);
-				try (ResultSet rs = ps.executeQuery()) {
-					if (rs.next()) {
+							+ "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?",
+					ps -> {
+						ps.setString(1, workspaceId);
+						ps.setString(2, resourceId);
+						ps.setString(3, resourceType);
+					}, rs -> {
 						Map<String, Object> row = new HashMap<>();
 						row.put("workspace_resource_id", rs.getString(1));
 						row.put("workspace_id", rs.getString(2));
@@ -3305,15 +3070,11 @@ public class ModelInferenceLogsUtils {
 						row.put("resource_type", rs.getString(4));
 						row.put("resource_subtype", rs.getString(5));
 						return row;
-					}
-				}
-			}
+					});
 		} catch (Exception e) {
 			classLogger.error(
 					"Failed to look up workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
 					workspaceId, resourceId, resourceType, e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 		return null;
 	}
@@ -3329,27 +3090,19 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static int deleteWorkspaceResource(String workspaceId, String resourceId, String resourceType) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con.prepareStatement(
-					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?")) {
-				ps.setString(1, workspaceId);
-				ps.setString(2, resourceId);
-				ps.setString(3, resourceType);
-				int deleted = ps.executeUpdate();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-				return deleted;
-			}
+			return QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"DELETE FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ? AND RESOURCE_ID = ? AND RESOURCE_TYPE = ?",
+					ps -> {
+						ps.setString(1, workspaceId);
+						ps.setString(2, resourceId);
+						ps.setString(3, resourceType);
+					});
 		} catch (Exception e) {
 			classLogger.error(
 					"Failed to delete workspace resource for workspaceId '{}', resourceId '{}', resourceType '{}'.",
 					workspaceId, resourceId, resourceType, e);
 			throw new IllegalArgumentException("Error deleting workspace resource: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -3364,16 +3117,11 @@ public class ModelInferenceLogsUtils {
 	public static List<Map<String, String>> getWorkspaceResources(String workspaceId, String resourceType,
 			String resourceSubType) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
-		List<Map<String, String>> resources = new ArrayList<>();
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			// Build base query
 			StringBuilder sql = new StringBuilder("SELECT RESOURCE_ID, RESOURCE_TYPE, RESOURCE_SUBTYPE "
 					+ "FROM WORKSPACE_RESOURCE WHERE WORKSPACE_ID = ?");
 			List<Object> params = new ArrayList<>();
 			params.add(workspaceId);
-
 			if (resourceType != null) {
 				sql.append(" AND RESOURCE_TYPE = ?");
 				params.add(resourceType);
@@ -3382,29 +3130,25 @@ public class ModelInferenceLogsUtils {
 				sql.append(" AND RESOURCE_SUBTYPE = ?");
 				params.add(resourceSubType);
 			}
-
-			try (PreparedStatement ps = con.prepareStatement(sql.toString())) {
+			return QueryExecutionUtility.queryList(modelInferenceLogsDb, sql.toString(), ps -> {
 				for (int i = 0; i < params.size(); i++) {
 					ps.setObject(i + 1, params.get(i));
 				}
-				ResultSet rs = ps.executeQuery();
-				while (rs.next()) {
-					Map<String, String> resource = new HashMap<>();
-					resource.put("resource_id", rs.getString("RESOURCE_ID"));
-					resource.put("resource_type", rs.getString("RESOURCE_TYPE"));
-					resource.put("resource_subtype", rs.getString("RESOURCE_SUBTYPE"));
-					resources.add(resource);
-				}
-			}
-		} catch (SQLException e) {
+			}, rs -> {
+				Map<String, String> resource = new HashMap<>();
+				resource.put("resource_id", rs.getString("RESOURCE_ID"));
+				resource.put("resource_type", rs.getString("RESOURCE_TYPE"));
+				resource.put("resource_subtype", rs.getString("RESOURCE_SUBTYPE"));
+				return resource;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error(
 					"Failed to fetch workspace resources for workspaceId '{}', resourceType '{}', resourceSubType '{}'.",
 					workspaceId, resourceType, resourceSubType, e);
 			throw new IllegalArgumentException("Error fetching workspace resources: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
-		return resources;
 	}
 
 	/**
@@ -3414,23 +3158,15 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doSetWorkspaceToInactive(String workspaceId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con
-					.prepareStatement("UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?");) {
-				ps.setBoolean(1, false);
-				ps.setString(2, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?", ps -> {
+						ps.setBoolean(1, false);
+						ps.setString(2, workspaceId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to set workspace inactive for workspaceId '{}'.", workspaceId, e);
 			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 
@@ -3441,23 +3177,15 @@ public class ModelInferenceLogsUtils {
 	 */
 	public static void doSetWorksapceToActive(String workspaceId) {
 		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		Connection con = null;
 		try {
-			con = modelInferenceLogsDb.getConnection();
-			try (PreparedStatement ps = con
-					.prepareStatement("UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?");) {
-				ps.setBoolean(1, true);
-				ps.setString(2, workspaceId);
-				ps.execute();
-				if (!con.getAutoCommit()) {
-					con.commit();
-				}
-			}
+			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb,
+					"UPDATE WORKSPACE SET IS_ACTIVE = ? WHERE WORKSPACE_ID = ?", ps -> {
+						ps.setBoolean(1, true);
+						ps.setString(2, workspaceId);
+					});
 		} catch (Exception e) {
 			classLogger.error("Failed to set workspace active for workspaceId '{}'.", workspaceId, e);
 			throw new IllegalArgumentException("Error deactivating workspace: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(modelInferenceLogsDb, con, null, null);
 		}
 	}
 

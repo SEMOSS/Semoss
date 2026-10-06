@@ -62,9 +62,9 @@ import prerna.engine.api.IEngine;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ModelCapabilityEnum;
 import prerna.engine.api.ModelModalityEnum;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
+import prerna.util.QueryExecutionUtility;
 import prerna.util.StaticModelMetadataCatalog;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -91,9 +91,9 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			Constants.SERVING_PROVIDER, Constants.MODEL_CAPABILITY, Constants.INPUT_MODALITIES,
 			Constants.OUTPUT_MODALITIES, Constants.CONTEXT_WINDOW, Constants.MAX_TOKENS, Constants.BUILTIN_TOOLS,
 			Constants.MODEL_FAMILY, Constants.ATTACHMENT, Constants.REASONING, Constants.TOOL_CALL,
-			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE,
-			Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE, Constants.SUPPORTED_PARAMETERS,
-			Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING, Constants.DESCR);
+			Constants.STRUCTURED_OUTPUT, Constants.TEMPERATURE, Constants.KNOWLEDGE_CUTOFF, Constants.RELEASE_DATE,
+			Constants.SUPPORTED_PARAMETERS, Constants.REASONING_CONFIG, Constants.BENCHMARKS, Constants.PRICING,
+			Constants.DESCR);
 
 	private static final Set<String> REMOVED_METADATA_KEYS = Set.of("LICENSE", "LINKS", "WEIGHTS", "OPEN_WEIGHTS",
 			"LAST_UPDATED", Constants.MAX_INPUT_TOKENS);
@@ -221,40 +221,38 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 				? "UPDATE MODELMETADATA SET MODELID=?, CATALOGMODELKEY=?, MODELPROVIDER=?, SERVINGPROVIDER=?, CAPABILITY=?, FAMILY=?, INPUTMODALITIES=?, OUTPUTMODALITIES=?, CONTEXTWINDOW=?, MAXOUTPUTTOKENS=?, BUILTINTOOLS=?, ATTACHMENT=?, REASONING=?, TOOLCALL=?, STRUCTUREDOUTPUT=?, TEMPERATURE=?, KNOWLEDGECUTOFF=?, RELEASEDATE=?, SUPPORTEDPARAMETERS=?, REASONINGCONFIG=?, BENCHMARKS=?, PRICING=? WHERE ENGINEID=?"
 				: "INSERT INTO MODELMETADATA (MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING, ENGINEID) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement(sql);
-			int index = 1;
-			setNullableString(ps, index++, metadata.modelId());
-			setNullableString(ps, index++, metadata.catalogModelKey());
-			setNullableString(ps, index++, metadata.modelProvider());
-			setNullableString(ps, index++, metadata.servingProvider());
-			setNullableString(ps, index++, metadata.capability());
-			setNullableString(ps, index++, metadata.family());
-			setNullableString(ps, index++, metadata.inputModalitiesJson());
-			setNullableString(ps, index++, metadata.outputModalitiesJson());
-			setNullableLong(ps, index++, metadata.contextWindow());
-			setNullableLong(ps, index++, metadata.maxOutputTokens());
-			setNullableString(ps, index++, metadata.builtinToolsJson());
-			setNullableBoolean(ps, index++, metadata.attachment());
-			setNullableBoolean(ps, index++, metadata.reasoning());
-			setNullableBoolean(ps, index++, metadata.toolCall());
-			setNullableBoolean(ps, index++, metadata.structuredOutput());
-			setNullableBoolean(ps, index++, metadata.temperature());
-			setNullableString(ps, index++, metadata.knowledgeCutoff());
-			setNullableString(ps, index++, metadata.releaseDate());
-			setNullableString(ps, index++, metadata.supportedParametersJson());
-			setNullableString(ps, index++, metadata.reasoningConfigJson());
-			setNullableString(ps, index++, metadata.benchmarksJson());
-			setNullableString(ps, index++, metadata.pricingJson());
-			ps.setString(index, metadata.engineId());
-			ps.executeUpdate();
-			ConnectionUtils.commitConnection(ps.getConnection());
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, sql, ps -> {
+				int index = 1;
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.modelId());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.catalogModelKey());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.modelProvider());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.servingProvider());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.capability());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.family());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.inputModalitiesJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.outputModalitiesJson());
+				setNullableLong(ps, index++, metadata.contextWindow());
+				setNullableLong(ps, index++, metadata.maxOutputTokens());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.builtinToolsJson());
+				setNullableBoolean(ps, index++, metadata.attachment());
+				setNullableBoolean(ps, index++, metadata.reasoning());
+				setNullableBoolean(ps, index++, metadata.toolCall());
+				setNullableBoolean(ps, index++, metadata.structuredOutput());
+				setNullableBoolean(ps, index++, metadata.temperature());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.knowledgeCutoff());
+				securityDb.getQueryUtil().setNullableString(ps, index++, metadata.releaseDate());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.supportedParametersJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.reasoningConfigJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.benchmarksJson());
+				securityDb.getQueryUtil().setNullableLargeText(ps, index++, metadata.pricingJson());
+				ps.setString(index, metadata.engineId());
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to upsert model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to save model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -552,22 +550,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	public static Map<String, Object> getModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID=?";
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = securityDb.getPreparedStatement(sql);
-			ps.setString(1, engineId);
-			rs = ps.executeQuery();
-			if (!rs.next()) {
-				return null;
-			}
-
-			return readModelMetadata(rs);
-		} catch (SQLException e) {
+			return QueryExecutionUtility.queryOne(securityDb, sql, ps -> ps.setString(1, engineId),
+					SecurityModelMetadataUtils::readModelMetadata);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to retrieve model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to retrieve model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
 		}
 	}
 
@@ -596,23 +586,26 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 			String sql = "SELECT ENGINEID, MODELID, CATALOGMODELKEY, MODELPROVIDER, SERVINGPROVIDER, CAPABILITY, FAMILY, INPUTMODALITIES, OUTPUTMODALITIES, CONTEXTWINDOW, MAXOUTPUTTOKENS, BUILTINTOOLS, ATTACHMENT, REASONING, TOOLCALL, STRUCTUREDOUTPUT, TEMPERATURE, KNOWLEDGECUTOFF, RELEASEDATE, SUPPORTEDPARAMETERS, REASONINGCONFIG, BENCHMARKS, PRICING FROM MODELMETADATA WHERE ENGINEID IN ("
 					+ placeholders + ")";
 
-			PreparedStatement ps = null;
-			ResultSet rs = null;
 			try {
-				ps = securityDb.getPreparedStatement(sql);
-				for (int i = 0; i < batch.size(); i++) {
-					ps.setString(i + 1, batch.get(i));
-				}
-				rs = ps.executeQuery();
-				while (rs.next()) {
-					Map<String, Object> metadata = readModelMetadata(rs);
-					metadataByEngine.put((String) metadata.get("engineId"), metadata);
-				}
-			} catch (SQLException e) {
+				QueryExecutionUtility.read(securityDb, connection -> {
+					try (PreparedStatement ps = connection.prepareStatement(sql)) {
+						for (int i = 0; i < batch.size(); i++) {
+							ps.setString(i + 1, batch.get(i));
+						}
+						try (ResultSet rs = ps.executeQuery()) {
+							while (rs.next()) {
+								Map<String, Object> metadata = readModelMetadata(rs);
+								metadataByEngine.put((String) metadata.get("engineId"), metadata);
+							}
+						}
+					}
+					return null;
+				});
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
 				classLogger.error("Failed to retrieve model metadata for engines", e);
 				throw new IllegalArgumentException("Failed to retrieve model metadata", e);
-			} finally {
-				ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
 			}
 		}
 		return metadataByEngine;
@@ -654,17 +647,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 
 	public static void deleteModelMetadata(String engineId) {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		PreparedStatement ps = null;
 		try {
-			ps = securityDb.getPreparedStatement("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
-			ps.setString(1, engineId);
-			ps.executeUpdate();
-			ConnectionUtils.commitConnection(ps.getConnection());
-		} catch (SQLException e) {
+			QueryExecutionUtility.executeUpdate(securityDb, "DELETE FROM MODELMETADATA WHERE ENGINEID=?",
+					ps -> ps.setString(1, engineId));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			classLogger.error("Failed to delete model metadata for engine {}", engineId, e);
 			throw new IllegalArgumentException("Failed to delete model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
 	}
 
@@ -1109,25 +1099,14 @@ public final class SecurityModelMetadataUtils extends AbstractSecurityUtils {
 	}
 
 	private static boolean modelMetadataExists(IRDBMSEngine securityDb, String engineId) {
-		PreparedStatement ps = null;
-		ResultSet rs = null;
 		try {
-			ps = securityDb.getPreparedStatement("SELECT ENGINEID FROM MODELMETADATA WHERE ENGINEID=?");
-			ps.setString(1, engineId);
-			rs = ps.executeQuery();
-			return rs.next();
-		} catch (SQLException e) {
+			return Boolean.TRUE.equals(
+					QueryExecutionUtility.queryOne(securityDb, "SELECT ENGINEID FROM MODELMETADATA WHERE ENGINEID=?",
+							ps -> ps.setString(1, engineId), rs -> true));
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
 			throw new IllegalArgumentException("Failed to inspect model metadata", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps, rs);
-		}
-	}
-
-	private static void setNullableString(PreparedStatement ps, int index, String value) throws SQLException {
-		if (value == null) {
-			ps.setNull(index, Types.VARCHAR);
-		} else {
-			ps.setString(index, value);
 		}
 	}
 

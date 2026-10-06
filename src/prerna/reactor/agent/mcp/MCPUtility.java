@@ -106,8 +106,11 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_MCP_DEFERRED = "SMSS_MCP_DEFERRED";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
+	// Display-only label for a pending action; never used to execute the tool.
+	public static final String SMSS_TOOL_TITLE = "SMSS_TOOL_TITLE";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse";
 
@@ -121,6 +124,18 @@ public final class MCPUtility {
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
+	/**
+	 * What a tool call holds, so a page can show it with a native element: a
+	 * chat card, or a panel such as a query editor. Pages that do not know the
+	 * name show the generic tool view.
+	 */
+	public static final String UI_COMPONENT = "component";
+
+	/** Names for {@link #UI_COMPONENT}; one name per kind of content. */
+	public static final String COMPONENT_EMAIL_COMPOSE = "email-compose";
+	public static final String COMPONENT_EMAIL_DRAFT = "email-draft";
+	public static final String COMPONENT_EMAIL_SEND = "email-send";
+	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -1330,11 +1345,27 @@ public final class MCPUtility {
 			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
 		}
 
-		if (uiJson.has(UI_AUTO_OPEN) && !uiJson.isNull(UI_AUTO_OPEN)) {
-			validUiJson.put(UI_AUTO_OPEN, uiJson.getBoolean(UI_AUTO_OPEN));
-		}
+		copyUiHints(uiJson.toMap(), validUiJson);
 
 		return validUiJson;
+	}
+
+	/**
+	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI
+	 * keys every tool builder passes through as they are.
+	 */
+	public static void copyUiHints(Map<String, ?> from, JSONObject to) {
+		if (from == null) {
+			return;
+		}
+		Object component = from.get(UI_COMPONENT);
+		if (component instanceof String && !((String) component).isBlank()) {
+			to.put(UI_COMPONENT, ((String) component).trim());
+		}
+		Object autoOpen = from.get(UI_AUTO_OPEN);
+		if (autoOpen instanceof Boolean || autoOpen instanceof String) {
+			to.put(UI_AUTO_OPEN, Boolean.parseBoolean(String.valueOf(autoOpen)));
+		}
 	}
 
 	/**

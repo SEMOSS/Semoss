@@ -37,6 +37,7 @@ import org.apache.logging.log4j.Logger;
 import com.google.gson.Gson;
 
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationAgentTools;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
@@ -172,7 +173,10 @@ public final class AgentToolDecisionHandler {
 		// Delegation tools are platform actions, not MCP tools, so they have no engine.
 		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
 		boolean delegationRequest = HumanDelegationService.TOOL_NAME.equals(toolName);
-		String engineId = delegationSubmit || delegationRequest ? null
+		// Collaboration tools run their reactor directly; they have no engine either.
+		boolean collaborationTool = CollaborationAgentTools.isTool(toolName)
+				&& CollaborationAgentTools.isToolMeta(parseStoredMap(pendingAction.get("toolMeta")));
+		String engineId = delegationSubmit || delegationRequest || collaborationTool ? null
 				: AbstractReactor.resolveContextEngineId(engineIdFromPendingAction(pendingAction), this.insight);
 		Map<String, Object> paramMap = resolveToolParamsForDecision(pendingAction, callerParams);
 		Room executionRoom = null;
@@ -185,9 +189,17 @@ public final class AgentToolDecisionHandler {
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
-			// The stored action holds the aliased name the model produced; undo it
-			// from the room's own map. See Room#resolveOriginalToolName.
-			toolName = executionRoom.resolveOriginalToolName(toolName);
+			// Collaboration/delegation tools run by the raw name they were matched on.
+			// For MCP tools, a reloaded room may not have rebuilt its alias lookup
+			// yet, so fall back to the original name persisted with the action.
+			if (!delegationSubmit && !delegationRequest && !collaborationTool) {
+				String resolvedToolName = executionRoom.resolveOriginalToolName(toolName);
+				Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
+				String originalToolName = storedToolMeta != null
+						? stringValue(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) : null;
+				toolName = resolvedToolName != null && !resolvedToolName.equals(toolName) ? resolvedToolName
+						: originalToolName != null ? originalToolName : toolName;
+			}
 		}
 
 		if (!AgentRunActionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
@@ -205,6 +217,7 @@ public final class AgentToolDecisionHandler {
 		ToolExecutionResult toolResult = delegationSubmit
 				? HumanDelegationService.submitFromTool(this.insight, executionRoom, paramMap)
 				: delegationRequest ? HumanDelegationService.delegateFromTool(this.insight, runId, paramMap)
+				: collaborationTool ? CollaborationAgentTools.execute(toolName, paramMap, this.insight)
 				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
 		if (executionRoom != null) {
@@ -248,9 +261,11 @@ public final class AgentToolDecisionHandler {
 			}
 		}
 		if (toolMeta != null) {
-			Object original = toolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
-			if (original != null && !original.toString().isBlank()) {
-				return original.toString();
+			for (String key : List.of(MCPUtility.SMSS_TOOL_TITLE, MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object title = toolMeta.get(key);
+				if (title != null && !title.toString().isBlank()) {
+					return title.toString();
+				}
 			}
 		}
 		return stringValue(pendingAction.get("toolName"));
