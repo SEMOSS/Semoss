@@ -174,7 +174,7 @@ public class SmssUtilities {
 			return null;
 		}
 		String rdbmsInsightsType = prop.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsInsightsType);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsInsightsType);
 
 		String baseFolder = Utility.getBaseFolder();
 		String rdbmsInsights = Utility.normalizePath(baseFolder) + DIR_SEPARATOR
@@ -559,7 +559,7 @@ public class SmssUtilities {
 					// default will be h2
 					rdbmsTypeStr = "H2_DB";
 				}
-				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+				rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 			}
 
 			bufferedWriter.write(
@@ -637,7 +637,7 @@ public class SmssUtilities {
 					// default will be h2
 					rdbmsTypeStr = "H2_DB";
 				}
-				rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+				rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 			}
 
 			// this smss is only ever generated for a user asset project
@@ -707,7 +707,7 @@ public class SmssUtilities {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 
 		Properties insightSmssProp = new Properties();
 		/*
