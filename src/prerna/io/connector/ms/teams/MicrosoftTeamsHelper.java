@@ -36,7 +36,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,6 +55,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.PathSecurityUtils;
 
 /**
  * Helper utility for Microsoft Teams connector operations.
@@ -374,13 +374,17 @@ public class MicrosoftTeamsHelper {
 				// the channel
 				normalizedFileName = itemName.toString();
 			}
-			String targetPath;
+			File file;
+			String relativeFilePath;
 			if (normalizedFileName == null || normalizedFileName.isEmpty()) {
-				targetPath = path;
+				file = new File(path);
+				relativeFilePath = Path.of(path).relativize(file.toPath()).toString();
 			} else {
-				targetPath = Paths.get(path, normalizedFileName).toString();
+				File destinationDirectory = new File(path).getCanonicalFile();
+				file = PathSecurityUtils.requireDescendant(destinationDirectory,
+						new File(destinationDirectory, normalizedFileName));
+				relativeFilePath = destinationDirectory.toPath().relativize(file.toPath()).toString();
 			}
-			File file = new File(targetPath);
 			File parent = file.getParentFile();
 			if (parent != null && !parent.exists()) {
 				boolean created = parent.mkdirs();
@@ -397,7 +401,7 @@ public class MicrosoftTeamsHelper {
 			Map<String, Object> result = new HashMap<>();
 			result.put(ID, itemId);
 			result.put(NAME, itemName);
-			result.put(FILE_PATH, Path.of(path).relativize(file.toPath()).toString());
+			result.put(FILE_PATH, relativeFilePath);
 			result.put(SUCCESS, true);
 			return result;
 		} catch (Exception e) {

@@ -865,8 +865,8 @@ public class Insight implements Serializable {
 	 * @param room the Room to associate with
 	 */
 	public void setRoomForInsight(Room room) {
+		this.insightFolder = Room.roomFolderPath(room.getId());
 		this.roomId = room.getId();
-		this.insightFolder = room.getRoomFolderPath();
 	}
 
 	////////////////////////////////////////////////////////////////

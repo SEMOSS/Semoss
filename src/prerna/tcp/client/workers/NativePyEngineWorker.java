@@ -43,6 +43,7 @@ import prerna.om.Insight;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
+import prerna.util.PathSecurityUtils;
 import prerna.util.Utility;
 
 public class NativePyEngineWorker implements Runnable {
@@ -75,7 +76,7 @@ public class NativePyEngineWorker implements Runnable {
 	public void run() {
 		IRawSelectWrapper wrapper = null;
 		try {
-			String engineId = ps.objId;
+			String engineId = PathSecurityUtils.requireSinglePathSegment(ps.objId, "Engine ID");
 			boolean canAccess = SecurityEngineUtils.userCanViewEngine(user, engineId); 
 			if(canAccess) {
 				if(ps.engineType.equalsIgnoreCase("DATABASE") && ps.methodName.equalsIgnoreCase("execquery")) {

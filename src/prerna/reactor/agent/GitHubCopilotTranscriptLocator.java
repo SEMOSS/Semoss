@@ -27,12 +27,11 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import prerna.util.Utility;
+import prerna.engine.impl.model.Room;
 
 
 /**
@@ -49,8 +48,11 @@ public class GitHubCopilotTranscriptLocator {
 			return null;
 		}
 
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
-		return Files.exists(eventsLog) ? eventsLog : null;
+		try {
+			Path eventsLog = Paths.get(Room.roomFolderPath(roomId), "session-state", roomId, "events.jsonl");
+			return Files.exists(eventsLog) ? eventsLog : null;
+		} catch (IllegalArgumentException e) {
+			return null;
+		}
 	}
 }

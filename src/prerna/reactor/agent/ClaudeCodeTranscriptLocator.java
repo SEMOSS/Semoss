@@ -27,14 +27,13 @@
  *******************************************************************************/
 package prerna.reactor.agent;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 
-import prerna.util.Utility;
+import prerna.engine.impl.model.Room;
 
 /**
  * Shared helper for locating the Claude Code transcript JSONL file for a given
@@ -59,22 +58,21 @@ public class ClaudeCodeTranscriptLocator {
 			return null;
 		}
 
-		String roomFolderPath = Utility.getBaseFolder() + File.separator + "room" + File.separator + roomId;
-		Path rootDir = Paths.get(roomFolderPath);
+		try {
+			Path rootDir = Paths.get(Room.roomFolderPath(roomId));
+			if (!Files.isDirectory(rootDir)) {
+				return null;
+			}
 
-		if (!Files.isDirectory(rootDir)) {
-			return null;
-		}
-
-		String targetFileName = roomId + ".jsonl";
-
-		try (Stream<Path> walk = Files.walk(rootDir)) {
-			return walk
-					.filter(Files::isRegularFile)
-					.filter(p -> p.getFileName().toString().equals(targetFileName))
-					.findFirst()
-					.orElse(null);
-		} catch (IOException e) {
+			String targetFileName = roomId + ".jsonl";
+			try (Stream<Path> walk = Files.walk(rootDir)) {
+				return walk
+						.filter(Files::isRegularFile)
+						.filter(p -> p.getFileName().toString().equals(targetFileName))
+						.findFirst()
+						.orElse(null);
+			}
+		} catch (IllegalArgumentException | IOException e) {
 			return null;
 		}
 	}
