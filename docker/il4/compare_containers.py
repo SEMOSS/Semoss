@@ -125,7 +125,13 @@ def dump_diagnostics(containers):
     """Best-effort container state/log dump for the CI log, so a readiness
     failure is diagnosable from the job output alone: the containers are
     destroyed by cleanup() moments after wait_healthy raises, and this
-    comparison never otherwise surfaces per-container detail."""
+    comparison never otherwise surfaces per-container detail.
+
+    The application log is interleaved with a health-check access-log entry
+    every ~5s, which can crowd a short tail out of any real application
+    output entirely. Pull the full log and surface STARTUP/ERROR/WARN/
+    exception lines separately so they are visible regardless of how much
+    access-log noise follows them."""
     for name in containers:
         try:
             state = docker("inspect", "--format", "{{json .State}}", name)
@@ -133,10 +139,17 @@ def dump_diagnostics(containers):
         except RuntimeError as error:
             print("-- {} state unavailable: {} --".format(name, error), file=sys.stderr)
         try:
-            tail = docker("logs", "--tail", "200", name)
+            full_log = docker("logs", name, timeout=60)
         except RuntimeError as error:
-            tail = "(unavailable: {})".format(error)
-        print("-- {} logs (last 200 lines) --\n{}".format(name, tail), file=sys.stderr)
+            print("-- {} logs unavailable: {} --".format(name, error), file=sys.stderr)
+            continue
+        lines = full_log.splitlines()
+        marked = [line for line in lines
+                  if re.search(r"STARTUP|SHUTDOWN|ERROR|WARN|FATAL|Exception|Caused by", line)]
+        print("-- {} application-level lines ({} of {} total) --\n{}".format(
+            name, len(marked), len(lines), "\n".join(marked)), file=sys.stderr)
+        print("-- {} logs (last 300 raw lines) --\n{}".format(
+            name, "\n".join(lines[-300:])), file=sys.stderr)
 
 
 def wait_healthy(containers):
