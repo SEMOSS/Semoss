@@ -73,9 +73,12 @@ public final class RoomMessageStore {
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
 	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
+	// Separate stripes so a short options update never waits on a long model call.
+	private static final ReentrantLock[] OPTIONS_LOCAL_LOCKS = new ReentrantLock[256];
 
 	static {
 		Arrays.setAll(LOCAL_LOCKS, ignored -> new ReentrantLock());
+		Arrays.setAll(OPTIONS_LOCAL_LOCKS, ignored -> new ReentrantLock());
 	}
 
 	private static final ThreadLocal<Map<String, HeldLock>> HELD_LOCKS = ThreadLocal.withInitial(HashMap::new);
@@ -278,9 +281,23 @@ public final class RoomMessageStore {
 		if (roomId == null || roomId.trim().isEmpty()) {
 			return RoomMutationLock.NO_OP;
 		}
-		roomId = roomId.trim();
+		return acquireLock(roomId.trim(), LOCAL_LOCKS);
+	}
+
+	/**
+	 * Short lock for read-modify-write of ROOM.OPTIONS. Independent of the
+	 * mutation lock, which is held for the whole model call in Room#ask.
+	 */
+	public static RoomMutationLock acquireOptionsLock(Room room) {
+		if (room == null || room.getId() == null || room.getId().trim().isEmpty()) {
+			return RoomMutationLock.NO_OP;
+		}
+		return acquireLock(room.getId().trim() + ":options", OPTIONS_LOCAL_LOCKS);
+	}
+
+	private static RoomMutationLock acquireLock(String roomId, ReentrantLock[] localLocks) {
 		if (!RedisConnectionConfig.isRedisEnabled()) {
-			ReentrantLock localLock = LOCAL_LOCKS[Math.floorMod(roomId.hashCode(), LOCAL_LOCKS.length)];
+			ReentrantLock localLock = localLocks[Math.floorMod(roomId.hashCode(), localLocks.length)];
 			long waitMs = getLongProperty(LOCK_WAIT_MS, 5000L);
 			try {
 				if (!localLock.tryLock(Math.max(0L, waitMs), TimeUnit.MILLISECONDS)) {

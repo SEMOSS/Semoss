@@ -13,15 +13,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
-import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.util.QueryExecutionUtility;
-import prerna.util.SystemEngineRegistry;
-import prerna.util.gson.GsonUtility;
 
 /** Discovery and room-persistent schema loading for the native RunAgent harness. */
 public final class DeferredAgentTools {
@@ -71,6 +67,7 @@ public final class DeferredAgentTools {
 
 	/** Keep a fixed eager prefix, then append eligible schemas in persisted load order. */
 	public static List<Map<String, Object>> filterForModel(Room room, List<Map<String, Object>> tools) {
+		Map<String, Map<String, Object>> lookup = room.getToolLookupByLLMName();
 		List<Map<String, Object>> visible = new ArrayList<>();
 		Map<String, Map<String, Object>> deferred = new LinkedHashMap<>();
 		for (Map<String, Object> tool : tools) {
@@ -78,12 +75,12 @@ public final class DeferredAgentTools {
 				continue;
 			}
 			if (isDeferred(tool)) {
-				deferred.putIfAbsent(toolId(room, tool), tool);
+				deferred.putIfAbsent(toolId(lookup, tool), tool);
 			} else {
 				visible.add(tool);
 			}
 		}
-		visible.sort(Comparator.comparing(tool -> toolId(room, tool)));
+		visible.sort(Comparator.comparing(tool -> toolId(lookup, tool)));
 		for (String id : loadedIds(room.getOptionsMap())) {
 			Map<String, Object> tool = deferred.get(id);
 			if (tool != null) {
@@ -95,19 +92,26 @@ public final class DeferredAgentTools {
 
 	/** Refresh just this field; RunAgent's workspace/instruction overlays stay in memory. */
 	public static void refreshLoadedState(Room room) {
-		try (var ignored = RoomMessageStore.acquireMutationLock(room)) {
+		// Best effort: a stale load list must not abort the run.
+		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
 			applyLoadedState(room, persistedOptions(room));
+		} catch (RuntimeException e) {
+			logger.warn("Unable to refresh loaded deferred tools for room '{}': {}", room.getId(), e.getMessage());
 		}
 	}
 
-	/** Called under the same room mutation lock used by LoadTools. */
+	/**
+	 * Called under the same room options lock used by LoadTools. Throws when the
+	 * persisted list cannot be read; the save replaces all options, so a stale
+	 * in-memory fallback could erase tools loaded elsewhere.
+	 */
 	public static void preserveLoadedState(Room room, Map<String, Object> requestedOptions) {
 		copyLoadedState(requestedOptions, persistedOptions(room));
 	}
 
 	public static ToolExecutionResult execute(String name, Map<String, Object> params, Room room,
 			Map<String, Object> harnessParams) {
-		try (var ignored = RoomMessageStore.acquireMutationLock(room)) {
+		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
 			Map<String, Map<String, Object>> available = availableTools(room, harnessParams);
 			if (SEARCH.equals(name)) {
 				applyLoadedState(room, persistedOptions(room));
@@ -129,7 +133,9 @@ public final class DeferredAgentTools {
 			tools.addAll((List<Map<String, Object>>) harnessTools);
 		}
 		// The full lookup survives schema filtering, including shortened provider aliases.
-		room.getToolLookupByLLMName().forEach((alias, entry) -> {
+		// One snapshot per call; a concurrent rebuild publishes a new map instead.
+		Map<String, Map<String, Object>> lookup = room.getToolLookupByLLMName();
+		lookup.forEach((alias, entry) -> {
 			Map<String, Object> tool = new LinkedHashMap<>(entry);
 			tool.put("name", alias);
 			tools.add(tool);
@@ -137,7 +143,7 @@ public final class DeferredAgentTools {
 		Map<String, Map<String, Object>> available = new LinkedHashMap<>();
 		for (Map<String, Object> tool : tools) {
 			if (isDeferred(tool) && !isDisabled(tool)) {
-				available.putIfAbsent(toolId(room, tool), tool);
+				available.putIfAbsent(toolId(lookup, tool), tool);
 			}
 		}
 		return available;
@@ -201,15 +207,9 @@ public final class DeferredAgentTools {
 		Set<String> loaded = loadedIds(persisted);
 		if (loaded.addAll(ids)) {
 			persisted.put(LOADED_OPTION, new ArrayList<>(loaded));
-			// The ordinary room-options setter logs and swallows failures. Loads must
-			// acknowledge a durable write and must never save the runtime option overlays.
-			IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
-			int updated = QueryExecutionUtility.executeUpdate(db,
-					"UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?", ps -> {
-						db.getQueryUtil().setNullableJson(ps, 1, persisted, GsonUtility.getDefaultGson());
-						ps.setString(2, room.getUserId());
-						ps.setString(3, room.getId());
-					});
+			// Loads must acknowledge a durable write and must never save the runtime
+			// option overlays, so write the persisted map with the strict setter.
+			int updated = ModelInferenceLogsUtils.updateRoomOptions(room.getId(), room.getUserId(), persisted);
 			if (updated != 1) {
 				throw new IllegalStateException("Unable to persist loaded tools for this room");
 			}
@@ -238,8 +238,10 @@ public final class DeferredAgentTools {
 	}
 
 	private static void applyLoadedState(Room room, Map<String, Object> persisted) {
-		copyLoadedState(room.getOptionsMap(), persisted);
-		room.setOptionsMap(room.getOptionsMap());
+		// Copy-on-write so concurrent readers of the old map never see a partial update.
+		Map<String, Object> options = new LinkedHashMap<>(room.getOptionsMap());
+		copyLoadedState(options, persisted);
+		room.setOptionsMap(options);
 	}
 
 	private static void copyLoadedState(Map<String, Object> options, Map<String, Object> persisted) {
@@ -271,10 +273,10 @@ public final class DeferredAgentTools {
 		return "disabled".equals(metadata(tool).get(MCPUtility.SMSS_MCP_EXECUTION));
 	}
 
-	private static String toolId(Room room, Map<String, Object> tool) {
+	private static String toolId(Map<String, Map<String, Object>> lookup, Map<String, Object> tool) {
 		String name = String.valueOf(tool.get("name"));
-		Map<String, Object> lookup = room.getToolLookupByLLMName().get(name);
-		Map<String, Object> meta = metadata(lookup != null ? lookup : tool);
+		Map<String, Object> entry = lookup.get(name);
+		Map<String, Object> meta = metadata(entry != null ? entry : tool);
 		Object engineId = meta.get(MCPUtility.SMSS_ENGINE_ID);
 		return engineId != null ? "mcp:" + engineId + ":" + meta.getOrDefault(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, name)
 				: "default:" + name;

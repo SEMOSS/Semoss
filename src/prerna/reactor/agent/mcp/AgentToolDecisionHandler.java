@@ -189,13 +189,17 @@ public final class AgentToolDecisionHandler {
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
-			// A reloaded room may not have rebuilt its alias lookup yet. Prefer
-			// the original name persisted with the action before using that lookup.
-			Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
-			String originalToolName = storedToolMeta != null
-					? stringValue(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) : null;
-			toolName = originalToolName != null && !originalToolName.isBlank()
-					? originalToolName : executionRoom.resolveOriginalToolName(toolName);
+			// Collaboration/delegation tools run by the raw name they were matched on.
+			// For MCP tools, a reloaded room may not have rebuilt its alias lookup
+			// yet, so fall back to the original name persisted with the action.
+			if (!delegationSubmit && !delegationRequest && !collaborationTool) {
+				String resolvedToolName = executionRoom.resolveOriginalToolName(toolName);
+				Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
+				String originalToolName = storedToolMeta != null
+						? stringValue(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) : null;
+				toolName = resolvedToolName != null && !resolvedToolName.equals(toolName) ? resolvedToolName
+						: originalToolName != null ? originalToolName : toolName;
+			}
 		}
 
 		if (!AgentRunActionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
@@ -257,9 +261,11 @@ public final class AgentToolDecisionHandler {
 			}
 		}
 		if (toolMeta != null) {
-			Object original = toolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
-			if (original != null && !original.toString().isBlank()) {
-				return original.toString();
+			for (String key : List.of(MCPUtility.SMSS_TOOL_TITLE, MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object title = toolMeta.get(key);
+				if (title != null && !title.toString().isBlank()) {
+					return title.toString();
+				}
 			}
 		}
 		return stringValue(pendingAction.get("toolName"));

@@ -137,7 +137,8 @@ public class Room implements Serializable {
 	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
 	 * {@link #updateToolResponseMeta(ResponseMessage)}.
 	 */
-	private transient final Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
+	// Replaced wholesale on each rebuild so concurrent readers always see a complete map.
+	private transient volatile Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
 
 	/**
 	 * Creates an empty room instance. Primarily used for serialization frameworks
@@ -1193,7 +1194,7 @@ public class Room implements Serializable {
 	 */
 	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength, boolean sanitizeToolNamesForLLM) {
-		toolLookupByLLMName.clear();
+		Map<String, Map<String, Object>> lookup = new HashMap<>();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
@@ -1205,7 +1206,7 @@ public class Room implements Serializable {
 		if (InternalMCP.hasDefinitions(getRoomFolderPath())) {
 			ensureUnique.add(MCPUtility.ROOM_MCP_ID);
 			try {
-				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength, sanitizeToolNamesForLLM));
+				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength, sanitizeToolNamesForLLM, lookup));
 			} catch (Exception e) {
 				classLogger.error("Unable to add the room's own MCP tools", e);
 			}
@@ -1219,7 +1220,7 @@ public class Room implements Serializable {
 						if (mcpMap.containsKey("id")) {
 							String id = (String) mcpMap.get("id");
 							if (!ensureUnique.contains(id)) {
-								aggregated.addAll(getToolJson(id, maxLength, sanitizeToolNamesForLLM));
+								aggregated.addAll(getToolJson(id, maxLength, sanitizeToolNamesForLLM, lookup));
 								ensureUnique.add(id);
 							}
 						} else {
@@ -1249,7 +1250,7 @@ public class Room implements Serializable {
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
 							if (!ensureUnique.contains(toolId)) {
-								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM));
+								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
 								ensureUnique.add(toolId);
 							}
 						}
@@ -1269,7 +1270,7 @@ public class Room implements Serializable {
 								}
 								String toolId = mcp.optString("id", null);
 								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
-									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM));
+									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
 									ensureUnique.add(toolId);
 								}
 							}
@@ -1284,6 +1285,7 @@ public class Room implements Serializable {
 			}
 		}
 
+		toolLookupByLLMName = lookup;
 		return aggregated;
 	}
 
@@ -1300,7 +1302,8 @@ public class Room implements Serializable {
 	 * @return list of non-disabled tool definition maps
 	 */
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, boolean sanitizeToolNamesForLLM) {
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, boolean sanitizeToolNamesForLLM,
+			Map<String, Map<String, Object>> lookup) {
 		// room level MCPs
 		if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(this.getRoomFolderPath());
@@ -1357,7 +1360,7 @@ public class Room implements Serializable {
 						lookupEntry.put("inputSchema", entry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
-					toolLookupByLLMName.put(llmName, lookupEntry);
+					lookup.put(llmName, lookupEntry);
 				}
 			}
 			return result;
@@ -1443,7 +1446,7 @@ public class Room implements Serializable {
 						lookupEntry.put("inputSchema", toolMapEntry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
-					toolLookupByLLMName.put(llmFacingName, lookupEntry);
+					lookup.put(llmFacingName, lookupEntry);
 				}
 			}
 			return result;
@@ -1473,7 +1476,8 @@ public class Room implements Serializable {
 	 * @return unmodifiable view of the lookup map
 	 */
 	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
-		return Collections.unmodifiableMap(toolLookupByLLMName);
+		Map<String, Map<String, Object>> lookup = toolLookupByLLMName;
+		return lookup == null ? Map.of() : Collections.unmodifiableMap(lookup);
 	}
 
 	/**
@@ -1501,7 +1505,7 @@ public class Room implements Serializable {
 		if (llmFacingName == null || llmFacingName.isBlank()) {
 			return llmFacingName;
 		}
-		Map<String, Object> entry = toolLookupByLLMName.get(llmFacingName);
+		Map<String, Object> entry = getToolLookupByLLMName().get(llmFacingName);
 		if (entry == null) {
 			return llmFacingName;
 		}

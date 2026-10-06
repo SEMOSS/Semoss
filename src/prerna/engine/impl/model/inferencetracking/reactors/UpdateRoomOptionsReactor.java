@@ -74,7 +74,7 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		if (roomOptions == null) {
 			roomOptions = new HashMap<>();
 		}
-		try (var ignored = RoomMessageStore.acquireMutationLock(room)) {
+		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
 			// Preserve server-owned state while serializing settings updates with tool loads.
 			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
 			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);

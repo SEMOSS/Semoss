@@ -896,6 +896,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			// onto toolCall; carry it in _meta so the FE (which only ever sees
 			// toolName/toolMeta for a pending action, never toolCall itself) can
 			// display it instead of the raw, engine-id-prefixed tool name.
+			// Kept apart from SMSS_ORIGINAL_TOOL_NAME, which approval executes.
 			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
 				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
 						: toolCall.get("original_name");
@@ -903,7 +904,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					if (meta == null) {
 						meta = new HashMap<>();
 					}
-					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+					meta.put(MCPUtility.SMSS_TOOL_TITLE, resolvedTitle);
 				}
 			}
 			action.put("toolMeta", meta);
