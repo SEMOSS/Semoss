@@ -37,10 +37,12 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.AgentRunner;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -72,15 +74,17 @@ public class UpdateRoomOptionsReactor extends AbstractReactor {
 		if (roomOptions == null) {
 			roomOptions = new HashMap<>();
 		}
-		// Preserve server-owned subagent filesystem metadata.
-		preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
-		preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
-		for (String key : CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS) {
-			preserveInternalOption(roomOptions, room.getOptionsMap(), key);
+		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
+			// Preserve server-owned state while serializing settings updates with tool loads.
+			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR);
+			preserveInternalOption(roomOptions, room.getOptionsMap(), AgentRunner.ROOM_OPTION_WORKING_DIR_SOURCE_ROOM);
+			for (String key : CollaborationUtils.SERVER_OWNED_ROOM_OPTIONS) {
+				preserveInternalOption(roomOptions, room.getOptionsMap(), key);
+			}
+			DeferredAgentTools.preserveLoadedState(room, roomOptions);
+			ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
+			room.setOptionsMap(roomOptions);
 		}
-		ModelInferenceLogsUtils.setRoomOptions(roomId, user.getPrimaryLoginToken().getId(), roomOptions);
-
-		room.setOptionsMap(roomOptions);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 
