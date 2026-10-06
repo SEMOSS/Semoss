@@ -154,6 +154,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(any(), any(), any())).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -240,6 +241,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(any(), any(), any())).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -317,6 +319,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(any(), any(), any())).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
@@ -386,7 +389,8 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		// Set up the database
 		try (Connection connection = DriverManager.getConnection(dbUrl);
 				MockedStatic<AbstractSqlQueryUtil> asqu = Mockito.mockStatic(AbstractSqlQueryUtil.class);
-				MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);) {
+				MockedStatic<Utility> u = Mockito.mockStatic(Utility.class);
+				MockedStatic<PGvector> pgv = Mockito.mockStatic(PGvector.class);) {
 
 			try (Statement statement = connection.createStatement()) {
 				statement.execute(createVectorTableQuery);
@@ -404,6 +408,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 
 			asqu.when(() -> AbstractSqlQueryUtil.makeConnection(any(AbstractSqlQueryUtil.class), any(String.class),
 					any(CaseInsensitiveProperties.class))).thenReturn(connection);
+			pgv.when(() -> PGvector.addVectorType(connection)).then(invocationOnMock -> null);
 
 			u.when(() -> Utility.getModel(testEmbedderId)).thenReturn(modelEmbedder);
 			// used in VectorDatabaseCSVTable.generateAndAssingEmbeddings()
@@ -963,9 +968,29 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 		String indexClass = "TEST_INDEX_CLASS";
 		parameters.put("indexClass", indexClass);
 
-		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-				() -> engine.addDocument(new Vector<>(), parameters));
-		assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
+		SocketClient scMock = mock(SocketClient.class); // used in addDocument()->checkSocketStatus()->startServer()
+		when(scMock.isConnected()).thenReturn(true);
+		try (MockedConstruction<ClientProcessWrapper> mockWrapper = Mockito// used in
+																			// addDocument()->checkSocketStatus()->startServer()
+				.mockConstruction(ClientProcessWrapper.class, (mock, context) -> {
+					doNothing().when(mock).createProcessAndClient(any(boolean.class), nullable(SymlinkHelper.class),
+							any(int.class), nullable(String.class), nullable(String.class), nullable(String.class),
+							any(boolean.class), any(String.class), any(String.class));
+					doNothing().when(mock).shutdown(false);
+					when(mock.getSocketClient()).thenReturn(scMock);
+
+				});
+				MockedConstruction<PyTranslator> mockPYT = Mockito.mockConstruction(PyTranslator.class, // used in
+																										// addDocument()->checkSocketStatus()->startServer()
+						(mock, context) -> {
+							doNothing().when(mock).runEmptyPy(any());
+							when(mock.runScript(any())).thenReturn("true");
+						});) {
+
+			IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+					() -> engine.addDocument(new Vector<>(), parameters));
+			assertEquals("Insight must be provided to run Model Engine Encoder", e.getMessage());
+		}
 	}
 
 	@Test
@@ -1125,6 +1150,7 @@ public class PGVectorDatabaseEngineUnitTests extends SemossUnitTest {
 				when(queryUtilMock.getConnectionUserKey()).thenReturn("user_key");
 				when(queryUtilMock.getConnectionPasswordKey()).thenReturn("password_key");
 				when(queryUtilMock.setConnectionDetailsFromSMSS(any())).thenReturn(null);
+				when(queryUtilMock.fillFileParameterizedConnectionUrl(any(), any(), any())).thenReturn(url);
 			}
 			squf.when(() -> SqlQueryUtilFactory.initialize(any())).thenReturn(queryUtilMock);
 			Connection mockConn = mock();
