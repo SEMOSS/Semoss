@@ -201,14 +201,118 @@ public abstract class AbstractSqlQueryUtil {
 
 	/**
 	 * Build the connection string after the connection details have been set
-	 * 
+	 *
 	 * @return
 	 */
 	public abstract String buildConnectionString();
 
+	/////////////////////////////////////////////////////////////////////////////////////
+
+	/*
+	 * Type-safe accessors for reading connection configuration out of a
+	 * Map<String, Object> (FE/JSON input) or a CaseInsensitiveProperties (SMSS
+	 * input). Both inputs are untyped at the API boundary - a key can be absent,
+	 * null, or holding a value of the wrong type - so setConnectionDetailsfromMap
+	 * / setConnectionDetailsFromSMSS implementations should read connection
+	 * config through these instead of casting configMap.get(KEY)/prop.get(KEY)
+	 * directly, which turns a missing or mistyped key into a silent null or a
+	 * ClassCastException far from the actual bad input.
+	 */
+
+	/**
+	 * Get an optional String value, returning {@code defaultValue} if the key is
+	 * absent. Still fails fast, naming the key, if it is present but not actually
+	 * a String.
+	 *
+	 * @param configMap
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	protected String getOptionalStringValue(Map<String, Object> configMap, String key, String defaultValue) {
+		return optionalString(key, configMap.get(key), defaultValue);
+	}
+
+	/**
+	 * @see #getOptionalStringValue(Map, String, String)
+	 */
+	protected String getOptionalStringValue(CaseInsensitiveProperties prop, String key, String defaultValue) {
+		return optionalString(key, prop.get(key), defaultValue);
+	}
+
+	/**
+	 * Get an optional boolean value, returning {@code defaultValue} if the key is
+	 * absent. Accepts an actual Boolean, or a String parsed via
+	 * {@link Boolean#parseBoolean(String)}; still fails fast, naming the key, for
+	 * any other type instead of silently coercing it - e.g. via
+	 * {@code value + ""} string concatenation - to false.
+	 *
+	 * @param configMap
+	 * @param key
+	 * @param defaultValue
+	 * @return
+	 */
+	protected boolean getOptionalBooleanValue(Map<String, Object> configMap, String key, boolean defaultValue) {
+		return optionalBoolean(key, configMap.get(key), defaultValue);
+	}
+
+	/**
+	 * @see #getOptionalBooleanValue(Map, String, boolean)
+	 */
+	protected boolean getOptionalBooleanValue(CaseInsensitiveProperties prop, String key, boolean defaultValue) {
+		return optionalBoolean(key, prop.get(key), defaultValue);
+	}
+
+	/**
+	 * Assert that a (conditionally) required configuration value was actually
+	 * resolved - e.g. a hostname that is only required when no full connection
+	 * URL was separately provided. Unlike the config-map accessors above, this
+	 * validates accumulated object state rather than a single input argument, so
+	 * it fails with {@link IllegalStateException} rather than
+	 * {@link IllegalArgumentException}.
+	 *
+	 * @param key   the configuration key this value came from, used only for the
+	 *              error message
+	 * @param value the resolved value to check
+	 * @return value, unchanged, if it is non-null and non-empty
+	 */
+	protected String requireNonBlank(String key, String value) {
+		if (value == null || value.isEmpty()) {
+			throw new IllegalStateException("Must provide a value for required configuration key '" + key + "'");
+		}
+		return value;
+	}
+
+	private String optionalString(String key, Object value, String defaultValue) {
+		if (value == null) {
+			return defaultValue;
+		}
+		if (!(value instanceof String)) {
+			throw new IllegalArgumentException(
+					"Configuration key '" + key + "' must be a String, but found " + value.getClass().getName());
+		}
+		return (String) value;
+	}
+
+	private boolean optionalBoolean(String key, Object value, boolean defaultValue) {
+		if (value == null) {
+			return defaultValue;
+		}
+		if (value instanceof Boolean) {
+			return (Boolean) value;
+		}
+		if (value instanceof String) {
+			return Boolean.parseBoolean((String) value);
+		}
+		throw new IllegalArgumentException("Configuration key '" + key + "' must be a Boolean or String, but found "
+				+ value.getClass().getName());
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * Method to get a connection to an existing RDBMS engine
-	 * 
+	 *
 	 * @param driverEnum
 	 * @param connectionUrl
 	 * @param connectionDetails
@@ -218,13 +322,13 @@ public abstract class AbstractSqlQueryUtil {
 	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl,
 			Map<String, Object> connectionDetails) throws SQLException {
 		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), connectionUrl,
-				(String) connectionDetails.get(util.getConnectionUserKey()),
-				(String) connectionDetails.get(util.getConnectionPasswordKey()));
+				util.getOptionalStringValue(connectionDetails, util.getConnectionUserKey(), null),
+				util.getOptionalStringValue(connectionDetails, util.getConnectionPasswordKey(), null));
 	}
 
 	/**
 	 * Method to get a connection to an existing RDBMS engine
-	 * 
+	 *
 	 * @param driverEnum
 	 * @param connectionUrl
 	 * @param connectionDetails
@@ -234,7 +338,8 @@ public abstract class AbstractSqlQueryUtil {
 	public static Connection makeConnection(AbstractSqlQueryUtil util, String connectionUrl,
 			CaseInsensitiveProperties prop) throws SQLException {
 		return AbstractSqlQueryUtil.makeConnection(util.getDbType(), connectionUrl,
-				(String) prop.get(util.getConnectionUserKey()), (String) prop.get(util.getConnectionPasswordKey()));
+				util.getOptionalStringValue(prop, util.getConnectionUserKey(), null),
+				util.getOptionalStringValue(prop, util.getConnectionPasswordKey(), null));
 	}
 
 	/**

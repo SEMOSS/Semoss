@@ -29,6 +29,7 @@ package prerna.util.sql;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -80,5 +82,61 @@ class AnsiSqlQueryUtilUnitTests {
 		PreparedStatement statement = mock(PreparedStatement.class);
 		new PostgresQueryUtil().handleInsertionOfClob(statement, null, 1, gson);
 		verify(statement).setNull(1, Types.LONGVARCHAR);
+	}
+
+	/**
+	 * DerbyQueryUtil does not override setConnectionDetailsfromMap/
+	 * buildConnectionString, so it exercises AnsiSqlQueryUtil's shared default -
+	 * also inherited as-is by MySQLQueryUtil, MariaDbQueryUtil, DB2QueryUtil,
+	 * AsterQueryUtil, CassandraQueryUtil and PhoenixQueryUtil.
+	 */
+	@Test
+	void sharedAnsiDefaultFailsFastOnMissingHostnameNamingTheKey() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.SCHEMA, "APP");
+
+		DerbyQueryUtil util = new DerbyQueryUtil();
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.HOSTNAME),
+				"message should name the missing key: " + ex.getMessage());
+	}
+
+	@Test
+	void sharedAnsiDefaultFailsFastOnMissingSchemaNamingTheKey() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, "db.example.com");
+
+		DerbyQueryUtil util = new DerbyQueryUtil();
+		IllegalStateException ex = assertThrows(IllegalStateException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.SCHEMA),
+				"message should name the missing key: " + ex.getMessage());
+	}
+
+	@Test
+	void sharedAnsiDefaultRejectsWrongTypePortNamingTheKey() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, "db.example.com");
+		connDetails.put(AbstractSqlQueryUtil.SCHEMA, "APP");
+		connDetails.put(AbstractSqlQueryUtil.PORT, Integer.valueOf(1527));
+
+		DerbyQueryUtil util = new DerbyQueryUtil();
+		IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+				() -> util.setConnectionDetailsfromMap(connDetails));
+		assertTrue(ex.getMessage().contains(AbstractSqlQueryUtil.PORT),
+				"message should name the offending key: " + ex.getMessage());
+	}
+
+	@Test
+	void sharedAnsiDefaultBuildsExpectedUrlWhenAllRequiredKeysPresent() {
+		Map<String, Object> connDetails = new HashMap<>();
+		connDetails.put(AbstractSqlQueryUtil.HOSTNAME, "db.example.com");
+		connDetails.put(AbstractSqlQueryUtil.SCHEMA, "APP");
+		connDetails.put(AbstractSqlQueryUtil.PORT, "1527");
+
+		DerbyQueryUtil util = new DerbyQueryUtil();
+		String connectionUrl = util.setConnectionDetailsfromMap(connDetails);
+		assertEquals(RdbmsTypeEnum.DERBY.getUrlPrefix() + "://db.example.com:1527/APP", connectionUrl);
 	}
 }
