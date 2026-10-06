@@ -388,7 +388,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("sa", load.getProperty(Constants.USERNAME));
 		assertEquals("", load.getProperty(Constants.PASSWORD));
 		assertEquals(
-				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768",
+				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768",
 				load.getProperty(Constants.CONNECTION_URL));
 	}
 
@@ -426,7 +426,7 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 		assertEquals("sa", load.getProperty(Constants.USERNAME));
 		assertEquals("", load.getProperty(Constants.PASSWORD));
 		assertEquals(
-				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768",
+				"jdbc:h2:nio:@BaseFolder@/project/pname__pid/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768",
 				load.getProperty(Constants.CONNECTION_URL));
 	}
 
