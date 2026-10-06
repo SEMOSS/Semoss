@@ -341,10 +341,9 @@ Provision these prerequisites in the destination repository:
 4. The owner confirmed repository secrets `REPO_ONE_USERNAME` and
    `REPO_ONE_PASSWORD` are the existing Iron Bank credentials. They must
    authorize pulling all three pinned images and should be least-privilege.
-   Add repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` (a free
-   Docker Hub account's personal access token is sufficient) so the
-   concurrent baseline comparison can pull the pinned `postgres`/`mariadb`
-   fixture images without hitting Docker Hub's anonymous pull rate limit.
+   The `postgres`/`mariadb` comparison fixtures are pulled from this
+   repository's own GHCR namespace (mirrored there by
+   `il4-accp-mirror-db-fixtures.yml`), so no Docker Hub credential is needed.
    Optionally add `MAVEN_SETTINGS` containing the approved Maven settings XML;
    it is passed only as a BuildKit secret, never as a build argument.
    Do not add production TLS keys, database credentials, AWS credentials, or
@@ -353,8 +352,8 @@ Provision these prerequisites in the destination repository:
    only `contents: read` and `packages: write`; it does not require a PAT.
    If the GHCR package already exists, grant this repository Actions write access
    to it. Verify package visibility and repository linkage after the first push.
-6. Approve runner egress to GitHub/Actions, GHCR, Iron Bank, Docker Hub and the
-   dependency sources listed above, including the approved UBI repositories. Configure
+6. Approve runner egress to GitHub/Actions, GHCR, Iron Bank and the dependency
+   sources listed above, including the approved UBI repositories. Configure
    organization trust roots and any required mirrors on the runner/daemon;
    do not bypass TLS validation. Destroy the ephemeral runner and its disks
    after every job, including failures/cancellation. Login actions log out at
@@ -775,3 +774,14 @@ runtime now mounts a read-only truststore containing the disposable PostgreSQL
 test CA. PostgreSQL has no published host port. Normal and metadata-driven
 SEMOSS queries passed with a read-only account; the optional `SMSS_DATEDIFF`
 auto-creation attempt was denied and remains a documented limitation.
+
+Database fixture mirroring: the concurrent comparison's `postgres`/`mariadb`
+fixtures are now mirrored into this repository's own GHCR namespace
+(`ghcr.io/semoss/semoss-il4-db-fixtures/{postgres,mariadb}`) by
+`il4-accp-mirror-db-fixtures.yml` instead of being pulled anonymously from
+docker.io on every run, which had started hitting Docker Hub's unauthenticated
+pull rate limit. That workflow triggers on push to itself (not
+`workflow_dispatch`, which needs default-branch registration this change
+deliberately avoids) and stays scoped to `IL4-dev-ACCP`; re-run it by editing
+and pushing its pinned `POSTGRES_SOURCE_REF`/`MARIADB_SOURCE_REF` to
+deliberately bump versions. No Docker Hub credential is required.

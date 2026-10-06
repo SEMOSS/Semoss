@@ -48,16 +48,10 @@ jobs:
         env:
           IRONBANK_USERNAME: ${{ secrets.REPO_ONE_USERNAME }}
           IRONBANK_PASSWORD: ${{ secrets.REPO_ONE_PASSWORD }}
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           set -euo pipefail
           if [[ -z "$IRONBANK_USERNAME" || -z "$IRONBANK_PASSWORD" ]]; then
             echo "::error::Set both repository secrets REPO_ONE_USERNAME and REPO_ONE_PASSWORD."
-            exit 1
-          fi
-          if [[ -z "$DOCKERHUB_USERNAME" || -z "$DOCKERHUB_TOKEN" ]]; then
-            echo "::error::Set both repository secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (a Docker Hub access token) so the postgres/mariadb comparison fixtures can be pulled without hitting the anonymous pull rate limit."
             exit 1
           fi
           export DOCKER_CONFIG="$RUNNER_TEMP/semoss-docker-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
@@ -192,13 +186,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub for database fixture images
-        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
-        with:
-          registry: docker.io
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Compare baseline and candidate concurrently
         timeout-minutes: 25

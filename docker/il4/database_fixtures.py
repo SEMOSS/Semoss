@@ -8,8 +8,11 @@ import time
 
 
 LABEL = "org.semoss.comparison"
-POSTGRES_IMAGE = "postgres@sha256:724292da1f2e50bdccfc3302ce75bbba7f4a6076701b588cc795fcac65683550"
-MARIA_IMAGE = "mariadb@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68"
+# Mirrored from the upstream images of the same digest by
+# .github/workflows/il4-accp-mirror-db-fixtures.yml, so the comparison step
+# only ever pulls from GHCR (already authenticated) and never docker.io.
+POSTGRES_IMAGE = "ghcr.io/semoss/semoss-il4-db-fixtures/postgres@sha256:8478dfec5cc2631908a88f5a188920b83b1fcf62fc6de75ca3227b7c0c8dd8c2"
+MARIA_IMAGE = "ghcr.io/semoss/semoss-il4-db-fixtures/mariadb@sha256:d4553c800fa8bb09b4a9bb72707a215edfc7a3b7c33aceeeef86b3c24d281122"
 
 POSTGRES_START = """set -eu
 cat > /etc/semoss-pg_hba.conf <<'HBA'
