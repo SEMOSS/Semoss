@@ -106,7 +106,7 @@ jobs:
       - name: Clone Monolith dev-HEAD source
         working-directory: .
         env:
-          MONOLITH_COMMIT: 6c19c91b9ace3a89cacdd2953208f07be8c2e489
+          MONOLITH_COMMIT: 66464bb78f4deea2a522d73a069973d17dafc9ce
         run: |
           set -euo pipefail
           git clone --no-checkout https://github.com/SEMOSS/Monolith.git \
