@@ -1,0 +1,110 @@
+name: Mirror IL4 ACCP database fixture images to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      postgres_ref:
+        description: Upstream postgres image to mirror (tag or digest reference)
+        type: string
+        default: postgres@sha256:724292da1f2e50bdccfc3302ce75bbba7f4a6076701b588cc795fcac65683550
+      mariadb_ref:
+        description: Upstream mariadb image to mirror (tag or digest reference)
+        type: string
+        default: mariadb@sha256:79d59758afc91b89b120b0a8904d637f5a3b3e1c4900f29b740d6d46c72fef68
+
+permissions:
+  contents: read
+
+concurrency:
+  group: il4-accp-mirror-db-fixtures-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: codebuild-semoss-github-runner-${{ github.run_id }}-${{ github.run_attempt }}
+    container:
+      image: quay.io/semoss/test-quay:ubuntu-dind@sha256:5711ae2ade8db7de5e95f16bee23a89addd5d9aeb5b905c41c7ccca183ecda20
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Install Python for digest extraction
+        run: |
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends python3
+
+      - name: Check runner and resolve the target repository
+        run: |
+          set -euo pipefail
+          docker version
+          if [[ "$(docker info --format '{{.OSType}}')" != linux ]]; then
+            echo "::error::The Docker daemon must run Linux containers."
+            exit 1
+          fi
+          echo "REPO_PREFIX=ghcr.io/${GITHUB_REPOSITORY,,}-il4-db-fixtures" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Mirror postgres to GHCR
+        env:
+          SOURCE_REF: ${{ inputs.postgres_ref }}
+        run: |
+          set -euo pipefail
+          target="$REPO_PREFIX/postgres"
+          docker pull --platform linux/amd64 "$SOURCE_REF"
+          docker tag "$SOURCE_REF" "$target"
+          docker push "$target"
+          REPO_DIGESTS="$(docker image inspect "$target" --format '{{json .RepoDigests}}')" \
+            TARGET_PREFIX="$target@sha256:" python3 - <<'PY' >> "$GITHUB_ENV"
+          import json, os, re
+          prefix = os.environ["TARGET_PREFIX"]
+          matches = [v for v in json.loads(os.environ["REPO_DIGESTS"])
+                     if v.startswith(prefix) and re.fullmatch(r"[0-9a-f]{64}", v[len(prefix):])]
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one pushed GHCR digest for postgres")
+          print("POSTGRES_MIRROR_IMAGE=" + matches[0])
+          PY
+
+      - name: Mirror mariadb to GHCR
+        env:
+          SOURCE_REF: ${{ inputs.mariadb_ref }}
+        run: |
+          set -euo pipefail
+          target="$REPO_PREFIX/mariadb"
+          docker pull --platform linux/amd64 "$SOURCE_REF"
+          docker tag "$SOURCE_REF" "$target"
+          docker push "$target"
+          REPO_DIGESTS="$(docker image inspect "$target" --format '{{json .RepoDigests}}')" \
+            TARGET_PREFIX="$target@sha256:" python3 - <<'PY' >> "$GITHUB_ENV"
+          import json, os, re
+          prefix = os.environ["TARGET_PREFIX"]
+          matches = [v for v in json.loads(os.environ["REPO_DIGESTS"])
+                     if v.startswith(prefix) and re.fullmatch(r"[0-9a-f]{64}", v[len(prefix):])]
+          if len(matches) != 1:
+              raise SystemExit("Expected exactly one pushed GHCR digest for mariadb")
+          print("MARIADB_MIRROR_IMAGE=" + matches[0])
+          PY
+
+      - name: Summarize mirrored images
+        run: |
+          set -euo pipefail
+          {
+            echo "## Mirrored IL4 ACCP database fixture images"
+            echo
+            echo '```text'
+            echo "POSTGRES_MIRROR_IMAGE=$POSTGRES_MIRROR_IMAGE"
+            echo "MARIADB_MIRROR_IMAGE=$MARIADB_MIRROR_IMAGE"
+            echo '```'
+            echo
+            echo "Pin POSTGRES_IMAGE/MARIA_IMAGE in \`docker/il4/database_fixtures.py\` to"
+            echo "these two values so the main workflow pulls from this GHCR mirror."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "POSTGRES_MIRROR_IMAGE=$POSTGRES_MIRROR_IMAGE"
+          echo "MARIADB_MIRROR_IMAGE=$MARIADB_MIRROR_IMAGE"
