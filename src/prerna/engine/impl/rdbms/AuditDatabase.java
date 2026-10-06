@@ -109,7 +109,7 @@ public class AuditDatabase {
 			// default will be h2
 			rdbmsTypeStr = "H2_DB";
 		}
-		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.valueOf(rdbmsTypeStr);
+		RdbmsTypeEnum rdbmsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsTypeStr);
 
 		String fileLocation = dbFolder + DIR_SEPARATOR + "audit_log_database";
 		if (rdbmsType == RdbmsTypeEnum.H2_DB) {

@@ -280,7 +280,7 @@ public final class ProjectHelper {
 		String projectName = mainEngineProp.getProperty(Constants.PROJECT_ALIAS);
 
 		String rdbmsInsightsTypeStr = mainEngineProp.getProperty(Constants.RDBMS_INSIGHTS_TYPE, "H2_DB");
-		RdbmsTypeEnum rdbmsInsightsType = RdbmsTypeEnum.valueOf(rdbmsInsightsTypeStr);
+		RdbmsTypeEnum rdbmsInsightsType = RdbmsTypeEnum.getEnumFromStringOrThrow(rdbmsInsightsTypeStr);
 		String insightDatabaseLoc = SmssUtilities.getInsightsRdbmsFile(mainEngineProp).getAbsolutePath();
 		return loadInsightsDatabase(projectId, projectName, rdbmsInsightsType, insightDatabaseLoc, logger);
 	}
