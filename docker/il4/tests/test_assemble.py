@@ -189,9 +189,9 @@ class AssemblyTests(unittest.TestCase):
             base = Path(temporary)
             files = {}
             tomcat = base / "tomcat.tar.gz"
-            make_tar(tomcat, {"apache-tomcat-11.0.24/webapps/ROOT/index.html": b"remove",
-                             "apache-tomcat-11.0.24/bin/catalina.sh": b"test"})
-            files["org.apache.tomcat:tomcat:11.0.24:tar.gz"] = tomcat
+            make_tar(tomcat, {"apache-tomcat-11.0.26/webapps/ROOT/index.html": b"remove",
+                             "apache-tomcat-11.0.26/bin/catalina.sh": b"test"})
+            files["org.apache.tomcat:tomcat:11.0.26:tar.gz"] = tomcat
             home = base / "home.tar.gz"
             make_tar(home, {"semoss-0.0.1-SNAPSHOT/RDF_Map.prop":
                            b"USE_PYTHON false\nPYTHONHOME /missing\nNETTY_PYTHON false\n"
