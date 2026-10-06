@@ -731,6 +731,15 @@
 				<artifactId>animal-sniffer-annotations</artifactId>
 				<version>1.26</version>
 			</dependency>
+			<!-- Source: https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
+			<!-- Converge transitive pull (janusgraph-core -> metrics-graphite -> amqp-client 5.26.0);
+			     SEMOSS never calls com.rabbitmq.* directly. Closes CVE-2026-69220, CVE-2026-69219,
+			     CVE-2026-75516, CVE-2026-63337, CVE-2026-63335, CVE-2026-63336, CVE-2026-61634. -->
+			<dependency>
+				<groupId>com.rabbitmq</groupId>
+				<artifactId>amqp-client</artifactId>
+				<version>5.34.0</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<dependencies>
