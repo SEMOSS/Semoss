@@ -309,7 +309,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		projProps.setProperty(Constants.PASSWORD, "");
 		projProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/project/" + projectName + "__"
 				+ projectId
-				+ "/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+				+ "/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768");
 
 		Files.createDirectories(projectDir);
 		// save prop file
@@ -395,7 +395,7 @@ public class InsightCacheUtilityUnitTests extends AbstractSecurityUtilsUnitTests
 		projProps.setProperty(Constants.PASSWORD, "");
 		projProps.setProperty(Constants.CONNECTION_URL, "jdbc:h2:nio:@BaseFolder@/project/" + projectName + "__"
 				+ projectId
-				+ "/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768");
+				+ "/insights_database;query_timeout=180000;query_cache_size=24;cache_size=32768");
 
 		Files.createDirectories(projectDir);
 		// save prop file
