@@ -121,6 +121,24 @@ def docker(*args, input=None, timeout=120):
     return result.stdout
 
 
+def dump_diagnostics(containers):
+    """Best-effort container state/log dump for the CI log, so a readiness
+    failure is diagnosable from the job output alone: the containers are
+    destroyed by cleanup() moments after wait_healthy raises, and this
+    comparison never otherwise surfaces per-container detail."""
+    for name in containers:
+        try:
+            state = docker("inspect", "--format", "{{json .State}}", name)
+            print("-- {} state --\n{}".format(name, state.strip()), file=sys.stderr)
+        except RuntimeError as error:
+            print("-- {} state unavailable: {} --".format(name, error), file=sys.stderr)
+        try:
+            tail = docker("logs", "--tail", "200", name)
+        except RuntimeError as error:
+            tail = "(unavailable: {})".format(error)
+        print("-- {} logs (last 200 lines) --\n{}".format(name, tail), file=sys.stderr)
+
+
 def wait_healthy(containers):
     pending = set(containers)
     deadline = time.monotonic() + 300
@@ -128,15 +146,18 @@ def wait_healthy(containers):
         for name in sorted(pending):
             state = json.loads(docker("inspect", "--format", "{{json .State}}", name))
             if not isinstance(state, dict) or state.get("Running") is not True:
+                dump_diagnostics(containers)
                 raise RuntimeError("Comparison container exited before readiness")
             details = state.get("Health")
             health = details.get("Status") if isinstance(details, dict) else None
             if health not in ("starting", "healthy", "unhealthy"):
+                dump_diagnostics(containers)
                 raise RuntimeError("Comparison container has invalid health metadata")
             if health == "healthy":
                 pending.remove(name)
         if pending:
             if time.monotonic() >= deadline:
+                dump_diagnostics(containers)
                 raise RuntimeError("Comparison readiness deadline exceeded")
             time.sleep(3)
 
