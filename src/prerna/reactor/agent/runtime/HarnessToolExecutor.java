@@ -67,6 +67,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
@@ -326,7 +327,7 @@ final class HarnessToolExecutor {
                     || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
                 outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
             } else {
-                outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+                outcome = executeToolSafely(tc, ctx, paramMap, jobId, spawnsRemainingInBatch);
             }
 		} catch (AgentCancelledException cancelEx) {
             state.progress().endTool(tc.rawToolName, tc.toolParams, false, cancelEx.getMessage(), System.currentTimeMillis() - startMs);
@@ -499,8 +500,13 @@ final class HarnessToolExecutor {
 		}
 	}
 
-	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
-			AtomicInteger spawnsRemainingInBatch) {
+	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
+			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+		if (DeferredAgentTools.isControlTool(tc.rawToolName)) {
+			ToolExecutionResult result = DeferredAgentTools.execute(tc.rawToolName, tc.toolParams, ctx.getRoom(), paramMap);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
 
 		// 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
