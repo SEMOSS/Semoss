@@ -280,7 +280,7 @@ public final class AgentRunner {
 		AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 				maxReflections, explicitWorkspaceId);
 
-		// A run that starts an empty room claims it for the agent, as CreateRoom would.
+		// List a room this run starts under its workspace, as CreateRoom does.
 		if (!resumeMode) {
 			persistWorkspaceOnEmptyRoom(room, insight, explicitWorkspaceId);
 		}
@@ -424,14 +424,12 @@ public final class AgentRunner {
 	}
 
 	/**
-	 * Saves {@code workspaceId} on a room that has no messages yet, both as the
-	 * {@code ROOM.WORKSPACE_ID} column and as {@code options.workspace}, so a room
-	 * started by RunAgent matches one created with {@code CreateRoom(workspaceId)}.
-	 * Rooms with messages keep their saved workspace; the run only overlays it.
-	 * Skipped when the workspace is missing, disabled, or not viewable by the
-	 * user.
+	 * Sets {@code ROOM.WORKSPACE_ID} on a room with no messages yet so it shows in
+	 * GetWorkspaceRooms, matching {@code CreateRoom(workspaceId)}. Options are not
+	 * touched, so later runs can pick another agent or none. Skipped when the
+	 * workspace is missing, disabled, or not viewable by the user.
 	 */
-	static void persistWorkspaceOnEmptyRoom(Room room, Insight insight, String workspaceId) {
+	private static void persistWorkspaceOnEmptyRoom(Room room, Insight insight, String workspaceId) {
 		if (workspaceId == null || workspaceId.trim().isEmpty()) {
 			return;
 		}
@@ -445,21 +443,9 @@ public final class AgentRunner {
 					|| !SecurityProjectUtils.userCanViewProject(insight.getUser(), workspaceId)) {
 				return;
 			}
-
-			Map<String, Object> workspace = new HashMap<>();
-			workspace.put("workspace_id", workspaceId);
-			if (ws.get("name") != null) {
-				workspace.put("name", String.valueOf(ws.get("name")));
-			}
-			Map<String, Object> opts = new HashMap<>(room.getOptionsMap());
-			opts.put("workspace", workspace);
-
 			ModelInferenceLogsUtils.setRoomWorkspaceId(room.getId(), room.getUserId(), workspaceId);
-			ModelInferenceLogsUtils.setRoomOptions(room.getId(), room.getUserId(), opts);
-			room.setOptionsMap(opts);
-			logger.info("AgentRunner: saved workspace '{}' on empty room '{}'", workspaceId, room.getId());
 		} catch (Exception e) {
-			logger.warn("AgentRunner: could not save workspace '{}' on room '{}': {}", workspaceId, room.getId(),
+			logger.warn("AgentRunner: could not set workspace '{}' on room '{}': {}", workspaceId, room.getId(),
 					e.getMessage(), e);
 		}
 	}
