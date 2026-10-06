@@ -112,9 +112,13 @@ final class BrainSenderVote {
 					}
 					return null;
 				}, ownerId, ownerType);
+		// threads the owner corrected to "not automated": no vote counts them, and no vote can flag them
+		Set<String> corrected = new HashSet<>(CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE "
+				+ "OWNER_ID = ? AND OWNER_TYPE = ? AND AUTOMATED_OVERRIDE = ?", rs -> rs.getString(1), ownerId,
+				ownerType, true));
 		Map<String, List<String>> solo = new HashMap<>();
 		senders.forEach((thread, who) -> {
-			if (!ownerThreads.contains(thread) && who.size() == 1) {
+			if (!ownerThreads.contains(thread) && !corrected.contains(thread) && who.size() == 1) {
 				solo.computeIfAbsent(who.iterator().next(), k -> new ArrayList<>()).add(thread);
 			}
 		});
