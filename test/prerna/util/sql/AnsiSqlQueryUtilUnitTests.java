@@ -54,7 +54,7 @@ class AnsiSqlQueryUtilUnitTests {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:legacy_" + UUID.randomUUID())) {
 			try (var statement = connection.createStatement()) {
-				statement.execute("CREATE TABLE LEGACY (VALUE CLOB)");
+				statement.execute("CREATE TABLE LEGACY (\"VALUE\" CLOB)");
 			}
 			java.sql.Clob clob = connection.createClob();
 			try {
@@ -65,7 +65,7 @@ class AnsiSqlQueryUtilUnitTests {
 						ps.executeUpdate();
 					}
 				}
-				try (var ps = connection.prepareStatement("SELECT VALUE FROM LEGACY"); var rs = ps.executeQuery()) {
+				try (var ps = connection.prepareStatement("SELECT \"VALUE\" FROM LEGACY"); var rs = ps.executeQuery()) {
 					for (String expected : Arrays.asList(null, "", "  text  ", gson.toJson(Map.of("html", "<value>")),
 							"  clob  ")) {
 						assertTrue(rs.next());
