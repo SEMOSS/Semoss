@@ -12,6 +12,44 @@ from gaas_tcp_server_thread_local import smss_clear_app_imports, smss_get_runtim
 logger = logging.getLogger("SocketServer")
 
 
+def get_document_markdown(
+    file_path: str | os.PathLike,
+    *,
+    max_file_bytes: int = 20 * 1024 * 1024,
+    max_pages: int = 200,
+    max_chars: int = 1_000_000,
+) -> str:
+    """Read a local document through Docling and return its Markdown.
+
+    Relative paths resolve against this execution's ROOT, never the process cwd.
+    Absolute paths can identify an already authorized local file. Source files
+    stay unchanged; no output file is written. Notes and page/slide/sheet labels
+    are included, and partial, empty or oversized extraction raises an error.
+    PDF/OCR requires available local model artifacts. Conversion is local, with
+    a cooperative pipeline timeout; imports/model initialization are not bounded
+    by that timeout. Native readers remain necessary for exact Office semantics.
+    """
+    from pathlib import Path
+    from genai_client.message_builders.semoss_base.document_input import (
+        DocumentInputProcessor,
+    )
+
+    source = Path(file_path)
+    if not source.is_absolute():
+        root = smss_get_runtime_var("ROOT")
+        if not root:
+            raise RuntimeError("ROOT is unavailable; provide an absolute file path")
+        root_path = Path(root).resolve()
+        source = (root_path / source).resolve()
+        if not source.is_relative_to(root_path):
+            raise ValueError("Relative document paths must stay within ROOT")
+    return DocumentInputProcessor(
+        max_file_bytes=max_file_bytes,
+        max_pages=max_pages,
+        max_text_chars=max_chars,
+    ).extract_file(source)
+
+
 def deprecated(reason: str = "", version: str = ""):
     """Lightweight marker decorator, akin to Java's @Deprecated.
 
@@ -900,13 +938,15 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_deferred = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
-                mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
+                mcp_metadata = dict(getattr(func_obj, "_mcp_metadata", {}))
                 if mcp_metadata.get("execution", None) is not None:
                     mcp_execution_mode = mcp_metadata.pop("execution")
+                mcp_deferred = mcp_metadata.pop("deferred", None)
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
 
@@ -936,6 +976,7 @@ def generate_mcp(
 
                                 if mcp_metadata.get("execution", None) is not None:
                                     mcp_execution_mode = mcp_metadata.pop("execution")
+                                mcp_deferred = mcp_metadata.pop("deferred", None)
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
 
@@ -975,6 +1016,13 @@ def generate_mcp(
                             cleaned_mcp_ui_map[key] = value
                         else:
                             cleaned_mcp_ui_map[key] = None
+
+                    # same rules as MCPUtility.copyUiHints on the Java side
+                    if key == "component" and isinstance(value, str) and value.strip():
+                        cleaned_mcp_ui_map[key] = value.strip()
+
+                    if key == "autoOpen" and isinstance(value, (bool, str)):
+                        cleaned_mcp_ui_map[key] = str(value).lower() == "true"
 
             this_function = node.name
             if (
@@ -1054,6 +1102,9 @@ def generate_mcp(
                     # so they share one generator id.
                     "SMSS_MCP_GENERATOR": "MakePythonMCP",
                 }
+                # only a real boolean true defers, matching DeferredAgentTools
+                if mcp_deferred is True:
+                    _function_meta["SMSS_MCP_DEFERRED"] = True
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
@@ -1309,7 +1360,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
     """
 
     def _decorator(func):

@@ -169,14 +169,18 @@ public enum ReactorKeysEnum {
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MCP_METADATA("mcpMetadata", 								"""
-			Additional metadata to be included within the MCP execution. Keys can be :
-			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool will never be selected)
-			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), and <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden")
+			List of metadata maps, one per reactor in the same order. Keys can be :
+			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool is hidden from the model)
+			<SMSS_MCP_DEFERRED> - boolean true to hide the tool's schema in RunAgent until the agent loads it with SearchTools/LoadTools. Supported by MakePixelMCP, MakeRoomPixelMCP and MakeUserPixelMCP
+			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden"), <UI_COMPONENT> (native element name for the tool call, e.g. "email-compose") and <UI_AUTO_OPEN> (boolean, open the tool view automatically)
 			""".replace("<SMSS_MCP_EXECUTION>", MCPUtility.SMSS_MCP_EXECUTION)
+			.replace("<SMSS_MCP_DEFERRED>", MCPUtility.SMSS_MCP_DEFERRED)
 			.replace("<SMSS_MCP_UI>", MCPUtility.SMSS_MCP_UI)
 			.replace("<UI_RESOURCE_URI>", MCPUtility.UI_RESOURCE_URI)
 			.replace("<UI_LOADING_MESSAGE>", MCPUtility.UI_LOADING_MESSAGE)
 			.replace("<UI_DISPLAY_LOCATION>", MCPUtility.UI_DISPLAY_LOCATION)
+			.replace("<UI_COMPONENT>", MCPUtility.UI_COMPONENT)
+			.replace("<UI_AUTO_OPEN>", MCPUtility.UI_AUTO_OPEN)
 			),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
