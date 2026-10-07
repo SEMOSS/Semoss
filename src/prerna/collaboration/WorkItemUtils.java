@@ -555,6 +555,21 @@ public final class WorkItemUtils {
 		}
 	}
 
+	// the owner said the thread is not automated: what was dismissed as automated comes back
+	public static List<String> reopenAutomated(String ownerId, String ownerType, String threadId) {
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			List<String> ids = CollaborationDbUtils.query("SELECT ITEM_ID FROM WORK_ITEM WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ? AND STATUS = ? AND CLOSED_REASON = ? ORDER BY ITEM_ID",
+					rs -> rs.getString(1), ownerId, ownerType, threadId, DISMISSED, "automated");
+			for (String itemId : ids) {
+				Map<String, String> current = currentValues(ownerId, ownerType, itemId);
+				apply(ownerId, ownerType, itemId, current,
+						next(ownerId, ownerType, current, Map.of("status", OPEN), BRAIN), BRAIN, "owner: not automated");
+			}
+			return ids;
+		}
+	}
+
 	// the sender turned out to be automated: dismiss what their threads raised
 	public static List<String> dismissAutomated(String ownerId, String ownerType, List<String> threadIds) {
 		if (threadIds.isEmpty()) {
