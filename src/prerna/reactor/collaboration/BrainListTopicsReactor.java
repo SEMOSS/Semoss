@@ -67,7 +67,8 @@ public class BrainListTopicsReactor extends AbstractCollaborationReactor {
 	@Override
 	public String getReactorDescription() {
 		return "Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
-				+ "in full instead: its description, goals, notes, and people with their names, roles, and state";
+				+ "in full instead: its description, goals, notes, and people with their names, roles, and state. "
+				+ "Its notes are the owner's memories about the topic, listed while the owner has memory on";
 	}
 
 	@Override

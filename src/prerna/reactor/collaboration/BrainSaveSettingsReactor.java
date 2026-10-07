@@ -61,7 +61,7 @@ public class BrainSaveSettingsReactor extends AbstractCollaborationReactor {
 	@Override
 	protected String getDescriptionForKey(String key) {
 		if (KEY.equals(key)) {
-			return "Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, version";
+			return "Partial settings: fileAt, askAt, sourcesJson {sourceId: bool}, memory {use: bool, learn: bool}, version";
 		}
 		return super.getDescriptionForKey(key);
 	}
