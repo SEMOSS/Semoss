@@ -2,6 +2,7 @@ import io
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import tarfile
 import tempfile
 import unittest
@@ -10,7 +11,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 from assemble import archive_path, has_bc_classes, linux_paths, configure_web, set_properties
-from assemble import extract, main, resolve, overlay_jdbc, JDBC_OVERLAYS
+from assemble import extract, main, resolve, overlay_jdbc, JDBC_OVERLAYS, prune_semossweb_source
 
 
 def zip_bytes(entries):
@@ -144,6 +145,63 @@ class AssemblyTests(unittest.TestCase):
             extract(war, base / "zip")
             self.assertEqual((base / "zip/WEB-INF/web.xml").read_bytes(), b"<web-app/>")
 
+    def semossweb_fixture(self, base):
+        semossweb = base / "SemossWeb"
+        (semossweb / "WEB-INF").mkdir(parents=True)
+        (semossweb / "WEB-INF/web.xml").write_text("<web-app/>")
+        (semossweb / "META-INF").mkdir()
+        (semossweb / "index.html").write_text("redirect shim")
+        # Source-leak files a published semossweb WAR actually ships today.
+        (semossweb / "pnpm-lock.yaml").write_text("lockfile")
+        (semossweb / "package.json").write_text("{}")
+        (semossweb / "AGENTS.md").write_text("agent instructions")
+        (semossweb / ".npmrc").write_text("registry=")
+        (semossweb / "artifact.zip").write_bytes(b"stray build artifact")
+        (semossweb / "libs/ui/src").mkdir(parents=True)
+        (semossweb / "libs/ui/src/Button.tsx").write_text("source")
+        for name in ("client", "playground", "terminal"):
+            package = semossweb / "packages" / name
+            (package / "src").mkdir(parents=True)
+            (package / "src/App.tsx").write_text("source")
+            (package / "package.json").write_text("{}")
+            (package / "dist").mkdir()
+            (package / "dist/index.html").write_text("built app")
+        legacy = semossweb / "packages/legacy"
+        legacy.mkdir()
+        (legacy / "app.constants.js").write_text("legacy runtime file")
+        (legacy / "dist").mkdir()
+        (legacy / "dist/index.html").write_text("built legacy app")
+        (semossweb / "packages/legacy.zip").write_bytes(b"stray legacy artifact")
+        return semossweb
+
+    def test_prune_semossweb_source_keeps_only_runtime_output(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            semossweb = self.semossweb_fixture(Path(temporary))
+            removed = prune_semossweb_source(semossweb)
+
+            for leaked in ("pnpm-lock.yaml", "package.json", "AGENTS.md", ".npmrc",
+                           "artifact.zip", "libs", "packages/legacy.zip"):
+                self.assertIn(leaked, removed)
+                self.assertFalse((semossweb / leaked).exists())
+            for name in ("client", "playground", "terminal"):
+                self.assertIn("packages/" + name + "/src", removed)
+                self.assertIn("packages/" + name + "/package.json", removed)
+                self.assertFalse((semossweb / "packages" / name / "src").exists())
+                self.assertEqual((semossweb / "packages" / name / "dist/index.html").read_text(),
+                                 "built app")
+            # legacy is a separate, pre-built artifact: left alone entirely, not just its dist/.
+            self.assertTrue((semossweb / "packages/legacy/app.constants.js").exists())
+            self.assertTrue((semossweb / "WEB-INF/web.xml").exists())
+            self.assertTrue((semossweb / "META-INF").exists())
+            self.assertTrue((semossweb / "index.html").exists())
+
+    def test_prune_semossweb_source_fails_loudly_if_dist_missing(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            semossweb = self.semossweb_fixture(Path(temporary))
+            shutil.rmtree(semossweb / "packages/client/dist")
+            with self.assertRaisesRegex(ValueError, "packages/client/dist"):
+                prune_semossweb_source(semossweb)
+
     def test_reject_archive_links(self):
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
@@ -203,7 +261,14 @@ class AssemblyTests(unittest.TestCase):
             war.write_bytes(zip_bytes({"WEB-INF/web.xml": b"<web-app/>"}))
             files["org.semoss:monolith:0.0.1-SNAPSHOT:war"] = war
             ui = base / "ui.war"
-            ui.write_bytes(zip_bytes({"index.html": b"UI"}))
+            ui.write_bytes(zip_bytes({
+                "index.html": b"UI",
+                "pnpm-lock.yaml": b"lockfile",
+                "packages/client/dist/index.html": b"built client",
+                "packages/playground/dist/index.html": b"built playground",
+                "packages/terminal/dist/index.html": b"built terminal",
+                "packages/legacy/dist/index.html": b"built legacy",
+            }))
             files["org.semoss:semossweb:5.4.0:war"] = ui
             libraries = base / "libraries.tar.gz"
             standard = zip_bytes({"org/bouncycastle/Test.class": b"test"})
