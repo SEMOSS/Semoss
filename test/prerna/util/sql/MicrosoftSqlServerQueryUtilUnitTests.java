@@ -35,7 +35,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import java.sql.PreparedStatement;
 import java.sql.Types;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+import prerna.query.querystruct.selectors.QueryFunctionSelector;
 
 class MicrosoftSqlServerQueryUtilUnitTests {
 
@@ -57,4 +62,15 @@ class MicrosoftSqlServerQueryUtilUnitTests {
 		assertTrue(util.getClobDataTypeName().toUpperCase().contains("VARCHAR"));
 		assertTrue(util.getBlobDataTypeName().toUpperCase().contains("VARBINARY"));
 	}
+
+	@Test
+	void preparedSearchBindsPatindexPatternWithoutSqlEscaping() {
+		var util = new MicrosoftSqlServerQueryUtil();
+		var filter = (SimpleQueryFilter) util.getPreparedSearchRegexFilter("ITEMS__V", "O'Brien\\path");
+		var function = (QueryFunctionSelector) filter.getLComparison().getValue();
+		Assertions.assertEquals("%O'Brien\\path%",
+				((QueryConstantSelector) function.getInnerSelector().getFirst()).getConstant());
+		Assertions.assertEquals("PATINDEX", function.getFunction());
+	}
+
 }
