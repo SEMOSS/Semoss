@@ -25,39 +25,10 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-/*******************************************************************************
- * Copyright 2015 Defense Health Agency (DHA)
- *
- * If your use of this software does not include any GPLv2 components:
- *
- * 	Licensed under the Apache License, Version 2.0 (the "License");
- * 	you may not use this file except in compliance with the License.
- * 	You may obtain a copy of the License at
- *
- * 	   http://www.apache.org/licenses/LICENSE-2.0
- *
- * 	Unless required by applicable law or agreed to in writing, software
- * 	distributed under the License is distributed on an "AS IS" BASIS,
- * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * 	See the License for the specific language governing permissions and
- * 	limitations under the License.
- * ----------------------------------------------------------------------------
- * If your use of this software includes any GPLv2 components:
- *
- * 	This program is free software; you can redistribute it and/or
- * 	modify it under the terms of the GNU General Public License
- * 	as published by the Free Software Foundation; either version 2
- * 	of the License, or (at your option) any later version.
- *
- * 	This program is distributed in the hope that it will be useful,
- * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
- * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * 	GNU General Public License for more details.
- *******************************************************************************/
 package prerna.engine.impl.guardrail;
 
-import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -201,6 +172,12 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 	private EngineDefaults defaults;
 
+	public JevPolicyGuardrailEngine() {
+		this.keysToGet = new String[] { PROMPT_PARAM, QUESTION_TYPE_PARAM, QUESTION_INSTRUCTIONS_PARAM,
+				QUESTION_CRITERIA_PARAM, VIOLATION_CHOICES_PARAM, VIOLATION_DIRECTION_PARAM,
+				CONFIDENCE_THRESHOLD_PARAM, BLOCKED_MESSAGE_PARAM, FAIL_OPEN_PARAM };
+	}
+
 	@Override
 	public void open(Properties smssProp) throws Exception {
 		super.open(smssProp);
@@ -323,7 +300,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		}
 		double probabilityYes = ((Number) answer.get("noul")).doubleValue();
 		boolean answeredYes = probabilityYes >= 0.5;
-		// confidence is the distance from the nearest decision boundary
+		// confidence is the probability of the selected yes/no answer
 		double confidence = answeredYes ? probabilityYes : 1 - probabilityYes;
 		boolean violated = yesViolates ? answeredYes : !answeredYes;
 		boolean determined = confidence >= threshold;
@@ -544,6 +521,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				MODEL_ENGINE_ID: <id of a TYPESAFE model engine to judge with>
 				QUESTION_TYPE: NOUL
 				QUESTION_INSTRUCTIONS: Is this request within the approved scope for this assistant?
+				VIOLATION_DIRECTION: NO
 				```
 
 				All other keys are optional: `VIOLATION_DIRECTION` (YES/NO, for noul), `QUESTION_CRITERIA`
@@ -570,7 +548,9 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				              "prompt": "arg0"
 				            },
 				            "directParameters": {
-				              "questionInstructions": "Is this request within the approved scope: monthly reporting questions only?"
+				              "questionInstructions": "Is this request within the approved scope: monthly reporting questions only?",
+				              "violationDirection": "NO",
+				              "blockedMessage": "This assistant only answers monthly reporting questions."
 				            },
 				            "blockOnGuardrailFailure": true,
 				            "respondWithGuardrailMessage": true,
@@ -626,8 +606,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 				## Decision semantics
 
-				- **noul** - the judge returns a violation probability `p` (0-1). `p >= 0.5` answers yes.
-				  The confidence is the distance from the boundary. A violation blocks when the answer
+				- **noul** - the judge returns a yes probability `p` (0-1). `p >= 0.5` answers yes.
+				  The confidence is `max(p, 1-p)`, the probability of the selected answer. A violation blocks when the answer
 				  points at the configured `VIOLATION_DIRECTION` and confidence meets
 				  `CONFIDENCE_THRESHOLD`, inclusive.
 				- **choice** - the judge selects a configured choice with a confidence (0-1). Selecting a
