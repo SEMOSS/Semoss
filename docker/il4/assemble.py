@@ -134,6 +134,55 @@ def extract(source, destination, root=None):
                         shutil.copyfileobj(stream, output)
 
 
+SEMOSSWEB_RUNTIME_PACKAGES = ("client", "playground", "terminal")
+
+
+def prune_semossweb_source(semossweb):
+    """The published semossweb WAR packages its entire pnpm monorepo, not
+    just the built static assets: its root index.html only ever redirects
+    to packages/client/dist/, but the WAR's own maven-war-plugin config
+    uses the repo root as warSourceDirectory with an exclude list that
+    never covers the pnpm/npm layer (pnpm-lock.yaml, package.json, each
+    package's own src/, libs/*, AGENTS.md, a stray 34MB artifact.zip, ...).
+    None of that sits under WEB-INF/, so Tomcat's default servlet serves
+    all of it directly - confirmed live (200 OK) against this exact WAR's
+    content for pnpm-lock.yaml, package.json, AGENTS.md, a .tsx source
+    file, and artifact.zip.
+
+    This prunes the extracted WAR down to what index.html's redirect
+    chain actually serves, until semossweb's own packaging excludes this
+    upstream: each runtime package's compiled dist/ (nothing else from
+    that package), the pre-built packages/legacy (a different, separately
+    reviewed artifact - left alone rather than assumed safe to prune),
+    and WEB-INF/META-INF. Fails loudly instead of silently shipping
+    source if a future semossweb release restructures this and a
+    runtime package's dist/ goes missing.
+    """
+    keep_top_level = {"index.html", "WEB-INF", "META-INF", "packages"}
+    keep_packages = set(SEMOSSWEB_RUNTIME_PACKAGES) | {"legacy"}
+    removed = []
+    for entry in sorted(semossweb.iterdir()):
+        if entry.name not in keep_top_level:
+            removed.append(entry.name)
+            shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
+    packages = semossweb / "packages"
+    for entry in sorted(packages.iterdir()):
+        if entry.name not in keep_packages:
+            removed.append("packages/" + entry.name)
+            shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
+    for name in SEMOSSWEB_RUNTIME_PACKAGES:
+        package = packages / name
+        if not (package / "dist").is_dir():
+            raise ValueError("Expected packages/" + name + "/dist in semossweb; packaging may have changed")
+        for entry in sorted(package.iterdir()):
+            if entry.name != "dist":
+                removed.append("packages/" + name + "/" + entry.name)
+                shutil.rmtree(entry) if entry.is_dir() else entry.unlink()
+    if not (packages / "client/dist").is_dir():
+        raise ValueError("semossweb pruning removed something it shouldn't have")
+    return removed
+
+
 def resolve(manifest, downloads):
     project = ET.Element("project")
     for key, value in (("modelVersion", "4.0.0"), ("groupId", "local"),
@@ -184,6 +233,7 @@ def main(output=Path("/out")):
     extract(files["org.semoss:monolith:0.0.1-SNAPSHOT:war"], monolith)
     extract(files["org.semoss:monolith:0.0.1-SNAPSHOT:tar.gz:libraries"], monolith, "monolith-0.0.1-SNAPSHOT")
     extract(files["org.semoss:semossweb:5.4.0:war"], tomcat / "webapps/SemossWeb")
+    pruned_semossweb_source = prune_semossweb_source(tomcat / "webapps/SemossWeb")
     removed = []
     excluded_connectors = []
     for jar in sorted(monolith.glob("WEB-INF/lib/*.jar")):
@@ -248,6 +298,7 @@ def main(output=Path("/out")):
         "mode": "assemble published 5.4.0 binaries; not a source rebuild",
         "removed_standard_bc_jars": removed,
         "excluded_connectors": excluded_connectors,
+        "pruned_semossweb_source": pruned_semossweb_source,
         "jdbc_overlays": jdbc_overlays,
         "crypto_status": "experimental/nonvalidated; no certificate coverage claimed",
         "accp_native": accp_native,
