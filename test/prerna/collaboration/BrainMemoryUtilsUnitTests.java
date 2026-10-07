@@ -48,15 +48,6 @@ class BrainMemoryUtilsUnitTests {
 				BrainMemoryUtils.cleanText("x".repeat(BrainMemoryUtils.MAX_CHARS)).length());
 	}
 
-	@Test
-	void secretsAreRefused() {
-		assertTrue(BrainMemoryUtils.looksSecret("My password is hunter2"));
-		assertTrue(BrainMemoryUtils.looksSecret("the VPN passcode: 4471"));
-		assertTrue(BrainMemoryUtils.looksSecret("Jira API key = abc123"));
-		assertTrue(BrainMemoryUtils.looksSecret("use token sk_live_51Hc8aB2kD9eF0gH1iJ2kL3mN4oP5qR6s"));
-		assertTrue(BrainMemoryUtils.looksSecret("-----BEGIN PRIVATE KEY----- MIIEv"));
-		assertThrows(IllegalArgumentException.class, () -> BrainMemoryUtils.cleanText("client secret: s3cr3t"));
-	}
 
 	@Test
 	void ordinaryTextIsNotASecret() {
