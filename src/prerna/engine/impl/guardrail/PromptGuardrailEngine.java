@@ -39,11 +39,8 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.google.gson.Gson;
-
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.function.FunctionParameter;
-import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.message.InputMessage;
@@ -68,9 +65,6 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 	public static final String SYSTEM_PROMPT_KEY = "SYSTEM_PROMPT";
 	public static final String BLOCKED_MESSAGE_KEY = "BLOCKED_MESSAGE";
 	public static final String FAIL_OPEN_KEY = "FAIL_OPEN";
-
-	/** Parameter key carrying an explicitly supplied conversation for screening. */
-	static final String FULL_PROMPT_PARAM = AbstractModelEngine.FULL_PROMPT;
 
 	protected static final String PROMPT_PARAM = "prompt";
 
@@ -224,15 +218,7 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 			return (String) rawValue;
 		}
 		if (rawValue instanceof InputMessage) {
-			InputMessage inputMessage = (InputMessage) rawValue;
-			// a passthrough route sends the conversation as the full_prompt
-			// parameter and a placeholder as the message text; screen the
-			// conversation the engine will actually run, not the placeholder
-			String fullPromptText = fullPromptText(inputMessage);
-			if (fullPromptText != null) {
-				return fullPromptText;
-			}
-			return inputMessage.getFullInputPrompt();
+			return ((InputMessage) rawValue).getFullInputPrompt();
 		}
 		if (rawValue instanceof AbstractModelEngineResponse) {
 			Object response = ((AbstractModelEngineResponse) rawValue).toMap().get("response");
@@ -249,101 +235,12 @@ public abstract class PromptGuardrailEngine extends AbstractGuardrailReactorFunc
 			if (body != null || subject != null) {
 				return joinText(Arrays.asList(subject, body));
 			}
-			String fullPrompt = chatFullPromptText(valueMap);
-			if (fullPrompt != null) {
-				return fullPrompt;
-			}
 			return extractText(valueMap.get("messages"));
 		}
 		if (rawValue instanceof Collection) {
 			return joinText((Collection<?>) rawValue);
 		}
 		return rawValue.toString();
-	}
-
-	/**
-	 * The conversation a passthrough route sends as the message's full_prompt
-	 * parameter. The final user turn is what a new request adds to the
-	 * conversation, so its contents are what an input guardrail screens; a
-	 * full_prompt without a user turn screens everything. A full_prompt entry is
-	 * a chat-shaped map ({@code role} + one of {@code content}/{@code message}).
-	 *
-	 * @param inputMessage the intercepted message
-	 * @return the full prompt text to screen, or null when none is present
-	 */
-	public static String fullPromptText(InputMessage inputMessage) {
-		Map<String, Object> parameters = inputMessage.getParamMap();
-		if (parameters == null) {
-			return null;
-		}
-		Object fullPrompt = parameters.get(FULL_PROMPT_PARAM);
-		if (fullPrompt == null) {
-			return null;
-		}
-		if (fullPrompt instanceof String) {
-			try {
-				fullPrompt = new Gson().fromJson((String) fullPrompt, List.class);
-			} catch (RuntimeException e) {
-				return null;
-			}
-		}
-		if (!(fullPrompt instanceof Collection)) {
-			return null;
-		}
-		List<String> userTexts = new ArrayList<>();
-		List<String> allTexts = new ArrayList<>();
-		for (Object item : (Collection<?>) fullPrompt) {
-			if (!(item instanceof Map)) {
-				continue;
-			}
-			Map<?, ?> entry = (Map<?, ?>) item;
-			Object content = entry.containsKey("message") ? entry.get("message") : entry.get("content");
-			if (!(content instanceof String) || ((String) content).isEmpty()) {
-				continue;
-			}
-			allTexts.add((String) content);
-			if ("user".equalsIgnoreCase(String.valueOf(entry.get("role")))) {
-				userTexts.add((String) content);
-			}
-		}
-		if (userTexts.isEmpty() && allTexts.isEmpty()) {
-			return null;
-		}
-		StringBuilder combined = new StringBuilder();
-		for (String text : userTexts.isEmpty() ? allTexts : userTexts) {
-			if (combined.length() > 0) {
-				combined.append('\n');
-			}
-			combined.append(text);
-		}
-		return combined.toString();
-	}
-
-	/**
-	 * A full_prompt parameter embedded in a plain map of engine parameters (the
-	 * engine layer removes and converts it just before inference).
-	 *
-	 * @param valueMap a mapped parameter that resolved to a map
-	 * @return the full prompt text to screen, or null when the map carries none
-	 */
-	private static String chatFullPromptText(Map<String, Object> valueMap) {
-		Object fullPrompt = valueMap.get(FULL_PROMPT_PARAM);
-		if (!(fullPrompt instanceof Collection)) {
-			return null;
-		}
-		StringBuilder combined = new StringBuilder();
-		for (Object item : (Collection<?>) fullPrompt) {
-			if (item instanceof Map) {
-				Object content = ((Map<?, ?>) item).get("content");
-				if (content instanceof String && !((String) content).isEmpty()) {
-					if (combined.length() > 0) {
-						combined.append('\n');
-					}
-					combined.append(content);
-				}
-			}
-		}
-		return combined.length() > 0 ? combined.toString() : null;
 	}
 
 	private static String joinText(Collection<?> values) {
