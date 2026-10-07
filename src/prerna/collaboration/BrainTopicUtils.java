@@ -119,10 +119,17 @@ public final class BrainTopicUtils {
 		return getTopic(owner.getValue0(), owner.getValue1(), topicId);
 	}
 
-	// one topic by id, or by a name that picks exactly one
+	// one topic by id, or by a name that picks exactly one, for the assistant: with its notes, the Brain memories
+	// about it, while the owner has memory on (filtered as SearchMemories filters them)
 	public static Map<String, Object> getTopic(User user, String topicId, String topicName) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return getTopic(user, BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName));
+		String id = BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName);
+		Map<String, Object> topic = getTopic(user, id);
+		topic.put("notes", BrainMemoryUtils.assistantMemoryOn(user)
+				? BrainMemoryUtils.search(user, null, List.of(new BrainMemoryUtils.Ref(BrainMemoryUtils.TOPIC, id)),
+						BrainMemoryUtils.DEFAULT_LIMIT).get("items")
+				: List.of());
+		return topic;
 	}
 
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {

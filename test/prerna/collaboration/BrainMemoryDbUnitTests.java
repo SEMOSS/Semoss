@@ -485,6 +485,40 @@ class BrainMemoryDbUnitTests {
 		}
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void editTopicKeepsItsNotesAsMemoriesAboutTheTopic() throws Exception {
+		topic("t-acme", "Acme");
+		topic("t-other", "Other");
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, "Close by Q4",
+				"Procurement needs three quotes", null);
+		assertEquals(1, count("BRAIN_TOPIC_NOTE"));
+		Map<String, Object> topic = BrainTopicUtils.getTopic(user, null, "Acme");
+		List<Map<String, Object>> notes = (List<Map<String, Object>>) topic.get("notes");
+		assertEquals(1, notes.size());
+		assertEquals("Procurement needs three quotes", notes.get(0).get("text"));
+		assertEquals(true, notes.get(0).get("confirmed"));
+		String noteId = (String) notes.get(0).get("id");
+		assertEquals(Set.of("topic:t-acme"), refs(BrainMemoryUtils.find(ownerId, ownerType, noteId)));
+		String goalId = (String) ((List<Map<String, Object>>) topic.get("goals")).get(0).get("noteId");
+
+		// with memory off the assistant does not see them
+		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, MEMORY_USE) "
+				+ "VALUES (?, ?, 85, 40, 1, FALSE)", ownerId, ownerType);
+		assertEquals(List.of(), BrainTopicUtils.getTopic(user, "t-acme", null).get("notes"));
+
+		// a note of another topic is not this topic's to delete; this topic's note and goal are
+		String elsewhere = (String) BrainMemoryUtils.saveMemory(user, Map.of("text", "Other needs a quote",
+				"about", List.of(Map.of("type", "topic", "id", "t-other")))).get("id");
+		assertThrows(IllegalArgumentException.class, () -> BrainAgentEdits.editTopic(user, "t-acme", null, null, null,
+				null, null, null, null, null, elsewhere));
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, noteId);
+		BrainAgentEdits.editTopic(user, "t-acme", null, null, null, null, null, null, null, null, goalId);
+		assertNull(BrainMemoryUtils.find(ownerId, ownerType, noteId));
+		assertNotNull(BrainMemoryUtils.find(ownerId, ownerType, elsewhere));
+		assertEquals(0, count("BRAIN_TOPIC_NOTE"));
+	}
+
 	// ---- settings and reset ----
 
 	@Test
