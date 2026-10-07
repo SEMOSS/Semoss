@@ -615,9 +615,14 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				```
 
 				The output reactor maps the completed model response to `prompt` and withholds the result
-				when the judge marks it. A violating response is blocked before delivery. Streaming
-				responses are checked as each message completes; content already delivered to the caller
-				cannot be recalled, and this engine only protects what the pipeline still holds.
+				when the judge marks it. A violating response is blocked before delivery on a
+				non-streaming call. On a streaming call (`llmStreaming` / SSE routes), the model's
+				partial output is drained to the client while the guarded method is still running, so
+				content chunks are already emitted by the time the output reactor sees the completed
+				response - the judge then reviews what was sent, but a violation can no longer be
+				recalled. Protecting streamed content at delivery time requires an input-side
+				guardrail or a stream-aware check; do not count the output reactor as protection
+				for content already emitted.
 
 				## Decision semantics
 
