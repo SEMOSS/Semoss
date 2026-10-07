@@ -71,9 +71,14 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.collaboration.BrainEditThreadReactor;
+import prerna.reactor.collaboration.BrainEditTopicReactor;
 import prerna.reactor.collaboration.BrainForgetReactor;
+import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
+import prerna.reactor.collaboration.BrainListTopicsReactor;
 import prerna.reactor.collaboration.BrainRememberReactor;
 import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
+import prerna.reactor.collaboration.BrainSearchThreadsReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
@@ -107,7 +112,15 @@ public final class CollaborationAgentTools {
 		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
-		REACTORS.put("ListMail", MicrosoftOutlookListMailReactor.class);
+		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
+		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
+		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
+		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
+		// change the owner's Brain; both wait for the owner to approve
+		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
+		REACTORS.put("EditThread", BrainEditThreadReactor.class);
+		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
+		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
 		// the email in the Work editor: written there, sent from it once the owner presses Send
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
@@ -137,6 +150,20 @@ public final class CollaborationAgentTools {
 	}
 
 	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
+
+	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail");
+
+	// said first in a mail tool's description, so the model knows which side of Brain it is on
+	private static final Map<String, String> SOURCE_NOTES = Map.of(
+			"ListTopics", "[Brain: topics, or one topic in full with its people]",
+			"EditTopic", "[Brain: changes a topic]",
+			"EditThread", "[Brain: changes a thread's topics]",
+			"SearchMail", "[Brain: the owner's classified mail, start here; one topic or all]",
+			"ReadThread", "[Brain: reads a thread found in Brain]",
+			"ListM365Mail", "[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
+					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
+					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
 
 	private static volatile Map<String, JSONObject> toolsByName;
 
@@ -251,6 +278,10 @@ public final class CollaborationAgentTools {
 				}
 				toolNameOf.put(meta.getString(MCPUtility.SMSS_FUNCTION_NAME), name);
 				meta.put("SMSS_TOOL_KIND", TOOL_KIND);
+				// hidden from the model until it finds and loads it (SearchTools, LoadTools)
+				if (DEFERRED.contains(name)) {
+					meta.put(MCPUtility.SMSS_MCP_DEFERRED, true);
+				}
 				tool.put("name", name);
 				tool.put("title", MCPUtility.formatToTitleCase(name));
 				tool.getJSONObject("inputSchema").put("title", name + "_Arguments");
@@ -264,7 +295,9 @@ public final class CollaborationAgentTools {
 		}
 		Pattern reactorName = Pattern.compile("\\b(" + String.join("|", toolNameOf.keySet()) + ")\\b");
 		for (JSONObject tool : built.values()) {
-			tool.put("description", renamed(tool.getString("description"), reactorName, toolNameOf));
+			String note = SOURCE_NOTES.get(tool.getString("name"));
+			tool.put("description", (note == null ? "" : note + " ")
+					+ renamed(tool.getString("description"), reactorName, toolNameOf));
 			JSONObject properties = tool.getJSONObject("inputSchema").optJSONObject("properties");
 			if (properties != null) {
 				for (String key : properties.keySet()) {

@@ -3183,7 +3183,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get a vector of the user ids
+	 * Get an array of the user ids
 	 * 
 	 * @param user
 	 * @return
@@ -3198,6 +3198,22 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return filters;
+	}
+
+	/**
+	 * Original login IDs for JDBC binding. Do not SQL-escape these values.
+	 *
+	 * @param user the user for whom to get filter values
+	 * @return a collection of the user's login IDs
+	 */
+	static Collection<String> getUserFilterValues(User user) {
+		List<String> values = new ArrayList<>();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				values.add(user.getAccessToken(login).getId());
+			}
+		}
+		return values;
 	}
 
 	/**
@@ -3299,6 +3315,24 @@ public abstract class AbstractSecurityUtils {
 					Utility.inputSQLSanitizer(creator.getValue0())));
 			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
 					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Creator filters for JDBC binding. Pass original values without SQL escaping.
+	 */
+	static IQueryFilter getPreparedCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==", creator.getValue0()));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==", creator.getValue1()));
 			anyCreator.addFilter(thisCreator);
 		}
 		return anyCreator;

@@ -119,6 +119,12 @@ public final class BrainTopicUtils {
 		return getTopic(owner.getValue0(), owner.getValue1(), topicId);
 	}
 
+	// one topic by id, or by a name that picks exactly one
+	public static Map<String, Object> getTopic(User user, String topicId, String topicName) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		return getTopic(user, BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName));
+	}
+
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
 		Map<String, Integer> threads = Map.of(topicId, countThreads(ownerId, ownerType, topicId));
 		Map<String, Integer> openItems = Map.of(topicId, countOpenItems(ownerId, ownerType, topicId));
@@ -163,9 +169,16 @@ public final class BrainTopicUtils {
 
 	static List<Map<String, Object>> getPeople(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
-				"SELECT PERSON_ID, ROLE_LABEL, ENGAGEMENT, STATE, ORIGIN, REASON FROM BRAIN_TOPIC_PERSON "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? ORDER BY PERSON_ID",
-				BrainTopicUtils::mapPerson, ownerId, ownerType, topicId);
+				"SELECT tp.PERSON_ID, tp.ROLE_LABEL, tp.ENGAGEMENT, tp.STATE, tp.ORIGIN, tp.REASON, "
+						+ "p.DISPLAY_NAME, p.EMAIL_NORM FROM BRAIN_TOPIC_PERSON tp LEFT JOIN BRAIN_PERSON p "
+						+ "ON p.OWNER_ID = tp.OWNER_ID AND p.OWNER_TYPE = tp.OWNER_TYPE AND p.PERSON_ID = tp.PERSON_ID "
+						+ "WHERE tp.OWNER_ID = ? AND tp.OWNER_TYPE = ? AND tp.TOPIC_ID = ? ORDER BY tp.PERSON_ID",
+				rs -> {
+					Map<String, Object> person = mapPerson(rs);
+					person.put("name", CollaborationDbUtils.getString(rs, "DISPLAY_NAME"));
+					person.put("email", CollaborationDbUtils.getString(rs, "EMAIL_NORM"));
+					return person;
+				}, ownerId, ownerType, topicId);
 	}
 
 	// ---- write ----
