@@ -796,10 +796,10 @@ public final class AgentConfigLoader {
 	}
 
 	/**
-	 * A Work thread's room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 * An assistant room also reviews its finished chats for memories to suggest, whatever its agent configures.
 	 */
 	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
-		if (!CollaborationUtils.isThreadRoom(room)) {
+		if (!CollaborationUtils.isAssistantRoom(room)) {
 			return configured;
 		}
 		List<IAgentRunHook> hooks = new ArrayList<>(configured);
