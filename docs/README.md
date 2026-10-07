@@ -19,6 +19,7 @@ Documentation for the SEMOSS core runtime, agents and harnesses, engine integrat
 - [The SEMOSS harness](agents/semoss_harness.md): model/tool loop, prompt composition, budgets, compaction, hooks, and delegation.
 - [Agent configuration](agents/agent_configuration.md): create a workspace, select models and execution targets, attach tools and skills, and configure limits.
 - [Run lifecycle and streaming](agents/agent_runs.md): durable states, asynchronous submission, approvals, cancellation, event polling, and cluster boundaries.
+- [MCP tools and `_meta` options](agents/mcp_tools.md): tool sources, execution modes, deferred loading, UI hints, and Pixel vs Python support.
 - [Agent skills](agents/skills/skills_doc.md): project-backed skills, authoring, discovery, attachment, staging, and loading.
 - [Workbench default agents](agents/workbench-default-agents.md): frontend defaults, saved conversations, and deployment of system agents.
 - [PowerPoint visual inspection](agents/pptx-visual-inspection.md): the specialized presentation workflow and validation.
