@@ -588,7 +588,7 @@ public final class AutomationDefinitionService {
 	 * runtime and therefore has no persisted Python source file.
 	 *
 	 * @param node automation node
-	 * @return {@code true} for a Java-owned control node
+	 * @return {@code true} for a node evaluated directly by Java
 	 */
 	private static boolean isJavaOwnedNode(Map<String, Object> node) {
 		Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);

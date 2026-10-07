@@ -383,56 +383,6 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void rejectsBrowserAutomationInsideALoop() {
-		Map<String, Object> browserNode = workNode(AutomationConstants.NODE_BROWSER_PLAYWRIGHT,
-				Map.of(AutomationConstants.CONFIG_PROJECT_ID, "recording-project",
-						AutomationConstants.CONFIG_RECORDING_FILE, "search.json",
-						AutomationConstants.CONFIG_INPUTS, Map.of(),
-						AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "https://example.com/results",
-						AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS,
-						AutomationConstants.BROWSER_DEFAULT_TIMEOUT_SECONDS));
-		browserNode.put(AutomationConstants.NODE_FIELD_ID, "body-browser");
-		browserNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "browser_result");
-		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
-				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
-						AutomationConstants.CONFIG_LOOP_ITEMS, List.of("SEMOSS"),
-						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
-						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
-		loop.put(AutomationConstants.NODE_FIELD_BODY,
-				Map.of(AutomationConstants.DOC_NODES, List.of(browserNode),
-						AutomationConstants.DOC_EDGES, List.of()));
-
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
-	}
-
-	@Test
-	void browserAutomationRequiresABoundedSuccessCondition() {
-		Map<String, Object> config = new LinkedHashMap<>();
-		config.put(AutomationConstants.CONFIG_PROJECT_ID, "recording-project");
-		config.put(AutomationConstants.CONFIG_RECORDING_FILE, "search.json");
-		config.put(AutomationConstants.CONFIG_INPUTS, Map.of());
-		config.put(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "https://example.com/results");
-		config.put(AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS,
-				AutomationConstants.BROWSER_DEFAULT_TIMEOUT_SECONDS);
-		Map<String, Object> browser = workNode(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, config);
-
-		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), browser));
-
-		config.put(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "");
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
-						definition(Map.of(), workNode(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, config))));
-
-		config.put(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "https://example.com/results");
-		config.put(AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS,
-				AutomationConstants.BROWSER_MAX_TIMEOUT_SECONDS + 1);
-		assertThrows(IllegalArgumentException.class,
-				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(
-						definition(Map.of(), workNode(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, config))));
-	}
-
-	@Test
 	void acceptsDottedForEachRepeatAndWhileLoopConfiguration() {
 		Map<String, Object> dottedForEach = workNode(AutomationConstants.NODE_CONTROL_LOOP,
 				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,

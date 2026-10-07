@@ -168,8 +168,6 @@ public final class AutomationConstants {
 	public static final String NODE_STORAGE_DOWNLOAD = "storage.download";
 	public static final String NODE_STORAGE_DELETE = "storage.delete";
 	public static final String NODE_DATA_EXTRACT = "data.extract";
-	public static final String NODE_DATA_TRANSFORM = "data.transform";
-	public static final String NODE_BROWSER_PLAYWRIGHT = "browser.playwright";
 	public static final String NODE_VECTOR_SEARCH = "vector.search";
 	public static final String NODE_VECTOR_ADD = "vector.add";
 	public static final String NODE_VECTOR_DELETE = "vector.delete";
@@ -206,15 +204,8 @@ public final class AutomationConstants {
 	public static final String CONFIG_NULL_VALUE = "nullValue";
 	public static final String CONFIG_OPERATION = "operation";
 	public static final String CONFIG_COLUMNS = "columns";
-	public static final String CONFIG_MAPPING = "mapping";
 	public static final String CONFIG_OPERATOR = "operator";
 	public static final String CONFIG_VALUE = "value";
-	public static final String CONFIG_DESCENDING = "descending";
-	public static final String CONFIG_PROJECT_ID = "projectId";
-	public static final String CONFIG_RECORDING_FILE = "recordingFile";
-	public static final String CONFIG_INPUTS = "inputs";
-	public static final String CONFIG_BROWSER_SUCCESS_URL_PREFIX = "successUrlPrefix";
-	public static final String CONFIG_BROWSER_TIMEOUT_SECONDS = "timeoutSeconds";
 	public static final String CONFIG_DESCRIPTION = "description";
 	public static final String CONFIG_ANSWER = "answer";
 	public static final String JEV_QUESTION_TYPE_CHOICE = "choice";
@@ -250,9 +241,6 @@ public final class AutomationConstants {
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
 	public static final int WAIT_MAX_SECONDS = 3600;
-	public static final int BROWSER_DEFAULT_TIMEOUT_SECONDS = 30;
-	public static final int BROWSER_MIN_TIMEOUT_SECONDS = 1;
-	public static final int BROWSER_MAX_TIMEOUT_SECONDS = 300;
 	public static final int LOOP_MIN_BATCH_SIZE = 1;
 	public static final int LOOP_MAX_BATCH_SIZE = 1_000;
 	public static final int LOOP_DEFAULT_MAX_ITERATIONS = 1_000;

@@ -160,45 +160,6 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
-	void dataTransformUsesTheSharedAutomationRuntime() {
-		Map<String, Object> config = new LinkedHashMap<>();
-		config.put(AutomationConstants.CONFIG_SOURCE, "${query_rows}");
-		config.put(AutomationConstants.CONFIG_OPERATION, "filter");
-		config.put(AutomationConstants.CONFIG_COLUMNS, java.util.List.of());
-		config.put(AutomationConstants.CONFIG_MAPPING, Map.of());
-		config.put(AutomationConstants.CONFIG_PATH, "status");
-		config.put(AutomationConstants.CONFIG_OPERATOR, "equals");
-		config.put(AutomationConstants.CONFIG_VALUE, "active");
-		config.put(AutomationConstants.CONFIG_DESCENDING, false);
-
-		String source = AutomationSourceRenderer.renderNode(node(AutomationConstants.NODE_DATA_TRANSFORM, config));
-
-		assertTrue(source.contains("from semoss_automation_runtime import transform_records"));
-		assertTrue(source.contains("records=scope.resolve(SOURCE)"));
-	}
-
-	@Test
-	void browserRecordingUsesAutomationOwnedBrowserSession() {
-		Map<String, Object> config = new LinkedHashMap<>();
-		config.put(AutomationConstants.CONFIG_PROJECT_ID, "project-1");
-		config.put(AutomationConstants.CONFIG_RECORDING_FILE, "intake.json");
-		config.put(AutomationConstants.CONFIG_INPUTS, Map.of("Order number", "123"));
-		config.put(AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX, "https://example.com/complete");
-		config.put(AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS, 45);
-
-		String source = AutomationSourceRenderer
-				.renderNode(node(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, config));
-
-		assertTrue(source.contains("run_pixel(\"AutomationBrowserSession();\", raw=True)"));
-		assertTrue(source.contains("ReplayStep("));
-		assertTrue(source.contains("CheckNetworkIdle("));
-		assertTrue(source.contains("final_url.startswith(expected_prefix)"));
-		assertTrue(source.contains("\"finalUrl\": final_url"));
-		assertTrue(source.contains("_pixel_value(\"project\", project_id)"));
-		assertFalse(source.contains("Playwright.create"));
-	}
-
-	@Test
 	void visionAcceptsOneOrManyMediaPathsWithoutNestingThem() {
 		Map<String, Object> config = new LinkedHashMap<>();
 		config.put("engineId", "model-1");

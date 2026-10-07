@@ -200,7 +200,7 @@ public final class AutomationDefinitionValidator {
 			if (isJavaOwnedNode(typedNode)
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException(
-						"Control node '" + nodeId + "' must use generated mode; it is evaluated by Java.");
+						"Java-owned node '" + nodeId + "' must use generated mode.");
 			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -278,16 +278,6 @@ public final class AutomationDefinitionValidator {
 			validateOptionalConfigString(nodeId, config, "version");
 		}
 		case DATA_EXTRACT -> validateDataExtractConfig(nodeId, config);
-		case DATA_TRANSFORM -> validateDataTransformConfig(nodeId, config);
-		case BROWSER_PLAYWRIGHT -> {
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_PROJECT_ID);
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_RECORDING_FILE);
-			validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_INPUTS);
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_BROWSER_SUCCESS_URL_PREFIX);
-			validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_BROWSER_TIMEOUT_SECONDS,
-					AutomationConstants.BROWSER_MIN_TIMEOUT_SECONDS,
-					AutomationConstants.BROWSER_MAX_TIMEOUT_SECONDS);
-		}
 		case VECTOR_SEARCH -> {
 			requireConfigString(nodeId, config, "value");
 			validateOptionalConfigObject(nodeId, config, "filters");
@@ -333,45 +323,6 @@ public final class AutomationDefinitionValidator {
 		if (!("auto".equals(format) || "json".equals(format) || "xml".equals(format))) {
 			throw new IllegalArgumentException(
 					"Node '" + nodeId + "' config.format must be auto, json, or xml.");
-		}
-	}
-
-	private static void validateDataTransformConfig(String nodeId, Map<String, Object> config) {
-		Object source = config.get(AutomationConstants.CONFIG_SOURCE);
-		boolean scopeReference = source instanceof String value && isScopePlaceholder(value.trim());
-		if (!(source instanceof List<?>) && !scopeReference) {
-			throw new IllegalArgumentException("Node '" + nodeId
-					+ "' config.source must be an array or an exact scope reference such as ${query_results}.");
-		}
-		String operation = requireNonblankString(config.get(AutomationConstants.CONFIG_OPERATION),
-				"Node '" + nodeId + "' config.operation");
-		if (!Set.of("select", "remove", "rename", "filter", "fillMissing", "sort", "deduplicate")
-				.contains(operation)) {
-			throw new IllegalArgumentException("Node '" + nodeId + "' config.operation is unsupported.");
-		}
-		validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_MAPPING);
-		validateOptionalConfigBoolean(nodeId, config, AutomationConstants.CONFIG_DESCENDING);
-		validateOptionalStringListOrPlaceholder(nodeId, config, AutomationConstants.CONFIG_COLUMNS);
-		if (Set.of("select", "remove", "sort").contains(operation)
-				&& !hasNonemptyConfigList(config, AutomationConstants.CONFIG_COLUMNS)) {
-			throw new IllegalArgumentException(
-					"Node '" + nodeId + "' config.columns must contain at least one column.");
-		}
-		if (Set.of("rename", "fillMissing").contains(operation)) {
-			Object mapping = config.get(AutomationConstants.CONFIG_MAPPING);
-			if (!(mapping instanceof Map<?, ?> values) || values.isEmpty()) {
-				throw new IllegalArgumentException(
-						"Node '" + nodeId + "' config.mapping must contain at least one column.");
-			}
-		}
-		if ("filter".equals(operation)) {
-			requireConfigString(nodeId, config, AutomationConstants.CONFIG_PATH);
-			String operator = requireNonblankString(config.get(AutomationConstants.CONFIG_OPERATOR),
-					"Node '" + nodeId + "' config.operator");
-			if (!Set.of("equals", "notEquals", "contains", "greaterThan", "greaterThanOrEqual", "lessThan",
-					"lessThanOrEqual", "isEmpty", "isNotEmpty").contains(operator)) {
-				throw new IllegalArgumentException("Node '" + nodeId + "' config.operator is unsupported.");
-			}
 		}
 	}
 
@@ -978,10 +929,6 @@ public final class AutomationDefinitionValidator {
 				if (AutomationConstants.NODE_AGENT_RUN.equals(bodyType)) {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
 							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
-				}
-				if (AutomationConstants.NODE_BROWSER_PLAYWRIGHT.equals(bodyType)) {
-					throw new IllegalArgumentException("Loop node '" + loopNodeId
-							+ "' cannot contain a browser.playwright node because interactive browser sessions inside iterations are not supported.");
 				}
 			}
 			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);

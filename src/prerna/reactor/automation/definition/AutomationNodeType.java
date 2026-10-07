@@ -72,9 +72,6 @@ public enum AutomationNodeType {
 	STORAGE_DELETE(AutomationConstants.NODE_STORAGE_DELETE, Category.STORAGE, IEngine.CATALOG_TYPE.STORAGE,
 			Permission.EDIT, true, true),
 	DATA_EXTRACT(AutomationConstants.NODE_DATA_EXTRACT, Category.DATA, null, Permission.NONE, true, false),
-	DATA_TRANSFORM(AutomationConstants.NODE_DATA_TRANSFORM, Category.DATA, null, Permission.NONE, true, false),
-	BROWSER_PLAYWRIGHT(AutomationConstants.NODE_BROWSER_PLAYWRIGHT, Category.BROWSER, null, Permission.VIEW, true,
-			false),
 	VECTOR_SEARCH(AutomationConstants.NODE_VECTOR_SEARCH, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.VIEW,
 			true, true),
 	VECTOR_ADD(AutomationConstants.NODE_VECTOR_ADD, Category.VECTOR, IEngine.CATALOG_TYPE.VECTOR, Permission.EDIT, true,
@@ -97,7 +94,7 @@ public enum AutomationNodeType {
 	 * Logical grouping used by clients without parsing the persisted type string.
 	 */
 	public enum Category {
-		TRIGGER, DATABASE, MODEL, STORAGE, DATA, BROWSER, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
+		TRIGGER, DATABASE, MODEL, STORAGE, DATA, VECTOR, FUNCTION, APP, AGENT, CONTROL, DEVELOPER
 	}
 
 	/** Minimum resource permission required by the node when it references one. */
