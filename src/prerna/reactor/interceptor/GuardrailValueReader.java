@@ -44,6 +44,7 @@ import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.responses.AbstractModelEngineResponse;
+import prerna.engine.impl.guardrail.PromptGuardrailEngine;
 
 /**
  * Reduces an intercepted value to the content a guardrail can screen.
@@ -153,7 +154,15 @@ public final class GuardrailValueReader {
 			return null;
 		}
 		if (message instanceof InputMessage) {
-			return ((InputMessage) message).getFullInputPrompt();
+			InputMessage inputMessage = (InputMessage) message;
+			// a passthrough route sends the conversation as the full_prompt
+			// parameter and a placeholder as the message text; screen the
+			// conversation the engine will actually run, not the placeholder
+			String fullPromptText = PromptGuardrailEngine.fullPromptText(inputMessage);
+			if (fullPromptText != null && !fullPromptText.isBlank()) {
+				return fullPromptText;
+			}
+			return inputMessage.getFullInputPrompt();
 		}
 		if (message instanceof ResponseMessage) {
 			return ((ResponseMessage) message).getContent();
