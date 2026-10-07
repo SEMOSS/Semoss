@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -50,18 +51,26 @@ import org.apache.logging.log4j.ThreadContext;
 import com.google.gson.Gson;
 
 import prerna.auth.User;
+import prerna.collaboration.CollaborationAgentTools;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.IToolHook;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.DeferredAgentTools;
+import prerna.reactor.agent.run.HumanDelegationService;
+import prerna.reactor.agent.stream.AgentRunStreamService;
+import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
 import prerna.reactor.agent.subagent.SubAgentToolSynthesizer;
 import prerna.sablecc2.comm.PixelJobManager;
@@ -86,7 +95,7 @@ final class HarnessToolExecutor {
 	private static final String TOOL_STATUS_ERROR = "error";
 
 	private static final Gson GSON = new Gson();
-	private static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
+	static final int MAX_LIVE_TOOL_RESULT_CHARS = 12_000;
 
 	/** How often the parallel-batch wait polls for cancellation. */
 	private static final long CANCEL_POLL_MS = 100L;
@@ -106,14 +115,38 @@ final class HarnessToolExecutor {
 
 		Room room = ctx.getRoom();
 		String parentMsgId = toolResponse.getMessageId();
-		List<Map<String, Object>> toolCalls = toolResponse.getToolResponses();
-		String jobId = ThreadStore.getJobId();
+		List<Map<String, Object>> allToolCalls = toolResponse.getToolResponses();
+		List<Map<String, Object>> toolCalls = new ArrayList<>();
+		for (Map<String, Object> toolCall : allToolCalls) {
+			if (MessageUtils.isServerToolCall(toolCall)) {
+				continue;
+			}
+			toolCalls.add(toolCall);
+		}
+		if (toolCalls.size() < allToolCalls.size()) {
+			logger.info("HarnessToolExecutor: skipping {} provider-executed server tool call(s) iter={} room={}",
+					allToolCalls.size() - toolCalls.size(), state.getIterations(), room.getId());
+		}
+		if (toolCalls.isEmpty()) {
+			return toolResponse;
+		}
+		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+            for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx, PreparePptxEdit and ApplyPptxEdits must each be called alone; no tools in this batch were executed.");
+        }
+        String jobId = ThreadStore.getJobId();
 		AskModelEngineResponse<?> nextModelResp = null;
 
 		// Per-turn spawn cap - shared across the batch. Only spawn-kind calls
 		// decrement.
 		int spawnsPerTurnCap = ctx.getAgentConfig().getSpawnPolicy().getMaxSpawnsPerTurn();
 		AtomicInteger spawnsRemainingInBatch = new AtomicInteger(spawnsPerTurnCap);
+
+		String resultTool = ctx.getAgentConfig().getResultTool();
+		boolean returnsToolResult = resultTool != null && toolCalls.stream()
+				.anyMatch(call -> resultTool.equals(new ParsedToolCall(call).rawToolName));
+		if (returnsToolResult && toolCalls.size() != 1) {
+			throw new IllegalArgumentException("The final result tool " + resultTool + " must be called alone");
+		}
 
 		// --- Human-in-the-loop pause: split SMSS_MCP_EXECUTION=ask tools ---
 		// Non-ask tools still execute immediately and write their tool results to the
@@ -134,8 +167,45 @@ final class HarnessToolExecutor {
 			throw new AgentInputRequiredException(parentMsgId, askToolCalls);
 		}
 
-		nextModelResp = executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId,
-				spawnsRemainingInBatch);
+		if (returnsToolResult) {
+			ParsedToolCall tc = new ParsedToolCall(toolCalls.getFirst());
+			ToolExecResult result = executeOneTool(tc, state, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+					spawnsRemainingInBatch);
+			state.addToolCallRecord(result.record);
+            state.incrementIterations();
+			ResponseMessage finalResponse = (ResponseMessage) room.getMessages().getLast();
+			state.setFinalText(finalResponse.getContent());
+			state.setTerminal(true);
+			return finalResponse;
+		}
+
+        executeToolCalls(toolCalls, state, paramMap, parentMsgId, ctx, jobId, spawnsRemainingInBatch);
+        state.incrementIterations();
+        if (state.pptxWorkflow() != null) {
+            var workflow = state.pptxWorkflow();
+            workflow.afterRound(state.getIterations(), ctx.getMaxTurns());
+            if (workflow.isTerminal()) {
+                ResponseMessage delivery = ResponseMessage.text(workflow.finalText());
+                delivery.setPlatformGenerated(true);
+                room.continueAfterToolExecutionResults(new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
+                        ctx.getInsight(), null, delivery);
+                state.setFinalText(workflow.finalText());
+                state.setTerminal(true);
+                return (ResponseMessage) room.getMessages().getLast();
+            }
+        }
+        Map<String, Object> nextParams = new HashMap<>(paramMap);
+        if (ctx.getAgentConfig().getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
+            nextParams.put("tool_choice", "none");
+        }
+        AgentRunStreamService.get().beginModelCall(ctx.getRunId());
+        state.progress().beginModel();
+        try {
+            nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                    ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+        } finally {
+            state.progress().endModel();
+        }
 
 		if (nextModelResp == null) {
 			return null;
@@ -156,7 +226,7 @@ final class HarnessToolExecutor {
 		AskModelEngineResponse<?> nextModelResp = null;
 		if (toolCalls.size() == 1) {
 			ParsedToolCall tc = new ParsedToolCall(toolCalls.get(0));
-			ToolExecResult r = executeOneTool(tc, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
+			ToolExecResult r = executeOneTool(tc, state, state.getIterations(), paramMap, parentMsgId, ctx, jobId,
 					spawnsRemainingInBatch);
 			state.addToolCallRecord(r.record);
 			nextModelResp = r.modelResponse;
@@ -171,7 +241,7 @@ final class HarnessToolExecutor {
 				for (int i = 0; i < toolCalls.size(); i++) {
 					final ParsedToolCall tc = new ParsedToolCall(toolCalls.get(i));
 					futures[i] = CompletableFuture.supplyAsync(
-							() -> parentContext.call(() -> executeOneTool(tc, state.getIterations(), paramMap,
+							() -> parentContext.call(() -> executeOneTool(tc, state, state.getIterations(), paramMap,
 										parentMsgId, ctx, jobId, spawnsRemainingInBatch)),
 							pool);
 				}
@@ -222,7 +292,7 @@ final class HarnessToolExecutor {
 	 * Executes one tool call and submits the result to the Room. Safe to call
 	 * concurrently - Room.addToolExecutionResult() is synchronized.
 	 */
-	private static ToolExecResult executeOneTool(ParsedToolCall tc, int currentIter, Map<String, Object> paramMap,
+	private static ToolExecResult executeOneTool(ParsedToolCall tc, AgentLoopState state, int currentIter, Map<String, Object> paramMap,
 			String parentMsgId, AgentRunContext ctx, String jobId, AtomicInteger spawnsRemainingInBatch) {
 
 		logger.info("HarnessToolExecutor: tool start name={} callId={} iter={}", tc.rawToolName, tc.toolCallId,
@@ -232,16 +302,54 @@ final class HarnessToolExecutor {
 		List<IToolHook> toolHooks = ctx.getAgentConfig().getToolHooks();
 		fireBeforeTool(toolHooks, ctx, tc, currentIter);
 
-		long startMs = System.currentTimeMillis();
+		Map<String, Object> runningPatch = new LinkedHashMap<>();
+		runningPatch.put("status", AgentStreamItems.TOOL_RUNNING);
+		AgentRunStreamService.get().publishToolUpdated(jobId, tc.toolCallId, runningPatch);
+
+		state.progress().beginTool(tc.rawToolName);
+        long startMs = System.currentTimeMillis();
 		// jobId is captured on the caller's thread (where ThreadStore is valid) and
 		// forwarded so subagent dispatch can address the parent's stream queue even
 		// when this method runs on a worker thread from the parallel-tool pool.
-		ToolExecOutcome outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+		ToolExecOutcome outcome;
+		try {
+			if (state.pptxWorkflow() != null && tc.toolCall.containsKey("_pptxBatchError")) {
+                outcome = new ToolExecOutcome(String.valueOf(tc.toolCall.get("_pptxBatchError")), false);
+            } else if (state.pptxWorkflow() != null && PptxEditSession.TOOL.equals(tc.rawToolName)) {
+                outcome = new ToolExecOutcome(state.pptxWorkflow().prepareEdit(tc.toolParams).toString(), true);
+            } else if (state.pptxWorkflow() != null && PptxStructuredEdits.TOOL.equals(tc.rawToolName)) {
+                var value = state.pptxWorkflow().applyEdits(tc.toolParams, currentIter + 1);
+                outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
+            } else if (state.pptxWorkflow() != null && PptxWorkflow.TOOL.equals(tc.rawToolName)) {
+                var value = state.pptxWorkflow().build(tc.toolParams, currentIter + 1);
+                outcome = new ToolExecOutcome(value.toString(), !"incomplete".equals(value.optString("status")));
+            } else if (state.pptxWorkflow() != null && ("ExecuteNodeCode".equals(tc.rawToolName) || "InspectPptx".equals(tc.rawToolName)
+                    || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
+                outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
+            } else {
+                outcome = executeToolSafely(tc, ctx, paramMap, jobId, spawnsRemainingInBatch);
+            }
+		} catch (AgentCancelledException cancelEx) {
+            state.progress().endTool(tc.rawToolName, tc.toolParams, false, cancelEx.getMessage(), System.currentTimeMillis() - startMs);
+			publishToolItemTerminal(jobId, tc, AgentStreamItems.TOOL_CANCELLED, null, cancelEx.getMessage(),
+					System.currentTimeMillis() - startMs);
+			throw cancelEx;
+		} catch (IllegalArgumentException invalidEdit) {
+			if (state.pptxWorkflow() == null || !Set.of(PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(tc.rawToolName))
+				throw invalidEdit;
+			// A rejected plan must be a recoverable tool result with a matching call ID.
+			// Let the author correct its arguments without losing the run or saved deck.
+			outcome = new ToolExecOutcome("Edit rejected: " + invalidEdit.getMessage(), false);
+		}
 		long durMs = System.currentTimeMillis() - startMs;
+        state.progress().endTool(tc.rawToolName, tc.toolParams, outcome.success, outcome.content, durMs);
 
 		// Post-tool hooks - fired even on failure so observability survives errors.
 		fireAfterTool(toolHooks, ctx, tc, outcome, durMs, currentIter);
 		publishToolResult(jobId, tc.toolCallId, tc.rawToolName, outcome.content, durMs, outcome.success);
+		publishToolItemTerminal(jobId, tc,
+				outcome.success ? AgentStreamItems.TOOL_COMPLETED : AgentStreamItems.TOOL_FAILED,
+				outcome.success ? outcome.content : null, outcome.success ? null : outcome.content, durMs);
 
 		logger.info("HarnessToolExecutor: tool end name={} durationMs={} success={}", tc.rawToolName, durMs,
 				outcome.success);
@@ -250,9 +358,20 @@ final class HarnessToolExecutor {
 				outcome.content, durMs, outcome.success);
 
 		// Pass a fresh copy - Room.appendToolsToParams() mutates the map.
-		AskModelEngineResponse<?> modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
-				outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
-				ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+		AskModelEngineResponse<?> modelResp;
+		if (tc.rawToolName.equals(ctx.getAgentConfig().getResultTool())) {
+			// Persist the tool result and a matching assistant message through Room's existing
+			// prebuilt-response path. Coverage and verdict cannot be rewritten by the reviewer.
+			modelResp = ctx.getRoom().addToolExecutionResult(tc.toolCallId, tc.rawToolName,
+					outcome.content, tc.toolParams, new HashMap<>(paramMap), parentMsgId, ctx.getModelEngine(),
+					ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR,
+					ResponseMessage.text(outcome.content));
+		} else {
+            ctx.getRoom().addToolExecutionResultWithoutModel(tc.toolCallId, tc.rawToolName,
+                    outcome.content, tc.toolParams, parentMsgId, ctx.getModelEngine(),
+                    ctx.getInsight(), outcome.success ? TOOL_STATUS_SUCCESS : TOOL_STATUS_ERROR);
+            modelResp = null;
+		}
 
 		return new ToolExecResult(record, modelResp);
 	}
@@ -317,6 +436,29 @@ final class HarnessToolExecutor {
 		PixelJobManager.getManager().addStreamOut(jobId, envelope);
 	}
 
+	@SuppressWarnings("unchecked")
+	private static void publishToolItemTerminal(String runId, ParsedToolCall tc, String status, String output,
+			String error, long durationMs) {
+		if (runId == null || runId.isBlank() || tc.toolCallId == null || tc.toolCallId.isBlank()) {
+			return;
+		}
+		Object metaObj = tc.toolCall.get("_meta");
+		Map<String, Object> meta = metaObj instanceof Map ? (Map<String, Object>) metaObj : null;
+		Object title = tc.toolCall.get("title");
+		Map<String, Object> item = AgentStreamItems.toolItem(tc.toolCallId, tc.rawToolName,
+				title != null ? title.toString() : null, tc.toolParams, meta, status);
+		String boundedOutput = truncate(output, MAX_LIVE_TOOL_RESULT_CHARS);
+		if (boundedOutput != null && !boundedOutput.isBlank()) {
+			item.put("output", boundedOutput);
+		}
+		String boundedError = truncate(error, MAX_LIVE_TOOL_RESULT_CHARS);
+		if (boundedError != null && !boundedError.isBlank()) {
+			item.put("error", boundedError);
+		}
+		item.put("durationMs", durationMs);
+		AgentRunStreamService.get().publishToolCompleted(runId, item);
+	}
+
 	private static String truncate(String value, int maxChars) {
 		if (value == null || value.length() <= maxChars) {
 			return value;
@@ -358,13 +500,33 @@ final class HarnessToolExecutor {
 		}
 	}
 
-	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
-			AtomicInteger spawnsRemainingInBatch) {
+	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
+			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+		if (DeferredAgentTools.isControlTool(tc.rawToolName)) {
+			ToolExecutionResult result = DeferredAgentTools.execute(tc.rawToolName, tc.toolParams, ctx.getRoom(), paramMap);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
 
 		// 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
 		// straight back to the model.
 		java.util.List<SubAgentSpec> specs = ctx.getAgentConfig().getSubagents();
+		if (HumanDelegationService.FIND_PERSON_TOOL_NAME.equals(tc.rawToolName)) {
+			ToolExecutionResult result = HumanDelegationService.findPersonFromTool(ctx.getInsight(), ctx.getRoom(),
+					tc.toolParams);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(tc.rawToolName)) {
+			ToolExecutionResult result = CollaborationAgentTools.execute(tc.rawToolName, tc.toolParams,
+					ctx.getInsight());
+			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();
+			if (result.isSuccess()) {
+				output = MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
+			}
+			return new ToolExecOutcome(output, result.isSuccess());
+		}
 		if (SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, specs)) {
 			try {
 				String result = dispatchSubAgentTool(tc.rawToolName, tc.toolParams, ctx, specs, parentJobId,
@@ -379,13 +541,25 @@ final class HarnessToolExecutor {
 			}
 		}
 
+		ToolExecutionResult policyDenial = PlatformAgentTools.policyDenialResult(tc.rawToolName, ctx);
+		if (policyDenial != null) {
+			logger.warn("HarnessToolExecutor: denied default tool workspaceId={} roomId={} callId={} toolName={}",
+					ctx.getAgentConfig().getWorkspaceId(), ctx.getRoom().getId(), tc.toolCallId, tc.rawToolName);
+			String error = policyDenial.getError();
+			return new ToolExecOutcome(error != null ? error : String.valueOf(policyDenial.getOutput()), false);
+		}
+
 		// 2. Platform default agent tools. These are not backed by room/workspace MCP
 		// metadata, so resolve them by the default tool registry before the MCP path.
 		if (PlatformAgentTools.isDefaultTool(tc.rawToolName)) {
 			try {
-				String result = PlatformAgentTools.executeDefaultTool(tc.rawToolName, tc.toolParams, ctx);
-				boolean success = result == null || !result.startsWith("Tool execution error:");
-				return new ToolExecOutcome(result, success);
+				ToolExecutionResult result = PlatformAgentTools.executeDefaultToolResult(tc.rawToolName, tc.toolParams,
+						ctx);
+				String output = result.getOutput() != null ? result.getOutput().toString() : "";
+				if (!result.isSuccess() && result.getError() != null && !result.getError().isBlank()) {
+					output = result.getError();
+				}
+				return new ToolExecOutcome(output, result.isSuccess());
 			} catch (AgentCancelledException e) {
 				throw e;
 			} catch (Exception e) {
@@ -468,6 +642,7 @@ final class HarnessToolExecutor {
 	private static String dispatchSubAgentTool(String rawToolName, Map<String, Object> params, AgentRunContext ctx,
 			java.util.List<SubAgentSpec> specs, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
 		Room parentRoom = ctx.getRoom();
+		AgentRunTarget parentTarget = ctx.getAgentTarget();
 		// Do not read instructions back from the live room here. SemossAgentHarness
 		// temporarily replaces them with its fully composed runtime prompt while tools run.
 		String parentAuthoredSystemPrompt = ctx.getAgentConfig().getAuthoredPrompt();
@@ -476,7 +651,7 @@ final class HarnessToolExecutor {
 				return perTurnRejectedJson(ctx);
 			}
 			return SubAgentDispatcher.spawnAnonymous(params, parentRoom, ctx.getInsight(), parentJobId,
-					parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 		}
 		if (SubAgentToolSynthesizer.TOOL_CHECK_SUBAGENT.equals(rawToolName)) {
 			Object jobIdObj = params == null ? null : params.get("jobId");
@@ -506,7 +681,7 @@ final class HarnessToolExecutor {
 			return perTurnRejectedJson(ctx);
 		}
 		return SubAgentDispatcher.spawnNamed(spec, params, parentRoom, ctx.getInsight(), parentJobId,
-				parentAuthoredSystemPrompt);
+					parentAuthoredSystemPrompt, parentTarget);
 	}
 
 	/** Atomic claim against the per-turn spawn budget; restores on miss. */
@@ -551,9 +726,9 @@ final class HarnessToolExecutor {
 			functionGrs.add(new NounMetadata(rawToolName, PixelDataType.CONST_STRING));
 			reactor.getNounStore().addNoun(ReactorKeysEnum.FUNCTION.getKey(), functionGrs);
 
-			// Always attach paramValues — RunMCPToolReactor declares it required, so
+			// Always attach paramValues - RunMCPToolReactor declares it required, so
 			// no-arg
-			// tools (ListSkill, TodoRead, …) would otherwise blow up with "Required
+			// tools (ListSkill, TodoRead, ...) would otherwise blow up with "Required
 			// input(s)
 			// missing: paramValues". Pass an empty map when the model sent no args.
 			GenRowStruct paramGrs = new GenRowStruct();
@@ -562,7 +737,8 @@ final class HarnessToolExecutor {
 			reactor.getNounStore().addNoun(ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), paramGrs);
 
 			NounMetadata result = reactor.execute();
-			return result != null && result.getValue() != null ? result.getValue().toString() : "";
+			String output = result != null && result.getValue() != null ? result.getValue().toString() : "";
+			return MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());
 		} catch (Exception e) {
 			return "Tool execution error: " + e.getMessage();
 		}

@@ -73,6 +73,7 @@ import prerna.engine.impl.model.message.MessagePartType;
 import prerna.engine.impl.model.message.MessageType;
 import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.message.TextMessagePart;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.engine.impl.model.responses.AskModelEngineResponse;
@@ -80,6 +81,7 @@ import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
@@ -135,7 +137,8 @@ public class Room implements Serializable {
 	 * Populated by {@link #getAllToolsJsonForRoom(int)} and consumed by
 	 * {@link #updateToolResponseMeta(ResponseMessage)}.
 	 */
-	private transient final Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
+	// Replaced wholesale on each rebuild so concurrent readers always see a complete map.
+	private transient volatile Map<String, Map<String, Object>> toolLookupByLLMName = new HashMap<>();
 
 	/**
 	 * Creates an empty room instance. Primarily used for serialization frameworks
@@ -271,7 +274,12 @@ public class Room implements Serializable {
 
 			// if it is full prompt, process that first.
 			if (kwArgMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
-				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				if (Boolean.TRUE.equals(kwArgMap.get(DeferredAgentTools.RUN_AGENT_PARAM))) {
+					appendToolsToParams(kwArgMap, modelEngine);
+				} else {
+					kwArgMap.remove(DeferredAgentTools.RUN_AGENT_PARAM);
+				}
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
@@ -287,23 +295,21 @@ public class Room implements Serializable {
 
 			applyTextModelParams(kwArgMap);
 
-			boolean useHistory = true;
+			boolean persistTurn = shouldPersistTurn(msg, modelEngine);
 			Object useHistoryObj = kwArgMap.get("use_history");
 			if (useHistoryObj instanceof Boolean) {
-				useHistory = (Boolean) useHistoryObj;
 				kwArgMap.remove("use_history");
 			} else if (useHistoryObj != null && "false".equalsIgnoreCase(useHistoryObj.toString())) {
-				useHistory = false;
 				kwArgMap.remove("use_history");
 			}
 
 			// does the model have keep keep input output off or is use_history false? if so
 			// then just ask the model and send the response back.
-			if (!modelEngine.keepInputOutput() || !useHistory) {
+			if (!persistTurn) {
 				String singleMessageJson = MessageUtils.toJsonArrayWithImageData(Arrays.asList(msg));
 				kwArgMap.put("message_json", singleMessageJson);
 
-				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+				AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 				applyInputUsageFromModelResponse(msg, llmResponse);
 				return buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 			}
@@ -344,7 +350,7 @@ public class Room implements Serializable {
 					String messageJsonString = RoomMessageStore.messageHistoryWithNewMessage(this, msg);
 					kwArgMap.put("message_json", messageJsonString);
 
-					AskModelEngineResponse llmResponse = modelEngine.askRoom(msg.getInputPrompt(), this, msg, kwArgMap);
+					AskModelEngineResponse llmResponse = modelEngine.askRoom(msg, this, kwArgMap);
 					applyInputUsageFromModelResponse(msg, llmResponse);
 					response = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, msg);
 				} catch (Exception e) {
@@ -393,6 +399,95 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Returns whether a turn should be appended to room history. This is shared by
+	 * live asks and FE-driven cancel persistence so both paths honor the same
+	 * retention controls.
+	 */
+	public static boolean shouldPersistTurn(InputMessage msg, IModelEngine modelEngine) {
+		Map<String, Object> paramMap = msg.getParamMap();
+		if (paramMap != null && paramMap.containsKey(AbstractModelEngine.FULL_PROMPT)) {
+			return false;
+		}
+		if (!modelEngine.keepInputOutput()) {
+			return false;
+		}
+
+		Object useHistoryObj = paramMap == null ? null : paramMap.get("use_history");
+		if (useHistoryObj instanceof Boolean) {
+			return (Boolean) useHistoryObj;
+		}
+		return useHistoryObj == null || !"false".equalsIgnoreCase(useHistoryObj.toString());
+	}
+
+	public ResponseMessage commitPrebuiltTurn(InputMessage msg, IModelEngine modelEngine, String parentMessageId,
+			List<Map<String, Object>> responseParts, String hiddenMessage, List<AbstractMessage> extrasOut) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			ResponseMessage response = MessageUtils.buildResponseMessageFromParts(responseParts);
+			response.setModel(modelEngine);
+			response.setRoom(this);
+			response.setParentMessageId(msg.getMessageId());
+
+			if (!shouldPersistTurn(msg, modelEngine)) {
+				return response;
+			}
+
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				if (!modelEngine.keepsConversationHistory()) {
+					messages.clear();
+				}
+				RoomMessageStore.normalizeForProviderPayload(this);
+
+				msg.setModel(modelEngine);
+				if (!messages.isEmpty()) {
+					if (parentMessageId != null && !parentMessageId.isEmpty()) {
+						msg.setParentMessageId(parentMessageId);
+					} else {
+						AbstractMessage lastMsg = messages.get(messages.size() - 1);
+						msg.setParentMessageId(lastMsg.getMessageId());
+					}
+				} else {
+					msg.setParentMessageId(null);
+				}
+				response.setParentMessageId(msg.getMessageId());
+
+				messages.add(msg);
+				messages.add(response);
+
+				if (hiddenMessage != null && !hiddenMessage.isEmpty()
+						&& response.getMessageType() == MessageType.RESPONSE_TEXT) {
+					MessageUtils.appendHiddenPair(this, modelEngine, hiddenMessage, response.getMessageId(), extrasOut);
+				}
+
+				String prevRoomName = roomName;
+				if (prevRoomName == null || prevRoomName.trim().isEmpty()) {
+					for (AbstractMessage m : messages) {
+						if (m instanceof InputMessage) {
+							String prompt = ((InputMessage) m).getInputUIPrompt();
+							if (prompt != null && !prompt.trim().isEmpty()) {
+								roomName = prompt.substring(0, Math.min(prompt.length(), 100));
+								break;
+							}
+						}
+					}
+				}
+				if ((prevRoomName == null || prevRoomName.trim().isEmpty()) && roomName != null
+						&& !roomName.trim().isEmpty()) {
+					RoomMessageStore.persist(this, userId, roomName, modelEngine.getEngineId());
+				} else {
+					RoomMessageStore.persist(this, userId);
+				}
+			}
+			return response;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
 	 * Adds a tool execution result to the active tool-call context and, when all
 	 * pending tool calls are satisfied, invokes the model for the follow-up
 	 * assistant response.
@@ -421,7 +516,23 @@ public class Room implements Serializable {
 		lock.lock();
 		try {
 			return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
-					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true);
+					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, null);
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	// Cancel-persistence overload: when all tools are answered, slots in
+	// prebuiltResponse instead of calling the LLM.
+	public AskModelEngineResponse addToolExecutionResult(String toolCallId, String toolName,
+			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
+			ResponseMessage prebuiltResponse) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			return addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues,
+					paramValuesMap, parentMessageId, modelEngine, insight, toolStatus, true, prebuiltResponse);
 		} finally {
 			lock.unlock();
 		}
@@ -439,7 +550,7 @@ public class Room implements Serializable {
 		lock.lock();
 		try {
 			addToolExecutionResultInternal(toolCallId, toolName, toolExecutionResponse, toolParameterValues, null,
-					parentMessageId, modelEngine, insight, toolStatus, false);
+					parentMessageId, modelEngine, insight, toolStatus, false, null);
 		} finally {
 			lock.unlock();
 		}
@@ -451,11 +562,77 @@ public class Room implements Serializable {
 	 */
 	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, null);
+	}
+
+	/**
+	 * Continue with an explicit system prompt, preserving all tool-result parts.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				null);
+	}
+
+	/**
+	 * Append current harness status after the completed tool results, keeping the
+	 * system prompt stable.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResultsWithRuntimeContext(
+			Map<String, Object> paramValuesMap, String parentMessageId, IModelEngine modelEngine, Insight insight,
+			String systemPrompt, String runtimeContext) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				null, runtimeContext);
+	}
+
+	/**
+	 * Append an evidence-based harness result, retaining the model's preceding
+	 * message for audit.
+	 */
+	public ResponseMessage appendHarnessResponse(String text, String parentMessageId, IModelEngine modelEngine,
+			Insight insight) {
 		ReentrantLock lock = getMessageLock();
 		lock.lock();
 		try {
 			String userId = insight.getUser().getPrimaryLoginToken().getId();
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				ResponseMessage response = ResponseMessage.text(text);
+				response.setRoom(this);
+				response.setModel(modelEngine);
+				response.setParentMessageId(parentMessageId);
+				response.setPlatformGenerated(true);
+				response.setTransactionId(GUID.v7().toUUID().toString());
+				messages.add(response);
+				RoomMessageStore.persist(this, userId);
+				return response;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * Persist a harness-owned completion after all tools finish, without another
+	 * model request.
+	 */
+	public AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt,
+			ResponseMessage prebuiltResponse) {
+		return continueAfterToolExecutionResults(paramValuesMap, parentMessageId, modelEngine, insight, systemPrompt,
+				prebuiltResponse, null);
+	}
+
+	private AskModelEngineResponse continueAfterToolExecutionResults(Map<String, Object> paramValuesMap,
+			String parentMessageId, IModelEngine modelEngine, Insight insight, String systemPrompt,
+			ResponseMessage prebuiltResponse, String runtimeContext) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
 				RoomMessageStore.refreshFromLatestProjection(this, userId);
 				if (messages.isEmpty()) {
 					throw new IllegalStateException("No messages to match tool call context");
@@ -471,8 +648,25 @@ public class Room implements Serializable {
 					RoomMessageStore.persist(this, userId);
 					return null;
 				}
+				if (systemPrompt != null) {
+					var parts = new ArrayList<>(toolResultsMessage.getParts());
+					parts.removeIf(part -> part instanceof prerna.engine.impl.model.message.SystemMessagePart);
+					parts.addFirst(new prerna.engine.impl.model.message.SystemMessagePart(systemPrompt));
+					toolResultsMessage.setParts(parts);
+					toolResultsMessage.normalizeForWrite();
+				}
+				if (runtimeContext != null && !runtimeContext.isBlank()
+						&& toolResultsMessage.getParts().stream().noneMatch(part -> part instanceof TextMessagePart text
+								&& runtimeContext.equals(text.getText()))) {
+					// TEXT must follow every TOOL_RESULT: provider adapters emit it as trailing
+					// user content.
+					// Preserve earlier inputs and any status already sent; retries must not rewrite
+					// history.
+					toolResultsMessage.addPart(new TextMessagePart(runtimeContext));
+					toolResultsMessage.normalizeForWrite();
+				}
 				return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-						modelEngine, userId, false);
+						modelEngine, userId, false, prebuiltResponse, null, true, false);
 			}
 		} finally {
 			lock.unlock();
@@ -482,9 +676,10 @@ public class Room implements Serializable {
 	private AskModelEngineResponse addToolExecutionResultInternal(String toolCallId, String toolName,
 			String toolExecutionResponse, Map<String, Object> toolParameterValues, Map<String, Object> paramValuesMap,
 			String parentMessageId, IModelEngine modelEngine, Insight insight, String toolStatus,
-			boolean continueWhenReady) {
+			boolean continueWhenReady, ResponseMessage prebuiltResponse) {
 		String userId = insight.getUser().getPrimaryLoginToken().getId();
 		try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+			this.insight = insight;
 			RoomMessageStore.refreshFromLatestProjection(this, userId);
 			if (messages.isEmpty()) {
 				throw new IllegalStateException("No messages to match tool call context");
@@ -494,29 +689,69 @@ public class Room implements Serializable {
 			ToolExecutionContext context = findToolExecutionContext(lastMessageId);
 			validateToolCallId(context.toolResponse, toolCallId);
 
+			String effectiveToolName = toolName;
+			String recordedToolName = recordedToolName(context.toolResponse, toolCallId);
+			if (recordedToolName != null && !recordedToolName.equals(toolName)) {
+				classLogger.warn(
+						"Tool name '{}' submitted for toolCallId={} does not match the recorded name '{}'; recording the tool call's own name.",
+						toolName, toolCallId, recordedToolName);
+				effectiveToolName = recordedToolName;
+			}
+
 			if (hasToolCallBeenAnswered(toolCallId)) {
 				classLogger.warn(
 						"Skipping duplicate tool execution result for toolCallId={} (toolName={}) on parentMessageId={}",
-						toolCallId, toolName, context.toolResponse.getMessageId());
+						toolCallId, effectiveToolName, context.toolResponse.getMessageId());
 				RoomMessageStore.persist(this, userId);
 				return null;
 			}
 
 			InputMessage toolResultsMessage = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
 			boolean isToolResultsInputMessage = false;
-			if (toolResultsMessage == null) {
+			boolean appendedPartThisCall = false;
+
+			// Idempotency guard: reuse the existing carrier if toolCallId was already
+			// answered, to avoid duplicate tool_result blocks.
+			InputMessage existingCarrier = null;
+			for (int i = context.toolResponseIdx + 1; i < messages.size(); ++i) {
+				AbstractMessage m = messages.get(i);
+				if (m instanceof ResponseMessage) {
+					break;
+				}
+				if (m instanceof InputMessage && m.hasToolResultPart()) {
+					for (MessagePart p : m.getParts()) {
+						if (p instanceof ToolResultMessagePart) {
+							ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+							if (tr != null && toolCallId.equals(tr.getToolCallId())) {
+								existingCarrier = (InputMessage) m;
+								break;
+							}
+						}
+					}
+					if (existingCarrier != null) {
+						break;
+					}
+				}
+			}
+
+			if (existingCarrier != null) {
+				// Duplicate submission - reuse the existing message instead of appending a
+				// second part.
+				toolResultsMessage = existingCarrier;
+			} else if (toolResultsMessage == null) {
 				isToolResultsInputMessage = true;
 				toolResultsMessage = InputMessage
 						.builder(this).withSystemPrompt(this.getSystemPromptForModel()).withToolResult(toolCallId,
-								toolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
+								effectiveToolName, toolExecutionResponse, toolParameterValues, toolStatus, false)
 						.withModelType(modelEngine.getModelType()).build();
 				toolResultsMessage.setParentMessageId(context.toolResponse.getMessageId());
 				toolResultsMessage.setModel(modelEngine);
 				toolResultsMessage.setVisible(false);
 			} else {
-				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, toolName,
+				toolResultsMessage.addPart(new ToolResultMessagePart(new ToolResultPart(toolCallId, effectiveToolName,
 						toolExecutionResponse, toolParameterValues, toolStatus, false)));
 				toolResultsMessage.normalizeForWrite();
+				appendedPartThisCall = true;
 			}
 
 			if (isToolResultsInputMessage) {
@@ -528,7 +763,8 @@ public class Room implements Serializable {
 				return null;
 			}
 			return continueFromToolResultsMessage(context.toolResponseIdx, toolResultsMessage, paramValuesMap,
-					modelEngine, userId, true);
+					modelEngine, userId, true, prebuiltResponse, toolCallId, isToolResultsInputMessage,
+					appendedPartThisCall);
 		}
 	}
 
@@ -588,6 +824,23 @@ public class Room implements Serializable {
 		throw new IllegalArgumentException("No matching tool_call_id in last assistant tool_calls response.");
 	}
 
+	/**
+	 * The tool name the assistant's own tool call carries, which is authoritative
+	 * over the name submitted alongside the result.
+	 *
+	 * @param toolResponse the assistant message holding the tool calls
+	 * @param toolCallId   the tool call the result answers
+	 * @return the recorded name, or null when the call does not carry one
+	 */
+	private static String recordedToolName(ResponseMessage toolResponse, String toolCallId) {
+		for (Map<String, Object> toolCall : toolResponse.getToolResponses()) {
+			if (toolCallId.equals(String.valueOf(toolCall.get("id")))) {
+				return MessageUtils.getToolCallName(toolCall);
+			}
+		}
+		return null;
+	}
+
 	private InputMessage findToolResultsMessage(ResponseMessage toolResponse, int toolResponseIdx) {
 		for (int i = messages.size() - 1; i > toolResponseIdx; --i) {
 			AbstractMessage m = messages.get(i);
@@ -631,6 +884,9 @@ public class Room implements Serializable {
 	private boolean allToolCallsAnswered(ResponseMessage toolResponse, int toolResponseIdx, String newToolCallId) {
 		Set<String> allIds = new HashSet<>();
 		for (Map<String, Object> tc : toolResponse.getToolResponses()) {
+			if (MessageUtils.isServerToolCall(tc)) {
+				continue;
+			}
 			allIds.add(String.valueOf(tc.get("id")));
 		}
 		if (allIds.isEmpty()) {
@@ -664,6 +920,14 @@ public class Room implements Serializable {
 	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
 			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
 			boolean removeToolResultsOnFailure) {
+		return continueFromToolResultsMessage(toolResponseIdx, toolResultsMessage, paramValuesMap, modelEngine, userId,
+				removeToolResultsOnFailure, null, null, false, false);
+	}
+
+	private AskModelEngineResponse continueFromToolResultsMessage(int toolResponseIdx, InputMessage toolResultsMessage,
+			Map<String, Object> paramValuesMap, IModelEngine modelEngine, String userId,
+			boolean removeToolResultsOnFailure, ResponseMessage prebuiltResponse, String toolCallId,
+			boolean isToolResultsInputMessage, boolean appendedPartThisCall) {
 		String messageJsonString = RoomMessageStore.currentMessageHistory(this);
 		if (paramValuesMap == null) {
 			paramValuesMap = new HashMap<>();
@@ -671,33 +935,50 @@ public class Room implements Serializable {
 		paramValuesMap.put("message_json", messageJsonString);
 		appendToolsToParams(paramValuesMap, modelEngine);
 
-		StringBuilder toolResultsForLogging = new StringBuilder();
-		for (MessagePart part : toolResultsMessage.getParts()) {
-			if (part instanceof ToolResultMessagePart) {
-				ToolResultPart tr = ((ToolResultMessagePart) part).getToolResult();
-				if (tr != null && tr.getOutput() != null) {
-					if (toolResultsForLogging.length() > 0) {
-						toolResultsForLogging.append("\n");
-					}
-					toolResultsForLogging.append(tr.getOutput());
-				}
-			}
-		}
-
 		AskModelEngineResponse llmResponse = null;
 		ResponseMessage nextAssistant = null;
-		try {
-			llmResponse = modelEngine.askRoom(toolResultsForLogging.toString(), this, toolResultsMessage,
-					paramValuesMap);
-			applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
-			nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
-		} catch (Exception e) {
-			if (removeToolResultsOnFailure && !messages.isEmpty()) {
-				messages.removeLast();
+		if (prebuiltResponse != null) {
+			// Cancel-persistence path: skip the LLM call, slot in the caller-supplied
+			// response.
+			nextAssistant = prebuiltResponse;
+			nextAssistant.setModel(modelEngine);
+			nextAssistant.setRoom(this);
+			nextAssistant.setParentMessageId(toolResultsMessage.getMessageId());
+		} else {
+			try {
+				llmResponse = modelEngine.askRoom(toolResultsMessage, this, paramValuesMap);
+				applyInputUsageFromModelResponse(toolResultsMessage, llmResponse);
+				nextAssistant = buildAssistantResponseFromModelResponse(llmResponse, modelEngine, toolResultsMessage);
+			} catch (Exception e) {
+				// Rollback: remove only what this call added, not the whole message.
+				if (removeToolResultsOnFailure && !messages.isEmpty()) {
+					if (isToolResultsInputMessage) {
+						messages.removeLast();
+					} else if (toolCallId != null) {
+						// Only strip the part when this call actually appended it; on the dedupe-reuse
+						// path the part pre-existed and must survive the failure.
+						if (appendedPartThisCall) {
+							// getParts() returns a defensive copy, so removeIf on it wouldn't touch the
+							// message; strip on the copy and set it back so the part is actually dropped.
+							List<MessagePart> remainingParts = toolResultsMessage.getParts();
+							remainingParts.removeIf(p -> {
+								if (p instanceof ToolResultMessagePart) {
+									ToolResultPart tr = ((ToolResultMessagePart) p).getToolResult();
+									return tr != null && toolCallId.equals(tr.getToolCallId());
+								}
+								return false;
+							});
+							toolResultsMessage.setParts(remainingParts);
+							toolResultsMessage.normalizeForWrite();
+						}
+					} else {
+						messages.removeLast();
+					}
+				}
+				classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
+						e.getMessage(), e);
+				throw e;
 			}
-			classLogger.error("Error adding the tool result message and getting a model response. Error: {}",
-					e.getMessage(), e);
-			throw e;
 		}
 		messages.add(nextAssistant);
 
@@ -836,10 +1117,18 @@ public class Room implements Serializable {
 	 * @param modelEngine model engine used to determine max tool name length
 	 */
 	private void appendToolsToParams(Map<String, Object> params, IModelEngine modelEngine) {
+		boolean deferredLoading = Boolean.TRUE.equals(params.remove(DeferredAgentTools.RUN_AGENT_PARAM));
 		int maxLength = MCPUtility.getMaxToolNameLength(modelEngine);
-		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength);
+		List<Map<String, Object>> newTools = getAllToolsJsonForRoom(maxLength,
+				MCPUtility.requiresLLMNameSanitization(modelEngine));
 		Object existing = params.get("tools");
-		if (existing instanceof List<?>) {
+		if (deferredLoading) {
+			@SuppressWarnings("unchecked")
+			List<Map<String, Object>> tools = existing instanceof List<?>
+					? new ArrayList<>((List<Map<String, Object>>) existing) : new ArrayList<>();
+			tools.addAll(newTools);
+			params.put("tools", DeferredAgentTools.filterForModel(this, tools));
+		} else if (existing instanceof List<?>) {
 			@SuppressWarnings("unchecked")
 			List<Map<String, Object>> toolsList = (List<Map<String, Object>>) existing;
 			toolsList.addAll(newTools);
@@ -892,9 +1181,20 @@ public class Room implements Serializable {
 	 *                  {@link MCPUtility#DEFAULT_MAX_TOOL_NAME_LENGTH} as default)
 	 * @return list of tool definition maps ready to pass to the LLM
 	 */
-	@SuppressWarnings("unchecked")
 	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength) {
-		toolLookupByLLMName.clear();
+		return getAllToolsJsonForRoom(maxLength, false);
+	}
+
+	/**
+	 * Same as {@link #getAllToolsJsonForRoom(int)}, additionally sanitizing the
+	 * LLM-facing tool names for providers that require it (see
+	 * {@link MCPUtility#requiresLLMNameSanitization}). The lookup map is keyed by
+	 * the exact names sent to the model, so callers must pass the same flag the
+	 * model invocation used.
+	 */
+	@SuppressWarnings("unchecked")
+	public List<Map<String, Object>> getAllToolsJsonForRoom(int maxLength, boolean sanitizeToolNamesForLLM) {
+		Map<String, Map<String, Object>> lookup = new HashMap<>();
 		List<Map<String, Object>> aggregated = new ArrayList<>();
 		Map<String, Object> o = getOptionsMap();
 
@@ -906,7 +1206,7 @@ public class Room implements Serializable {
 		if (InternalMCP.hasDefinitions(getRoomFolderPath())) {
 			ensureUnique.add(MCPUtility.ROOM_MCP_ID);
 			try {
-				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength));
+				aggregated.addAll(getToolJson(MCPUtility.ROOM_MCP_ID, maxLength, sanitizeToolNamesForLLM, lookup));
 			} catch (Exception e) {
 				classLogger.error("Unable to add the room's own MCP tools", e);
 			}
@@ -920,7 +1220,7 @@ public class Room implements Serializable {
 						if (mcpMap.containsKey("id")) {
 							String id = (String) mcpMap.get("id");
 							if (!ensureUnique.contains(id)) {
-								aggregated.addAll(getToolJson(id, maxLength));
+								aggregated.addAll(getToolJson(id, maxLength, sanitizeToolNamesForLLM, lookup));
 								ensureUnique.add(id);
 							}
 						} else {
@@ -950,7 +1250,7 @@ public class Room implements Serializable {
 						for (Map<String, Object> tool : tools) {
 							String toolId = (String) tool.get("resource_id");
 							if (!ensureUnique.contains(toolId)) {
-								aggregated.addAll(getToolJson(toolId, maxLength));
+								aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
 								ensureUnique.add(toolId);
 							}
 						}
@@ -970,7 +1270,7 @@ public class Room implements Serializable {
 								}
 								String toolId = mcp.optString("id", null);
 								if (toolId != null && !toolId.isEmpty() && !ensureUnique.contains(toolId)) {
-									aggregated.addAll(getToolJson(toolId, maxLength));
+									aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
 									ensureUnique.add(toolId);
 								}
 							}
@@ -985,6 +1285,7 @@ public class Room implements Serializable {
 			}
 		}
 
+		toolLookupByLLMName = lookup;
 		return aggregated;
 	}
 
@@ -994,12 +1295,15 @@ public class Room implements Serializable {
 	 * {@link #updateToolResponseMeta(ResponseMessage)} can reverse-resolve
 	 * LLM-facing names.
 	 *
-	 * @param engineId  the engine/project UUID
-	 * @param maxLength maximum allowed tool name length
+	 * @param engineId                the engine/project UUID
+	 * @param maxLength               maximum allowed tool name length
+	 * @param sanitizeToolNamesForLLM whether the injected engine-id prefix must be
+	 *                                restricted to [a-zA-Z0-9_] (Bedrock/Nova)
 	 * @return list of non-disabled tool definition maps
 	 */
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> getToolJson(String engineId, int maxLength) {
+	private List<Map<String, Object>> getToolJson(String engineId, int maxLength, boolean sanitizeToolNamesForLLM,
+			Map<String, Map<String, Object>> lookup) {
 		// room level MCPs
 		if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 			InternalMCP roomMcp = InternalMCP.genFromRoomFolder(this.getRoomFolderPath());
@@ -1020,7 +1324,7 @@ public class Room implements Serializable {
 				}
 			}
 			JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(MCPUtility.ROOM_MCP_ID, toolMap,
-					maxLength);
+					maxLength, sanitizeToolNamesForLLM);
 			if (updatedToolMap == null || !updatedToolMap.has("tools")) {
 				return new ArrayList<>();
 			}
@@ -1056,7 +1360,7 @@ public class Room implements Serializable {
 						lookupEntry.put("inputSchema", entry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
-					toolLookupByLLMName.put(llmName, lookupEntry);
+					lookup.put(llmName, lookupEntry);
 				}
 			}
 			return result;
@@ -1096,7 +1400,8 @@ public class Room implements Serializable {
 			engineMeta = toolMap.getJSONObject("_meta").toMap();
 		}
 
-		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength);
+		JSONObject updatedToolMap = MCPUtility.appendEngineIdToToolsMethodName(engineId, toolMap, maxLength,
+				sanitizeToolNamesForLLM);
 		if (updatedToolMap != null && updatedToolMap.has("tools")) {
 			JSONArray arr = updatedToolMap.getJSONArray("tools");
 			List<Map<String, Object>> result = new ArrayList<>();
@@ -1141,7 +1446,7 @@ public class Room implements Serializable {
 						lookupEntry.put("inputSchema", toolMapEntry.get("inputSchema"));
 					}
 					lookupEntry.put("_meta", lookupMeta);
-					toolLookupByLLMName.put(llmFacingName, lookupEntry);
+					lookup.put(llmFacingName, lookupEntry);
 				}
 			}
 			return result;
@@ -1171,7 +1476,8 @@ public class Room implements Serializable {
 	 * @return unmodifiable view of the lookup map
 	 */
 	public Map<String, Map<String, Object>> getToolLookupByLLMName() {
-		return Collections.unmodifiableMap(toolLookupByLLMName);
+		Map<String, Map<String, Object>> lookup = toolLookupByLLMName;
+		return lookup == null ? Map.of() : Collections.unmodifiableMap(lookup);
 	}
 
 	/**
@@ -1199,7 +1505,7 @@ public class Room implements Serializable {
 		if (llmFacingName == null || llmFacingName.isBlank()) {
 			return llmFacingName;
 		}
-		Map<String, Object> entry = toolLookupByLLMName.get(llmFacingName);
+		Map<String, Object> entry = getToolLookupByLLMName().get(llmFacingName);
 		if (entry == null) {
 			return llmFacingName;
 		}
@@ -1229,7 +1535,9 @@ public class Room implements Serializable {
 
 	/**
 	 * Resolves the user-authored system prompt - the room/workspace layer, before
-	 * the enterprise template wrap or {@code {{VAR}}} expansion. Precedence:
+	 * the enterprise template wrap or {@code {{VAR}}} expansion. By default,
+	 * nonempty room instructions replace the workspace prompt. With
+	 * {@code overrideSystemPrompt=false}, they append after it. Prompt sources:
 	 * <ol>
 	 * <li>{@code options.instructions}</li>
 	 * <li>{@code workspace.system_prompt} (looked up via
@@ -1246,6 +1554,11 @@ public class Room implements Serializable {
 	 *                                  active-state checks
 	 */
 	public String getRoomOrWorkspaceSystemPrompt() {
+		return RoomSystemPrompt.resolve(getOptions(), this::getWorkspaceSystemPrompt);
+	}
+
+	/** Load the linked workspace's authored prompt after validating access. */
+	private String getWorkspaceSystemPrompt() {
 		String opts = getOptions();
 		JsonObject optionsObj = null;
 		if (opts != null && !opts.trim().isEmpty()) {
@@ -1258,16 +1571,7 @@ public class Room implements Serializable {
 			return null;
 		}
 
-		// 1. options.instructions
-		JsonElement instructionsElem = optionsObj.get("instructions");
-		if (instructionsElem != null && instructionsElem.isJsonPrimitive()) {
-			String fromInstructions = StringUtils.trimToNull(instructionsElem.getAsString());
-			if (fromInstructions != null) {
-				return fromInstructions;
-			}
-		}
-
-		// 2. workspace.system_prompt (by workspace_id in options)
+		// workspace.system_prompt (by workspace_id in options)
 		JsonElement workspaceElem = optionsObj.get("workspace");
 		String workspaceId = null;
 		if (workspaceElem != null) {

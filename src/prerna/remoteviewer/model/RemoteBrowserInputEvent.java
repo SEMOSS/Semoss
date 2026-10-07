@@ -108,7 +108,9 @@ public class RemoteBrowserInputEvent {
 	private String tabId;
 	/** Internal popup tab detected while dispatching this event. */
 	private String triggeredTabId;
-	/** Whether playback should bind tab-1 to the active tab instead of a fresh tab. */
+	/**
+	 * Whether playback should bind tab-1 to the active tab instead of a fresh tab.
+	 */
 	private Boolean reuseActiveTab;
 	/** Recorded child-tab ID expected from a replayed popup-triggering action. */
 	private String replayTriggerTabId;

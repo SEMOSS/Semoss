@@ -36,15 +36,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.commons.fileupload2.core.FileItem;
+import org.apache.commons.fileupload2.core.DiskFileItem;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tika.config.TikaConfig;
-import org.apache.tika.detect.Detector;
-import org.apache.tika.io.TikaInputStream;
-import org.apache.tika.metadata.Metadata;
-import org.apache.tika.metadata.TikaCoreProperties;
 
 public class FileAnalyzer {
 
@@ -55,10 +50,10 @@ public class FileAnalyzer {
 			Charset.forName("Windows-1252") // same as cp1252
 	);
 
-	private FileItem item;
+	private DiskFileItem item;
 	private Charset charset = null;
 
-	public FileAnalyzer(FileItem item) {
+	public FileAnalyzer(DiskFileItem item) {
 		this.item = item;
 	}
 
@@ -71,13 +66,8 @@ public class FileAnalyzer {
 		String filetype = FilenameUtils.getExtension(item.getName());
 		String mimeType = null;
 
-		TikaConfig config = TikaConfig.getDefaultConfig();
-		Detector detector = config.getDetector();
-		Metadata metadata = new Metadata();
-		metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, item.getName());
-
-		try (TikaInputStream stream = TikaInputStream.get(this.item.getInputStream())) {
-			mimeType = detector.detect(stream, metadata).toString();
+		try {
+			mimeType = MimeTypeUtility.detectMimeType(this.item.getInputStream(), item.getName());
 		} catch (IOException e) {
 			classLogger.error(Constants.ERROR_MESSAGE, e);
 		}

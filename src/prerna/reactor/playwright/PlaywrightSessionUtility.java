@@ -61,7 +61,7 @@ public class PlaywrightSessionUtility {
 	 * @return true if page changed, false otherwise
 	 */
 	public static Map<String, Object> applyStep(PlaywrightSession session, PlaywrightStep step, String tabId) {
-        session.getOperationLock().lock();
+		session.getOperationLock().lock();
 		try {
 			Map<String, Object> response = new HashMap<String, Object>();
 
@@ -414,9 +414,15 @@ public class PlaywrightSessionUtility {
 			}
 
 			// Main page check
-			Object raw = page.evaluate("({x,y})=>{ const el = document.elementFromPoint(x,y); "
-					+ "if(!el) return null; const cs=getComputedStyle(el); "
-					+ "return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents }; }",
+			Object raw = page.evaluate(
+					"""
+							({x,y})=>{
+							  const el = document.elementFromPoint(x,y);
+							  if(!el) return null;
+							  const cs=getComputedStyle(el);
+							  return { tag: el.localName, display: cs.display, visibility: cs.visibility, pe: cs.pointerEvents };
+							}
+							""",
 					java.util.Map.of("x", x, "y", y));
 			if (raw == null) {
 				return false;
@@ -692,15 +698,30 @@ public class PlaywrightSessionUtility {
 		}
 
 		// main page
-		String script = "({x,y})=>{ const el=document.elementFromPoint(x,y); if(!el) return null;"
-				+ " const id=el.id; if(id) return {strategy:'id',value:id};"
-				+ " const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id'); if(testId) return {strategy:'testId',value:testId};"
-				+ " const role=el.getAttribute('role'); if(role) return {strategy:'role',value:role};"
-				+ " function css(e){ if(!e||e===document.body) return 'body'; if(e.id) return '#'+CSS.escape(e.id);"
-				+ "   let s=e.localName; if(e.classList.length && e.classList.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');"
-				+ "   const p=e.parentElement; if(!p) return s; const sib=[...p.children].filter(c=>c.localName===e.localName);"
-				+ "   const idx=sib.indexOf(e)+1; return css(p)+' > '+s+`:nth-of-type(${idx})`; }"
-				+ " return {strategy:'css', value: css(el)}; }";
+		String script = """
+				({x,y})=>{
+				  const el=document.elementFromPoint(x,y);
+				  if(!el) return null;
+				  const id=el.id;
+				  if(id) return {strategy:'id',value:id};
+				  const testId=el.getAttribute('data-testid')||el.getAttribute('data-test-id');
+				  if(testId) return {strategy:'testId',value:testId};
+				  const role=el.getAttribute('role');
+				  if(role) return {strategy:'role',value:role};
+				  function css(e){
+				    if(!e||e===document.body) return 'body';
+				    if(e.id) return '#'+CSS.escape(e.id);
+				    let s=e.localName;
+				    if(e.classList.length && e.classList.length<=3) s+='.'+[...e.classList].map(c=>CSS.escape(c)).join('.');
+				    const p=e.parentElement;
+				    if(!p) return s;
+				    const sib=[...p.children].filter(c=>c.localName===e.localName);
+				    const idx=sib.indexOf(e)+1;
+				    return css(p)+' > '+s+`:nth-of-type(${idx})`;
+				  }
+				  return {strategy:'css', value: css(el)};
+				}
+				""";
 
 		Map<String, String> sel = evaluateSelectorProbeSafely(page, script, java.util.Map.of("x", x, "y", y));
 
@@ -898,16 +919,26 @@ public class PlaywrightSessionUtility {
 	 * @return A JSHandle to a Promise that resolves when a mutation is detected.
 	 */
 	private static JSHandle createMutationObserver(Page page) {
-		return page.evaluateHandle("() => new Promise(resolve => {"
-				+ "  const observer = new MutationObserver(muts => {" + "    for (const m of muts) {"
-				+ "      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }"
-				+ "      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }"
-				+ "      if (m.type === 'attributes' && m.attributeName !== 'value') {"
-				+ "        observer.disconnect(); resolve(true); return;" + "      }" + "    }" + "  });"
-				+ "  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });"
-				+ "  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);" + "})");
+		return page.evaluateHandle(
+				"""
+						() => new Promise(resolve => {
+						  const observer = new MutationObserver(muts => {
+						    for (const m of muts) {
+						      if (m.type === 'childList' && (m.addedNodes.length > 0 || m.removedNodes.length > 0)) {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						      if (m.type === 'characterData' && m.target.nodeValue && m.target.nodeValue.trim().length > 0) {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						      if (m.type === 'attributes' && m.attributeName !== 'value') {
+						        observer.disconnect(); resolve(true); return;
+						      }
+						    }
+						  });
+						  observer.observe(document.body, { childList: true, subtree: true, attributes: true, characterData: true });
+						  setTimeout(() => { observer.disconnect(); resolve(false); }, 800);
+						})
+						""");
 	}
 
 	/**

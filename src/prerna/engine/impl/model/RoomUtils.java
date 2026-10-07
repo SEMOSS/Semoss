@@ -45,6 +45,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.JSONObject;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
@@ -52,6 +53,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.cluster.util.ClusterUtil;
 import prerna.date.SemossDate;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -62,12 +64,12 @@ import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageSchemaUpgrader;
 import prerna.engine.impl.model.message.MessageType;
+import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.om.Insight;
 import prerna.playground.PlaygroundUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.redis.RedisConnectionConfig;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -207,8 +209,9 @@ public final class RoomUtils {
 			projectId = insight.getProjectId();
 		}
 		String projectName = null;
-		// ignore playground project id
-		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)) {
+		// ignore playground project id; collaboration rooms have no backing project either
+		if (projectId != null && !projectId.equals(PlaygroundUtils.PLAYGROUND_PROJECT_ID)
+				&& !projectId.equals(CollaborationUtils.COLLABORATION_PROJECT_ID)) {
 			IProject project = Utility.getProject(projectId);
 			projectName = project != null ? project.getProjectName() : null;
 		}
@@ -248,11 +251,18 @@ public final class RoomUtils {
 		if (insight.getUser().getRoomHash().containsKey(roomId)) {
 			try {
 				room = insight.getUser().getRoomHash().get(roomId);
-				// A user's room cache outlives individual HTTP Insight instances. Always
-				// attach the current caller before any room operation uses transient context.
-				room.setInsight(insight);
-				refreshCachedRoomMessagesIfRedisEnabled(room, insight);
-				ensureRoomMessagesUpToDate(room, insight);
+				// A cache hit can arrive while another request is still streaming a response
+				// into this same Room. Refreshing from Redis without the mutation lock can
+				// replace that request's in-flight message list with the last persisted
+				// projection, leaving newly appended messages with missing parents. Updating
+				// the transient Insight can also switch request context mid-stream. Keep all
+				// cache-hit updates inside the room-wide mutation lock.
+				try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(room)) {
+					// Attach the current caller before any room operation uses transient context.
+					room.setInsight(insight);
+					refreshCachedRoomMessages(room, insight);
+					ensureRoomMessagesUpToDate(room, insight);
+				}
 				symlinkRoomFolderIfNeeded(room, insight);
 				return room;
 			} catch (ClassCastException e) {
@@ -321,8 +331,8 @@ public final class RoomUtils {
 		return room;
 	}
 
-	private static void refreshCachedRoomMessagesIfRedisEnabled(Room room, Insight insight) {
-		if (room == null || insight == null || insight.getUser() == null || !RedisConnectionConfig.isRedisEnabled()) {
+	private static void refreshCachedRoomMessages(Room room, Insight insight) {
+		if (room == null || insight == null || insight.getUser() == null) {
 			return;
 		}
 		RoomMessageStore.refreshFromLatestProjection(room, insight.getUser().getPrimaryLoginToken().getId());
@@ -580,6 +590,44 @@ public final class RoomUtils {
 		// Return the requested sublist
 		// new ArrayList to ensure it's not a view of the original list
 		return new ArrayList<>(copy.subList(startIdx, endIdx));
+	}
+
+	/**
+	 * Converts room messages to the client-facing Playground contract, enriching
+	 * tool calls with their project metadata before serialization.
+	 */
+	public static List<Map<String, Object>> getMessagesForClient(Room room, List<AbstractMessage> messages) {
+		List<Map<String, Object>> output = new ArrayList<>();
+		if (room == null || messages == null || messages.isEmpty()) {
+			return output;
+		}
+
+		IModelEngine roomModelEngine = null;
+		String modelId = room.getModelId();
+		if (modelId != null) {
+			try {
+				roomModelEngine = (IModelEngine) Utility.getEngine(modelId);
+			} catch (Exception ignore) {
+				// Tool metadata enrichment still supports legacy UUID-prefixed names.
+			}
+		}
+		room.getAllToolsJsonForRoom(MCPUtility.getMaxToolNameLength(roomModelEngine),
+				MCPUtility.requiresLLMNameSanitization(roomModelEngine));
+
+		Map<String, JSONObject> toolCache = new HashMap<>();
+		for (AbstractMessage message : messages) {
+			if (message.hasParts() && message.hasToolCallPart()) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			} else if (message.getMessageType() == MessageType.RESPONSE_TOOL) {
+				MCPUtility.updateToolResponseWithProjectMeta((ResponseMessage) message, toolCache,
+						room.getToolLookupByLLMName());
+			}
+			Map<String, Object> messageMap = MessageUtils
+					.jsonToMapForPixelReturn(MessageUtils.toJsonWithImage(message));
+			output.add(messageMap);
+		}
+		return output;
 	}
 
 	/**

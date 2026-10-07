@@ -27,7 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.model;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -50,11 +49,20 @@ import prerna.util.Utility;
 
 public class LLMReactor extends AbstractReactor {
 
+	/**
+	 * One parameter, two accepted names. 'media' is canonical; 'image' is a
+	 * deprecated legacy alias, kept only so existing pixels keep working. Keeping
+	 * them in a single aliased key definition (rather than two keys) means the
+	 * positional argument order is unchanged and the MCP JSON advertises just
+	 * 'media'.
+	 */
+	private static final String MEDIA_KEY = ReactorKeysEnum.MEDIA.getKey() + "," + ReactorKeysEnum.IMAGE.getKey();
+
 	public LLMReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.COMMAND.getKey(),
 				ReactorKeysEnum.CONTEXT.getKey(), ReactorKeysEnum.USE_HISTORY.getKey(),
-				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.ROOM_ID.getKey(),
-				ReactorKeysEnum.IMAGE.getKey(), ReactorKeysEnum.URL.getKey(), };
+				ReactorKeysEnum.PARAM_VALUES_MAP.getKey(), ReactorKeysEnum.ROOM_ID.getKey(), MEDIA_KEY,
+				ReactorKeysEnum.URL.getKey(), };
 		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0 };
 	}
 
@@ -82,8 +90,8 @@ public class LLMReactor extends AbstractReactor {
 				.parseBoolean(this.keyValue.getOrDefault(ReactorKeysEnum.USE_HISTORY.getKey(), "true") + "");
 		paramMap.put("use_history", useHistoryParam);
 
-		List<String> inputImages = getImages();
-		List<String> inputImageURLs = getImageURLs();
+		List<String> inputMedia = getMediaInputs();
+		List<String> inputMediaURLs = getMediaURLs();
 
 		String parentRoomId = resolveParentRoomId(paramMap, roomId);
 
@@ -92,43 +100,39 @@ public class LLMReactor extends AbstractReactor {
 						parentRoomId)
 				: RoomUtils.createRoomForStatelessAsk(roomId, insight, modelEngine, question, null, null, null, null,
 						parentRoomId);
-		List<String> copiedImages = RoomUtils.copyFilesToRoomFolder(inputImages, room, insight);
+		List<String> copiedMedia = RoomUtils.copyFilesToRoomFolder(inputMedia, room, insight);
 
 		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
-				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedImages, room)
-				.withMediaUrls(inputImageURLs).build();
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).withMediaInputs(copiedMedia, room)
+				.withMediaUrls(inputMediaURLs).build();
 
 		ResponseMessage response = room.ask(msg, modelEngine);
 		return new NounMetadata(response.getModelEngineResponse().toMap(), PixelDataType.MAP,
 				PixelOperationType.OPERATION);
 	}
 
-	// ----------- image/file helpers, paramMap etc. -------------
-	public List<String> getImages() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.IMAGE.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				inputStrings.add(grs.get(i).toString());
-			}
-			return inputStrings;
-		}
-		int size = this.curRow.size();
-		for (int i = 0; i < size; i++) {
-			inputStrings.add(this.curRow.get(i).toString());
-		}
-		return inputStrings;
+	// ----------- media/file helpers, paramMap etc. -------------
+	/**
+	 * Media files to attach to the message, from either accepted name. Not
+	 * images-only: any file type the model accepts (pdf, document, spreadsheet,
+	 * audio, video) travels the same way.
+	 */
+	private List<String> getMediaInputs() {
+		return getFileKeyValues(MEDIA_KEY);
 	}
 
-	public List<String> getImageURLs() {
-		List<String> inputStrings = new ArrayList<>();
-		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.URL.getKey());
-		if (grs != null && !grs.isEmpty()) {
-			int size = grs.size();
-			for (int i = 0; i < size; i++) {
-				inputStrings.add(grs.get(i).toString());
-			}
+	private List<String> getMediaURLs() {
+		return getFileKeyValues(ReactorKeysEnum.URL.getKey());
+	}
+
+	/**
+	 * Values for an aliased key definition ("media,image"), falling back to the
+	 * unnamed current row only when no alias was supplied - preserving this
+	 * reactor's original positional-argument behavior.
+	 */
+	private List<String> getFileKeyValues(String keyDefinition) {
+		List<String> inputStrings = getListStringForAliasedKey(keyDefinition);
+		if (!inputStrings.isEmpty()) {
 			return inputStrings;
 		}
 		int size = this.curRow.size();
@@ -183,15 +187,18 @@ public class LLMReactor extends AbstractReactor {
 			return "This is the prompt to execute against the LLM";
 		} else if (key.equals(ReactorKeysEnum.CONTEXT.getKey())) {
 			return "The system prompt to use for the LLM call";
-		} else if (key.equals(ReactorKeysEnum.IMAGE.getKey())) {
-			return "This is an array of image file names that have already been uploaded to the insight folder, or base64 data URIs for images/PDFs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....).";
+		} else if (key.equals(ReactorKeysEnum.MEDIA.getKey())) {
+			return "This is an array of media file names that have already been uploaded to the insight folder, or base64 data URIs (e.g. data:image/jpeg;base64,.... or data:application/pdf;base64,....). "
+					+ "Any file type is accepted here - image, pdf, document, spreadsheet, audio, video - and what actually gets used depends on what the model supports.";
 		} else if (key.equals(ReactorKeysEnum.URL.getKey())) {
-			return "This is an array of image file urls whose contents will be fetched when building the message content.";
+			return "This is an array of media file urls whose contents will be fetched when building the message content.";
 		} else if (key.equals(ReactorKeysEnum.PARAM_VALUES_MAP.getKey())) {
 			return "Map containing the key-value pairs for model parameters like 'temperature', 'top_p', etc. "
 					+ "In addition, you can pass in 'full_prompt' to represent a full prompt and history via ChatML format which will ignore inputs for "
 					+ Arrays.asList(ReactorKeysEnum.COMMAND.getKey(), ReactorKeysEnum.CONTEXT.getKey(),
-							ReactorKeysEnum.USE_HISTORY.getKey());
+							ReactorKeysEnum.USE_HISTORY.getKey(), ReactorKeysEnum.MEDIA.getKey(),
+							ReactorKeysEnum.URL.getKey())
+					+ ". Media for a full_prompt call has to travel inside the prompt as content parts instead.";
 		} else if (key.equals(ReactorKeysEnum.USE_HISTORY.getKey())) {
 			return "Boolean true/false to determine if we should incorporate the user's chat history based on the previous chats in this insight id. "
 					+ "Default is true. This is the same as passing 'use_history' in the "

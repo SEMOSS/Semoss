@@ -31,11 +31,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.engine.api.IEngine;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.MCPUtility.MCPExecution;
@@ -46,12 +48,14 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
 
-final class PlatformAgentTools {
+public final class PlatformAgentTools {
 
 	static final String PARAM_USE_DEFAULT_AGENT_TOOLS = "useDefaultAgentTools";
+	static final String DEFAULT_TOOL_POLICY_DENIAL_CODE = "DEFAULT_TOOL_DISABLED_BY_AGENT_POLICY";
 	private static final String PARAM_TOOLS = "tools";
 	private static final String PROP_DEFAULT_TOOLS_MCP_ID = "AGENT_DEFAULT_TOOLS_MCP_ID";
 	private static final String PROP_DEFAULT_TOOLS_MCP_PROJECT_ID = "AGENT_DEFAULT_TOOLS_MCP_PROJECT_ID";
+	private static final Set<String> DEFERRED_DEFAULT_TOOLS = Set.of("InspectPptx", "MultiEdit");
 
 	private static final Map<String, PlatformAgentToolHandlers.ToolHandler> PLATFORM_TOOLS =
 			PlatformAgentToolHandlers.handlersByName();
@@ -59,7 +63,16 @@ final class PlatformAgentTools {
 	private PlatformAgentTools() {
 	}
 
-	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap) {
+	/**
+	 * Returns the current deployment's default tool definitions for administrative
+	 * configuration UI. This uses the same native-or-override provider resolver
+	 * as the harness, without workspace-specific policy filtering.
+	 */
+	public static List<Map<String, Object>> getDefaultToolDefinitions() {
+		return resolveDefaultTools(java.util.Collections.emptyMap(), java.util.Collections.emptySet());
+	}
+
+	static List<Map<String, Object>> resolveDefaultTools(Map<String, Object> paramMap, Set<String> disabledNames) {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (useDefaultAgentTools(paramMap)) {
 			String overrideMcpId = getDefaultToolsMcpId();
@@ -70,7 +83,24 @@ final class PlatformAgentTools {
 			}
 		}
 		tools.addAll(getExplicitTools(paramMap));
-		return dedupeByName(tools);
+		List<Map<String, Object>> resolved = dedupeByName(tools);
+		if (disabledNames != null && !disabledNames.isEmpty()) {
+			resolved.removeIf(tool -> disabledNames.contains(String.valueOf(tool.get("name"))));
+		}
+		return resolved;
+	}
+
+	static ToolExecutionResult policyDenialResult(String toolName, AgentRunContext ctx) {
+		if (toolName == null || toolName.trim().isEmpty() || ctx == null) {
+			return null;
+		}
+		if (!ctx.getAgentConfig().getDisabledDefaultTools().contains(toolName)
+				&& (ctx.getAgentConfig().useDefaultAgentTools() || !isDefaultTool(toolName))) {
+			return null;
+		}
+
+		String message = "Tool '" + toolName + "' is disabled for this agent";
+		return ToolExecutionResult.error(message, DEFAULT_TOOL_POLICY_DENIAL_CODE + ": " + message);
 	}
 
 	static boolean isDefaultTool(String toolName) {
@@ -84,6 +114,9 @@ final class PlatformAgentTools {
 	}
 
 	static String executeDefaultTool(String toolName, Map<String, Object> params, AgentRunContext ctx) throws Exception {
+        Map<String, Object> effective = new LinkedHashMap<>(ctx.getAgentConfig().getToolParameterDefaults(toolName));
+        if (params != null) effective.putAll(params);
+        params = effective;
 		String overrideMcpId = getDefaultToolsMcpId();
 		if (overrideMcpId != null) {
 			JSONObject tool = findMcpTool(overrideMcpId, toolName);
@@ -100,6 +133,19 @@ final class PlatformAgentTools {
 			throw new IllegalArgumentException("Unknown platform agent tool: " + toolName);
 		}
 		return handler.execute(params, ctx);
+	}
+
+	static ToolExecutionResult executeDefaultToolResult(String toolName, Map<String, Object> params,
+			AgentRunContext ctx) throws Exception {
+		String output = executeDefaultTool(toolName, params, ctx);
+		if (getDefaultToolsMcpId() == null && output != null && output.startsWith("Error:")) {
+			return ToolExecutionResult.error(output, output);
+		}
+		if (getDefaultToolsMcpId() == null && "InspectPptx".equals(toolName) && output != null
+				&& "failed".equals(new JSONObject(output).optString("status"))) {
+			return ToolExecutionResult.error(output, output);
+		}
+		return ToolExecutionResult.success(output);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -134,7 +180,11 @@ final class PlatformAgentTools {
 	private static List<Map<String, Object>> getPlatformToolDefinitions() {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (PlatformAgentToolHandlers.ToolHandler handler : PLATFORM_TOOLS.values()) {
-			tools.add(handler.asToolDefinition().toMap());
+			JSONObject tool = handler.asToolDefinition();
+			if (DEFERRED_DEFAULT_TOOLS.contains(handler.getName())) {
+				tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_DEFERRED, true);
+			}
+			tools.add(tool.toMap());
 		}
 		return tools;
 	}

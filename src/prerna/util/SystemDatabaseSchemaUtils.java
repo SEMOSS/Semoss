@@ -30,6 +30,7 @@ package prerna.util;
 import java.util.List;
 
 import prerna.auth.utils.SecurityOwlCreator;
+import prerna.collaboration.CollaborationOwlCreator;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsOwlCreator;
 import prerna.engine.impl.owl.AbstractOwlCreator;
@@ -89,11 +90,12 @@ public class SystemDatabaseSchemaUtils {
 		AbstractOwlCreator owlCreator = switch (databaseId) {
 		case Constants.SECURITY_DB -> new SecurityOwlCreator(queryUtil);
 		case Constants.LOCAL_MASTER_DB -> new LocalMasterOwlCreator(queryUtil);
-		case Constants.SCHEDULER_DB -> new SchedulerOwlCreator();
+		case Constants.SCHEDULER_DB -> new SchedulerOwlCreator(queryUtil);
 		case Constants.THEMING_DB -> new ThemeOwlCreator(queryUtil);
 		case Constants.USER_TRACKING_DB -> new UserTrackingOwlCreator(queryUtil);
 		case Constants.PROMPT_DB -> new PromptOwlCreator(queryUtil);
 		case Constants.NOTIFICATION_DB -> new NotificationOwlCreator(queryUtil);
+		case Constants.COLLABORATION_DB -> new CollaborationOwlCreator(queryUtil);
 		case Constants.AUDIT_LOGS_DB -> new AuditLogsDbOwlCreator(queryUtil);
 		case Constants.MODEL_INFERENCE_LOGS_DB -> new ModelInferenceLogsOwlCreator(queryUtil);
 		default ->

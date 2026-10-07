@@ -236,14 +236,14 @@ public class ConvertFrameToVegaVizReactor extends AbstractFrameReactor {
 		room.setInsight(this.insight);
 		// room.setModelId((String) this.keyValue.get(ReactorKeysEnum.MODEL.getKey()));
 		// // try this?
-		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).build();
-
 		HashMap<String, Object> paramMap = new HashMap<String, Object>();
 		paramMap.put("use_history", USE_HISTORY);
 		paramMap.put("temperature", TEMPERATURE);
 
 		IModelEngine modelEngine = Utility.getModel(modelId);
-		AskModelEngineResponse<?> modelResponse = modelEngine.askRoom(question, room, null, paramMap);
+		InputMessage msg = InputMessage.builder(room).withSystemPrompt(context).withText(question)
+				.withModelType(modelEngine.getModelType()).withParamMap(paramMap).build();
+		AskModelEngineResponse<?> modelResponse = room.ask(msg, modelEngine).getModelEngineResponse();
 		String response = null;
 
 		if (modelResponse != null) {

@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.reactor.playwright;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-
 /**
  * Represents a selector used to identify an element on a webpage. This record
  * is an immutable data carrier for the strategy and value of a selector.
@@ -42,7 +40,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
  *                      (relative to main page), or null if element is on main
  *                      page.
  */
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record Selector(String strategy, String value, String frameSelector) {
 
 	public Selector(String strategy, String value) {

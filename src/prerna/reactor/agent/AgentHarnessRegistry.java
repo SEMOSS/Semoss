@@ -39,76 +39,86 @@ import prerna.reactor.agent.runtime.SemossAgentHarness;
 /**
  * Static registry for {@link IAgentHarness} implementations.
  *
- * <p>Built-in harnesses registered at class-load time:
+ * <p>
+ * Built-in harnesses registered at class-load time:
  * <ul>
- *   <li>{@code "semoss"}    -> {@link SemossAgentHarness} - SEMOSS-native canonical harness
- *   <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
- *   <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
+ * <li>{@code "semoss"} -> {@link SemossAgentHarness} - SEMOSS-native canonical
+ * harness
+ * <li>{@code "claude_code"} -> {@link ClaudeCodeAgentHarness}
+ * <li>{@code "github_copilot_py"} -> {@link GitHubCopilotPyAgentHarness}
  * </ul>
  *
- * <p>Custom harnesses can be registered at application startup via {@link #register}.
- * The default harness (used when no name is requested) is {@code "semoss"}.
+ * <p>
+ * Custom harnesses can be registered at application startup via
+ * {@link #register}. The default harness (used when no name is requested) is
+ * {@code "semoss"}.
  */
 public final class AgentHarnessRegistry {
 
-    private static final Logger logger = LogManager.getLogger(AgentHarnessRegistry.class);
+	private static final Logger logger = LogManager.getLogger(AgentHarnessRegistry.class);
 
-    public static final String DEFAULT_HARNESS = "semoss";
+	public static final String DEFAULT_HARNESS = "semoss";
 
-    private static final Map<String, IAgentHarness> REGISTRY;
+	private static final Map<String, IAgentHarness> REGISTRY;
 
-    static {
-        Map<String, IAgentHarness> m = new HashMap<>();
-        IAgentHarness semoss          = new SemossAgentHarness();
-        IAgentHarness claudeCode      = new ClaudeCodeAgentHarness();
-        IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
-        m.put(semoss.getName(),          semoss);
-        m.put(claudeCode.getName(),      claudeCode);
-        m.put(githubCopilotPy.getName(), githubCopilotPy);
-        REGISTRY = Collections.synchronizedMap(m);
-    }
+	static {
+		Map<String, IAgentHarness> m = new HashMap<>();
+		IAgentHarness semoss = new SemossAgentHarness();
+		IAgentHarness claudeCode = new ClaudeCodeAgentHarness();
+		IAgentHarness githubCopilotPy = new GitHubCopilotPyAgentHarness();
+		m.put(semoss.getName(), semoss);
+		m.put(claudeCode.getName(), claudeCode);
+		m.put(githubCopilotPy.getName(), githubCopilotPy);
+		REGISTRY = Collections.synchronizedMap(m);
+	}
 
-    private AgentHarnessRegistry() { /* static utility */ }
+	private AgentHarnessRegistry() {
 
-    // Public API
-    /**
-     * Register a custom harness. Overwrites any existing harness with the same name.
-     *
-     * @param harness implementation to register; must not be null
-     */
-    public static void register(IAgentHarness harness) {
-        if (harness == null) throw new IllegalArgumentException("harness must not be null");
-        REGISTRY.put(harness.getName(), harness);
-        logger.info("AgentHarnessRegistry: registered harness '{}'", harness.getName());
-    }
+	}
 
-    /**
-     * Returns the harness registered under {@code name}, or {@code null} if not found.
-     *
-     * @param name registry key (case-sensitive)
-     */
-    public static IAgentHarness get(String name) {
-        return REGISTRY.get(name);
-    }
+	// Public API
+	/**
+	 * Register a custom harness. Overwrites any existing harness with the same
+	 * name.
+	 *
+	 * @param harness implementation to register; must not be null
+	 */
+	public static void register(IAgentHarness harness) {
+		if (harness == null) {
+			throw new IllegalArgumentException("harness must not be null");
+		}
+		REGISTRY.put(harness.getName(), harness);
+		logger.info("AgentHarnessRegistry: registered harness '{}'", harness.getName());
+	}
 
-    /**
-     * Returns the harness registered under {@code name}.
-     * Falls back to the {@value #DEFAULT_HARNESS} harness if {@code name} is null
-     * or blank. Explicit, unrecognised names are rejected.
-     *
-     * @param name registry key; may be null or empty
-     * @throws IllegalArgumentException if a nonblank name is not registered
-     */
-    public static IAgentHarness getOrDefault(String name) {
-        String normalizedName = name == null ? null : name.trim();
-        if (normalizedName == null || normalizedName.isEmpty()) {
-            return REGISTRY.get(DEFAULT_HARNESS);
-        }
+	/**
+	 * Returns the harness registered under {@code name}, or {@code null} if not
+	 * found.
+	 *
+	 * @param name registry key (case-sensitive)
+	 */
+	public static IAgentHarness get(String name) {
+		return REGISTRY.get(name);
+	}
 
-        IAgentHarness harness = REGISTRY.get(normalizedName);
-        if (harness == null) {
-            throw new IllegalArgumentException("Unknown harnessType: " + normalizedName);
-        }
-        return harness;
-    }
+	/**
+	 * Returns the harness registered under {@code name}. Falls back to the
+	 * {@value #DEFAULT_HARNESS} harness if {@code name} is null or blank. Explicit,
+	 * unrecognised names are rejected.
+	 *
+	 * @param name registry key; may be null or empty
+	 * @throws IllegalArgumentException if a nonblank name is not registered
+	 */
+	public static IAgentHarness getOrDefault(String name) {
+		String normalizedName = name == null ? null : name.trim();
+		if (normalizedName == null || normalizedName.isEmpty()) {
+			return REGISTRY.get(DEFAULT_HARNESS);
+		}
+
+		IAgentHarness harness = REGISTRY.get(normalizedName);
+		if (harness == null) {
+			throw new IllegalArgumentException("Unknown harnessType: " + normalizedName);
+		}
+		return harness;
+	}
 }

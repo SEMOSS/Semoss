@@ -52,11 +52,15 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(EditWorkspaceReactor.class);
 
+	/** Max length for the agent's scripted opening message. */
+	private static final int MAX_GREETING_LENGTH = 2000;
+
 	public EditWorkspaceReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.WORKSPACE_ID.getKey(), NAME, DESCRIPTION, SYSTEM_PROMPT,
 				IS_ACTIVE, ReactorKeysEnum.MCP.getKey(), PROMPTS, SKILLS, MODEL_ID, MAX_TURNS, MAX_SUBAGENT_DEPTH,
-				MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+				MAX_REFLECTIONS, MAX_SECONDS, MAX_SUBAGENTS_PER_RUN, MAX_SPAWNS_PER_TURN, SUBAGENTS, HOOKS,
+				USE_DEFAULT_AGENT_TOOLS, DISABLED_DEFAULT_TOOLS, GREETING, GREETING_ENABLED };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	/**
@@ -155,6 +159,8 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 			validateWorkspaceInputs(user, workspaceId, curDepList, curSkillList, engines, projectDependencies,
 					dependencyList, workspaceResources, skillIds);
 			stageIntUpdate(budgetUpdates, MAX_TURNS, "max_turns", 1);
+			stageIntUpdate(budgetUpdates, MAX_REFLECTIONS, "max_reflections", 0);
+			stageIntUpdate(budgetUpdates, MAX_SECONDS, "max_seconds", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENT_DEPTH, "max_subagent_depth", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SUBAGENTS_PER_RUN, "max_subagents_per_run", 0);
 			stageIntUpdate(spawnPolicyUpdates, MAX_SPAWNS_PER_TURN, "max_spawns_per_turn", 0);
@@ -176,6 +182,37 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		// clears it (falling back to room MODEL_ID / options at run time).
 		boolean modelIdProvided = getGenRowStruct(MODEL_ID) != null;
 		String workspaceModelId = modelIdProvided ? this.keyValue.get(MODEL_ID) : null;
+		boolean useDefaultToolsProvided = getGenRowStruct(USE_DEFAULT_AGENT_TOOLS) != null;
+		Boolean useDefaultTools = null;
+		if (useDefaultToolsProvided) {
+			String raw = this.keyValue.get(USE_DEFAULT_AGENT_TOOLS);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(USE_DEFAULT_AGENT_TOOLS + " must be true or false");
+			}
+			useDefaultTools = Boolean.valueOf(raw);
+		}
+		boolean disabledDefaultToolsProvided = getGenRowStruct(DISABLED_DEFAULT_TOOLS) != null;
+		List<String> disabledDefaultTools = disabledDefaultToolsProvided
+				? new ArrayList<>(new LinkedHashSet<>(getListString(DISABLED_DEFAULT_TOOLS)))
+				: null;
+
+		// Presence-detected: omitting the key leaves CONFIG_JSON.greeting
+		// untouched, passing it blank clears it.
+		boolean greetingProvided = getGenRowStruct(GREETING) != null;
+		String greeting = greetingProvided ? this.keyValue.get(GREETING) : null;
+		// Trimmed, to match what actually gets stored.
+		if (greetingProvided && greeting != null && greeting.trim().length() > MAX_GREETING_LENGTH) {
+			return getError(GREETING + " must be " + MAX_GREETING_LENGTH + " characters or fewer");
+		}
+		boolean greetingEnabledProvided = getGenRowStruct(GREETING_ENABLED) != null;
+		Boolean greetingEnabled = null;
+		if (greetingEnabledProvided) {
+			String raw = this.keyValue.get(GREETING_ENABLED);
+			if (!"true".equalsIgnoreCase(raw) && !"false".equalsIgnoreCase(raw)) {
+				return getError(GREETING_ENABLED + " must be true or false");
+			}
+			greetingEnabled = Boolean.valueOf(raw);
+		}
 
 		try {
 			ModelInferenceLogsUtils.updateWorkspaceEntry(workspaceId, workspaceName, workspaceDescription,
@@ -194,7 +231,9 @@ public class EditWorkspaceReactor extends AbstractWorkspaceReactor {
 		try {
 			mirrorCoreFieldsIntoConfigJson(workspaceId, workspaceSystemPrompt, engines, projectDependencies, skillIds,
 					modelIdProvided, workspaceModelId, budgetUpdates, spawnPolicyUpdates, subagentsProvided,
-					subagentUpdates, hooksProvided, hookUpdates);
+					subagentUpdates, hooksProvided, hookUpdates, useDefaultToolsProvided, useDefaultTools,
+					disabledDefaultToolsProvided, disabledDefaultTools, greetingProvided, greeting,
+					greetingEnabledProvided, greetingEnabled);
 		} catch (Exception e) {
 			classLogger.warn(
 					"Failed to mirror system_prompt/mcps/skills into CONFIG_JSON for workspaceId '{}' (legacy writes already succeeded)",

@@ -29,6 +29,7 @@ package prerna.reactor.project;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.auth.AuthProvider;
@@ -54,11 +56,12 @@ import prerna.engine.impl.SmssUtilities;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.usertracking.UserAuditTrailUtils;
+import prerna.util.AgentProjectArchiveUtils;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.UploadInputUtility;
@@ -109,17 +112,6 @@ public class UploadProjectReactor extends AbstractReactor {
 			throwUserNotPublisherError();
 		}
 
-		if (AbstractSecurityUtils.adminOnlyProjectAdd() && !SecurityAdminUtils.userIsAdmin(user)) {
-			AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
-		}
-
-		if (global && (AbstractSecurityUtils.adminOnlyProjectSetPublic() && !SecurityAdminUtils.userIsAdmin(user))) {
-			SemossPixelException exception = new SemossPixelException(
-					NounMetadata.getErrorNounMessage("User can upload a project but cannot make the project public"));
-			exception.setContinueThreadOfExecution(false);
-			throw exception;
-		}
-
 		// creating a temp folder to unzip project folder and smss
 		String randomIdAsDir = UUID.randomUUID().toString();
 		String projectFolderPath = DIHelper.getInstance().getProperty(Constants.BASE_FOLDER) + DIR_SEPARATOR
@@ -132,6 +124,8 @@ public class UploadProjectReactor extends AbstractReactor {
 		List<String> fileList = new ArrayList<>();
 		String smssFileLoc = null;
 		File smssFile = null;
+		Properties projectProperties = null;
+		JsonObject agentMetadata = null;
 		// unzip files to temp project folder
 		boolean error = false;
 		try {
@@ -162,6 +156,25 @@ public class UploadProjectReactor extends AbstractReactor {
 			if (smssFileLoc == null) {
 				throw new SemossPixelException("Unable to find " + Constants.SEMOSS_EXTENSION + " file", false);
 			}
+
+			projectProperties = Utility.loadProperties(smssFileLoc);
+			String projectTypeString = projectProperties.getProperty(Constants.PROJECT_ENUM_TYPE);
+			IProject.PROJECT_TYPE projectType = projectTypeString == null ? IProject.PROJECT_TYPE.INSIGHTS
+					: IProject.PROJECT_TYPE.valueOf(projectTypeString.trim());
+			if (AbstractSecurityUtils.adminOnlyProjectAdd(projectType) && !SecurityAdminUtils.userIsAdmin(user)) {
+				AbstractReactor.throwFunctionalityOnlyExposedForAdminsError();
+			}
+			if (global && AbstractSecurityUtils.adminOnlyProjectSetPublic(projectType)
+					&& !SecurityAdminUtils.userIsAdmin(user)) {
+				SemossPixelException exception = new SemossPixelException(NounMetadata
+						.getErrorNounMessage("User can upload a project but cannot make the project public"));
+				exception.setContinueThreadOfExecution(false);
+				throw exception;
+			}
+			agentMetadata = AgentProjectArchiveUtils.readAgent(new File(randomTempUnzipF,
+					SmssUtilities.getUniqueName(projectProperties.getProperty(Constants.PROJECT_ALIAS),
+							projectProperties.getProperty(Constants.PROJECT))),
+					projectProperties);
 		} catch (SemossPixelException e) {
 			error = true;
 			throw e;
@@ -184,7 +197,7 @@ public class UploadProjectReactor extends AbstractReactor {
 		boolean projectAddedToDIHelper = false;
 		try {
 			logger.info("{}) Reading smss", step);
-			Properties prop = Utility.loadProperties(smssFileLoc);
+			Properties prop = projectProperties;
 			projectId = prop.getProperty(Constants.PROJECT);
 			projectName = prop.getProperty(Constants.PROJECT_ALIAS);
 
@@ -289,7 +302,7 @@ public class UploadProjectReactor extends AbstractReactor {
 
 				File dependenciesFile = new File(
 						finalProjectFolderF.getAbsolutePath() + "/" + projectName + IProject.DEPENDENCIES_FILE_SUFFIX);
-				if (dependenciesFile.exists() && dependenciesFile.isFile()) {
+				if (agentMetadata == null && dependenciesFile.exists() && dependenciesFile.isFile()) {
 					List<Map<String, Object>> projectDependencies = (List<Map<String, Object>>) GsonUtility
 							.readJsonFileToObject(dependenciesFile, new TypeToken<List<Map<String, Object>>>() {
 							}.getType());
@@ -309,10 +322,20 @@ public class UploadProjectReactor extends AbstractReactor {
 				}
 			}
 
+			// Consume the generated archive file before the final, atomic agent import.
+			if (agentMetadata != null) {
+				AgentProjectArchiveUtils.importDependencies(finalProjectFolderF, projectName, projectId, user);
+				Files.delete(
+						new File(finalProjectFolderF, projectName + AgentProjectArchiveUtils.FILE_SUFFIX).toPath());
+				AgentProjectArchiveUtils.importAgent(projectId, user, agentMetadata, false);
+			}
+
 			logger.info("{}) Done", step);
 		} catch (Exception e) {
 			error = true;
-			classLogger.error("Error occurred trying to synchronize the metadata and insights for the zip file", e);
+			classLogger.error(
+					"Failed to restore metadata, insights, or agent configuration for project {} from archive {}",
+					projectId, zipFilePath, e);
 			throw new SemossPixelException(
 					"Error occurred trying to synchronize the metadata and insights for the zip file", false);
 		} finally {

@@ -46,14 +46,17 @@ import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
+/**
+ * Creates a standard SEMOSS project after applying authentication, naming, and project-type
+ * policy checks.
+ *
+ * <p>
+ * Project types that require additional scaffolding are rejected and must be created through
+ * their dedicated reactors.
+ */
 public class CreateProjectReactor extends AbstractReactor {
 
 	private static final String CLASS_NAME = CreateProjectReactor.class.getName();
-
-	/*
-	 * This class is used to construct a new project This project only contains
-	 * insights
-	 */
 
 	public CreateProjectReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.PROJECT_TYPE.getKey(),
@@ -100,13 +103,13 @@ public class CreateProjectReactor extends AbstractReactor {
 		}
 
 		// Allow-list: CreateProject can only create CODE, BLOCKS, or INSIGHTS
-		// projects. WORKSPACE and SKILL projects have additional persistence
+		// projects. WORKSPACE, SKILL, and NOTEBOOK projects have additional setup
 		// requirements (inference-tracking WORKSPACE row + WORKSPACE_RESOURCE
-		// links for workspaces; skill metadata wiring for skills) that this
-		// reactor does not perform — calling CreateProject for those types
-		// leaves the system in a half-created state where downstream readers
-		// (e.g. GetAgentHooks, ListWorkspaces) cannot see the new row. Reject
-		// up-front and direct the caller at the right reactor.
+		// links for workspaces; skill metadata wiring for skills; sample .ipynb
+		// scaffold for notebooks) that this reactor does not perform — calling
+		// CreateProject for those types leaves the system in a half-created state
+		// where downstream readers (e.g. GetAgentHooks, ListWorkspaces) cannot see
+		// the new row. Reject up-front and direct the caller at the right reactor.
 		if (projectTypeStr == null || (projectTypeStr = projectTypeStr.trim()).isEmpty()) {
 			projectType = IProject.PROJECT_TYPE.INSIGHTS;
 		} else {
@@ -126,6 +129,16 @@ public class CreateProjectReactor extends AbstractReactor {
 				throw new IllegalArgumentException("CreateProject cannot create SKILL-type projects. "
 						+ "Use CreateSkill(...) instead — it performs the additional skill-metadata "
 						+ "wiring that CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.NOTEBOOK) {
+				throw new IllegalArgumentException("CreateProject cannot create NOTEBOOK-type projects. "
+						+ "Use CreateNotebook(project='...') instead — it scaffolds the sample .ipynb "
+						+ "file that CreateProject skips.");
+			}
+			if (projectType == IProject.PROJECT_TYPE.AUTOMATION) {
+				throw new IllegalArgumentException("CreateProject cannot create AUTOMATION-type projects. "
+						+ "Use CreateAutomation(projectName='...') instead — it scaffolds the automation "
+						+ "definition, configuration, and MCP tool metadata.");
 			}
 		}
 		String gitProvider = this.keyValue.get(this.keysToGet[index++]);

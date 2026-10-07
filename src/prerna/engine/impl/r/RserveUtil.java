@@ -50,6 +50,7 @@ import org.rosuda.REngine.Rserve.RConnection;
 import com.google.common.base.Strings;
 
 import prerna.reactor.mgmt.MgmtUtil;
+import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class RserveUtil {
@@ -147,12 +148,12 @@ public class RserveUtil {
 			File output = new File(baseFolder + "/Rserve.output.log");
 			File error = new File(baseFolder + "/Rserve.error.log");
 
+			String ulimit = Utility.getDIHelperProperty(Constants.ULIMIT_PROCESS);
 			ProcessBuilder pb;
 			if (SystemUtils.IS_OS_WINDOWS) {
 				pb = new ProcessBuilder(rBin, "CMD", rLibs + RSingleton.RSERVE_LOC, "--vanilla", "--RS-port",
 						port + "");
-			} else if (!(Strings.isNullOrEmpty(Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT")))) {
-				String ulimit = Utility.getDIHelperProperty("ULIMIT_R_MEM_LIMIT");
+			} else if (!(Strings.isNullOrEmpty(ulimit))) {
 				pb = new ProcessBuilder("/bin/bash", "-c",
 						"ulimit -v " + ulimit + " && " + rBin + " CMD Rserve --vanilla --RS-port " + port);
 				List<String> coms = pb.command();

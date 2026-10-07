@@ -1,3 +1,7 @@
+"""
+PIPECAT IS NOT CURRENTLY INSTALLED FROM THE PYPROJECT.TOML. ADD 'pipecat' TO THE DEPENDENCIES IN PYPROJECT.TOML TO INSTALL IT.
+"""
+
 from loguru import logger
 
 logger.remove()

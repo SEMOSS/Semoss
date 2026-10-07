@@ -39,8 +39,8 @@ import org.apache.zookeeper.data.Stat;
 
 public final class ZKCuratorUtility {
 
-	private CuratorFramework curator; 
-	
+	private CuratorFramework curator;
+
 	/**
 	 * 
 	 * @param curator
@@ -48,18 +48,18 @@ public final class ZKCuratorUtility {
 	ZKCuratorUtility(CuratorFramework curator) {
 		this.curator = curator;
 	}
-	
+
 	/**
 	 * 
 	 * @param pathToCheck
 	 * @throws Exception
 	 */
 	public void createPathIfNotExists(String pathToCheck) throws Exception {
-        if (this.curator.checkExists().forPath(pathToCheck) == null) {
-        	this.curator.create().creatingParentsIfNeeded().forPath(pathToCheck, new byte[0]);
-        }
+		if (this.curator.checkExists().forPath(pathToCheck) == null) {
+			this.curator.create().creatingParentsIfNeeded().forPath(pathToCheck, new byte[0]);
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param prefix
@@ -67,12 +67,10 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public String createSequentialPersistentNode(String prefix) throws Exception {
-        return this.curator.create()
-        	.creatingParentsIfNeeded()
-        	.withMode(CreateMode.PERSISTENT_SEQUENTIAL)
-        	.forPath(prefix, new byte[0]);
+		return this.curator.create().creatingParentsIfNeeded().withMode(CreateMode.PERSISTENT_SEQUENTIAL)
+				.forPath(prefix, new byte[0]);
 	}
-	
+
 	/**
 	 * 
 	 * @param path
@@ -80,12 +78,9 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public void createEphemeralNode(String path, byte[] data) throws Exception {
-		this.curator.create()
-			.creatingParentsIfNeeded()
-			.withMode(CreateMode.EPHEMERAL)
-			.forPath(path, data);
+		this.curator.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL).forPath(path, data);
 	}
-	
+
 	/**
 	 * 
 	 * @param path
@@ -93,12 +88,9 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public void createEphemeralSequentialNode(String path, byte[] data) throws Exception {
-		this.curator.create()
-			.creatingParentsIfNeeded()
-			.withMode(CreateMode.EPHEMERAL_SEQUENTIAL)
-			.forPath(path, data);
+		this.curator.create().creatingParentsIfNeeded().withMode(CreateMode.EPHEMERAL_SEQUENTIAL).forPath(path, data);
 	}
-	
+
 	/**
 	 * Create a znode with a specified path, mode and data
 	 * 
@@ -107,16 +99,12 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public void createNode(String path, CreateMode mode, byte[] data) throws Exception {
-		this.curator.create()
-			.creatingParentsIfNeeded()
-			.withMode(mode)
-			.forPath(path, data);
+		this.curator.create().creatingParentsIfNeeded().withMode(mode).forPath(path, data);
 	}
-	
-	
+
 	/**
-	 * This method returns of list a list of children nodes based on the 
-	 * path passed in. 
+	 * This method returns of list a list of children nodes based on the path passed
+	 * in.
 	 * 
 	 * @param path
 	 * @throws Exception
@@ -124,7 +112,7 @@ public final class ZKCuratorUtility {
 	public List<String> listNodeChildren(String path) throws Exception {
 		return this.curator.getChildren().forPath(path);
 	}
-	
+
 	/**
 	 * 
 	 * @param path
@@ -132,10 +120,10 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public byte[] getDataFromNode(String path) throws Exception {
-		 Stat stat = new Stat();
-		 return this.curator.getData().storingStatIn(stat).forPath(path);
+		Stat stat = new Stat();
+		return this.curator.getData().storingStatIn(stat).forPath(path);
 	}
-	
+
 	/**
 	 * 
 	 * @param parentZNode
@@ -145,52 +133,52 @@ public final class ZKCuratorUtility {
 	public String getLatestZNode(String parentZNode) throws Exception {
 		// if the parent node doesn't exist
 		// then return null
-        if(this.curator.checkExists().forPath(parentZNode) == null) {
-        	return null;
-        }
-        
-        // Get the list of znodes under the parent path
-        Stat latestStat = null;
-        String latestZNode = null;
+		if (this.curator.checkExists().forPath(parentZNode) == null) {
+			return null;
+		}
 
-        for (String child : this.curator.getChildren().forPath(parentZNode)) {
-            String childPath = parentZNode + "/" + child;
-            Stat childStat = new Stat();
-            this.curator.getData().storingStatIn(childStat).forPath(childPath);
+		// Get the list of znodes under the parent path
+		Stat latestStat = null;
+		String latestZNode = null;
 
-            if (latestStat == null || childStat.getCtime() > latestStat.getCtime()) {
-                latestStat = childStat;
-                latestZNode = childPath;
-            }
-        }
-        
-        return latestZNode;
+		for (String child : this.curator.getChildren().forPath(parentZNode)) {
+			String childPath = parentZNode + "/" + child;
+			Stat childStat = new Stat();
+			this.curator.getData().storingStatIn(childStat).forPath(childPath);
+
+			if (latestStat == null || childStat.getCtime() > latestStat.getCtime()) {
+				latestStat = childStat;
+				latestZNode = childPath;
+			}
+		}
+
+		return latestZNode;
 	}
-	
+
 	/**
 	 * 
 	 * @param parentZNode
 	 * @throws Exception
 	 */
 	public void deleteAllZNodeChildren(String parentZNode) throws Exception {
-        List<String> children = this.curator.getChildren().forPath(parentZNode);
-        
-        // Delete all children
-        for (String child : children) {
-            String childPath = parentZNode + "/" + child;
-            this.curator.delete().forPath(childPath);
-        }
+		List<String> children = this.curator.getChildren().forPath(parentZNode);
+
+		// Delete all children
+		for (String child : children) {
+			String childPath = parentZNode + "/" + child;
+			this.curator.delete().forPath(childPath);
+		}
 	}
-	
+
 	/**
 	 * 
 	 * @param path
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public void deletePath(String path) throws Exception {
 		this.curator.delete().forPath(path);
 	}
-	
+
 	/**
 	 * This method removes a node and all of it's children from the Zookeeper server
 	 * 
@@ -199,10 +187,10 @@ public final class ZKCuratorUtility {
 	 */
 	public void deleteRecursively(String path) throws Exception {
 		if (this.curator.checkExists().forPath(path) != null) {
-	        this.curator.delete().deletingChildrenIfNeeded().forPath(path);
+			this.curator.delete().deletingChildrenIfNeeded().forPath(path);
 		}
-    }
-	
+	}
+
 	/**
 	 * 
 	 * @param path
@@ -211,11 +199,11 @@ public final class ZKCuratorUtility {
 	 */
 	public void setWatcherForPath(String path, Watcher watcher) throws Exception {
 		Stat stat = curator.checkExists().usingWatcher(watcher).forPath(path);
-		if(stat == null) {
+		if (stat == null) {
 			throw new IllegalArgumentException("ZNode path " + path + " does not exist");
 		}
 	}
-	
+
 	/**
 	 * 
 	 * @param lockName
@@ -224,7 +212,7 @@ public final class ZKCuratorUtility {
 	public InterProcessMutex getLock(String lockName) {
 		return new InterProcessMutex(this.curator, lockName);
 	}
-	
+
 	/**
 	 * 
 	 * @param lockName
@@ -234,18 +222,17 @@ public final class ZKCuratorUtility {
 	public InterProcessSemaphoreV2 getTimeBasedLock(String lockName, int maxNumLeases) {
 		return new InterProcessSemaphoreV2(this.curator, lockName, maxNumLeases);
 	}
-	
+
 	/**
 	 * 
 	 * @param lockName
 	 * @return
-	 * @throws Exception 
+	 * @throws Exception
 	 */
 	public boolean lockHeld(String lockName) throws Exception {
 		return curator.checkExists().forPath(lockName) != null;
 	}
-	
-	
+
 	/**
 	 * This method attemps to acquire a lock on znode. If successful it will return
 	 * a {@code InterProcessMutex} object, otherwise it will return null.
@@ -254,15 +241,15 @@ public final class ZKCuratorUtility {
 	 * @throws Exception
 	 */
 	public InterProcessMutex attemptLock(String lockPath) throws Exception {
-	    InterProcessMutex lock = new InterProcessMutex(curator, lockPath);
-	    
-	    // Try to acquire the lock immediately, without waiting
-	    if (lock.acquire(0, TimeUnit.MILLISECONDS)) {
-	        // Successfully acquired the lock
-	        return lock;
-	    }
-	    
-	    // Lock is already held by another process
-	    return null;
+		InterProcessMutex lock = new InterProcessMutex(curator, lockPath);
+
+		// Try to acquire the lock immediately, without waiting
+		if (lock.acquire(0, TimeUnit.MILLISECONDS)) {
+			// Successfully acquired the lock
+			return lock;
+		}
+
+		// Lock is already held by another process
+		return null;
 	}
 }

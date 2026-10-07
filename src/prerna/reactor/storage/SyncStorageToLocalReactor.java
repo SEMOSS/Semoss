@@ -40,7 +40,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.UploadInputUtility;
 import prerna.util.Utility;
 
@@ -68,8 +67,9 @@ public class SyncStorageToLocalReactor extends AbstractReactor {
 			storage.syncStorageToLocal(storagePath, fileLocation);
 			return new NounMetadata(true, PixelDataType.BOOLEAN);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error occurred downloading storage file to local");
+			classLogger.error("Failed to sync storagePath={} to local path={} on storage engine={}", storagePath,
+					fileLocation, storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error occurred downloading storage file to local", e);
 		}
 	}
 

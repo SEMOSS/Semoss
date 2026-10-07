@@ -32,6 +32,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -41,6 +45,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,6 +64,7 @@ import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.cluster.util.ClusterUtil;
 import prerna.ds.py.PyTranslator;
 import prerna.ds.py.PyUtils;
 import prerna.engine.api.IEngine;
@@ -66,9 +72,13 @@ import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IMCP;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ModelTypeEnum;
+import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.InternalMCP;
 import prerna.engine.impl.MCPFactory;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.message.MessageInputMedia;
 import prerna.engine.impl.model.message.ResponseMessage;
+import prerna.engine.impl.model.responses.AskModelEngineResponse;
 import prerna.om.Insight;
 import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
@@ -96,9 +106,13 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_MCP_DEFERRED = "SMSS_MCP_DEFERRED";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
+	// Display-only label for a pending action; never used to execute the tool.
+	public static final String SMSS_TOOL_TITLE = "SMSS_TOOL_TITLE";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
+	public static final String SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse";
 
 	/**
 	 * Records which generator produced a tool. A generator replaces tools carrying
@@ -110,6 +124,18 @@ public final class MCPUtility {
 	public static final String UI_LOADING_MESSAGE = "loadingMessage";
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
+	/**
+	 * What a tool call holds, so a page can show it with a native element: a
+	 * chat card, or a panel such as a query editor. Pages that do not know the
+	 * name show the generic tool view.
+	 */
+	public static final String UI_COMPONENT = "component";
+
+	/** Names for {@link #UI_COMPONENT}; one name per kind of content. */
+	public static final String COMPONENT_EMAIL_COMPOSE = "email-compose";
+	public static final String COMPONENT_EMAIL_DRAFT = "email-draft";
+	public static final String COMPONENT_EMAIL_SEND = "email-send";
+	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type
@@ -152,6 +178,12 @@ public final class MCPUtility {
 	 */
 	public static final String ROOM_MCP_TYPE = "ROOM";
 
+	// Pixel tool definition path relative to an asset folder.
+	public static final String PIXEL_MCP_RELATIVE_PATH = "/mcp/pixel_mcp.json";
+
+	// Python tool definitions, relative to an assets folder.
+	public static final String PY_MCP_RELATIVE_PATH = "/mcp/py_mcp.json";
+
 	public static final String MCP_PY_FILE_NAME = "mcp_driver.py";
 	public static final String MCP_NOTEBOOK_NAME = "mcp_driver";
 
@@ -161,12 +193,14 @@ public final class MCPUtility {
 	public static final String LEGACY_MCP_NOTEBOOK_NAME = "smss_driver";
 
 	// Regex pattern for "a" + UUID + "_"
-	// UUID format: 8-4-4-4-12 hexadecimal digits
-	private static final Pattern UUID_PREFIX_PATTERN = Pattern
-			.compile("^a[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}_");
+	// UUID format: 8-4-4-4-12 hexadecimal digits. Separators may be "-" (legacy
+	// names persisted before LLM-name sanitization) or "_" (sanitized names).
+	private static final Pattern UUID_PREFIX_PATTERN = Pattern.compile(
+			"^a([0-9a-fA-F]{8})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{4})[-_]([0-9a-fA-F]{12})_");
 
 	// Default maximum tool name length (matches OpenAI's 64-char limit)
 	public static final int DEFAULT_MAX_TOOL_NAME_LENGTH = 64;
+	public static final int OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH = 128;
 
 	// SMSS property key to override tool name length per engine instance
 	public static final String MAX_TOOL_NAME_CHAR = "MAX_TOOL_NAME_CHAR";
@@ -221,6 +255,46 @@ public final class MCPUtility {
 			}
 			return null;
 		}
+	}
+
+	/**
+	 * Resolves a tool-produced relative file reference beneath its execution root.
+	 * Both paths are canonicalized so a symlink inside the root cannot escape it.
+	 *
+	 * @param rootFolderPath execution root supplied to the MCP tool
+	 * @param relativePath   tool-produced path relative to the execution root
+	 * @return canonical path to an existing regular file beneath the root
+	 * @throws IOException              when either path cannot be resolved
+	 * @throws IllegalArgumentException when the input is blank, absolute, outside
+	 *                                  the root, or not a regular file
+	 */
+	public static Path resolveContainedMcpFile(String rootFolderPath, String relativePath) throws IOException {
+		if (rootFolderPath == null || rootFolderPath.isBlank()) {
+			throw new IllegalArgumentException("MCP execution root must not be blank");
+		}
+		if (relativePath == null || relativePath.isBlank()) {
+			throw new IllegalArgumentException("MCP file reference must not be blank");
+		}
+
+		Path reference = Path.of(relativePath);
+		if (reference.isAbsolute()) {
+			throw new IllegalArgumentException("MCP file reference must be relative");
+		}
+
+		Path canonicalRoot = Path.of(rootFolderPath).toAbsolutePath().normalize().toRealPath();
+		Path candidate = canonicalRoot.resolve(reference).normalize();
+		if (!candidate.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference is outside its execution root");
+		}
+
+		Path canonicalFile = candidate.toRealPath();
+		if (!canonicalFile.startsWith(canonicalRoot)) {
+			throw new IllegalArgumentException("MCP file reference resolves outside its execution root");
+		}
+		if (!Files.isRegularFile(canonicalFile, LinkOption.NOFOLLOW_LINKS)) {
+			throw new IllegalArgumentException("MCP file reference is not a regular file");
+		}
+		return canonicalFile;
 	}
 
 	/**
@@ -577,10 +651,18 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Returns the first 8 hex characters of a UUID string (dashes removed).
+	 * Returns the first 8 hex characters of the engineId (using a UUID string -
+	 * dashes removed; unless platform project/engine which usually do not).
 	 */
 	public static String computeShortEngineId(String engineId) {
-		return engineId.replace("-", "").substring(0, 8);
+		String retId = engineId;
+		if (retId.contains("-")) {
+			retId = retId.replace("-", "");
+		}
+		if (retId.length() > 8) {
+			retId = retId.substring(0, 8);
+		}
+		return retId;
 	}
 
 	/**
@@ -605,6 +687,11 @@ public final class MCPUtility {
 			}
 		}
 		ModelTypeEnum modelType = modelEngine.getModelType();
+		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at 64
+		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
+				&& "responses".equalsIgnoreCase(smssProp.getProperty("CHAT_TYPE", "").trim())) {
+			return OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH;
+		}
 		return getMaxToolNameLength(modelType != null ? modelType.name() : null);
 	}
 
@@ -635,26 +722,41 @@ public final class MCPUtility {
 	 * skip truncation.
 	 */
 	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength) {
+		return appendEngineIdToToolsMethodName(engineId, jsonToolsMap, maxLength, false);
+	}
+
+	/**
+	 * Appends engine ID prefix to each tool name, truncating to maxLength. When
+	 * sanitizeForLLM is true the injected prefix is restricted to [a-zA-Z0-9_] (see
+	 * {@link #requiresLLMNameSanitization}); other providers keep the raw engine id
+	 * so existing LLM-facing names are unchanged.
+	 */
+	public static JSONObject appendEngineIdToToolsMethodName(String engineId, JSONObject jsonToolsMap, int maxLength,
+			boolean sanitizeForLLM) {
 		if (jsonToolsMap == null || !jsonToolsMap.has("tools")) {
 			return jsonToolsMap;
 		}
 
 		JSONArray toolsArray = jsonToolsMap.getJSONArray("tools");
+		String idForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(engineId) : engineId;
+		String shortIdForPrefix = sanitizeForLLM ? sanitizeEngineIdForLLMName(computeShortEngineId(engineId))
+				: computeShortEngineId(engineId);
 
 		if (maxLength == Integer.MAX_VALUE) {
 			// No length limit: use the full UUID prefix (preserves existing behavior)
+			String fullPrefix = "a" + idForPrefix + "_";
 			for (int i = 0; i < toolsArray.length(); i++) {
 				JSONObject toolMap = toolsArray.getJSONObject(i);
 				String currentName = toolMap.getString("name");
-				toolMap.put("name", "a" + engineId + "_" + currentName);
+				toolMap.put("name", fullPrefix + currentName);
 			}
 			return jsonToolsMap;
 		}
 
 		// Length-limited provider: prefer full UUID prefix when it fits, otherwise
 		// fall back to short 8-hex prefix and truncate if still needed.
-		String fullPrefix = "a" + engineId + "_";
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String fullPrefix = "a" + idForPrefix + "_";
+		String shortPrefix = "a" + shortIdForPrefix + "_";
 
 		for (int i = 0; i < toolsArray.length(); i++) {
 			JSONObject toolMap = toolsArray.getJSONObject(i);
@@ -677,13 +779,40 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * LLM-facing tool names must stay within [a-zA-Z0-9_]. Amazon Nova (Bedrock)
+	 * deterministically fails with "Model produced invalid sequence as part of
+	 * ToolUse" whenever a tool name contains a hyphen (e.g. from a hyphenated
+	 * engine id), and underscores are accepted by every provider. Only the
+	 * SEMOSS-injected prefix is sanitized; the author's tool name is appended
+	 * untouched.
+	 */
+	public static String sanitizeEngineIdForLLMName(String engineId) {
+		return engineId == null ? null : engineId.replaceAll("[^a-zA-Z0-9_]", "_");
+	}
+
+	/**
+	 * Whether LLM-facing tool names must be sanitized for the given model engine.
+	 * Only Bedrock engines opt in: Amazon Nova is the model family that rejects
+	 * hyphenated tool names, and scoping the rename here keeps every other
+	 * provider's tool names byte-identical to their historical form.
+	 */
+	public static boolean requiresLLMNameSanitization(IModelEngine modelEngine) {
+		return modelEngine != null && ModelTypeEnum.BEDROCK == modelEngine.getModelType();
+	}
+
+	/**
 	 * Strips the engine ID prefix from a tool function name. Tries the short prefix
-	 * (a{8hex}_) first, then falls back to the legacy full-UUID prefix.
+	 * (a{8hex}_) first, then the sanitized full prefix, then falls back to the
+	 * legacy raw full prefix (names persisted before LLM-name sanitization).
 	 */
 	public static String removeEngineIdFromToolsMethodName(String engineId, String functionName) {
-		String shortPrefix = "a" + computeShortEngineId(engineId) + "_";
+		String shortPrefix = "a" + sanitizeEngineIdForLLMName(computeShortEngineId(engineId)) + "_";
 		if (functionName.startsWith(shortPrefix)) {
 			return functionName.substring(shortPrefix.length());
+		}
+		String sanitizedFullPrefix = "a" + sanitizeEngineIdForLLMName(engineId) + "_";
+		if (functionName.startsWith(sanitizedFullPrefix)) {
+			return functionName.substring(sanitizedFullPrefix.length());
 		}
 		String fullPrefix = "a" + engineId + "_";
 		if (functionName.startsWith(fullPrefix)) {
@@ -703,9 +832,10 @@ public final class MCPUtility {
 
 		Matcher matcher = UUID_PREFIX_PATTERN.matcher(input);
 		if (matcher.find()) {
-			String prefix = matcher.group();
-			// remove the "a" and the "_" after the project id
-			prefix = prefix.substring(1, prefix.length() - 1);
+			// rebuild the canonical hyphenated UUID regardless of which separator
+			// ("-" legacy, "_" sanitized) appeared in the LLM-facing name
+			String prefix = matcher.group(1) + "-" + matcher.group(2) + "-" + matcher.group(3) + "-" + matcher.group(4)
+					+ "-" + matcher.group(5);
 			String remaining = input.substring(matcher.end());
 			return new String[] { prefix, remaining };
 		}
@@ -745,6 +875,10 @@ public final class MCPUtility {
 			Map<String, Object> responseToolMap = toolResponses.get(toolResponseIndex);
 			String llmFacingName = (String) responseToolMap.get("name");
 
+			if (hasText(llmFacingName) && !hasText(responseToolMap.get("title"))) {
+				responseToolMap.put("title", llmFacingName);
+			}
+
 			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
 				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
 				Object rawMeta = toolEntry.get("_meta");
@@ -759,8 +893,14 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (toolEntry.containsKey("title")) {
-					responseToolMap.put("title", toolEntry.get("title"));
+				Object declaredTitle = toolEntry.get("title");
+				if (hasText(declaredTitle)) {
+					responseToolMap.put("title", declaredTitle);
+				} else {
+					// No declared title, so label the tool with the name it declared before
+					// the engine-id prefix was appended (and possibly truncated) for the LLM
+					Object originalToolName = enrichedMeta.get(SMSS_ORIGINAL_TOOL_NAME);
+					responseToolMap.put("title", hasText(originalToolName) ? originalToolName : origFunctionName);
 				}
 				if (toolEntry.containsKey("description")) {
 					responseToolMap.put("description", toolEntry.get("description"));
@@ -816,8 +956,11 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", true);
 				responseToolMap.put("original_name", origFunctionName);
 
-				if (mcpTool != null && mcpTool.has("title")) {
+				if (mcpTool != null && hasText(mcpTool.opt("title"))) {
 					responseToolMap.put("title", mcpTool.getString("title"));
+				} else {
+					// origFunctionName is already the name with the engine-id prefix removed
+					responseToolMap.put("title", origFunctionName);
 				}
 				if (mcpTool != null && mcpTool.has("description")) {
 					responseToolMap.put("description", mcpTool.getString("description"));
@@ -845,6 +988,14 @@ public final class MCPUtility {
 				responseToolMap.put("_tool_found", false);
 			}
 		}
+	}
+
+	/**
+	 * Whether the value is a non-blank string. Tool metadata arrives from JSON, so
+	 * a key can be present while holding null, a blank string, or a non-string.
+	 */
+	private static boolean hasText(Object value) {
+		return value instanceof String && !((String) value).isBlank();
 	}
 
 	/**
@@ -885,7 +1036,7 @@ public final class MCPUtility {
 	/**
 	 * Converts camelCase, PascalCase, or snake_case strings to title case with
 	 * spaces Useful for pretty version of name -> title in MCP Tool schema
-	 * 
+	 *
 	 * @param input
 	 * @return
 	 */
@@ -952,7 +1103,7 @@ public final class MCPUtility {
 	public static JSONObject findPythonToolWithCellId(IEngine engine, String cellId) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONArray existingTools = MCPUtility.getNode(pythonJsonFileLoc, "tools");
 		for (int i = 0; i < existingTools.length(); i++) {
@@ -982,7 +1133,7 @@ public final class MCPUtility {
 	public static boolean removePythonFunctionFromMCPJson(IEngine engine, String functionName) {
 		String assetsFolder = EngineUtility.getSpecificEngineAssetsFolder(engine.getCatalogType(), engine.getEngineId(),
 				engine.getEngineName());
-		String pythonJsonFileLoc = assetsFolder + "/mcp/py_mcp.json";
+		String pythonJsonFileLoc = assetsFolder + MCPUtility.PY_MCP_RELATIVE_PATH;
 
 		JSONObject mcpJson = MCPUtility.readJsonFile(pythonJsonFileLoc);
 		if (!mcpJson.has("tools")) {
@@ -1194,11 +1345,27 @@ public final class MCPUtility {
 			validUiJson.put(UI_DISPLAY_LOCATION, displayString);
 		}
 
-		if (uiJson.has(UI_AUTO_OPEN) && !uiJson.isNull(UI_AUTO_OPEN)) {
-			validUiJson.put(UI_AUTO_OPEN, uiJson.getBoolean(UI_AUTO_OPEN));
-		}
+		copyUiHints(uiJson.toMap(), validUiJson);
 
 		return validUiJson;
+	}
+
+	/**
+	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI
+	 * keys every tool builder passes through as they are.
+	 */
+	public static void copyUiHints(Map<String, ?> from, JSONObject to) {
+		if (from == null) {
+			return;
+		}
+		Object component = from.get(UI_COMPONENT);
+		if (component instanceof String && !((String) component).isBlank()) {
+			to.put(UI_COMPONENT, ((String) component).trim());
+		}
+		Object autoOpen = from.get(UI_AUTO_OPEN);
+		if (autoOpen instanceof Boolean || autoOpen instanceof String) {
+			to.put(UI_AUTO_OPEN, Boolean.parseBoolean(String.valueOf(autoOpen)));
+		}
 	}
 
 	/**
@@ -1375,7 +1542,177 @@ public final class MCPUtility {
 		return mcp.callTool(toolName, paramMap, insight);
 	}
 
-	// mirrors AbstractReactor.checkEngineEditSecurity for non-reactor callers
+	/**
+	 * Typed adapter for agent callers. The established direct execution path and
+	 * its exception behavior remain unchanged.
+	 */
+	public static ToolExecutionResult executeToolResult(String engineId, String toolName, Map<String, Object> paramMap,
+			Insight insight) {
+		try {
+			return ToolExecutionResult.success(executeTool(engineId, toolName, paramMap, insight));
+		} catch (RuntimeException e) {
+			String message = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+			return ToolExecutionResult.error(message, message);
+		}
+	}
+
+	/**
+	 * Moves inline media out of a tool result and into the room that records it.
+	 * <p>
+	 * A tool can hand back a model response that carries generated media, such as
+	 * an image model called through the LLM reactor. Left as is, that result is
+	 * megabytes of base64 text: too large for the browser to post back, far more
+	 * than the calling model should read, and replayed with every later turn of
+	 * the room.
+	 * <p>
+	 * Each MEDIA part holding base64 data is written to the room folder, and the
+	 * result is replaced by a {@code SEMOSSMultimodalToolResponse} envelope that
+	 * names those files relative to the room. Image and PDF references are
+	 * expanded back into inline data only in the payload sent to the model (see
+	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
+	 * text only.
+	 *
+	 * @param toolOutput the tool result, as returned by
+	 *                   {@link #executeTool(String, String, Map, Insight)}
+	 * @param room       the room the result is recorded in
+	 * @return the envelope JSON when media was moved, otherwise {@code toolOutput}
+	 *         unchanged
+	 */
+	public static String externalizeToolResultMedia(String toolOutput, Room room) {
+		// cheap guard so ordinary results are never parsed
+		if (toolOutput == null || room == null || !toolOutput.contains("\"base64Data\"")) {
+			return toolOutput;
+		}
+		JSONObject result;
+		try {
+			result = new JSONObject(toolOutput);
+		} catch (JSONException e) {
+			return toolOutput;
+		}
+		JSONArray parts = result.optJSONArray(AskModelEngineResponse.PARTS);
+		if (parts == null) {
+			return toolOutput;
+		}
+
+		String roomFolder = room.getRoomFolderPath() != null ? room.getRoomFolderPath()
+				: Room.roomFolderPath(room.getId());
+		List<String> textChunks = new ArrayList<>();
+		List<String> savedFiles = new ArrayList<>();
+		List<String> modelVisibleFiles = new ArrayList<>();
+		int unsaved = 0;
+		for (int i = 0; i < parts.length(); i++) {
+			JSONObject part = parts.optJSONObject(i);
+			if (part == null) {
+				continue;
+			}
+			String partType = part.optString("type");
+			if ("TEXT".equals(partType)) {
+				String text = part.optString("text", "");
+				if (!text.isBlank()) {
+					textChunks.add(text.trim());
+				}
+				continue;
+			}
+			if (!"MEDIA".equals(partType)) {
+				continue;
+			}
+			JSONObject media = part.optJSONObject("mediaInfo");
+			if (media == null) {
+				media = part.optJSONObject("media_info");
+			}
+			String base64Data = media == null ? null : media.optString("base64Data", null);
+			if (base64Data == null || base64Data.isBlank()) {
+				continue;
+			}
+			try {
+				String fileName = writeToolMediaToRoom(roomFolder, media, base64Data);
+				String mimeType = media.optString("mimeType", "");
+				if (mimeType.isBlank()) {
+					mimeType = MessageInputMedia.guessMimeType(fileName, MessageInputMedia.extractFormat(fileName));
+				}
+				savedFiles.add(fileName + " (" + mimeType + ")");
+				if (mimeType.startsWith("image/") || "application/pdf".equals(mimeType)) {
+					modelVisibleFiles.add(fileName);
+				}
+			} catch (IOException | RuntimeException e) {
+				unsaved++;
+				classLogger.warn("Could not save media from a tool result to room {}", room.getId(), e);
+			}
+		}
+		if (savedFiles.isEmpty() && unsaved == 0) {
+			return toolOutput;
+		}
+		if (!savedFiles.isEmpty()) {
+			ClusterUtil.pushRoomAsync(room.getId());
+		}
+
+		// the model's own words come first, then what became of the media
+		Object response = result.opt(AskModelEngineResponse.RESPONSE);
+		String responseText = response instanceof String ? ((String) response).trim() : "";
+		StringBuilder text = new StringBuilder(responseText.isEmpty() ? String.join("\n\n", textChunks) : responseText);
+		if (text.length() > 0) {
+			text.append("\n\n");
+		}
+		if (!savedFiles.isEmpty()) {
+			text.append("Media output saved to this room: ").append(String.join(", ", savedFiles)).append('.');
+		}
+		if (unsaved > 0) {
+			text.append(savedFiles.isEmpty() ? "" : " ").append(unsaved)
+					.append(" media output(s) could not be saved and were left out of this result.");
+		}
+
+		List<Map<String, Object>> blocks = new ArrayList<>();
+		blocks.add(MCPResponseBuilder.textPart(text.toString()));
+		if (!modelVisibleFiles.isEmpty()) {
+			blocks.add(MCPResponseBuilder.imagePart(modelVisibleFiles.toArray(new String[0])));
+		}
+		classLogger.info("Moved {} media file(s) from a tool result into room {}", savedFiles.size(), room.getId());
+		return GSON.toJson(MCPResponseBuilder.response(blocks));
+	}
+
+	/**
+	 * Writes one tool media part into the room folder under its own file name, or
+	 * a generated one when it has none. An existing file is never replaced, since
+	 * earlier turns may still reference it.
+	 *
+	 * @param roomFolder the room folder
+	 * @param media      the part's media info
+	 * @param base64Data the part's base64 payload, optionally as a data URI
+	 * @return the room-relative name the file was written under
+	 * @throws IOException when the file cannot be written
+	 */
+	private static String writeToolMediaToRoom(String roomFolder, JSONObject media, String base64Data)
+			throws IOException {
+		Path roomDir = Path.of(roomFolder).toAbsolutePath().normalize();
+		Files.createDirectories(roomDir);
+
+		String fileName = MessageInputMedia.extractFileName(media.optString("fileName", "")).trim();
+		if (fileName.isEmpty() || ".".equals(fileName) || "..".equals(fileName)) {
+			String format = media.optString("fileFormat", "").trim();
+			fileName = "media_" + UUID.randomUUID().toString().substring(0, 8) + "."
+					+ (format.isEmpty() ? "bin" : format);
+		}
+		Path target = roomDir.resolve(fileName).normalize();
+		if (!roomDir.equals(target.getParent())) {
+			throw new IllegalArgumentException("Unsafe media file name: " + fileName);
+		}
+		if (Files.exists(target)) {
+			int dot = fileName.lastIndexOf('.');
+			String stem = dot > 0 ? fileName.substring(0, dot) : fileName;
+			String extension = dot > 0 ? fileName.substring(dot) : "";
+			fileName = stem + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
+			target = roomDir.resolve(fileName);
+		}
+
+		String payload = base64Data.trim();
+		int comma = payload.indexOf(',');
+		if (payload.startsWith("data:") && comma > 0) {
+			payload = payload.substring(comma + 1);
+		}
+		Files.write(target, Base64.getMimeDecoder().decode(payload), StandardOpenOption.CREATE_NEW);
+		return fileName;
+	}
+
 	private static void checkEngineAccess(IEngine engine, User user) {
 		if (engine == null) {
 			throw new NullPointerException("Engine/Project is null");

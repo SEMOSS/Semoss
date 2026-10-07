@@ -15,6 +15,7 @@ from ...constants import (
     TEMPLATE_NAME,
 )
 from ..abstract_text_generation_client import AbstractTextGenerationClient
+from ...message_builders.semoss_base.builtin_tools import has_built_in_tool
 from ...message_builders.google_genai.google_genai_builder import (
     GoogleGenAIMessageBuilder,
 )
@@ -40,7 +41,7 @@ class StreamingResponse(BaseModel):
 
 
 class GoogleGenAiTextClient(AbstractTextGenerationClient):
-    client: GoogleGenAIClient
+    google_client: GoogleGenAIClient
 
     def __init__(
         self,
@@ -89,10 +90,8 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
         ):
             kwargs.update(self.model_settings.global_param_override)
 
-        built_in_tools = kwargs.get("built_in_tools", []) or []
-        web_search_enabled = any(
-            isinstance(tool, str) and tool.lower() == "web_search"
-            for tool in built_in_tools
+        web_search_enabled = has_built_in_tool(
+            kwargs.get("built_in_tools"), "web_search"
         )
         inline_citations = kwargs.get("inline_citations", None)
         if inline_citations is None:
@@ -111,7 +110,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
 
             try:
                 response = GoogleGenAIMessageBuilder().build_messages(
-                    semoss_messages, self.model_settings, self.model_limits
+                    semoss_messages, self.model_settings
                 )
                 google_messages = response["messages"]
                 provider_config = response["provider_config"]
@@ -135,7 +134,7 @@ class GoogleGenAiTextClient(AbstractTextGenerationClient):
                 return self.generate_with_retry(streaming_call)
 
             def call_generate_content():
-                return self.client.models.generate_content(
+                return self.google_client.models.generate_content(
                     model=self.model_name,
                     contents=google_messages,
                     config=provider_config,

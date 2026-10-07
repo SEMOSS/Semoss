@@ -31,7 +31,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 
 public enum ReactorKeysEnum {
 
-	// @formatter:off
+	// @formatter:off 
 	ACCESS("access",											"Boolean to check if access is required."),
 	ADDITIONAL_DATA_TYPE("additionalDataType",					"Additional data types defining specific format"),
 	ADDITIONAL_DATA_TYPES("additionalDataTypes",				"Additional data types defining specific formats"),
@@ -169,19 +169,24 @@ public enum ReactorKeysEnum {
 	MAX("max", 													"Maximum value of something. Typically a threshold"),
 	MCP("mcp",                                         			"List of MCPs for the reactor to use"),
 	MCP_METADATA("mcpMetadata", 								"""
-			Additional metadata to be included within the MCP execution. Keys can be :
-			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool will never be selected)
-			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), and <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden")
+			List of metadata maps, one per reactor in the same order. Keys can be :
+			<SMSS_MCP_EXECUTION> - enum value: auto (run the tool automatically), ask (ask the user to run the tool - allows the user to cancel the tool execution), or disabled (tool is hidden from the model)
+			<SMSS_MCP_DEFERRED> - boolean true to hide the tool's schema in RunAgent until the agent loads it with SearchTools/LoadTools. Supported by MakePixelMCP, MakeRoomPixelMCP and MakeUserPixelMCP
+			<SMSS_MCP_UI> - with value of a map containing the keys: <UI_RESOURCE_URI> (url path to load if there are multiple UIs for each tool in the app - default is index.html), <UI_LOADING_MESSAGE> (display message during loading), <UI_DISPLAY_LOCATION> (enum of: "sidebar", "inline" or "hidden"), <UI_COMPONENT> (native element name for the tool call, e.g. "email-compose") and <UI_AUTO_OPEN> (boolean, open the tool view automatically)
 			""".replace("<SMSS_MCP_EXECUTION>", MCPUtility.SMSS_MCP_EXECUTION)
+			.replace("<SMSS_MCP_DEFERRED>", MCPUtility.SMSS_MCP_DEFERRED)
 			.replace("<SMSS_MCP_UI>", MCPUtility.SMSS_MCP_UI)
 			.replace("<UI_RESOURCE_URI>", MCPUtility.UI_RESOURCE_URI)
 			.replace("<UI_LOADING_MESSAGE>", MCPUtility.UI_LOADING_MESSAGE)
 			.replace("<UI_DISPLAY_LOCATION>", MCPUtility.UI_DISPLAY_LOCATION)
+			.replace("<UI_COMPONENT>", MCPUtility.UI_COMPONENT)
+			.replace("<UI_AUTO_OPEN>", MCPUtility.UI_AUTO_OPEN)
 			),
 	MCP_TOOL_ID("mcpToolID", 									"App ID of the MCP Tool to be used in a llm call"), 
 	MCP_TOOL_RESULT("mcpToolResult", 							"The result of an executed MCP tool call"),
 	MCP_TOOL_STATUS("mcpToolStatus",                            "Whether an MCP tool call succeeded, errored, or was cancelled: either success, error, or cancelled"),
-	MESSAGE("message", 											"Message to display for logging"),	
+	MEDIA("media", 												"The location of a media file of any type (image, pdf, document, spreadsheet, audio, video) or a base64 data uri of one."),
+	MESSAGE("message", 											"Message to display for logging"),
 	META_FILTERS("metaFilters", 								"Map containing key-value pairs for filters to apply on the data source / project / insight metadata"),
 	META_KEYS("metaKeys", 										"List of the metadata keys to return with each data source / project / insight"),
 	METADATA("metadata", 										"Additional metadata"),
@@ -207,6 +212,7 @@ public enum ReactorKeysEnum {
 	NUMERIC_VALUES("numValues", 								"Numeric values to be used in the operation"),
 	OFFSET("offset", 											"Offset to add for the query results"),
 	ONLY_FAVORITES("onlyFavorites", 							"Get engines/insights which are favorited by the user"),
+	ONLY_TEMPLATES("onlyTemplates", 							"Get projects which are enabled as templates"),
 	OPERATOR("operator", 										"The operator to use for identifying this filter such as > , < = != etc. "),
 	OPERATORU("operatoru", 										"Unique operator to use for identifying this filter such as > , < = != etc. For instance this can be a = 1 AND a = 2 in which case the first = would be and.left.="),
 	OPTIONS("options", 											"Map of option values"),

@@ -40,9 +40,6 @@ import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
 import prerna.auth.AccessToken;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
@@ -79,8 +76,6 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 	 * that merely share the file.
 	 */
 	private static final String GENERATOR_ID = "MakePlaywrightMCP";
-
-	private final ObjectMapper json = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
 	public MakePlaywrightMCPReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.PROJECT.getKey(), ReactorKeysEnum.COMMENT_KEY.getKey() };
@@ -120,7 +115,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		JSONArray toolsArray = new JSONArray();
 		for (File file : files) {
 			try {
-				StepsEnvelope envelope = json.readValue(file, StepsEnvelope.class);
+				StepsEnvelope envelope = PlaywrightUtility.readStepsEnvelope(file);
 				toolsArray.put(PlaywrightMCPToolBuilder.buildProjectPlaybackTool(envelope, file.getName(), projectId));
 			} catch (Exception e) {
 				classLogger.error("Failed to process Playwright recording file '{}'", file.getName(), e);
@@ -135,7 +130,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 		// Replace only tools owned by this generator. Hand-authored tools and tools
 		// written by other generators remain untouched.
 		MCPUtility.stampGenerator(toolsArray, GENERATOR_ID);
-		String outputFileLoc = projectAssetFolder + PlaywrightMCPToolBuilder.MCP_OUTPUT_REL;
+		String outputFileLoc = projectAssetFolder + MCPUtility.PIXEL_MCP_RELATIVE_PATH;
 		JSONArray mergedTools = MCPUtility.mergeGeneratedTools(MCPUtility.readMcpJson(outputFileLoc), toolsArray,
 				GENERATOR_ID, true);
 		JSONObject mcpJson = PlaywrightMCPToolBuilder.wrapMcpJson(mergedTools);
@@ -171,7 +166,7 @@ public class MakePlaywrightMCPReactor extends AbstractReactor {
 
 		// Add file to git
 		List<String> gitRelativeFilePaths = new ArrayList<>();
-		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + PlaywrightMCPToolBuilder.MCP_OUTPUT_REL);
+		gitRelativeFilePaths.add(Constants.ASSETS_FOLDER + MCPUtility.PIXEL_MCP_RELATIVE_PATH);
 
 		// Get the user's email
 		AccessToken accessToken = user.getAccessToken(user.getPrimaryLogin());

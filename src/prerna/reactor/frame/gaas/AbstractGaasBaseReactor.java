@@ -39,38 +39,36 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 
 	/**
-	 * 
+	 * The project id passed in the noun store, else the insight's context project,
+	 * else the insight's own project. Null when there is none - callers here treat
+	 * the project as optional.
+	 *
 	 * @return
 	 */
 	public String getProjectId() {
 		String projectId = null;
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PROJECT.getKey());
-		if(grs != null && !grs.isEmpty()) {
+		if (grs != null && !grs.isEmpty()) {
 			projectId = grs.get(0).toString();
-		} else {
-			projectId = this.insight.getProjectId();
-			if(projectId == null) {
-				projectId = this.insight.getContextProjectId();
-			}
 		}
-		return projectId;
+		return resolveContextEngineIdOrNull(projectId);
 	}
-	
+
 	/**
 	 * 
 	 * @return
 	 */
 	public Map processParamMap() {
 		GenRowStruct grs = this.store.getGenRowStruct(ReactorKeysEnum.PARAM_VALUES_MAP.getKey());
-		if(grs != null) {
+		if (grs != null) {
 			List maps = grs.getValuesOfType(PixelDataType.MAP);
-			if(maps != null && maps.size() > 0) {
-				return (Map)maps.get(0);
+			if (maps != null && maps.size() > 0) {
+				return (Map) maps.get(0);
 			}
 		}
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param inputMap
@@ -79,17 +77,17 @@ public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 	public String processMapToString(Map<String, Object> inputMap) {
 		StringBuilder buf = new StringBuilder("");
 		Iterator<String> keys = inputMap.keySet().iterator();
-		while(keys.hasNext()) {
+		while (keys.hasNext()) {
 			String thisKey = keys.next();
 			Object value = inputMap.get(thisKey);
-			
-			if(buf.length() != 0) {
+
+			if (buf.length() != 0) {
 				buf.append(", ");
 			}
 			// add the key
 			buf.append(thisKey).append("=");
 			// add the value
-			if(value instanceof String) {
+			if (value instanceof String) {
 				buf.append("\"").append(value).append("\"");
 			} else {
 				buf.append(value);
@@ -97,5 +95,5 @@ public abstract class AbstractGaasBaseReactor extends AbstractReactor {
 		}
 		return buf.toString();
 	}
-	
+
 }

@@ -37,22 +37,46 @@ final class RecordingMetadataPrivacy {
 
 	static final String REDACTED = "[REDACTED]";
 
-	private static final Pattern SENSITIVE_ASSIGNMENT = Pattern.compile(
-			"(?i)\\b(password|passcode|secret|token|api[ _-]?key|authorization|auth[ _-]?code|verification[ _-]?code|otp|email|phone|ssn|social[ _-]?security|credit[ _-]?card|card[ _-]?number)\\b\\s*(?:is|:|=)\\s*([^\\s,;]+)");
-	private static final Pattern EMAIL = Pattern
-			.compile("(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b");
+	/**
+	 * The single sensitive-term vocabulary. Both the value sanitizer and the
+	 * field-label check below are built from this so a term can never be scrubbed
+	 * out of one path while still being emitted by the other.
+	 */
+	private static final String SENSITIVE_TERMS = "password|passcode|secret|token|api[ _-]?key|authorization"
+			+ "|auth[ _-]?code|verification[ _-]?code|otp|e[ _-]?mail|phone|ssn|social[ _-]?security"
+			+ "|credit[ _-]?card|card[ _-]?number";
+
+	private static final Pattern SENSITIVE_ASSIGNMENT = Pattern
+			.compile("(?i)\\b(" + SENSITIVE_TERMS + ")\\b\\s*(?:is|:|=)\\s*([^\\s,;]+)");
+	/**
+	 * Matches anywhere in a field name rather than on word boundaries, so compound
+	 * labels such as "confirmPassword" are still treated as sensitive.
+	 */
+	private static final Pattern SENSITIVE_FIELD_NAME = Pattern.compile("(?i)(?:" + SENSITIVE_TERMS + ")");
+	private static final Pattern EMAIL = Pattern.compile("(?i)\\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}\\b");
 	private static final Pattern BEARER = Pattern.compile("(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]+");
 	private static final Pattern JWT = Pattern
 			.compile("\\beyJ[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\.[A-Za-z0-9_-]{8,}\\b");
-	private static final Pattern UUID = Pattern.compile(
-			"(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\b");
-	private static final Pattern CARD_OR_LONG_NUMBER = Pattern.compile("(?<![A-Za-z0-9])(?:\\d[ -]?){9,19}(?![A-Za-z0-9])");
-	private static final Pattern PHONE = Pattern
-			.compile("(?<![A-Za-z0-9])(?:\\+?\\d{1,3}[ .-]?)?(?:\\(?\\d{2,4}\\)?[ .-]?)?\\d{3,4}[ .-]\\d{3,4}(?![A-Za-z0-9])");
+	private static final Pattern UUID = Pattern
+			.compile("(?i)\\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\b");
+	private static final Pattern CARD_OR_LONG_NUMBER = Pattern
+			.compile("(?<![A-Za-z0-9])(?:\\d[ -]?){9,19}(?![A-Za-z0-9])");
+	private static final Pattern PHONE = Pattern.compile(
+			"(?<![A-Za-z0-9])(?:\\+?\\d{1,3}[ .-]?)?(?:\\(?\\d{2,4}\\)?[ .-]?)?\\d{3,4}[ .-]\\d{3,4}(?![A-Za-z0-9])");
 	private static final Pattern LONG_SECRET = Pattern.compile("\\b[A-Za-z0-9_+/=-]{24,}\\b");
 	private static final Pattern SPACE = Pattern.compile("\\s+");
 
 	private RecordingMetadataPrivacy() {
+	}
+
+	/**
+	 * Reports whether a field label, description or tag names a sensitive value.
+	 * Callers use this to decide whether a typed value may be described at all,
+	 * because {@link #sanitizeText(String, int)} only recognizes values whose shape
+	 * looks sensitive and cannot tell that "482913" was a one-time passcode.
+	 */
+	static boolean isSensitiveFieldName(String value) {
+		return value != null && !value.isBlank() && SENSITIVE_FIELD_NAME.matcher(value).find();
 	}
 
 	static String sanitizeText(String value, int maxLength) {
@@ -75,8 +99,8 @@ final class RecordingMetadataPrivacy {
 	}
 
 	/**
-	 * Keeps only origin and a scrubbed path. Query, fragment and user-info are never
-	 * included in the model prompt.
+	 * Keeps only origin and a scrubbed path. Query, fragment and user-info are
+	 * never included in the model prompt.
 	 */
 	static String sanitizeUrl(String value) {
 		if (value == null || value.isBlank()) {
@@ -105,8 +129,7 @@ final class RecordingMetadataPrivacy {
 	}
 
 	static String safeSlug(String value) {
-		String slug = sanitizeText(value, 100).toLowerCase().replaceAll("[^a-z0-9]+", "-")
-				.replaceAll("^-+|-+$", "");
+		String slug = sanitizeText(value, 100).toLowerCase().replaceAll("[^a-z0-9]+", "-").replaceAll("^-+|-+$", "");
 		return slug.isBlank() ? "playwright-recording" : slug;
 	}
 }

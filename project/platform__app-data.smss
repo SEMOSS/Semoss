@@ -1,0 +1,14 @@
+#Base Properties
+PROJECT	app-data
+PROJECT_ALIAS	platform
+PROJECT_DISPLAY_NAME	app-data
+PROJECT_TYPE	prerna.project.impl.Project
+PROJECT_ENUM_TYPE	SKILL
+RDBMS_INSIGHTS	project/@PROJECT@/insights_database
+RDBMS_INSIGHTS_TYPE	H2_DB
+DRIVER	org.h2.Driver
+RDBMS_TYPE	H2_DB
+USERNAME	sa
+PASSWORD	
+CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/project/platform__app-data/insights_database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+PIPELINE	pipeline.json

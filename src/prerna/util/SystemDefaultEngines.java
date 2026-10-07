@@ -37,7 +37,8 @@ public class SystemDefaultEngines {
 
 	private static final Set<String> SYSTEM_ENGINE_IDS = Set.of(Constants.SECURITY_DB, Constants.LOCAL_MASTER_DB,
 			Constants.SCHEDULER_DB, Constants.THEMING_DB, Constants.USER_TRACKING_DB, Constants.PROMPT_DB,
-			Constants.NOTIFICATION_DB, Constants.AUDIT_LOGS_DB, Constants.MODEL_INFERENCE_LOGS_DB);
+			Constants.NOTIFICATION_DB, Constants.COLLABORATION_DB, Constants.AUDIT_LOGS_DB,
+			Constants.MODEL_INFERENCE_LOGS_DB);
 
 	private static final List<String> IGNORE_DATABASE_OWL = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
@@ -51,16 +52,33 @@ public class SystemDefaultEngines {
 	private static final List<String> DATABASE_IGNORE_SECURITY = Collections
 			.unmodifiableList(new ArrayList<>(SYSTEM_ENGINE_IDS));
 
-	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_BUILD_AND_PUBLISH,
-			Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_MODEL, Constants.SKILL_PYTHON,
-			Constants.SKILL_ROOM, Constants.SKILL_VECTOR);
+	private static final List<String> SYSTEM_APPS = List.of(Constants.APP_REACT_TEMPLATE);
+
+	private static final List<String> APP_BUILDER_SKILLS = List.of(Constants.SKILL_AGENT_RUN,
+			Constants.SKILL_APP_BOOTSTRAP, Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH,
+			Constants.SKILL_DATABASE, Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS,
+			Constants.SKILL_FRONTEND_DESIGN, Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL,
+			Constants.SKILL_PAGINATION, Constants.SKILL_PERMISSIONS, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
+			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR);
+
+	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
+			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_COLLABORATION,
+			Constants.SKILL_DATABASE,
+			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN,
+			Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
+			Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
+			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, Constants.SKILL_WORKFLOW_AUTOMATION);
+
+	private static final List<String> COLLABORATION_SKILLS = List.of(Constants.SKILL_COLLABORATION,
+			Constants.SKILL_PYTHON);
 
 	/**
 	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
 	 * must have a matching {@code project/platform__<id>} folder.
 	 */
-	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_NODE_BUILDER, Constants.MCP_DATABASE_MAKER,
-			Constants.MCP_REACTOR_HELP, Constants.MCP_BROWSER_AUTOMATION);
+	private static final List<String> SYSTEM_MCPS = List.of(Constants.MCP_APP_FILESYSTEM,
+			Constants.MCP_BROWSER_AUTOMATION, Constants.MCP_DATABASE_MAKER, Constants.MCP_NODE_BUILDER,
+			Constants.MCP_PIXABAY, Constants.MCP_REACTOR_HELP, Constants.MCP_ROOM_FILESYSTEM);
 
 	/**
 	 * Subset of {@link #SYSTEM_MCPS} seeded onto system agent workspaces. This is
@@ -69,10 +87,12 @@ public class SystemDefaultEngines {
 	 * they are cataloged and invokable without being attached to every system
 	 * agent.
 	 */
-	private static final List<String> SYSTEM_AGENT_MCPS = List.of(Constants.MCP_NODE_BUILDER,
-			Constants.MCP_DATABASE_MAKER, Constants.MCP_REACTOR_HELP);
+	private static final List<String> APP_BUILDER_MCPS = List.of(Constants.MCP_DATABASE_MAKER,
+			Constants.MCP_NODE_BUILDER, Constants.MCP_REACTOR_HELP);
 
-	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER);
+	private static final List<String> SYSTEM_AGENTS = List.of(Constants.AGENT_APP_BUILDER,
+			Constants.AGENT_DATABASE_EXPLORER, Constants.AGENT_NOTEBOOK_ANALYST, Constants.AGENT_PPTX,
+			Constants.AGENT_PPTX_REVIEWER, Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER);
 
 	public static List<String> getIgnoreDatabaseOwlList() {
 		return IGNORE_DATABASE_OWL;
@@ -90,20 +110,80 @@ public class SystemDefaultEngines {
 		return DATABASE_IGNORE_SECURITY;
 	}
 
+	public static List<String> getSystemApps() {
+		return SYSTEM_APPS;
+	}
+
 	public static List<String> getSystemSkills() {
 		return SYSTEM_SKILLS;
+	}
+
+	/** Skills available in every collaboration room, independently of its agent. */
+	public static List<String> getCollaborationSkills() {
+		return COLLABORATION_SKILLS;
 	}
 
 	public static List<String> getSystemMCPs() {
 		return SYSTEM_MCPS;
 	}
 
-	public static List<String> getSystemAgentMCPs() {
-		return SYSTEM_AGENT_MCPS;
+	/**
+	 * Returns the platform MCP projects seeded onto one system agent.
+	 *
+	 * @param agentId system agent identifier
+	 * @return immutable MCP project identifiers for the agent
+	 */
+	public static List<String> getSystemAgentMCPs(String agentId) {
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			return APP_BUILDER_MCPS;
+		}
+		if (Constants.AGENT_DATABASE_EXPLORER.equals(agentId) || Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
+			return List.of(Constants.MCP_REACTOR_HELP);
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of(Constants.MCP_PIXABAY);
+		}
+		return List.of();
+	}
+
+	/**
+	 * Returns the platform skills seeded onto one system agent.
+	 *
+	 * @param agentId system agent identifier
+	 * @return immutable skill project identifiers for the agent
+	 */
+	public static List<String> getSystemAgentSkills(String agentId) {
+		if (Constants.AGENT_APP_BUILDER.equals(agentId)) {
+			return APP_BUILDER_SKILLS;
+		}
+		if (Constants.AGENT_DATABASE_EXPLORER.equals(agentId)) {
+			return List.of(Constants.SKILL_DATABASE, Constants.SKILL_PYTHON, Constants.SKILL_PAGINATION,
+					Constants.SKILL_EXPORTS);
+		}
+		if (Constants.AGENT_NOTEBOOK_ANALYST.equals(agentId)) {
+			return List.of(Constants.SKILL_PYTHON, Constants.SKILL_DATABASE, Constants.SKILL_FILE_UPLOADS,
+					Constants.SKILL_STORAGE, Constants.SKILL_EXPORTS);
+		}
+		if (Constants.AGENT_WORKFLOW_AUTOMATION_BUILDER.equals(agentId)) {
+			return List.of(Constants.SKILL_WORKFLOW_AUTOMATION);
+		}
+		if (Constants.AGENT_PPTX.equals(agentId)) {
+			return List.of(Constants.SKILL_PPTX);
+		}
+		return List.of();
 	}
 
 	public static List<String> getSystemAgents() {
 		return SYSTEM_AGENTS;
+	}
+
+	/**
+	 * Identifies projects seeded and managed by the instance. Use the registered
+	 * IDs rather than editable tags, display names, or a missing creator field.
+	 */
+	public static boolean isSystemProject(String projectId) {
+		return projectId != null && (SYSTEM_APPS.contains(projectId) || SYSTEM_SKILLS.contains(projectId)
+				|| SYSTEM_MCPS.contains(projectId) || SYSTEM_AGENTS.contains(projectId));
 	}
 
 	/**

@@ -59,9 +59,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslContextBuilder;
-import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import prerna.auth.User;
 import prerna.om.ClientProcessWrapper;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -172,13 +169,6 @@ public class SocketClient implements Runnable, Closeable {
 		classLogger.info("Trying with sleep time {}", SLEEP_TIME);
 		while (!connected && attempt < 6) {
 			try {
-				final SslContext sslCtx;
-				if (SSL) {
-					sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-				} else {
-					sslCtx = null;
-				}
-
 				// Configure the client.
 				boolean blocking = Utility.getDIHelperProperty(Settings.BLOCKING) != null
 						&& Utility.getDIHelperProperty(Settings.BLOCKING).equalsIgnoreCase("true");
@@ -313,7 +303,14 @@ public class SocketClient implements Runnable, Closeable {
 						}
 						pollNum++;
 					} catch (InterruptedException e) {
-						classLogger.error("Interrupted while waiting for response to epoc: {}", ps.epoc, e);
+						// Going back to waiting would ignore a stop this thread has already
+						// been told about, so abandon the epoc and hand the interrupt back to
+						// the caller, whose cooperative cancel checks are what end the work.
+						Thread.currentThread().interrupt();
+						classLogger.warn("Interrupted while waiting for epoc {} {}; abandoning the wait", ps.epoc,
+								ps.methodName);
+						this.requestMap.remove(ps.epoc);
+						throw new SemossPixelException("The request was interrupted", e);
 					}
 				}
 				if (!responseMap.containsKey(ps.epoc) && System.nanoTime() >= waitDeadline) {

@@ -33,13 +33,13 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.entity.mime.HttpMultipartMode;
 import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
@@ -50,6 +50,7 @@ import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.HttpClientResponseHandler;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.net.URIBuilder;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
@@ -90,6 +91,7 @@ public class Unoserver {
 
 	/** Base URL of the unoserver microservice with any trailing slash stripped. */
 	private final String baseUrl;
+	private final RequestConfig requestConfig;
 
 	/**
 	 * Reads and validates the {@code UNOSERVER} URL from the RDF map, falling back to
@@ -101,6 +103,12 @@ public class Unoserver {
 	 */
 	public Unoserver() {
 		this.baseUrl = getConfiguredUrl();
+		String configuredTimeout = Utility.getDIHelperProperty("UNOSERVER_TIMEOUT_SECONDS");
+		if (configuredTimeout == null || configuredTimeout.isBlank()) configuredTimeout = System.getenv("UNOSERVER_TIMEOUT_SECONDS");
+		int seconds = configuredTimeout == null || configuredTimeout.isBlank() ? 180 : Integer.parseInt(configuredTimeout.trim());
+		if (seconds < 1 || seconds > 1800) throw new IllegalArgumentException("UNOSERVER_TIMEOUT_SECONDS must be between 1 and 1800");
+		this.requestConfig = RequestConfig.custom().setConnectionRequestTimeout(Timeout.ofSeconds(10))
+				.setConnectTimeout(Timeout.ofSeconds(10)).setResponseTimeout(Timeout.ofSeconds(seconds)).build();
 	}
 
 	/**
@@ -159,14 +167,18 @@ public class Unoserver {
 	 */
 	public void checkHealth() {
 		String url = this.baseUrl + HEALTH_PATH;
-		Map<String, String> headers = new HashMap<>();
-		headers.put("accept", "application/json");
-
 		String response;
-		try {
-			// getRequest throws on a non-2xx status (e.g. 503 not ready) or a connection failure
-			response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-		} catch (RuntimeException e) {
+		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, null, null, null)) {
+			HttpGet request = new HttpGet(url);
+			request.setConfig(this.requestConfig);
+			request.setHeader("accept", "application/json");
+			response = httpClient.execute(request, result -> {
+				if (result.getCode() < 200 || result.getCode() >= 300) throw new IOException("HTTP " + result.getCode());
+				try {
+					return result.getEntity() == null ? "" : EntityUtils.toString(result.getEntity(), StandardCharsets.UTF_8);
+				} catch (ParseException e) { throw new IOException("Invalid health response", e); }
+			});
+		} catch (IOException | RuntimeException e) {
 			throw new IllegalStateException("unoserver health check failed at " + url + ": " + e.getMessage(), e);
 		}
 
@@ -280,6 +292,7 @@ public class Unoserver {
 
 		try (CloseableHttpClient httpClient = HttpHelperUtility.getCustomClient(null, null, null, null)) {
 			HttpPost httpPost = new HttpPost(uri);
+			httpPost.setConfig(this.requestConfig);
 
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.EXTENDED);

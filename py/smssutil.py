@@ -7,9 +7,47 @@ import os
 from typing import List, Optional
 
 # this is here so users only need to know to import smssutil and not worry about the internal structure of the code
-from gaas_tcp_server_thread_local import smss_get_runtime_var
+from gaas_tcp_server_thread_local import smss_clear_app_imports, smss_get_runtime_var
 
 logger = logging.getLogger("SocketServer")
+
+
+def get_document_markdown(
+    file_path: str | os.PathLike,
+    *,
+    max_file_bytes: int = 20 * 1024 * 1024,
+    max_pages: int = 200,
+    max_chars: int = 1_000_000,
+) -> str:
+    """Read a local document through Docling and return its Markdown.
+
+    Relative paths resolve against this execution's ROOT, never the process cwd.
+    Absolute paths can identify an already authorized local file. Source files
+    stay unchanged; no output file is written. Notes and page/slide/sheet labels
+    are included, and partial, empty or oversized extraction raises an error.
+    PDF/OCR requires available local model artifacts. Conversion is local, with
+    a cooperative pipeline timeout; imports/model initialization are not bounded
+    by that timeout. Native readers remain necessary for exact Office semantics.
+    """
+    from pathlib import Path
+    from genai_client.message_builders.semoss_base.document_input import (
+        DocumentInputProcessor,
+    )
+
+    source = Path(file_path)
+    if not source.is_absolute():
+        root = smss_get_runtime_var("ROOT")
+        if not root:
+            raise RuntimeError("ROOT is unavailable; provide an absolute file path")
+        root_path = Path(root).resolve()
+        source = (root_path / source).resolve()
+        if not source.is_relative_to(root_path):
+            raise ValueError("Relative document paths must stay within ROOT")
+    return DocumentInputProcessor(
+        max_file_bytes=max_file_bytes,
+        max_pages=max_pages,
+        max_text_chars=max_chars,
+    ).extract_file(source)
 
 
 def deprecated(reason: str = "", version: str = ""):
@@ -823,6 +861,34 @@ def load_module_from_file(module_name=None, file_path=None, search=None):
     return module
 
 
+def _asset_relative_source(src_file: str) -> str:
+    """
+    Reduce a driver path to the portion starting at the engine's assets folder.
+
+    The path handed in is absolute and therefore machine specific: it embeds the
+    deployment root and the OS user, so writing it into py_mcp.json makes the
+    committed file differ for every developer and leaks local directory layout.
+    Only the part at and below `assets` means anything to a reader.
+
+    Scans from the right so a deployment root that itself contains an `assets`
+    segment does not win over the engine's own. Matches whole segments, so a
+    project named e.g. "My assets" is not mistaken for the folder.
+
+    Args:
+        src_file (str): Path to the python driver file
+
+    Returns:
+        str: e.g. "assets/py/mcp_driver.py", or the bare file name if no assets
+             folder appears in the path
+    """
+    normalized = str(src_file).replace("\\", "/")
+    parts = normalized.split("/")
+    for i in range(len(parts) - 1, -1, -1):
+        if parts[i] == "assets":
+            return "/".join(parts[i:])
+    return os.path.basename(normalized)
+
+
 def generate_mcp(
     src_file: str = None,
     function_name: Optional[str] = None,
@@ -850,7 +916,7 @@ def generate_mcp(
     _meta.update(
         {"file_last_modified_date": file_last_mod_date_utc.strftime(date_format)}
     )
-    _meta.update({"source_file": src_file})
+    _meta.update({"source_file": _asset_relative_source(src_file)})
     mcp_json.update({"_meta": _meta})
 
     tools = []
@@ -872,13 +938,15 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_deferred = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
-                mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
+                mcp_metadata = dict(getattr(func_obj, "_mcp_metadata", {}))
                 if mcp_metadata.get("execution", None) is not None:
                     mcp_execution_mode = mcp_metadata.pop("execution")
+                mcp_deferred = mcp_metadata.pop("deferred", None)
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
 
@@ -908,6 +976,7 @@ def generate_mcp(
 
                                 if mcp_metadata.get("execution", None) is not None:
                                     mcp_execution_mode = mcp_metadata.pop("execution")
+                                mcp_deferred = mcp_metadata.pop("deferred", None)
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
 
@@ -947,6 +1016,13 @@ def generate_mcp(
                             cleaned_mcp_ui_map[key] = value
                         else:
                             cleaned_mcp_ui_map[key] = None
+
+                    # same rules as MCPUtility.copyUiHints on the Java side
+                    if key == "component" and isinstance(value, str) and value.strip():
+                        cleaned_mcp_ui_map[key] = value.strip()
+
+                    if key == "autoOpen" and isinstance(value, (bool, str)):
+                        cleaned_mcp_ui_map[key] = str(value).lower() == "true"
 
             this_function = node.name
             if (
@@ -1026,6 +1102,9 @@ def generate_mcp(
                     # so they share one generator id.
                     "SMSS_MCP_GENERATOR": "MakePythonMCP",
                 }
+                # only a real boolean true defers, matching DeferredAgentTools
+                if mcp_deferred is True:
+                    _function_meta["SMSS_MCP_DEFERRED"] = True
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
@@ -1036,6 +1115,225 @@ def generate_mcp(
 
     mcp_json.update({"tools": tools})
     return mcp_json
+
+
+def smss_multimodal_response(blocks: list) -> dict:
+    """Wrap multimodal content blocks for SEMOSS model providers.
+
+    Returns a SEMOSSMultimodalToolResponse dict. Java resolves any image file
+    references to inline base64 before the message reaches the model — the
+    tool designer only needs to supply root-relative file paths.
+
+    Valid block types:
+        {"type": "text",  "text": "..."}
+        {"type": "image", "image": ["file.png", "doc.pdf"]}  # array of root-relative paths
+
+    Also accepts a pre-formed envelope dict:
+        {"SEMOSSMultimodalToolResponse": [...blocks...]}
+
+    Raises:
+        ValueError: if blocks are not valid.
+
+    Args:
+        blocks (list | dict): List of content block dicts, or a pre-formed
+            SEMOSSMultimodalToolResponse envelope dict.
+
+    Returns:
+        dict: SEMOSSMultimodalToolResponse envelope.
+    """
+    if isinstance(blocks, dict):
+        if "SEMOSSMultimodalToolResponse" not in blocks:
+            raise ValueError("dict input must have a 'SEMOSSMultimodalToolResponse' key")
+        blocks = blocks["SEMOSSMultimodalToolResponse"]
+    if not isinstance(blocks, list) or not blocks:
+        raise ValueError("blocks must be a non-empty list")
+    normalized = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            raise ValueError(f"each block must be a dict, got {type(block).__name__}")
+        btype = block.get("type")
+        if btype == "text":
+            if not isinstance(block.get("text"), str):
+                raise ValueError(f"text block missing string 'text': {block}")
+            normalized.append(block)
+        elif btype == "image":
+            images = block.get("image")
+            if images is None:
+                raise ValueError(f"image block missing 'image' key: {block}")
+            if isinstance(images, str):
+                images = [images]
+            elif not isinstance(images, list) or not all(isinstance(p, str) for p in images):
+                raise ValueError(f"image block 'image' must be a string or list of strings: {block}")
+            normalized.append({"type": "image", "image": images})
+        else:
+            raise ValueError(f"invalid block type {btype!r}: must be 'text' or 'image'")
+    return {"SEMOSSMultimodalToolResponse": normalized}
+
+
+def mcp_text_part(text: str) -> dict:
+    """Create one ordered text part for :func:`mcp_response`."""
+    if not isinstance(text, str):
+        raise ValueError("text must be a string")
+    return {"type": "text", "text": text}
+
+
+def _smss_mcp_room_root():
+    """Return the canonical room root supplied to the active MCP execution."""
+    from pathlib import Path
+
+    root = smss_get_runtime_var("ROOT")
+    if not isinstance(root, str) or not root.strip():
+        raise RuntimeError("ROOT is unavailable for this MCP execution")
+    try:
+        return Path(root).resolve(strict=True)
+    except OSError as exc:
+        raise RuntimeError(f"Unable to resolve MCP ROOT: {root}") from exc
+
+
+def _smss_mcp_existing_relative_file(path: str) -> str:
+    """Validate a room-relative regular file and return its normalized path."""
+    from pathlib import Path, PureWindowsPath
+
+    if not isinstance(path, str) or not path.strip():
+        raise ValueError("image paths must be non-empty strings")
+
+    relative_path = Path(path)
+    if relative_path.is_absolute() or PureWindowsPath(path).is_absolute():
+        raise ValueError("image paths must be relative to ROOT")
+    if ".." in relative_path.parts:
+        raise ValueError("image paths cannot traverse outside ROOT")
+
+    root = _smss_mcp_room_root()
+    try:
+        resolved = (root / relative_path).resolve(strict=True)
+    except OSError as exc:
+        raise ValueError(f"image file does not exist beneath ROOT: {path}") from exc
+    try:
+        normalized = resolved.relative_to(root)
+    except ValueError as exc:
+        raise ValueError(f"image file resolves outside ROOT: {path}") from exc
+    if not resolved.is_file():
+        raise ValueError(f"image path is not a regular file: {path}")
+    return normalized.as_posix()
+
+
+def _smss_mcp_stage_image_bytes(image_bytes: bytes, mime_type: str) -> str:
+    """Persist image bytes under ROOT and return a content-addressed path."""
+    import hashlib
+    import tempfile
+    from pathlib import Path
+
+    if not isinstance(image_bytes, bytes) or not image_bytes:
+        raise ValueError("image_bytes must contain at least one byte")
+    if not isinstance(mime_type, str) or not mime_type.strip():
+        raise ValueError("mime_type is required for base64 or byte image data")
+
+    normalized_mime = mime_type.split(";", 1)[0].strip().lower()
+    if normalized_mime == "image/jpg":
+        normalized_mime = "image/jpeg"
+    extensions = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/gif": ".gif",
+        "image/webp": ".webp",
+    }
+    extension = extensions.get(normalized_mime)
+    if extension is None:
+        raise ValueError(
+            "mime_type must be one of image/png, image/jpeg, image/gif, or image/webp"
+        )
+
+    root = _smss_mcp_room_root()
+    media_dir = root / "mcp-media"
+    media_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        canonical_media_dir = media_dir.resolve(strict=True)
+        canonical_media_dir.relative_to(root)
+    except (OSError, ValueError) as exc:
+        raise RuntimeError("MCP media directory resolves outside ROOT") from exc
+
+    digest = hashlib.sha256(image_bytes).hexdigest()
+    target = canonical_media_dir / f"{digest}{extension}"
+    if not target.exists():
+        temp_path = None
+        try:
+            file_descriptor, temp_name = tempfile.mkstemp(
+                prefix=".smss-mcp-image-", dir=canonical_media_dir
+            )
+            temp_path = Path(temp_name)
+            with os.fdopen(file_descriptor, "wb") as output_file:
+                output_file.write(image_bytes)
+            os.replace(temp_path, target)
+            temp_path = None
+        finally:
+            if temp_path is not None:
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+    elif not target.is_file():
+        raise RuntimeError(f"MCP media target is not a regular file: {target.name}")
+
+    return target.relative_to(root).as_posix()
+
+
+def mcp_image_part(
+    *paths: str,
+    base64_data: Optional[str] = None,
+    image_bytes: Optional[bytes] = None,
+    mime_type: Optional[str] = None,
+) -> dict:
+    """Create an image part from room files, base64, or raw image bytes.
+
+    Supply one or more room-relative ``paths``, or exactly one of
+    ``base64_data`` and ``image_bytes``. Binary inputs are written beneath the
+    active room's ``ROOT`` using a content-addressed filename, keeping base64
+    out of the persisted tool response.
+    """
+    source_count = int(bool(paths)) + int(base64_data is not None) + int(
+        image_bytes is not None
+    )
+    if source_count != 1:
+        raise ValueError(
+            "provide image paths, base64_data, or image_bytes (exactly one source)"
+        )
+
+    if paths:
+        if mime_type is not None:
+            raise ValueError("mime_type is only used with base64_data or image_bytes")
+        relative_paths = [_smss_mcp_existing_relative_file(path) for path in paths]
+    else:
+        if base64_data is not None:
+            import base64
+            import binascii
+
+            if not isinstance(base64_data, str) or not base64_data:
+                raise ValueError("base64_data must be a non-empty string")
+            try:
+                decoded = base64.b64decode(base64_data, validate=True)
+            except (binascii.Error, ValueError) as exc:
+                raise ValueError("base64_data must contain valid base64") from exc
+        else:
+            if not isinstance(image_bytes, bytes):
+                raise ValueError("image_bytes must be bytes")
+            decoded = image_bytes
+        relative_paths = [_smss_mcp_stage_image_bytes(decoded, mime_type)]
+
+    return {"type": "image", "image": relative_paths}
+
+
+def mcp_response(*parts: dict) -> dict:
+    """Build an ordered SEMOSS MCP response from text and image parts.
+
+    Example::
+
+        return mcp_response(
+            mcp_text_part("Here are the charts:"),
+            mcp_image_part("generated/chart-1.png"),
+            mcp_image_part("generated/chart-2.png"),
+        )
+    """
+    return smss_multimodal_response(list(parts))
 
 
 @deprecated(
@@ -1062,7 +1360,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
     """
 
     def _decorator(func):

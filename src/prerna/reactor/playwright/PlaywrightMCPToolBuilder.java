@@ -50,9 +50,6 @@ import prerna.reactor.agent.mcp.MCPUtility;
  */
 public final class PlaywrightMCPToolBuilder {
 
-	/** Generated MCP definition path, relative to the owning asset folder. */
-	public static final String MCP_OUTPUT_REL = "/mcp/pixel_mcp.json";
-
 	/**
 	 * Sidebar UI for a playback tool. The {@code system://} scheme tells the
 	 * frontend to load the app from the deployed web app rather than from a

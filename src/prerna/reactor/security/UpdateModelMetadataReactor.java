@@ -37,18 +37,27 @@
 package prerna.reactor.security;
 
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.auth.utils.SecurityModelMetadataUtils;
 import prerna.auth.utils.SecurityQueryUtils;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IModelEngine;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.EngineSyncUtility;
+import prerna.util.Utility;
 
 public class UpdateModelMetadataReactor extends AbstractReactor {
+
+	private static final Logger classLogger = LogManager.getLogger(UpdateModelMetadataReactor.class);
 
 	public UpdateModelMetadataReactor() {
 		this.keysToGet = new String[] { ReactorKeysEnum.ENGINE.getKey(), ReactorKeysEnum.MAP.getKey() };
@@ -77,14 +86,38 @@ public class UpdateModelMetadataReactor extends AbstractReactor {
 		}
 
 		SecurityModelMetadataUtils.updateModelMetadata(engineId, updates);
+
+		String reloadWarning = null;
+		if (Utility.engineLoaded(engineId)) {
+			ReentrantLock lock = EngineSyncUtility.getEngineLock(engineId);
+			lock.lock();
+			try {
+				IModelEngine modelEngine = Utility.getModel(engineId);
+				modelEngine.close();
+				modelEngine.open(modelEngine.getSmssFilePath());
+			} catch (Exception e) {
+				classLogger.error("Failed to reload model engine '{}' after updating its metadata",
+						Utility.cleanLogString(engineId), e);
+				reloadWarning = "The model settings were saved but the engine could not be reloaded. "
+						+ "The new settings will not take effect until the engine is reloaded. Detailed message = "
+						+ e.getMessage();
+			} finally {
+				lock.unlock();
+			}
+		}
+
 		Map<String, Object> updatedMetadata = SecurityModelMetadataUtils.getModelMetadata(engineId);
 		NounMetadata noun = new NounMetadata(updatedMetadata, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated the model capabilities"));
+		if (reloadWarning != null) {
+			noun.addAdditionalReturn(NounMetadata.getWarningNounMessage(reloadWarning));
+		} else {
+			noun.addAdditionalReturn(NounMetadata.getSuccessNounMessage("Successfully updated the model capabilities"));
+		}
 		return noun;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Updates editable provider, capability, modality, token, and built-in tool metadata for a model engine";
+		return "Updates editable provider, capability, modality, token, reasoning, and built-in tool metadata for a model engine";
 	}
 }

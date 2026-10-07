@@ -47,13 +47,14 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		relationshipsRequired.add(
 				new String[] { "GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID" });
 		relationshipsRequired.add(
-				new String[] { "ENGINE", "MODELMETADATA", "ENGINE.ENGINEID.MODELMETADATA.ENGINEID" });
+				new String[] { "SMSS_USER", "MS_GRAPH_SUBSCRIPTION", "SMSS_USER.ID.MS_GRAPH_SUBSCRIPTION.USER_ID" });
 	}
 
 	public SecurityOwlCreator(AbstractSqlQueryUtil queryUtil) {
-		createColumnsAndTypes(queryUtil);
+		super(queryUtil);
 	}
 
+	@Override
 	public void createColumnsAndTypes(AbstractSqlQueryUtil queryUtil) {
 		final String CLOB_DATATYPE_NAME = queryUtil.getClobDataTypeName();
 		final String BOOLEAN_DATATYPE_NAME = queryUtil.getBooleanDataTypeName();
@@ -89,6 +90,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		addTable("MODELMETADATA", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
 				Pair.with("MODELID", VARCHAR_255),
+				Pair.with("CATALOGMODELKEY", VARCHAR_255),
 				Pair.with("MODELPROVIDER", VARCHAR_255),
 				Pair.with("SERVINGPROVIDER", VARCHAR_255),
 				Pair.with("CAPABILITY", VARCHAR_255),
@@ -96,7 +98,6 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("INPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("OUTPUTMODALITIES", CLOB_DATATYPE_NAME),
 				Pair.with("CONTEXTWINDOW", "BIGINT"),
-				Pair.with("MAXINPUTTOKENS", "BIGINT"),
 				Pair.with("MAXOUTPUTTOKENS", "BIGINT"),
 				Pair.with("BUILTINTOOLS", CLOB_DATATYPE_NAME),
 				Pair.with("ATTACHMENT", BOOLEAN_DATATYPE_NAME),
@@ -108,7 +109,8 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("RELEASEDATE", VARCHAR_255),
 				Pair.with("SUPPORTEDPARAMETERS", CLOB_DATATYPE_NAME),
 				Pair.with("REASONINGCONFIG", CLOB_DATATYPE_NAME),
-				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME)));
+				Pair.with("BENCHMARKS", CLOB_DATATYPE_NAME),
+				Pair.with("PRICING", CLOB_DATATYPE_NAME)));
 
 		addTable("ENGINEPERMISSION", Arrays.asList(
 				Pair.with("ENGINEID", VARCHAR_255),
@@ -131,6 +133,7 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("PROJECTDISPLAYNAME", VARCHAR_255),
 				Pair.with("GLOBAL", BOOLEAN_DATATYPE_NAME),
 				Pair.with("DISCOVERABLE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("IS_TEMPLATE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("TYPE", VARCHAR_255),
 				Pair.with("COST", VARCHAR_255),
 				Pair.with("CATALOGNAME", VARCHAR_255),
@@ -452,6 +455,22 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		addTable("MS_GRAPH_SUBSCRIPTION", Arrays.asList(
+				Pair.with("SUBSCRIPTION_ID", VARCHAR_255),
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_PROVIDER", VARCHAR_255),
+				Pair.with("USER_EMAIL", VARCHAR_255),
+				Pair.with("CLIENT_STATE", VARCHAR_255),
+				Pair.with("RESOURCE", VARCHAR_500),
+				Pair.with("CHANGE_TYPE", VARCHAR_255),
+				Pair.with("NOTIFICATION_URL", VARCHAR_500),
+				Pair.with("EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ACCESS_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("REFRESH_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("TOKEN_EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
 		// "ENGINEMETAKEYS", "PROJECTMETAKEYS", "INSIGHTMETAKEYS", "USERMETAKEYS"
 		// all have the same columns and default values
 		List<String> metaKeyTableNames = Arrays.asList(Constants.ENGINE_METAKEYS, Constants.PROJECT_METAKEYS,
@@ -518,6 +537,9 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 		// github app integration joins
 		owler.addRelation("GITHUB_APP", "GITHUB_PROJECT_LINK", "GITHUB_APP.APP_ID.GITHUB_PROJECT_LINK.APP_ID");
 		owler.addRelation("PROJECT", "GITHUB_PROJECT_LINK", "PROJECT.PROJECTID.GITHUB_PROJECT_LINK.PROJECT_ID");
+
+		// microsoft graph subscription joins
+		owler.addRelation("SMSS_USER", "MS_GRAPH_SUBSCRIPTION", "SMSS_USER.ID.MS_GRAPH_SUBSCRIPTION.USER_ID");
 	}
 
 	@Override

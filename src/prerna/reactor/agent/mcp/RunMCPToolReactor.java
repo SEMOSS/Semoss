@@ -94,21 +94,13 @@ public class RunMCPToolReactor extends AbstractReactor {
 					PixelOperationType.MCP_TOOL_EXECUTION);
 		}
 
-		String engineId = this.keyValue.get(this.keysToGet[0].split(",")[0]);
-		if (engineId == null || engineId.isEmpty()) {
-			engineId = insight.getContextProjectId();
-			if (engineId == null || engineId.isEmpty()) {
-				engineId = insight.getProjectId();
-			}
-		}
-		if (engineId == null || (engineId = engineId.trim()).isEmpty()) {
-			throw new IllegalArgumentException("Must provide the project id or set the app context");
-		}
+		String engineId = resolveContextEngineId(this.keyValue.get(this.keysToGet[0].split(",")[0]));
 
 		String toolName = this.keyValue.get(this.keysToGet[1]);
 		String roomId = this.keyValue.get(ROOM_ID_KEY);
+		Room room = null;
 		if (roomId != null && !roomId.isBlank()) {
-			Room room = RoomUtils.getOrLoadRoom(roomId, this.insight);
+			room = RoomUtils.getOrLoadRoom(roomId, this.insight);
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(room);
 			}
@@ -121,8 +113,11 @@ public class RunMCPToolReactor extends AbstractReactor {
 		// these are the params
 		Map<String, Object> paramMap = getMap();
 
-		return new NounMetadata(MCPUtility.executeTool(engineId, toolName, paramMap, this.insight),
-				PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
+		Object toolOutput = MCPUtility.executeTool(engineId, toolName, paramMap, this.insight);
+		if (room != null && toolOutput instanceof String) {
+			toolOutput = MCPUtility.externalizeToolResultMedia((String) toolOutput, room);
+		}
+		return new NounMetadata(toolOutput, PixelDataType.MCP_TOOL_EXECUTION, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 
 	/**

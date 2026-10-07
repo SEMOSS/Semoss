@@ -39,7 +39,6 @@ import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Constants;
 import prerna.util.Utility;
 
 public class ListStoragePathReactor extends AbstractReactor {
@@ -60,8 +59,8 @@ public class ListStoragePathReactor extends AbstractReactor {
 			List<String> storageList = storage.list(path);
 			return new NounMetadata(storageList, PixelDataType.CONST_STRING);
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
-			throw new IllegalArgumentException("Error listing storage details at path " + path);
+			classLogger.error("Failed to list storagePath={} on storage engine={}", path, storage.getEngineId(), e);
+			throw new IllegalArgumentException("Error listing storage details at path " + path, e);
 		}
 	}
 
