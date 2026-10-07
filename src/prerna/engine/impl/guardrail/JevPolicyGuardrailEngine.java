@@ -29,6 +29,7 @@ package prerna.engine.impl.guardrail;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -197,6 +198,12 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 	@Override
 	public GuardrailNounMetadata execute(NounStore ns, GenRowStruct curRow, IEngine targetEngine) {
 		Map<String, String> keyValue = organizeKeys(ns, curRow);
+		// organizeKeys stringifies with toString(), which turns a JSON object or array
+		// supplied natively in directParameters into non-JSON text - re-serialize those
+		putJsonOverride(keyValue, getRawNounValue(ns, null, QUESTION_CRITERIA_PARAM, 0), QUESTION_CRITERIA_PARAM,
+				false);
+		putJsonOverride(keyValue, getRawNounValue(ns, null, VIOLATION_CHOICES_PARAM, 0), VIOLATION_CHOICES_PARAM,
+				true);
 		String textToEvaluate = PromptGuardrailEngine
 				.extractText(getRawNounValue(ns, curRow, PROMPT_PARAM, 0));
 		if (textToEvaluate == null || textToEvaluate.isEmpty()) {
@@ -211,10 +218,15 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		boolean defaultFailOpen = this.defaults != null && this.defaults.failOpen;
 		try {
 			call = resolveCallConfig(keyValue, this.defaults);
+		} catch (Exception e) {
+			// no valid per-call configuration - the engine's failure policy applies
+			return evaluationFailure(textToEvaluate, e, defaultFailOpen);
+		}
+		try {
 			requireUserContext(insight);
 			checkJudgeMount(targetEngine);
 		} catch (Exception e) {
-			return evaluationFailure(textToEvaluate, e, defaultFailOpen);
+			return evaluationFailure(textToEvaluate, e, call.failOpen);
 		}
 
 		Deque<String> active = ACTIVE_GUARDRAILS.get();
@@ -405,9 +417,8 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		if (this.defaults != null) {
 			details.put("judgeModelEngineId", this.defaults.judgeEngineId);
 		}
-		if (!failOpen && this.defaults != null && this.defaults.blockedMessage != null) {
-			details.put("blockedMessage", this.defaults.blockedMessage);
-		}
+		// like the other judge guardrails, an error returns the input unchanged: the
+		// pipeline then blocks with its blockErrorMessage rather than a canned answer
 		return new GuardrailNounMetadata(failOpen, textToEvaluate, details);
 	}
 
@@ -484,6 +495,26 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 		return response.getResponse().get("model");
 	}
 
+	/**
+	 * Replaces a stringified override with its JSON form when the pipeline
+	 * supplied it as a native JSON object or array. A JSON-encoded string is left
+	 * as is, and for the choice list a single bare name is accepted as a one
+	 * element list (a one element array arrives as a single noun).
+	 *
+	 * @param keyValue the organized string parameters, updated in place
+	 * @param raw      the raw noun value for the parameter
+	 * @param param    the parameter name
+	 * @param asArray  whether the parameter is a JSON array
+	 */
+	static void putJsonOverride(Map<String, String> keyValue, Object raw, String param, boolean asArray) {
+		if (raw instanceof Map || raw instanceof Collection) {
+			keyValue.put(param, GSON.toJson(raw));
+		} else if (asArray && raw instanceof String value && !value.isBlank()
+				&& !value.trim().startsWith("[")) {
+			keyValue.put(param, GSON.toJson(List.of(value.trim())));
+		}
+	}
+
 	List<FunctionParameter> getGuardrailParameters() {
 		return List.of(
 				new FunctionParameter(PROMPT_PARAM, "String", "The text to evaluate against the policy"),
@@ -507,33 +538,35 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 
 	@Override
 	public String getDefaultMarkdown() {
+		// keep the examples free of escaped quotes: overrides accept native JSON
+		// objects and arrays, so the pipeline JSON is valid as written. The full
+		// reference lives in docs/engines/jev_policy_guardrail.md
 		return """
 				# Jev policy guardrail
 
 				Evaluates text against a configurable policy criterion using a Jev (TypeSafe) model judge.
-				The judge answers a typed question, never free text, and the engine maps the typed answer
-				to a pass/block verdict. Two different policies - a request-scope check and a response
-				disclosure check, for example - need only different configuration, with this same engine.
+				The judge answers a typed question (`noul` or `choice`), never free text, and the engine
+				maps the typed answer to a pass/block verdict. Different policies need only different
+				configuration.
 
 				## Engine configuration (SMSS)
 
 				```
-				MODEL_ENGINE_ID: <id of a TYPESAFE model engine to judge with>
-				QUESTION_TYPE: NOUL
-				QUESTION_INSTRUCTIONS: Is this request within the approved scope for this assistant?
-				VIOLATION_DIRECTION: NO
+				MODEL_ENGINE_ID         <id of a TYPESAFE model engine to judge with>
+				QUESTION_TYPE           NOUL
+				QUESTION_INSTRUCTIONS   Is this request within the approved scope for this assistant?
+				VIOLATION_DIRECTION     NO
 				```
 
-				All other keys are optional: `VIOLATION_DIRECTION` (YES/NO, for noul), `QUESTION_CRITERIA`
-				and `VIOLATION_CHOICES` (both required for choice), `CONFIDENCE_THRESHOLD` (0-1, default
-				`0.5`, inclusive boundary), `LOW_CONFIDENCE_VERDICT` (default `BLOCK`), `FAIL_OPEN`
-				(default `false` - evaluation errors block the call), `BLOCKED_MESSAGE`, and
-				`TIMEOUT_SECONDS`. The judge model must not run a pipeline that invokes this guardrail.
+				Optional: `QUESTION_CRITERIA` and `VIOLATION_CHOICES` (both required for `CHOICE`),
+				`CONFIDENCE_THRESHOLD` (0-1, default `0.5`, inclusive), `LOW_CONFIDENCE_VERDICT`
+				(default `BLOCK`), `FAIL_OPEN` (default `false`), `BLOCKED_MESSAGE`, `TIMEOUT_SECONDS`.
+				The judge model must not run a pipeline that invokes this guardrail.
 
 				## Example: block a request outside the approved scope
 
-				Save this as `pipeline.json` in the guarded model engine's assets folder, set
-				`PIPELINE pipeline.json` in that model engine's SMSS, and restart or reload it:
+				Save as `pipeline.json` in the guarded model engine's assets folder and set
+				`PIPELINE pipeline.json` in that model engine's SMSS:
 
 				```json
 				{
@@ -544,9 +577,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailInputReactor",
 				          "params": {
 				            "guardrailEngineId": "%s",
-				            "inputMapping": {
-				              "prompt": "arg0"
-				            },
+				            "inputMapping": { "prompt": "arg0" },
 				            "directParameters": {
 				              "questionInstructions": "Is this request within the approved scope: monthly reporting questions only?",
 				              "violationDirection": "NO",
@@ -563,10 +594,7 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				}
 				```
 
-				A blocked request short-circuits the model call entirely - the guarded model is never
-				asked, so there is nothing to mask.
-
-				## Example: block a response that violates the disclosure policy
+				## Example: block a response that violates a disclosure policy
 
 				```json
 				{
@@ -577,13 +605,14 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				          "reactorClass": "prerna.reactor.interceptor.GenericGuardrailOutputReactor",
 				          "params": {
 				            "guardrailEngineId": "%s",
-				            "inputMapping": {
-				              "prompt": "result"
-				            },
+				            "inputMapping": { "prompt": "result" },
 				            "directParameters": {
 				              "questionType": "CHOICE",
-				              "questionCriteria": "{\\"APPROVED\\":\\"answer shares approved figures\\",\\"OFF_PLAN\\":\\"answer mentions figures, dates, or customers not on the approved list\\"}",
-				              "violationChoices": "[\\"OFF_PLAN\\"]"
+				              "questionCriteria": {
+				                "APPROVED": "answer shares approved figures",
+				                "OFF_PLAN": "answer mentions figures, dates, or customers not on the approved list"
+				              },
+				              "violationChoices": ["OFF_PLAN"]
 				            },
 				            "blockErrorMessage": "The response did not pass disclosure review."
 				          }
@@ -594,36 +623,19 @@ public class JevPolicyGuardrailEngine extends AbstractGuardrailReactorFunctionEn
 				}
 				```
 
-				The output reactor maps the completed model response to `prompt` and withholds the result
-				when the judge marks it. A violating response is blocked before delivery on a
-				non-streaming call. On a streaming call (`llmStreaming` / SSE routes), the model's
-				partial output is drained to the client while the guarded method is still running, so
-				content chunks are already emitted by the time the output reactor sees the completed
-				response - the judge then reviews what was sent, but a violation can no longer be
-				recalled. Protecting streamed content at delivery time requires an input-side
-				guardrail or a stream-aware check; do not count the output reactor as protection
-				for content already emitted.
+				## Limits
 
-				## Decision semantics
+				- On streaming routes the output is already emitted before an output guardrail sees it;
+				  a violation is reported but cannot be recalled.
+				- On passthrough chat routes (Ollama / Anthropic) `arg0` holds a placeholder and the real
+				  conversation rides in the `full_prompt` parameter; an input guardrail mapped to `arg0`
+				  does not screen that conversation.
+				- For `noul`, confidence is `max(p, 1-p)`, so a threshold below `0.5` has no effect.
+				- This guardrail blocks; it does not mask. Do not combine it with `maskOnGuardrailFailure`.
 
-				- **noul** - the judge returns a yes probability `p` (0-1). `p >= 0.5` answers yes.
-				  The confidence is `max(p, 1-p)`, the probability of the selected answer. A violation blocks when the answer
-				  points at the configured `VIOLATION_DIRECTION` and confidence meets
-				  `CONFIDENCE_THRESHOLD`, inclusive.
-				- **choice** - the judge selects a configured choice with a confidence (0-1). Selecting a
-				  `violationChoices` entry is a violation when the confidence meets the threshold,
-				  inclusive.
-				- **below threshold** - never a silent pass: the configured `LOW_CONFIDENCE_VERDICT`
-				  applies (default `BLOCK`).
-
-				Errors - judge missing, not a TYPESAFE engine, timeout, malformed or missing answers,
-				invalid overrides - are evaluation errors, not policy violations, and are blocked unless
-				`FAIL_OPEN`/`failOpen` is explicitly `true`. The details of every verdict record the
-				outcome (`PASS`, `VIOLATION`, `INDETERMINATE`, `ERROR`), the criterion, the typed answer,
-				the confidence against the threshold, and the reason.
-
-				Masking a request instead of blocking it is a separate transformation capability and is
-				not part of this guardrail.
+				Errors (judge missing, not TYPESAFE, timeout, malformed answer, invalid override) block
+				unless `FAIL_OPEN` / `failOpen` is `true`. Verdict details record the outcome (`PASS`,
+				`VIOLATION`, `INDETERMINATE`, `ERROR`), criterion, typed answer, confidence, and reason.
 				"""
 				.formatted(getEngineId(), getEngineId());
 	}
