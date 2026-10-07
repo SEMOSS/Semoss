@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -206,7 +207,7 @@ public final class AgentConfigLoader {
 		// list,
 		// or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
-		b.runHooks(rh.runHooks);
+		b.runHooks(withBuiltInRunHooks(room, rh.runHooks));
 		b.toolHooks(rh.toolHooks);
 		b.subagents(resolveSubagents(cfgJson));
 
@@ -792,6 +793,18 @@ public final class AgentConfigLoader {
 		static ResolvedHooks empty() {
 			return new ResolvedHooks(Collections.emptyList(), Collections.emptyList());
 		}
+	}
+
+	/**
+	 * A Work thread's room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 */
+	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
+		if (!CollaborationUtils.isThreadRoom(room)) {
+			return configured;
+		}
+		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		hooks.add(new CollaborationMemoryRunHook());
+		return hooks;
 	}
 
 	/**

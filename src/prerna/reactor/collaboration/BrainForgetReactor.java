@@ -27,53 +27,52 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.Map;
+
 import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainMemoryUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// BrainForget(memoryId=["..."]);
+// The thread assistant's Forget tool: hides a memory it saved; one the owner wrote waits for them
+public class BrainForgetReactor extends AbstractCollaborationReactor {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
-	private static final String STATE = "state";
+	private static final String MEMORY_ID = "memoryId";
 
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public BrainForgetReactor() {
+		this.keysToGet = new String[] { MEMORY_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
+		BrainMemoryUtils.requireAssistantMemory(user);
+		String memoryId = BrainMemoryUtils.memoryIdOf(getString(MEMORY_ID));
+		if (memoryId == null) {
+			throw new IllegalArgumentException("Must pass the memoryId to forget");
 		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		return mapResult(BrainMemoryUtils.forget(user, memoryId));
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_MEMORY);
+		return meta;
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
+		return "Drop a memory when the owner asks you to forget it or says it is wrong and gives nothing in its place. "
+				+ "A memory the owner wrote or confirmed is kept until they approve it in the chat.";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
+		if (MEMORY_ID.equals(key)) {
+			return "Id of the memory, as in [m:id] under What you remember or in SearchMemories results";
 		}
 		return super.getDescriptionForKey(key);
 	}

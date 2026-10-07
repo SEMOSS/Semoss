@@ -27,53 +27,57 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.List;
+
 import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainMemoryUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// BrainListMemories(state=["active", "suggested"], refType=["person"], refId=["..."], query=["..."], limit=[50],
+// offset=[0]);
+public class BrainListMemoriesReactor extends AbstractCollaborationReactor {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
 	private static final String STATE = "state";
+	private static final String REF_TYPE = "refType";
+	private static final String REF_ID = "refId";
+	private static final String QUERY = "query";
+	private static final String LIMIT = "limit";
+	private static final String OFFSET = "offset";
 
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public BrainListMemoriesReactor() {
+		this.keysToGet = new String[] { STATE, REF_TYPE, REF_ID, QUERY, LIMIT, OFFSET };
+		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
-		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		List<String> states = getNounAsStringList(STATE);
+		Integer limit = getIntFromKeyOrCurRow(LIMIT);
+		Integer offset = getIntFromKeyOrCurRow(OFFSET);
+		return mapResult(BrainMemoryUtils.listMemories(user, states, getString(REF_TYPE), getString(REF_ID),
+				getString(QUERY), limit == null ? BrainMemoryUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
+		return "Lists the signed-in user's Brain memories as { items, total }";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
+		if (STATE.equals(key)) {
+			return "Memory states to include: active, suggested, superseded, dismissed; active and suggested when omitted";
+		} else if (REF_TYPE.equals(key)) {
+			return "With refId, only memories about this: person, topic, account, or thread";
+		} else if (REF_ID.equals(key)) {
+			return "Id of the person, topic, account, or thread";
+		} else if (QUERY.equals(key)) {
+			return "Words to match; best matches first";
+		} else if (LIMIT.equals(key)) {
+			return "Page size, default 50";
+		} else if (OFFSET.equals(key)) {
+			return "Rows to skip, default 0";
 		}
 		return super.getDescriptionForKey(key);
 	}

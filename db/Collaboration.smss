@@ -1,18 +1,19 @@
 #Base Properties
 ENGINE	Collaboration
-ENGINE_TYPE	prerna.engine.impl.rdbms.H2EmbeddedServerEngine
+ENGINE_TYPE	prerna.engine.impl.rdbms.RDBMSNativeEngine
 OWL	Collaboration_OWL.OWL
 
-RDBMS_TYPE	H2_DB
-DATABASE	
-SCHEMA	PUBLIC
-DRIVER org.h2.Driver
-USERNAME        sa
-PASSWORD        
-CONNECTION_URL	jdbc:h2:nio:@BaseFolder@/db/@ENGINE@/database;query_timeout=180000;early_filter=true;query_cache_size=24;cache_size=32768
+RDBMS_TYPE	POSTGRES
+DBDRIVER	POSTGRES
+DATABASE	postgres
+SCHEMA	collaboration
+DRIVER	org.postgresql.Driver
+USERNAME	postgres
+PASSWORD	postgres
+CONNECTION_URL	jdbc:postgresql://localhost:5432/postgres?currentSchema=collaboration
 USE_CONNECTION_POOLING	true
-POOL_MIN_SIZE       10
-POOL_MAX_SIZE       50
-AUTO_COMMIT         false
+POOL_MIN_SIZE	10
+POOL_MAX_SIZE	50
+AUTO_COMMIT	false
 
 DATABASE_ZONEID UTC
