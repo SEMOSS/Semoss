@@ -67,6 +67,7 @@ import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
 import prerna.reactor.agent.run.ChildRunCompletionService;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
@@ -140,6 +141,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		DeferredAgentTools.refreshLoadedState(room);
 		AgentConfig agentConfig = ctx.getAgentConfig();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
@@ -158,6 +160,8 @@ public class SemossAgentHarness implements IAgentHarness {
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
 			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
 		}
+		defaultAndExplicitTools.removeIf(tool -> DeferredAgentTools.isControlTool(String.valueOf(tool.get("name"))));
+		defaultAndExplicitTools.addAll(DeferredAgentTools.definitions());
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
@@ -215,6 +219,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
 				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
@@ -509,6 +514,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		} finally {
 			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
 			// Always restore -- we always mutated options.instructions above.
+			opts = room.getOptionsMap();
 			if (hadInstructions) {
 				opts.put("instructions", originalInstructions);
 			} else {
@@ -890,6 +896,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			// onto toolCall; carry it in _meta so the FE (which only ever sees
 			// toolName/toolMeta for a pending action, never toolCall itself) can
 			// display it instead of the raw, engine-id-prefixed tool name.
+			// Kept apart from SMSS_ORIGINAL_TOOL_NAME, which approval executes.
 			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
 				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
 						: toolCall.get("original_name");
@@ -897,7 +904,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					if (meta == null) {
 						meta = new HashMap<>();
 					}
-					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+					meta.put(MCPUtility.SMSS_TOOL_TITLE, resolvedTitle);
 				}
 			}
 			action.put("toolMeta", meta);
@@ -1119,6 +1126,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (paramMap == null) {
 			return;
 		}
+		paramMap.put(DeferredAgentTools.RUN_AGENT_PARAM, true);
 		paramMap.remove("tools");
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (baseTools != null && !baseTools.isEmpty()) {

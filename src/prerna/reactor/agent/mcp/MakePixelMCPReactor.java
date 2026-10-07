@@ -159,7 +159,8 @@ public class MakePixelMCPReactor extends AbstractReactor {
 	public String getReactorDescription() {
 		return """
 				Generates a mcp/pixel_mcp.json file from a set of reactors. \
-				By default, scans all of the app's reactors and includes those that override getMcpToolMetadata(). \
+				By default, scans all of the app's reactors and includes every one whose getMcpToolMetadata() is non-null \
+				(the default; return null to opt a reactor out). \
 				Optionally filter by Java package via 'package', or list reactors explicitly via 'reactor'.\
 				""";
 	}
@@ -172,8 +173,9 @@ public class MakePixelMCPReactor extends AbstractReactor {
 			return "The list of reactors to turn into mcp tools in the pixel_mcp.json";
 		} else if (key.equals(PACKAGE_KEY)) {
 			return """
-					Java package(s) to scan for reactor classes that override getMcpToolMetadata(). \
-					Scans the project's compiled reactors and includes those whose package matches. \
+					Java package(s) to scan for reactor classes. \
+					Scans the project's compiled reactors and includes those whose package matches \
+					and whose getMcpToolMetadata() is non-null. \
 					Example: 'reactors.vaapi' includes all MCP reactors in reactors.vaapi and sub-packages.\
 					""";
 		} else if (key.equals(ReactorKeysEnum.COMMENT_KEY.getKey())) {

@@ -38,10 +38,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.javatuples.Pair;
 
 import prerna.auth.User;
+import prerna.om.Insight;
 
 // Brain threads: BRAIN_THREAD with its topic links and participants
 public final class BrainThreadUtils {
@@ -58,7 +60,7 @@ public final class BrainThreadUtils {
 			"member");
 
 	private static final String THREAD_COLUMNS = "t.THREAD_ID, t.SOURCE, t.SUBJECT, t.MUTED, t.AUTOMATED, "
-			+ "t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
+			+ "t.AUTOMATED_OVERRIDE, t.MESSAGE_COUNT, t.LAST_MESSAGE_AT, t.ROOM_ID";
 
 	// an open topic_choice review means two candidate topics were close
 	private static final String OPEN_TOPIC_CHOICE = "EXISTS (SELECT 1 FROM BRAIN_REVIEW r "
@@ -271,6 +273,50 @@ public final class BrainThreadUtils {
 		return thread;
 	}
 
+	// The owner's "not automated" correction. It is sticky: the classifier, the sender vote, and the machine-sent check
+	// all leave the thread alone afterwards. Setting it clears the automated flag, brings back what was dismissed as
+	// automated, and classifies the thread again; clearing it only drops the override.
+	public static Map<String, Object> setThreadNotAutomated(User user, Insight insight, String threadId,
+			boolean notAutomated) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		requireThread(ownerId, ownerType, threadId);
+		boolean was = Boolean.TRUE.equals(CollaborationDbUtils.queryOne("SELECT AUTOMATED_OVERRIDE FROM BRAIN_THREAD "
+				+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"), ownerId, ownerType, threadId));
+		if (notAutomated) {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ?, AUTOMATED = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", true, false, ownerId, ownerType, threadId);
+		} else {
+			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED_OVERRIDE = ? WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND THREAD_ID = ?", false, ownerId, ownerType, threadId);
+		}
+		if (was != notAutomated) {
+			CollaborationDbUtils.update("INSERT INTO BRAIN_CHANGE (OWNER_ID, OWNER_TYPE, CHANGE_ID, ENTITY_TYPE, "
+					+ "ENTITY_ID, FIELD, OLD_VALUE, NEW_VALUE, ACTOR, AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", ownerId,
+					ownerType, UUID.randomUUID().toString(), "thread", threadId, "not_automated", String.valueOf(was),
+					String.valueOf(notAutomated), BrainProfileUtils.YOU, CollaborationDbUtils.now());
+		}
+		Map<String, Object> result = new LinkedHashMap<>();
+		if (notAutomated) {
+			result.put("reopened", WorkItemUtils.reopenAutomated(ownerId, ownerType, threadId));
+			// the correction stands even when the classifier model is not set or fails
+			try {
+				result.put("reclassified", BrainThreadClassifier.classify(user, insight, List.of(threadId), false));
+			} catch (Exception e) {
+				result.put("reclassifyError", e.getMessage());
+			}
+		}
+		Map<String, Object> thread = CollaborationDbUtils.queryOne(
+				"SELECT " + THREAD_COLUMNS + ", " + OPEN_TOPIC_CHOICE + " AS NEEDS_CHOICE FROM BRAIN_THREAD t "
+						+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = ?",
+				BrainThreadUtils::mapThread, ownerId, ownerType, threadId);
+		addLinks(ownerId, ownerType, List.of(thread));
+		result.put("thread", thread);
+		return result;
+	}
+
 	// ---- helpers ----
 
 	static void requireThread(String ownerId, String ownerType, String threadId) {
@@ -387,6 +433,9 @@ public final class BrainThreadUtils {
 		row.put("muted", Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED")));
 		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED"))) {
 			row.put("automated", true);
+		}
+		if (Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"))) {
+			row.put("notAutomated", true);
 		}
 		Integer count = CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT");
 		row.put("messageCount", count == null ? 0 : count);
