@@ -14,5 +14,10 @@
 	"packageManager": "pnpm@10.10.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.5.12"
+	},
+	"pnpm": {
+		"overrides": {
+			"proxy-addr": "2.0.8"
+		}
 	}
 }
