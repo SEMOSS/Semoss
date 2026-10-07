@@ -614,6 +614,99 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Flags a message so provider requests replace tool payloads at and above it
+	 * with a placeholder. Stored history is unchanged. Returns false when the
+	 * message is missing or already flagged.
+	 */
+	public boolean markPruneToolsAbove(String messageId, Insight insight) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				for (AbstractMessage message : messages) {
+					if (messageId.equals(message.getMessageId())) {
+						if (message.getPruneToolsAbove()) {
+							return false;
+						}
+						message.setPruneToolsAbove(true);
+						RoomMessageStore.persist(this, userId);
+						return true;
+					}
+				}
+				return false;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
+	 * Adds a sibling of the newest tool-results message under the given tool call,
+	 * with the largest results replaced by a short note until about tokensToFree
+	 * (chars / 4) is freed; at least the largest result is replaced. The original
+	 * stays stored but off the active branch. Returns how many results were
+	 * replaced; 0 means nothing was forked.
+	 */
+	public int forkToolResultsWithStubs(String toolCallMessageId, long tokensToFree, int minStubChars,
+			Insight insight) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				ToolExecutionContext context = findToolExecutionContext(
+						resolveToolContinuationMessageId(toolCallMessageId));
+				InputMessage original = findToolResultsMessage(context.toolResponse, context.toolResponseIdx);
+				if (original == null) {
+					return 0;
+				}
+				InputMessage fork = MessageUtils.deepCopy(original);
+				List<ToolResultPart> results = new ArrayList<>();
+				for (MessagePart part : fork.getParts()) {
+					if (part instanceof ToolResultMessagePart trPart && trPart.getToolResult() != null
+							&& trPart.getToolResult().getOutput() != null
+							&& trPart.getToolResult().getOutput().length() >= minStubChars) {
+						results.add(trPart.getToolResult());
+					}
+				}
+				results.sort((a, b) -> Integer.compare(b.getOutput().length(), a.getOutput().length()));
+				int replaced = 0;
+				long freed = 0;
+				for (ToolResultPart result : results) {
+					if (replaced > 0 && freed >= tokensToFree) {
+						break;
+					}
+					int chars = result.getOutput().length();
+					result.setOutput("[tool result too large for the model context: " + chars
+							+ " chars, not sent. Re-run with a narrower query or read it in parts"
+							+ " (e.g. ReadFile offset/limit).]");
+					freed += chars / 4;
+					replaced++;
+				}
+				if (replaced == 0) {
+					return 0;
+				}
+				fork.setMessageId(GUID.v7().toUUID().toString());
+				fork.setParentMessageId(original.getParentMessageId());
+				fork.setTokensInMessage(0);
+				fork.setRoom(this);
+				messages.add(fork);
+				RoomMessageStore.persist(this, userId);
+				classLogger.info("Forked tool results room={} original={} fork={} replaced={} freedTokens~{}", getId(),
+						original.getMessageId(), fork.getMessageId(), replaced, freed);
+				return replaced;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
 	 * Persist a harness-owned completion after all tools finish, without another
 	 * model request.
 	 */

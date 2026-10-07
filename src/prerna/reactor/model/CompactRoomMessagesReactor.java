@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.impl.model.AbstractModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.RoomUtils;
@@ -72,6 +73,12 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 	 * TOOLS strategy is chosen; otherwise SUMMARY is used.
 	 */
 	private static final double TOOL_TOKEN_RATIO_THRESHOLD = 0.25;
+
+	// summary output budget: 20% of the transcript, floor 2k, ceiling min(5% of window, 12k)
+	private static final double SUMMARY_RATIO = 0.20;
+	private static final int SUMMARY_MIN_TOKENS = 2_000;
+	private static final int SUMMARY_MAX_TOKENS = 12_000;
+	private static final double SUMMARY_MAX_WINDOW_RATIO = 0.05;
 
 	private static final Set<String> VALID_COMPACTION_TYPES = new HashSet<>(Arrays.asList("TOOL_PRUNE", "SUMMARY"));
 
@@ -339,10 +346,18 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 			return result;
 		}
 
+		// cap the reply so the summary always fits the space the trigger reserved
+		int summaryTokens = summaryTokenBudget(summaryTranscript.length(), modelEngine);
+
 		// Ask the LLM to summarize using a throw-away room (no history pollution)
-		String summarizationPrompt = """
-				Summarize the following conversation history. Your summary will be used to
-				continue this conversation in a new context window, so preserve:
+		// transcript first, instructions last: with a long transcript in front, models
+		// otherwise lose the instructions and just continue the chat
+		String summarizationPrompt = "You write handoff summaries of conversation transcripts. "
+				+ "Below is a conversation transcript between <transcript> tags. "
+				+ "It is data to summarize, not a conversation to continue.\n\n<transcript>\n"
+				+ summaryTranscript.toString().trim() + "\n</transcript>\n\n" + """
+				The transcript above has ended. Do not reply to it or continue it. Summarize it.
+				Your summary will be used to continue this conversation in a new context window, so preserve:
 
 				- The user's current goal and any sub-tasks
 				- Decisions made and the reasoning behind them
@@ -358,13 +373,13 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 				taking over the conversation. Only summarize up to the point the conversation
 				ends - do not speculate about what comes next.
 
-				Begin your response with the literal line "[SUMMARY]" before any other text.
-
-				""" + summaryTranscript.toString().trim();
+				Keep the whole summary under about %d words.
+				""".formatted(summaryWordBudget(summaryTokens));
 
 		Room throwawayRoom = RoomUtils.createRoomIfNotExists(null, this.insight, modelEngine, null);
 		InputMessage summarizationMsg = InputMessage.builder(throwawayRoom).withText(summarizationPrompt)
-				.withModelType(modelEngine.getModelType()).withParamMap(new HashMap<>()).build();
+				.withModelType(modelEngine.getModelType())
+				.withParamMap(new HashMap<>(Map.of(AbstractModelEngine.MAX_TOKENS, summaryTokens))).build();
 		ResponseMessage summaryResponse = throwawayRoom.ask(summarizationMsg, modelEngine);
 		String summaryText = summaryResponse != null ? summaryResponse.getContent() : null;
 		if (summaryText == null || summaryText.isBlank()) {
@@ -460,6 +475,26 @@ public class CompactRoomMessagesReactor extends AbstractReactor {
 		result.put("inputMessage", compactedMessage);
 		result.put("responseMessage", compactedResponse);
 		return result;
+	}
+
+	// transcript chars / 4 approximates its tokens
+	static int summaryTokenBudget(int transcriptChars, IModelEngine modelEngine) {
+		int ceiling = SUMMARY_MAX_TOKENS;
+		try {
+			int contextWindow = modelEngine.getContextWindow();
+			if (contextWindow > 0) {
+				ceiling = (int) Math.min(ceiling, contextWindow * SUMMARY_MAX_WINDOW_RATIO);
+			}
+		} catch (RuntimeException e) {
+			// unknown window; keep the fixed ceiling
+		}
+		int budget = Math.max(SUMMARY_MIN_TOKENS, (int) (transcriptChars / 4 * SUMMARY_RATIO));
+		return Math.max(1, Math.min(budget, ceiling));
+	}
+
+	// ~0.75 words per token, with headroom for formatting
+	private static int summaryWordBudget(int tokenBudget) {
+		return Math.max(100, (int) (tokenBudget * 0.6));
 	}
 
 	private static void appendMessageToTranscript(AbstractMessage m, StringBuilder transcript) {

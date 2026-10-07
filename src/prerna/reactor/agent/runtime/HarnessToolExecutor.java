@@ -77,6 +77,8 @@ import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -194,6 +196,8 @@ final class HarnessToolExecutor {
                 return (ResponseMessage) room.getMessages().getLast();
             }
         }
+        // tool results are stored; prune older tool payloads if the context is near full
+        SemossAgentHarness.pruneToolsBeforeContinuation(ctx, parentMsgId);
         Map<String, Object> nextParams = new HashMap<>(paramMap);
         if (ctx.getAgentConfig().getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
             nextParams.put("tool_choice", "none");
@@ -201,8 +205,23 @@ final class HarnessToolExecutor {
         AgentRunStreamService.get().beginModelCall(ctx.getRunId());
         state.progress().beginModel();
         try {
-            nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
-                    ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            try {
+                nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                        ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            } catch (RuntimeException e) {
+                // too big for the context: fork with the largest results stubbed and retry once
+                AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+                if (overflow == null) {
+                    throw e;
+                }
+                logger.warn("HarnessToolExecutor: context overflow after tool batch room={} client={} rule={}",
+                        room.getId(), overflow.getClient(), overflow.getReasonDetail());
+                if (SemossAgentHarness.forkOversizedToolResults(ctx, parentMsgId) == 0) {
+                    throw e;
+                }
+                nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                        ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            }
         } finally {
             state.progress().endModel();
         }

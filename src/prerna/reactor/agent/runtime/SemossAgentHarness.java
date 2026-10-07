@@ -80,6 +80,8 @@ import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -112,7 +114,11 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	/** Harness-only paramMap key stripped before provider model calls. */
 	public static final String PARAM_MAX_SECONDS = "max_seconds";
-	private static final double AUTO_COMPACTION_TRIGGER_RATIO = 0.80;
+	// compaction triggers when estimate + reserve reaches the window; reserve =
+	// reply allowance + margin for the next tool round and estimate error
+	private static final int COMPACTION_MARGIN_TOKENS = 20_000;
+	private static final int DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
+	private static final double MAX_RESERVE_RATIO = 0.25;
 
 	private static final String PARAM_FILE_PATH = "file_path";
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
@@ -365,7 +371,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 				state.progress().beginModel();
 				try {
-					response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+					response = requireModelResponse(askWithOverflowRecovery(ctx, firstMsg),
 							"during initial model call");
 				} finally {
 					state.progress().endModel();
@@ -579,10 +585,21 @@ public class SemossAgentHarness implements IAgentHarness {
 		AbstractMessage leaf = messages.getLast();
 		List<AbstractMessage> branch = RoomMessageStore
 				.providerContext(MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()));
-		int contextTokens = currentContextTokens(branch);
-		double usageRatio = (double) contextTokens / contextWindow;
-		if (usageRatio < AUTO_COMPACTION_TRIGGER_RATIO) {
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
 			return AutoCompactionOutcome.NOT_NEEDED;
+		}
+
+		// a failed run left unanswered tool results as the leaf; prune tool payloads
+		// from it up so the next request is not stuck on them
+		if (leaf instanceof InputMessage && leaf.hasToolResultPart()) {
+			boolean pruned = room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.info(
+					"SemossAgentHarness: pruned tool results under unanswered leaf run={} room={} model={} "
+							+ "estimatedTokens={} contextWindow={} pruned={}",
+					ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow,
+					pruned);
+			return pruned ? AutoCompactionOutcome.COMPACTED : AutoCompactionOutcome.SKIPPED;
 		}
 
 		if (leaf instanceof InputMessage || leaf.hasToolCallPart()) {
@@ -607,7 +624,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		for (Map<String, Object> result : results) {
 			if (Boolean.TRUE.equals(result.get("success"))) {
-				int tokensAfter = currentContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
+				int tokensAfter = estimateContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
 						room.getMessages().getLast().getMessageId()));
 				logger.info(
 						"SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
@@ -656,11 +673,161 @@ public class SemossAgentHarness implements IAgentHarness {
 		reactor.getNounStore().addNoun(key, row);
 	}
 
-	private static int currentContextTokens(List<AbstractMessage> branch) {
-		if (branch == null || branch.size() < 2) {
+	static boolean needsCompaction(AgentRunContext ctx, int contextTokens, int contextWindow) {
+		return (long) contextTokens + compactionReserve(ctx, contextWindow) >= contextWindow;
+	}
+
+	// reply allowance (request max_tokens, else engine max, else default) + margin,
+	// capped so small windows do not compact every round
+	static int compactionReserve(AgentRunContext ctx, int contextWindow) {
+		long maxOutput = 0;
+		Map<String, Object> params = ctx.getAgentConfig().getModelParams();
+		Object requested = params == null ? null : params.get("max_tokens");
+		if (requested instanceof Number n) {
+			maxOutput = n.longValue();
+		} else if (requested != null) {
+			try {
+				maxOutput = Long.parseLong(requested.toString().trim());
+			} catch (NumberFormatException e) {
+				// fall through to engine/default
+			}
+		}
+		if (maxOutput <= 0) {
+			maxOutput = ctx.getModelEngine().getMaxTokens();
+		}
+		if (maxOutput <= 0) {
+			maxOutput = DEFAULT_MAX_OUTPUT_TOKENS;
+		}
+		long reserve = maxOutput + COMPACTION_MARGIN_TOKENS;
+		return (int) Math.min(reserve, (long) (contextWindow * MAX_RESERVE_RATIO));
+	}
+
+	/**
+	 * First model call of a run. On a context overflow, prune tool payloads in the
+	 * stored history and retry once; if there is nothing to prune or it still
+	 * overflows, the new message itself is too large. The input is only stored on
+	 * success, so the room is never left stuck.
+	 */
+	private static ResponseMessage askWithOverflowRecovery(AgentRunContext ctx, InputMessage firstMsg) {
+		Room room = ctx.getRoom();
+		try {
+			return room.ask(firstMsg, ctx.getModelEngine(), null);
+		} catch (RuntimeException e) {
+			AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+			if (overflow == null) {
+				throw e;
+			}
+			List<AbstractMessage> messages = room.getMessages();
+			AbstractMessage leaf = messages == null || messages.isEmpty() ? null : messages.getLast();
+			boolean historyHasTools = leaf != null && MessageUtils
+					.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
+					.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
+			boolean pruned = historyHasTools && room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.warn("SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
+					+ "prunedHistory={}", ctx.getRunId(), room.getId(), overflow.getClient(),
+					overflow.getReasonDetail(), pruned);
+			if (pruned) {
+				try {
+					return room.ask(firstMsg, ctx.getModelEngine(), null);
+				} catch (RuntimeException retryError) {
+					if (!SemossModelEngineException.isContextOverflow(retryError)) {
+						throw retryError;
+					}
+					e = retryError;
+				}
+			}
+			throw new IllegalStateException("This message and its attachments are too large for the model's "
+					+ "context window. Send less text, fewer pages or smaller files, or start a new conversation.", e);
+		}
+	}
+
+	// results smaller than this are never stubbed; they are not what overflows the context
+	private static final int MIN_STUB_RESULT_CHARS = 2_000;
+
+	/**
+	 * After a context-overflow error on a tool continuation: fork the current
+	 * tool-results message with the largest results stubbed until estimate +
+	 * reserve fits. Returns how many results were replaced (0 = nothing to retry).
+	 */
+	static int forkOversizedToolResults(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		long tokensToFree = 0;
+		try {
+			int contextWindow = ctx.getModelEngine().getContextWindow();
+			List<AbstractMessage> messages = room.getMessages();
+			if (contextWindow > 0 && messages != null && !messages.isEmpty()) {
+				int estimate = estimateContextTokens(RoomMessageStore.providerContext(
+						MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId())));
+				tokensToFree = Math.max(0L,
+						(long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
+			}
+		} catch (RuntimeException e) {
+			// unknown window; the fork still stubs the largest result
+		}
+		int replaced = room.forkToolResultsWithStubs(toolCallMessageId, tokensToFree, MIN_STUB_RESULT_CHARS,
+				ctx.getInsight());
+		logger.info("SemossAgentHarness: context overflow fork run={} room={} toolCall={} tokensToFree={} replaced={}",
+				ctx.getRunId(), room.getId(), toolCallMessageId, tokensToFree, replaced);
+		return replaced;
+	}
+
+	// last provider-measured prompt plus everything after it; unmeasured messages
+	// (e.g. tool results not yet sent) are estimated at chars / 4
+	static int estimateContextTokens(List<AbstractMessage> branch) {
+		if (branch == null || branch.isEmpty()) {
 			return 0;
 		}
-		return branch.getLast().getTokensInMessage() + branch.get(branch.size() - 2).getTokensInMessage();
+		long total = 0;
+		for (int i = branch.size() - 1; i >= 0; i--) {
+			AbstractMessage message = branch.get(i);
+			int tokens = message.getTokensInMessage();
+			// an input's recorded tokens are the full prompt at that call
+			if (message instanceof InputMessage && tokens > 0) {
+				total += tokens;
+				break;
+			}
+			total += tokens > 0 ? tokens : MessageUtils.toJson(message).length() / 4;
+		}
+		return (int) Math.min(Integer.MAX_VALUE, total);
+	}
+
+	/**
+	 * In-loop check after a tool batch's results are stored and before the next
+	 * model call. Over the trigger ratio, older tool payloads are pruned from the
+	 * provider view; the current tool call and its results stay intact.
+	 */
+	static void pruneToolsBeforeContinuation(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		int contextWindow;
+		try {
+			contextWindow = ctx.getModelEngine().getContextWindow();
+		} catch (RuntimeException e) {
+			return;
+		}
+		List<AbstractMessage> messages = room.getMessages();
+		if (contextWindow <= 0 || messages == null || messages.isEmpty()) {
+			return;
+		}
+		List<AbstractMessage> branch = RoomMessageStore
+				.providerContext(MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId()));
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
+			return;
+		}
+		// flag the message above the current tool call so pruning starts there
+		String pruneFromId = null;
+		for (AbstractMessage message : branch) {
+			if (toolCallMessageId.equals(message.getMessageId())) {
+				pruneFromId = message.getParentMessageId();
+				break;
+			}
+		}
+		boolean pruned = pruneFromId != null && !pruneFromId.isEmpty()
+				&& room.markPruneToolsAbove(pruneFromId, ctx.getInsight());
+		logger.info(
+				"SemossAgentHarness: in-loop tool pruning run={} room={} model={} estimatedTokens={} "
+						+ "contextWindow={} pruned={}",
+				ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow, pruned);
 	}
 
 	@SuppressWarnings("unchecked")
