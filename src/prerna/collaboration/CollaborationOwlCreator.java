@@ -116,6 +116,9 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("FILE_AT", INTEGER_DATATYPE_NAME),
 				Pair.with("ASK_AT", INTEGER_DATATYPE_NAME),
 				Pair.with("VERSION", INTEGER_DATATYPE_NAME),
+				// memory recall and tools, and the review of finished chats; null reads as on
+				Pair.with("MEMORY_USE", BOOLEAN_DATATYPE_NAME),
+				Pair.with("MEMORY_LEARN", BOOLEAN_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: people ---
@@ -181,6 +184,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("LAST_ACTIVITY_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// topic goals; topic notes moved to BRAIN_MEMORY (topic links)
 		addTable("BRAIN_TOPIC_NOTE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("NOTE_ID", VARCHAR_50),
@@ -308,6 +312,49 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// before/after rows for undo of a topic delete or merge; cleared after a day
 				Pair.with("SNAPSHOT_JSON", CLOB_DATATYPE_NAME)));
 
+		// --- Brain: memory ---
+		// one statement the assistant keeps across threads; links say who or what it is about
+		addTable("BRAIN_MEMORY", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("KIND", VARCHAR_20),
+				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("ORIGIN", VARCHAR_20),
+				// typed, accepted, edited, or confirmed by the owner; only then a preference is an instruction
+				Pair.with("CONFIRMED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("PINNED", BOOLEAN_DATATYPE_NAME),
+				// the memory this one superseded, or would supersede once a suggestion is accepted
+				Pair.with("REPLACES_ID", VARCHAR_50),
+				Pair.with("EXPIRES_AT", TIMESTAMP_DATATYPE_NAME),
+				// where it came from: ui, chat, chat_review, or a migrated topic_note or thread_fact
+				Pair.with("SOURCE_KIND", VARCHAR_20),
+				Pair.with("SOURCE_THREAD_ID", VARCHAR_50),
+				Pair.with("SOURCE_ROOM_ID", VARCHAR_50),
+				Pair.with("SOURCE_REF", VARCHAR_255),
+				// who said it; recall leaves the memory out while that person is excluded
+				Pair.with("SOURCE_PERSON_ID", VARCHAR_50),
+				Pair.with("SOURCE_LABEL", VARCHAR_255),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CONFIRMED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// person, topic, account, or thread; a memory without links applies everywhere
+		addTable("BRAIN_MEMORY_LINK", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("MEMORY_ID", VARCHAR_50),
+				Pair.with("REF_TYPE", VARCHAR_20),
+				Pair.with("REF_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// how far the review of finished chats has read each assistant room
+		addTable("BRAIN_MEMORY_SCAN", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("LAST_MESSAGE_ID", VARCHAR_255),
+				Pair.with("STATUS", VARCHAR_20),
+				Pair.with("ERROR", CLOB_DATATYPE_NAME),
+				Pair.with("SCANNED_AT", TIMESTAMP_DATATYPE_NAME)));
+
 		// --- Work ---
 		addTable("WORK_ITEM", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
@@ -381,6 +428,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("EDITED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// replaced by BRAIN_MEMORY (thread links); kept one release so BrainMemoryMigration can move old rows
 		addTable("WORK_THREAD_FACT", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
 				Pair.with("FACT_ID", VARCHAR_50),

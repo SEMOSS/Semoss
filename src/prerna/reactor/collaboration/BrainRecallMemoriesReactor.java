@@ -28,52 +28,38 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainMemoryRecall;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// BrainRecallMemories(threadId=["..."]);
+public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
-	private static final String STATE = "state";
+	private static final String THREAD_ID = "threadId";
 
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public BrainRecallMemoriesReactor() {
+		this.keysToGet = new String[] { THREAD_ID };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
+		String threadId = getString(THREAD_ID);
+		if (threadId == null) {
+			throw new IllegalArgumentException("Must pass a threadId");
 		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		return mapResult(BrainMemoryRecall.recallMemories(user, threadId));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
+		return "The memories a thread's assistant gets in its prompt: { enabled, items (with bucket), hidden, prompt }";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
+		if (THREAD_ID.equals(key)) {
+			return "Thread id";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -25,25 +25,30 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.reactor.collaboration;
+package prerna.collaboration;
 
-import prerna.collaboration.BrainProfileUtils;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.auth.User;
+import prerna.engine.impl.model.Room;
+import prerna.reactor.agent.AgentHarnessResult;
+import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.IAgentRunHook;
 
-// BrainGetSettings();
-public class BrainGetSettingsReactor extends AbstractCollaborationReactor {
-
-	public BrainGetSettingsReactor() {
-		this.keysToGet = new String[] {};
-	}
-
-	@Override
-	public NounMetadata execute() {
-		return mapResult(BrainProfileUtils.getSettings(getUser()));
-	}
+/**
+ * Added by AgentConfigLoader to every root run in an assistant room: once the run finishes, it asks for a
+ * review of the chat (BrainMemoryReview), which waits for the chat to go quiet first.
+ */
+public final class CollaborationMemoryRunHook implements IAgentRunHook {
 
 	@Override
-	public String getReactorDescription() {
-		return "The signed-in user's Brain settings: classifier, filing bands, sources, memory, version, assistant agent";
+	public void afterRun(AgentRunContext ctx, AgentHarnessResult result) {
+		if (result == null || result.getCompletionError() != null
+				|| ctx.getSpawnDepth() != AgentRunContext.ROOT_SPAWN_DEPTH) {
+			return;
+		}
+		Room room = ctx.getRoom();
+		User user = ctx.getInsight() == null ? null : ctx.getInsight().getUser();
+		if (user != null && CollaborationUtils.isAssistantRoom(room)) {
+			BrainMemoryReview.schedule(user, room.getId(), CollaborationUtils.threadIdOf(room));
+		}
 	}
 }

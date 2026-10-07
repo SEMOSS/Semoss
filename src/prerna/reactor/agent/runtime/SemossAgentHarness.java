@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
@@ -189,7 +190,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		// Microsoft 365 tools for every agent in a collaboration room
 		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
-			subAgentTools.addAll(CollaborationAgentTools.definitions());
+			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
+					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -217,8 +219,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
-				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		// a PPTX workflow run has no collaboration tools, so it keeps the general baseline
+		StringBuilder composed = new StringBuilder(
+				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
+						? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
@@ -234,6 +238,15 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
+		}
+		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
+		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& !agentConfig.hasPptxWorkflow()) {
+			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
+					CollaborationUtils.threadIdOf(room));
+			if (memoryBlock != null) {
+				composed.append("\n\n").append(memoryBlock);
+			}
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		if (agentConfig.hasPptxWorkflow()) {
