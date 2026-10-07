@@ -91,7 +91,7 @@ import prerna.reactor.collaboration.WorkSendEmailReactor;
  * so the model never chooses between providers' send tools.
  * Each definition is built from its reactor (description, arguments, ask or
  * auto) under a short name; each call runs the reactor as the room's user.
- * A Work thread's own assistant also gets Remember, Forget and SearchMemories
+ * The owner's own assistant also gets Remember, Forget and SearchMemories
  * while its owner has memory on.
  */
 public final class CollaborationAgentTools {
@@ -181,12 +181,12 @@ public final class CollaborationAgentTools {
 	}
 
 	/**
-	 * The tools for one run in a collaboration room. The memory tools come only to a Work thread's own assistant at
+	 * The tools for one run in a collaboration room. The memory tools come only to the owner's own assistant at
 	 * the root of the run, and only while its owner has memory on.
 	 */
 	public static List<Map<String, Object>> definitions(Room room, User user, boolean rootRun) {
 		boolean memory = false;
-		if (rootRun && CollaborationUtils.isThreadRoom(room) && user != null) {
+		if (rootRun && CollaborationUtils.isAssistantRoom(room) && user != null) {
 			try {
 				memory = BrainMemoryUtils.assistantMemoryOn(user);
 			} catch (RuntimeException e) {

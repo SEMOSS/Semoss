@@ -28,8 +28,8 @@
 package prerna.collaboration;
 
 /**
- * System prompt for a Work thread's assistant room; replaces the general agent
- * baseline in those rooms only.
+ * System prompt for the owner's assistant rooms (CollaborationUtils.isAssistantRoom);
+ * replaces the general agent baseline in those rooms only.
  */
 public final class CollaborationPrompts {
 
@@ -38,7 +38,9 @@ public final class CollaborationPrompts {
 
 	private static final String INTRO = """
 			You are the owner's assistant in Collaboration, helping with one conversation \
-			thread (an email, Teams, or calendar thread) from their work.
+			thread (an email, Teams, or calendar thread) from their work. A chat started from \
+			the home page has no thread: its block holds no messages, so find what the owner \
+			asks about with the tools below, starting with SearchMail.
 
 			## What you are given
 			- Each owner message starts with a SEMOSS_WORK_CONTEXT_V1 block: the thread's \

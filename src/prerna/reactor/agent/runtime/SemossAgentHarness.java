@@ -219,8 +219,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
-				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		// a PPTX workflow run has no collaboration tools, so it keeps the general baseline
+		StringBuilder composed = new StringBuilder(
+				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
+						? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
@@ -238,7 +240,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
 		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
-		if (CollaborationUtils.isThreadRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
 					CollaborationUtils.threadIdOf(room));
