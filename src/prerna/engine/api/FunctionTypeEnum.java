@@ -31,6 +31,7 @@ import prerna.engine.impl.function.AWSTextractCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.AWSTextractFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeCustomEmbeddingsFunctionEngine;
 import prerna.engine.impl.function.AWSTranscribeFunctionEngine;
+import prerna.engine.impl.function.AvatarFunctionEngine;
 import prerna.engine.impl.function.AzureDocumentIntelligenceCustomEmbeddingsFuntionEngine;
 import prerna.engine.impl.function.BingSearchFunctionEngine;
 import prerna.engine.impl.function.BraveSearchFunctionEngine;
@@ -57,6 +58,9 @@ public enum FunctionTypeEnum {
 	REST("REST", RESTFunctionEngine.class.getName()),
 	// streaming rest
 	STREAM_REST("STREAM_REST", StreamRESTFunctionEngine.class.getName()),
+
+	// real-time avatar sessions, provider chosen by AVATAR_PROVIDER in the smss
+	AVATAR("AVATAR", AvatarFunctionEngine.class.getName()),
 
 	BING_SEARCH("BING_SEARCH", BingSearchFunctionEngine.class.getName()),
 	BRAVE_SEARCH("BRAVE_SEARCH", BraveSearchFunctionEngine.class.getName()),
