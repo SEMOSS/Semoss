@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -50,8 +51,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.AfterEach;
@@ -60,7 +63,12 @@ import org.junit.jupiter.api.Test;
 
 import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.SimpleQueryFilter;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.util.QueryExecutionUtility.ParameterizedQuery;
+import prerna.util.sql.RdbmsTypeEnum;
+import prerna.util.sql.SqlQueryUtilFactory;
 
 class QueryExecutionUtilityUnitTests {
 
@@ -187,5 +195,67 @@ class QueryExecutionUtilityUnitTests {
 			assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(engine, invalid, 5));
 		}
 		verifyNoInteractions(engine);
+	}
+
+	@Test
+	void structuredPreparedReadsKeepOriginalValuesAndMapAliases() throws Exception {
+		when(engine.isBasic()).thenReturn(true);
+		when(engine.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
+		when(engine.getDatabaseZoneId()).thenReturn(ZoneOffset.UTC);
+		try (var setup = connection.createStatement()) {
+			setup.execute("CREATE TABLE ITEMS (V VARCHAR, DETAIL CLOB)");
+			setup.execute("INSERT INTO ITEMS VALUES ('O''Brien', 'long text')");
+		}
+		var query = new SelectQueryStruct();
+		query.addSelector(new QueryColumnSelector("ITEMS__V", "display_name"));
+		query.addSelector(new QueryColumnSelector("ITEMS__DETAIL", "detail"));
+		query.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ITEMS__V", "==", "O'Brien"));
+		var rows = QueryExecutionUtility.flushPreparedRsToMap(engine, query);
+		assertEquals(Map.of("display_name", "O'Brien", "detail", "long text"), rows.getFirst());
+		verify(statement).setObject(1, "O'Brien");
+		assertTrue(result.isClosed());
+		assertTrue(statement.isClosed());
+		assertFalse(connection.isClosed());
+	}
+
+	@Test
+	void structuredPreparedFailureRetainsCauseAndReleasesStatement() throws Exception {
+		when(engine.isBasic()).thenReturn(true);
+		when(engine.getQueryUtil()).thenReturn(SqlQueryUtilFactory.initialize(RdbmsTypeEnum.H2_DB));
+		var query = new SelectQueryStruct();
+		query.addSelector(new QueryColumnSelector("MISSING__V"));
+		var failure = assertThrows(IllegalArgumentException.class,
+				() -> QueryExecutionUtility.flushPreparedRsToMap(engine, query));
+		assertEquals("Error executing prepared query", failure.getMessage());
+		assertInstanceOf(SQLException.class, failure.getCause());
+		assertFalse(connection.isClosed());
+	}
+
+	@Test
+	void returnedReleaseFailureIsReportedAfterSuccessfulRead() throws Exception {
+		when(engine.isConnectionPooling()).thenReturn(true);
+		connection.setAutoCommit(false);
+		SQLException failure = new SQLException("release failed");
+		doThrow(failure).doCallRealMethod().when(connection).close();
+		var actual = assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.flushRsToMap(engine,
+				new ParameterizedQuery("SELECT 1 AS N", List.of(), 0), 0));
+		assertSame(failure, actual.getCause());
+		verify(connection).rollback();
+		verify(connection, never()).commit();
+		assertTrue(statement.isClosed());
+	}
+
+	@Test
+	void returnedCleanupErrorDoesNotReplaceTheOriginalWorkFailure() throws Exception {
+		when(engine.isConnectionPooling()).thenReturn(true);
+		connection.setAutoCommit(false);
+		SQLException original = new SQLException("read failed");
+		AssertionError release = new AssertionError("release failed");
+		doThrow(release).doCallRealMethod().when(connection).close();
+		assertSame(original, assertThrows(SQLException.class, () -> QueryExecutionUtility.read(engine, c -> {
+			throw original;
+		})));
+		assertSame(release, original.getSuppressed()[0]);
+		verify(connection).rollback();
 	}
 }

@@ -106,8 +106,11 @@ public final class MCPUtility {
 	public static final String SMSS_ENGINE_NAME = "SMSS_ENGINE_NAME";
 	public static final String SMSS_ENGINE_TYPE = "SMSS_ENGINE_TYPE";
 	public static final String SMSS_MCP_EXECUTION = "SMSS_MCP_EXECUTION";
+	public static final String SMSS_MCP_DEFERRED = "SMSS_MCP_DEFERRED";
 	public static final String SMSS_FUNCTION_NAME = "SMSS_FUNCTION_NAME";
 	public static final String SMSS_ORIGINAL_TOOL_NAME = "SMSS_ORIGINAL_TOOL_NAME";
+	// Display-only label for a pending action; never used to execute the tool.
+	public static final String SMSS_TOOL_TITLE = "SMSS_TOOL_TITLE";
 	public static final String SMSS_MCP_UI = "SMSS_MCP_UI";
 	public static final String SEMOSS_MULTIMODAL_TOOL_RESPONSE_KEY = "SEMOSSMultimodalToolResponse";
 

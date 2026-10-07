@@ -1750,19 +1750,23 @@ public class ModelInferenceLogsUtils {
 	 * @param options options map (nullable)
 	 */
 	public static void setRoomOptions(String roomId, String userId, Map<String, Object> options) {
-		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
-		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
-
 		try {
-			QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
-				int index = 1;
-				modelInferenceLogsDb.getQueryUtil().setNullableJson(ps, index++, options, GSON);
-				ps.setString(index++, userId);
-				ps.setString(index++, roomId);
-			});
+			updateRoomOptions(roomId, userId, options);
 		} catch (Exception e) {
 			classLogger.error("Failed to update room options for roomId '{}' and userId '{}'.", roomId, userId, e);
 		}
+	}
+
+	/** Same write as {@link #setRoomOptions}, but throws and returns the updated row count. */
+	public static int updateRoomOptions(String roomId, String userId, Map<String, Object> options) throws Exception {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?";
+		return QueryExecutionUtility.executeUpdate(modelInferenceLogsDb, query, ps -> {
+			int index = 1;
+			modelInferenceLogsDb.getQueryUtil().setNullableJson(ps, index++, options, GSON);
+			ps.setString(index++, userId);
+			ps.setString(index++, roomId);
+		});
 	}
 
 	/**

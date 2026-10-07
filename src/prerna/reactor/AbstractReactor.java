@@ -943,9 +943,9 @@ public abstract class AbstractReactor implements IReactor {
 
 	/**
 	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
-	 * is not an MCP tool. Reactors that should be discoverable by package scanning
-	 * in {@code MakePixelMCPReactor} must override this method and return a
-	 * non-null map.
+	 * is not an MCP tool. The default is non-null (auto + sidebar), so package and
+	 * full scans in {@code MakePixelMCPReactor} include every reactor; override and
+	 * return {@code null} to opt out.
 	 * <p>
 	 * Supported keys (use {@link MCPUtility} constants):
 	 * <ul>
@@ -954,7 +954,10 @@ public abstract class AbstractReactor implements IReactor {
 	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
 	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
 	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
+	 * <li>{@code component} - native element name for the tool call</li>
+	 * <li>{@code autoOpen} - "true" to open the tool view automatically</li>
 	 * </ul>
+	 * {@code SMSS_MCP_DEFERRED} is not read here; set it through mcpMetadata.
 	 *
 	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP
 	 *         tool
