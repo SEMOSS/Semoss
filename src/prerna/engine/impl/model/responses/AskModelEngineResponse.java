@@ -231,8 +231,10 @@ public abstract class AskModelEngineResponse<T> extends AbstractModelEngineRespo
 			String model = safeString(modelResponse.get("model"));
 			String traceback = safeString(modelResponse.get("traceback"));
 
-			AskModelEngineResponse<?> errorResponse = new AskErrorModelEngineResponse(message, errorType, code, client,
-					model, traceback);
+			AskErrorModelEngineResponse errorResponse = new AskErrorModelEngineResponse(message, errorType, code,
+					client, model, traceback);
+			errorResponse.setReason(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON)));
+			errorResponse.setReasonDetail(safeString(modelResponse.get(AskErrorModelEngineResponse.REASON_DETAIL)));
 			if (schemaVersion != null) {
 				errorResponse.setSchemaVersion(schemaVersion);
 			}

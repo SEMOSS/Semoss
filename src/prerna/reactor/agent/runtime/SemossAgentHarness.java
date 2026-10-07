@@ -79,6 +79,8 @@ import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -356,7 +358,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 				state.progress().beginModel();
 				try {
-					response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+					response = requireModelResponse(askWithOverflowRecovery(ctx, firstMsg),
 							"during initial model call");
 				} finally {
 					state.progress().endModel();
@@ -685,6 +687,75 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		long reserve = maxOutput + COMPACTION_MARGIN_TOKENS;
 		return (int) Math.min(reserve, (long) (contextWindow * MAX_RESERVE_RATIO));
+	}
+
+	/**
+	 * First model call of a run. On a context overflow, prune tool payloads in the
+	 * stored history and retry once; if there is nothing to prune or it still
+	 * overflows, the new message itself is too large. The input is only stored on
+	 * success, so the room is never left stuck.
+	 */
+	private static ResponseMessage askWithOverflowRecovery(AgentRunContext ctx, InputMessage firstMsg) {
+		Room room = ctx.getRoom();
+		try {
+			return room.ask(firstMsg, ctx.getModelEngine(), null);
+		} catch (RuntimeException e) {
+			AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+			if (overflow == null) {
+				throw e;
+			}
+			List<AbstractMessage> messages = room.getMessages();
+			AbstractMessage leaf = messages == null || messages.isEmpty() ? null : messages.getLast();
+			boolean historyHasTools = leaf != null && MessageUtils
+					.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
+					.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
+			boolean pruned = historyHasTools && room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.warn("SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
+					+ "prunedHistory={}", ctx.getRunId(), room.getId(), overflow.getClient(),
+					overflow.getReasonDetail(), pruned);
+			if (pruned) {
+				try {
+					return room.ask(firstMsg, ctx.getModelEngine(), null);
+				} catch (RuntimeException retryError) {
+					if (!SemossModelEngineException.isContextOverflow(retryError)) {
+						throw retryError;
+					}
+					e = retryError;
+				}
+			}
+			throw new IllegalStateException("This message and its attachments are too large for the model's "
+					+ "context window. Send less text, fewer pages or smaller files, or start a new conversation.", e);
+		}
+	}
+
+	// results smaller than this are never stubbed; they are not what overflows the context
+	private static final int MIN_STUB_RESULT_CHARS = 2_000;
+
+	/**
+	 * After a context-overflow error on a tool continuation: fork the current
+	 * tool-results message with the largest results stubbed until estimate +
+	 * reserve fits. Returns how many results were replaced (0 = nothing to retry).
+	 */
+	static int forkOversizedToolResults(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		long tokensToFree = 0;
+		try {
+			int contextWindow = ctx.getModelEngine().getContextWindow();
+			List<AbstractMessage> messages = room.getMessages();
+			if (contextWindow > 0 && messages != null && !messages.isEmpty()) {
+				int estimate = estimateContextTokens(RoomMessageStore.providerContext(
+						MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId())));
+				tokensToFree = Math.max(0L,
+						(long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
+			}
+		} catch (RuntimeException e) {
+			// unknown window; the fork still stubs the largest result
+		}
+		int replaced = room.forkToolResultsWithStubs(toolCallMessageId, tokensToFree, MIN_STUB_RESULT_CHARS,
+				ctx.getInsight());
+		logger.info("SemossAgentHarness: context overflow fork run={} room={} toolCall={} tokensToFree={} replaced={}",
+				ctx.getRunId(), room.getId(), toolCallMessageId, tokensToFree, replaced);
+		return replaced;
 	}
 
 	// last provider-measured prompt plus everything after it; unmeasured messages
