@@ -40,6 +40,7 @@ import static org.mockito.Mockito.when;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,6 +52,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 
 import prerna.engine.api.IRDBMSEngine;
+import prerna.query.interpreters.sql.ParameterizedSqlInterpreterUnitTests;
 import prerna.util.QueryExecutionUtility;
 
 class PostgresJdbcUnitTests {
@@ -71,6 +73,9 @@ class PostgresJdbcUnitTests {
 				connection.setAutoCommit(false);
 				IRDBMSEngine engine = mock(IRDBMSEngine.class);
 				when(engine.getConnection()).thenReturn(connection);
+				when(engine.isBasic()).thenReturn(true);
+				when(engine.getQueryUtil()).thenReturn(new PostgresQueryUtil());
+				when(engine.getDatabaseZoneId()).thenReturn(ZoneOffset.UTC);
 				String insert = "INSERT INTO STATEMENT_VALUES VALUES (?, ?)";
 				assertEquals(1, QueryExecutionUtility.executeUpdate(engine, insert, ps -> {
 					ps.setInt(1, 1);
@@ -92,6 +97,7 @@ class PostgresJdbcUnitTests {
 				int count = QueryExecutionUtility.queryOne(engine, "SELECT COUNT(*) FROM BIND_VALUES", ps -> {
 				}, rs -> rs.getInt(1));
 				assertEquals(5, count);
+				ParameterizedSqlInterpreterUnitTests.roundTrip(engine);
 				assertEquals(TransactionState.IDLE, connection.unwrap(BaseConnection.class).getTransactionState());
 				assertFalse(connection.getAutoCommit());
 				try (Connection observer = DriverManager.getConnection(connection.getMetaData().getURL(), "postgres",
