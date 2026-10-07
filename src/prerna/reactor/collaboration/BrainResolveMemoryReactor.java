@@ -28,45 +28,43 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.WorkWorkspaceUtils;
+import prerna.collaboration.BrainMemoryUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkDeleteFact(threadId=["..."], factId=["..."]);
-public class WorkDeleteFactReactor extends AbstractCollaborationReactor {
+// BrainResolveMemory(memoryId=["..."], action=["accept"]);
+public class BrainResolveMemoryReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_ID = "threadId";
-	private static final String FACT_ID = "factId";
+	private static final String MEMORY_ID = "memoryId";
+	private static final String ACTION = "action";
 
-	public WorkDeleteFactReactor() {
-		this.keysToGet = new String[] { THREAD_ID, FACT_ID };
+	public BrainResolveMemoryReactor() {
+		this.keysToGet = new String[] { MEMORY_ID, ACTION };
 		this.keyRequired = new int[] { 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		if (threadId == null) {
-			throw new IllegalArgumentException("Must pass a threadId");
+		String memoryId = getString(MEMORY_ID);
+		if (memoryId == null) {
+			throw new IllegalArgumentException("Must pass a memoryId");
 		}
-		String id = getString(FACT_ID);
-		if (id == null) {
-			throw new IllegalArgumentException("Must pass a factId");
-		}
-		return mapResult(WorkWorkspaceUtils.deleteFact(user, threadId, id));
+		return mapResult(BrainMemoryUtils.resolveMemory(user, memoryId, getString(ACTION)));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Removes a fact from a thread workspace";
+		return "Accepts, confirms, dismisses, restores, reopens, or unconfirms a Brain memory; returns { memory, restored }";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (FACT_ID.equals(key)) {
-			return "Fact id";
+		if (MEMORY_ID.equals(key)) {
+			return "Memory id";
+		} else if (ACTION.equals(key)) {
+			return "accept (a suggestion), confirm (a learned memory), dismiss (a suggestion or learned memory; puts "
+					+ "back what it replaced), restore (a dismissed memory, as active), reopen (a dismissed or accepted "
+					+ "suggestion), unconfirm (a confirmed memory the assistant saved)";
 		}
 		return super.getDescriptionForKey(key);
 	}

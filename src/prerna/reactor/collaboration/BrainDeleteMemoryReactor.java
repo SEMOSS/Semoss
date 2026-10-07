@@ -27,48 +27,45 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import java.util.Map;
-
 import prerna.auth.User;
-import prerna.collaboration.WorkWorkspaceUtils;
+import prerna.collaboration.BrainMemoryUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// WorkSaveFact(threadId=["..."], fact=[{"id": "...", "text": "..."}]);
-public class WorkSaveFactReactor extends AbstractCollaborationReactor {
+// BrainDeleteMemory(memoryId=["..."]); or BrainDeleteMemory(all=[true]);
+public class BrainDeleteMemoryReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_ID = "threadId";
-	private static final String FACT = "fact";
+	private static final String MEMORY_ID = "memoryId";
+	private static final String ALL = "all";
 
-	public WorkSaveFactReactor() {
-		this.keysToGet = new String[] { THREAD_ID, FACT };
-		this.keyRequired = new int[] { 1, 1 };
+	public BrainDeleteMemoryReactor() {
+		this.keysToGet = new String[] { MEMORY_ID, ALL };
+		this.keyRequired = new int[] { 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		if (threadId == null) {
-			throw new IllegalArgumentException("Must pass a threadId");
+		if (Boolean.TRUE.equals(getBoolean(ALL))) {
+			return mapResult(BrainMemoryUtils.deleteAllMemories(user));
 		}
-		Map<String, Object> fact = getMapFromKeyOrCurRow(FACT);
-		if (fact == null) {
-			throw new IllegalArgumentException("Must pass a fact map");
+		String memoryId = getString(MEMORY_ID);
+		if (memoryId == null) {
+			throw new IllegalArgumentException("Must pass a memoryId, or all=true");
 		}
-		return mapResult(WorkWorkspaceUtils.saveFact(user, threadId, fact));
+		return mapResult(BrainMemoryUtils.deleteMemory(user, memoryId));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds a fact to a thread workspace, or changes the keys passed on an existing one";
+		return "Erases one Brain memory, or all of them";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (FACT.equals(key)) {
-			return "Fact map: id (omit to create), text, from, status, sourcePersonId";
+		if (MEMORY_ID.equals(key)) {
+			return "Memory id";
+		} else if (ALL.equals(key)) {
+			return "true to erase every memory and suggestion";
 		}
 		return super.getDescriptionForKey(key);
 	}

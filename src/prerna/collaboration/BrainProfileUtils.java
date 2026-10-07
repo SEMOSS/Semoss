@@ -233,7 +233,8 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN FROM BRAIN_SETTINGS "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					// read-only: one platform classifier (RDF_Map)
@@ -241,6 +242,10 @@ public final class BrainProfileUtils {
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
 					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
 					row.put("version", CollaborationDbUtils.getInteger(rs, "VERSION"));
+					Map<String, Object> memory = new LinkedHashMap<>();
+					memory.put("use", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_USE")));
+					memory.put("learn", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_LEARN")));
+					row.put("memory", memory);
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -280,6 +285,15 @@ public final class BrainProfileUtils {
 		List<Object> params = new ArrayList<>();
 		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
 		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
+		if (changes.get("memory") instanceof Map) {
+			Map<String, Object> memory = (Map<String, Object>) changes.get("memory");
+			if (memory.containsKey("use")) {
+				CollaborationDbUtils.addSet(sets, params, "MEMORY_USE", isTrue(memory.get("use")));
+			}
+			if (memory.containsKey("learn")) {
+				CollaborationDbUtils.addSet(sets, params, "MEMORY_LEARN", isTrue(memory.get("learn")));
+			}
+		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -295,6 +309,27 @@ public final class BrainProfileUtils {
 					Boolean.TRUE.equals(source.getValue()));
 		}
 		return getSettings(ownerId, ownerType);
+	}
+
+	/** Memories are recalled and the assistant gets its memory tools; on unless the owner turned it off. */
+	static boolean usesMemory(String ownerId, String ownerType) {
+		return !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_USE"));
+	}
+
+	/** Finished chats are reviewed for memories to suggest; also needs memory itself to be on. */
+	static boolean learnsMemory(String ownerId, String ownerType) {
+		return usesMemory(ownerId, ownerType)
+				&& !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_LEARN"));
+	}
+
+	private static Boolean memorySetting(String ownerId, String ownerType, String column) {
+		return CollaborationDbUtils.queryOne("SELECT " + column + " FROM BRAIN_SETTINGS WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ?", rs -> CollaborationDbUtils.getBoolean(rs, column), ownerId, ownerType);
+	}
+
+	// pixel booleans arrive as Boolean or text
+	private static boolean isTrue(Object value) {
+		return value instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(value).trim());
 	}
 
 	private static void ensureSettings(String ownerId, String ownerType) {

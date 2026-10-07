@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
@@ -72,8 +73,11 @@ import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.collaboration.BrainEditThreadReactor;
 import prerna.reactor.collaboration.BrainEditTopicReactor;
+import prerna.reactor.collaboration.BrainForgetReactor;
 import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
 import prerna.reactor.collaboration.BrainListTopicsReactor;
+import prerna.reactor.collaboration.BrainRememberReactor;
+import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
 import prerna.reactor.collaboration.BrainSearchThreadsReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
@@ -87,6 +91,8 @@ import prerna.reactor.collaboration.WorkSendEmailReactor;
  * so the model never chooses between providers' send tools.
  * Each definition is built from its reactor (description, arguments, ask or
  * auto) under a short name; each call runs the reactor as the room's user.
+ * A Work thread's own assistant also gets Remember, Forget and SearchMemories
+ * while its owner has memory on.
  */
 public final class CollaborationAgentTools {
 
@@ -137,7 +143,13 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
 		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
 		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+		// the owner's memory: only for a thread's own assistant, with memory on (see definitions(Room, User, boolean))
+		REACTORS.put("Remember", BrainRememberReactor.class);
+		REACTORS.put("Forget", BrainForgetReactor.class);
+		REACTORS.put("SearchMemories", BrainSearchMemoriesReactor.class);
 	}
+
+	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
 
 	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search
 	private static final Set<String> DEFERRED = Set.of("ListM365Mail");
@@ -163,11 +175,33 @@ public final class CollaborationAgentTools {
 		return CollaborationUtils.isCollaborationRoom(room);
 	}
 
-	/** Fresh copies of the tool definitions, safe for the caller to change. */
+	/** Fresh copies of the tool definitions, safe for the caller to change; the memory tools are left out. */
 	public static List<Map<String, Object>> definitions() {
+		return definitions(false);
+	}
+
+	/**
+	 * The tools for one run in a collaboration room. The memory tools come only to a Work thread's own assistant at
+	 * the root of the run, and only while its owner has memory on.
+	 */
+	public static List<Map<String, Object>> definitions(Room room, User user, boolean rootRun) {
+		boolean memory = false;
+		if (rootRun && CollaborationUtils.isThreadRoom(room) && user != null) {
+			try {
+				memory = BrainMemoryUtils.assistantMemoryOn(user);
+			} catch (RuntimeException e) {
+				classLogger.warn("Could not read the memory setting; this run has no memory tools", e);
+			}
+		}
+		return definitions(memory);
+	}
+
+	private static List<Map<String, Object>> definitions(boolean memory) {
 		List<Map<String, Object>> tools = new ArrayList<>();
-		for (JSONObject tool : tools().values()) {
-			tools.add(tool.toMap());
+		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
+			if (memory || !MEMORY_TOOLS.contains(tool.getKey())) {
+				tools.add(tool.getValue().toMap());
+			}
 		}
 		return tools;
 	}

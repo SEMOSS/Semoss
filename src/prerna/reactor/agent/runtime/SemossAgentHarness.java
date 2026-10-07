@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.BrainMemoryRecall;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
@@ -189,7 +190,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		// Microsoft 365 tools for every agent in a collaboration room
 		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
-			subAgentTools.addAll(CollaborationAgentTools.definitions());
+			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
+					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -234,6 +236,15 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
+		}
+		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
+		if (CollaborationUtils.isThreadRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& !agentConfig.hasPptxWorkflow()) {
+			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
+					CollaborationUtils.threadIdOf(room));
+			if (memoryBlock != null) {
+				composed.append("\n\n").append(memoryBlock);
+			}
 		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		if (agentConfig.hasPptxWorkflow()) {

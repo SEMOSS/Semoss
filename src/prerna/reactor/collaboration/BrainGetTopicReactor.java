@@ -53,7 +53,7 @@ public class BrainGetTopicReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Returns one Brain topic with its goals, notes, people, and stats";
+		return "Returns one Brain topic with its goals, people, and stats; its notes are memories (BrainListMemories)";
 	}
 
 	@Override

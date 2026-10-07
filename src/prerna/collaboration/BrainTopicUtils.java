@@ -59,11 +59,9 @@ public final class BrainTopicUtils {
 
 	public static final Set<String> KINDS = Set.of("client", "internal", "event", "personal");
 
-	// BRAIN_TOPIC_NOTE.KIND and the states each kind allows
+	// BRAIN_TOPIC_NOTE.KIND and the states each kind allows; topic notes are Brain memories linked to the topic now
 	public static final String GOAL = "goal";
-	public static final String NOTE = "note";
-	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"), NOTE,
-			List.of("draft", "confirmed"));
+	private static final Map<String, List<String>> NOTE_STATES = Map.of(GOAL, List.of("open", "done"));
 
 	// an active topic with no activity and no owner edit for this long goes dormant
 	static final int DORMANT_AFTER_DAYS = 30;
@@ -72,6 +70,9 @@ public final class BrainTopicUtils {
 
 	private static final String SUMMARY_COLUMNS = "TOPIC_ID, NAME, SHORT_NAME, ACCOUNT_ID, KIND, COLOR, STATUS, "
 			+ "LAST_ACTIVITY_AT";
+	// a memory's link to one topic: owner, REF_TYPE topic, REF_ID
+	private static final String MEMORY_TOPIC_LINK = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REF_TYPE = ? "
+			+ "AND REF_ID = ?";
 
 	private BrainTopicUtils() {
 
@@ -118,10 +119,17 @@ public final class BrainTopicUtils {
 		return getTopic(owner.getValue0(), owner.getValue1(), topicId);
 	}
 
-	// one topic by id, or by a name that picks exactly one
+	// one topic by id, or by a name that picks exactly one, for the assistant: with its notes, the Brain memories
+	// about it, while the owner has memory on (filtered as SearchMemories filters them)
 	public static Map<String, Object> getTopic(User user, String topicId, String topicName) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		return getTopic(user, BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName));
+		String id = BrainThreadFinder.resolveTopic(owner.getValue0(), owner.getValue1(), topicId, topicName);
+		Map<String, Object> topic = getTopic(user, id);
+		topic.put("notes", BrainMemoryUtils.assistantMemoryOn(user)
+				? BrainMemoryUtils.search(user, null, List.of(new BrainMemoryUtils.Ref(BrainMemoryUtils.TOPIC, id)),
+						BrainMemoryUtils.DEFAULT_LIMIT).get("items")
+				: List.of());
+		return topic;
 	}
 
 	public static Map<String, Object> getTopic(String ownerId, String ownerType, String topicId) {
@@ -143,32 +151,27 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("Topic not found");
 		}
 
-		// goals and notes share BRAIN_TOPIC_NOTE, split by KIND
+		// the topic's notes are memories linked to it (BrainListMemories)
 		List<Map<String, Object>> goals = new ArrayList<>();
-		List<Map<String, Object>> notes = new ArrayList<>();
-		for (Map<String, Object> note : getNotes(ownerId, ownerType, topicId)) {
-			if (GOAL.equals(note.get("kind"))) {
-				Map<String, Object> goal = new LinkedHashMap<>();
-				goal.put("noteId", note.get("noteId"));
-				goal.put("text", note.get("text"));
-				goal.put("status", note.get("status"));
-				goals.add(goal);
-			} else {
-				notes.add(note);
-			}
+		for (Map<String, Object> note : getGoals(ownerId, ownerType, topicId)) {
+			Map<String, Object> goal = new LinkedHashMap<>();
+			goal.put("noteId", note.get("noteId"));
+			goal.put("text", note.get("text"));
+			goal.put("status", note.get("status"));
+			goals.add(goal);
 		}
 		topic.put("goals", goals);
-		topic.put("notes", notes);
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 
 		return topic;
 	}
 
-	static List<Map<String, Object>> getNotes(String ownerId, String ownerType, String topicId) {
+	static List<Map<String, Object>> getGoals(String ownerId, String ownerType, String topicId) {
 		return CollaborationDbUtils.query(
 				"SELECT NOTE_ID, KIND, TEXT, STATE, ORIGIN, SOURCE_REF, CREATED_AT FROM BRAIN_TOPIC_NOTE "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? ORDER BY CREATED_AT, NOTE_ID",
-				BrainTopicUtils::mapNote, ownerId, ownerType, topicId);
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ? AND KIND = ? "
+						+ "ORDER BY CREATED_AT, NOTE_ID",
+				BrainTopicUtils::mapNote, ownerId, ownerType, topicId, GOAL);
 	}
 
 	static List<Map<String, Object>> getPeople(String ownerId, String ownerType, String topicId) {
@@ -277,14 +280,15 @@ public final class BrainTopicUtils {
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
-	// goals take open|done, notes take draft|confirmed; no noteId creates
+	// goals take open|done; no noteId creates. Topic notes are memories (BrainSaveMemory with a topic link).
 	public static Map<String, Object> saveTopicNote(User user, String topicId, String noteId, String kind, String text,
 			String state) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		if (kind == null || !NOTE_STATES.containsKey(kind)) {
-			throw new IllegalArgumentException("Note kind must be goal or note");
+			throw new IllegalArgumentException(
+					"Kind must be goal; save a topic note as a memory about the topic with BrainSaveMemory");
 		}
 		if (state == null || !NOTE_STATES.get(kind).contains(state)) {
 			throw new IllegalArgumentException("A " + kind + " state must be one of " + NOTE_STATES.get(kind));
@@ -459,6 +463,13 @@ public final class BrainTopicUtils {
 				CollaborationDbUtils.update(conn, "UPDATE " + table + " SET TOPIC_ID = ?" + owned, targetTopicId,
 						ownerId, ownerType, sourceTopicId);
 			}
+			// memories about the source are about the target now; one already on both keeps a single link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK
+					+ " AND MEMORY_ID IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK + ")", ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, sourceTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC,
+					targetTopicId);
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY_LINK SET REF_ID = ?" + MEMORY_TOPIC_LINK,
+					targetTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, sourceTopicId);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = ? "
@@ -531,6 +542,14 @@ public final class BrainTopicUtils {
 					"BRAIN_RULE", "BRAIN_TOPIC" }) {
 				CollaborationDbUtils.update(conn, "DELETE FROM " + table + owned, ownerId, ownerType, topicId);
 			}
+			// memories only about this topic go with it, as its notes did; the others just lose the link
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND MEMORY_ID IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK + ") "
+					+ "AND MEMORY_ID NOT IN (SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK WHERE OWNER_ID = ? "
+					+ "AND OWNER_TYPE = ? AND (REF_TYPE <> ? OR REF_ID <> ?))", ownerId, ownerType, ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, topicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, topicId);
+			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK, ownerId,
+					ownerType, BrainMemoryUtils.TOPIC, topicId);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = NULL "

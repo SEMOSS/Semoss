@@ -1106,13 +1106,13 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				null, null, null, null);
 		assertEquals(1, list.size());
 		Map<String, Object> userEngine = list.getFirst();
-		assertEquals("0", userEngine.get("database_favorite").toString());
+		assertEquals("0", userEngine.get("engine_favorite").toString());
 
 		SecurityEngineUtils.setEngineFavorite(user, "testId", true);
 
 		assertEquals("1",
 				SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null, null, null, null, null)
-						.getFirst().get("database_favorite").toString());
+						.getFirst().get("engine_favorite").toString());
 	}
 
 	///
@@ -1446,7 +1446,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 				"0");
 
 		assertEquals(1, vals.size());
-		assertEquals("testId2", vals.getFirst().get("database_id"));
+		assertEquals("testId2", vals.getFirst().get("engine_id"));
 	}
 
 	///
@@ -1538,7 +1538,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		List<Map<String, Object>> engineList = SecurityEngineUtils.getUserEngineList(user, null, null);
 		assertEquals(1, engineList.size());
 
-		assertEquals("testToolApp", engineList.getFirst().get("database_tool_app"));
 		assertEquals("testToolApp", engineList.getFirst().get("engine_tool_app"));
 	}
 
