@@ -27,53 +27,42 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
+import java.util.Map;
+
 import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainMemoryUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
-// a topic note is a memory about the topic now (BrainSaveMemory)
-public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
+// BrainSaveMemory(memory=[{"id": "...", "kind": "fact", "text": "...", "about": [{"type": "person", "id": "..."}]}]);
+public class BrainSaveMemoryReactor extends AbstractCollaborationReactor {
 
-	private static final String TOPIC_ID = "topicId";
-	private static final String NOTE_ID = "noteId";
-	private static final String KIND = "kind";
-	private static final String TEXT = "text";
-	private static final String STATE = "state";
+	private static final String MEMORY = "memory";
 
-	public BrainSaveTopicNoteReactor() {
-		this.keysToGet = new String[] { TOPIC_ID, NOTE_ID, KIND, TEXT, STATE };
-		this.keyRequired = new int[] { 1, 0, 1, 1, 1 };
+	public BrainSaveMemoryReactor() {
+		this.keysToGet = new String[] { MEMORY };
+		this.keyRequired = new int[] { 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String topicId = getString(TOPIC_ID);
-		if (topicId == null) {
-			throw new IllegalArgumentException("Must pass a topicId");
+		Map<String, Object> memory = getMapFromKeyOrCurRow(MEMORY);
+		if (memory == null) {
+			throw new IllegalArgumentException("Must pass a memory map");
 		}
-		return mapResult(BrainTopicUtils.saveTopicNote(user, topicId, getString(NOTE_ID), getString(KIND),
-				getString(TEXT), getString(STATE)));
+		return mapResult(BrainMemoryUtils.saveMemory(user, memory));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal on a Brain topic";
+		return "Adds a Brain memory, or changes the keys passed on one; the owner's save confirms it";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (TOPIC_ID.equals(key)) {
-			return "Topic id";
-		} else if (NOTE_ID.equals(key)) {
-			return "Note id to edit; omit to create";
-		} else if (KIND.equals(key)) {
-			return "goal";
-		} else if (TEXT.equals(key)) {
-			return "Goal text";
-		} else if (STATE.equals(key)) {
-			return "open or done";
+		if (MEMORY.equals(key)) {
+			return "Memory map: id (omit to create), kind (preference or fact), text, about [{type, id}], pinned, "
+					+ "expiresAt";
 		}
 		return super.getDescriptionForKey(key);
 	}

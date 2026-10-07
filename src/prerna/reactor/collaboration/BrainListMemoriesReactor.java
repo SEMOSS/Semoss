@@ -30,59 +30,52 @@ package prerna.reactor.collaboration;
 import java.util.List;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainTopicUtils;
+import prerna.collaboration.BrainMemoryUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListTopics(status=["active"], accountId=["..."], limit=[30], offset=[0]);
-public class BrainListTopicsReactor extends AbstractCollaborationReactor {
+// BrainListMemories(state=["active", "suggested"], refType=["person"], refId=["..."], query=["..."], limit=[50],
+// offset=[0]);
+public class BrainListMemoriesReactor extends AbstractCollaborationReactor {
 
-	private static final String STATUS = "status";
-	private static final String ACCOUNT_ID = "accountId";
+	private static final String STATE = "state";
+	private static final String REF_TYPE = "refType";
+	private static final String REF_ID = "refId";
+	private static final String QUERY = "query";
 	private static final String LIMIT = "limit";
 	private static final String OFFSET = "offset";
-	private static final String TOPIC_ID = "topicId";
-	private static final String TOPIC = "topic";
 
-	public BrainListTopicsReactor() {
-		this.keysToGet = new String[] { STATUS, ACCOUNT_ID, LIMIT, OFFSET, TOPIC_ID, TOPIC };
+	public BrainListMemoriesReactor() {
+		this.keysToGet = new String[] { STATE, REF_TYPE, REF_ID, QUERY, LIMIT, OFFSET };
 		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		// one topic in full: description, goals, notes, and its people with names
-		String topicId = getString(TOPIC_ID);
-		String topicName = getString(TOPIC);
-		if ((topicId != null && !topicId.isBlank()) || (topicName != null && !topicName.isBlank())) {
-			return mapResult(BrainTopicUtils.getTopic(user, topicId, topicName));
-		}
-		List<String> statuses = getNounAsStringList(STATUS);
+		List<String> states = getNounAsStringList(STATE);
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainTopicUtils.listTopics(user, statuses, getString(ACCOUNT_ID),
-				limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
+		return mapResult(BrainMemoryUtils.listMemories(user, states, getString(REF_TYPE), getString(REF_ID),
+				getString(QUERY), limit == null ? BrainMemoryUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
-				+ "in full instead: its description, goals, notes, and people with their names, roles, and state. "
-				+ "Its notes are the owner's memories about the topic, listed while the owner has memory on";
+		return "Lists the signed-in user's Brain memories as { items, total }";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (STATUS.equals(key)) {
-			return "Topic statuses to include: suggested, active, dormant, archived; all when omitted";
-		} else if (ACCOUNT_ID.equals(key)) {
-			return "Only topics in this account";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Return this one topic in full";
-		} else if (TOPIC.equals(key)) {
-			return "Topic name, when the id is not known; must match one topic";
+		if (STATE.equals(key)) {
+			return "Memory states to include: active, suggested, superseded, dismissed; active and suggested when omitted";
+		} else if (REF_TYPE.equals(key)) {
+			return "With refId, only memories about this: person, topic, account, or thread";
+		} else if (REF_ID.equals(key)) {
+			return "Id of the person, topic, account, or thread";
+		} else if (QUERY.equals(key)) {
+			return "Words to match; best matches first";
 		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
+			return "Page size, default 50";
 		} else if (OFFSET.equals(key)) {
 			return "Rows to skip, default 0";
 		}

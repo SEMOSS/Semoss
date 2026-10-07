@@ -136,6 +136,7 @@ public final class MCPUtility {
 	public static final String COMPONENT_EMAIL_DRAFT = "email-draft";
 	public static final String COMPONENT_EMAIL_SEND = "email-send";
 	public static final String COMPONENT_CALENDAR_EVENT = "calendar-event";
+	public static final String COMPONENT_MEMORY = "memory";
 
 	/**
 	 * @deprecated Use {@link #SMSS_ENGINE_ID}, which is set for every engine type

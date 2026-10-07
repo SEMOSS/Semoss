@@ -88,6 +88,15 @@ public final class CollaborationUtils {
 		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
 	}
 
+	/** The thread a Work assistant room belongs to (its workThread option), or null for any other room. */
+	public static String threadIdOf(Room room) {
+		if (!isThreadRoom(room)) {
+			return null;
+		}
+		Object threadId = ((Map<?, ?>) room.getOptionsMap().get(ROOM_OPTION_WORK_THREAD)).get("threadId");
+		return threadId == null || String.valueOf(threadId).isBlank() ? null : String.valueOf(threadId);
+	}
+
 	/**
 	 * The agent (COLLAB_THREAD_AGENT_ID) for a thread's assistant as {id, name,
 	 * modelId}; null when none is set, the user cannot view it, or it is disabled.
