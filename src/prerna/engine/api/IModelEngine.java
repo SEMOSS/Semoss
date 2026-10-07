@@ -163,6 +163,14 @@ public interface IModelEngine extends IEngine {
 	@IgnoreEngineLogging
 	int getContextWindow();
 
+	/**
+	 * @return configured max output tokens, or 0 when unknown
+	 */
+	@IgnoreEngineLogging
+	default long getMaxTokens() {
+		return 0;
+	}
+
 	// ------------------------------------------------------------------
 	// Batch model calls (native provider Batch APIs).
 	//

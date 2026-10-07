@@ -614,6 +614,36 @@ public class Room implements Serializable {
 	}
 
 	/**
+	 * Flags a message so provider requests replace tool payloads at and above it
+	 * with a placeholder. Stored history is unchanged. Returns false when the
+	 * message is missing or already flagged.
+	 */
+	public boolean markPruneToolsAbove(String messageId, Insight insight) {
+		ReentrantLock lock = getMessageLock();
+		lock.lock();
+		try {
+			String userId = insight.getUser().getPrimaryLoginToken().getId();
+			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(this)) {
+				this.insight = insight;
+				RoomMessageStore.refreshFromLatestProjection(this, userId);
+				for (AbstractMessage message : messages) {
+					if (messageId.equals(message.getMessageId())) {
+						if (message.getPruneToolsAbove()) {
+							return false;
+						}
+						message.setPruneToolsAbove(true);
+						RoomMessageStore.persist(this, userId);
+						return true;
+					}
+				}
+				return false;
+			}
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	/**
 	 * Persist a harness-owned completion after all tools finish, without another
 	 * model request.
 	 */

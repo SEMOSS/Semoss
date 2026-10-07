@@ -194,6 +194,8 @@ final class HarnessToolExecutor {
                 return (ResponseMessage) room.getMessages().getLast();
             }
         }
+        // tool results are stored; prune older tool payloads if the context is near full
+        SemossAgentHarness.pruneToolsBeforeContinuation(ctx, parentMsgId);
         Map<String, Object> nextParams = new HashMap<>(paramMap);
         if (ctx.getAgentConfig().getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
             nextParams.put("tool_choice", "none");
