@@ -506,7 +506,6 @@ public final class AutomationSourceRenderer {
 		return """
 				# Extract a nested value from inline JSON/XML or a file in this run's Insight workspace.
 				from semoss import Insight
-				from semoss_automation_runtime import extract_data_element
 				import base64
 				import json
 

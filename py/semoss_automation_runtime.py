@@ -223,6 +223,10 @@ def _data_path_tokens(path: str) -> list[str | int]:
         return []
     if value.startswith("$."):
         value = value[2:]
+    elif value.startswith("$["):
+        value = value[1:]
+    elif value.startswith("$"):
+        raise ValueError("Value path must use '$.' or '$[' after the root marker.")
 
     tokens: list[str | int] = []
     cursor = 0
@@ -267,7 +271,13 @@ def execute_node(
     """Execute one persisted node module with a fresh module namespace."""
     scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
-    module: dict[str, Any] = {"__name__": "__automation_node__"}
+    module: dict[str, Any] = {
+        "__name__": "__automation_node__",
+        # Generated nodes use runtime-owned helpers through this execution boundary.
+        # This avoids depending on the worker's ambient sys.path or importing a
+        # second copy of this module from inside persisted node source.
+        "extract_data_element": extract_data_element,
+    }
     # Java selects this persisted source only after authorizing the run. Keeping
     # exec here makes that trust boundary explicit and avoids hidden source edits.
     exec(source, module)

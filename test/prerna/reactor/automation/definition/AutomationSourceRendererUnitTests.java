@@ -156,6 +156,7 @@ public class AutomationSourceRendererUnitTests {
 		assertTrue(source.contains("GetInsightAssetsBase64("));
 		assertTrue(source.contains("extract_data_element("));
 		assertTrue(source.contains("source=scope.resolve(SOURCE)"));
+		assertFalse(source.contains("from semoss_automation_runtime import"));
 		assertFalse(source.contains("open("));
 	}
 
