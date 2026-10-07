@@ -271,6 +271,11 @@ public class MicrosoftSqlServerQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public IQueryFilter getPreparedSearchRegexFilter(String columnQs, String searchTerm) {
+		return getSearchRegexFilter(columnQs, searchTerm);
+	}
+
+	@Override
 	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		// WHERE PATINDEX ('%pattern%',expression) != 0
 		QueryFunctionSelector fun = new QueryFunctionSelector();

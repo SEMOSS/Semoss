@@ -765,11 +765,16 @@ public abstract class AnsiSqlQueryUtil extends AbstractSqlQueryUtil {
 
 	@Override
 	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
+		return getPreparedSearchRegexFilter(columnQs, escapeForSQLStatement(searchTerm));
+	}
+
+	@Override
+	public IQueryFilter getPreparedSearchRegexFilter(String columnQs, String searchTerm) {
 		FunctionQueryFilter filter = new FunctionQueryFilter();
 		QueryFunctionSelector regexFunction = new QueryFunctionSelector();
 		regexFunction.setFunction(QueryFunctionHelper.REGEXP_LIKE);
 		regexFunction.addInnerSelector(new QueryColumnSelector(columnQs));
-		regexFunction.addInnerSelector(new QueryConstantSelector(escapeForSQLStatement(searchTerm)));
+		regexFunction.addInnerSelector(new QueryConstantSelector(searchTerm));
 		regexFunction.addInnerSelector(new QueryConstantSelector("i"));
 		filter.setFunctionSelector(regexFunction);
 		return filter;

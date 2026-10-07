@@ -25,37 +25,24 @@
  * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * 	GNU General Public License for more details.
  *******************************************************************************/
-package prerna.util.sql;
+package prerna.query.querystruct.selectors;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import java.sql.PreparedStatement;
-
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import prerna.query.querystruct.filters.SimpleQueryFilter;
-
-class PostgresQueryUtilUnitTests {
+class AbstractQuerySelectorUnitTests {
 
 	@Test
-	void postgresUsesTextAndBytesForNonNullValues() throws Exception {
-		PreparedStatement ps = mock(PreparedStatement.class);
-		PostgresQueryUtil util = new PostgresQueryUtil();
-		byte[] bytes = { 0, -1, -128 };
-		util.setNullableLargeText(ps, 1, "  text  ");
-		util.setNullableBinary(ps, 2, bytes);
-		verify(ps).setString(1, "  text  ");
-		verify(ps).setBytes(2, bytes);
+	void explicitAliasCanBeDistinguishedFromAValueDerivedDefault() {
+		QueryConstantSelector selector = new QueryConstantSelector("user value");
+		assertEquals("", selector.getExplicitAlias());
+		assertNotEquals(selector.getExplicitAlias(), selector.getAlias());
+		selector.setAlias("display");
+		assertEquals("display", selector.getExplicitAlias());
+		selector.setConstant("different value");
+		assertEquals("display", selector.getExplicitAlias());
+		assertEquals("display", selector.getAlias());
 	}
-
-	@Test
-	void preparedRegexPreservesPatternSyntaxAndUsesBoundComparison() {
-		var util = new PostgresQueryUtil();
-		var filter = (SimpleQueryFilter) util.getPreparedSearchRegexFilter("ITEMS__V", "O'Brien\\path");
-		Assertions.assertEquals("o'brien\\path", filter.getRComparison().getValue());
-		Assertions.assertEquals("~", filter.getComparator());
-	}
-
 }
