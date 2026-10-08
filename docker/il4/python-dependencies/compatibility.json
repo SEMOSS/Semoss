@@ -56,6 +56,18 @@
         "https://pypi.org/pypi/pipecat-ai/1.0.0/json"
       ],
       "migration_caveat": "Pipecat 1.0 removes TranscriptProcessor. The container applies the separately approved, exact-source-hash-guarded audio_compat.py patch to SEMOSS. Offline tests construct all three SEMOSS audio pipelines and verify user/assistant transcript event payloads. Live external audio/model/service integrations remain untested."
+    },
+    {
+      "requirement": "pipecat-ai",
+      "from": "1.0.0",
+      "to": "1.4.0",
+      "reason": "Closes CVE-2026-44716 (fixed in 1.2.0) and CVE-2026-54695 (fixed in 1.4.0), both AWS Inspector2 findings against the published container image. Reviewed the upstream changelog for the full 1.0.0-1.4.0 range: no change to the event names or construction pattern the SEMOSS audio_compat.py patch depends on (on_user_turn_stopped/on_assistant_turn_stopped); PipelineRunner's rename to WorkerRunner is a non-breaking deprecation (the old name still resolves as a subclass alias). onnxruntime/numba/soxr constraints are unchanged from 1.0.0, so the cp314-wheel availability this project depends on is unaffected.",
+      "evidence": [
+        "https://pypi.org/pypi/pipecat-ai/1.0.0/json",
+        "https://pypi.org/pypi/pipecat-ai/1.4.0/json",
+        "https://raw.githubusercontent.com/pipecat-ai/pipecat/main/CHANGELOG.md"
+      ],
+      "migration_caveat": "Adds one new transitive dependency, pyyaml-include==1.4.1 (confirmed via a full lock diff: no other package's resolved version moved). Verified beyond the standard harness: patched a copy of py/audio/lk_to_pcat.py with the existing audio_compat.py (hash-guarded, unchanged), built the real python-dependencies image stage for linux/amd64 with pipecat-ai 1.4.0, and ran the project's own docker/il4/tests/check_audio.py against it inside that image - all three SEMOSS audio pipelines (speech_to_speech_realtime, listen_and_transcribe, listen_translate_and_transcribe) constructed correctly and the user/assistant transcript event payloads matched exactly. Only DeprecationWarnings surfaced (PipelineTask -> PipelineWorker, and several service constructors' positional kwargs in favor of a settings= object), none of which affect current behavior. Live external audio/model/service integrations remain untested."
     }
   ],
   "additional_constraints": [
@@ -85,7 +97,7 @@
     }
   },
   "locks_sha256": {
-    "requirements-cpu.lock": "695d3e1acc4a07304fd40f98e3c128cae865165e1e4bf750bd0032046e870c8c",
+    "requirements-cpu.lock": "9af86fdf91bd4853a5d11ba5d36e5f47352368ebd321d1891dde0bf3793a4c51",
     "overrides.lock": "ebb547eb190bca7b3090d9900087ecc9cbb8eeafc941aae6e9d2a6919e0611a5",
     "build-requirements.lock": "859f97043fdf3cc94b9f9dd3e8d5163bc37e2cae402fdd2f6a162514cd0b3bee",
     "resolver-requirements.lock": "49968559cda4ccb40d5b53a656b57d1c8b2974f5d38372b4d736a9fa7d83f14f"
@@ -114,7 +126,7 @@
   "validation": {
     "report": "validation.json",
     "fresh_virtual_environment_reproduction": true,
-    "locked_distribution_count": 260,
+    "locked_distribution_count": 261,
     "pip_check": "All installed packages are compatible",
     "offline_checks_passed": 29,
     "includes": [
