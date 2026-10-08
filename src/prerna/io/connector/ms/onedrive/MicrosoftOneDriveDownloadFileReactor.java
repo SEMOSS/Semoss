@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Downloads a OneDrive file into the insight folder.
@@ -73,10 +74,10 @@ public class MicrosoftOneDriveDownloadFileReactor extends AbstractMicrosoftOneDr
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String driveId = trimToNull(this.keyValue.get(DRIVE_ID));
-		String itemId = trimToNull(this.keyValue.get(ITEM_ID));
-		String path = trimToNull(this.keyValue.get(PATH));
-		String shareUrl = trimToNull(this.keyValue.get(SHARE_URL));
+		String driveId = ValueUtils.trimToNull(this.keyValue.get(DRIVE_ID));
+		String itemId = ValueUtils.trimToNull(this.keyValue.get(ITEM_ID));
+		String path = ValueUtils.trimToNull(this.keyValue.get(PATH));
+		String shareUrl = ValueUtils.trimToNull(this.keyValue.get(SHARE_URL));
 
 		if (itemId == null && path == null && shareUrl == null) {
 			throw new SemossPixelException(

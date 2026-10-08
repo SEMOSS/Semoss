@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.reactor.agent.run;
 
 import java.util.ArrayList;
@@ -19,7 +46,9 @@ import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.agent.mcp.MCPUtility;
 
-/** Discovery and room-persistent schema loading for the native RunAgent harness. */
+/**
+ * Discovery and room-persistent schema loading for the native RunAgent harness.
+ */
 public final class DeferredAgentTools {
 
 	public static final String RUN_AGENT_PARAM = "__semoss_deferred_tool_loading";
@@ -40,14 +69,16 @@ public final class DeferredAgentTools {
 				"Search deferred tools available to this room by keywords. Returns IDs, names, compact descriptions "
 						+ "and loaded status. An empty query lists tools. LoadTools activates their complete schemas.",
 				Map.of("query", Map.of("type", "string", "description", "Keywords describing the tool needed."),
-						"limit", Map.of("type", "integer", "description", "Maximum results; default 10, capped at 20.",
+						"limit",
+						Map.of("type", "integer", "description", "Maximum results; default 10, capped at 20.",
 								"default", 10, "minimum", 1)),
 				List.of("query")),
 				definition(LOAD,
 						"Load deferred tools by their SearchTools IDs for subsequent model calls. Loading is idempotent "
 								+ "and persists for this room. Disabled or unavailable tools cannot be loaded.",
-						Map.of("toolIds", Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 1,
-								"description", "Array of IDs from SearchTools, for example [\"default:MultiEdit\"].")),
+						Map.of("toolIds",
+								Map.of("type", "array", "items", Map.of("type", "string"), "minItems", 1, "description",
+										"Array of IDs from SearchTools, for example [\"default:MultiEdit\"].")),
 						List.of("toolIds")));
 	}
 
@@ -65,7 +96,10 @@ public final class DeferredAgentTools {
 		return SEARCH.equals(name) || LOAD.equals(name);
 	}
 
-	/** Keep a fixed eager prefix, then append eligible schemas in persisted load order. */
+	/**
+	 * Keep a fixed eager prefix, then append eligible schemas in persisted load
+	 * order.
+	 */
 	public static List<Map<String, Object>> filterForModel(Room room, List<Map<String, Object>> tools) {
 		Map<String, Map<String, Object>> lookup = room.getToolLookupByLLMName();
 		List<Map<String, Object>> visible = new ArrayList<>();
@@ -90,7 +124,10 @@ public final class DeferredAgentTools {
 		return visible;
 	}
 
-	/** Refresh just this field; RunAgent's workspace/instruction overlays stay in memory. */
+	/**
+	 * Refresh just this field; RunAgent's workspace/instruction overlays stay in
+	 * memory.
+	 */
 	public static void refreshLoadedState(Room room) {
 		// Best effort: a stale load list must not abort the run.
 		try (var ignored = RoomMessageStore.acquireOptionsLock(room)) {
@@ -132,7 +169,8 @@ public final class DeferredAgentTools {
 		if (harnessTools instanceof List<?>) {
 			tools.addAll((List<Map<String, Object>>) harnessTools);
 		}
-		// The full lookup survives schema filtering, including shortened provider aliases.
+		// The full lookup survives schema filtering, including shortened provider
+		// aliases.
 		// One snapshot per call; a concurrent rebuild publishes a new map instead.
 		Map<String, Map<String, Object>> lookup = room.getToolLookupByLLMName();
 		lookup.forEach((alias, entry) -> {
@@ -179,13 +217,13 @@ public final class DeferredAgentTools {
 		});
 		Set<String> loaded = loadedIds(room.getOptionsMap());
 		List<Map<String, Object>> results = scores.keySet().stream()
-				.sorted(Comparator.<String>comparingInt(scores::get).reversed().thenComparing(id -> id))
-				.limit(limit).map(id -> {
+				.sorted(Comparator.<String>comparingInt(scores::get).reversed().thenComparing(id -> id)).limit(limit)
+				.map(id -> {
 					Map<String, Object> tool = available.get(id);
 					String description = String.valueOf(tool.getOrDefault("description", ""));
 					return Map.<String, Object>of("id", id, "name", displayName(tool), "description",
-							description.length() > 400 ? description.substring(0, 397) + "..." : description,
-							"loaded", loaded.contains(id));
+							description.length() > 400 ? description.substring(0, 397) + "..." : description, "loaded",
+							loaded.contains(id));
 				}).toList();
 		return ToolExecutionResult
 				.success(new JSONObject(Map.of("tools", results, "totalMatches", scores.size())).toString());
@@ -194,7 +232,8 @@ public final class DeferredAgentTools {
 	private static ToolExecutionResult load(Map<String, Object> params, Room room,
 			Map<String, Map<String, Object>> available) throws Exception {
 		if (!(params.get("toolIds") instanceof List<?> requested) || requested.isEmpty()) {
-			throw new IllegalArgumentException("toolIds must be a non-empty array of deferred tool IDs from SearchTools");
+			throw new IllegalArgumentException(
+					"toolIds must be a non-empty array of deferred tool IDs from SearchTools");
 		}
 		Set<String> ids = new LinkedHashSet<>();
 		for (Object value : requested) {
@@ -238,7 +277,8 @@ public final class DeferredAgentTools {
 	}
 
 	private static void applyLoadedState(Room room, Map<String, Object> persisted) {
-		// Copy-on-write so concurrent readers of the old map never see a partial update.
+		// Copy-on-write so concurrent readers of the old map never see a partial
+		// update.
 		Map<String, Object> options = new LinkedHashMap<>(room.getOptionsMap());
 		copyLoadedState(options, persisted);
 		room.setOptionsMap(options);

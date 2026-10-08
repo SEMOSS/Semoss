@@ -27,85 +27,46 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.calendar.AbstractCreateEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarEvent;
+import prerna.io.connector.calendar.EventRequest;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Puts an event on the calendar of whoever is signed in.
+ * Creates an event on a Microsoft 365 calendar, the signed in user's own or one
+ * shared with them to write, inviting anybody named as an attendee.
  *
  * <p>
- * The event is organized by the signed in user because the token says who that
- * is, so this cannot be used to book time on somebody else's calendar. Naming
- * attendees invites them, which sends each of them an invitation from the
- * organizer in the ordinary way.
- * </p>
- *
- * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.ReadWrite} for {@code POST /me/events}</li>
- * <li>{@code OnlineMeetings.ReadWrite} as well, when {@code isOnlineMeeting}
- * asks for a Teams link</li>
- * </ul>
- *
- * <p>
- * For finding a time everybody can make before booking it, read the free and
- * busy view with {@code MicrosoftCalendarGetSchedule} first.
+ * Required delegated Microsoft Graph scope: {@code Calendars.ReadWrite}, and
+ * {@code Calendars.ReadWrite.Shared} to write somebody else's.
  * </p>
  */
-public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalendarEventReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarCreateEventReactor.class);
+public class MicrosoftCalendarCreateEventReactor extends AbstractCreateEventReactor {
 
 	public MicrosoftCalendarCreateEventReactor() {
-		this.keysToGet = EVENT_KEYS.clone();
-		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		// only Outlook keeps how urgent an event is
+		super(IMPORTANCE);
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-
-		Map<String, Object> event = composeEvent(true, "create a calendar event");
-		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
-		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, mailbox, calendarId, event,
-					DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
-			return new NounMetadata(created, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while creating an event on the signed in user's calendar", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to create an event on the signed in user's calendar", e);
-			throw new SemossPixelException(
-					"An error occurred creating the calendar event. Error message: " + e.getMessage());
-		}
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, inviting anybody named as an attendee.";
+	protected void checkProviderValues(EventRequest request) {
+		MicrosoftCalendarHelper.checkEventValues(request);
 	}
 
 	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// changes the user's calendar and can invite people, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+	protected String describeProviderValues(String key) {
+		return MicrosoftCalendarHelper.describeEventValues(key);
+	}
+
+	@Override
+	protected CalendarEvent createEvent(User user, EventRequest request) throws Exception {
+		return MicrosoftCalendarHelper.createEvent(MicrosoftLoginUtils.getValidAccessToken(user), request);
 	}
 }

@@ -28,6 +28,7 @@
 package prerna.io.connector.siteminder;
 
 import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.util.ValueUtils;
 
 /**
  * SiteMinder fronting an Azure AD tenant. When
@@ -49,13 +50,13 @@ public class SiteminderTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
 		String tenant = socialData.getProperty(prefix + "tenant");
-		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
+		return ValueUtils.isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
 		String tenant = socialData.getProperty(prefix + "tenant");
-		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
+		return ValueUtils.isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
 	}
 
 	@Override

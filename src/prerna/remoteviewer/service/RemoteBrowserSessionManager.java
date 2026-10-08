@@ -56,6 +56,7 @@ import prerna.reactor.playwright.PlaywrightBrowserProvider;
 import prerna.reactor.playwright.PlaywrightSession;
 import prerna.remoteviewer.model.RemoteBrowserInputEvent;
 import prerna.remoteviewer.security.RemoteBrowserUrlSafetyValidator;
+import prerna.util.ValueUtils;
 
 /**
  * Singleton that manages all active remote browser sessions.
@@ -490,7 +491,7 @@ public class RemoteBrowserSessionManager {
 						}
 						if (isTabControl(event)) {
 							sendTabControlResult(session, event, Boolean.TRUE.equals(executionResult.get("success")),
-									stringValue(executionResult.get("error")));
+									ValueUtils.toStringOrNull(executionResult.get("error")));
 							sendTabState(session);
 						} else {
 							sendReplayStepResult(session, event, executionResult);
@@ -686,10 +687,6 @@ public class RemoteBrowserSessionManager {
 		String type = event == null ? null : event.getType();
 		return "new-tab".equals(type) || "switch-tab".equals(type) || "switch-replay-tab".equals(type)
 				|| "prepare-replay".equals(type) || "close-tab".equals(type);
-	}
-
-	private static String stringValue(Object value) {
-		return value == null ? null : String.valueOf(value);
 	}
 
 	private void sendTabControlResult(RemoteBrowserSession session, RemoteBrowserInputEvent event, boolean success,

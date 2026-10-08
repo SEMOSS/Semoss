@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import java.util.ArrayList;
@@ -38,36 +65,38 @@ public final class BrainTopicVotes {
 	public record Vote(String kind, String name, String about) {
 	}
 
-	public record Result(String status, List<Map<String, Vote>> votes, Set<Integer> dropped,
-			Map<Integer, String> names, Map<Integer, String> abouts, int calls, int failedVotes) {
+	public record Result(String status, List<Map<String, Vote>> votes, Set<Integer> dropped, Map<Integer, String> names,
+			Map<Integer, String> abouts, int calls, int failedVotes) {
 	}
 
 	private BrainTopicVotes() {
 	}
 
 	public static Map<String, Object> schema(List<String> ids) {
-		Map<String, Object> item = Map.of("type", "object", "additionalProperties", false,
-				"required", List.of("id", "kind", "name", "about"), "properties", Map.of(
-						"id", Map.of("type", "string", "enum", ids),
-						"kind", Map.of("type", "string", "enum", List.of("work", "not_work", "unclear")),
-						"name", Map.of("type", "string"),
-						"about", Map.of("type", "string")));
-		return Map.of("type", "object", "additionalProperties", false, "required", List.of("clusters"),
-				"properties", Map.of("clusters", Map.of("type", "array", "minItems", ids.size(),
-						"maxItems", ids.size(), "items", item)));
+		Map<String, Object> item = Map.of("type", "object", "additionalProperties", false, "required",
+				List.of("id", "kind", "name", "about"), "properties",
+				Map.of("id", Map.of("type", "string", "enum", ids), "kind",
+						Map.of("type", "string", "enum", List.of("work", "not_work", "unclear")), "name",
+						Map.of("type", "string"), "about", Map.of("type", "string")));
+		return Map.of("type", "object", "additionalProperties", false, "required", List.of("clusters"), "properties",
+				Map.of("clusters",
+						Map.of("type", "array", "minItems", ids.size(), "maxItems", ids.size(), "items", item)));
 	}
 
-	public static Result run(BrainTopicStructure.Prepared prepared, BrainTopicStructure.Settings settings, Caller caller) {
+	public static Result run(BrainTopicStructure.Prepared prepared, BrainTopicStructure.Settings settings,
+			Caller caller) {
 		if (prepared.cards().isEmpty()) {
 			return new Result("no_topics", List.of(), Set.of(), Map.of(), Map.of(), 0, 0);
 		}
 		List<String> ids = prepared.cards().stream().map(c -> (String) c.get("id")).toList();
 		String prompt = new com.google.gson.Gson().toJson(Map.of("clusters", prepared.cards()));
-		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens", settings.maxTokens());
+		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens",
+				settings.maxTokens());
 		List<Map<String, Vote>> votes = new ArrayList<>();
 		int calls = 0;
 		int failed = 0;
-		// A vote counts only with complete card coverage; retries and the spare slot share a bounded budget.
+		// A vote counts only with complete card coverage; retries and the spare slot
+		// share a bounded budget.
 		for (int slot = 0; slot < settings.votes() + settings.spareVotes() && votes.size() < settings.votes(); slot++) {
 			Map<String, Vote> vote = null;
 			for (int attempt = 0; attempt < settings.attempts() && vote == null; attempt++) {
@@ -75,7 +104,8 @@ public final class BrainTopicVotes {
 				try {
 					vote = validate(caller.ask(prompt, INSTRUCTIONS, parameters), ids);
 				} catch (RuntimeException e) {
-					// A failed call consumes its budget; private prompts and replies are never logged here.
+					// A failed call consumes its budget; private prompts and replies are never
+					// logged here.
 				}
 			}
 			if (vote == null) {
@@ -87,7 +117,8 @@ public final class BrainTopicVotes {
 		if (votes.size() != settings.votes()) {
 			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls, failed);
 		}
-		// Only a not_work majority removes a group; unclear remains available for the owner's review.
+		// Only a not_work majority removes a group; unclear remains available for the
+		// owner's review.
 		Set<Integer> dropped = new HashSet<>();
 		Map<Integer, String> names = new LinkedHashMap<>();
 		Map<Integer, String> abouts = new LinkedHashMap<>();
@@ -104,7 +135,8 @@ public final class BrainTopicVotes {
 			final int index = i;
 			String name = counts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey();
 			names.put(i, name);
-			// the description from the first vote that gave the winning name, so name and description agree
+			// the description from the first vote that gave the winning name, so name and
+			// description agree
 			votes.stream().map(v -> v.get(id)).filter(v -> v.name().equals(name)).findFirst()
 					.ifPresent(v -> abouts.put(index, v.about()));
 		}
@@ -148,8 +180,9 @@ public final class BrainTopicVotes {
 				String id = row.get("id").getAsString();
 				String kind = row.get("kind").getAsString();
 				String name = row.get("name").getAsString().trim();
-				if (!expected.contains(id) || out.containsKey(id) || !Set.of("work", "not_work", "unclear").contains(kind)
-						|| name.isBlank() || name.length() > 60 || name.split("\\s+").length > 5) {
+				if (!expected.contains(id) || out.containsKey(id)
+						|| !Set.of("work", "not_work", "unclear").contains(kind) || name.isBlank() || name.length() > 60
+						|| name.split("\\s+").length > 5) {
 					return null;
 				}
 				String about = row.get("about").getAsString().trim();

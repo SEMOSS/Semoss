@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import java.sql.Timestamp;
@@ -22,7 +49,8 @@ import prerna.util.Utility;
 // Adapts the completed import into header discovery and model votes; returns candidates without publishing topics.
 final class BrainTopicOnboarding {
 
-	// Retain the persisted ID namespace and recognize links created by earlier onboarding runs.
+	// Retain the persisted ID namespace and recognize links created by earlier
+	// onboarding runs.
 	static final String VERSION = "candidate_a1";
 	private static final int MAX_PER_FOLDER = 5000;
 
@@ -33,21 +61,23 @@ final class BrainTopicOnboarding {
 	}
 
 	static Result propose(User user, String engineId, String ownerId, String ownerType,
-			Map<String, BrainTopicSuggest.Thread> eligible, String self, Map<String, String> emails,
-			Set<String> vips, BrainOrgDomains.Org ownOrg, Set<String> takenNames) {
+			Map<String, BrainTopicSuggest.Thread> eligible, String self, Map<String, String> emails, Set<String> vips,
+			BrainOrgDomains.Org ownOrg, Set<String> takenNames) {
 		Map<String, Object> notes = new LinkedHashMap<>();
-		// Refresh exact imported headers: stored participant aggregates cannot reconstruct To/Cc or bulk facts.
+		// Refresh exact imported headers: stored participant aggregates cannot
+		// reconstruct To/Cc or bulk facts.
 		BrainTopicStructure.Prepared prepared = snapshot(user, ownerId, ownerType, eligible.keySet(), self, emails,
 				vips, ownOrg, notes);
 		IModelEngine model = Utility.getModel(engineId);
 		if (model == null) {
 			throw new IllegalArgumentException("The topic model could not be loaded");
 		}
-		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType), (prompt, instructions, params) -> {
-			Insight insight = new Insight();
-			insight.setUser(user);
-			return model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse();
-		});
+		BrainTopicVotes.Result votes = BrainTopicVotes.run(prepared, settings(ownerId, ownerType),
+				(prompt, instructions, params) -> {
+					Insight insight = new Insight();
+					insight.setUser(user);
+					return model.ask(prompt, instructions, insight, new LinkedHashMap<>(params)).getStringResponse();
+				});
 		Map<String, Object> diagnostics = new LinkedHashMap<>();
 		diagnostics.putAll(notes);
 		diagnostics.put("status", votes.status());
@@ -64,7 +94,8 @@ final class BrainTopicOnboarding {
 		List<BrainTopicSuggest.Candidate> candidates = new ArrayList<>();
 		Set<String> names = new HashSet<>(takenNames);
 		Set<Integer> grouped = new HashSet<>();
-		// Apply votes after discovery assignment so rejected groups do not spill their mail into kept groups.
+		// Apply votes after discovery assignment so rejected groups do not spill their
+		// mail into kept groups.
 		for (int i = 0; i < prepared.seeds().size(); i++) {
 			if (votes.dropped().contains(i)) {
 				continue;
@@ -77,9 +108,12 @@ final class BrainTopicOnboarding {
 					}).toList();
 			String name = uniqueName(votes.names().get(i), names);
 			List<String> ids = members.stream().map(BrainTopicSuggest.Thread::id).sorted().toList();
-			String key = VERSION + ":" + CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
-			// the card shows threads, people and your part; how it was grouped stays in diagnostics
-			// no name-word keywords: a rename would leave the old words behind for the classifier
+			String key = VERSION + ":"
+					+ CollaborationDbUtils.deterministicId(ownerId, ownerType, ids.toArray(String[]::new));
+			// the card shows threads, people and your part; how it was grouped stays in
+			// diagnostics
+			// no name-word keywords: a rename would leave the old words behind for the
+			// classifier
 			candidates.add(new BrainTopicSuggest.Candidate(key, name, members, List.of(), null, votes.abouts().get(i)));
 		}
 		diagnostics.put("groupedThreads", grouped.size());
@@ -87,12 +121,14 @@ final class BrainTopicOnboarding {
 		return new Result(candidates, diagnostics);
 	}
 
-	// Completed-job history selects pool breadth, not an admin strategy flag. A skipped sort uses the engaged pool.
+	// Completed-job history selects pool breadth, not an admin strategy flag. A
+	// skipped sort uses the engaged pool.
 	static BrainTopicStructure.Settings settings(String ownerId, String ownerType) {
-		boolean sorted = CollaborationDbUtils.exists("SELECT 1 FROM COLLAB_JOB c WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? "
-				+ "AND c.KIND = ? AND c.STATUS = ? AND c.STARTED_AT >= (SELECT MAX(i.STARTED_AT) FROM COLLAB_JOB i WHERE "
-				+ "i.OWNER_ID = c.OWNER_ID AND i.OWNER_TYPE = c.OWNER_TYPE AND i.KIND = ? AND i.STATUS = ?)", ownerId,
-				ownerType, BrainThreadClassifier.JOB_KIND, CollaborationJobUtils.DONE, BrainMailImport.KIND,
+		boolean sorted = CollaborationDbUtils.exists(
+				"SELECT 1 FROM COLLAB_JOB c WHERE c.OWNER_ID = ? AND c.OWNER_TYPE = ? "
+						+ "AND c.KIND = ? AND c.STATUS = ? AND c.STARTED_AT >= (SELECT MAX(i.STARTED_AT) FROM COLLAB_JOB i WHERE "
+						+ "i.OWNER_ID = c.OWNER_ID AND i.OWNER_TYPE = c.OWNER_TYPE AND i.KIND = ? AND i.STATUS = ?)",
+				ownerId, ownerType, BrainThreadClassifier.JOB_KIND, CollaborationJobUtils.DONE, BrainMailImport.KIND,
 				CollaborationJobUtils.DONE);
 		return sorted ? BrainTopicStructure.WIDE : BrainTopicStructure.A1;
 	}
@@ -122,46 +158,64 @@ final class BrainTopicOnboarding {
 		}
 		Map<String, Object> window = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
 				"SELECT PARAMS_JSON, STARTED_AT, FINISHED_AT FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-						+ "AND KIND = ? AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0), rs -> {
-			Map<String, Object> row = new HashMap<>();
-			row.put("params", CollaborationDbUtils.parseMap(rs.getString(1)));
-			row.put("start", rs.getTimestamp(2));
-			row.put("end", rs.getTimestamp(3));
-			return row;
-		}, ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
+						+ "AND KIND = ? AND STATUS = ? ORDER BY STARTED_AT DESC",
+				1, 0), rs -> {
+					Map<String, Object> row = new HashMap<>();
+					row.put("params", CollaborationDbUtils.parseMap(rs.getString(1)));
+					row.put("start", rs.getTimestamp(2));
+					row.put("end", rs.getTimestamp(3));
+					return row;
+				}, ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
 		if (window == null || !(window.get("params") instanceof Map<?, ?> params)
 				|| !(params.get("days") instanceof Number days) || days.intValue() < 1 || days.intValue() > 180
 				|| !(window.get("start") instanceof Timestamp start) || !(window.get("end") instanceof Timestamp end)) {
 			throw new IllegalStateException("A completed mailbox import with a known window is required");
 		}
-		// job times are stored as UTC wall time (CollaborationDbUtils.now), not JVM local time
+		// job times are stored as UTC wall time (CollaborationDbUtils.now), not JVM
+		// local time
 		Instant since = start.toLocalDateTime().toInstant(ZoneOffset.UTC).minus(Duration.ofDays(days.intValue()));
 		Map<String, String> messages = new LinkedHashMap<>();
 		Set<String> permittedThreads = new HashSet<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
-				+ "AND SOURCE = ? AND (MUTED IS NULL OR MUTED = ?)", rs -> permittedThreads.add(rs.getString(1)),
-				ownerId, ownerType, "email", false);
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND SOURCE = ? AND (MUTED IS NULL OR MUTED = ?)",
+				rs -> permittedThreads.add(rs.getString(1)), ownerId, ownerType, "email", false);
 		CollaborationDbUtils.query("SELECT MESSAGE_KEY, THREAD_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND "
 				+ "OWNER_TYPE = ? AND DECISION = ? AND RECEIVED_AT >= ? AND RECEIVED_AT <= ?", rs -> {
-			if (permittedThreads.contains(rs.getString(2))) {
-				messages.put(rs.getString(1), rs.getString(2));
-			}
-			return null;
-		}, ownerId, ownerType, BrainRulesGate.INGESTED, Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
+					if (permittedThreads.contains(rs.getString(2))) {
+						messages.put(rs.getString(1), rs.getString(2));
+					}
+					return null;
+				}, ownerId, ownerType, BrainRulesGate.INGESTED,
+				Timestamp.valueOf(LocalDateTime.ofInstant(since, ZoneOffset.UTC)), end);
 		Map<String, String> people = new HashMap<>();
-		emails.forEach((id, email) -> { if (email != null) people.put(email, id); });
-		CollaborationDbUtils.query("SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? ORDER BY PERSON_ID DESC", rs -> people.put(rs.getString(2), rs.getString(1)), ownerId, ownerType);
+		emails.forEach((id, email) -> {
+			if (email != null) {
+				people.put(email, id);
+			}
+		});
+		CollaborationDbUtils.query(
+				"SELECT PERSON_ID, VALUE_NORM FROM BRAIN_PERSON_ADDRESS WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? ORDER BY PERSON_ID DESC",
+				rs -> people.put(rs.getString(2), rs.getString(1)), ownerId, ownerType);
 		Map<String, Set<String>> included = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, PERSON_ID FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND "
-				+ "OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)", rs -> included
-						.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId, ownerType, true);
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID, PERSON_ID FROM BRAIN_THREAD_PARTICIPANT WHERE OWNER_ID = ? AND "
+						+ "OWNER_TYPE = ? AND (INCLUDED IS NULL OR INCLUDED = ?)",
+				rs -> included.computeIfAbsent(rs.getString(1), k -> new HashSet<>()).add(rs.getString(2)), ownerId,
+				ownerType, true);
 		Map<String, List<String>> topicIds = new HashMap<>();
-		CollaborationDbUtils.query("SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
-				rs -> topicIds.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2)), ownerId, ownerType);
+		CollaborationDbUtils.query(
+				"SELECT THREAD_ID, TOPIC_ID FROM BRAIN_THREAD_TOPIC WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> topicIds.computeIfAbsent(rs.getString(1), k -> new ArrayList<>()).add(rs.getString(2)), ownerId,
+				ownerType);
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		Set<String> vipEmails = new HashSet<>();
-		vips.forEach(p -> { if (emails.get(p) != null) vipEmails.add(emails.get(p)); });
+		vips.forEach(p -> {
+			if (emails.get(p) != null) {
+				vipEmails.add(emails.get(p));
+			}
+		});
 		Map<String, List<BrainTopicStructure.Message>> byThread = new LinkedHashMap<>();
 		Set<String> sentHistory = new HashSet<>();
 		Set<String> seen = new HashSet<>();
@@ -170,7 +224,8 @@ final class BrainTopicOnboarding {
 			for (String folder : BrainMailHeaderSource.FOLDERS) {
 				List<Map<String, Object>> headers = source.topicHeaders(user, folder, since, MAX_PER_FOLDER + 1);
 				if (headers.size() > MAX_PER_FOLDER) {
-					throw new IllegalStateException("The mailbox window exceeds the header limit; import a shorter window");
+					throw new IllegalStateException(
+							"The mailbox window exceeds the header limit; import a shorter window");
 				}
 				for (Map<String, Object> header : headers) {
 					String messageId = BrainMailImport.messageId(header);
@@ -184,31 +239,38 @@ final class BrainTopicOnboarding {
 					}
 					String from = permitted(address(header.get("from")), thread, header, people, emails, included,
 							topicIds, rules);
-					if (from == null || BrainRulesGate.keywordRule(rules, (String) header.get("subject"), null) != null) {
+					if (from == null
+							|| BrainRulesGate.keywordRule(rules, (String) header.get("subject"), null) != null) {
 						continue;
 					}
-					List<String> to = recipients(header.get("toRecipients"), thread, header, people, emails, included, topicIds, rules);
-					List<String> cc = recipients(header.get("ccRecipients"), thread, header, people, emails, included, topicIds, rules);
+					List<String> to = recipients(header.get("toRecipients"), thread, header, people, emails, included,
+							topicIds, rules);
+					List<String> cc = recipients(header.get("ccRecipients"), thread, header, people, emails, included,
+							topicIds, rules);
 					if (emails.get(self).equals(from)) {
 						sentHistory.addAll(to);
 						sentHistory.addAll(cc);
 					}
 					if (eligible.contains(thread)) {
-						byThread.computeIfAbsent(thread, k -> new ArrayList<>()).add(new BrainTopicStructure.Message(
-								(String) header.get("subject"), (String) header.get("receivedDateTime"), from, to, cc, bulk(header)));
+						byThread.computeIfAbsent(thread, k -> new ArrayList<>())
+								.add(new BrainTopicStructure.Message((String) header.get("subject"),
+										(String) header.get("receivedDateTime"), from, to, cc, bulk(header)));
 					}
 				}
 			}
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
-			throw new IllegalStateException("Mailbox headers could not be refreshed; retry after reconnecting Microsoft");
+			throw new IllegalStateException(
+					"Mailbox headers could not be refreshed; retry after reconnecting Microsoft");
 		}
-		// mail archived, deleted or moved since the import is skipped and counted, not a failure
+		// mail archived, deleted or moved since the import is skipped and counted, not
+		// a failure
 		long missing = messages.keySet().stream().filter(k -> !seen.contains(k)).count();
 		notes.put("missingHeaders", missing);
 		if (!messages.isEmpty() && missing == messages.size()) {
-			throw new IllegalStateException("None of the imported mail is in the inbox or sent items any more; import again");
+			throw new IllegalStateException(
+					"None of the imported mail is in the inbox or sent items any more; import again");
 		}
 		List<BrainTopicStructure.MailThread> input = byThread.entrySet().stream()
 				.map(e -> new BrainTopicStructure.MailThread(e.getKey(), e.getValue())).toList();
@@ -217,13 +279,14 @@ final class BrainTopicOnboarding {
 		return BrainTopicStructure.prepare(input, emails.get(self), ownOrg::isMine, vipEmails, settings, sentHistory);
 	}
 
-	private static String permitted(String address, String thread, Map<String, Object> header, Map<String, String> people,
-			Map<String, String> emails, Map<String, Set<String>> included, Map<String, List<String>> topicIds,
-			List<BrainRulesGate.Rule> rules) {
+	private static String permitted(String address, String thread, Map<String, Object> header,
+			Map<String, String> people, Map<String, String> emails, Map<String, Set<String>> included,
+			Map<String, List<String>> topicIds, List<BrainRulesGate.Rule> rules) {
 		String person = people.get(address);
 		if (address == null || person == null || !included.getOrDefault(thread, Set.of()).contains(person)
 				|| BrainRulesGate.neverRule(rules, address, person, (String) header.get("parentFolderId")) != null
-				|| BrainRulesGate.exclusionRule(rules, topicIds.getOrDefault(thread, List.of()), "email", person) != null) {
+				|| BrainRulesGate.exclusionRule(rules, topicIds.getOrDefault(thread, List.of()), "email",
+						person) != null) {
 			return null;
 		}
 		return emails.get(person);

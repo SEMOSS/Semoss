@@ -36,6 +36,7 @@ import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Google OAuth2 provider. Uses the fixed Google authorize/token/userinfo
@@ -101,7 +102,7 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 		String refreshToken = getRefreshToken(currentAccessToken);
 		String prefix = AuthProvider.GOOGLE.getSocialPrefix() + "_";
 		String clientId = socialData.getProperty(prefix + "client_id");
-		if (isBlank(refreshToken) || isBlank(clientId)) {
+		if (ValueUtils.isBlank(refreshToken) || ValueUtils.isBlank(clientId)) {
 			return null;
 		}
 
@@ -110,13 +111,13 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 		refreshParams.put("grant_type", "refresh_token");
 		refreshParams.put("refresh_token", refreshToken);
 		String clientSecret = socialData.getProperty(prefix + "secret_key");
-		if (!isBlank(clientSecret)) {
+		if (!ValueUtils.isBlank(clientSecret)) {
 			refreshParams.put("client_secret", clientSecret);
 		}
 
 		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), TOKEN_URL);
 		AccessToken refreshedToken = HttpHelperUtility.getAccessToken(tokenUrl, refreshParams, true, true);
-		if (refreshedToken == null || isBlank(refreshedToken.getAccess_token())) {
+		if (refreshedToken == null || ValueUtils.isBlank(refreshedToken.getAccess_token())) {
 			return null;
 		}
 
@@ -126,7 +127,8 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 		mergedToken.setExpires_in(refreshedToken.getExpires_in());
 		mergedToken.setStartTime(refreshedToken.getStartTime());
 		String updatedRefreshToken = getRefreshToken(refreshedToken);
-		mergedToken.addMetaValue(REFRESH_TOKEN_KEY, isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
+		mergedToken.addMetaValue(REFRESH_TOKEN_KEY,
+				ValueUtils.isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
 		if (mergedToken.getProvider() == null) {
 			mergedToken.setProvider(AuthProvider.GOOGLE);
 		}
@@ -142,7 +144,7 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 			return null;
 		}
 		for (String refreshToken : refreshTokens) {
-			if (!isBlank(refreshToken)) {
+			if (!ValueUtils.isBlank(refreshToken)) {
 				return refreshToken;
 			}
 		}
@@ -153,7 +155,7 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
 		Map<String, String> extra = new LinkedHashMap<>();
 		String accessType = socialData.getProperty(prefix + "access_type");
-		if (!isBlank(accessType)) {
+		if (!ValueUtils.isBlank(accessType)) {
 			extra.put("access_type", accessType);
 		}
 		return extra;

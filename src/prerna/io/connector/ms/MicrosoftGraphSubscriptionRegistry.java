@@ -44,6 +44,7 @@ import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityExternalConnectorsUtils;
 import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.util.ValueUtils;
 
 /**
  * What this deployment knows about the Microsoft Graph subscriptions it
@@ -115,16 +116,16 @@ public class MicrosoftGraphSubscriptionRegistry {
 		private Instant expiration;
 
 		private Subscription(Map<String, Object> row) {
-			this.id = asString(row.get("subscriptionId"));
-			this.resource = asString(row.get("resource"));
-			this.changeType = asString(row.get("changeType"));
-			this.clientState = asString(row.get("clientState"));
-			this.notificationUrl = asString(row.get("notificationUrl"));
-			this.userId = asString(row.get("userId"));
-			this.userProvider = asString(row.get("userProvider"));
-			this.userEmail = asString(row.get("userEmail"));
-			this.accessToken = asString(row.get("accessToken"));
-			this.refreshToken = asString(row.get("refreshToken"));
+			this.id = ValueUtils.toNonBlankString(row.get("subscriptionId"));
+			this.resource = ValueUtils.toNonBlankString(row.get("resource"));
+			this.changeType = ValueUtils.toNonBlankString(row.get("changeType"));
+			this.clientState = ValueUtils.toNonBlankString(row.get("clientState"));
+			this.notificationUrl = ValueUtils.toNonBlankString(row.get("notificationUrl"));
+			this.userId = ValueUtils.toNonBlankString(row.get("userId"));
+			this.userProvider = ValueUtils.toNonBlankString(row.get("userProvider"));
+			this.userEmail = ValueUtils.toNonBlankString(row.get("userEmail"));
+			this.accessToken = ValueUtils.toNonBlankString(row.get("accessToken"));
+			this.refreshToken = ValueUtils.toNonBlankString(row.get("refreshToken"));
 			this.tokenExpiration = asInstant(row.get("tokenExpiration"));
 			this.expiration = asInstant(row.get("expiration"));
 		}
@@ -369,17 +370,6 @@ public class MicrosoftGraphSubscriptionRegistry {
 			return null;
 		}
 		return values.iterator().next();
-	}
-
-	/**
-	 * @param value a column value
-	 * @return it as a string, or null when there is nothing to read
-	 */
-	private static String asString(Object value) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return null;
-		}
-		return value.toString();
 	}
 
 	/**
