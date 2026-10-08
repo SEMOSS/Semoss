@@ -229,6 +229,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the owner said this thread is not automated; no later run may flag it again
 				Pair.with("AUTOMATED_OVERRIDE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
+				// retired: topic goals replace the thread goal; nothing reads or writes it
 				Pair.with("GOAL", CLOB_DATATYPE_NAME),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
 				// the newest message the summary and generated steps were made from, and when

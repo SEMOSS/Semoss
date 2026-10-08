@@ -34,7 +34,9 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.BrainTopicBrief;
 import prerna.collaboration.CollaborationUtils;
+import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.util.RuntimeTimeContext;
 
@@ -55,6 +57,9 @@ public final class AgentLoopState {
     private PptxWorkflow pptxWorkflow;
     private String systemPrompt;
     private ZoneId currentTimeZone;
+    // the owner's own collaboration chat at the root of the run: its topics ride in the runtime note
+    private User topicUser;
+    private Room topicRoom;
     private AgentRunProgress progress = new AgentRunProgress(30, 0, System::nanoTime);
 
     void initializeProgress(prerna.reactor.agent.AgentRunContext ctx) {
@@ -68,6 +73,13 @@ public final class AgentLoopState {
             currentTimeZone = CollaborationUtils.isCollaborationRoom(ctx.getRoom())
                     ? BrainProfileUtils.timeZone(user)
                     : RuntimeTimeContext.resolveZone(null, user == null ? null : user.getZoneId());
+        }
+        User runUser = ctx.getInsight() == null ? null : ctx.getInsight().getUser();
+        if (CollaborationUtils.isAssistantRoom(ctx.getRoom()) && runUser != null
+                && ctx.getSpawnDepth() == prerna.reactor.agent.AgentRunContext.ROOT_SPAWN_DEPTH
+                && !ctx.getAgentConfig().hasPptxWorkflow()) {
+            topicUser = runUser;
+            topicRoom = ctx.getRoom();
         }
         if (ctx.getAgentConfig().hasPptxWorkflow()) {
             startPptxWorkflow(ctx, ctx.isResumeMode());
@@ -86,9 +98,11 @@ public final class AgentLoopState {
     String systemPrompt() { return systemPrompt; }
 
     String runtimeContext() {
+        String topics = topicRoom == null ? null : BrainTopicBrief.runtimeNote(topicUser, topicRoom);
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
+                + (topics == null ? "" : "\n" + topics)
                 + "\n[/SEMOSS runtime status]";
     }
 

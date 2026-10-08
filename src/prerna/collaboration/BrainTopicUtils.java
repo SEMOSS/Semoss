@@ -67,6 +67,8 @@ public final class BrainTopicUtils {
 	static final int DORMANT_AFTER_DAYS = 30;
 
 	public static final int DEFAULT_LIMIT = 30;
+	// open action items listed on one topic in full
+	private static final int OPEN_ITEMS_SHOWN = 20;
 
 	private static final String SUMMARY_COLUMNS = "TOPIC_ID, NAME, SHORT_NAME, ACCOUNT_ID, KIND, COLOR, STATUS, "
 			+ "LAST_ACTIVITY_AT";
@@ -161,6 +163,7 @@ public final class BrainTopicUtils {
 			goals.add(goal);
 		}
 		topic.put("goals", goals);
+		topic.put("openActionItems", BrainTopicBrief.openItems(ownerId, ownerType, topicId, OPEN_ITEMS_SHOWN));
 		topic.put("people", getPeople(ownerId, ownerType, topicId));
 
 		return topic;

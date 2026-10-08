@@ -210,7 +210,7 @@ public final class BrainMemoryReview {
 				throw new IllegalStateException("Brain's text model (" + engine + ") could not be loaded");
 			}
 
-			Scope scope = BrainMemoryRecall.scope(ownerId, ownerType, threadId);
+			Scope scope = BrainMemoryRecall.scope(ownerId, ownerType, threadId, null);
 			Map<String, Ref> refs = new LinkedHashMap<>();
 			Map<String, String> kept = new LinkedHashMap<>();
 			Map<String, Object> input = input(ownerId, ownerType, scope, turns, refs, kept);

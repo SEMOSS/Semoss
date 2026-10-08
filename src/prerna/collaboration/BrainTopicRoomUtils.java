@@ -101,12 +101,20 @@ public final class BrainTopicRoomUtils {
 		if (user == null || !CollaborationUtils.isAssistantRoom(room)) {
 			return List.of();
 		}
+		return linkedTopics(user, new Chat(room.getId(), CollaborationUtils.threadIdOf(room)));
+	}
+
+	/** The same for a chat known by id; "Chat not found" for anything but the user's own assistant chat. */
+	public static List<String> topicsOf(User user, String roomId) {
+		return linkedTopics(user, requireChat(user, roomId));
+	}
+
+	private static List<String> linkedTopics(User user, Chat chat) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		seedFromThread(owner.getValue0(), owner.getValue1(),
-				new Chat(room.getId(), CollaborationUtils.threadIdOf(room)));
+		seedFromThread(owner.getValue0(), owner.getValue1(), chat);
 		return CollaborationDbUtils.query(
 				"SELECT TOPIC_ID FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND STATE = ? ORDER BY TOPIC_ID",
-				rs -> rs.getString("TOPIC_ID"), owner.getValue0(), owner.getValue1(), room.getId(), LINKED);
+				rs -> rs.getString("TOPIC_ID"), owner.getValue0(), owner.getValue1(), chat.roomId(), LINKED);
 	}
 
 	/** A topic's linked chats, most recently active first; closed chats are left out. */
