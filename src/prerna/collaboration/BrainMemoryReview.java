@@ -227,7 +227,7 @@ public final class BrainMemoryReview {
 
 	// the room's messages without disturbing a run that may be using it: a copy of the loaded room's list,
 	// or the saved copy when it is not loaded
-	private static List<AbstractMessage> messages(User user, String roomId) {
+	static List<AbstractMessage> messages(User user, String roomId) {
 		Room cached = user.getRoomHash().get(roomId);
 		if (cached != null) {
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {

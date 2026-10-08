@@ -32,7 +32,7 @@ import prerna.collaboration.BrainTopicRoomUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainTagTopic(topic=["..."], confident=[true]);
-// The owner's assistant tags the chat it is in with a topic; no approval, the owner can undo or dismiss it
+// The owner's assistant puts the chat it is in under a topic when the owner asks; no approval, the owner can undo it
 public class BrainTagTopicReactor extends AbstractCollaborationReactor {
 
 	private static final String TOPIC = "topic";
@@ -64,11 +64,11 @@ public class BrainTagTopicReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Tags this chat with one of the owner's topics, so that topic's notes, goals and context follow the "
-				+ "chat. Use it when the conversation is about a topic the chat does not have yet. With confident "
-				+ "true (the chat is plainly about that topic) it applies right away and the owner can undo it; "
-				+ "otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from this "
-				+ "chat is never tagged again. Take topic ids from ListTopics";
+		return "Puts this chat under one of the owner's topics when the owner asks for it, so that topic's notes, "
+				+ "goals and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
+				+ "this only on the owner's request. With confident true it applies right away and the owner can undo "
+				+ "it; otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from "
+				+ "this chat is never tagged again. Take topic ids from ListTopics";
 	}
 
 	@Override

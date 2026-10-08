@@ -107,9 +107,8 @@ public final class CollaborationPrompts {
 			removes its people, adds a goal or note, or deletes one. Both wait for the owner to approve, so \
 			one call can hold several changes. Use them when the owner asks, such as "untag that" or "add \
 			Rose to this topic", and not otherwise.
-			- TagTopic tags this chat with one of the owner's topics. When the conversation is plainly about \
-			a topic the chat does not have, tag it with confident true; when it only might be, use confident \
-			false so the owner can accept it. Tag once; never tag a topic the owner removed from the chat.
+			- Brain tags this chat with the owner's topics on its own as you talk. Use TagTopic only when the owner \
+			asks to put the chat under a topic, with confident true. Never tag a topic the owner removed from the chat.
 			- Take thread ids from search results and read a topic with ListTopics before changing it. If a \
 			change is refused or fails, say so and do not retry it unchanged.
 			""";

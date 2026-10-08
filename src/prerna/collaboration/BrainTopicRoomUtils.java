@@ -54,6 +54,7 @@ public final class BrainTopicRoomUtils {
 	public static final String DISMISSED = "dismissed";
 	static final String AGENT = "agent";
 	static final String THREAD = "thread";
+	// origin "brain": the background classifier (BrainChatTopics)
 
 	private static final String LOCK = "topic-room";
 	private static final String OWNED_ROOM = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ROOM_ID = ?";
@@ -212,6 +213,30 @@ public final class BrainTopicRoomUtils {
 		result.put("topicId", topic);
 		result.put("outcome", outcome);
 		return result;
+	}
+
+	/**
+	 * The background classifier (BrainChatTopics) tags the chat: linked when confident, a soft tag otherwise. It
+	 * only adds: a topic the owner set or dismissed stays as it is, and a soft tag can only turn into a link.
+	 * Returns linked, suggested or none.
+	 */
+	static String brainTag(String ownerId, String ownerType, Chat chat, String topicId, boolean confident) {
+		synchronized (CollaborationDbUtils.ownerLock(LOCK, ownerId, ownerType)) {
+			seedFromThread(ownerId, ownerType, chat);
+			String[] row = CollaborationDbUtils.queryOne(
+					"SELECT STATE, ORIGIN FROM BRAIN_TOPIC_ROOM" + OWNED_ROOM + " AND TOPIC_ID = ?",
+					rs -> new String[] { rs.getString("STATE"), rs.getString("ORIGIN") }, ownerId, ownerType,
+					chat.roomId(), topicId);
+			if (row == null) {
+				put(ownerId, ownerType, chat.roomId(), topicId, confident ? LINKED : SUGGESTED, BrainChatTopics.BRAIN);
+				return confident ? LINKED : SUGGESTED;
+			}
+			if (confident && SUGGESTED.equals(row[0]) && !BrainProfileUtils.YOU.equals(row[1])) {
+				put(ownerId, ownerType, chat.roomId(), topicId, LINKED, BrainChatTopics.BRAIN);
+				return LINKED;
+			}
+			return "none";
+		}
 	}
 
 	// ---- topic lifecycle, inside the caller's transaction ----

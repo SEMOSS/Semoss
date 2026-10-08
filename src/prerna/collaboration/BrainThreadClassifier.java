@@ -85,7 +85,7 @@ public final class BrainThreadClassifier {
 	// urgency is about the newest message now: older mail caps at Today, then This week
 	private static final int TODAY_DAYS = 1;
 	private static final int WEEK_DAYS = 7;
-	private static final int WAY_OUT_ASK_BAND = 15;
+	static final int WAY_OUT_ASK_BAND = 15;
 
 	private BrainThreadClassifier() {
 	}
@@ -307,11 +307,7 @@ public final class BrainThreadClassifier {
 			throw new IllegalArgumentException("Model " + engine + " could not be loaded");
 		}
 		BrainClassifier classifier = BrainClassifier.forEngine(engine, model);
-		List<BrainClassifier.TopicOption> topics = new ArrayList<>(topics(ownerId, ownerType));
-		if (!topics.isEmpty()) {
-			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
-					"Not about the other topics: other work, personal, travel, or automated mail."));
-		}
+		List<BrainClassifier.TopicOption> topics = topicOptions(ownerId, ownerType);
 		Set<String> vips = new HashSet<>(CollaborationDbUtils.query(
 				"SELECT PERSON_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? " + "AND OWNER_TYPE = ? AND IS_VIP = ?",
 				rs -> rs.getString(1), ownerId, ownerType, true));
@@ -725,6 +721,16 @@ public final class BrainThreadClassifier {
 			}
 		}
 		return names;
+	}
+
+	// the topics a chat or thread can be scored against, with the "Something else" way out
+	static List<BrainClassifier.TopicOption> topicOptions(String ownerId, String ownerType) {
+		List<BrainClassifier.TopicOption> topics = new ArrayList<>(topics(ownerId, ownerType));
+		if (!topics.isEmpty()) {
+			topics.add(new BrainClassifier.TopicOption(OTHER_TOPIC, "Something else",
+					"Not about the other topics: other work, personal, travel, or automated mail."));
+		}
+		return topics;
 	}
 
 	// active and dormant topics with a description the model can match against
