@@ -36,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.util.ValueUtils;
 
 /**
  * What every OneDrive reactor has in common.
@@ -76,7 +77,7 @@ public abstract class AbstractMicrosoftOneDriveReactor extends AbstractMicrosoft
 	 * @return the value
 	 */
 	protected int positiveInt(String key, int fallback, int cap) {
-		String value = trimToNull(this.keyValue.get(key));
+		String value = ValueUtils.trimToNull(this.keyValue.get(key));
 		if (value == null) {
 			return fallback;
 		}
@@ -127,18 +128,6 @@ public abstract class AbstractMicrosoftOneDriveReactor extends AbstractMicrosoft
 			return null;
 		}
 		return values.toArray(new String[0]);
-	}
-
-	/**
-	 * @param value the value to trim
-	 * @return the value without surrounding space, or null when there is nothing
-	 *         left of it
-	 */
-	protected static String trimToNull(String value) {
-		if (value == null || value.trim().isEmpty()) {
-			return null;
-		}
-		return value.trim();
 	}
 
 	@Override

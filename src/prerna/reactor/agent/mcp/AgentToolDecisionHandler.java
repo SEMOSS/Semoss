@@ -53,14 +53,15 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.run.AgentRunActionStore;
-import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.run.AgentRunRecord;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
 import prerna.reactor.agent.run.AgentRunStore;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Handles a HITL decision (approve/edit/reject/respond) on a paused agent tool
@@ -127,7 +128,7 @@ public final class AgentToolDecisionHandler {
 		String requestingUserId = this.insight != null ? this.insight.getUserId() : null;
 		Map<String, Object> pendingAction = loadAndValidateAction(actionId, requestingUserId, automationAuthorized,
 				expectedRunId);
-		String actionOwnerUserId = stringValue(pendingAction.get("userId"));
+		String actionOwnerUserId = ValueUtils.trimToNull(pendingAction.get("userId"));
 		if (actionOwnerUserId == null) {
 			throw new IllegalStateException("Agent HITL action has no durable owner actionId=" + actionId);
 		}
@@ -150,12 +151,12 @@ public final class AgentToolDecisionHandler {
 		// reject/respond record a manual result without executing the tool
 		if (!decisionExecutesTool(normalizedDecision)) {
 			String manualResult = resolveManualDecisionResult(normalizedDecision, passthroughResult,
-					stringValue(pendingAction.get("toolName")));
+					ValueUtils.trimToNull(pendingAction.get("toolName")));
 			writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, manualResult,
 					toolStatus != null ? toolStatus : toolStatusForDecision(normalizedDecision), actionId,
 					normalizedDecision, resolveToolParamsForDecision(pendingAction, callerParams), pendingAction,
 					actionOwnerUserId, true, automationAuthorized);
-			publishDecisionToolItem(runId, toolCallId, stringValue(pendingAction.get("toolName")),
+			publishDecisionToolItem(runId, toolCallId, ValueUtils.trimToNull(pendingAction.get("toolName")),
 					resolveDisplayTitle(pendingAction), resolveToolParamsForDecision(pendingAction, callerParams),
 					DECISION_REJECT.equals(normalizedDecision) ? AgentStreamItems.TOOL_REJECTED
 							: AgentStreamItems.TOOL_COMPLETED,
@@ -169,7 +170,7 @@ public final class AgentToolDecisionHandler {
 					"mcpToolResult is only valid for HITL decision=reject or decision=respond");
 		}
 
-		String toolName = stringValue(pendingAction.get("toolName"));
+		String toolName = ValueUtils.trimToNull(pendingAction.get("toolName"));
 		// Delegation tools are platform actions, not MCP tools, so they have no engine.
 		boolean delegationSubmit = HumanDelegationService.SUBMIT_TOOL_NAME.equals(toolName);
 		boolean delegationRequest = HumanDelegationService.TOOL_NAME.equals(toolName);
@@ -189,9 +190,18 @@ public final class AgentToolDecisionHandler {
 			if (MCPUtility.ROOM_MCP_ID.equals(engineId)) {
 				this.insight.setRoomForInsight(executionRoom);
 			}
-			// The stored action holds the aliased name the model produced; undo it
-			// from the room's own map. See Room#resolveOriginalToolName.
-			toolName = executionRoom.resolveOriginalToolName(toolName);
+			// Collaboration/delegation tools run by the raw name they were matched on.
+			// For MCP tools, a reloaded room may not have rebuilt its alias lookup
+			// yet, so fall back to the original name persisted with the action.
+			if (!delegationSubmit && !delegationRequest && !collaborationTool) {
+				String resolvedToolName = executionRoom.resolveOriginalToolName(toolName);
+				Map<String, Object> storedToolMeta = parseStoredMap(pendingAction.get("toolMeta"));
+				String originalToolName = storedToolMeta != null
+						? ValueUtils.trimToNull(storedToolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME))
+						: null;
+				toolName = resolvedToolName != null && !resolvedToolName.equals(toolName) ? resolvedToolName
+						: originalToolName != null ? originalToolName : toolName;
+			}
 		}
 
 		if (!AgentRunActionStore.claimForExecution(actionId, runId, actionOwnerUserId)) {
@@ -209,8 +219,8 @@ public final class AgentToolDecisionHandler {
 		ToolExecutionResult toolResult = delegationSubmit
 				? HumanDelegationService.submitFromTool(this.insight, executionRoom, paramMap)
 				: delegationRequest ? HumanDelegationService.delegateFromTool(this.insight, runId, paramMap)
-				: collaborationTool ? CollaborationAgentTools.execute(toolName, paramMap, this.insight)
-				: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
+						: collaborationTool ? CollaborationAgentTools.execute(toolName, paramMap, this.insight)
+								: MCPUtility.executeToolResult(engineId, toolName, paramMap, this.insight);
 		String resultStr = toolResultContent(toolResult);
 		if (executionRoom != null) {
 			// generated media goes to the room as files, not into history as base64
@@ -253,12 +263,14 @@ public final class AgentToolDecisionHandler {
 			}
 		}
 		if (toolMeta != null) {
-			Object original = toolMeta.get(MCPUtility.SMSS_ORIGINAL_TOOL_NAME);
-			if (original != null && !original.toString().isBlank()) {
-				return original.toString();
+			for (String key : List.of(MCPUtility.SMSS_TOOL_TITLE, MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
+				Object title = toolMeta.get(key);
+				if (title != null && !title.toString().isBlank()) {
+					return title.toString();
+				}
 			}
 		}
-		return stringValue(pendingAction.get("toolName"));
+		return ValueUtils.trimToNull(pendingAction.get("toolName"));
 	}
 
 	private static String toolResultContent(ToolExecutionResult result) {
@@ -291,17 +303,17 @@ public final class AgentToolDecisionHandler {
 	private String replayDecidedAction(Map<String, Object> action, String runId, String roomId, String toolCallId,
 			String parentMessageId, String toolStatus, String actionId, String normalizedDecision, String userId,
 			boolean automationAuthorized) {
-		String storedResult = stringValue(action.get("result"));
+		String storedResult = ValueUtils.trimToNull(action.get("result"));
 		if (storedResult == null) {
 			throw new IllegalStateException(
 					"Agent HITL action is decided but has no stored result actionId=" + actionId);
 		}
 		Map<String, Object> retryParams = resolveRetryToolParams(action);
-		String storedToolStatus = stringValue(action.get("toolStatus"));
+		String storedToolStatus = ValueUtils.trimToNull(action.get("toolStatus"));
 		writeToRoomAndResume(runId, roomId, toolCallId, parentMessageId, storedResult,
 				storedToolStatus != null ? storedToolStatus
 						: (toolStatus != null ? toolStatus
-								: toolStatusForActionStatus(stringValue(action.get("status")))),
+								: toolStatusForActionStatus(ValueUtils.trimToNull(action.get("status")))),
 				actionId, normalizedDecision, retryParams, action, userId, false, automationAuthorized);
 		return storedResult;
 	}
@@ -354,7 +366,7 @@ public final class AgentToolDecisionHandler {
 		}
 
 		Map<String, Object> paramMapForRoom = new HashMap<>();
-		String roomToolName = stringValue(pendingAction.get("toolName"));
+		String roomToolName = ValueUtils.trimToNull(pendingAction.get("toolName"));
 		if (findToolResultMessage(room, parentMessageId, toolCallId) == null) {
 			room.addToolExecutionResultWithoutModel(toolCallId, roomToolName, toolResult,
 					toolParams != null ? toolParams : paramMapForRoom, parentMessageId, modelEngine, this.insight,
@@ -421,9 +433,9 @@ public final class AgentToolDecisionHandler {
 			throw new SecurityException("No agent action found for actionId=" + actionId);
 		}
 		if (expectedRunId != null) {
-			requireEquals(CTX_RUN_ID, expectedRunId, stringValue(action.get(CTX_RUN_ID)));
+			requireEquals(CTX_RUN_ID, expectedRunId, ValueUtils.trimToNull(action.get(CTX_RUN_ID)));
 		}
-		String status = stringValue(action.get("status"));
+		String status = ValueUtils.trimToNull(action.get("status"));
 		if (STATUS_EXECUTING.equals(status)) {
 			throw new IllegalStateException("Agent HITL action is already being handled actionId=" + actionId);
 		}
@@ -448,7 +460,7 @@ public final class AgentToolDecisionHandler {
 	 * stored value is used.
 	 */
 	private String resolveFromRow(String field, String provided, Map<String, Object> pendingAction) {
-		String stored = stringValue(pendingAction.get(field));
+		String stored = ValueUtils.trimToNull(pendingAction.get(field));
 		if (provided == null || provided.trim().isEmpty()) {
 			return stored;
 		}
@@ -545,16 +557,16 @@ public final class AgentToolDecisionHandler {
 		if (toolMeta == null) {
 			return null;
 		}
-		String engineId = stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID));
+		String engineId = ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_ENGINE_ID));
 		if (engineId == null) {
-			engineId = stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID));
+			engineId = ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_PROJECT_ID));
 		}
 		return engineId;
 	}
 
 	private static void requireEquals(String field, String provided, Object stored) {
-		String providedValue = stringValue(provided);
-		String storedValue = stringValue(stored);
+		String providedValue = ValueUtils.trimToNull(provided);
+		String storedValue = ValueUtils.trimToNull(stored);
 		if (providedValue == null || storedValue == null || !providedValue.equals(storedValue)) {
 			throw new SecurityException("Invalid agent HITL " + field);
 		}
@@ -574,7 +586,7 @@ public final class AgentToolDecisionHandler {
 	}
 
 	private static boolean isDecidedAction(Map<String, Object> action) {
-		return action != null && isDecidedStatus(stringValue(action.get("status")));
+		return action != null && isDecidedStatus(ValueUtils.trimToNull(action.get("status")));
 	}
 
 	private static boolean isDecidedStatus(String status) {
@@ -583,7 +595,7 @@ public final class AgentToolDecisionHandler {
 	}
 
 	private static String normalizeDecision(String decision) {
-		String normalized = stringValue(decision);
+		String normalized = ValueUtils.trimToNull(decision);
 		if (normalized == null) {
 			return DECISION_APPROVE;
 		}
@@ -600,9 +612,8 @@ public final class AgentToolDecisionHandler {
 		return DECISION_APPROVE.equals(normalized) || DECISION_EDIT.equals(normalized);
 	}
 
-	private static String resolveManualDecisionResult(String decision, String toolExecutionResult,
-			String toolName) {
-		String result = stringValue(toolExecutionResult);
+	private static String resolveManualDecisionResult(String decision, String toolExecutionResult, String toolName) {
+		String result = ValueUtils.trimToNull(toolExecutionResult);
 		if (result != null) {
 			return result;
 		}
@@ -627,14 +638,6 @@ public final class AgentToolDecisionHandler {
 			return "cancelled";
 		}
 		return "success";
-	}
-
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 }

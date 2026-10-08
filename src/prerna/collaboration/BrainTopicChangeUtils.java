@@ -71,6 +71,11 @@ public final class BrainTopicChangeUtils {
 		TOPIC_TABLES.put("BRAIN_RULE", "RULE_ID");
 	}
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
+	// chats on the topics; in a snapshot only when there are some, so older snapshots still compare
+	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
+	// memories linked to the topics, keyed by memory: the rows and every link they have
+	private static final String MEMORY = "BRAIN_MEMORY";
+	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
 	// rows outside the topic that point at it by LINK_TOPIC_ID -> their id column
 	private static final Map<String, String> LINK_TABLES = Map.of("WORK_ITEM", "ITEM_ID", "WORK_THREAD_STEP",
 			"STEP_ID");
@@ -93,9 +98,10 @@ public final class BrainTopicChangeUtils {
 		final List<List<String>> links = new ArrayList<>();
 		final List<String> mergeCandidates;
 		final List<String> reviews;
+		final List<String> memoryIds;
 
 		private Snapshot(String ownerId, String ownerType, List<String> topicIds, List<String> threadIds, String before,
-				List<String> mergeCandidates, List<String> reviews) {
+				List<String> mergeCandidates, List<String> reviews, List<String> memoryIds) {
 			this.ownerId = ownerId;
 			this.ownerType = ownerType;
 			this.topicIds = topicIds;
@@ -103,6 +109,7 @@ public final class BrainTopicChangeUtils {
 			this.before = before;
 			this.mergeCandidates = mergeCandidates;
 			this.reviews = reviews;
+			this.memoryIds = memoryIds;
 		}
 	}
 
@@ -125,9 +132,15 @@ public final class BrainTopicChangeUtils {
 						"SELECT REVIEW_ID FROM BRAIN_REVIEW" + OWNED
 								+ " AND REF_ID = ? AND STATUS = ? ORDER BY REVIEW_ID",
 						ownerId, ownerType, removedTopicId, "open"), "REVIEW_ID");
+		List<Object> memoryParams = new ArrayList<>(List.of(ownerId, ownerType, BrainMemoryUtils.TOPIC));
+		memoryParams.addAll(topicIds);
+		List<String> memoryIds = strings(readRows(conn,
+				"SELECT DISTINCT MEMORY_ID FROM " + MEMORY_LINK + OWNED + " AND REF_TYPE = ? AND REF_ID IN ("
+						+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY MEMORY_ID",
+				memoryParams.toArray()), "MEMORY_ID");
 		Snapshot snapshot = new Snapshot(ownerId, ownerType, topicIds, threadIds,
-				CollaborationDbUtils.toJson(scopeRows(conn, ownerId, ownerType, topicIds, threadIds)), mergeCandidates,
-				reviews);
+				CollaborationDbUtils.toJson(scopeRows(conn, ownerId, ownerType, topicIds, threadIds, memoryIds)),
+				mergeCandidates, reviews, memoryIds);
 		for (Map.Entry<String, String> table : LINK_TABLES.entrySet()) {
 			for (Map<String, Object> row : readRows(conn,
 					"SELECT " + table.getValue() + " FROM " + table.getKey() + OWNED + " AND LINK_TOPIC_ID = ?",
@@ -146,8 +159,9 @@ public final class BrainTopicChangeUtils {
 		saved.put("topicIds", snapshot.topicIds);
 		saved.put("threadIds", snapshot.threadIds);
 		saved.put("before", snapshot.before);
-		saved.put("after", CollaborationDbUtils
-				.toJson(scopeRows(conn, snapshot.ownerId, snapshot.ownerType, snapshot.topicIds, snapshot.threadIds)));
+		saved.put("after", CollaborationDbUtils.toJson(scopeRows(conn, snapshot.ownerId, snapshot.ownerType,
+				snapshot.topicIds, snapshot.threadIds, snapshot.memoryIds)));
+		saved.put("memoryIds", snapshot.memoryIds);
 		saved.put("links", snapshot.links);
 		saved.put("linkAfter", targetTopicId);
 		saved.put("mergeCandidates", snapshot.mergeCandidates);
@@ -194,6 +208,10 @@ public final class BrainTopicChangeUtils {
 		Map<String, Object> saved = CollaborationDbUtils.parseMap((String) change.get("snapshot"));
 		List<String> topicIds = CollaborationDbUtils.toStringList((List<Object>) saved.get("topicIds"));
 		List<String> threadIds = CollaborationDbUtils.toStringList((List<Object>) saved.get("threadIds"));
+		// absent in snapshots taken before memories existed
+		List<String> memoryIds = saved.get("memoryIds") instanceof List
+				? CollaborationDbUtils.toStringList((List<Object>) saved.get("memoryIds"))
+				: List.of();
 		Map<String, Object> before = CollaborationDbUtils.parseMap((String) saved.get("before"));
 		Timestamp now = CollaborationDbUtils.now();
 		String undoId = UUID.randomUUID().toString();
@@ -203,7 +221,8 @@ public final class BrainTopicChangeUtils {
 					ownerId, ownerType, UNDO, changeId).isEmpty()) {
 				throw new IllegalArgumentException("Change already undone");
 			}
-			Map<String, List<Map<String, Object>>> currentRows = scopeRows(conn, ownerId, ownerType, topicIds, threadIds);
+			Map<String, List<Map<String, Object>>> currentRows = scopeRows(conn, ownerId, ownerType, topicIds, threadIds,
+					memoryIds);
 			// Old snapshots predate rejection storage. They remain undoable only while that scope has no new decisions.
 			Map<String, Object> expectedAfter = CollaborationDbUtils.parseMap((String) saved.get("after"));
 			if (!expectedAfter.containsKey("BRAIN_THREAD_TOPIC_REJECTION")) {
@@ -216,12 +235,24 @@ public final class BrainTopicChangeUtils {
 			if (!current.equals(saved.get("after"))) {
 				throw new IllegalArgumentException("The topic changed since; undo not applied");
 			}
+			if (!memoryIds.isEmpty()) {
+				for (String table : new String[] { MEMORY_LINK, MEMORY }) {
+					CollaborationDbUtils.update(conn,
+							"DELETE FROM " + table + OWNED + " AND MEMORY_ID IN ("
+									+ CollaborationDbUtils.placeholders(memoryIds.size()) + ")",
+							params(ownerId, ownerType, memoryIds));
+				}
+			}
 			for (String table : TOPIC_TABLES.keySet()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + table + OWNED + " AND TOPIC_ID IN ("
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+							+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
+					params(ownerId, ownerType, topicIds));
 			if (!threadIds.isEmpty()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
@@ -278,9 +309,9 @@ public final class BrainTopicChangeUtils {
 	}
 
 	// every row the change can touch, table by table, in a stable order so
-	// before/after compare as text
+	// before/after compare as text; memory tables only when memories were linked, so old snapshots still compare
 	private static Map<String, List<Map<String, Object>>> scopeRows(Connection conn, String ownerId, String ownerType,
-			List<String> topicIds, List<String> threadIds) throws SQLException {
+			List<String> topicIds, List<String> threadIds, List<String> memoryIds) throws SQLException {
 		Map<String, List<Map<String, Object>>> rows = new LinkedHashMap<>();
 		for (Map.Entry<String, String> table : TOPIC_TABLES.entrySet()) {
 			rows.put(table.getKey(),
@@ -292,6 +323,19 @@ public final class BrainTopicChangeUtils {
 				: readRows(conn, "SELECT * FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
 						+ CollaborationDbUtils.placeholders(threadIds.size()) + ") ORDER BY THREAD_ID, TOPIC_ID",
 						params(ownerId, ownerType, threadIds)));
+		List<Map<String, Object>> chats = readRows(conn, "SELECT * FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, ROOM_ID",
+				params(ownerId, ownerType, topicIds));
+		if (!chats.isEmpty()) {
+			rows.put(ROOM_TOPIC, chats);
+		}
+		if (!memoryIds.isEmpty()) {
+			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";
+			rows.put(MEMORY, readRows(conn, "SELECT * FROM " + MEMORY + OWNED + inMemories + " ORDER BY MEMORY_ID",
+					params(ownerId, ownerType, memoryIds)));
+			rows.put(MEMORY_LINK, readRows(conn, "SELECT * FROM " + MEMORY_LINK + OWNED + inMemories
+					+ " ORDER BY MEMORY_ID, REF_TYPE, REF_ID", params(ownerId, ownerType, memoryIds)));
+		}
 		return rows;
 	}
 

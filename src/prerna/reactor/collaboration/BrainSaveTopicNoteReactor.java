@@ -32,6 +32,7 @@ import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainSaveTopicNote(topicId=["..."], noteId=["..."], kind=["goal"], text=["..."], state=["open"]);
+// a topic note is a memory about the topic now (BrainSaveMemory)
 public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
 
 	private static final String TOPIC_ID = "topicId";
@@ -58,7 +59,7 @@ public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Adds or edits a goal or note on a Brain topic";
+		return "Adds or edits a goal on a Brain topic";
 	}
 
 	@Override
@@ -68,11 +69,11 @@ public class BrainSaveTopicNoteReactor extends AbstractCollaborationReactor {
 		} else if (NOTE_ID.equals(key)) {
 			return "Note id to edit; omit to create";
 		} else if (KIND.equals(key)) {
-			return "goal or note";
+			return "goal";
 		} else if (TEXT.equals(key)) {
-			return "Goal or note text";
+			return "Goal text";
 		} else if (STATE.equals(key)) {
-			return "open or done for a goal; draft or confirmed for a note";
+			return "open or done";
 		}
 		return super.getDescriptionForKey(key);
 	}

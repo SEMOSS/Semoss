@@ -58,6 +58,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftTokenFiller;
 import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * The OneDrive operations of Microsoft Graph, as plain calls.
@@ -314,7 +315,7 @@ public class MicrosoftOneDriveHelper {
 	public static List<Map<String, Object>> listSharedFiles(String accessToken, String search, int limit)
 			throws Exception {
 		Map<String, Map<String, Object>> merged = new LinkedHashMap<>();
-		String wanted = isBlank(search) ? null : search.trim().toLowerCase(Locale.ROOT);
+		String wanted = ValueUtils.isBlank(search) ? null : search.trim().toLowerCase(Locale.ROOT);
 
 		Exception sharedWithMeFailure = null;
 		try {
@@ -338,8 +339,8 @@ public class MicrosoftOneDriveHelper {
 
 		try {
 			String ownDriveId = ownDriveId(accessToken);
-			for (Map<String, Object> hit : searchAllDriveItems(accessToken, isBlank(search) ? MATCH_EVERYTHING : search,
-					searchSize(limit))) {
+			for (Map<String, Object> hit : searchAllDriveItems(accessToken,
+					ValueUtils.isBlank(search) ? MATCH_EVERYTHING : search, searchSize(limit))) {
 				Map<String, Object> described = MicrosoftOneDriveItemMapper.toDriveItem(hit, null);
 				Object hitDriveId = described.get(DRIVE_ID);
 				// a hit that does not say where it lives cannot be read afterwards, so
@@ -524,10 +525,10 @@ public class MicrosoftOneDriveHelper {
 			requireValue(destination, "A destination path is required to download a OneDrive file.");
 
 			Map<String, Object> item;
-			if (!isBlank(shareUrl)) {
+			if (!ValueUtils.isBlank(shareUrl)) {
 				item = readItem(accessToken, shareUrl(shareUrl));
 			} else {
-				if (isBlank(itemId) && isBlank(path)) {
+				if (ValueUtils.isBlank(itemId) && ValueUtils.isBlank(path)) {
 					throw new IllegalArgumentException(
 							"An item id, a path or a sharing link is required to download a OneDrive file.");
 				}
@@ -548,7 +549,8 @@ public class MicrosoftOneDriveHelper {
 			// a shared item read out of the user's own drive is only a stub, so it
 			// carries no download url of its own and has to be read again where it
 			// really lives
-			if (item.get(DOWNLOAD_URL) == null && !isBlank(resolvedDriveId) && !isBlank(resolvedItemId)) {
+			if (item.get(DOWNLOAD_URL) == null && !ValueUtils.isBlank(resolvedDriveId)
+					&& !ValueUtils.isBlank(resolvedItemId)) {
 				Map<String, Object> remote = readItem(accessToken,
 						GRAPH_BASE + "/drives/" + resolvedDriveId + ITEMS + resolvedItemId);
 				if (remote != null) {
@@ -674,7 +676,7 @@ public class MicrosoftOneDriveHelper {
 			body.put(NAME, folderName.trim());
 			body.put(FOLDER, new LinkedHashMap<String, Object>());
 			body.put(CONFLICT_BEHAVIOR_PARAM,
-					isBlank(conflictBehavior) ? CONFLICT_FAIL : normalizeConflictBehavior(conflictBehavior));
+					ValueUtils.isBlank(conflictBehavior) ? CONFLICT_FAIL : normalizeConflictBehavior(conflictBehavior));
 
 			String url = itemUrl(driveId, itemId, parentPath) + "/children";
 			String response = HttpHelperUtility.postRequestStringBody(url, headers(accessToken), GSON.toJson(body),
@@ -709,7 +711,7 @@ public class MicrosoftOneDriveHelper {
 	 */
 	public static void deleteItem(String accessToken, String driveId, String itemId, String path) throws Exception {
 		try {
-			if (isBlank(itemId) && isBlank(path)) {
+			if (ValueUtils.isBlank(itemId) && ValueUtils.isBlank(path)) {
 				throw new IllegalArgumentException(
 						"Refusing to delete the root of the drive. Name an item id or a path beneath it instead.");
 			}
@@ -752,12 +754,12 @@ public class MicrosoftOneDriveHelper {
 			String type, String scope, String[] recipients, String password, String expirationDateTime)
 			throws Exception {
 		try {
-			if (isBlank(itemId) && isBlank(path)) {
+			if (ValueUtils.isBlank(itemId) && ValueUtils.isBlank(path)) {
 				throw new IllegalArgumentException("An item id or a path is required to share a OneDrive item.");
 			}
 
-			String linkType = isBlank(type) ? LINK_TYPES.get(0) : oneOf(type, LINK_TYPES, "type");
-			String linkScope = isBlank(scope) ? "organization" : oneOf(scope, LINK_SCOPES, "scope");
+			String linkType = ValueUtils.isBlank(type) ? LINK_TYPES.get(0) : oneOf(type, LINK_TYPES, "type");
+			String linkScope = ValueUtils.isBlank(scope) ? "organization" : oneOf(scope, LINK_SCOPES, "scope");
 
 			Map<String, Object> body = new LinkedHashMap<>();
 			body.put("type", linkType);
@@ -773,10 +775,10 @@ public class MicrosoftOneDriveHelper {
 				}
 				body.put("recipients", named);
 			}
-			if (!isBlank(password)) {
+			if (!ValueUtils.isBlank(password)) {
 				body.put("password", password.trim());
 			}
-			if (!isBlank(expirationDateTime)) {
+			if (!ValueUtils.isBlank(expirationDateTime)) {
 				body.put("expirationDateTime", expirationDateTime.trim());
 			}
 
@@ -868,7 +870,8 @@ public class MicrosoftOneDriveHelper {
 		if (preAuthUrl != null && !preAuthUrl.toString().trim().isEmpty()) {
 			fileBytes = HttpHelperUtility.getRequestBytes(preAuthUrl.toString(), null, null, null, null);
 		}
-		if ((fileBytes == null || fileBytes.length == 0) && !isBlank(driveId) && !isBlank(itemId)) {
+		if ((fileBytes == null || fileBytes.length == 0) && !ValueUtils.isBlank(driveId)
+				&& !ValueUtils.isBlank(itemId)) {
 			String contentUrl = GRAPH_BASE + "/drives/" + driveId + ITEMS + itemId + "/content";
 			fileBytes = HttpHelperUtility.getRequestBytes(contentUrl, headers(accessToken), null, null, null);
 		}
@@ -884,10 +887,10 @@ public class MicrosoftOneDriveHelper {
 	 */
 	private static File write(byte[] fileBytes, String destination, String fileName, String itemName) throws Exception {
 		String normalizedFileName = fileName == null ? null : fileName.trim();
-		if (isBlank(normalizedFileName) && new File(destination).isDirectory() && itemName != null) {
+		if (ValueUtils.isBlank(normalizedFileName) && new File(destination).isDirectory() && itemName != null) {
 			normalizedFileName = itemName;
 		}
-		String targetPath = isBlank(normalizedFileName) ? destination
+		String targetPath = ValueUtils.isBlank(normalizedFileName) ? destination
 				: Paths.get(destination, normalizedFileName).toString();
 
 		File file = new File(targetPath);
@@ -1018,7 +1021,7 @@ public class MicrosoftOneDriveHelper {
 	 * @return the url up to the drive
 	 */
 	private static String drivePath(String driveId) {
-		if (isBlank(driveId)) {
+		if (ValueUtils.isBlank(driveId)) {
 			return GRAPH_BASE + "/me/drive";
 		}
 		return GRAPH_BASE + "/drives/" + driveId.trim();
@@ -1042,7 +1045,7 @@ public class MicrosoftOneDriveHelper {
 	private static String itemUrl(String driveId, String itemId, String path) {
 		String base = drivePath(driveId);
 		String relativePath = encodeRelativePath(path);
-		if (!isBlank(itemId)) {
+		if (!ValueUtils.isBlank(itemId)) {
 			String itemBase = base + ITEMS + itemId.trim();
 			return relativePath.isEmpty() ? itemBase : itemBase + ":/" + relativePath + ":";
 		}
@@ -1131,7 +1134,7 @@ public class MicrosoftOneDriveHelper {
 	 * separator, leaving the segments as they were written.
 	 */
 	private static String normalizeRelativePath(String path) {
-		if (isBlank(path)) {
+		if (ValueUtils.isBlank(path)) {
 			return "";
 		}
 		StringBuilder normalized = new StringBuilder();
@@ -1155,7 +1158,7 @@ public class MicrosoftOneDriveHelper {
 	 *         string when nothing was supplied
 	 */
 	private static String encodeRelativePath(String path) {
-		if (isBlank(path)) {
+		if (ValueUtils.isBlank(path)) {
 			return "";
 		}
 		String normalized = path.trim().replace('\\', '/');
@@ -1226,7 +1229,7 @@ public class MicrosoftOneDriveHelper {
 	 * @return the response as a map, or null when there is nothing to read
 	 */
 	private static Map<String, Object> readMap(String response) {
-		if (isBlank(response)) {
+		if (ValueUtils.isBlank(response)) {
 			return null;
 		}
 		return GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
@@ -1238,7 +1241,7 @@ public class MicrosoftOneDriveHelper {
 	 * {@code rename}.
 	 */
 	private static String normalizeConflictBehavior(String conflictBehavior) {
-		if (isBlank(conflictBehavior)) {
+		if (ValueUtils.isBlank(conflictBehavior)) {
 			return CONFLICT_RENAME;
 		}
 		return oneOf(conflictBehavior, CONFLICT_BEHAVIORS, "Conflict behavior");
@@ -1269,13 +1272,9 @@ public class MicrosoftOneDriveHelper {
 	 * Guards against missing required string inputs.
 	 */
 	private static void requireValue(String value, String message) {
-		if (isBlank(value)) {
+		if (ValueUtils.isBlank(value)) {
 			throw new IllegalArgumentException(message);
 		}
-	}
-
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
 	}
 
 }

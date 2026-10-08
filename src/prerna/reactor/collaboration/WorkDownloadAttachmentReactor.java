@@ -44,7 +44,7 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 
 	public WorkDownloadAttachmentReactor() {
 		this.keysToGet = new String[] { THREAD_ID, MESSAGE_ID, ATTACHMENT_NAME, ATTACHMENT_ID, FILE_NAME, INCLUDE_TEXT };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -52,10 +52,12 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 		User user = getUser();
 		String threadId = getString(THREAD_ID);
 		String messageId = getString(MESSAGE_ID);
-		String attachmentId = getString(ATTACHMENT_ID);
 		String attachmentName = getString(ATTACHMENT_NAME);
-		if (threadId == null || messageId == null || (attachmentId == null && attachmentName == null)) {
-			throw new IllegalArgumentException("Must pass a threadId, messageId, and attachmentName");
+		// only the app passes ids, and never a name; an assistant's attachmentId is a guess
+		String attachmentId = attachmentName == null ? getString(ATTACHMENT_ID) : null;
+		if (threadId == null || (attachmentId == null && attachmentName == null)
+				|| (attachmentName == null && messageId == null)) {
+			throw new IllegalArgumentException("Must pass a threadId and the attachment's file name (attachmentName)");
 		}
 		return mapResult(BrainAttachments.stage(user, this.insight.getInsightFolder(), threadId, messageId,
 				attachmentId, attachmentName, getString(FILE_NAME), Boolean.TRUE.equals(getBoolean(INCLUDE_TEXT))));
@@ -76,7 +78,8 @@ public class WorkDownloadAttachmentReactor extends AbstractCollaborationReactor 
 			return "Id of the thread the email is on";
 		}
 		if (MESSAGE_ID.equals(key)) {
-			return "Id of the email that carries the attachment, as listed in the thread's messages";
+			return "Optional. Id of the email that carries the attachment; when omitted, the thread's newest email "
+					+ "with a file of that name is used";
 		}
 		if (ATTACHMENT_NAME.equals(key)) {
 			return "File name of the attachment, as listed on that email, for example report.xlsx";

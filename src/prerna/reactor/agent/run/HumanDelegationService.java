@@ -71,6 +71,7 @@ import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.util.NotificationConstants;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Delegates a question from an agent run to a person. The owner keeps a HUMAN
@@ -252,7 +253,7 @@ public final class HumanDelegationService {
 					requesterLabel(parseJson(action.get("toolMeta"))) + " withdrew this request, so nothing was sent.");
 		}
 		if (STATUS_PENDING.equals(action.get("status"))) {
-			String result = decline ? trimToNull(reason) : trimToNull(response);
+			String result = decline ? ValueUtils.trimToNull(reason) : ValueUtils.trimToNull(response);
 			if (!decline && result == null) {
 				throw new IllegalArgumentException("response is required");
 			}
@@ -329,10 +330,10 @@ public final class HumanDelegationService {
 			case STATUS_DECLINED -> notifyPerson(NotificationConstants.Type.DELEGATION_DECLINED,
 					outcomeNotificationId(actionId, outcome), actionId, requesterRoomId, requester, assignee,
 					assignee.shortName() + " declined your request", "Open the conversation for details.");
-			case STATUS_CANCELLED -> notifyPerson(NotificationConstants.Type.DELEGATION_WITHDRAWN,
-					outcomeNotificationId(actionId, outcome), actionId, (String) action.get("roomId"), requester,
-					assignee, requester.shortName() + " withdrew their request",
-					"You no longer need to respond to it.");
+			case STATUS_CANCELLED ->
+				notifyPerson(NotificationConstants.Type.DELEGATION_WITHDRAWN, outcomeNotificationId(actionId, outcome),
+						actionId, (String) action.get("roomId"), requester, assignee,
+						requester.shortName() + " withdrew their request", "You no longer need to respond to it.");
 			default -> {
 				// Nothing reached either person, so there is nothing to tell them.
 			}
@@ -343,9 +344,9 @@ public final class HumanDelegationService {
 	}
 
 	/**
-	 * One Collaboration inbox notice about a delegation. It goes to the assignee for
-	 * a request or a withdrawal, and to the requester for an answer or a decline.
-	 * Best effort: the delegation is already committed either way.
+	 * One Collaboration inbox notice about a delegation. It goes to the assignee
+	 * for a request or a withdrawal, and to the requester for an answer or a
+	 * decline. Best effort: the delegation is already committed either way.
 	 */
 	private static void notifyPerson(String type, String notificationId, String actionId, String roomId,
 			Person requester, Person assignee, String title, String message) {
@@ -396,7 +397,7 @@ public final class HumanDelegationService {
 	public static String delegationActionId(Room room) {
 		Object value = room == null || room.getOptionsMap() == null ? null
 				: room.getOptionsMap().get(ROOM_OPTION_ACTION_ID);
-		return trimToNull(value);
+		return ValueUtils.trimToNull(value);
 	}
 
 	/**
@@ -439,8 +440,8 @@ public final class HumanDelegationService {
 		try {
 			boolean decline = Boolean.parseBoolean(String.valueOf(params == null ? null : params.get("decline")));
 			Map<String, Object> outcome = respond(insight, actionId,
-					trimToNull(params == null ? null : params.get("response")), decline,
-					trimToNull(params == null ? null : params.get("reason")),
+					ValueUtils.trimToNull(params == null ? null : params.get("response")), decline,
+					ValueUtils.trimToNull(params == null ? null : params.get("reason")),
 					stringList(params == null ? null : params.get("files")));
 			Map<String, Object> summary = new LinkedHashMap<>();
 			summary.put("status", outcome.get("status"));
@@ -540,8 +541,9 @@ public final class HumanDelegationService {
 			return out;
 		}
 		for (Object item : list) {
-			String url = item instanceof Map<?, ?> map ? trimToNull(map.get("url")) : trimToNull(item);
-			String title = item instanceof Map<?, ?> map ? trimToNull(map.get("title")) : null;
+			String url = item instanceof Map<?, ?> map ? ValueUtils.trimToNull(map.get("url"))
+					: ValueUtils.trimToNull(item);
+			String title = item instanceof Map<?, ?> map ? ValueUtils.trimToNull(map.get("title")) : null;
 			if (url == null) {
 				continue;
 			}
@@ -654,7 +656,7 @@ public final class HumanDelegationService {
 		}
 		List<String> out = new ArrayList<>();
 		for (Object item : items) {
-			String text = trimToNull(item instanceof Map<?, ?> map ? map.get("path") : item);
+			String text = ValueUtils.trimToNull(item instanceof Map<?, ?> map ? map.get("path") : item);
 			if (text != null) {
 				// Room file listings return "/a.md"; paths here are always room-relative.
 				out.add(text.replaceFirst("^[/\\\\]+", ""));
@@ -669,7 +671,8 @@ public final class HumanDelegationService {
 				assignee.provider(), null);
 		Map<String, Object> options = new HashMap<>();
 		options.put(ROOM_OPTION_ACTION_ID, actionId);
-		// Appended to the agent's prompt so the task stays system-level, not only in history.
+		// Appended to the agent's prompt so the task stays system-level, not only in
+		// history.
 		options.put("instructions", roomInstructions(assignee, requester, packet));
 		options.put("overrideSystemPrompt", false);
 		RoomUtils.createRoomIfNotExists(roomId, assigneeInsight, null,
@@ -881,7 +884,7 @@ public final class HumanDelegationService {
 			}
 			return Person.fromRow(row);
 		}
-		String hint = trimToNull(value);
+		String hint = ValueUtils.trimToNull(value);
 		if (hint == null) {
 			throw new IllegalArgumentException("assignee is required for " + TOOL_NAME);
 		}
@@ -901,7 +904,7 @@ public final class HumanDelegationService {
 	// Every word must appear in the name, email, or username; rank 0 is an exact
 	// match.
 	private static List<PersonMatch> matchPeople(String query, int limit) {
-		String q = trimToNull(query);
+		String q = ValueUtils.trimToNull(query);
 		if (q == null) {
 			return List.of();
 		}
@@ -927,7 +930,7 @@ public final class HumanDelegationService {
 	}
 
 	private static String lowerOrEmpty(Object value) {
-		String text = trimToNull(value);
+		String text = ValueUtils.trimToNull(value);
 		return text == null ? "" : text.toLowerCase(Locale.ROOT);
 	}
 
@@ -935,7 +938,7 @@ public final class HumanDelegationService {
 	}
 
 	private static SubAgentRunCompletionMode completionMode(Map<String, Object> args) {
-		String value = trimToNull(args == null ? null : args.get("completionMode"));
+		String value = ValueUtils.trimToNull(args == null ? null : args.get("completionMode"));
 		if (value == null) {
 			return SubAgentRunCompletionMode.POST_AND_CONTINUE;
 		}
@@ -972,7 +975,7 @@ public final class HumanDelegationService {
 	}
 
 	private static String bounded(Map<String, Object> args, String key, int maxLength, boolean required) {
-		String value = trimToNull(args == null ? null : args.get(key));
+		String value = ValueUtils.trimToNull(args == null ? null : args.get(key));
 		if (value == null && required) {
 			throw new IllegalArgumentException(key + " is required for " + TOOL_NAME);
 		}
@@ -995,7 +998,7 @@ public final class HumanDelegationService {
 		if (meta.get("requester") instanceof Map<?, ?> person) {
 			return Person.fromMap(person).label();
 		}
-		return trimToNull(meta.get("requesterName"));
+		return ValueUtils.trimToNull(meta.get("requesterName"));
 	}
 
 	@SuppressWarnings("unchecked")
@@ -1011,14 +1014,6 @@ public final class HumanDelegationService {
 		return UUID.nameUUIDFromBytes(seed.getBytes(StandardCharsets.UTF_8)).toString();
 	}
 
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
-	}
-
 	/**
 	 * A SEMOSS principal: userId plus provider is the identity, name and email are
 	 * for display.
@@ -1029,17 +1024,17 @@ public final class HumanDelegationService {
 				throw new SecurityException("Must be logged in to work with delegations");
 			}
 			return new Person(token.getId(), token.getProvider() == null ? null : token.getProvider().name(),
-					trimToNull(token.getName()), trimToNull(token.getEmail()));
+					ValueUtils.trimToNull(token.getName()), ValueUtils.trimToNull(token.getEmail()));
 		}
 
 		static Person fromRow(Map<String, Object> row) {
-			return new Person(trimToNull(row.get("id")), trimToNull(row.get("type")), trimToNull(row.get("name")),
-					trimToNull(row.get("email")));
+			return new Person(ValueUtils.trimToNull(row.get("id")), ValueUtils.trimToNull(row.get("type")),
+					ValueUtils.trimToNull(row.get("name")), ValueUtils.trimToNull(row.get("email")));
 		}
 
 		static Person fromMap(Map<?, ?> map) {
-			return new Person(trimToNull(map.get("userId")), trimToNull(map.get("provider")),
-					trimToNull(map.get("name")), trimToNull(map.get("email")));
+			return new Person(ValueUtils.trimToNull(map.get("userId")), ValueUtils.trimToNull(map.get("provider")),
+					ValueUtils.trimToNull(map.get("name")), ValueUtils.trimToNull(map.get("email")));
 		}
 
 		String shortName() {

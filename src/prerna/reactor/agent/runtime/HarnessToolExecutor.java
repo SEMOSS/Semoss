@@ -67,6 +67,7 @@ import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.mcp.RunMCPToolReactor;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.stream.AgentRunStreamService;
 import prerna.reactor.agent.stream.AgentStreamItems;
@@ -76,6 +77,8 @@ import prerna.sablecc2.comm.PixelJobManager;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -128,6 +131,9 @@ final class HarnessToolExecutor {
 		}
 		if (toolCalls.isEmpty()) {
 			return toolResponse;
+		}
+		if (state.pptxWorkflow() == null && PptxWorkflow.onDemand(ctx) && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+			state.startPptxWorkflow(ctx, false);
 		}
 		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
             for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx, PreparePptxEdit and ApplyPptxEdits must each be called alone; no tools in this batch were executed.");
@@ -193,6 +199,8 @@ final class HarnessToolExecutor {
                 return (ResponseMessage) room.getMessages().getLast();
             }
         }
+        // tool results are stored; prune older tool payloads if the context is near full
+        SemossAgentHarness.pruneToolsBeforeContinuation(ctx, parentMsgId);
         Map<String, Object> nextParams = new HashMap<>(paramMap);
         if (ctx.getAgentConfig().getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
             nextParams.put("tool_choice", "none");
@@ -200,8 +208,23 @@ final class HarnessToolExecutor {
         AgentRunStreamService.get().beginModelCall(ctx.getRunId());
         state.progress().beginModel();
         try {
-            nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
-                    ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            try {
+                nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                        ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            } catch (RuntimeException e) {
+                // too big for the context: fork with the largest results stubbed and retry once
+                AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+                if (overflow == null) {
+                    throw e;
+                }
+                logger.warn("HarnessToolExecutor: context overflow after tool batch room={} client={} rule={}",
+                        room.getId(), overflow.getClient(), overflow.getReasonDetail());
+                if (SemossAgentHarness.forkOversizedToolResults(ctx, parentMsgId) == 0) {
+                    throw e;
+                }
+                nextModelResp = room.continueAfterToolExecutionResultsWithRuntimeContext(nextParams, parentMsgId,
+                        ctx.getModelEngine(), ctx.getInsight(), state.systemPrompt(), state.runtimeContext());
+            }
         } finally {
             state.progress().endModel();
         }
@@ -326,7 +349,7 @@ final class HarnessToolExecutor {
                     || SubAgentToolSynthesizer.isSubAgentTool(tc.rawToolName, ctx.getAgentConfig().getSubagents()))) {
                 outcome = new ToolExecOutcome("Managed PPTX workflow: save the generator and call BuildPptx. SEMOSS handles review automatically.", false);
             } else {
-                outcome = executeToolSafely(tc, ctx, jobId, spawnsRemainingInBatch);
+                outcome = executeToolSafely(tc, ctx, paramMap, jobId, spawnsRemainingInBatch);
             }
 		} catch (AgentCancelledException cancelEx) {
             state.progress().endTool(tc.rawToolName, tc.toolParams, false, cancelEx.getMessage(), System.currentTimeMillis() - startMs);
@@ -499,8 +522,13 @@ final class HarnessToolExecutor {
 		}
 	}
 
-	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx, String parentJobId,
-			AtomicInteger spawnsRemainingInBatch) {
+	private static ToolExecOutcome executeToolSafely(ParsedToolCall tc, AgentRunContext ctx,
+			Map<String, Object> paramMap, String parentJobId, AtomicInteger spawnsRemainingInBatch) {
+		if (DeferredAgentTools.isControlTool(tc.rawToolName)) {
+			ToolExecutionResult result = DeferredAgentTools.execute(tc.rawToolName, tc.toolParams, ctx.getRoom(), paramMap);
+			return new ToolExecOutcome(result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError(),
+					result.isSuccess());
+		}
 
 		// 1. Subagent tools - named alias OR built-in spawn/check/wait - short-circuit
 		// the MCP pipeline. The dispatcher returns a JSON string suitable for handing
@@ -568,8 +596,9 @@ final class HarnessToolExecutor {
 		// provider-facing names still resolve; fall back to legacy UUID prefixes.
 		ResolvedMcpTool resolved = resolveMcpTool(tc);
 		if (resolved == null) {
+			// AgentEffectivenessCalculator counts the "cannot resolve engine/project id" wording
 			String msg = "Tool execution error: cannot resolve engine/project id from tool name '" + tc.rawToolName
-					+ "'";
+					+ "'. No tool has that name; call it again with the name exactly as your tool list spells it.";
 			logger.warn("HarnessToolExecutor: {}", msg);
 			return new ToolExecOutcome(msg, false);
 		}

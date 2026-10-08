@@ -28,6 +28,7 @@ policies while keeping provider-specific behavior behind a small adapter.
 | [Sending](mail-sending.md) | `SMTP` | send through a mail server |
 | [Reading](mail-reading.md) | `POP3`, `IMAP` | read a mailbox over the protocols |
 | [Microsoft 365](mail-microsoft-365.md) | `EXCHANGE_SMTP`, `EXCHANGE_POP3`, `EXCHANGE_IMAP` | send and read a Microsoft 365 mailbox, through Graph or the protocols |
+| [Guardrails](mail-guardrails.md) | all mail function engines | add content and business-policy checks around `execute` |
 | [Testing locally](mail-testing.md) | - | GreenMail, the TLS ports, and the `SendEmail` pixel |
 
 The local mail server that backs all of the non-Microsoft ones is
@@ -46,8 +47,12 @@ mail/
   model/        messages, searches and results
   policy/       what a send and a read are allowed to do
   spi/          MailSender and MailboxClient boundaries
-  adapter/      Graph, Jakarta Mail and SMTP implementations
-  auth/         Microsoft 365 OAuth support
+  adapter/
+    graph/      Microsoft Graph send and mailbox clients
+    jakarta/    Jakarta Mail SMTP, IMAP and POP3 implementations
+      auth/     password and Exchange XOAUTH2 store authentication
+  auth/
+    microsoft365/ shared OAuth support for Graph and Jakarta Mail
   attachment/   safe attachment persistence
 ```
 

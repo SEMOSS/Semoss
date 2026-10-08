@@ -60,6 +60,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Generates context-aware values for one or all editable elements on the active
@@ -448,16 +449,16 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 				  return '';
 				}
 				""");
-		return stringValue(value);
+		return ValueUtils.toStringOrEmpty(value);
 	}
 
 	static boolean hasUniqueSelector(Page page, Object selectorObject) {
 		if (!(selectorObject instanceof Map<?, ?> selector)) {
 			return false;
 		}
-		String strategy = stringValue(selector.get("strategy"));
-		String value = stringValue(selector.get("value"));
-		String frameSelector = stringValue(selector.get("frameSelector"));
+		String strategy = ValueUtils.toStringOrEmpty(selector.get("strategy"));
+		String value = ValueUtils.toStringOrEmpty(selector.get("value"));
+		String frameSelector = ValueUtils.toStringOrEmpty(selector.get("frameSelector"));
 		if (value.isBlank()) {
 			return false;
 		}
@@ -596,7 +597,7 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 			if (targetIndex >= 0 && index != targetIndex) {
 				continue;
 			}
-			String value = stringValue(entry.get("value"));
+			String value = ValueUtils.toStringOrEmpty(entry.get("value"));
 			if (value.isBlank()) {
 				continue;
 			}
@@ -627,14 +628,14 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 
 	private static int parseIndex(Object value) {
 		try {
-			return Integer.parseInt(stringValue(value).trim());
+			return Integer.parseInt(ValueUtils.toStringOrEmpty(value).trim());
 		} catch (Exception e) {
 			return -1;
 		}
 	}
 
 	private static String clean(Object value) {
-		String string = stringValue(value).trim();
+		String string = ValueUtils.toStringOrEmpty(value).trim();
 		if (string.length() >= 2 && ((string.startsWith("\"") && string.endsWith("\""))
 				|| (string.startsWith("'") && string.endsWith("'")))) {
 			return string.substring(1, string.length() - 1).trim();
@@ -644,7 +645,7 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 
 	private static int parseLimit(Object value) {
 		try {
-			return Math.min(Math.max(1, Integer.parseInt(stringValue(value).trim())), MAX_MESSAGE_LIMIT);
+			return Math.min(Math.max(1, Integer.parseInt(ValueUtils.toStringOrEmpty(value).trim())), MAX_MESSAGE_LIMIT);
 		} catch (Exception e) {
 			return DEFAULT_MESSAGE_LIMIT;
 		}
@@ -652,15 +653,11 @@ public class GeneratePlaywrightFieldActionsReactor extends AbstractReactor {
 
 	private static Double parseDouble(Object value) {
 		try {
-			String string = stringValue(value).trim();
+			String string = ValueUtils.toStringOrEmpty(value).trim();
 			return string.isEmpty() ? null : Double.valueOf(string);
 		} catch (Exception e) {
 			return null;
 		}
-	}
-
-	private static String stringValue(Object value) {
-		return value == null ? "" : String.valueOf(value);
 	}
 
 	private static String activeRoomModel(Room room) {

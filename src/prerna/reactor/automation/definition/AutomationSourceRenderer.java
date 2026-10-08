@@ -64,8 +64,8 @@ public final class AutomationSourceRenderer {
 				: Map.of();
 		String source = switch (nodeType) {
 		case TRIGGER_START -> triggerSource();
-		case CONTROL_IF, CONTROL_JEV ->
-			throw new IllegalArgumentException("Routing nodes are evaluated by Java and do not have Python source.");
+		case CONTROL_IF, CONTROL_JEV, CONTROL_LOOP ->
+			throw new IllegalArgumentException("Java-owned nodes do not have Python source.");
 		case DATABASE_QUERY -> databaseQuerySource(config);
 		case DATABASE_INSERT -> databaseWriteSource(config, "insertData");
 		case DATABASE_UPDATE -> databaseWriteSource(config, "updateData");
@@ -74,11 +74,12 @@ public final class AutomationSourceRenderer {
 		case MODEL_EMBEDDINGS -> modelEmbeddingsSource(config);
 		case MODEL_VISION -> modelVisionSource(config);
 		case MODEL_NER -> modelNerSource(config);
-		case STORAGE_LIST -> storageSource(config, "list", "STORAGE_PATH");
+		case STORAGE_LIST -> storageListSource(config);
 		case STORAGE_READ -> storageReadSource(config);
 		case STORAGE_UPLOAD -> storageUploadSource(config);
 		case STORAGE_DOWNLOAD -> storageDownloadSource(config);
 		case STORAGE_DELETE -> storageDeleteSource(config);
+		case DATA_EXTRACT -> dataExtractSource(config);
 		case VECTOR_SEARCH -> vectorSearchSource(config);
 		case VECTOR_ADD -> vectorAddSource(config);
 		case VECTOR_DELETE -> vectorDeleteSource(config);
@@ -334,6 +335,44 @@ public final class AutomationSourceRenderer {
 				""".formatted(value(config, "engineId"), valueOrDefault(config, "path", ""), method, argument);
 	}
 
+	private static String storageListSource(Map<String, Object> config) {
+		return """
+				# List storage paths through the existing SEMOSS storage SDK.
+				from ai_server import StorageEngine
+
+				ENGINE_ID = %s
+				STORAGE_PATH = %s
+				FILE_TYPES = %s
+
+				def _normalized_suffixes(values):
+				    return tuple(
+				        "." + str(value).strip().lower().lstrip(".")
+				        for value in values
+				        if str(value).strip()
+				    )
+
+				def run(scope):
+				    storage = StorageEngine(engine_id=scope.resolve(ENGINE_ID))
+				    details = storage.listDetails(scope.resolve(STORAGE_PATH))
+				    paths = [
+				        item.get("Path")
+				        for item in details
+				        if isinstance(item, dict) and isinstance(item.get("Path"), str)
+				    ]
+				    file_types = scope.resolve(FILE_TYPES)
+				    if not file_types:
+				        return paths
+				    if isinstance(file_types, str):
+				        file_types = [file_types]
+				    suffixes = _normalized_suffixes(file_types)
+				    return [
+				        path for path in paths
+				        if isinstance(path, str) and path.rstrip("/").lower().endswith(suffixes)
+				    ]
+				""".formatted(value(config, "engineId"), valueOrDefault(config, "path", ""),
+				valueOrDefault(config, "extensions", List.of()));
+	}
+
 	private static String storageReadSource(Map<String, Object> config) {
 		return """
 				# Read storage content through the existing SEMOSS reactor; the Python SDK has no read method.
@@ -449,6 +488,8 @@ public final class AutomationSourceRenderer {
 				            localPath=destination,
 				        )
 				    files = _destination_files(destination)
+				    if not files:
+				        raise RuntimeError("No file was downloaded from storage path: " + storage_path)
 				    return {
 				        "success": copied,
 				        "storagePath": storage_path,
@@ -459,6 +500,43 @@ public final class AutomationSourceRenderer {
 				    }
 				""".formatted(value(config, "engineId"), value(config, "path"), value(config, "destination"),
 				valueOrDefault(config, "version", ""));
+	}
+
+	private static String dataExtractSource(Map<String, Object> config) {
+		return """
+				# Extract a nested value from inline JSON/XML or a file in this run's Insight workspace.
+				from semoss import Insight
+				import base64
+				import json
+
+				SOURCE = %s
+				PATH = %s
+				FORMAT = %s
+				MISSING_VALUE = %s
+				NULL_VALUE = %s
+
+				def _pixel_value(name, value):
+				    return name + "=[" + json.dumps(value) + "]"
+
+				def _read_insight_asset(file_path):
+				    pixel = "GetInsightAssetsBase64(" + _pixel_value("filePath", file_path) + ");"
+				    encoded = Insight().run_pixel(pixel, raw=False)
+				    return base64.b64decode(encoded).decode("utf-8-sig")
+
+				def run(scope):
+				    return extract_data_element(
+				        source=scope.resolve(SOURCE),
+				        path=str(scope.resolve(PATH)),
+				        source_format=str(scope.resolve(FORMAT) or "auto"),
+				        missing_value=scope.resolve(MISSING_VALUE),
+				        null_value=scope.resolve(NULL_VALUE),
+				        asset_reader=_read_insight_asset,
+				    )
+				""".formatted(value(config, AutomationConstants.CONFIG_SOURCE),
+				value(config, AutomationConstants.CONFIG_PATH),
+				valueOrDefault(config, AutomationConstants.CONFIG_FORMAT, "auto"),
+				value(config, AutomationConstants.CONFIG_MISSING_VALUE),
+				value(config, AutomationConstants.CONFIG_NULL_VALUE));
 	}
 
 	private static String vectorSearchSource(Map<String, Object> config) {

@@ -38,6 +38,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Posts a message in a Teams channel, as the signed in user.
@@ -83,11 +84,11 @@ public class MicrosoftTeamsSendChannelMessageReactor extends AbstractMicrosoftTe
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
-		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));
+		String teamId = ValueUtils.trimToNull(this.keyValue.get(TEAM_ID));
+		String channelId = ValueUtils.trimToNull(this.keyValue.get(CHANNEL_ID));
 		String content = this.keyValue.get(MESSAGE);
-		String subject = trimToNull(this.keyValue.get(SUBJECT));
-		String replyToId = trimToNull(this.keyValue.get(REPLY_TO_ID));
+		String subject = ValueUtils.trimToNull(this.keyValue.get(SUBJECT));
+		String replyToId = ValueUtils.trimToNull(this.keyValue.get(REPLY_TO_ID));
 		boolean html = Boolean.parseBoolean(this.keyValue.get(HTML));
 		String[] mentions = values(MENTIONS);
 		String[] attachmentUrls = values(ATTACHMENT_URLS);

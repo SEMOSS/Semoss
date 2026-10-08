@@ -38,6 +38,7 @@ import org.apache.logging.log4j.Logger;
 import prerna.engine.api.StorageTypeEnum;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.MicrosoftGraphDriveClient;
+import prerna.util.ValueUtils;
 
 /**
  * Storage engine backed by a Microsoft Teams channel's file store.
@@ -113,13 +114,13 @@ public class MicrosoftTeamsStorageEngine extends AbstractMicrosoftGraphStorageEn
 	protected DriveRoot resolveDriveRoot(Properties smssProp) throws Exception {
 		String team = smssProp.getProperty(MS_TEAMS_TEAM);
 		String channel = smssProp.getProperty(MS_TEAMS_CHANNEL);
-		if (isBlank(team)) {
+		if (ValueUtils.isBlank(team)) {
 			throw new IllegalArgumentException(
 					MS_TEAMS_TEAM + " is required, as either the team display name or the team id.");
 		}
 
 		this.teamId = resolveTeamId(team);
-		this.channelId = isBlank(channel) ? null : resolveChannelId(this.teamId, channel);
+		this.channelId = ValueUtils.isBlank(channel) ? null : resolveChannelId(this.teamId, channel);
 
 		Map<String, Object> root = this.channelId == null ? readTeamDriveRoot() : readChannelFilesFolder();
 		return new DriveRoot(requireString(extractDriveId(root), "Unable to resolve the SharePoint drive for " + team),
@@ -130,7 +131,7 @@ public class MicrosoftTeamsStorageEngine extends AbstractMicrosoftGraphStorageEn
 	protected String describeTarget(Properties smssProp) {
 		String channel = smssProp.getProperty(MS_TEAMS_CHANNEL);
 		return "team '" + smssProp.getProperty(MS_TEAMS_TEAM) + "' channel '"
-				+ (isBlank(channel) ? "<team drive>" : channel) + "'";
+				+ (ValueUtils.isBlank(channel) ? "<team drive>" : channel) + "'";
 	}
 
 	/**

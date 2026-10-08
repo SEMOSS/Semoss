@@ -59,6 +59,7 @@ import prerna.engine.impl.model.message.ToolResultPart;
 import prerna.redis.RedisConnectionConfig;
 import prerna.redis.RedisConnectionFactory;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Internal boundary for room-message projection reads/writes.
@@ -73,9 +74,12 @@ public final class RoomMessageStore {
 	private static final String LOCK_TTL_MS = "ROOM_MESSAGE_STORE_LOCK_TTL_MS";
 	private static final String LOCK_WAIT_MS = "ROOM_MESSAGE_STORE_LOCK_WAIT_MS";
 	private static final ReentrantLock[] LOCAL_LOCKS = new ReentrantLock[256];
+	// Separate stripes so a short options update never waits on a long model call.
+	private static final ReentrantLock[] OPTIONS_LOCAL_LOCKS = new ReentrantLock[256];
 
 	static {
 		Arrays.setAll(LOCAL_LOCKS, ignored -> new ReentrantLock());
+		Arrays.setAll(OPTIONS_LOCAL_LOCKS, ignored -> new ReentrantLock());
 	}
 
 	private static final ThreadLocal<Map<String, HeldLock>> HELD_LOCKS = ThreadLocal.withInitial(HashMap::new);
@@ -169,16 +173,21 @@ public final class RoomMessageStore {
 
 	public static final String PPTX_EDIT_CONTEXT_START = "semossPptxEditContextStart";
 
-	/** Filter only the provider view. Stored messages and their parent links remain intact. */
+	/**
+	 * Filter only the provider view. Stored messages and their parent links remain
+	 * intact.
+	 */
 	public static List<AbstractMessage> providerContext(List<AbstractMessage> branch) {
 		for (int i = branch.size() - 1; i >= 0; i--) {
 			AbstractMessage message = branch.get(i);
 			if (message instanceof prerna.engine.impl.model.message.InputMessage && message.hasTextPart()
 					&& !message.hasToolResultPart() && !message.isPlatformGenerated()
 					&& !"reflection_input".equals(message.getOrnament("agentRunRole"))) {
-				// A later ordinary request opts back into full context; no room-wide setting is changed.
+				// A later ordinary request opts back into full context; no room-wide setting is
+				// changed.
 				return Boolean.TRUE.equals(message.getOrnament(PPTX_EDIT_CONTEXT_START))
-						? new ArrayList<>(branch.subList(i, branch.size())) : branch;
+						? new ArrayList<>(branch.subList(i, branch.size()))
+						: branch;
 			}
 		}
 		return branch;
@@ -223,7 +232,10 @@ public final class RoomMessageStore {
 		return appendPlatformMessageIfAbsent(roomId, userId, messageId, text, null, null, agentRun);
 	}
 
-	/** Same, with a display version of the text (the model still reads {@code text}) and display ornaments. */
+	/**
+	 * Same, with a display version of the text (the model still reads {@code text})
+	 * and display ornaments.
+	 */
 	public static boolean appendPlatformMessageIfAbsent(String roomId, String userId, String messageId, String text,
 			String uiText, Map<String, Object> ornaments, AgentRunMessageContext agentRun) {
 		try (RoomMutationLock ignored = acquireMutationLock(roomId)) {
@@ -278,9 +290,23 @@ public final class RoomMessageStore {
 		if (roomId == null || roomId.trim().isEmpty()) {
 			return RoomMutationLock.NO_OP;
 		}
-		roomId = roomId.trim();
+		return acquireLock(roomId.trim(), LOCAL_LOCKS);
+	}
+
+	/**
+	 * Short lock for read-modify-write of ROOM.OPTIONS. Independent of the mutation
+	 * lock, which is held for the whole model call in Room#ask.
+	 */
+	public static RoomMutationLock acquireOptionsLock(Room room) {
+		if (room == null || room.getId() == null || room.getId().trim().isEmpty()) {
+			return RoomMutationLock.NO_OP;
+		}
+		return acquireLock(room.getId().trim() + ":options", OPTIONS_LOCAL_LOCKS);
+	}
+
+	private static RoomMutationLock acquireLock(String roomId, ReentrantLock[] localLocks) {
 		if (!RedisConnectionConfig.isRedisEnabled()) {
-			ReentrantLock localLock = LOCAL_LOCKS[Math.floorMod(roomId.hashCode(), LOCAL_LOCKS.length)];
+			ReentrantLock localLock = localLocks[Math.floorMod(roomId.hashCode(), localLocks.length)];
 			long waitMs = getLongProperty(LOCK_WAIT_MS, 5000L);
 			try {
 				if (!localLock.tryLock(Math.max(0L, waitMs), TimeUnit.MILLISECONDS)) {
@@ -329,7 +355,7 @@ public final class RoomMessageStore {
 		}
 		Set<String> messageIds = requireUniqueMessageIds(messages);
 		for (AbstractMessage message : messages) {
-			String parentMessageId = trimToNull(message.getParentMessageId());
+			String parentMessageId = ValueUtils.trimToNull(message.getParentMessageId());
 			if (parentMessageId == null) {
 				continue;
 			}
@@ -353,7 +379,7 @@ public final class RoomMessageStore {
 			if (message == null) {
 				throw new IllegalStateException("Room message list contains a null message.");
 			}
-			String messageId = trimToNull(message.getMessageId());
+			String messageId = ValueUtils.trimToNull(message.getMessageId());
 			if (messageId == null) {
 				throw new IllegalStateException("Room message list contains a message without a messageId.");
 			}
@@ -366,14 +392,14 @@ public final class RoomMessageStore {
 
 	private static void warnOnBrokenParentLinks(Room room, List<AbstractMessage> messages, Set<String> messageIds) {
 		for (AbstractMessage message : messages) {
-			String parentMessageId = trimToNull(message.getParentMessageId());
+			String parentMessageId = ValueUtils.trimToNull(message.getParentMessageId());
 			if (parentMessageId == null) {
 				continue;
 			}
 			if (parentMessageId.equals(message.getMessageId()) || !messageIds.contains(parentMessageId)) {
 				String roomId = room != null ? room.getId() : "<unknown>";
-				classLogger.warn("Room {} persisted message {} references a parent that does not exist: {}",
-						roomId, message.getMessageId(), parentMessageId);
+				classLogger.warn("Room {} persisted message {} references a parent that does not exist: {}", roomId,
+						message.getMessageId(), parentMessageId);
 			}
 		}
 	}
@@ -432,20 +458,12 @@ public final class RoomMessageStore {
 		if (toolCall == null) {
 			return null;
 		}
-		return trimToNull(String.valueOf(toolCall.get("id")));
+		return ValueUtils.trimToNull(String.valueOf(toolCall.get("id")));
 	}
 
 	private static String toolResultId(ToolResultMessagePart part) {
 		ToolResultPart result = part.getToolResult();
-		return result == null ? null : trimToNull(result.getToolCallId());
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		return trimmed.isEmpty() ? null : trimmed;
+		return result == null ? null : ValueUtils.trimToNull(result.getToolCallId());
 	}
 
 	private static void warmRedisProjection(Room room, String messageHistory) {

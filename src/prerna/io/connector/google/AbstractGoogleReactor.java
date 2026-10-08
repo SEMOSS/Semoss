@@ -28,23 +28,16 @@
 package prerna.io.connector.google;
 
 import prerna.auth.AuthProvider;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.io.connector.AbstractConnectorReactor;
 
 /**
  * Checks the user's Google login before validating inputs or calling the
  * provider.
  */
-public abstract class AbstractGoogleReactor extends AbstractReactor {
+public abstract class AbstractGoogleReactor extends AbstractConnectorReactor {
 
 	@Override
-	public final NounMetadata execute() {
-		requireLogin(AuthProvider.GOOGLE);
-		return executeAuthenticated();
+	protected final AuthProvider getAuthProvider() {
+		return AuthProvider.GOOGLE;
 	}
-
-	/**
-	 * Runs the reactor after the provider login has been checked.
-	 */
-	protected abstract NounMetadata executeAuthenticated();
 }

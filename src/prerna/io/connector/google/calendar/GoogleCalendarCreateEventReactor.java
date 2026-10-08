@@ -27,159 +27,44 @@
  *******************************************************************************/
 package prerna.io.connector.google.calendar;
 
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
-import prerna.io.connector.google.AbstractGoogleReactor;
+import prerna.io.connector.calendar.AbstractCreateEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarEvent;
+import prerna.io.connector.calendar.EventRequest;
 import prerna.io.connector.google.GoogleLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.Utility;
 
-public class GoogleCalendarCreateEventReactor extends AbstractGoogleReactor {
+/**
+ * Creates an event on a Google calendar, the signed in user's own or one shared
+ * with them to write, inviting anybody named as an attendee.
+ *
+ * <p>
+ * Required Google scope, each under {@code https://www.googleapis.com/auth/}:
+ * one of {@code calendar.events} or {@code calendar}.
+ * </p>
+ */
+public class GoogleCalendarCreateEventReactor extends AbstractCreateEventReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarCreateEventReactor.class);
-
-	private static final String SUMMARY = "summary";
-	private static final String LOCATION = "location";
-	private static final String START_DATE = "startDate";
-	private static final String END_DATE = "endDate";
-	private static final String EMAIL = "email";
-	private static final String FREQUENCY = "frequency";
-	private static final String UNTIL = "until";
-	private static final String VIDEO = "video";
-	private static final String NONE = "NONE";
-	private static final String NO_TITLE = "No title";
-
-	public GoogleCalendarCreateEventReactor() {
-		this.keysToGet = new String[] { SUMMARY, LOCATION, ReactorKeysEnum.DESCRIPTION.getKey(), START_DATE, END_DATE,
-				EMAIL, FREQUENCY, UNTIL, VIDEO };
-		this.keyRequired = new int[] { 0, 0, 0, 1, 1, 0, 0, 0, 0 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.GOOGLE_CALENDAR;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String summary = "";
-		String location = "";
-		String desc = "";
-		String startdatetime = this.keyValue.get(this.keysToGet[3]);
-		String enddatetime = this.keyValue.get(this.keysToGet[4]);
-		String emailsInput = "";
-		String frequency = "";
-		String until = "";
-		String enablevideo = "";
-		if (startdatetime == null || startdatetime.trim().isEmpty()) {
-			throw new SemossPixelException("Start date and time are required.");
-		}
-		if (enddatetime == null || enddatetime.trim().isEmpty()) {
-			throw new SemossPixelException("End date and time are required.");
-		}
-
-		if (this.keyValue.get(this.keysToGet[0]) != null && !this.keyValue.get(this.keysToGet[0]).isEmpty()) {
-			summary = this.keyValue.get(this.keysToGet[0]);
-		} else {
-			summary = NO_TITLE;
-		}
-		if (this.keyValue.get(this.keysToGet[1]) != null && !this.keyValue.get(this.keysToGet[1]).isEmpty()) {
-			location = this.keyValue.get(this.keysToGet[1]);
-		}
-		if (this.keyValue.get(this.keysToGet[2]) != null && !this.keyValue.get(this.keysToGet[2]).isEmpty()) {
-			desc = this.keyValue.get(this.keysToGet[2]);
-		}
-		if (this.keyValue.get(this.keysToGet[5]) != null && !this.keyValue.get(this.keysToGet[5]).isEmpty()) {
-			emailsInput = this.keyValue.get(this.keysToGet[5]);
-		}
-		if (this.keyValue.get(this.keysToGet[6]) != null && !this.keyValue.get(this.keysToGet[6]).isEmpty()) {
-			frequency = this.keyValue.get(this.keysToGet[6]).trim().toUpperCase();
-		}
-		if (this.keyValue.get(this.keysToGet[7]) != null && !this.keyValue.get(this.keysToGet[7]).isEmpty()) {
-			until = this.keyValue.get(this.keysToGet[7]).trim();
-		}
-		if (this.keyValue.get(this.keysToGet[8]) != null && !this.keyValue.get(this.keysToGet[8]).isEmpty()) {
-			enablevideo = this.keyValue.get(this.keysToGet[8]);
-		}
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = GoogleLoginUtils.getGoogleAccessToken(user);
-			List<String> attendeeEmails = new ArrayList<>();
-			if (emailsInput != null && !emailsInput.isEmpty()) {
-				String[] emailArray = emailsInput.split(",");
-				for (String email : emailArray) {
-					email = email.trim();
-					if (!email.isEmpty()) {
-						attendeeEmails.add(email);
-					}
-				}
-			}
-
-			ZoneId zoneId = user.getZoneId();
-			if (zoneId == null) {
-				zoneId = Utility.getApplicationZoneIdObj();
-			}
-			boolean video = false;
-			if (enablevideo != null && !enablevideo.trim().isEmpty()) {
-				String normalizedVideo = enablevideo.trim().toLowerCase();
-				if ("true".equals(normalizedVideo) || "false".equals(normalizedVideo)) {
-					video = Boolean.parseBoolean(normalizedVideo);
-				} else {
-					throw new SemossPixelException("Video must be set to true or false.");
-				}
-			}
-			boolean isRecurring = frequency != null && !frequency.isEmpty() && !frequency.equals(NONE);
-			if (!isRecurring) {
-				Map<String, Object> result = GoogleCalendarHelper.createEvent(accessToken, summary, location, desc,
-						startdatetime, enddatetime, zoneId, attendeeEmails, video);
-				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-			} else {
-				Map<String, Object> result = GoogleCalendarHelper.recurringEvent(accessToken, summary, location, desc,
-						startdatetime, enddatetime, zoneId, attendeeEmails, frequency, until, video);
-				return new NounMetadata(result, PixelDataType.CUSTOM_DATA_STRUCTURE);
-			}
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while creating a Google Calendar event", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to create a Google Calendar event", e);
-			throw new SemossPixelException("An error occurred creating the event. Error message: " + e.getMessage());
-		}
+	protected void checkProviderValues(EventRequest request) {
+		GoogleCalendarEventMapper.checkEventValues(request);
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Create a Google Calendar event (single or recurring).";
+	protected String describeProviderValues(String key) {
+		return GoogleCalendarEventMapper.describeEventValues(key);
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(SUMMARY)) {
-			return "Title or summary for the event.";
-		} else if (key.equals(LOCATION)) {
-			return "Location where the event takes place.";
-		} else if (key.equals(ReactorKeysEnum.DESCRIPTION.getKey())) {
-			return "Detailed description of the event (" + ReactorKeysEnum.DESCRIPTION.getKey() + ").";
-		} else if (key.equals(START_DATE)) {
-			return "Start date and time of the event.";
-		} else if (key.equals(END_DATE)) {
-			return "End date and time of the event.";
-		} else if (key.equals(EMAIL)) {
-			return "Comma-separated attendee email addresses.";
-		} else if (key.equals(FREQUENCY)) {
-			return "Recurrence frequency for recurring events (DAILY, WEEKLY, or NONE).";
-		} else if (key.equals(UNTIL)) {
-			return "Optional end date and time for a recurring event; leave blank for no end date.";
-		} else if (key.equals(VIDEO)) {
-			return "Whether to include Google Meet video conferencing.";
-		}
-		return super.getDescriptionForKey(key);
+	protected CalendarEvent createEvent(User user, EventRequest request) throws Exception {
+		GoogleCalendarHelper calendar = new GoogleCalendarHelper(GoogleLoginUtils.getValidAccessToken(user));
+		return GoogleCalendarEventMapper
+				.toEvent(calendar.insertEvent(GoogleCalendarHelper.calendarOf(request.calendarId(), request.mailbox()),
+						GoogleCalendarEventMapper.buildEvent(request)), null);
 	}
 }

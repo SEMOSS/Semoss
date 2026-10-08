@@ -52,6 +52,8 @@ import com.google.gson.JsonNull;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 
+import prerna.util.ValueUtils;
+
 /** Discovers, summarizes, and ranks Playwright recording JSON files. */
 public class PlaywrightRecordingCatalogService {
 
@@ -75,8 +77,8 @@ public class PlaywrightRecordingCatalogService {
 
 	public Map<String, Object> resolve(Path roomFolder, Path projectRecordingsFolder, String projectId,
 			String recordingNameHint, String recordingFile) {
-		String hint = trim(recordingNameHint);
-		String requestedFile = trim(recordingFile);
+		String hint = ValueUtils.trimToEmpty(recordingNameHint);
+		String requestedFile = ValueUtils.trimToEmpty(recordingFile);
 		if (hint.isEmpty() && requestedFile.isEmpty()) {
 			throw new IllegalArgumentException("recording_name_hint or recording_file is required");
 		}
@@ -106,7 +108,7 @@ public class PlaywrightRecordingCatalogService {
 	 * when deterministic text matching is inconclusive.
 	 */
 	public Map<String, Object> findRoomRecordings(Path roomFolder, String query, int maxCandidates) {
-		String hint = trim(query);
+		String hint = ValueUtils.trimToEmpty(query);
 		Catalog catalog = catalog(roomFolder, null, "", hint, "");
 		List<Candidate> all = catalog.candidates;
 		sortCandidates(all);
@@ -131,8 +133,8 @@ public class PlaywrightRecordingCatalogService {
 		List<Candidate> candidates = new ArrayList<>();
 		int roomCount = addCandidates(candidates, roomFolder == null ? null : roomFolder.resolve("playwright"), "room",
 				"", hint, requestedFile);
-		int projectCount = addCandidates(candidates, projectRecordingsFolder, "project", trim(projectId), hint,
-				requestedFile);
+		int projectCount = addCandidates(candidates, projectRecordingsFolder, "project",
+				ValueUtils.trimToEmpty(projectId), hint, requestedFile);
 		return new Catalog(candidates, roomCount, projectCount);
 	}
 
@@ -386,14 +388,14 @@ public class PlaywrightRecordingCatalogService {
 	}
 
 	private static String normalizeSearch(String value) {
-		String normalized = trim(value).toLowerCase(Locale.ROOT);
+		String normalized = ValueUtils.trimToEmpty(value).toLowerCase(Locale.ROOT);
 		normalized = SEARCH_PREFIX.matcher(normalized).replaceFirst("");
 		normalized = JSON_SUFFIX.matcher(normalized).replaceFirst("");
 		return NON_ALPHANUMERIC.matcher(normalized).replaceAll("");
 	}
 
 	private static List<String> tokens(String value) {
-		String normalized = trim(value).toLowerCase(Locale.ROOT);
+		String normalized = ValueUtils.trimToEmpty(value).toLowerCase(Locale.ROOT);
 		normalized = SEARCH_PREFIX.matcher(normalized).replaceFirst("");
 		normalized = JSON_SUFFIX.matcher(normalized).replaceFirst("");
 		Set<String> seen = new HashSet<>();
@@ -437,10 +439,6 @@ public class PlaywrightRecordingCatalogService {
 			return primitive.getAsBoolean();
 		}
 		return primitive.isString() && Boolean.parseBoolean(primitive.getAsString().trim());
-	}
-
-	private static String trim(String value) {
-		return value == null ? "" : value.trim();
 	}
 
 	private static final class Catalog {

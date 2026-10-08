@@ -938,13 +938,15 @@ def generate_mcp(
 
             # Check for new mcp_execution decorator and _mcp_execution attribute
             mcp_execution_mode: str = None
+            mcp_deferred = None
             mcp_ui_map: dict = {}
             try:
                 module = load_module_from_file("temp_module", src_file)
                 func_obj = getattr(module, this_function)
-                mcp_metadata = getattr(func_obj, "_mcp_metadata", {})
+                mcp_metadata = dict(getattr(func_obj, "_mcp_metadata", {}))
                 if mcp_metadata.get("execution", None) is not None:
                     mcp_execution_mode = mcp_metadata.pop("execution")
+                mcp_deferred = mcp_metadata.pop("deferred", None)
                 if mcp_metadata:
                     mcp_ui_map = mcp_metadata
 
@@ -974,6 +976,7 @@ def generate_mcp(
 
                                 if mcp_metadata.get("execution", None) is not None:
                                     mcp_execution_mode = mcp_metadata.pop("execution")
+                                mcp_deferred = mcp_metadata.pop("deferred", None)
                                 if mcp_metadata:
                                     mcp_ui_map = mcp_metadata
 
@@ -1013,6 +1016,13 @@ def generate_mcp(
                             cleaned_mcp_ui_map[key] = value
                         else:
                             cleaned_mcp_ui_map[key] = None
+
+                    # same rules as MCPUtility.copyUiHints on the Java side
+                    if key == "component" and isinstance(value, str) and value.strip():
+                        cleaned_mcp_ui_map[key] = value.strip()
+
+                    if key == "autoOpen" and isinstance(value, (bool, str)):
+                        cleaned_mcp_ui_map[key] = str(value).lower() == "true"
 
             this_function = node.name
             if (
@@ -1092,6 +1102,9 @@ def generate_mcp(
                     # so they share one generator id.
                     "SMSS_MCP_GENERATOR": "MakePythonMCP",
                 }
+                # only a real boolean true defers, matching DeferredAgentTools
+                if mcp_deferred is True:
+                    _function_meta["SMSS_MCP_DEFERRED"] = True
                 if function_name_to_cell is not None:
                     cell_id = function_name_to_cell.get(this_function)
                     if cell_id:
@@ -1347,7 +1360,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden'})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
     """
 
     def _decorator(func):

@@ -41,12 +41,12 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// A thread workspace's steps (WORK_THREAD_STEP) and facts (WORK_THREAD_FACT); the goal is on BRAIN_THREAD
+// A thread workspace's steps (WORK_THREAD_STEP); the goal is on BRAIN_THREAD, and its facts are Brain memories
+// linked to the thread (BrainMemoryUtils)
 public final class WorkWorkspaceUtils {
 
 	public static final Set<String> STEP_KINDS = Set.of("reply", "task", "waiting_on", "errand", "approve");
 	public static final Set<String> STEP_STATUSES = Set.of("open", "waiting", "done", "suggested", "draft_ready");
-	public static final Set<String> FACT_STATUSES = Set.of("draft", "confirmed");
 	// a generated step the owner deleted: kept, unlisted, so a later summary does not add it again
 	static final String DISMISSED = "dismissed";
 	// a step changed in any of these is the owner's: thread insights no longer rewrite or drop it
@@ -54,14 +54,12 @@ public final class WorkWorkspaceUtils {
 
 	private static final String STEP_COLUMNS = "STEP_ID, THREAD_ID, TEXT, KIND, STATUS, STEP_OWNER_ID, DUE_AT, "
 			+ "ITEM_ID, LINK_TOPIC_ID, ORIGIN";
-	private static final String FACT_COLUMNS = "FACT_ID, THREAD_ID, TEXT, FROM_LABEL, STATUS, SOURCE_PERSON_ID";
 	private static final String OWNED = " WHERE OWNER_ID = ? AND OWNER_TYPE = ?";
 
 	private WorkWorkspaceUtils() {
 	}
 
-	// every thread with a goal, step, or fact (or just the one thread), oldest
-	// steps and facts first
+	// every thread with a step (or just the one thread), oldest steps first
 	public static Map<String, Object> listWorkspaces(User user, String threadId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -71,23 +69,10 @@ public final class WorkWorkspaceUtils {
 				: new Object[] { ownerId, ownerType, threadId };
 
 		Map<String, Map<String, Object>> workspaces = new LinkedHashMap<>();
-		for (Map<String, Object> row : CollaborationDbUtils.query("SELECT THREAD_ID, GOAL FROM BRAIN_THREAD" + OWNED
-				+ " AND GOAL IS NOT NULL" + oneThread + " ORDER BY THREAD_ID", rs -> {
-					Map<String, Object> r = new LinkedHashMap<>();
-					r.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
-					r.put("goal", CollaborationDbUtils.getString(rs, "GOAL"));
-					return r;
-				}, params)) {
-			workspace(workspaces, (String) row.get("threadId")).put("goal", row.get("goal"));
-		}
 		for (Map<String, Object> step : CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP"
 				+ OWNED + oneThread + " AND (STATUS IS NULL OR STATUS <> '" + DISMISSED + "') ORDER BY CREATED_AT, STEP_ID",
 				WorkWorkspaceUtils::mapStep, params)) {
 			list(workspace(workspaces, (String) step.remove("threadId")), "steps").add(step);
-		}
-		for (Map<String, Object> fact : CollaborationDbUtils.query("SELECT " + FACT_COLUMNS + " FROM WORK_THREAD_FACT"
-				+ OWNED + oneThread + " ORDER BY CREATED_AT, FACT_ID", WorkWorkspaceUtils::mapFact, params)) {
-			list(workspace(workspaces, (String) fact.remove("threadId")), "facts").add(fact);
 		}
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("items", new ArrayList<>(workspaces.values()));
@@ -181,57 +166,6 @@ public final class WorkWorkspaceUtils {
 		return delete(user, "WORK_THREAD_STEP", "STEP_ID", "Step", threadId, stepId);
 	}
 
-	// creates a fact when fact has no id; otherwise changes only the keys passed
-	public static Map<String, Object> saveFact(User user, String threadId, Map<String, Object> fact) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
-		String factId = CollaborationDbUtils.asString(fact.get("id"));
-		String text = CollaborationDbUtils.asString(fact.get("text"));
-		if ((factId == null || fact.containsKey("text")) && (text == null || text.isBlank())) {
-			throw new IllegalArgumentException("Fact text is required");
-		}
-		String status = checked(fact, "status", FACT_STATUSES);
-		Timestamp now = CollaborationDbUtils.now();
-
-		if (factId == null) {
-			factId = UUID.randomUUID().toString();
-			CollaborationDbUtils.update("INSERT INTO WORK_THREAD_FACT (OWNER_ID, OWNER_TYPE, FACT_ID, THREAD_ID, TEXT, "
-					+ "FROM_LABEL, STATUS, SOURCE_PERSON_ID, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-					ownerId, ownerType, factId, threadId, text.trim(), blankToNull(fact.get("from")),
-					status == null ? "confirmed" : status, blankToNull(fact.get("sourcePersonId")), now, now);
-		} else {
-			List<String> sets = new ArrayList<>();
-			List<Object> values = new ArrayList<>();
-			if (fact.containsKey("text")) {
-				CollaborationDbUtils.addSet(sets, values, "TEXT", text.trim());
-			}
-			if (fact.containsKey("from")) {
-				CollaborationDbUtils.addSet(sets, values, "FROM_LABEL", blankToNull(fact.get("from")));
-			}
-			if (status != null) {
-				CollaborationDbUtils.addSet(sets, values, "STATUS", status);
-			}
-			if (fact.containsKey("sourcePersonId")) {
-				CollaborationDbUtils.addSet(sets, values, "SOURCE_PERSON_ID", blankToNull(fact.get("sourcePersonId")));
-			}
-			CollaborationDbUtils.addSet(sets, values, "UPDATED_AT", now);
-			values.addAll(List.of(ownerId, ownerType, threadId, factId));
-			if (CollaborationDbUtils.update("UPDATE WORK_THREAD_FACT SET " + String.join(", ", sets) + OWNED
-					+ " AND THREAD_ID = ? AND FACT_ID = ?", values.toArray()) == 0) {
-				throw new IllegalArgumentException("Fact not found");
-			}
-		}
-		return CollaborationDbUtils.queryOne(
-				"SELECT " + FACT_COLUMNS + " FROM WORK_THREAD_FACT" + OWNED + " AND FACT_ID = ?",
-				WorkWorkspaceUtils::mapFact, ownerId, ownerType, factId);
-	}
-
-	public static Map<String, Object> deleteFact(User user, String threadId, String factId) {
-		return delete(user, "WORK_THREAD_FACT", "FACT_ID", "Fact", threadId, factId);
-	}
-
 	private static Map<String, Object> delete(User user, String table, String idColumn, String label, String threadId,
 			String id) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
@@ -263,24 +197,13 @@ public final class WorkWorkspaceUtils {
 		return step;
 	}
 
-	private static Map<String, Object> mapFact(ResultSet rs) throws SQLException {
-		Map<String, Object> fact = new LinkedHashMap<>();
-		fact.put("id", CollaborationDbUtils.getString(rs, "FACT_ID"));
-		fact.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
-		fact.put("text", CollaborationDbUtils.getString(rs, "TEXT"));
-		fact.put("from", CollaborationDbUtils.getString(rs, "FROM_LABEL"));
-		fact.put("status", CollaborationDbUtils.getString(rs, "STATUS"));
-		fact.put("sourcePersonId", CollaborationDbUtils.getString(rs, "SOURCE_PERSON_ID"));
-		return fact;
-	}
-
 	private static Map<String, Object> workspace(Map<String, Map<String, Object>> workspaces, String threadId) {
 		return workspaces.computeIfAbsent(threadId, id -> {
 			Map<String, Object> w = new LinkedHashMap<>();
 			w.put("threadId", id);
+			// thread goals are retired (topic goals replace them); kept empty until the client drops the field
 			w.put("goal", null);
 			w.put("steps", new ArrayList<>());
-			w.put("facts", new ArrayList<>());
 			return w;
 		});
 	}

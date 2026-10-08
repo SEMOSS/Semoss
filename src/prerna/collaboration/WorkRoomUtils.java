@@ -36,7 +36,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 
-// Work open tabs (WORK_OPEN_ROOM) and thread goals. The room itself lives in the inference logs database;
+// Work open tabs (WORK_OPEN_ROOM). The room itself lives in the inference logs database;
 // this only records which thread rooms the owner has open.
 public final class WorkRoomUtils {
 
@@ -112,22 +112,6 @@ public final class WorkRoomUtils {
 		Map<String, Object> result = new LinkedHashMap<>();
 		result.put("threadId", threadId);
 		result.put("closed", true);
-		return result;
-	}
-
-	// a blank goal clears it
-	public static Map<String, Object> setThreadGoal(User user, String threadId, String goal) {
-		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-		String ownerId = owner.getValue0();
-		String ownerType = owner.getValue1();
-		BrainThreadUtils.requireThread(ownerId, ownerType, threadId);
-		String value = goal == null || goal.isBlank() ? null : goal.trim();
-		CollaborationDbUtils.update(
-				"UPDATE BRAIN_THREAD SET GOAL = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND THREAD_ID = ?", value,
-				ownerId, ownerType, threadId);
-		Map<String, Object> result = new LinkedHashMap<>();
-		result.put("threadId", threadId);
-		result.put("goal", value);
 		return result;
 	}
 }

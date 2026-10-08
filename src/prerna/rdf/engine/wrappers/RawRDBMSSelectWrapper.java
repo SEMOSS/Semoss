@@ -64,7 +64,6 @@ import prerna.query.parsers.PraseSqlQueryForCount;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.usertracking.UserQueryTrackingThread;
 import prerna.util.ConnectionUtils;
-import prerna.util.Constants;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
 
@@ -108,7 +107,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			setVariables();
 			this.databaseZoneId = engine.getDatabaseZoneId();
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute RDBMS select query", e);
 			if (this.useEngineConnection) {
 				ConnectionUtils.closeAllConnections(null, stmt, rs);
 			} else {
@@ -155,7 +154,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			}
 
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read the next RDBMS result row", e);
 			if (e.getMessage() != null && !e.getMessage().isEmpty()) {
 				throw new IllegalArgumentException(
 						"Error occurred grabbing next row for query. Detailed message = " + e.getMessage());
@@ -166,201 +165,213 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 		return false;
 	}
 
-	private IHeadersDataRow getNextRow() throws SQLException {
-		if (rs.next()) {
-			Object[] row = new Object[numColumns];
-			// iterate through all the columns to get the appropriate data types
-			for (int colNum = 1; colNum <= numColumns; colNum++) {
-				Object val = null;
-				int type = colTypes[colNum - 1];
-				if (type == Types.INTEGER) {
-					val = rs.getInt(colNum);
-				} else if (type == Types.BIGINT) {
-					val = rs.getLong(colNum);
-				} else if (type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL
-						|| type == Types.REAL) {
-					val = rs.getDouble(colNum);
-				} else if (type == Types.DATE) {
-					try {
-						Date dVal = rs.getDate(colNum);
-						if (dVal == null) {
-							val = null;
-						} else {
-							val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd");
-						}
-					} catch (Exception e) {
-						// some rdbms do not actually support dates
-						// and just return a string
-						// ex: SQLite
-						try {
-							String dateValStr = rs.getString(colNum);
-							// does the string represent a long?
-							try {
-								long dateLong = Long.parseLong(dateValStr);
-								val = new SemossDate(dateLong, "yyyy-MM-dd", this.databaseZoneId);
-							} catch (NumberFormatException nfee) {
-								val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
-							}
-						} catch (Exception e2) {
-							// out of luck...
-							classLogger.error(Constants.STACKTRACE, e);
-							classLogger.error(Constants.STACKTRACE, e2);
-						}
-					}
-				} else if (type == Types.TIMESTAMP) {
-					try {
-						Timestamp dVal = rs.getTimestamp(colNum);
-						if (dVal == null) {
-							val = null;
-						} else {
-							val = new SemossDate(dVal, this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
-						}
-					} catch (Exception e) {
-						// some rdbms do not actually support dates
-						// and just return a string
-						// ex: SQLite
-						try {
-							String dateValStr = rs.getString(colNum);
-							val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss", this.databaseZoneId);
-						} catch (Exception e2) {
-							// out of luck...
-							classLogger.error(Constants.STACKTRACE, e);
-							classLogger.error(Constants.STACKTRACE, e2);
-						}
-					}
-				} else if (type == Types.CLOB) {
-					val = rs.getClob(colNum);
-					try {
-						val = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) val);
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-						if (!rs.wasNull()) {
-							val = rs.getString(colNum);
-						}
-					}
-				} else if (type == Types.BLOB) {
-					val = rs.getBlob(colNum);
-					try {
-						val = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) val);
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					} catch (NullPointerException e) {
-						if (!rs.wasNull()) {
-							val = rs.getString(colNum);
-						}
-					}
-				} else if (type == Types.BINARY) {
-					try (InputStream is = rs.getBinaryStream(colNum);
-							ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
-						if (is != null) {
-							byte[] buffer = new byte[1024];
-							int length;
-
-							while ((length = is.read(buffer)) != -1) {
-								baos.write(buffer, 0, length);
-							}
-
-							val = baos.toString("UTF-8");
-						}
-					} catch (IOException e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				} else if (type == Types.ARRAY) {
-					Array arrVal = rs.getArray(colNum);
-					if (arrVal != null) {
-						val = arrVal.getArray();
-					}
-				} else if (type == Types.VARBINARY) {
-					byte[] bytes = rs.getBytes(colNum);
-					if (bytes != null) {
-						try {
-							val = new String(bytes, "UTF-8");
-						} catch (UnsupportedEncodingException e) {
-							classLogger.error(Constants.STACKTRACE, e);
-						}
-					}
-				} else if (type == Types.BOOLEAN || type == Types.BIT) {
-					try {
-						val = rs.getBoolean(colNum);
-					} catch (SQLDataException e) {
-						// sometimes, this is stored as an integer or string
-						// as an example, opensearch
-						try {
-							val = rs.getInt(colNum);
-							if (val != null) {
-								if (((int) val) == 0) {
-									val = false;
-								} else {
-									val = true;
-								}
-							}
-						} catch (SQLDataException e2) {
-							val = rs.getString(colNum);
-							if (val != null) {
-								if (Integer.parseInt(val + "") == 0) {
-									val = false;
-								} else {
-									val = true;
-								}
-							}
-						}
-					}
-				}
-				// just grab the object and see what happens...
-				else if (type == Types.OTHER) {
-					try {
-						val = rs.getObject(colNum);
-					} catch (Exception e) {
-						classLogger.error(Constants.STACKTRACE, e);
-					}
-				} else {
-					val = rs.getString(colNum);
-				}
-
-				// need to account for null values
-				if (rs.wasNull()) {
-					val = null;
-				}
-
-				row[colNum - 1] = val;
-			}
-
-			// return the header row
-			return new HeadersDataRow(headers, rawHeaders, row, row);
-		} else {
-			try {
-				close();
-			} catch (IOException e) {
-				classLogger.error(Constants.STACKTRACE, e);
-			}
+	/**
+	 * Advances the result set and converts the row using the shared JDBC mappings.
+	 * Calls {@link #close()} when no more rows are available.
+	 *
+	 * @return the next row, or null after exhaustion
+	 * @throws SQLException if advancing, reading, or exhaustion cleanup fails
+	 */
+	protected IHeadersDataRow getNextRow() throws SQLException {
+		if (!rs.next()) {
+			close();
+			return null;
 		}
 
-		// no more results
-		// return null
-		return null;
+		Object[] row = new Object[numColumns];
+		// iterate through all the columns to get the appropriate data types
+		for (int colNum = 1; colNum <= numColumns; colNum++) {
+			Object val = null;
+			int type = colTypes[colNum - 1];
+			if (type == Types.INTEGER) {
+				val = rs.getInt(colNum);
+			} else if (type == Types.BIGINT) {
+				val = rs.getLong(colNum);
+			} else if (type == Types.FLOAT || type == Types.DOUBLE || type == Types.NUMERIC || type == Types.DECIMAL
+					|| type == Types.REAL) {
+				val = rs.getDouble(colNum);
+			} else if (type == Types.DATE) {
+				try {
+					Date dVal = rs.getDate(colNum);
+					if (dVal == null) {
+						val = null;
+					} else {
+						val = new SemossDate(dVal.toInstant(), this.databaseZoneId, "yyyy-MM-dd");
+					}
+				} catch (Exception e) {
+					// some rdbms do not actually support dates
+					// and just return a string
+					// ex: SQLite
+					try {
+						String dateValStr = rs.getString(colNum);
+						// does the string represent a long?
+						try {
+							long dateLong = Long.parseLong(dateValStr);
+							val = new SemossDate(dateLong, "yyyy-MM-dd", this.databaseZoneId);
+						} catch (NumberFormatException nfee) {
+							val = new SemossDate(dateValStr, "yyyy-MM-dd", this.databaseZoneId);
+						}
+					} catch (Exception e2) {
+						// out of luck...
+						classLogger.error("Failed to read DATE value from result column {}", colNum, e);
+						classLogger.error("Failed to convert string fallback to DATE for result column {}", colNum, e2);
+					}
+				}
+			} else if (type == Types.TIMESTAMP) {
+				try {
+					Timestamp dVal = rs.getTimestamp(colNum);
+					if (dVal == null) {
+						val = null;
+					} else {
+						val = new SemossDate(dVal, this.databaseZoneId, "yyyy-MM-dd HH:mm:ss");
+					}
+				} catch (Exception e) {
+					// some rdbms do not actually support dates
+					// and just return a string
+					// ex: SQLite
+					try {
+						String dateValStr = rs.getString(colNum);
+						val = new SemossDate(dateValStr, "yyyy-MM-dd HH:mm:ss", this.databaseZoneId);
+					} catch (Exception e2) {
+						// out of luck...
+						classLogger.error("Failed to read TIMESTAMP value from result column {}", colNum, e);
+						classLogger.error("Failed to convert string fallback to TIMESTAMP for result column {}", colNum,
+								e2);
+					}
+				}
+			} else if (type == Types.CLOB) {
+				val = rs.getClob(colNum);
+				try {
+					val = AbstractSqlQueryUtil.flushClobToString((java.sql.Clob) val);
+				} catch (Exception e) {
+					classLogger.error("Failed to convert CLOB to text for result column {}", colNum, e);
+					if (!rs.wasNull()) {
+						val = rs.getString(colNum);
+					}
+				}
+			} else if (type == Types.BLOB) {
+				val = rs.getBlob(colNum);
+				try {
+					val = AbstractSqlQueryUtil.flushBlobToString((java.sql.Blob) val);
+				} catch (IOException e) {
+					classLogger.error("Failed to convert BLOB to text for result column {}", colNum, e);
+				} catch (NullPointerException e) {
+					if (!rs.wasNull()) {
+						val = rs.getString(colNum);
+					}
+				}
+			} else if (type == Types.BINARY) {
+				try (InputStream is = rs.getBinaryStream(colNum);
+						ByteArrayOutputStream baos = new ByteArrayOutputStream();) {
+					if (is != null) {
+						byte[] buffer = new byte[1024];
+						int length;
+
+						while ((length = is.read(buffer)) != -1) {
+							baos.write(buffer, 0, length);
+						}
+
+						val = baos.toString("UTF-8");
+					}
+				} catch (IOException e) {
+					classLogger.error("Failed to read binary stream for result column {}", colNum, e);
+				}
+			} else if (type == Types.ARRAY) {
+				Array arrVal = rs.getArray(colNum);
+				if (arrVal != null) {
+					val = arrVal.getArray();
+				}
+			} else if (type == Types.VARBINARY) {
+				byte[] bytes = rs.getBytes(colNum);
+				if (bytes != null) {
+					try {
+						val = new String(bytes, "UTF-8");
+					} catch (UnsupportedEncodingException e) {
+						classLogger.error("Failed to decode VARBINARY as UTF-8 for result column {}", colNum, e);
+					}
+				}
+			} else if (type == Types.BOOLEAN || type == Types.BIT) {
+				try {
+					val = rs.getBoolean(colNum);
+				} catch (SQLDataException e) {
+					// sometimes, this is stored as an integer or string
+					// as an example, opensearch
+					try {
+						val = rs.getInt(colNum);
+						if (val != null) {
+							if (((int) val) == 0) {
+								val = false;
+							} else {
+								val = true;
+							}
+						}
+					} catch (SQLDataException e2) {
+						val = rs.getString(colNum);
+						if (val != null) {
+							if (Integer.parseInt(val + "") == 0) {
+								val = false;
+							} else {
+								val = true;
+							}
+						}
+					}
+				}
+			}
+			// just grab the object and see what happens...
+			else if (type == Types.OTHER) {
+				try {
+					val = rs.getObject(colNum);
+				} catch (Exception e) {
+					classLogger.error("Failed to read JDBC OTHER value from result column {}", colNum, e);
+				}
+			} else {
+				val = rs.getString(colNum);
+			}
+
+			// need to account for null values
+			if (rs.wasNull()) {
+				val = null;
+			}
+
+			row[colNum - 1] = val;
+		}
+
+		// return the header row
+		return new HeadersDataRow(headers, rawHeaders, row, row);
 	}
 
 	protected void setVariables() {
 		try {
-			// get the result set metadata
-			ResultSetMetaData rsmd = rs.getMetaData();
-			numColumns = rsmd.getColumnCount();
-
-			// create the arrays to store the column types,
-			// the physical variable names and the display variable names
-			colTypes = new int[numColumns];
-			types = new SemossDataType[numColumns];
-			rawHeaders = new String[numColumns];
-			headers = new String[numColumns];
-
-			for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
-				rawHeaders[colIndex - 1] = rsmd.getColumnName(colIndex);
-				headers[colIndex - 1] = rsmd.getColumnLabel(colIndex);
-				colTypes[colIndex - 1] = rsmd.getColumnType(colIndex);
-				types[colIndex - 1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
-			}
+			readResultMetadata();
 		} catch (SQLException e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to read RDBMS result metadata", e);
+		}
+	}
+
+	/**
+	 * Populates headers and column types from the current result set. Keeping the
+	 * JDBC work separate lets subclasses choose how to handle metadata failures
+	 * without duplicating the column mappings.
+	 *
+	 * @throws SQLException if the driver cannot provide result metadata
+	 */
+	protected void readResultMetadata() throws SQLException {
+		// get the result set metadata
+		ResultSetMetaData rsmd = rs.getMetaData();
+		numColumns = rsmd.getColumnCount();
+
+		// create the arrays to store the column types,
+		// the physical variable names and the display variable names
+		colTypes = new int[numColumns];
+		types = new SemossDataType[numColumns];
+		rawHeaders = new String[numColumns];
+		headers = new String[numColumns];
+
+		for (int colIndex = 1; colIndex <= numColumns; colIndex++) {
+			rawHeaders[colIndex - 1] = rsmd.getColumnName(colIndex);
+			headers[colIndex - 1] = rsmd.getColumnLabel(colIndex);
+			colTypes[colIndex - 1] = rsmd.getColumnType(colIndex);
+			types[colIndex - 1] = SemossDataType.convertStringToDataType(rsmd.getColumnTypeName(colIndex));
 		}
 	}
 
@@ -383,7 +394,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		if (this.closedConnection) {
 			return;
 		}
@@ -417,7 +428,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					try {
 						this.conn = activeEngine.getConnection();
 					} catch (SQLException e) {
-						classLogger.error(Constants.STACKTRACE, e);
+						classLogger.error("Failed to acquire database connection for result counting", e);
 					}
 				}
 			}
@@ -431,7 +442,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 					query = parser.processQuery(this.query);
 				}
 			} catch (Exception e) {
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to rewrite SELECT for result counting; using original SQL", e);
 				query = this.query;
 			}
 			if (query.endsWith(";")) {
@@ -470,7 +481,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 				if (queryT != null) {
 					queryT.setFailed();
 				}
-				classLogger.error(Constants.STACKTRACE, e);
+				classLogger.error("Failed to execute RDBMS row-count query", e);
 			} finally {
 				if (this.dataSource != null) {
 					ConnectionUtils.closeAllConnections(connection, statement, resultSet);
@@ -524,7 +535,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.setVariables();
 			return wrapper;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute SQL on the supplied connection", e);
 			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
@@ -535,13 +546,18 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 	}
 
 	/**
-	 * This method allows me to perform the execution of a query on a given
-	 * connection without having to go through a formal RDBMSNativeEngine construct
-	 * i.e. the naked engine ;)
-	 * 
-	 * @param conn
-	 * @param query
-	 * @throws Exception
+	 * Compiles a query through the engine's existing interpreter and executes its
+	 * SQL on the supplied connection. This is the legacy Statement-based execution
+	 * path.
+	 *
+	 * @param database    engine supplying the interpreter and query-tracking
+	 *                    identity
+	 * @param conn        existing connection on which to execute the rendered SQL
+	 * @param qs          structured SELECT to render with the engine's interpreter
+	 * @param closeIfFail whether execution failure should also close the supplied
+	 *                    connection
+	 * @return an executed wrapper exposing the result rows
+	 * @throws Exception if compilation, execution, or result initialization fails
 	 */
 	public static RawRDBMSSelectWrapper directExecutionViaConnection(IRDBMSEngine database, Connection conn,
 			SelectQueryStruct qs, boolean closeIfFail) throws Exception {
@@ -567,7 +583,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			return wrapper;
 		} catch (Exception e) {
 			queryT.setFailed();
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute structured query for database {} on the supplied connection", engineId,
+					e);
 			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
@@ -614,7 +631,8 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			return wrapper;
 		} catch (Exception e) {
 			queryT.setFailed();
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to execute prepared statement for database {} on the supplied connection",
+					engineId, e);
 			if (closeIfFail) {
 				ConnectionUtils.closeAllConnections(wrapper.conn, wrapper.stmt, wrapper.rs);
 			} else {
@@ -641,7 +659,7 @@ public class RawRDBMSSelectWrapper extends AbstractWrapper implements IRawSelect
 			wrapper.setVariables();
 			return wrapper;
 		} catch (Exception e) {
-			classLogger.error(Constants.STACKTRACE, e);
+			classLogger.error("Failed to initialize RDBMS wrapper from the supplied result set", e);
 			throw e;
 		}
 	}

@@ -488,6 +488,12 @@ public class CollaborationDbUtils {
 		}
 		initialize(owlCreator.getDBSchema());
 		initialized = true;
+		// topic notes and thread facts live in BRAIN_MEMORY now; rows left behind move on the next boot
+		try {
+			BrainMemoryMigration.run();
+		} catch (RuntimeException e) {
+			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
+		}
 	}
 
 	/**
@@ -542,6 +548,10 @@ public class CollaborationDbUtils {
 							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_TOPIC_PERSON_PERSON_ID_INDEX", "BRAIN_TOPIC_PERSON", "OWNER_ID", "OWNER_TYPE",
 							"PERSON_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_ROOM_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),
@@ -574,6 +584,16 @@ public class CollaborationDbUtils {
 					OwlIndex.of("BRAIN_CHANGE_OWNER_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_CHANGE_ENTITY_INDEX", "BRAIN_CHANGE", "OWNER_ID", "OWNER_TYPE", "ENTITY_TYPE",
 							"ENTITY_ID"),
+
+					// brain: memory
+					OwlIndex.of("BRAIN_MEMORY_OWNER_INDEX", "BRAIN_MEMORY", "OWNER_ID", "OWNER_TYPE"),
+					OwlIndex.of("BRAIN_MEMORY_MEMORY_ID_INDEX", "BRAIN_MEMORY", "OWNER_ID", "OWNER_TYPE", "MEMORY_ID"),
+					OwlIndex.of("BRAIN_MEMORY_LINK_MEMORY_ID_INDEX", "BRAIN_MEMORY_LINK", "OWNER_ID", "OWNER_TYPE",
+							"MEMORY_ID"),
+					OwlIndex.of("BRAIN_MEMORY_LINK_REF_INDEX", "BRAIN_MEMORY_LINK", "OWNER_ID", "OWNER_TYPE",
+							"REF_TYPE", "REF_ID"),
+					OwlIndex.of("BRAIN_MEMORY_SCAN_ROOM_INDEX", "BRAIN_MEMORY_SCAN", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
 
 					// work
 					OwlIndex.of("WORK_ITEM_OWNER_INDEX", "WORK_ITEM", "OWNER_ID", "OWNER_TYPE"),

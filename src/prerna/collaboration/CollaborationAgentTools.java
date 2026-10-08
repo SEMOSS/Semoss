@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 
+import prerna.auth.User;
 import prerna.engine.api.ToolExecutionResult;
 import prerna.engine.impl.model.Room;
 import prerna.io.connector.ms.calendar.MicrosoftCalendarCreateEventReactor;
@@ -69,6 +71,15 @@ import prerna.io.connector.ms.teams.MicrosoftTeamsUploadFileReactor;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.agent.mcp.MCPUtility;
+import prerna.reactor.collaboration.BrainEditThreadReactor;
+import prerna.reactor.collaboration.BrainEditTopicReactor;
+import prerna.reactor.collaboration.BrainForgetReactor;
+import prerna.reactor.collaboration.BrainGetThreadMessagesReactor;
+import prerna.reactor.collaboration.BrainListTopicsReactor;
+import prerna.reactor.collaboration.BrainRememberReactor;
+import prerna.reactor.collaboration.BrainSearchMemoriesReactor;
+import prerna.reactor.collaboration.BrainSearchThreadsReactor;
+import prerna.reactor.collaboration.BrainTagTopicReactor;
 import prerna.reactor.collaboration.WorkComposeEmailReactor;
 import prerna.reactor.collaboration.WorkDownloadAttachmentReactor;
 import prerna.reactor.collaboration.WorkSendEmailReactor;
@@ -81,6 +92,8 @@ import prerna.reactor.collaboration.WorkSendEmailReactor;
  * so the model never chooses between providers' send tools.
  * Each definition is built from its reactor (description, arguments, ask or
  * auto) under a short name; each call runs the reactor as the room's user.
+ * The owner's own assistant also gets Remember, Forget and SearchMemories
+ * while its owner has memory on.
  */
 public final class CollaborationAgentTools {
 
@@ -100,7 +113,17 @@ public final class CollaborationAgentTools {
 		REACTORS.put("UpdateEvent", MicrosoftCalendarUpdateEventReactor.class);
 		REACTORS.put("DeleteEvent", MicrosoftCalendarDeleteEventReactor.class);
 		REACTORS.put("RespondToEvent", MicrosoftCalendarRespondToEventReactor.class);
-		REACTORS.put("ListMail", MicrosoftOutlookListMailReactor.class);
+		// mail through Brain first: the owner's classified threads, with never-ingest and exclusions applied
+		REACTORS.put("ListTopics", BrainListTopicsReactor.class);
+		REACTORS.put("SearchMail", BrainSearchThreadsReactor.class);
+		REACTORS.put("ReadThread", BrainGetThreadMessagesReactor.class);
+		// change the owner's Brain; both wait for the owner to approve
+		REACTORS.put("EditTopic", BrainEditTopicReactor.class);
+		REACTORS.put("EditThread", BrainEditThreadReactor.class);
+		// tags the chat it runs in with a topic; no approval, the owner can undo or dismiss it
+		REACTORS.put("TagTopic", BrainTagTopicReactor.class);
+		// then Outlook directly, for what Brain does not hold; Brain's rules do not apply to it
+		REACTORS.put("ListM365Mail", MicrosoftOutlookListMailReactor.class);
 		// the email in the Work editor: written there, sent from it once the owner presses Send
 		REACTORS.put("ComposeEmail", WorkComposeEmailReactor.class);
 		REACTORS.put("SendEmail", WorkSendEmailReactor.class);
@@ -123,7 +146,31 @@ public final class CollaborationAgentTools {
 		REACTORS.put("SearchFiles", MicrosoftOneDriveSearchFilesReactor.class);
 		REACTORS.put("GetFile", MicrosoftOneDriveGetFileReactor.class);
 		REACTORS.put("DownloadDriveFile", MicrosoftOneDriveDownloadFileReactor.class);
+		// the owner's memory: only for a thread's own assistant, with memory on (see definitions(Room, User, boolean))
+		REACTORS.put("Remember", BrainRememberReactor.class);
+		REACTORS.put("Forget", BrainForgetReactor.class);
+		REACTORS.put("SearchMemories", BrainSearchMemoriesReactor.class);
 	}
+
+	private static final Set<String> MEMORY_TOOLS = Set.of("Remember", "Forget", "SearchMemories");
+
+	// tools about the chat itself: only for the owner's own assistant at the root of the run
+	private static final Set<String> CHAT_TOOLS = Set.of("TagTopic");
+
+	// tools the model loads on demand: direct Microsoft 365 mail, after Brain's own search
+	private static final Set<String> DEFERRED = Set.of("ListM365Mail");
+
+	// said first in a mail tool's description, so the model knows which side of Brain it is on
+	private static final Map<String, String> SOURCE_NOTES = Map.of(
+			"ListTopics", "[Brain: topics, or one topic in full with its people]",
+			"EditTopic", "[Brain: changes a topic]",
+			"EditThread", "[Brain: changes a thread's topics]",
+			"TagTopic", "[Brain: tags this chat with a topic]",
+			"SearchMail", "[Brain: the owner's classified mail, start here; one topic or all]",
+			"ReadThread", "[Brain: reads a thread found in Brain]",
+			"ListM365Mail", "[Microsoft 365, direct: Outlook as it is now, outside Brain. Brain's never-ingest rules "
+					+ "and exclusions do NOT apply here, and mail Brain has not classified can show up. Use it after "
+					+ "SearchMail finds nothing, or when the owner asks about Outlook itself.]");
 
 	private static volatile Map<String, JSONObject> toolsByName;
 
@@ -135,11 +182,34 @@ public final class CollaborationAgentTools {
 		return CollaborationUtils.isCollaborationRoom(room);
 	}
 
-	/** Fresh copies of the tool definitions, safe for the caller to change. */
+	/** Fresh copies of the tool definitions, safe for the caller to change; the memory and chat tools are left out. */
 	public static List<Map<String, Object>> definitions() {
+		return definitions(false, false);
+	}
+
+	/**
+	 * The tools for one run in a collaboration room. TagTopic and the memory tools come only to the owner's own
+	 * assistant at the root of the run; the memory tools also need its owner to have memory on.
+	 */
+	public static List<Map<String, Object>> definitions(Room room, User user, boolean rootRun) {
+		boolean memory = false;
+		boolean chat = rootRun && CollaborationUtils.isAssistantRoom(room) && user != null;
+		if (chat) {
+			try {
+				memory = BrainMemoryUtils.assistantMemoryOn(user);
+			} catch (RuntimeException e) {
+				classLogger.warn("Could not read the memory setting; this run has no memory tools", e);
+			}
+		}
+		return definitions(memory, chat);
+	}
+
+	private static List<Map<String, Object>> definitions(boolean memory, boolean chat) {
 		List<Map<String, Object>> tools = new ArrayList<>();
-		for (JSONObject tool : tools().values()) {
-			tools.add(tool.toMap());
+		for (Map.Entry<String, JSONObject> tool : tools().entrySet()) {
+			if ((memory || !MEMORY_TOOLS.contains(tool.getKey())) && (chat || !CHAT_TOOLS.contains(tool.getKey()))) {
+				tools.add(tool.getValue().toMap());
+			}
 		}
 		return tools;
 	}
@@ -216,6 +286,10 @@ public final class CollaborationAgentTools {
 				}
 				toolNameOf.put(meta.getString(MCPUtility.SMSS_FUNCTION_NAME), name);
 				meta.put("SMSS_TOOL_KIND", TOOL_KIND);
+				// hidden from the model until it finds and loads it (SearchTools, LoadTools)
+				if (DEFERRED.contains(name)) {
+					meta.put(MCPUtility.SMSS_MCP_DEFERRED, true);
+				}
 				tool.put("name", name);
 				tool.put("title", MCPUtility.formatToTitleCase(name));
 				tool.getJSONObject("inputSchema").put("title", name + "_Arguments");
@@ -229,7 +303,9 @@ public final class CollaborationAgentTools {
 		}
 		Pattern reactorName = Pattern.compile("\\b(" + String.join("|", toolNameOf.keySet()) + ")\\b");
 		for (JSONObject tool : built.values()) {
-			tool.put("description", renamed(tool.getString("description"), reactorName, toolNameOf));
+			String note = SOURCE_NOTES.get(tool.getString("name"));
+			tool.put("description", (note == null ? "" : note + " ")
+					+ renamed(tool.getString("description"), reactorName, toolNameOf));
 			JSONObject properties = tool.getJSONObject("inputSchema").optJSONObject("properties");
 			if (properties != null) {
 				for (String key : properties.keySet()) {

@@ -356,7 +356,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		// try to giver user2 permissions as user2. Not allowed
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupProjectUtils
 				.addProjectGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this project's permissions.", e.getMessage());
+		assertEquals("Only this project's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -419,7 +419,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		// try to giver user2 permissions as user2. Not allowed
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupProjectUtils
 				.editProjectGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this project's permissions.", e.getMessage());
+		assertEquals("Only this project's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -440,7 +440,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 	}
 
 	@Test
-	void testEditProjectGroupPermission_NotHighEnoughPermissions() throws Exception {
+	void testEditProjectGroupPermission_EditorCannotChangeTeamAccess() throws Exception {
 		// create user, group, and project
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
@@ -459,11 +459,10 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "EDIT", endDate);
 
-		// try to giver user2 permissions as user2. Not allowed
+		// an editor cannot change which teams have access, only an owner can
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupProjectUtils
 				.editProjectGroupPermission(user2, "groupId1", "CUSTOM", "pid1", "OWNER", endDate));
-		assertEquals("Cannot give owner level access to this project since you are not currently an owner.",
-				e.getMessage());
+		assertEquals("Only this project's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -481,7 +480,8 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+		// only an owner changes which teams have access
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "OWNER");
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "EDIT", endDate);
@@ -513,7 +513,7 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		// try to giver user2 permissions as user2. Not allowed
 		IllegalAccessException e = assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupProjectUtils.removeProjectGroupPermission(user2, "groupId1", "CUSTOM", "pid1"));
-		assertEquals("Insufficient privileges to modify this project's permissions.", e.getMessage());
+		assertEquals("Only this project's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -548,7 +548,8 @@ public class SecurityGroupProjectUtilsUnitTests extends AbstractSecurityUtilsUni
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "EDIT");
+		// only an owner changes which teams have access
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(user, "pid1", user2Id, "OWNER");
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		SecurityGroupProjectUtils.addProjectGroupPermission(user, "groupId1", "CUSTOM", "pid1", "EDIT", endDate);

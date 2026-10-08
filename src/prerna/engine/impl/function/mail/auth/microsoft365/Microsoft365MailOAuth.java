@@ -317,11 +317,4 @@ public final class Microsoft365MailOAuth {
 		return value == null ? null : value.toString();
 	}
 
-	private static String trimToNull(String value) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return null;
-		}
-		return value;
-	}
-
 }

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import prerna.util.Constants;
+import prerna.util.ValueUtils;
 
 /**
  * What every mail engine calls its settings, and how it reads them.
@@ -149,7 +150,7 @@ public final class MailProperties {
 	 * @throws IllegalArgumentException when the SMSS names something else
 	 */
 	public static Backend backend(Properties properties, Backend defaultBackend) {
-		String configured = firstNonNull(trimToNull(properties.getProperty(MAIL_TRANSPORT)),
+		String configured = firstNonNull(ValueUtils.trimToNull(properties.getProperty(MAIL_TRANSPORT)),
 				defaultBackend.name().toLowerCase(Locale.ROOT));
 		if (GRAPH_TRANSPORT.equalsIgnoreCase(configured)) {
 			return Backend.GRAPH;
@@ -195,28 +196,6 @@ public final class MailProperties {
 	 */
 	public static String rawProperty(String protocol, String suffix) {
 		return RAW_MAIL_PROPERTY_PREFIX + protocol + "." + suffix;
-	}
-
-	/**
-	 * @param value the value to trim
-	 * @return the value without surrounding space, or null when there is nothing
-	 *         left of it, so a key set to blank reads the same as one never set
-	 */
-	public static String trimToNull(String value) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return null;
-		}
-		return value;
-	}
-
-	/**
-	 * @param value        the configured value
-	 * @param defaultValue what it is when nothing was configured
-	 * @return the value, defaulted rather than read as false when it is absent
-	 */
-	public static boolean parseBoolean(String value, boolean defaultValue) {
-		value = trimToNull(value);
-		return value == null ? defaultValue : Boolean.parseBoolean(value);
 	}
 
 	/**
@@ -268,7 +247,7 @@ public final class MailProperties {
 		if (value instanceof Collection<?> values) {
 			List<String> entries = new ArrayList<>();
 			for (Object entry : values) {
-				String stringEntry = entry == null ? null : trimToNull(entry.toString());
+				String stringEntry = entry == null ? null : ValueUtils.trimToNull(entry.toString());
 				if (stringEntry != null) {
 					entries.add(stringEntry);
 				}
@@ -314,10 +293,10 @@ public final class MailProperties {
 		Properties engineProperties = new Properties();
 		engineProperties.putAll(properties);
 		engineProperties.put(Constants.ENGINE, engineId);
-		if (trimToNull(engineProperties.getProperty(nameKey)) == null) {
+		if (ValueUtils.trimToNull(engineProperties.getProperty(nameKey)) == null) {
 			engineProperties.put(nameKey, engineId);
 		}
-		if (trimToNull(engineProperties.getProperty(descriptionKey)) == null) {
+		if (ValueUtils.trimToNull(engineProperties.getProperty(descriptionKey)) == null) {
 			engineProperties.put(descriptionKey, defaultDescription);
 		}
 		return engineProperties;
