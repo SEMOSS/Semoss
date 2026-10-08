@@ -14,13 +14,13 @@ ARG JDK_VERSION=25.0.3
 
 # FIPS 140-3 build switch. This file produces two images from one definition:
 #
-#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.24 .
+#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.26 .
 #   docker build -f Dockerfile.tomcat --build-arg FIPS_ENABLED=true \
-#       -t quay.io/semoss/tomcat-builder:11.0.24-fips .
+#       -t quay.io/semoss/tomcat-builder:11.0.26-fips .
 #
 # With FIPS_ENABLED=false nothing below is installed, so the non-FIPS image is
 # byte-identical to what it was before this switch existed. Downstream images
-# pick a base with --build-arg TOMCAT_TAG=11.0.24-fips.
+# pick a base with --build-arg TOMCAT_TAG=11.0.26-fips.
 #
 # IMPORTANT: a -fips base must be paired with a war built using -P dev,fips.
 # A default war carries BouncyCastle in WEB-INF/lib, which would sit alongside
@@ -46,7 +46,7 @@ ARG BCUTIL_FIPS_VERSION=2.1.7
 ARG MAVEN_HOME=/opt/apache-maven-3.9.16
 
 # Tomcat default version
-ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_VERSION=11.0.26
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
