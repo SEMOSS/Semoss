@@ -27,11 +27,17 @@
  *******************************************************************************/
 package prerna.reactor;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -2309,11 +2316,288 @@ public abstract class AbstractReactor implements IReactor {
 		return value != null ? value : defaultValue;
 	}
 
+	/*
+	 * Reading the keys a reactor declares in keysToGet. These read the values
+	 * organizeKeys collected into keyValue, trimmed, so a key left out or left
+	 * blank reads as null, and a value that cannot be read says which key it was.
+	 */
+
 	/**
-	 * 
+	 * Put keys a reactor takes after the ones a family of reactors shares, for
+	 * keysToGet.
+	 *
+	 * @param standard the keys the family shares
+	 * @param extra    the keys only this reactor takes
+	 * @return the keys, the shared ones first
+	 */
+	protected static String[] withExtraKeys(String[] standard, String... extra) {
+		if (extra == null || extra.length == 0) {
+			return standard.clone();
+		}
+		String[] keys = new String[standard.length + extra.length];
+		System.arraycopy(standard, 0, keys, 0, standard.length);
+		System.arraycopy(extra, 0, keys, standard.length, extra.length);
+		return keys;
+	}
+
+	/**
+	 * Mark which keys have to be passed, for keyRequired.
+	 *
+	 * @param keys     every key the reactor takes
+	 * @param required the keys that have to be passed
+	 * @return the required flags, in the order of the keys
+	 */
+	protected static int[] requiredKeys(String[] keys, String... required) {
+		int[] flags = new int[keys.length];
+		for (int i = 0; i < keys.length; i++) {
+			for (String key : required) {
+				if (key.equals(keys[i])) {
+					flags[i] = 1;
+				}
+			}
+		}
+		return flags;
+	}
+
+	/**
+	 * @param key the key to read
+	 * @return the value, trimmed, or null when the caller left it out
+	 */
+	protected String readString(String key) {
+		return StringUtils.trimToNull(this.keyValue.get(key));
+	}
+
+	/**
+	 * @param key     the key to read
+	 * @param message what to say when it was left out
+	 * @return the value, trimmed
+	 */
+	protected String requireString(String key, String message) {
+		String value = readString(key);
+		if (value == null) {
+			throw new SemossPixelException(message);
+		}
+		return value;
+	}
+
+	/**
+	 * @param key the key to read
+	 * @return the value, or null when the caller left it out, which lets a change
+	 *         leave a field as it was rather than setting it to false
+	 */
+	protected Boolean readOptionalBoolean(String key) {
+		String value = readString(key);
+		return value == null ? null : Boolean.valueOf(Boolean.parseBoolean(value));
+	}
+
+	/**
+	 * @param key      the key to read
+	 * @param fallback what it is when the caller left it out
+	 * @return the value
+	 */
+	protected boolean readBoolean(String key, boolean fallback) {
+		Boolean value = readOptionalBoolean(key);
+		return value == null ? fallback : value;
+	}
+
+	/**
+	 * Read a key that has to be a whole number when it is there at all.
+	 *
+	 * <p>
+	 * A number can arrive written as a decimal, such as 10.0, when it came through
+	 * JSON, so a decimal with nothing after the point is taken as the whole number
+	 * it is.
+	 * </p>
+	 *
+	 * @param key the key to read
+	 * @return the value, or null when the caller left it out
+	 */
+	protected Integer readOptionalInt(String key) {
+		String value = readString(key);
+		if (value == null) {
+			return null;
+		}
+		try {
+			return new BigDecimal(value).intValueExact();
+		} catch (NumberFormatException | ArithmeticException e) {
+			throw new SemossPixelException(key + " must be a whole number but received: " + value);
+		}
+	}
+
+	/**
+	 * Read a key that has to be a positive whole number, such as a limit.
+	 *
+	 * @param key      the key to read
+	 * @param fallback what it is when the caller left it out
+	 * @param cap      the largest value allowed, which the value is held down to
+	 * @return the value
+	 */
+	protected int readCount(String key, int fallback, int cap) {
+		Integer value = readOptionalInt(key);
+		if (value == null) {
+			return fallback;
+		}
+		if (value <= 0) {
+			throw new SemossPixelException(key + " must be greater than 0.");
+		}
+		if (value > cap) {
+			classLogger.warn("A {} of {} was asked for, using {} instead", key, value, cap);
+			return cap;
+		}
+		return value;
+	}
+
+	/**
+	 * Read one set of values, which a caller may pass as several values, as a list,
+	 * as one comma separated value, or as any mixture of them.
+	 *
+	 * @param key the key to read
+	 * @return the values, or null when none were passed
+	 */
+	protected List<String> readValues(String key) {
+		return readValues(key, true);
+	}
+
+	/**
+	 * Read one set of values.
+	 *
+	 * @param key         the key to read
+	 * @param splitCommas whether one value can be a comma separated list, which a
+	 *                    file name cannot be, since it can hold a comma
+	 * @return the values, or null when none were passed
+	 */
+	protected List<String> readValues(String key, boolean splitCommas) {
+		GenRowStruct grs = this.store == null ? null : this.store.getGenRowStruct(key);
+		if (grs == null || grs.isEmpty()) {
+			return null;
+		}
+		List<String> values = new ArrayList<>();
+		for (int i = 0; i < grs.size(); i++) {
+			addValue(values, grs.getNoun(i).getValue(), splitCommas);
+		}
+		return values.isEmpty() ? null : values;
+	}
+
+	private static void addValue(List<String> values, Object value, boolean splitCommas) {
+		if (value == null) {
+			return;
+		}
+		if (value instanceof Collection<?> collection) {
+			for (Object item : collection) {
+				addValue(values, item, splitCommas);
+			}
+			return;
+		}
+		// a single value can still be a comma separated list, since that is how
+		// somebody writing the pixel by hand tends to pass more than one
+		String[] entries = splitCommas ? value.toString().split(",") : new String[] { value.toString() };
+		for (String entry : entries) {
+			if (!entry.trim().isEmpty()) {
+				values.add(entry.trim());
+			}
+		}
+	}
+
+	/**
+	 * Resolve files named relative to the insight folder.
+	 *
+	 * <p>
+	 * A leading slash is taken as the root of the insight folder rather than of the
+	 * server, and {@link MCPUtility#resolveContainedMcpFile} refuses a path that
+	 * climbs out of the folder.
+	 * </p>
+	 *
+	 * @param key the key naming the files
+	 * @return the files, or null when none were named
+	 * @throws IOException when a path cannot be resolved
+	 */
+	protected List<File> readInsightFiles(String key) throws IOException {
+		List<String> requested = readValues(key, false);
+		if (requested == null) {
+			return null;
+		}
+		if (this.insight == null || this.insight.getInsightFolder() == null) {
+			throw new SemossPixelException("Files can only be read from within an insight that holds them.");
+		}
+		String insightFolder = this.insight.getInsightFolder();
+		List<File> files = new ArrayList<>();
+		for (String path : requested) {
+			String relative = path.replace('\\', '/');
+			while (relative.startsWith("/")) {
+				relative = relative.substring(1);
+			}
+			if (relative.isEmpty()) {
+				continue;
+			}
+			File file;
+			try {
+				file = MCPUtility.resolveContainedMcpFile(insightFolder, relative).toFile();
+			} catch (NoSuchFileException e) {
+				// the exception names the server side path, which the caller is not shown
+				throw new SemossPixelException("No file exists in the insight folder at: " + relative);
+			}
+			files.add(file);
+		}
+		return files.isEmpty() ? null : files;
+	}
+
+	/**
+	 * Write bytes into the insight folder under a base name, so a requested name
+	 * cannot steer the file outside that folder.
+	 *
+	 * @param requestedName the name the caller asked for, or null
+	 * @param fallbackName  the name to use when the caller asked for none
+	 * @param bytes         what to write
+	 * @return the name the file was written as, relative to the insight folder
+	 * @throws IOException when the file cannot be written
+	 */
+	protected String saveToInsightFolder(String requestedName, String fallbackName, byte[] bytes) throws IOException {
+		if (this.insight == null || this.insight.getInsightFolder() == null) {
+			throw new SemossPixelException("Files can only be saved from within an insight that holds them.");
+		}
+		String insightFolder = this.insight.getInsightFolder();
+		File folder = new File(insightFolder);
+		if (!folder.exists() && !folder.mkdirs()) {
+			throw new SemossPixelException("Unable to create the insight folder at: " + insightFolder);
+		}
+		String name = toBaseName(requestedName);
+		if (name == null) {
+			name = toBaseName(fallbackName);
+		}
+		if (name == null) {
+			name = "attachment";
+		}
+		try (FileOutputStream out = new FileOutputStream(Paths.get(insightFolder, name).toFile())) {
+			out.write(bytes);
+			out.flush();
+		}
+		return name;
+	}
+
+	/**
+	 * @param fileName a requested file name, which may carry a path
+	 * @return the base name, or null when nothing usable was supplied
+	 */
+	private static String toBaseName(String fileName) {
+		if (fileName == null) {
+			return null;
+		}
+		String trimmed = fileName.trim().replace('\\', '/');
+		int lastSlash = trimmed.lastIndexOf('/');
+		if (lastSlash >= 0) {
+			trimmed = trimmed.substring(lastSlash + 1);
+		}
+		trimmed = trimmed.trim();
+		return trimmed.isEmpty() || trimmed.equals(".") || trimmed.equals("..") ? null : trimmed;
+	}
+
+	/**
+	 * @deprecated no longer required as python already has the necessary details to
+	 *             know its insight id, etc.
 	 * @param input
 	 * @return
 	 */
+	@Deprecated()
 	public String fillVars(String input) {
 		// ${i} - insight id
 		// ${iid} - insight id
@@ -2356,5 +2640,4 @@ public abstract class AbstractReactor implements IReactor {
 		String resolvedString = sub.replace(input);
 		return resolvedString;
 	}
-
 }

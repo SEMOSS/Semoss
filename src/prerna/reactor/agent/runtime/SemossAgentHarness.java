@@ -52,6 +52,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -80,7 +81,6 @@ import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
@@ -225,10 +225,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		// a PPTX workflow run has no collaboration tools, so it keeps the general baseline
+		// a PPTX workflow run has no collaboration tools, so it keeps the general
+		// baseline
 		StringBuilder composed = new StringBuilder(
 				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
-						? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+						? CollaborationPrompts.THREAD_PROMPT
+						: SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
@@ -245,7 +247,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
+		// what the owner's thread assistant remembers; after the static parts so they
+		// stay cacheable
 		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
@@ -719,13 +722,14 @@ public class SemossAgentHarness implements IAgentHarness {
 			}
 			List<AbstractMessage> messages = room.getMessages();
 			AbstractMessage leaf = messages == null || messages.isEmpty() ? null : messages.getLast();
-			boolean historyHasTools = leaf != null && MessageUtils
-					.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
-					.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
+			boolean historyHasTools = leaf != null
+					&& MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
+							.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
 			boolean pruned = historyHasTools && room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
-			logger.warn("SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
-					+ "prunedHistory={}", ctx.getRunId(), room.getId(), overflow.getClient(),
-					overflow.getReasonDetail(), pruned);
+			logger.warn(
+					"SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
+							+ "prunedHistory={}",
+					ctx.getRunId(), room.getId(), overflow.getClient(), overflow.getReasonDetail(), pruned);
 			if (pruned) {
 				try {
 					return room.ask(firstMsg, ctx.getModelEngine(), null);
@@ -741,7 +745,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 	}
 
-	// results smaller than this are never stubbed; they are not what overflows the context
+	// results smaller than this are never stubbed; they are not what overflows the
+	// context
 	private static final int MIN_STUB_RESULT_CHARS = 2_000;
 
 	/**
@@ -758,8 +763,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (contextWindow > 0 && messages != null && !messages.isEmpty()) {
 				int estimate = estimateContextTokens(RoomMessageStore.providerContext(
 						MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId())));
-				tokensToFree = Math.max(0L,
-						(long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
+				tokensToFree = Math.max(0L, (long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
 			}
 		} catch (RuntimeException e) {
 			// unknown window; the fork still stubs the largest result
@@ -1133,6 +1137,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			// exposes the action id and tool metadata for UI-driven execution.
 			return null;
 		}
+		if (resourceURI.contains("://")) {
+			// a component:// or system:// view renders inside the client, so there is
+			// no portal page to point at
+			return null;
+		}
 		// Strip any leading slash from resourceURI so the path never gets a double
 		// slash.
 		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
@@ -1223,26 +1232,27 @@ public class SemossAgentHarness implements IAgentHarness {
 				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
 				""");
 		if (CollaborationUtils.isCollaborationRoom(room)) {
-			sb.append("""
+			sb.append(
+					"""
 
 
-					## Collaboration file delivery
-					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
-					and python. For source text, use from smssutil import get_document_markdown, then \
-					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
-					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
-					or visual inspection for a text-reading task; use visual tools when visuals matter.
-					- Before creating or repairing files, load the relevant collaboration references and the \
-					python or pptx skill for that execution route. Continue truncated reads as needed.
-					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
-					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
-					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
-					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
-					Do not offer email as a substitute for returning the file.
-					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
-					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
-					a rejected external action. Finish with the verified artifact and a concise outcome.\
-					""");
+							## Collaboration file delivery
+							- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+							and python. For source text, use from smssutil import get_document_markdown, then \
+							get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+							notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+							or visual inspection for a text-reading task; use visual tools when visuals matter.
+							- Before creating or repairing files, load the relevant collaboration references and the \
+							python or pptx skill for that execution route. Continue truncated reads as needed.
+							- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+							[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+							and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+							A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+							Do not offer email as a substitute for returning the file.
+							- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+							Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+							a rejected external action. Finish with the verified artifact and a concise outcome.\
+							""");
 		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
@@ -1346,7 +1356,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
 			// a tool with a native UI component needs its _meta on the call, auto or not
 			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
-			boolean hasComponent = ui instanceof Map && ((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null;
+			// so does one whose view is a component the client renders, which shows its
+			// result as well as its approval
+			Object resourceURI = ui instanceof Map ? ((Map<String, Object>) ui).get(MCPUtility.UI_RESOURCE_URI) : null;
+			boolean hasComponent = ui instanceof Map && (((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null
+					|| (resourceURI != null && String.valueOf(resourceURI).startsWith(MCPUtility.UI_COMPONENT_SCHEME)));
 			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}
