@@ -70,6 +70,8 @@ public final class BrainTopicChangeUtils {
 		TOPIC_TABLES.put("BRAIN_RULE", "RULE_ID");
 	}
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
+	// chats on the topics; in a snapshot only when there are some, so older snapshots still compare
+	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
 	// memories linked to the topics, keyed by memory: the rows and every link they have
 	private static final String MEMORY = "BRAIN_MEMORY";
 	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
@@ -230,6 +232,10 @@ public final class BrainTopicChangeUtils {
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+							+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
+					params(ownerId, ownerType, topicIds));
 			if (!threadIds.isEmpty()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
@@ -300,6 +306,12 @@ public final class BrainTopicChangeUtils {
 				: readRows(conn, "SELECT * FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
 						+ CollaborationDbUtils.placeholders(threadIds.size()) + ") ORDER BY THREAD_ID, TOPIC_ID",
 						params(ownerId, ownerType, threadIds)));
+		List<Map<String, Object>> chats = readRows(conn, "SELECT * FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, ROOM_ID",
+				params(ownerId, ownerType, topicIds));
+		if (!chats.isEmpty()) {
+			rows.put(ROOM_TOPIC, chats);
+		}
 		if (!memoryIds.isEmpty()) {
 			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";
 			rows.put(MEMORY, readRows(conn, "SELECT * FROM " + MEMORY + OWNED + inMemories + " ORDER BY MEMORY_ID",

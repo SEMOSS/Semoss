@@ -192,7 +192,8 @@ public final class BrainAgentEdits {
 	// ---- lookups ----
 
 	// a topic id, or a topic name that picks exactly one
-	private static String topic(String ownerId, String ownerType, String ref) {
+	// a topic id, else a topic name
+	static String topic(String ownerId, String ownerType, String ref) {
 		String value = ref.trim();
 		boolean isId = CollaborationDbUtils.queryOne("SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
 				+ "AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> rs.getString(1), ownerId, ownerType, value) != null;

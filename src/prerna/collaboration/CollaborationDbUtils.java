@@ -547,6 +547,10 @@ public class CollaborationDbUtils {
 							"TOPIC_ID"),
 					OwlIndex.of("BRAIN_TOPIC_PERSON_PERSON_ID_INDEX", "BRAIN_TOPIC_PERSON", "OWNER_ID", "OWNER_TYPE",
 							"PERSON_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_ROOM_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_TOPIC_ROOM_TOPIC_ID_INDEX", "BRAIN_TOPIC_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"TOPIC_ID"),
 
 					// brain: threads
 					OwlIndex.of("BRAIN_THREAD_OWNER_INDEX", "BRAIN_THREAD", "OWNER_ID", "OWNER_TYPE"),

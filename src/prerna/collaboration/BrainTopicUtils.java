@@ -259,8 +259,16 @@ public final class BrainTopicUtils {
 		}
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", now);
 		params.addAll(List.of(ownerId, ownerType, topicId));
-		CollaborationDbUtils.update("UPDATE BRAIN_TOPIC SET " + String.join(", ", sets)
-				+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", params.toArray());
+		String savedId = topicId;
+		boolean archive = ARCHIVED.equals(CollaborationDbUtils.asString(changes.get("status")));
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn, "UPDATE BRAIN_TOPIC SET " + String.join(", ", sets)
+					+ " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?", params.toArray());
+			// an archived topic leaves its chats
+			if (archive) {
+				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, savedId);
+			}
+		});
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
@@ -273,10 +281,16 @@ public final class BrainTopicUtils {
 			throw new IllegalArgumentException("A topic cannot be set back to suggested");
 		}
 		requireTopic(ownerId, ownerType, topicId);
-		CollaborationDbUtils.update(
-				"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
-						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
-				status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
+		CollaborationDbUtils.inTransaction(conn -> {
+			CollaborationDbUtils.update(conn,
+					"UPDATE BRAIN_TOPIC SET STATUS = ?, UPDATED_AT = ? "
+							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND TOPIC_ID = ?",
+					status, CollaborationDbUtils.now(), ownerId, ownerType, topicId);
+			// an archived topic leaves its chats
+			if (ARCHIVED.equals(status)) {
+				BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, topicId);
+			}
+		});
 		return getTopic(ownerId, ownerType, topicId);
 	}
 
@@ -470,6 +484,7 @@ public final class BrainTopicUtils {
 					targetTopicId);
 			CollaborationDbUtils.update(conn, "UPDATE BRAIN_MEMORY_LINK SET REF_ID = ?" + MEMORY_TOPIC_LINK,
 					targetTopicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, sourceTopicId);
+			BrainTopicRoomUtils.moveRooms(conn, ownerId, ownerType, sourceTopicId, targetTopicId, now);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = ? "
@@ -550,6 +565,7 @@ public final class BrainTopicUtils {
 					ownerType, BrainMemoryUtils.TOPIC, topicId, ownerId, ownerType, BrainMemoryUtils.TOPIC, topicId);
 			CollaborationDbUtils.update(conn, "DELETE FROM BRAIN_MEMORY_LINK" + MEMORY_TOPIC_LINK, ownerId,
 					ownerType, BrainMemoryUtils.TOPIC, topicId);
+			BrainTopicRoomUtils.removeRooms(conn, ownerId, ownerType, topicId);
 			for (String table : new String[] { "WORK_ITEM", "WORK_THREAD_STEP" }) {
 				CollaborationDbUtils.update(conn,
 						"UPDATE " + table + " SET LINK_TOPIC_ID = NULL "

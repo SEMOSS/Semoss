@@ -207,6 +207,14 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// a chat's topics: linked, suggested (a soft tag) or dismissed (not suggested again)
+		addTable("BRAIN_TOPIC_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---
 		// topics and participants live in the link tables; one IS_PRIMARY topic per thread
