@@ -428,8 +428,7 @@ final class PlatformAgentToolHandlers {
 		// pass the path as base64 so no quoting/escaping can break the script
 		String encodedPath = Base64.getEncoder()
 				.encodeToString(file.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
-		String script = "from smssutil import get_document_markdown as _smss_doc_md\n"
-				+ "import base64 as _smss_b64\n"
+		String script = "from smssutil import get_document_markdown as _smss_doc_md\n" + "import base64 as _smss_b64\n"
 				+ "print(_smss_doc_md(_smss_b64.b64decode('" + encodedPath + "').decode('utf-8')), end='')";
 		Insight executionInsight = tc.ctx.getInsight();
 		User user = executionInsight.getUser();
@@ -1586,7 +1585,8 @@ final class PlatformAgentToolHandlers {
 			}
 			String clean = relativePath.trim();
 			if (new File(clean).isAbsolute()) {
-				throw new IllegalArgumentException("Absolute paths are not allowed: " + clean);
+				throw new IllegalArgumentException("Absolute paths are not allowed: " + clean
+						+ ". Use a path relative to the working directory, such as " + relativeHint(clean) + ".");
 			}
 			File resolved = new File(root, clean);
 			String normalizedResolved = normalizePath(resolved.getAbsolutePath());
@@ -1598,6 +1598,17 @@ final class PlatformAgentToolHandlers {
 
 		private void requireWritable(File file) {
 			ReadOnlyPathPolicy.requireWritable(Path.of(root), file.toPath(), ctx.getAgentConfig().getReadOnlyPaths());
+		}
+
+		/**
+		 * The working-directory-relative form of a rejected absolute path, so the model
+		 * can retry: the remainder after the root when the path is inside it, otherwise
+		 * the path without its leading slashes (a workbench path such as
+		 * /public/main.ipynb is project-relative).
+		 */
+		private String relativeHint(String absolutePath) {
+			String relative = toRelative(absolutePath).replaceFirst("^/+", "");
+			return relative.isEmpty() ? "." : relative;
 		}
 
 		private String toRelative(String absolutePath) {
