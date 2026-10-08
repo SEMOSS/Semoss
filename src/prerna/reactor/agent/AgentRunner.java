@@ -283,6 +283,11 @@ public final class AgentRunner {
 		AgentConfig agentConfig = AgentConfigLoader.load(room, filePath, modelId, params, agentParams, maxTurns,
 				maxReflections, explicitWorkspaceId);
 
+		// List a room this run starts under its workspace, as CreateRoom does.
+		if (!resumeMode) {
+			persistWorkspaceOnEmptyRoom(room, insight, explicitWorkspaceId);
+		}
+
 		try {
 			if (target.isInsight() && CollaborationUtils.isCollaborationRoom(room) && agentConfig.getSkills().stream()
 					.noneMatch(ref -> ref != null && Constants.SKILL_PPTX.equals(ref.get("skill_id")))) {
@@ -417,6 +422,33 @@ public final class AgentRunner {
 			this.room = room;
 			this.hadField = hadField;
 			this.originalWorkspace = originalWorkspace;
+		}
+	}
+
+	/**
+	 * Sets {@code ROOM.WORKSPACE_ID} on a room with no messages yet so it shows in
+	 * GetWorkspaceRooms, matching {@code CreateRoom(workspaceId)}. Options are not
+	 * touched, so later runs can pick another agent or none. Skipped when the
+	 * workspace is missing, disabled, or not viewable by the user.
+	 */
+	private static void persistWorkspaceOnEmptyRoom(Room room, Insight insight, String workspaceId) {
+		if (workspaceId == null || workspaceId.trim().isEmpty()) {
+			return;
+		}
+		List<?> messages = room.getMessages();
+		if (messages != null && !messages.isEmpty()) {
+			return;
+		}
+		try {
+			Map<String, Object> ws = ModelInferenceLogsUtils.getWorkspaceEntry(workspaceId);
+			if (ws == null || !Boolean.TRUE.equals(ws.get("is_active")) || insight.getUser() == null
+					|| !SecurityProjectUtils.userCanViewProject(insight.getUser(), workspaceId)) {
+				return;
+			}
+			ModelInferenceLogsUtils.setRoomWorkspaceId(room.getId(), room.getUserId(), workspaceId);
+		} catch (Exception e) {
+			logger.warn("AgentRunner: could not set workspace '{}' on room '{}': {}", workspaceId, room.getId(),
+					e.getMessage(), e);
 		}
 	}
 
