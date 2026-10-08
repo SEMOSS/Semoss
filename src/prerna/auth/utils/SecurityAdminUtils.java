@@ -1114,6 +1114,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?",
+					"DELETE FROM GROUPMANAGERS WHERE USERID=? AND TYPE=?",
 					"DELETE FROM ENGINEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?",
 					"DELETE FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?", };
 			for (String query : deleteQueries) {
