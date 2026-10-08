@@ -321,23 +321,26 @@ public final class BrainThreadClassifier {
 	private static Result classifyOne(Context ctx, String threadId) {
 		// database checks first: an automated thread needs no Graph read and no model call
 		Map<String, Object> thread = CollaborationDbUtils
-				.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED FROM BRAIN_THREAD "
+				.queryOne("SELECT SUBJECT, SOURCE, AUTOMATED, AUTOMATED_OVERRIDE FROM BRAIN_THREAD "
 						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?", rs -> {
 							Map<String, Object> row = new LinkedHashMap<>();
 							row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
 							row.put("source", CollaborationDbUtils.getString(rs, "SOURCE"));
 							row.put("automated", CollaborationDbUtils.getBoolean(rs, "AUTOMATED"));
+							row.put("override", CollaborationDbUtils.getBoolean(rs, "AUTOMATED_OVERRIDE"));
 							return row;
 						}, ctx.ownerId(), ctx.ownerType(), threadId);
 		if (thread == null) {
 			throw new IllegalArgumentException("Thread not found");
 		}
+		// the owner said "not automated": no automated verdict from any check below may stick
+		boolean notAutomated = Boolean.TRUE.equals(thread.get("override"));
 		// marked automated by an earlier run: no model call
-		if (!ctx.dryRun() && Boolean.TRUE.equals(thread.get("automated"))) {
+		if (!ctx.dryRun() && !notAutomated && Boolean.TRUE.equals(thread.get("automated"))) {
 			return new Result(threadId, null, null, null, "automated", null, null, null);
 		}
 		// the owner never wrote here and everyone else is an automated sender or says machine-sent: no model call
-		if (!ctx.dryRun() && machineOnly(ctx, threadId)) {
+		if (!ctx.dryRun() && !notAutomated && machineOnly(ctx, threadId)) {
 			CollaborationDbUtils.update("UPDATE BRAIN_THREAD SET AUTOMATED = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
 					+ "AND THREAD_ID = ?", true, ctx.ownerId(), ctx.ownerType(), threadId);
 			ctx.scored().remove(threadId);
@@ -360,7 +363,7 @@ public final class BrainThreadClassifier {
 		BrainClassifier.Scores scores = cached != null ? cached
 				: modelScores(ctx, threadId, (String) thread.get("subject"), messages, kept);
 		Map<String, Object> signals = signals(scores);
-		boolean automated = scores.automated() >= ctx.cutoffs().automatedAt();
+		boolean automated = !notAutomated && scores.automated() >= ctx.cutoffs().automatedAt();
 
 		// topic: file, ask, or leave; owner-made links are never touched and automated
 		// mail gets no topic (a dry run scores both anyway)
