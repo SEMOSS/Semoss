@@ -39,10 +39,8 @@ import java.util.Map;
 import org.javatuples.Pair;
 
 import prerna.auth.User;
-import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.Room;
-import prerna.util.QueryExecutionUtility;
-import prerna.util.SystemEngineRegistry;
+import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 
 /**
  * A chat's topics (BRAIN_TOPIC_ROOM). The owner picks them, or the assistant tags them while the owner works:
@@ -58,7 +56,6 @@ public final class BrainTopicRoomUtils {
 	static final String THREAD = "thread";
 
 	private static final String LOCK = "topic-room";
-	private static final int ROOM_BATCH = 500;
 	private static final String OWNED_ROOM = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ROOM_ID = ?";
 
 	/** The owner's own collaboration chat and the thread it was opened from (null for a plain chat). */
@@ -289,28 +286,12 @@ public final class BrainTopicRoomUtils {
 		if (roomId == null || roomId.isBlank()) {
 			throw new IllegalArgumentException("A roomId is required");
 		}
-		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
-		Map<String, Object> room;
-		try {
-			room = QueryExecutionUtility.queryOne(db,
-					"SELECT PROJECT_ID, OPTIONS, IS_ACTIVE FROM ROOM WHERE ROOM_ID = ? AND USER_ID = ?", ps -> {
-						ps.setString(1, roomId);
-						ps.setString(2, userId(user));
-					}, rs -> {
-						Map<String, Object> row = new HashMap<>();
-						row.put("projectId", rs.getString("PROJECT_ID"));
-						row.put("options", rs.getString("OPTIONS"));
-						row.put("active", rs.getBoolean("IS_ACTIVE"));
-						return row;
-					});
-		} catch (Exception e) {
-			throw new IllegalStateException("Could not read the chat", e);
-		}
-		if (room == null || !Boolean.TRUE.equals(room.get("active"))
-				|| !CollaborationUtils.COLLABORATION_PROJECT_ID.equals(room.get("projectId"))) {
+		List<Map<String, Object>> found = ModelInferenceLogsUtils.getActiveRoomSummaries(userId(user), List.of(roomId));
+		Map<String, Object> room = found.isEmpty() ? null : found.get(0);
+		if (room == null || !CollaborationUtils.COLLABORATION_PROJECT_ID.equals(room.get("PROJECT_ID"))) {
 			throw new IllegalArgumentException("Chat not found");
 		}
-		String json = (String) room.get("options");
+		String json = (String) room.get("OPTIONS");
 		Map<String, Object> options = json == null || json.isBlank() ? Map.of() : CollaborationDbUtils.parseMap(json);
 		Object delegation = options.get(CollaborationUtils.ROOM_OPTION_DELEGATION_ACTION_ID);
 		if (delegation != null && !String.valueOf(delegation).isBlank()) {
@@ -321,30 +302,13 @@ public final class BrainTopicRoomUtils {
 
 	// the user's open rooms among roomIds: roomId, name, updatedAt
 	private static List<Map<String, Object>> activeRooms(String userId, List<String> roomIds) {
-		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		List<Map<String, Object>> rooms = new ArrayList<>();
-		for (int i = 0; i < roomIds.size(); i += ROOM_BATCH) {
-			List<String> batch = roomIds.subList(i, Math.min(i + ROOM_BATCH, roomIds.size()));
-			try {
-				rooms.addAll(QueryExecutionUtility.queryList(db,
-						"SELECT ROOM_ID, ROOM_NAME, UPDATED_AT FROM ROOM WHERE USER_ID = ? AND IS_ACTIVE = ? "
-								+ "AND ROOM_ID IN (" + CollaborationDbUtils.placeholders(batch.size()) + ")",
-						ps -> {
-							ps.setString(1, userId);
-							ps.setBoolean(2, true);
-							for (int j = 0; j < batch.size(); j++) {
-								ps.setString(j + 3, batch.get(j));
-							}
-						}, rs -> {
-							Map<String, Object> row = new HashMap<>();
-							row.put("roomId", rs.getString("ROOM_ID"));
-							row.put("name", rs.getString("ROOM_NAME"));
-							row.put("updatedAt", rs.getTimestamp("UPDATED_AT"));
-							return row;
-						}));
-			} catch (Exception e) {
-				throw new IllegalStateException("Could not read the topic's chats", e);
-			}
+		for (Map<String, Object> room : ModelInferenceLogsUtils.getActiveRoomSummaries(userId, roomIds)) {
+			Map<String, Object> row = new HashMap<>();
+			row.put("roomId", room.get("ROOM_ID"));
+			row.put("name", room.get("ROOM_NAME"));
+			row.put("updatedAt", room.get("UPDATED_AT"));
+			rooms.add(row);
 		}
 		return rooms;
 	}
