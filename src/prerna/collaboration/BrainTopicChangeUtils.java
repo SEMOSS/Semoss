@@ -67,9 +67,12 @@ public final class BrainTopicChangeUtils {
 		TOPIC_TABLES.put("BRAIN_TOPIC", "TOPIC_ID");
 		TOPIC_TABLES.put("BRAIN_TOPIC_NOTE", "NOTE_ID");
 		TOPIC_TABLES.put("BRAIN_TOPIC_PERSON", "TOPIC_ID, PERSON_ID");
+		TOPIC_TABLES.put("BRAIN_THREAD_TOPIC_REJECTION", "TOPIC_ID, THREAD_ID");
 		TOPIC_TABLES.put("BRAIN_RULE", "RULE_ID");
 	}
 	private static final String THREAD_TOPIC = "BRAIN_THREAD_TOPIC";
+	// chats on the topics; in a snapshot only when there are some, so older snapshots still compare
+	private static final String ROOM_TOPIC = "BRAIN_TOPIC_ROOM";
 	// memories linked to the topics, keyed by memory: the rows and every link they have
 	private static final String MEMORY = "BRAIN_MEMORY";
 	private static final String MEMORY_LINK = "BRAIN_MEMORY_LINK";
@@ -178,6 +181,13 @@ public final class BrainTopicChangeUtils {
 	// them changed since
 	@SuppressWarnings("unchecked")
 	public static Map<String, Object> undo(User user, String changeId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return BrainTopicReviewProfiles.serialized(owner.getValue0(), owner.getValue1(),
+				() -> undoInReview(user, changeId));
+	}
+
+	@SuppressWarnings("unchecked")
+	private static Map<String, Object> undoInReview(User user, String changeId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -211,8 +221,17 @@ public final class BrainTopicChangeUtils {
 					ownerId, ownerType, UNDO, changeId).isEmpty()) {
 				throw new IllegalArgumentException("Change already undone");
 			}
-			String current = CollaborationDbUtils
-					.toJson(scopeRows(conn, ownerId, ownerType, topicIds, threadIds, memoryIds));
+			Map<String, List<Map<String, Object>>> currentRows = scopeRows(conn, ownerId, ownerType, topicIds, threadIds,
+					memoryIds);
+			// Old snapshots predate rejection storage. They remain undoable only while that scope has no new decisions.
+			Map<String, Object> expectedAfter = CollaborationDbUtils.parseMap((String) saved.get("after"));
+			if (!expectedAfter.containsKey("BRAIN_THREAD_TOPIC_REJECTION")) {
+				if (!currentRows.get("BRAIN_THREAD_TOPIC_REJECTION").isEmpty()) {
+					throw new IllegalArgumentException("Topic corrections changed since; undo not applied");
+				}
+				currentRows.remove("BRAIN_THREAD_TOPIC_REJECTION");
+			}
+			String current = CollaborationDbUtils.toJson(currentRows);
 			if (!current.equals(saved.get("after"))) {
 				throw new IllegalArgumentException("The topic changed since; undo not applied");
 			}
@@ -230,6 +249,10 @@ public final class BrainTopicChangeUtils {
 								+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
 						params(ownerId, ownerType, topicIds));
 			}
+			CollaborationDbUtils.update(conn,
+					"DELETE FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+							+ CollaborationDbUtils.placeholders(topicIds.size()) + ")",
+					params(ownerId, ownerType, topicIds));
 			if (!threadIds.isEmpty()) {
 				CollaborationDbUtils.update(conn,
 						"DELETE FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
@@ -300,6 +323,12 @@ public final class BrainTopicChangeUtils {
 				: readRows(conn, "SELECT * FROM " + THREAD_TOPIC + OWNED + " AND THREAD_ID IN ("
 						+ CollaborationDbUtils.placeholders(threadIds.size()) + ") ORDER BY THREAD_ID, TOPIC_ID",
 						params(ownerId, ownerType, threadIds)));
+		List<Map<String, Object>> chats = readRows(conn, "SELECT * FROM " + ROOM_TOPIC + OWNED + " AND TOPIC_ID IN ("
+				+ CollaborationDbUtils.placeholders(topicIds.size()) + ") ORDER BY TOPIC_ID, ROOM_ID",
+				params(ownerId, ownerType, topicIds));
+		if (!chats.isEmpty()) {
+			rows.put(ROOM_TOPIC, chats);
+		}
 		if (!memoryIds.isEmpty()) {
 			String inMemories = " AND MEMORY_ID IN (" + CollaborationDbUtils.placeholders(memoryIds.size()) + ")";
 			rows.put(MEMORY, readRows(conn, "SELECT * FROM " + MEMORY + OWNED + inMemories + " ORDER BY MEMORY_ID",

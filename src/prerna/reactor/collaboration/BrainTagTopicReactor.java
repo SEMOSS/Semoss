@@ -28,43 +28,55 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicRoomUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
+// BrainTagTopic(topic=["..."], confident=[true]);
+// The owner's assistant puts the chat it is in under a topic when the owner asks; no approval, the owner can undo it
+public class BrainTagTopicReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
+	private static final String TOPIC = "topic";
+	private static final String CONFIDENT = "confident";
 
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+	public BrainTagTopicReactor() {
+		this.keysToGet = new String[] { TOPIC, CONFIDENT };
+		this.keyRequired = new int[] { 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
+		String roomId = this.insight.getRoomId();
+		if (roomId == null) {
+			throw new IllegalArgumentException("TagTopic only works inside a chat");
 		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicRoomUtils.tagRoomTopic(user, roomId, getString(TOPIC),
+				Boolean.TRUE.equals(getBoolean(CONFIDENT))));
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (CONFIDENT.equals(key)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
+		return "Puts this chat under one of the owner's topics when the owner asks for it, so that topic's notes, "
+				+ "goals and context follow the chat. Brain already tags chats on its own as the owner talks, so use "
+				+ "this only on the owner's request. With confident true it applies right away and the owner can undo "
+				+ "it; otherwise it is a suggestion the owner accepts or dismisses. A topic the owner removed from "
+				+ "this chat is never tagged again. Take topic ids from ListTopics";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
+		if (TOPIC.equals(key)) {
+			return "The topic's id or name";
+		} else if (CONFIDENT.equals(key)) {
+			return "true when the chat is plainly about this topic; false or left out makes it a suggestion";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -27,65 +27,45 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import java.util.List;
-
 import prerna.auth.User;
+import prerna.collaboration.BrainTopicRoomUtils;
 import prerna.collaboration.BrainTopicUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainListTopics(status=["active"], accountId=["..."], limit=[30], offset=[0]);
-public class BrainListTopicsReactor extends AbstractCollaborationReactor {
+// BrainListTopicRooms(topicId=["..."], limit=[50], offset=[0]);
+public class BrainListTopicRoomsReactor extends AbstractCollaborationReactor {
 
-	private static final String STATUS = "status";
-	private static final String ACCOUNT_ID = "accountId";
+	private static final String TOPIC_ID = "topicId";
 	private static final String LIMIT = "limit";
 	private static final String OFFSET = "offset";
-	private static final String TOPIC_ID = "topicId";
-	private static final String TOPIC = "topic";
 
-	public BrainListTopicsReactor() {
-		this.keysToGet = new String[] { STATUS, ACCOUNT_ID, LIMIT, OFFSET, TOPIC_ID, TOPIC };
-		this.keyRequired = new int[] { 0, 0, 0, 0, 0, 0 };
+	public BrainListTopicRoomsReactor() {
+		this.keysToGet = new String[] { TOPIC_ID, LIMIT, OFFSET };
+		this.keyRequired = new int[] { 1, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		// one topic in full: description, goals, notes, and its people with names
-		String topicId = getString(TOPIC_ID);
-		String topicName = getString(TOPIC);
-		if ((topicId != null && !topicId.isBlank()) || (topicName != null && !topicName.isBlank())) {
-			return mapResult(BrainTopicUtils.getTopic(user, topicId, topicName));
-		}
-		List<String> statuses = getNounAsStringList(STATUS);
 		Integer limit = getIntFromKeyOrCurRow(LIMIT);
 		Integer offset = getIntFromKeyOrCurRow(OFFSET);
-		return mapResult(BrainTopicUtils.listTopics(user, statuses, getString(ACCOUNT_ID),
+		return mapResult(BrainTopicRoomUtils.listTopicRooms(user, getString(TOPIC_ID),
 				limit == null ? BrainTopicUtils.DEFAULT_LIMIT : limit, offset == null ? 0 : offset));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists the signed-in user's Brain topics as { items, total }. Pass topicId or topic to get one topic "
-				+ "in full instead: its description, goals, open action items, notes, and people with their names, "
-				+ "roles, and state. "
-				+ "Its notes are the owner's memories about the topic, listed while the owner has memory on";
+		return "Lists the chats linked to a topic, most recently active first";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (STATUS.equals(key)) {
-			return "Topic statuses to include: suggested, active, dormant, archived; all when omitted";
-		} else if (ACCOUNT_ID.equals(key)) {
-			return "Only topics in this account";
-		} else if (TOPIC_ID.equals(key)) {
-			return "Return this one topic in full";
-		} else if (TOPIC.equals(key)) {
-			return "Topic name, when the id is not known; must match one topic";
+		if (TOPIC_ID.equals(key)) {
+			return "Topic id";
 		} else if (LIMIT.equals(key)) {
-			return "Page size, default 30";
+			return "Most chats to return";
 		} else if (OFFSET.equals(key)) {
-			return "Rows to skip, default 0";
+			return "Chats to skip, for paging";
 		}
 		return super.getDescriptionForKey(key);
 	}

@@ -27,45 +27,32 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import java.util.Map;
+
+import prerna.collaboration.BrainTopicReviewUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
-
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
-
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+/** Apply a typed, reversible change to the draft only. */
+public class BrainChangeTopicReviewReactor extends AbstractCollaborationReactor {
+	public BrainChangeTopicReviewReactor() {
+		this.keysToGet = new String[] { "reviewId", "revision", "operationId", "change" };
+		this.keyRequired = new int[] { 1, 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
+		var user = getUser();
+		Integer revision = getIntFromKeyOrCurRow("revision");
+		Map<String, Object> change = getMapFromKeyOrCurRow("change");
+		if (revision == null || change == null) {
+			throw new IllegalArgumentException("Pass a saved review revision and a change map");
 		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicReviewUtils.change(user, getString("reviewId"), revision,
+				getString("operationId"), change));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
-		}
-		return super.getDescriptionForKey(key);
+		return "Revision-checked, idempotent topic-review draft correction. Changes: confirm/reject/move/also_link with topicKey, threadIds, preview versions and targetKey where needed; organize with reviewed groups and scopeVersion; undo with changeId. Real links and combinations are applied only by BrainApplyTopicReview";
 	}
 }

@@ -28,43 +28,45 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicRoomUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
+// BrainLinkRoomTopic(roomId=["..."], topicId=["..."], remove=[false]);
+public class BrainLinkRoomTopicReactor extends AbstractCollaborationReactor {
 
-	private static final String THREAD_ID = "threadId";
 	private static final String ROOM_ID = "roomId";
+	private static final String TOPIC_ID = "topicId";
+	private static final String TOPIC_NAME = "topicName";
+	private static final String REMOVE = "remove";
 
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+	public BrainLinkRoomTopicReactor() {
+		this.keysToGet = new String[] { ROOM_ID, TOPIC_ID, TOPIC_NAME, REMOVE };
+		this.keyRequired = new int[] { 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
 		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
-		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicRoomUtils.linkRoomTopic(user, getString(ROOM_ID), getString(TOPIC_ID),
+				getString(TOPIC_NAME), Boolean.TRUE.equals(getBoolean(REMOVE))));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
+		return "The owner sets a chat's topic, accepts a suggested one, or removes one; a removed topic is not "
+				+ "suggested again in that chat";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
+		if (ROOM_ID.equals(key)) {
+			return "The chat's room id";
+		} else if (TOPIC_ID.equals(key)) {
+			return "Topic id";
+		} else if (TOPIC_NAME.equals(key)) {
+			return "Topic name, when there is no topic id";
+		} else if (REMOVE.equals(key)) {
+			return "true removes the topic from the chat";
 		}
 		return super.getDescriptionForKey(key);
 	}

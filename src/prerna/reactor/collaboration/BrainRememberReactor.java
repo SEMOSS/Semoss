@@ -37,6 +37,7 @@ import org.json.JSONObject;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils;
+import prerna.collaboration.BrainTopicBrief;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.reactor.agent.mcp.MCPUtility;
@@ -54,10 +55,11 @@ public class BrainRememberReactor extends AbstractCollaborationReactor {
 	private static final String ABOUT = "about";
 	private static final String REPLACES = "replaces";
 	private static final String EXPIRES_AT = "expiresAt";
+	private static final String EVERYWHERE = "everywhere";
 
 	public BrainRememberReactor() {
-		this.keysToGet = new String[] { TEXT, KIND, ABOUT, REPLACES, EXPIRES_AT };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
+		this.keysToGet = new String[] { TEXT, KIND, ABOUT, REPLACES, EXPIRES_AT, EVERYWHERE };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -67,18 +69,38 @@ public class BrainRememberReactor extends AbstractCollaborationReactor {
 		Map<String, Object> args = new LinkedHashMap<>();
 		args.put("text", getString(TEXT));
 		args.put("kind", getString(KIND));
-		args.put("about", values(ABOUT));
-		args.put("replaces", BrainMemoryUtils.memoryIdOf(getString(REPLACES)));
+		String replaces = BrainMemoryUtils.memoryIdOf(getString(REPLACES));
+		List<Object> about = values(ABOUT);
+		// in a chat with one topic, a new memory with no about is about that topic unless it is for everywhere
+		if (about.isEmpty() && replaces == null && !Boolean.TRUE.equals(getBoolean(EVERYWHERE))) {
+			List<String> topics = BrainTopicBrief.chatTopics(user, room());
+			if (topics.size() == 1) {
+				about.add(Map.of("type", BrainMemoryUtils.TOPIC, "id", topics.get(0)));
+			}
+		}
+		args.put("about", about);
+		args.put("replaces", replaces);
 		args.put("expiresAt", getString(EXPIRES_AT));
 		return mapResult(BrainMemoryUtils.remember(user, args, source()));
 	}
 
 	// the room this run is in, and the thread it belongs to
 	private BrainMemoryUtils.Source source() {
+		return BrainMemoryUtils.chatSource(CollaborationUtils.threadIdOf(room()), this.insight.getRoomId());
+	}
+
+	private Room room() {
 		String roomId = this.insight.getRoomId();
-		Room room = roomId == null || this.insight.getUser() == null ? null
+		return roomId == null || this.insight.getUser() == null ? null
 				: this.insight.getUser().getRoomHash().get(roomId);
-		return BrainMemoryUtils.chatSource(CollaborationUtils.threadIdOf(room), roomId);
+	}
+
+	@Override
+	protected MCP_KEY_TYPE getKeyTypeForMCP(String key) {
+		if (EVERYWHERE.equals(key)) {
+			return MCP_KEY_TYPE.BOOLEAN;
+		}
+		return super.getKeyTypeForMCP(key);
 	}
 
 	// each entry of a list argument, maps and text alike
@@ -134,7 +156,10 @@ public class BrainRememberReactor extends AbstractCollaborationReactor {
 					+ "or thread";
 		} else if (ABOUT.equals(key)) {
 			return "Who or what it is about, as {type, id} with ids from the context block (participants' personId, "
-					+ "topic ids, threadId); leave it out for something that applies everywhere";
+					+ "topic ids, threadId). Left out in a chat with one topic, it is about that topic; in a chat with "
+					+ "several topics, name the one you mean";
+		} else if (EVERYWHERE.equals(key)) {
+			return "true saves it for every chat and thread, not just this chat's topic";
 		} else if (REPLACES.equals(key)) {
 			return "Id of the memory this corrects, from What you remember or SearchMemories; the old one is kept as "
 					+ "history";

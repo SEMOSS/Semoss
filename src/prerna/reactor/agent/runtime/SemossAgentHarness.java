@@ -255,8 +255,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		// stay cacheable
 		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
-			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
-					CollaborationUtils.threadIdOf(room));
+			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
 			}

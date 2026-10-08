@@ -27,45 +27,39 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicReviewUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
-
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
-
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+/** Apply a saved revision atomically and start/resume its own filing job. */
+public class BrainApplyTopicReviewReactor extends AbstractCollaborationReactor {
+	public BrainApplyTopicReviewReactor() {
+		this.keysToGet = new String[] { "reviewId", "revision", "retryFiling" };
+		this.keyRequired = new int[] { 1, 1, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
+		var user = getUser();
+		Integer revision = getIntFromKeyOrCurRow("revision");
+		if (revision == null || revision < 1) {
+			throw new IllegalArgumentException("Pass a saved review ID and positive revision");
 		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicReviewUtils.apply(user, getString("reviewId"), revision,
+				Boolean.TRUE.equals(getBoolean("retryFiling"))));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
+		return "Atomically applies a saved topic-review revision, returning saved names/descriptions/IDs and its exact filing job. Repeating the same revision does not recreate topics. Zero kept topics require no filing job";
 	}
 
 	@Override
 	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
-		}
-		return super.getDescriptionForKey(key);
+		return switch (key) {
+		case "reviewId" -> "The owner's review ID";
+		case "revision" -> "Saved draft revision to apply; stale revisions are rejected";
+		case "retryFiling" -> "true to retry failed or partially completed filing without recreating topics; default false";
+		default -> super.getDescriptionForKey(key);
+		};
 	}
 }

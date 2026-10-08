@@ -27,45 +27,31 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicReviewUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
-
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
-
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+/** The examples are real imported conversations, not invented model summaries. */
+public class BrainGetTopicReviewEvidenceReactor extends AbstractCollaborationReactor {
+	public BrainGetTopicReviewEvidenceReactor() {
+		this.keysToGet = new String[] { "reviewId", "revision", "topicKey", "query", "offset", "limit" };
+		this.keyRequired = new int[] { 1, 1, 1, 0, 0, 0 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
+		var user = getUser();
+		Integer revision = getIntFromKeyOrCurRow("revision");
+		Integer offset = getIntFromKeyOrCurRow("offset");
+		Integer limit = getIntFromKeyOrCurRow("limit");
+		if (revision == null) {
+			throw new IllegalArgumentException("Pass the saved review revision");
 		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicReviewUtils.evidence(user, getString("reviewId"), revision,
+				getString("topicKey"), getString("query"), offset == null ? 0 : offset, limit == null ? 20 : limit));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
-		}
-		return super.getDescriptionForKey(key);
+		return "Reads owner-scoped imported conversation headers behind a draft topic, plus current links and a version for corrections; no body reads or writes";
 	}
 }

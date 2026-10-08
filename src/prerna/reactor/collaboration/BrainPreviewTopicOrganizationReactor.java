@@ -27,45 +27,26 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicReviewUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
-
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
-
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+/** Exact impact preview shared by direct combination controls and assistant proposals. */
+public class BrainPreviewTopicOrganizationReactor extends AbstractCollaborationReactor {
+	public BrainPreviewTopicOrganizationReactor() {
+		this.keysToGet = new String[] { "reviewId", "revision", "proposal" };
+		this.keyRequired = new int[] { 1, 1, 1 };
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
-		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		Integer revision = getIntFromKeyOrCurRow("revision");
+		var proposal = getMapFromKeyOrCurRow("proposal");
+		if (revision == null || proposal == null) throw new IllegalArgumentException("Pass the saved review revision and a proposal with groups");
+		return mapResult(BrainTopicReviewUtils.previewOrganization(getUser(), getString("reviewId"), revision, proposal.get("groups")));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
-		}
-		return super.getDescriptionForKey(key);
+		return "Previews a topic grouping's retained profiles, contributing topics, conversation examples and counts of saved links/people/notes/rules/Work references. Accept its scopeVersion through BrainChangeTopicReview organize; final apply transfers only reviewed scopes";
 	}
 }

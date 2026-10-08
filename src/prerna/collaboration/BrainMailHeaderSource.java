@@ -102,6 +102,25 @@ public interface BrainMailHeaderSource {
 		return List.of();
 	}
 
+	/** Readable chat headers and partial failures; a skipped chat keeps the sync checkpoint unchanged. */
+	record ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded) {
+	}
+
+	// Existing sources that only supply headers have no partial failures to report.
+	default ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return new ChatImport(chats(user, since, maxChats, maxPerChat), 0, false);
+	}
+
+	// HttpHelperUtility exposes the status in its exception message. A 403 describes access, not expired login.
+	static boolean needsReauth(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 401\\b.*")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	static BrainMailHeaderSource current() {
 		String fixture = BrainMessageSource.fixturePath();
 		return fixture == null ? new BrainGraphHeaderSource() : BrainFixtureHeaderSource.of(fixture);

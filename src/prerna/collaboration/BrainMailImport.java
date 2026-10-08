@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -177,23 +178,40 @@ public final class BrainMailImport {
 			headers.addAll(BrainMailHeaderSource.SENT.equals(folder) ? source.list(user, folder, since, MAX_PER_FOLDER)
 					: source.topicHeaders(user, folder, since, MAX_PER_FOLDER));
 		}
-		// a chat failure (no Chat.Read yet, throttled) leaves the mail import whole
+		// Keep readable chats and mail when individual chats fail; partial Teams reads must be retried.
 		String teamsError = null;
 		if (teamsSince != null) {
+			job.count("teamsSince", teamsSince.toString());
 			job.step("reading Teams chats", 22);
+			boolean reauthNeeded = false;
 			try {
-				List<Map<String, Object>> chats = source.chats(user, teamsSince, MAX_CHATS, MAX_PER_CHAT);
-				for (Map<String, Object> chat : chats) {
+				BrainMailHeaderSource.ChatImport chats = source.importChats(user, teamsSince, MAX_CHATS, MAX_PER_CHAT);
+				for (Map<String, Object> chat : chats.messages()) {
 					chat.put(SOURCE_KEY, TEAMS);
 				}
-				headers.addAll(chats);
-				job.count("teamsMessages", chats.size());
+				headers.addAll(chats.messages());
+				job.count("teamsMessages", chats.messages().size());
+				job.count("teamsChatsSkipped", chats.skippedChats());
+				reauthNeeded = chats.reauthNeeded();
+				if (chats.skippedChats() > 0) {
+					teamsError = chats.skippedChats() + " Teams chat" + (chats.skippedChats() == 1 ? "" : "s")
+							+ " could not be read. Readable chats were kept; failed chats will be retried on the next import.";
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			} catch (CancellationException e) {
+				throw e;
 			} catch (Exception e) {
 				teamsError = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-				classLogger.warn("Teams chats were not read for the import: {}", teamsError);
+				reauthNeeded = BrainMailHeaderSource.needsReauth(e);
+			}
+			job.count("teamsReauthNeeded", reauthNeeded);
+			if (teamsError != null) {
+				classLogger.warn("Teams import was incomplete: {}", teamsError);
 				job.count("teamsError", teamsError);
 				CollaborationSourceUtils.recordSourceError(run.ownerId, run.ownerType, TEAMS, teamsError,
-						teamsError.contains("403") || teamsError.contains("401"));
+						reauthNeeded);
 			}
 		}
 		// oldest first so a thread takes its first subject; a message sent to yourself

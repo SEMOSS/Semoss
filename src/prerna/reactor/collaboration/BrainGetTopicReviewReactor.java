@@ -27,45 +27,22 @@
  *******************************************************************************/
 package prerna.reactor.collaboration;
 
-import prerna.auth.User;
-import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainTopicReviewUtils;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainRecallMemories(threadId=["..."]); or BrainRecallMemories(roomId=["..."]); for a chat, with its topics
-public class BrainRecallMemoriesReactor extends AbstractCollaborationReactor {
-
-	private static final String THREAD_ID = "threadId";
-	private static final String ROOM_ID = "roomId";
-
-	public BrainRecallMemoriesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, ROOM_ID };
-		this.keyRequired = new int[] { 0, 0 };
+/** Read the signed-in owner's saved topic review without generating or applying topics. */
+public class BrainGetTopicReviewReactor extends AbstractCollaborationReactor {
+	public BrainGetTopicReviewReactor() {
+		this.keysToGet = new String[] {};
 	}
 
 	@Override
 	public NounMetadata execute() {
-		User user = getUser();
-		String threadId = getString(THREAD_ID);
-		String roomId = getString(ROOM_ID);
-		if (threadId == null && roomId == null) {
-			throw new IllegalArgumentException("Must pass a threadId or a roomId");
-		}
-		return mapResult(BrainMemoryRecall.recallMemories(user, threadId, roomId));
+		return mapResult(BrainTopicReviewUtils.get(getUser()));
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "The memories a thread's or chat's assistant gets in its prompt: { enabled, items (with bucket), hidden, "
-				+ "prompt }";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (THREAD_ID.equals(key)) {
-			return "Thread id";
-		} else if (ROOM_ID.equals(key)) {
-			return "Chat room id; its topics are used, as in that chat's runs";
-		}
-		return super.getDescriptionForKey(key);
+		return "Reads the owner's resumable topic-review draft, revision, apply receipt and exact filing job; review is null before setup";
 	}
 }
