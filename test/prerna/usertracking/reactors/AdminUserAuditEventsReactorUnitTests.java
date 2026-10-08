@@ -27,17 +27,34 @@
  *******************************************************************************/
 package prerna.usertracking.reactors;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.algorithm.api.SemossDataType;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityAdminUtils;
+import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.masterdatabase.utility.MasterDatabaseUtility;
 import prerna.om.Insight;
+import prerna.query.querystruct.AbstractQueryStruct;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
+import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
@@ -80,6 +97,50 @@ class AdminUserAuditEventsReactorUnitTests {
 			utility.when(Utility::isUserTrackingDisabled).thenReturn(false);
 			registry.when(SystemEngineRegistry::isUserTrackingDbLoaded).thenReturn(false);
 			assertThrows(IllegalStateException.class, () -> reactor(user).execute());
+		}
+	}
+
+	@Test
+	void auditQueryResolvesRegisteredEngineWhenOrdinaryLookupReturnsNull() throws Exception {
+		User user = mock(User.class);
+		var engine = mock(IRDBMSEngine.class);
+		var manager = mock(WrapperManager.class);
+		var wrapper = mock(IRawSelectWrapper.class);
+		try (var security = mockStatic(SecurityAdminUtils.class);
+				var utility = mockStatic(Utility.class);
+				var registry = mockStatic(SystemEngineRegistry.class);
+				var wrappers = mockStatic(WrapperManager.class);
+				var metadata = mockStatic(MasterDatabaseUtility.class)) {
+			security.when(() -> SecurityAdminUtils.userIsAdmin(user)).thenReturn(true);
+			utility.when(() -> Utility.getDatabase(Constants.USER_TRACKING_DB)).thenReturn(null);
+			registry.when(SystemEngineRegistry::isUserTrackingDbLoaded).thenReturn(true);
+			registry.when(SystemEngineRegistry::getUserTrackingDb).thenReturn(engine);
+			wrappers.when(WrapperManager::getInstance).thenReturn(manager);
+
+			var query = (SelectQueryStruct) reactor(user).execute().getValue();
+			assertEquals(Constants.USER_TRACKING_DB, query.getEngineId());
+			assertEquals(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, query.getQsType());
+			assertEquals(22, query.getSelectors().size());
+			var order = (QueryColumnOrderBySelector) query.getOrderBy().get(0);
+			assertEquals("USER_AUDIT_EVENTS__EVENT_TIME", order.getQueryStructName());
+			assertSame(engine, query.retrieveQueryStructEngine());
+
+			// Query operations and merging must preserve the engine used by Collect.
+			var paginated = new SelectQueryStruct();
+			paginated.merge(query);
+			paginated.setQsType(query.getQsType());
+			paginated.setOffSet(0);
+			paginated.setLimit(26);
+			assertSame(engine, paginated.retrieveQueryStructEngine());
+			when(manager.getRawWrapper(engine, paginated)).thenReturn(wrapper);
+			var types = new SemossDataType[query.getSelectors().size()];
+			Arrays.fill(types, SemossDataType.STRING);
+			when(wrapper.getTypes()).thenReturn(types);
+			try (var task = new BasicIteratorTask(paginated)) {
+				assertFalse(task.hasNext());
+			}
+			verify(manager).getRawWrapper(engine, paginated);
+			utility.verify(() -> Utility.getDatabase(Constants.USER_TRACKING_DB), never());
 		}
 	}
 }

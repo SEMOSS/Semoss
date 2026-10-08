@@ -87,6 +87,7 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 	@Override
 	protected AbstractQueryStruct createQueryStruct() {
 		this.qs.setEngineId(Constants.USER_TRACKING_DB);
+		this.qs.setEngine(SystemEngineRegistry.getUserTrackingDb());
 		this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
 		SelectQueryStruct sQs = new SelectQueryStruct();
