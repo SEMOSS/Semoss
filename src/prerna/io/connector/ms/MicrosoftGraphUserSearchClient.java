@@ -175,15 +175,15 @@ public class MicrosoftGraphUserSearchClient {
 			queryParams.add("$count=true");
 
 			if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-				queryParams
-						.add("$search=" + URLEncoder.encode(
-								"\"displayName:" + searchTerm + "\" OR \"mail:" + searchTerm
-										+ "\" OR \"userPrincipalName:" + searchTerm + "\"",
-								java.nio.charset.StandardCharsets.UTF_8.toString()));
+				// a double quote ends a $search clause, so escape it inside the term
+				String term = searchTerm.replace("\\", "\\\\").replace("\"", "\\\"");
+				queryParams.add("$search=" + URLEncoder.encode(
+						"\"displayName:" + term + "\" OR \"mail:" + term + "\" OR \"userPrincipalName:" + term + "\"",
+						java.nio.charset.StandardCharsets.UTF_8.toString()));
 			}
 
 			if (groupId == null || groupId.isEmpty()) {
-				queryParams.add("$select=displayName,id,mail,userType,givenName,surname");
+				queryParams.add("$select=displayName,id,mail,userPrincipalName,userType,givenName,surname");
 				queryParams.add("$filter=" + URLEncoder.encode("(userType eq 'Member')",
 						java.nio.charset.StandardCharsets.UTF_8.toString()));
 				uri = MicrosoftTokenFiller.MS_GRAPH_BASE_API + "/v1.0/users?" + String.join("&", queryParams);
