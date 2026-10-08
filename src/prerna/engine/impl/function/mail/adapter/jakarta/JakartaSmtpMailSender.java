@@ -43,6 +43,7 @@ import prerna.engine.impl.function.mail.model.SendResult;
 import prerna.engine.impl.function.mail.spi.MailSender;
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.util.EmailUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Sends through a mail server over SMTP.
@@ -88,27 +89,28 @@ public class JakartaSmtpMailSender implements MailSender {
 		// is found whichever case it arrived in
 		smssProp = normalizeRawMailKeys(smssProp);
 
-		if (trimToNull(smssProp.getProperty(MailProperties.EXCHANGE_CLIENT_ID)) != null) {
+		if (ValueUtils.trimToNull(smssProp.getProperty(MailProperties.EXCHANGE_CLIENT_ID)) != null) {
 			// the provider validates the credentials, so an engine missing one of
 			// them fails on open rather than on the first send
 			this.tokenProvider = Microsoft365MailOAuth.openTokenProvider(smssProp);
 		}
 
-		this.host = trimToNull(smssProp.getProperty(MailProperties.SMTP_HOST));
+		this.host = ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_HOST));
 		if (this.host == null && this.tokenProvider != null) {
 			// a microsoft 365 mailbox is always sent from the same place
 			this.host = Microsoft365MailOAuth.SEND_HOST;
 		}
-		if (this.host == null && trimToNull(smssProp.getProperty("mail.smtp.host")) == null) {
+		if (this.host == null && ValueUtils.trimToNull(smssProp.getProperty("mail.smtp.host")) == null) {
 			throw new IllegalArgumentException("Must have key " + MailProperties.SMTP_HOST
 					+ " or mail.smtp.host in SMSS to know which mail server to use");
 		}
 
 		// the UI writes a blank line for every optional field left empty, so an
 		// unset key arrives as "" rather than absent - defaultIfEmpty covers both
-		this.port = StringUtils.defaultIfEmpty(trimToNull(smssProp.getProperty(MailProperties.SMTP_PORT)), this.port);
-		this.username = trimToNull(smssProp.getProperty(MailProperties.SMTP_USERNAME));
-		this.password = trimToNull(smssProp.getProperty(MailProperties.SMTP_PASSWORD));
+		this.port = StringUtils.defaultIfEmpty(ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_PORT)),
+				this.port);
+		this.username = ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_USERNAME));
+		this.password = ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_PASSWORD));
 
 		if (this.tokenProvider != null) {
 			if (this.username == null) {
@@ -133,9 +135,8 @@ public class JakartaSmtpMailSender implements MailSender {
 			this.password = null;
 		}
 
-		this.security = StringUtils
-				.defaultIfEmpty(trimToNull(smssProp.getProperty(MailProperties.SMTP_SECURITY)), this.security)
-				.toLowerCase();
+		this.security = StringUtils.defaultIfEmpty(
+				ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_SECURITY)), this.security).toLowerCase();
 		if (!this.security.equals(MailProperties.STARTTLS_SECURITY)
 				&& !this.security.equals(MailProperties.SSL_SECURITY)
 				&& !this.security.equals(MailProperties.NO_SECURITY)) {
@@ -172,15 +173,16 @@ public class JakartaSmtpMailSender implements MailSender {
 	 * @return the session to send every message through
 	 */
 	private Session buildEmailSession(Properties smssProp) {
-		boolean onlyCustomProps = parseBoolean(smssProp.getProperty(MailProperties.ONLY_CUSTOM_PROPERTIES), false);
+		boolean onlyCustomProps = ValueUtils.parseBoolean(smssProp.getProperty(MailProperties.ONLY_CUSTOM_PROPERTIES),
+				false);
 
 		// the server can be described either by this engine's own keys or purely in
 		// jakarta.mail keys, so resolve both before anything reads the port
 		String effectiveHost = this.host;
 		String effectivePort = this.host == null ? null : this.port;
 		if (effectiveHost == null) {
-			effectiveHost = trimToNull(smssProp.getProperty("mail.smtp.host"));
-			effectivePort = trimToNull(smssProp.getProperty("mail.smtp.port"));
+			effectiveHost = ValueUtils.trimToNull(smssProp.getProperty("mail.smtp.host"));
+			effectivePort = ValueUtils.trimToNull(smssProp.getProperty("mail.smtp.port"));
 		}
 
 		Properties mailProps = new Properties();
@@ -319,20 +321,6 @@ public class JakartaSmtpMailSender implements MailSender {
 			}
 		}
 		return normalized;
-	}
-
-	private static boolean parseBoolean(String value, boolean defaultValue) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return defaultValue;
-		}
-		return Boolean.parseBoolean(value);
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return null;
-		}
-		return value;
 	}
 
 }

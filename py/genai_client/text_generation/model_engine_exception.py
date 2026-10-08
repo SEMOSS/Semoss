@@ -1,9 +1,24 @@
-from typing import Any
+from typing import Any, Optional
 import traceback, re, json
 import openai
 from pydantic import BaseModel
 from anthropic import APIStatusError, APIConnectionError, APITimeoutError
 from botocore.exceptions import ClientError, BotoCoreError
+
+from ..message_builders.semoss_base.document_input import ContextBudgetError
+
+# reason Java checks to compact/fork and retry instead of failing the room
+CONTEXT_OVERFLOW = "CONTEXT_OVERFLOW"
+
+# provider wording for "request exceeds the context window" (lowercase)
+_CONTEXT_OVERFLOW_PATTERNS = (
+    "maximum context length",  # openai / vllm / openai-compatible servers
+    "prompt is too long",  # anthropic
+    "input is too long",  # bedrock
+    "too many input tokens",  # bedrock
+    "exceeds the maximum number of tokens",  # google
+    "input token count",  # google
+)
 
 
 class AnthropicRefusalError(RuntimeError):
@@ -18,6 +33,9 @@ class ErrorDetails(BaseModel):
     client: str
     model: str
     traceback: str
+    reason: Optional[str] = None
+    # which rule set reason, e.g. "code:context_length_exceeded" or "text:prompt is too long"
+    reason_detail: Optional[str] = None
 
 
 class ModelEngineException:
@@ -28,6 +46,14 @@ class ModelEngineException:
         self.traceback = traceback.format_exc()
 
     def parse_error(self) -> ErrorDetails:
+        details = self._parse_by_client()
+        rule = self._context_overflow_rule(details)
+        if rule:
+            details.reason = CONTEXT_OVERFLOW
+            details.reason_detail = rule
+        return details
+
+    def _parse_by_client(self) -> ErrorDetails:
         if self.client == "anthropic":
             return self._parse_anthropic_error()
         elif self.client in ["google", "vertex", "gemini"]:
@@ -43,6 +69,23 @@ class ModelEngineException:
             code=500,
             error_type="Internal Server Error",
         )
+
+    def _context_overflow_rule(self, details: ErrorDetails) -> Optional[str]:
+        # structured signals first, provider wording as the fallback
+        if isinstance(self.error, ContextBudgetError):
+            return "type:ContextBudgetError"
+        if getattr(self.error, "code", None) == "context_length_exceeded":
+            return "code:context_length_exceeded"  # openai / azure
+        if isinstance(self.error, APIStatusError):
+            body = self.error.body if isinstance(self.error.body, dict) else {}
+            inner = body.get("error")
+            if isinstance(inner, dict) and inner.get("type") == "request_too_large":
+                return "type:request_too_large"  # anthropic 413, byte limit
+        text = f"{details.error_type} {details.message}".lower()
+        for pattern in _CONTEXT_OVERFLOW_PATTERNS:
+            if pattern in text:
+                return f"text:{pattern}"
+        return None
 
     def _parse_google_error(self) -> ErrorDetails:
         """

@@ -5,7 +5,7 @@ ARG BASE_TAG=12.5.1-runtime-ubuntu22.04
 ARG COPILOT_VERSION=latest
 
 #global argument for tomcat
-ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_VERSION=11.0.26
 # Which tomcat-builder variant to base on. Empty = the standard image; pass
 #   --build-arg TOMCAT_TAG_SUFFIX=-fips
 # for the FIPS 140-3 variant. Only the SUFFIX crosses the workflow boundary, so

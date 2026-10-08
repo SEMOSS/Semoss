@@ -10,10 +10,16 @@ not a sandbox.
 import base64
 import json
 import re
+import xml.etree.ElementTree as ET
+from collections.abc import Callable
 from typing import Any
 
 
 _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
+_DATA_PATH_TOKEN_PATTERN = re.compile(
+    r"([^.\[\]]+)|\[(\d+|\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')\]"
+)
+_MISSING = object()
 
 
 class AutomationScope(dict[str, Any]):
@@ -99,6 +105,162 @@ class AutomationScope(dict[str, Any]):
         return self.resolve(value)
 
 
+def extract_data_element(
+    source: Any,
+    path: str,
+    source_format: str = "auto",
+    missing_value: Any = None,
+    null_value: Any = None,
+    asset_reader: Callable[[str], str] | None = None,
+) -> Any:
+    """Return one nested JSON/XML value with distinct missing and null fallbacks."""
+    data = _structured_data(source, source_format, asset_reader)
+    value = _nested_value(data, _data_path_tokens(path))
+    if value is _MISSING:
+        return missing_value
+    if value is None:
+        return null_value
+    return value
+
+
+def _structured_data(
+    source: Any,
+    source_format: str,
+    asset_reader: Callable[[str], str] | None,
+) -> Any:
+    normalized_format = source_format.strip().lower()
+    if normalized_format not in {"auto", "json", "xml"}:
+        raise ValueError("Data format must be auto, json, or xml.")
+    if isinstance(source, (dict, list)):
+        if normalized_format == "xml":
+            raise ValueError("XML input must be text or a run-workspace file path.")
+        return source
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("Data must be a JSON/XML value, encoded content, or file path.")
+
+    candidates = [source]
+    decoded = _decoded_text(source)
+    if decoded is not None:
+        candidates.append(decoded)
+
+    errors: list[Exception] = []
+    for candidate in candidates:
+        try:
+            return _parse_structured_text(candidate, normalized_format)
+        except (json.JSONDecodeError, ET.ParseError, UnicodeError, ValueError) as error:
+            errors.append(error)
+    if asset_reader is not None:
+        try:
+            return _parse_structured_text(asset_reader(source), normalized_format)
+        except (json.JSONDecodeError, ET.ParseError, UnicodeError, ValueError) as error:
+            errors.append(error)
+    raise ValueError(
+        "Unable to read JSON or XML from the supplied value or run-workspace file."
+    ) from errors[-1]
+
+
+def _parse_structured_text(value: str, source_format: str) -> Any:
+    text = value.lstrip("\ufeff\r\n\t ")
+    if source_format == "json" or source_format == "auto" and text[:1] in "[{":
+        return json.loads(text)
+    if source_format == "xml" or source_format == "auto" and text.startswith("<"):
+        root = ET.fromstring(text)
+        return {root.tag: _xml_value(root)}
+    if source_format == "auto":
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            root = ET.fromstring(text)
+            return {root.tag: _xml_value(root)}
+    raise ValueError(f"Input is not valid {source_format.upper()}.")
+
+
+def _decoded_text(value: str) -> str | None:
+    try:
+        return base64.b64decode(value, validate=True).decode("utf-8-sig")
+    except (ValueError, UnicodeError):
+        return None
+
+
+def _xml_value(element: ET.Element) -> Any:
+    children = list(element)
+    attributes: dict[str, Any] = {
+        f"@{name}": value for name, value in element.attrib.items()
+    }
+    text = (element.text or "").strip()
+    if not children:
+        if not attributes:
+            return text or None
+        if text:
+            attributes["#text"] = text
+        return attributes
+
+    result = attributes
+    for child in children:
+        value = _xml_value(child)
+        existing = result.get(child.tag, _MISSING)
+        if existing is _MISSING:
+            result[child.tag] = value
+        elif isinstance(existing, list):
+            existing.append(value)
+        else:
+            result[child.tag] = [existing, value]
+    if text:
+        result["#text"] = text
+    return result
+
+
+def _data_path_tokens(path: str) -> list[str | int]:
+    value = path.strip()
+    if not value:
+        raise ValueError("Value path cannot be blank.")
+    if value.startswith("/"):
+        return [
+            int(token) if token.isdigit() else token.replace("~1", "/").replace("~0", "~")
+            for token in value.split("/")[1:]
+        ]
+    if value == "$":
+        return []
+    if value.startswith("$."):
+        value = value[2:]
+    elif value.startswith("$["):
+        value = value[1:]
+    elif value.startswith("$"):
+        raise ValueError("Value path must use '$.' or '$[' after the root marker.")
+
+    tokens: list[str | int] = []
+    cursor = 0
+    for match in _DATA_PATH_TOKEN_PATTERN.finditer(value):
+        separator = value[cursor : match.start()]
+        if separator not in {"", "."}:
+            raise ValueError(f"Invalid value path near '{separator}'.")
+        raw = match.group(1) or match.group(2)
+        if raw is None:
+            continue
+        if raw.isdigit():
+            tokens.append(int(raw))
+        elif raw[:1] in {"\"", "'"}:
+            tokens.append(json.loads(raw) if raw.startswith("\"") else raw[1:-1])
+        else:
+            tokens.append(raw)
+        cursor = match.end()
+    if cursor != len(value) or not tokens:
+        raise ValueError("Value path is invalid.")
+    return tokens
+
+
+def _nested_value(value: Any, tokens: list[str | int]) -> Any:
+    current = value
+    for token in tokens:
+        if isinstance(current, dict) and token in current:
+            current = current[token]
+        elif isinstance(current, list) and isinstance(token, int) and token < len(current):
+            current = current[token]
+        else:
+            return _MISSING
+    return current
+
+
 def execute_node(
     encoded_scope: str,
     encoded_source: str,
@@ -109,7 +271,13 @@ def execute_node(
     """Execute one persisted node module with a fresh module namespace."""
     scope = _decode_scope(encoded_scope)
     source = _decode(encoded_source)
-    module: dict[str, Any] = {"__name__": "__automation_node__"}
+    module: dict[str, Any] = {
+        "__name__": "__automation_node__",
+        # Generated nodes use runtime-owned helpers through this execution boundary.
+        # This avoids depending on the worker's ambient sys.path or importing a
+        # second copy of this module from inside persisted node source.
+        "extract_data_element": extract_data_element,
+    }
     # Java selects this persisted source only after authorizing the run. Keeping
     # exec here makes that trust boundary explicit and avoids hidden source edits.
     exec(source, module)

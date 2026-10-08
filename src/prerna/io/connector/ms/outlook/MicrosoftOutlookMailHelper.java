@@ -93,8 +93,9 @@ public class MicrosoftOutlookMailHelper {
 	public static final String DEFAULT_GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0";
 
 	/** The fields a message listing asks for when the caller wants the body. */
-	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,receivedDateTime,"
-			+ "sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,conversationId";
+	private static final String MESSAGE_FIELDS = "id,subject,from,replyTo,toRecipients,ccRecipients,bccRecipients,"
+			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,body,internetMessageId,webLink,"
+			+ "conversationId";
 
 	/**
 	 * What a thread asks for: the body, and the part of it that is the message's
@@ -104,7 +105,8 @@ public class MicrosoftOutlookMailHelper {
 
 	/** The same without the body, for a listing that only wants headers. */
 	private static final String MESSAGE_FIELDS_NO_BODY = "id,subject,from,toRecipients,ccRecipients,"
-			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId";
+			+ "receivedDateTime,sentDateTime,isRead,hasAttachments,bodyPreview,internetMessageId,conversationId,"
+			+ "webLink";
 
 	// graph refuses a message over this size on the simple send, and the limit is
 	// on the encoded form rather than the file, so it is checked after encoding
@@ -473,25 +475,36 @@ public class MicrosoftOutlookMailHelper {
 		return message;
 	}
 
-	/** Materialize files before creating a remote draft, so local failures cannot send anything. */
+	/**
+	 * Materialize files before creating a remote draft, so local failures cannot
+	 * send anything.
+	 */
 	public static List<Map<String, Object>> fileAttachments(String[] paths) throws IOException {
 		List<Map<String, Object>> attached = new ArrayList<>();
-		if (paths == null) return attached;
+		if (paths == null) {
+			return attached;
+		}
 		for (String path : paths) {
 			File file = new File(path);
 			Map<String, Object> attachment = new LinkedHashMap<>();
 			attachment.put("@odata.type", "#microsoft.graph.fileAttachment");
 			// The editor gives uploads a UUID prefix to prevent same-name collisions.
-			attachment.put("name", file.getName().replaceFirst("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-", ""));
+			attachment.put("name",
+					file.getName().replaceFirst("^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}-", ""));
 			attachment.put("contentBytes", Base64.getEncoder().encodeToString(Files.readAllBytes(file.toPath())));
 			attached.add(attachment);
 		}
 		return attached;
 	}
 
-	/** Add authored files without replacing the native forward's existing attachments. */
+	/**
+	 * Add authored files without replacing the native forward's existing
+	 * attachments.
+	 */
 	public void attachToDraft(String accessToken, Map<String, Object> draft, List<Map<String, Object>> files) {
-		if (files.isEmpty()) return;
+		if (files.isEmpty()) {
+			return;
+		}
 		if (draft == null || !(draft.get("id") instanceof String id) || id.isBlank()) {
 			throw new IllegalArgumentException("The saved draft attachment target could not be confirmed.");
 		}
@@ -502,7 +515,8 @@ public class MicrosoftOutlookMailHelper {
 			throwOnError(response, "attach a file to the draft email");
 			Map<String, Object> receipt = readMap(response);
 			if (!(receipt.get("id") instanceof String attachmentId) || attachmentId.isBlank()) {
-				throw new IllegalArgumentException("The draft attachment could not be confirmed. Check the draft in Outlook.");
+				throw new IllegalArgumentException(
+						"The draft attachment could not be confirmed. Check the draft in Outlook.");
 			}
 		}
 	}
@@ -528,6 +542,11 @@ public class MicrosoftOutlookMailHelper {
 		url.append("&$top=").append(Math.max(1, query.top));
 
 		boolean searching = query.from != null || query.subject != null;
+		if (!searching && query.skip > 0) {
+			// graph will not skip alongside a text search, so a search always reads
+			// from the first message
+			url.append("&$skip=").append(query.skip);
+		}
 		if (searching) {
 			// $search cannot be combined with $filter, and ordering is ignored while
 			// searching, so the rest of the query is applied below in memory
@@ -543,6 +562,10 @@ public class MicrosoftOutlookMailHelper {
 			List<String> filters = new ArrayList<>();
 			if (query.since != null) {
 				filters.add("receivedDateTime ge " + DateTimeFormatter.ISO_INSTANT.format(query.since.toInstant()));
+			} else if (query.unreadOnly) {
+				// graph refuses a filter sorted by a field it does not filter on first, so
+				// the date the listing is sorted by leads the filter even with no cutoff
+				filters.add("receivedDateTime ge 1900-01-01T00:00:00Z");
 			}
 			if (query.unreadOnly) {
 				filters.add("isRead eq false");
@@ -627,6 +650,24 @@ public class MicrosoftOutlookMailHelper {
 	}
 
 	/**
+	 * List what is attached to a message, without the bytes, which is one call
+	 * however large the files are.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param messageId   the message whose attachments to list
+	 * @return the attachments as Graph returned them, each still saying what kind
+	 *         of attachment it is
+	 */
+	public List<Map<String, Object>> listAttachmentSummaries(String accessToken, String mailbox, String messageId) {
+		String url = userPath(mailbox) + "/messages/" + encode(messageId)
+				+ "/attachments?$select=id,name,contentType,size,isInline";
+		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
+		throwOnError(response, "read the attachments of a message");
+		return readList(response);
+	}
+
+	/**
 	 * List the attachments of a message, each carrying its bytes when it is a file.
 	 *
 	 * @param accessToken the token to read with
@@ -699,7 +740,21 @@ public class MicrosoftOutlookMailHelper {
 	 * @return the folders as Graph returned them
 	 */
 	public List<Map<String, Object>> listFolders(String accessToken, String mailbox) {
-		String url = userPath(mailbox) + "/mailFolders?$top=100&$select=id,displayName,totalItemCount";
+		return listFolders(accessToken, mailbox, 100, 0);
+	}
+
+	/**
+	 * List one page of the folders of a mailbox.
+	 *
+	 * @param accessToken the token to read with
+	 * @param mailbox     the mailbox, or null for the signed in user
+	 * @param top         how many folders to read
+	 * @param skip        how many folders to skip first
+	 * @return the folders as Graph returned them
+	 */
+	public List<Map<String, Object>> listFolders(String accessToken, String mailbox, int top, int skip) {
+		String url = userPath(mailbox) + "/mailFolders?$top=" + Math.max(1, top) + "&$skip=" + Math.max(0, skip)
+				+ "&$select=id,displayName,totalItemCount,unreadItemCount";
 		String response = HttpHelperUtility.getRequest(url, headers(accessToken), null, null, null);
 		throwOnError(response, "list the folders of the mailbox");
 		return readList(response);
@@ -881,6 +936,13 @@ public class MicrosoftOutlookMailHelper {
 
 		/** How many messages to ask Graph for. */
 		public int top = 10;
+
+		/**
+		 * How many messages Graph skips before the ones it returns. Graph cannot skip
+		 * alongside a text search or a conversation, which always read from the first
+		 * message.
+		 */
+		public int skip = 0;
 
 		/** Text the sender has to contain, which makes this a search. */
 		public String from = null;

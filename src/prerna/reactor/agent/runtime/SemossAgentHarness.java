@@ -52,6 +52,7 @@ import prerna.engine.impl.model.message.MessageUtils;
 import prerna.engine.impl.model.message.ResponseMessage;
 import prerna.engine.impl.model.message.ToolResultMessagePart;
 import prerna.engine.impl.model.message.ToolResultPart;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
@@ -80,7 +81,9 @@ import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * SEMOSS-native agent harness.
@@ -112,7 +115,11 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	/** Harness-only paramMap key stripped before provider model calls. */
 	public static final String PARAM_MAX_SECONDS = "max_seconds";
-	private static final double AUTO_COMPACTION_TRIGGER_RATIO = 0.80;
+	// compaction triggers when estimate + reserve reaches the window; reserve =
+	// reply allowance + margin for the next tool round and estimate error
+	private static final int COMPACTION_MARGIN_TOKENS = 20_000;
+	private static final int DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
+	private static final double MAX_RESERVE_RATIO = 0.25;
 
 	private static final String PARAM_FILE_PATH = "file_path";
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
@@ -154,9 +161,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
+		boolean pptxOnDemand = PptxWorkflow.onDemand(ctx);
 		if (agentConfig.hasPptxWorkflow()) {
 			defaultAndExplicitTools
 					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+		}
+		if (agentConfig.hasPptxWorkflow() || pptxOnDemand) {
 			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
 			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
@@ -219,8 +229,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
 		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(CollaborationUtils.isThreadRoom(room)
-				? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		// a PPTX workflow run has no collaboration tools, so it keeps the general
+		// baseline
+		StringBuilder composed = new StringBuilder(
+				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
+						? CollaborationPrompts.THREAD_PROMPT
+						: SemossHarnessPrompts.SYSTEM_PROMPT);
 		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
 		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
@@ -237,8 +251,9 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
-		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
-		if (CollaborationUtils.isThreadRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+		// what the owner's thread assistant remembers; after the static parts so they
+		// stay cacheable
+		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
 					CollaborationUtils.threadIdOf(room));
@@ -249,6 +264,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		if (agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		} else if (pptxOnDemand) {
+			composed.append("\n\n").append(CollaborationPrompts.PPTX_PROMPT);
 		}
 		opts.put("instructions", composed.toString());
 		// The agent and room layers are already composed; do not append them again.
@@ -363,7 +380,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 				state.progress().beginModel();
 				try {
-					response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
+					response = requireModelResponse(askWithOverflowRecovery(ctx, firstMsg),
 							"during initial model call");
 				} finally {
 					state.progress().endModel();
@@ -577,10 +594,21 @@ public class SemossAgentHarness implements IAgentHarness {
 		AbstractMessage leaf = messages.getLast();
 		List<AbstractMessage> branch = RoomMessageStore
 				.providerContext(MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()));
-		int contextTokens = currentContextTokens(branch);
-		double usageRatio = (double) contextTokens / contextWindow;
-		if (usageRatio < AUTO_COMPACTION_TRIGGER_RATIO) {
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
 			return AutoCompactionOutcome.NOT_NEEDED;
+		}
+
+		// a failed run left unanswered tool results as the leaf; prune tool payloads
+		// from it up so the next request is not stuck on them
+		if (leaf instanceof InputMessage && leaf.hasToolResultPart()) {
+			boolean pruned = room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.info(
+					"SemossAgentHarness: pruned tool results under unanswered leaf run={} room={} model={} "
+							+ "estimatedTokens={} contextWindow={} pruned={}",
+					ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow,
+					pruned);
+			return pruned ? AutoCompactionOutcome.COMPACTED : AutoCompactionOutcome.SKIPPED;
 		}
 
 		if (leaf instanceof InputMessage || leaf.hasToolCallPart()) {
@@ -605,7 +633,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		for (Map<String, Object> result : results) {
 			if (Boolean.TRUE.equals(result.get("success"))) {
-				int tokensAfter = currentContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
+				int tokensAfter = estimateContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
 						room.getMessages().getLast().getMessageId()));
 				logger.info(
 						"SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
@@ -654,11 +682,162 @@ public class SemossAgentHarness implements IAgentHarness {
 		reactor.getNounStore().addNoun(key, row);
 	}
 
-	private static int currentContextTokens(List<AbstractMessage> branch) {
-		if (branch == null || branch.size() < 2) {
+	static boolean needsCompaction(AgentRunContext ctx, int contextTokens, int contextWindow) {
+		return (long) contextTokens + compactionReserve(ctx, contextWindow) >= contextWindow;
+	}
+
+	// reply allowance (request max_tokens, else engine max, else default) + margin,
+	// capped so small windows do not compact every round
+	static int compactionReserve(AgentRunContext ctx, int contextWindow) {
+		long maxOutput = 0;
+		Map<String, Object> params = ctx.getAgentConfig().getModelParams();
+		Object requested = params == null ? null : params.get("max_tokens");
+		if (requested instanceof Number n) {
+			maxOutput = n.longValue();
+		} else if (requested != null) {
+			try {
+				maxOutput = Long.parseLong(requested.toString().trim());
+			} catch (NumberFormatException e) {
+				// fall through to engine/default
+			}
+		}
+		if (maxOutput <= 0) {
+			maxOutput = ctx.getModelEngine().getMaxTokens();
+		}
+		if (maxOutput <= 0) {
+			maxOutput = DEFAULT_MAX_OUTPUT_TOKENS;
+		}
+		long reserve = maxOutput + COMPACTION_MARGIN_TOKENS;
+		return (int) Math.min(reserve, (long) (contextWindow * MAX_RESERVE_RATIO));
+	}
+
+	/**
+	 * First model call of a run. On a context overflow, prune tool payloads in the
+	 * stored history and retry once; if there is nothing to prune or it still
+	 * overflows, the new message itself is too large. The input is only stored on
+	 * success, so the room is never left stuck.
+	 */
+	private static ResponseMessage askWithOverflowRecovery(AgentRunContext ctx, InputMessage firstMsg) {
+		Room room = ctx.getRoom();
+		try {
+			return room.ask(firstMsg, ctx.getModelEngine(), null);
+		} catch (RuntimeException e) {
+			AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+			if (overflow == null) {
+				throw e;
+			}
+			List<AbstractMessage> messages = room.getMessages();
+			AbstractMessage leaf = messages == null || messages.isEmpty() ? null : messages.getLast();
+			boolean historyHasTools = leaf != null
+					&& MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
+							.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
+			boolean pruned = historyHasTools && room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.warn(
+					"SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
+							+ "prunedHistory={}",
+					ctx.getRunId(), room.getId(), overflow.getClient(), overflow.getReasonDetail(), pruned);
+			if (pruned) {
+				try {
+					return room.ask(firstMsg, ctx.getModelEngine(), null);
+				} catch (RuntimeException retryError) {
+					if (!SemossModelEngineException.isContextOverflow(retryError)) {
+						throw retryError;
+					}
+					e = retryError;
+				}
+			}
+			throw new IllegalStateException("This message and its attachments are too large for the model's "
+					+ "context window. Send less text, fewer pages or smaller files, or start a new conversation.", e);
+		}
+	}
+
+	// results smaller than this are never stubbed; they are not what overflows the
+	// context
+	private static final int MIN_STUB_RESULT_CHARS = 2_000;
+
+	/**
+	 * After a context-overflow error on a tool continuation: fork the current
+	 * tool-results message with the largest results stubbed until estimate +
+	 * reserve fits. Returns how many results were replaced (0 = nothing to retry).
+	 */
+	static int forkOversizedToolResults(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		long tokensToFree = 0;
+		try {
+			int contextWindow = ctx.getModelEngine().getContextWindow();
+			List<AbstractMessage> messages = room.getMessages();
+			if (contextWindow > 0 && messages != null && !messages.isEmpty()) {
+				int estimate = estimateContextTokens(RoomMessageStore.providerContext(
+						MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId())));
+				tokensToFree = Math.max(0L, (long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
+			}
+		} catch (RuntimeException e) {
+			// unknown window; the fork still stubs the largest result
+		}
+		int replaced = room.forkToolResultsWithStubs(toolCallMessageId, tokensToFree, MIN_STUB_RESULT_CHARS,
+				ctx.getInsight());
+		logger.info("SemossAgentHarness: context overflow fork run={} room={} toolCall={} tokensToFree={} replaced={}",
+				ctx.getRunId(), room.getId(), toolCallMessageId, tokensToFree, replaced);
+		return replaced;
+	}
+
+	// last provider-measured prompt plus everything after it; unmeasured messages
+	// (e.g. tool results not yet sent) are estimated at chars / 4
+	static int estimateContextTokens(List<AbstractMessage> branch) {
+		if (branch == null || branch.isEmpty()) {
 			return 0;
 		}
-		return branch.getLast().getTokensInMessage() + branch.get(branch.size() - 2).getTokensInMessage();
+		long total = 0;
+		for (int i = branch.size() - 1; i >= 0; i--) {
+			AbstractMessage message = branch.get(i);
+			int tokens = message.getTokensInMessage();
+			// an input's recorded tokens are the full prompt at that call
+			if (message instanceof InputMessage && tokens > 0) {
+				total += tokens;
+				break;
+			}
+			total += tokens > 0 ? tokens : MessageUtils.toJson(message).length() / 4;
+		}
+		return (int) Math.min(Integer.MAX_VALUE, total);
+	}
+
+	/**
+	 * In-loop check after a tool batch's results are stored and before the next
+	 * model call. Over the trigger ratio, older tool payloads are pruned from the
+	 * provider view; the current tool call and its results stay intact.
+	 */
+	static void pruneToolsBeforeContinuation(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		int contextWindow;
+		try {
+			contextWindow = ctx.getModelEngine().getContextWindow();
+		} catch (RuntimeException e) {
+			return;
+		}
+		List<AbstractMessage> messages = room.getMessages();
+		if (contextWindow <= 0 || messages == null || messages.isEmpty()) {
+			return;
+		}
+		List<AbstractMessage> branch = RoomMessageStore
+				.providerContext(MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId()));
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
+			return;
+		}
+		// flag the message above the current tool call so pruning starts there
+		String pruneFromId = null;
+		for (AbstractMessage message : branch) {
+			if (toolCallMessageId.equals(message.getMessageId())) {
+				pruneFromId = message.getParentMessageId();
+				break;
+			}
+		}
+		boolean pruned = pruneFromId != null && !pruneFromId.isEmpty()
+				&& room.markPruneToolsAbove(pruneFromId, ctx.getInsight());
+		logger.info(
+				"SemossAgentHarness: in-loop tool pruning run={} room={} model={} estimatedTokens={} "
+						+ "contextWindow={} pruned={}",
+				ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow, pruned);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -930,7 +1109,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					action.put("executionMode", execVal);
 				}
 			}
-			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
+			String resourceURI = uiMeta != null ? ValueUtils.trimToNull(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
 			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
 			action.put("hasUi", hasUi);
 			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action) : null);
@@ -951,9 +1130,9 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * {@code GetAgentRunAction} on load to fetch the rest from the row.
 	 */
 	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta, Map<String, Object> action) {
-		String projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
+		String projectId = toolMeta != null ? ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
 		if (projectId == null) {
-			projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
+			projectId = toolMeta != null ? ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
 		}
 		if (MCPUtility.ROOM_MCP_ID.equals(projectId)) {
 			// Room scoped tools have no project portal to point at.
@@ -964,6 +1143,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			// exposes the action id and tool metadata for UI-driven execution.
 			return null;
 		}
+		if (resourceURI.contains("://")) {
+			// a component:// or system:// view renders inside the client, so there is
+			// no portal page to point at
+			return null;
+		}
 		// Strip any leading slash from resourceURI so the path never gets a double
 		// slash.
 		String normalizedURI = resourceURI.startsWith("/") ? resourceURI.substring(1) : resourceURI;
@@ -971,14 +1155,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		// load to fetch the run context and prefill args from the persisted row.
 		return "/Monolith/public_home/" + projectId + "/portals/" + normalizedURI + "?actionId="
 				+ action.get("actionId");
-	}
-
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
@@ -1006,11 +1182,11 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	private static String buildRuntimeContextPromptBlock(AgentRunContext ctx, Room room, Map<String, Object> paramMap) {
-		String roomId = room != null ? trimToNull(room.getId()) : null;
+		String roomId = room != null ? ValueUtils.trimToNull(room.getId()) : null;
 		String workingDir = ctx != null && ctx.getAgentConfig() != null
-				? trimToNull(ctx.getAgentConfig().getWorkingDir())
+				? ValueUtils.trimToNull(ctx.getAgentConfig().getWorkingDir())
 				: null;
-		String projectParam = trimToNull(paramMap != null ? paramMap.get(PARAM_PROJECT) : null);
+		String projectParam = ValueUtils.trimToNull(paramMap != null ? paramMap.get(PARAM_PROJECT) : null);
 		String targetProjectId = firstNonBlank(projectParam,
 				room != null && room.getOptionsMap() != null ? room.getOptionsMap().get("targetProjectId") : null);
 
@@ -1039,7 +1215,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		sb.append("""
 
-
 				## Tool environment
 				- BashCommand, when enabled, allows: %s. One command per call; no pipes, chaining, redirects, \
 				$(), backticks, absolute paths, ~ paths, or .. . \
@@ -1054,26 +1229,26 @@ public class SemossAgentHarness implements IAgentHarness {
 				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
 				""");
 		if (CollaborationUtils.isCollaborationRoom(room)) {
-			sb.append("""
+			sb.append(
+					"""
 
-
-					## Collaboration file delivery
-					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
-					and python. For source text, use from smssutil import get_document_markdown, then \
-					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
-					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
-					or visual inspection for a text-reading task; use visual tools when visuals matter.
-					- Before creating or repairing files, load the relevant collaboration references and the \
-					python or pptx skill for that execution route. Continue truncated reads as needed.
-					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
-					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
-					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
-					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
-					Do not offer email as a substitute for returning the file.
-					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
-					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
-					a rejected external action. Finish with the verified artifact and a concise outcome.\
-					""");
+							## Collaboration file delivery
+							- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+							and python. For source text, use from smssutil import get_document_markdown, then \
+							get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+							notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+							or visual inspection for a text-reading task; use visual tools when visuals matter.
+							- Before creating or repairing files, load the relevant collaboration references and the \
+							python or pptx skill for that execution route. Continue truncated reads as needed.
+							- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+							[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+							and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+							A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+							Do not offer email as a substitute for returning the file.
+							- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+							Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+							a rejected external action. Finish with the verified artifact and a concise outcome.\
+							""");
 		}
 		if (ctx.getAgentConfig().hasPptxWorkflow()) {
 			sb.append("""
@@ -1105,20 +1280,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			return null;
 		}
 		for (Object value : values) {
-			String s = trimToNull(value);
+			String s = ValueUtils.trimToNull(value);
 			if (s != null) {
 				return s;
 			}
 		}
 		return null;
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 	private static int lengthOrZero(String s) {
@@ -1177,7 +1344,11 @@ public class SemossAgentHarness implements IAgentHarness {
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
 			// a tool with a native UI component needs its _meta on the call, auto or not
 			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
-			boolean hasComponent = ui instanceof Map && ((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null;
+			// so does one whose view is a component the client renders, which shows its
+			// result as well as its approval
+			Object resourceURI = ui instanceof Map ? ((Map<String, Object>) ui).get(MCPUtility.UI_RESOURCE_URI) : null;
+			boolean hasComponent = ui instanceof Map && (((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null
+					|| (resourceURI != null && String.valueOf(resourceURI).startsWith(MCPUtility.UI_COMPONENT_SCHEME)));
 			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}

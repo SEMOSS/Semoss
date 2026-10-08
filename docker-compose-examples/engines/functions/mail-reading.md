@@ -76,6 +76,10 @@ To try the whole set against GreenMail, create the IMAP engine with
 few messages through the SMTP engine, then search with `unreadOnly true` and pass
 a returned `uid` back with `action markRead`.
 
+To screen returned bodies before they reach a caller or agent, attach an
+`execute` output pipeline as described in
+[guardrails around mail execution](mail-guardrails.md).
+
 ---
 
 Part of the [function engines](README.md) of the

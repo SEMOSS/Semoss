@@ -31,116 +31,59 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.mail.AbstractGetMailReactor;
+import prerna.io.connector.mail.MailApp;
+import prerna.io.connector.mail.MailAttachment;
+import prerna.io.connector.mail.MailMessage;
+import prerna.io.connector.mail.MailRecipientRules;
+import prerna.io.connector.mail.MailRecipients;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reads one message out of the signed in user's mailbox.
+ * Reads one message in full from the signed in user's own Microsoft 365
+ * mailbox, with what is attached to it.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Mail.Read} for {@code GET /me/messages/{id}} and for
- * {@code GET /me/messages/{id}/attachments}. {@code Mail.ReadWrite} also
- * satisfies both.</li>
- * </ul>
- *
- * <p>
- * A listing cuts bodies short and says only whether a message has attachments,
- * because reading a hundred messages in full is rarely what was wanted. This is
- * the call that reads one of them properly: the whole body, and what is
- * attached to it by name and id, which is what
- * {@code MicrosoftOutlookDownloadAttachment} takes.
+ * Required delegated Microsoft Graph scope: {@code Mail.Read}.
  * </p>
  */
-public class MicrosoftOutlookGetMailReactor extends AbstractMicrosoftOutlookMessageReactor {
+public class MicrosoftOutlookGetMailReactor extends AbstractGetMailReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookGetMailReactor.class);
-
-	private static final String INCLUDE_ATTACHMENTS = "includeAttachments";
-
-	public MicrosoftOutlookGetMailReactor() {
-		this.keysToGet = new String[] { UID, MAX_BODY_CHARS, INCLUDE_ATTACHMENTS, "includeDisplayBody",
-				"includeReplyRecipients" };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
+	@Override
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String uid = requiredUid("read a message");
-		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
-		String includeAttachments = trimToNull(this.keyValue.get(INCLUDE_ATTACHMENTS));
-		// the attachments are one more call, and somebody reading a message usually
-		// wants to know what came with it, so they are described unless refused
-		boolean withAttachments = includeAttachments == null || Boolean.parseBoolean(includeAttachments);
+	protected MailMessage getMail(User user, GetMailRequest request) throws Exception {
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
 
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		Map<String, Object> message = helper.getMessage(accessToken, null, request.id());
+		if (message == null) {
+			throw new IllegalArgumentException("No message exists in your mailbox with id: " + request.id());
+		}
 
-			Map<String, Object> message = helper.getMessage(accessToken, null, uid);
-			if (message == null) {
-				throw new SemossPixelException("No message exists in your mailbox with uid: " + uid);
-			}
-			Map<String, Object> described = MicrosoftOutlookMessageMapper.toMessage(message, true, maxBodyChars);
-			if (Boolean.parseBoolean(this.keyValue.get("includeDisplayBody"))) {
-				described.put("displayBody",
-						MicrosoftMessageDisplay.body(message, String.valueOf(described.get("body"))));
-				described.put("webLink", message.get("webLink"));
-			}
-			if (Boolean.parseBoolean(this.keyValue.get("includeReplyRecipients"))) {
-				described.put("replyRecipients",
-						MicrosoftOutlookReplyRecipients.defaults(message, MicrosoftLoginUtils.getMicrosoftEmail(user)));
-			}
-			boolean hasAttachments = Boolean.TRUE.equals(message.get("hasAttachments"));
-			described.put("hasAttachments", hasAttachments);
-
-			if (withAttachments && hasAttachments) {
-				List<Map<String, Object>> attachments = new ArrayList<>();
-				for (Map<String, Object> attachment : helper.listAttachments(accessToken, null, uid)) {
-					attachments.add(MicrosoftOutlookMessageMapper.toAttachment(attachment));
+		List<MailAttachment> attachments = null;
+		if (request.includeAttachments()) {
+			attachments = new ArrayList<>();
+			if (Boolean.TRUE.equals(message.get("hasAttachments"))) {
+				for (Map<String, Object> attachment : helper.listAttachmentSummaries(accessToken, null, request.id())) {
+					attachments.add(MicrosoftOutlookMessageMapper.toMailAttachment(attachment));
 				}
-				described.put("attachments", attachments);
 			}
-			return new NounMetadata(described, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while reading the message '{}'", uid, e);
-			throw e;
-		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid input passed to read a message", e);
-			throw new SemossPixelException(e.getMessage());
-		} catch (Exception e) {
-			classLogger.error("Failed to read the message '{}'", uid, e);
-			throw new SemossPixelException("An error occurred reading the message. Error message: " + e.getMessage());
 		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Read one message in full from the signed in user's own Microsoft 365 mailbox, with what is attached to it.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("includeReplyRecipients".equals(key)) {
-			return "Include reply-all To and Cc defaults, excluding the connected Microsoft address; defaults to false.";
-		}
-		if ("includeDisplayBody".equals(key)) {
-			return "Include the original bounded display body, with explicit content type; defaults to false.";
-		}
-		if (key.equals(INCLUDE_ATTACHMENTS)) {
-			return "Optional boolean for whether what is attached to the message is listed by name and id. Defaults to true.";
-		}
-		return super.getDescriptionForKey(key);
+		Map<String, Object> displayBody = request.includeDisplayBody()
+				? MicrosoftMessageDisplay.body(message, MicrosoftOutlookMessageMapper.bodyOf(message))
+				: null;
+		MailRecipients replyRecipients = request.includeReplyRecipients()
+				? MailRecipientRules.replyDefaults(MicrosoftOutlookMessageMapper.addresses(message.get("replyTo")),
+						MicrosoftOutlookMessageMapper.addressOf(message.get("from")),
+						MicrosoftOutlookMessageMapper.addresses(message.get("toRecipients")),
+						MicrosoftOutlookMessageMapper.addresses(message.get("ccRecipients")), accountEmail(user))
+				: null;
+		return MicrosoftOutlookMessageMapper.toMailMessage(message, attachments, displayBody, replyRecipients);
 	}
 }

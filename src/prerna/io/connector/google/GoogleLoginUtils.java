@@ -49,10 +49,74 @@ public final class GoogleLoginUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @return
-	 * @throws Exception
+	 * Retrieves a Google access token that is good to use now, refreshing it first
+	 * when it has run out.
+	 *
+	 * <p>
+	 * The refresh needs the refresh token Google hands out only to a sign in that
+	 * asked for offline access, so {@code google_access_type} has to be
+	 * {@code offline} in social.properties. Without one, a token that has run out
+	 * asks the user to sign in again.
+	 * </p>
+	 *
+	 * <p>
+	 * The refreshed token lands back on the user object, so whatever reads it next
+	 * gets the new one.
+	 * </p>
+	 *
+	 * @param user the user to act for
+	 * @return an access token for the Google provider
+	 * @throws SemossPixelException if the user is not signed in to Google, or their
+	 *                              sign in can no longer be refreshed
+	 */
+	public static String getValidAccessToken(User user) {
+		AccessToken token = user == null ? null : user.getAccessToken(AuthProvider.GOOGLE);
+		if (token == null || token.getAccess_token() == null || token.getAccess_token().isBlank()) {
+			throwLoginError(getLoginErrorDetails());
+		}
+		if (!isExpired(token)) {
+			return token.getAccess_token();
+		}
+		AccessToken refreshed = new GoogleTokenFiller().refreshAccessToken(token, new HashMap<>());
+		if (refreshed == null || refreshed.getAccess_token() == null) {
+			throwLoginError(getLoginErrorDetails());
+		}
+		// put it back where the next reader looks, so one refresh serves them all
+		user.setAccessToken(refreshed);
+		return refreshed.getAccess_token();
+	}
+
+	/**
+	 * Whether a token has run out, counted a minute early so it does not expire
+	 * between being read and being used.
+	 *
+	 * @param token the token to check
+	 * @return true when it should be refreshed before use
+	 */
+	private static boolean isExpired(AccessToken token) {
+		if (token.getExpires_in() <= 0 || token.getStartTime() <= 0) {
+			// nothing said when it runs out, so it is taken as it is rather than
+			// refreshed on every call
+			return false;
+		}
+		long expiresAt = token.getStartTime() + (token.getExpires_in() * 1000L);
+		return System.currentTimeMillis() >= expiresAt - 60_000L;
+	}
+
+	private static Map<String, Object> getLoginErrorDetails() {
+		Map<String, Object> retMap = new HashMap<>();
+		retMap.put("type", AuthProvider.GOOGLE.getLabel());
+		retMap.put("message", "Please login to your Google account");
+		return retMap;
+	}
+
+	/**
+	 * Retrieves the user's Google access token as it is, without refreshing it.
+	 *
+	 * @param user the user to act for
+	 * @return the access token
+	 * @throws Exception if the user is not signed in to Google
+	 * @see #getValidAccessToken(User)
 	 */
 	public static String getGoogleAccessToken(User user) throws Exception {
 		String accessToken = null;

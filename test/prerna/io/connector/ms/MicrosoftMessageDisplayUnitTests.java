@@ -27,37 +27,52 @@
  *******************************************************************************/
 package prerna.io.connector.ms;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
 
 class MicrosoftMessageDisplayUnitTests {
-    @Test void preservesFullHtmlAndAttachmentLabels() {
-        String html = "<table><tr><td>Full email</td></tr></table><blockquote>Earlier email</blockquote>";
-        Map<String,Object> display = MicrosoftMessageDisplay.body(Map.of("body", Map.of("contentType", "HTML", "content", html), "attachments", List.of(Map.of("name", "Card"))), "Clean context");
-        assertEquals(html, display.get("content"));
-        assertEquals("html", display.get("contentType"));
-        assertEquals(false, display.get("isTruncated"));
-        assertEquals(List.of(Map.of("name", "Card")), display.get("attachments"));
-    }
-    @Test void oversizedHtmlFallsBackWithoutSlicingMarkup() {
-        String html = "<p>" + "x".repeat(MicrosoftMessageDisplay.MAX_DISPLAY_CHARS) + "</p>";
-        Map<String,Object> display = MicrosoftMessageDisplay.body(Map.of("body", Map.of("contentType", "HTML", "content", html)), "Readable fallback");
-        assertEquals("text", display.get("contentType"));
-        assertEquals("Readable fallback", display.get("content"));
-        assertEquals(true, display.get("isTruncated"));
-    }
-    @Test void keepsBoundaryAndLegacyPlainText() {
-        String text = "x".repeat(MicrosoftMessageDisplay.MAX_DISPLAY_CHARS);
-        assertEquals(false, MicrosoftMessageDisplay.body(Map.of("body", Map.of("contentType", "text", "content", text)), text).get("isTruncated"));
-        assertEquals("Legacy", MicrosoftMessageDisplay.body(Map.of(), "Legacy").get("content"));
-    }
-    @Test void teamsKeepQuotesSignaturesAndCodeWhitespace() {
-        String html = "<p>Hello <at>Pat</at></p><blockquote>From: Earlier<br>Quoted reply</blockquote><pre><code>  first\n    second</code></pre><p>Thanks,<br>Pat</p>";
-        String text = MicrosoftMessageDisplay.text(Map.of("body", Map.of("contentType", "html", "content", html)));
-        assertTrue(text.contains("From: Earlier\nQuoted reply"));
-        assertTrue(text.contains("  first\n    second"));
-        assertTrue(text.endsWith("Thanks,\nPat"));
-    }
+
+	@Test
+	void preservesFullHtmlAndAttachmentLabels() {
+		String html = "<table><tr><td>Full email</td></tr></table><blockquote>Earlier email</blockquote>";
+		Map<String, Object> display = MicrosoftMessageDisplay.body(Map.of("body",
+				Map.of("contentType", "HTML", "content", html), "attachments", List.of(Map.of("name", "Card"))),
+				"Clean context");
+		assertEquals(html, display.get("content"));
+		assertEquals("html", display.get("contentType"));
+		assertEquals(false, display.get("isTruncated"));
+		assertEquals(List.of(Map.of("name", "Card")), display.get("attachments"));
+	}
+
+	@Test
+	void oversizedHtmlFallsBackWithoutSlicingMarkup() {
+		String html = "<p>" + "x".repeat(MicrosoftMessageDisplay.MAX_DISPLAY_CHARS) + "</p>";
+		Map<String, Object> display = MicrosoftMessageDisplay
+				.body(Map.of("body", Map.of("contentType", "HTML", "content", html)), "Readable fallback");
+		assertEquals("text", display.get("contentType"));
+		assertEquals("Readable fallback", display.get("content"));
+		assertEquals(true, display.get("isTruncated"));
+	}
+
+	@Test
+	void keepsBoundaryAndLegacyPlainText() {
+		String text = "x".repeat(MicrosoftMessageDisplay.MAX_DISPLAY_CHARS);
+		assertEquals(false, MicrosoftMessageDisplay
+				.body(Map.of("body", Map.of("contentType", "text", "content", text)), text).get("isTruncated"));
+		assertEquals("Legacy", MicrosoftMessageDisplay.body(Map.of(), "Legacy").get("content"));
+	}
+
+	@Test
+	void teamsKeepQuotesSignaturesAndCodeWhitespace() {
+		String html = "<p>Hello <at>Pat</at></p><blockquote>From: Earlier<br>Quoted reply</blockquote><pre><code>  first\n    second</code></pre><p>Thanks,<br>Pat</p>";
+		String text = MicrosoftMessageDisplay.text(Map.of("body", Map.of("contentType", "html", "content", html)));
+		assertTrue(text.contains("From: Earlier\nQuoted reply"));
+		assertTrue(text.contains("  first\n    second"));
+		assertTrue(text.endsWith("Thanks,\nPat"));
+	}
 }

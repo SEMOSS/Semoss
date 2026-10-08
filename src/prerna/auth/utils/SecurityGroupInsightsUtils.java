@@ -57,6 +57,19 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupInsightsUtils.class);
 
 	/**
+	 * Only an insight's owners, and admins, change which groups have access to it.
+	 * A group's managers decide who is in it, so attaching a group trusts them with
+	 * the access.
+	 */
+	private static void checkCanManageGroupAccess(User user, String projectId, String insightId)
+			throws IllegalAccessException {
+		if (!SecurityAdminUtils.userIsAdmin(user)
+				&& !SecurityInsightUtils.userIsInsightOwner(user, projectId, insightId)) {
+			throw new IllegalAccessException("Only this insight's owners can change which teams have access to it.");
+		}
+	}
+
+	/**
 	 * Determine if group can view insight
 	 * 
 	 * @param user
@@ -376,9 +389,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static void addInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String permission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityInsightUtils.userCanEditInsight(user, projectId, insightId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId, insightId);
 
 		if (getGroupInsightPermission(groupId, groupType, projectId, insightId) != null) {
 			throw new IllegalArgumentException(
@@ -459,11 +470,7 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static void editInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId, String newPermission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId, insightId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
@@ -473,23 +480,6 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group insight permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this insight since you are not currently an owner.");
-			}
-		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -531,28 +521,13 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 	public static void removeInsightGroupPermission(User user, String groupId, String groupType, String projectId,
 			String insightId) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		Integer userPermissionLvl = getBestInsightPermission(user, projectId, insightId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId, insightId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupInsightPermission(groupId, groupType, projectId, insightId);
 		if (existingGroupPermission == null) {
 			throw new IllegalArgumentException(
 					"Attempting to modify group permission for a user who does not currently have access to the insight");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group insight permission.");
-			}
 		}
 
 		try {

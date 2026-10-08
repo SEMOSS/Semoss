@@ -27,16 +27,14 @@
  *******************************************************************************/
 package prerna.io.connector.google.gmail;
 
-import java.io.ByteArrayOutputStream;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
+import org.apache.hc.core5.http.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,12 +43,20 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
-import jakarta.mail.Session;
-import jakarta.mail.internet.InternetAddress;
-import jakarta.mail.internet.MimeMessage;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.security.HttpHelperUtility;
 
+/**
+ * The Gmail API, as plain calls for one signed in user.
+ *
+ * <p>
+ * What the methods return is Gmail's own json, parsed into maps.
+ * {@link GoogleGmailMessageMapper} turns that into the records every mail
+ * reactor answers with, and {@link GoogleGmailMime} writes the messages these
+ * calls send. Gmail answers an error with a status the http helper throws on,
+ * so nothing here has to look for one.
+ * </p>
+ */
 public final class GoogleGmailHelper {
 
 	private static final Logger classLogger = LogManager.getLogger(GoogleGmailHelper.class);
@@ -58,205 +64,208 @@ public final class GoogleGmailHelper {
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-	private static final String SUCCESS_KEY = "success";
-	private static final String USER_ID = "me";
-	private static final String ID_KEY = "id";
-	private static final String PARTS = "parts";
-	private static final String HEADERS = "headers";
-	private static final String PAYLOAD = "payload";
-	private static final String VALUE = "value";
-	private static final String NAME = "name";
-	private static final String DATA = "data";
-	private static final String BODY = "body";
+	private static final String BASE = "https://gmail.googleapis.com/gmail/v1/users/me";
+	private static final String GOOGLE_GMAIL_PROFILE_URL = BASE + "/profile";
 
-	private static final String MESSAGES = "messages";
-	private static final String MESSAGES_TOTAL = "messagesTotal";
-	private static final String THREADS_TOTAL = "threadsTotal";
-	private static final String SNIPPET = "snippet";
-	private static final String HISTORY_ID = "historyId";
-	private static final String EMAIL_ADDRESS = "emailAddress";
+	/** The most ids Gmail lists on one page. */
+	private static final int MAX_PAGE = 500;
 
-	private static final String PRE_CONTENT_KEY = "pre_content";
-	private static final String CONTENT_KEY = "content";
+	private final String accessToken;
 
-	private static final String SUBJECT_KEY = "subject";
-	private static final String SUBJECT_HEADER = "Subject";
+	/**
+	 * @param accessToken the signed in user's Google access token
+	 */
+	public GoogleGmailHelper(String accessToken) {
+		this.accessToken = accessToken;
+	}
 
-	private static final String FROM_KEY = "from";
-	private static final String FROM_HEADER = "From";
-
-	private static final String TO_HEADER = "To";
-	private static final String TO_KEY = "to";
-
-	private static final String SENT_DATE_KEY = "sentDate";
-	private static final String DATE = "Date";
-
-	private static final String GOOGLE_GMAIL_PROFILE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/profile";
-	private static final String GOOGLE_GMAIL_SUMMARIZE_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=%d";
-	private static final String GOOGLE_GMAIL_READ_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/%s";
-	private static final String GOOGLE_GMAIL_LIST_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=%d";
-	private static final String GOOGLE_GMAIL_UNREAD_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages?q=is:unread&maxResults=%d";
-	private static final String GOOGLE_GMAIL_SEND_URL = "https://gmail.googleapis.com/gmail/v1/users/%s/messages/send";
-	private static final String GOOGLE_GMAIL_MODIFY_URL = "https://gmail.googleapis.com/gmail/v1/users/me/messages/%s/modify";
-
-	private GoogleGmailHelper() {
+	/**
+	 * One page of message ids, and whether Gmail has more.
+	 *
+	 * @param ids     the ids, newest first
+	 * @param hasMore whether there are more after them
+	 */
+	public record IdPage(List<String> ids, boolean hasMore) {
 
 	}
 
 	/**
-	 * Sends an email through the Gmail API.
+	 * List the ids of the messages that match, newest first, reading page after
+	 * page until there are enough.
 	 *
-	 * @param accessToken    OAuth access token for Google APIs.
-	 * @param messageSubject subject line of the email.
-	 * @param bodyText       plain text email body.
-	 * @param toEmailAddress recipient email address.
-	 * @return a result map containing the sent message ID and success status.
-	 * @throws Exception if message encoding or send request fails.
+	 * @param query   a Gmail search, such as {@code is:unread}, or null
+	 * @param labelId the label every message has to carry, or null for any
+	 * @param needed  how many ids to read, counted from the newest
+	 * @return the ids
 	 */
-	public static Map<String, Object> sendEmail(String accessToken, String messageSubject, String bodyText,
-			String toEmailAddress) throws Exception {
-		Properties props = new Properties();
-		Session session = Session.getDefaultInstance(props, null);
-		MimeMessage email = new MimeMessage(session);
-		email.setFrom(new InternetAddress(USER_ID));
-		email.addRecipient(jakarta.mail.Message.RecipientType.TO, new InternetAddress(toEmailAddress));
-		email.setSubject(messageSubject);
-		email.setText(bodyText);
-		ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-		email.writeTo(buffer);
-		byte[] rawMessageBytes = buffer.toByteArray();
-		String encodedEmail = Base64.getUrlEncoder().withoutPadding().encodeToString(rawMessageBytes);
-
-		Map<String, String> payload = new HashMap<>();
-		payload.put("raw", encodedEmail);
-		String jsonPayload = GSON.toJson(payload);
-
-		try {
-			Map<String, String> header = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_GMAIL_SEND_URL, USER_ID);
-			String response = HttpHelperUtility.postRequestStringBody(url, header, jsonPayload, null, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> map = new HashMap<>();
-			map.put(ID_KEY, json.get(ID_KEY));
-			map.put(SUCCESS_KEY, true);
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to send Gmail message", e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Retrieves a list of Gmail messages with basic metadata.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param limit       maximum number of messages to return.
-	 * @return list of message maps containing the message ID and subject.
-	 * @throws Exception if list or message-detail lookups fail.
-	 */
-	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> getEmailList(String accessToken, int limit) throws Exception {
-		List<Map<String, Object>> emailList = new ArrayList<>();
-		String url = String.format(GOOGLE_GMAIL_LIST_URL, limit);
-		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-		String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-		Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-		}.getType());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) json.get(MESSAGES);
-		if (messages != null) {
-			for (Map<String, Object> msg : messages) {
-				String msgId = (String) msg.get(ID_KEY);
-				String msgUrl = String.format(GOOGLE_GMAIL_READ_URL, msgId);
-				String msgResponse = HttpHelperUtility.getRequest(msgUrl, headers, null, null, null);
-				Map<String, Object> msgJson = GSON.fromJson(msgResponse, new TypeToken<Map<String, Object>>() {
-				}.getType());
-				String subject = "";
-				Map<String, Object> payload = (Map<String, Object>) msgJson.get(PAYLOAD);
-				if (payload != null) {
-					List<Map<String, Object>> headersList = (List<Map<String, Object>>) payload.get(HEADERS);
-					if (headersList != null) {
-						for (Map<String, Object> header : headersList) {
-							String name = (String) header.get(NAME);
-							if (SUBJECT_HEADER.equalsIgnoreCase(name)) {
-								subject = (String) header.get(VALUE);
-								break;
-							}
-						}
-					}
-				}
-				Map<String, Object> map = new HashMap<>();
-				map.put(ID_KEY, msgJson.get(ID_KEY));
-				map.put(SUBJECT_KEY, subject);
-				emailList.add(map);
+	public IdPage listMessageIds(String query, String labelId, int needed) {
+		List<String> ids = new ArrayList<>();
+		String pageToken = null;
+		do {
+			StringBuilder url = new StringBuilder(BASE).append("/messages?maxResults=")
+					.append(Math.min(MAX_PAGE, Math.max(1, needed - ids.size())));
+			if (query != null && !query.isBlank()) {
+				url.append("&q=").append(encode(query));
 			}
-		}
-		return emailList;
+			if (labelId != null) {
+				url.append("&labelIds=").append(encode(labelId));
+			}
+			if (pageToken != null) {
+				url.append("&pageToken=").append(encode(pageToken));
+			}
+			Map<String, Object> page = get(url.toString());
+			for (Map<String, Object> message : listOf(page, "messages")) {
+				if (message.get("id") != null) {
+					ids.add(message.get("id").toString());
+				}
+			}
+			pageToken = page == null || page.get("nextPageToken") == null ? null : page.get("nextPageToken").toString();
+		} while (pageToken != null && ids.size() < needed);
+		return new IdPage(ids.size() > needed ? ids.subList(0, needed) : ids, pageToken != null || ids.size() > needed);
 	}
 
 	/**
-	 * Retrieves unread Gmail messages and normalizes their key fields.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param limit       maximum number of unread messages to return.
-	 * @return list of normalized unread message maps.
-	 * @throws Exception if list or message-detail lookups fail.
+	 * @param id the message
+	 * @return the message, with its headers and every part
 	 */
-	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> getUnreadEmails(String accessToken, int limit) throws Exception {
-		List<Map<String, Object>> unread = new ArrayList<>();
-		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-		String url = String.format(GOOGLE_GMAIL_UNREAD_URL, limit);
-		String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-		Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-		}.getType());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) json.get(MESSAGES);
-		if (messages == null) {
-			return unread;
-		}
-		for (Map<String, Object> msg : messages) {
-			String msgId = (String) msg.get(ID_KEY);
-			String msgUrl = String.format(GOOGLE_GMAIL_READ_URL, msgId);
-			String msgResponse = HttpHelperUtility.getRequest(msgUrl, headers, null, null, null);
-			Map<String, Object> msgJson = GSON.fromJson(msgResponse, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> result = normalizeGmailMessage(msgJson);
-			unread.add(result);
-		}
-		return unread;
+	public Map<String, Object> getMessage(String id) {
+		return get(BASE + "/messages/" + encode(id) + "?format=full");
 	}
 
 	/**
-	 * Reads a specific Gmail message and returns header/body details.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param messageId   Gmail message ID.
-	 * @return message map with sender, recipients, subject, body, and sent date.
-	 * @throws Exception if the message cannot be fetched or parsed.
+	 * @param id the message
+	 * @return the message's labels and thread, without its content
 	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, Object> readEmail(String accessToken, String messageId) throws Exception {
-		try {
-			Map<String, String> header = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_GMAIL_READ_URL, messageId);
-			String response = HttpHelperUtility.getRequest(url, header, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> map = new LinkedHashMap<>();
-			Map<String, Object> payload = (Map<String, Object>) json.get(PAYLOAD);
-			List<Map<String, String>> headers = (List<Map<String, String>>) payload.get(HEADERS);
-			map.put(FROM_KEY, getHeaderValue(headers, FROM_HEADER));
-			map.put(TO_KEY, getHeaderValue(headers, TO_HEADER));
-			map.put(SUBJECT_KEY, getHeaderValue(headers, SUBJECT_HEADER));
-			String body = extractBody(payload);
-			map.put(CONTENT_KEY, body);
-			map.put(SENT_DATE_KEY, getHeaderValue(headers, DATE));
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to read Gmail message id {}", messageId, e);
-			throw e;
-		}
+	public Map<String, Object> getMessageLabels(String id) {
+		return get(BASE + "/messages/" + encode(id) + "?format=minimal");
+	}
 
+	/**
+	 * @param id the thread
+	 * @return the thread, with every message in full, oldest first
+	 */
+	public Map<String, Object> getThread(String id) {
+		return get(BASE + "/threads/" + encode(id) + "?format=full");
+	}
+
+	/**
+	 * @param messageId    the message
+	 * @param attachmentId the attachment, as the message's part names it
+	 * @return the attachment, with its bytes as base64url {@code data}
+	 */
+	public Map<String, Object> getAttachment(String messageId, String attachmentId) {
+		return get(BASE + "/messages/" + encode(messageId) + "/attachments/" + encode(attachmentId));
+	}
+
+	/**
+	 * Send a message.
+	 *
+	 * @param raw      the message, as {@link GoogleGmailMime} writes it
+	 * @param threadId the thread it answers, or null
+	 * @return the message as sent, with its id and thread
+	 */
+	public Map<String, Object> send(String raw, String threadId) {
+		return post(BASE + "/messages/send", message(raw, threadId));
+	}
+
+	/**
+	 * Save a message as a draft.
+	 *
+	 * @param raw      the message, as {@link GoogleGmailMime} writes it
+	 * @param threadId the thread it answers, or null
+	 * @return the draft, with its own id and the id of the message it holds
+	 */
+	public Map<String, Object> createDraft(String raw, String threadId) {
+		return post(BASE + "/drafts", Map.of("message", message(raw, threadId)));
+	}
+
+	/**
+	 * @param draftId the draft
+	 * @return the draft, with the message it holds in full
+	 */
+	public Map<String, Object> getDraft(String draftId) {
+		return get(BASE + "/drafts/" + encode(draftId) + "?format=full");
+	}
+
+	/**
+	 * Find the draft holding a message, since a listing of the drafts folder names
+	 * messages and a draft is sent by its own id.
+	 *
+	 * @param messageId the message
+	 * @return the draft's id, or null when no draft holds it
+	 */
+	public String findDraftId(String messageId) {
+		String pageToken = null;
+		do {
+			String url = BASE + "/drafts?maxResults=" + MAX_PAGE
+					+ (pageToken == null ? "" : "&pageToken=" + encode(pageToken));
+			Map<String, Object> page = get(url);
+			for (Map<String, Object> draft : listOf(page, "drafts")) {
+				if (draft.get("message") instanceof Map<?, ?> message && messageId.equals(message.get("id"))) {
+					return String.valueOf(draft.get("id"));
+				}
+			}
+			pageToken = page == null || page.get("nextPageToken") == null ? null : page.get("nextPageToken").toString();
+		} while (pageToken != null);
+		return null;
+	}
+
+	/**
+	 * Send a saved draft.
+	 *
+	 * @param draftId the draft
+	 * @return the message as sent, with its id and thread
+	 */
+	public Map<String, Object> sendDraft(String draftId) {
+		return post(BASE + "/drafts/send", Map.of("id", draftId));
+	}
+
+	/**
+	 * Change a message's labels, which is how Gmail files, moves and marks mail.
+	 *
+	 * @param id     the message
+	 * @param add    the labels to add
+	 * @param remove the labels to take off
+	 */
+	public void modify(String id, List<String> add, List<String> remove) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("addLabelIds", add == null ? List.of() : add);
+		body.put("removeLabelIds", remove == null ? List.of() : remove);
+		post(BASE + "/messages/" + encode(id) + "/modify", body);
+	}
+
+	/**
+	 * Move a message to the trash, from where it can still be restored.
+	 *
+	 * @param id the message
+	 */
+	public void trash(String id) {
+		post(BASE + "/messages/" + encode(id) + "/trash", Map.of());
+	}
+
+	/**
+	 * Take a message back out of the trash.
+	 *
+	 * @param id the message
+	 */
+	public void untrash(String id) {
+		post(BASE + "/messages/" + encode(id) + "/untrash", Map.of());
+	}
+
+	/**
+	 * @return every label of the mailbox, the ones Gmail keeps and the ones the
+	 *         user made
+	 */
+	public List<Map<String, Object>> listLabels() {
+		return listOf(get(BASE + "/labels"), "labels");
+	}
+
+	/**
+	 * @param id the label
+	 * @return the label, with how many messages and threads carry it
+	 */
+	public Map<String, Object> getLabel(String id) {
+		return get(BASE + "/labels/" + encode(id));
 	}
 
 	/**
@@ -270,15 +279,14 @@ public final class GoogleGmailHelper {
 	public static Map<String, Object> getGmailProfileById(String accessToken) throws Exception {
 		try {
 			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_GMAIL_PROFILE_URL);
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
+			String response = HttpHelperUtility.getRequest(GOOGLE_GMAIL_PROFILE_URL, headers, null, null, null);
 			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 			}.getType());
 			Map<String, Object> map = new LinkedHashMap<>();
-			map.put(EMAIL_ADDRESS, json.get(EMAIL_ADDRESS));
-			map.put(MESSAGES_TOTAL, json.get(MESSAGES_TOTAL));
-			map.put(THREADS_TOTAL, json.get(THREADS_TOTAL));
-			map.put(HISTORY_ID, json.get(HISTORY_ID));
+			map.put("emailAddress", json.get("emailAddress"));
+			map.put("messagesTotal", json.get("messagesTotal"));
+			map.put("threadsTotal", json.get("threadsTotal"));
+			map.put("historyId", json.get("historyId"));
 			return map;
 		} catch (Exception e) {
 			classLogger.error("Failed to fetch Gmail profile", e);
@@ -286,179 +294,42 @@ public final class GoogleGmailHelper {
 		}
 	}
 
-	/**
-	 * Deletes a Gmail message by ID.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param messageId   Gmail message ID.
-	 * @return {@code true} if deletion succeeds, otherwise {@code false}.
-	 */
-	public static Boolean deleteEmail(String accessToken, String messageId) {
-		try {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_GMAIL_READ_URL, messageId);
-			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
-			return true;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete Gmail message id {}", messageId, e);
-			classLogger.warn("Unable to delete Gmail message id {}: {}", messageId, e.getMessage());
-			return false;
+	private static Map<String, Object> message(String raw, String threadId) {
+		Map<String, Object> message = new LinkedHashMap<>();
+		message.put("raw", raw);
+		if (threadId != null) {
+			message.put("threadId", threadId);
 		}
+		return message;
 	}
 
-	/**
-	 * Marks a Gmail message as read by removing the {@code UNREAD} label.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param messageId   Gmail message ID.
-	 * @return {@code true} if the update succeeds, otherwise {@code false}.
-	 */
-	public static Boolean markEmailAsRead(String accessToken, String messageId) {
-		try {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_GMAIL_MODIFY_URL, messageId);
-			Map<String, Object> requestBody = new HashMap<>();
-			List<String> labelsToRemove = new ArrayList<>();
-			labelsToRemove.add("UNREAD");
-			requestBody.put("removeLabelIds", labelsToRemove);
-			String jsonBody = GSON.toJson(requestBody);
-			HttpHelperUtility.postRequestStringBody(url, headers, jsonBody, null, null, null, null);
-			return true;
-		} catch (Exception e) {
-			classLogger.error("Failed to mark Gmail message as read id {}", messageId, e);
-			classLogger.warn("Failed to mark email as read: {}", e.getMessage());
-			return false;
-		}
+	private Map<String, Object> get(String url) {
+		return readMap(HttpHelperUtility.getRequest(url, GoogleLoginUtils.getBearerHeader(this.accessToken), null, null,
+				null));
 	}
 
-	/**
-	 * Retrieves and normalizes the top {@code limit} Gmail messages for summary use
-	 * cases.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param limit       maximum number of messages to summarize.
-	 * @return list of normalized message summaries.
-	 * @throws Exception if message listing or lookup fails.
-	 */
+	private Map<String, Object> post(String url, Object body) {
+		return readMap(HttpHelperUtility.postRequestStringBody(url, GoogleLoginUtils.getBearerHeader(this.accessToken),
+				GSON.toJson(body), ContentType.APPLICATION_JSON, null, null, null));
+	}
+
 	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> summarizeTopKEmails(String accessToken, int limit) throws Exception {
-		List<Map<String, Object>> summaries = new ArrayList<>();
-		Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-		String url = String.format(GOOGLE_GMAIL_SUMMARIZE_URL, limit);
-		String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-		Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+	private static List<Map<String, Object>> listOf(Map<String, Object> response, String key) {
+		if (response == null || !(response.get(key) instanceof List)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) response.get(key);
+	}
+
+	private static Map<String, Object> readMap(String response) {
+		if (response == null || response.trim().isEmpty()) {
+			return null;
+		}
+		return GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
 		}.getType());
-		List<Map<String, Object>> messages = (List<Map<String, Object>>) json.get(MESSAGES);
-		if (messages == null) {
-			return summaries;
-		}
-		for (Map<String, Object> msg : messages) {
-			String msgId = (String) msg.get(ID_KEY);
-			String msgUrl = String.format(GOOGLE_GMAIL_READ_URL, msgId);
-			String msgResponse = HttpHelperUtility.getRequest(msgUrl, headers, null, null, null);
-			Map<String, Object> msgJson = GSON.fromJson(msgResponse, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> summary = normalizeGmailMessage(msgJson);
-			summaries.add(summary);
-		}
-		return summaries;
 	}
 
-	/**
-	 * Normalizes a raw Gmail message payload into a simplified map.
-	 *
-	 * @param msg raw Gmail message response map.
-	 * @return normalized map containing message ID, snippet, subject, and sender.
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, Object> normalizeGmailMessage(Map<String, Object> msg) {
-		Map<String, Object> map = new HashMap<>();
-		String subject = "";
-		String from = "";
-		Map<String, Object> payload = (Map<String, Object>) msg.get(PAYLOAD);
-		if (payload != null) {
-			List<Map<String, Object>> headers = (List<Map<String, Object>>) payload.get(HEADERS);
-			if (headers != null) {
-				for (Map<String, Object> header : headers) {
-					String name = (String) header.get(NAME);
-					if (SUBJECT_HEADER.equalsIgnoreCase(name)) {
-						subject = (String) header.get(VALUE);
-					}
-					if (FROM_HEADER.equalsIgnoreCase(name)) {
-						from = (String) header.get(VALUE);
-					}
-				}
-			}
-		}
-		map.put(ID_KEY, msg.get(ID_KEY));
-		map.put(PRE_CONTENT_KEY, msg.get(SNIPPET));
-		map.put(SUBJECT_KEY, subject);
-		map.put(FROM_KEY, from);
-		return map;
+	private static String encode(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
-
-	/**
-	 * Finds a header value in a Gmail header list.
-	 *
-	 * @param headers message headers.
-	 * @param name    header name to search for.
-	 * @return matching header value, or {@code null} when not found.
-	 */
-	private static String getHeaderValue(List<Map<String, String>> headers, String name) {
-		for (Map<String, String> header : headers) {
-			if (header.get(NAME).equalsIgnoreCase(name)) {
-				return header.get(VALUE);
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Extracts decoded message body text from a Gmail payload, searching nested
-	 * parts recursively.
-	 *
-	 * @param payload Gmail payload map.
-	 * @return decoded message body text, or {@code null} when unavailable.
-	 */
-	@SuppressWarnings("unchecked")
-	private static String extractBody(Map<String, Object> payload) {
-		String body = extractBodyFromMap(payload);
-		if (body != null && !body.isEmpty()) {
-			return body;
-		}
-		if (payload.get(PARTS) != null) {
-			List<Map<String, Object>> parts = (List<Map<String, Object>>) payload.get(PARTS);
-			for (Map<String, Object> part : parts) {
-				body = extractBody(part);
-				if (body != null && !body.isEmpty()) {
-					return body;
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
-	 * Attempts to decode a body fragment from the provided Gmail map.
-	 *
-	 * @param map Gmail payload or part map.
-	 * @return decoded UTF-8 text, or {@code null} if decoding is not possible.
-	 */
-	@SuppressWarnings("unchecked")
-	private static String extractBodyFromMap(Map<String, Object> map) {
-		if (map.get(BODY) != null) {
-			Map<String, Object> bodyMap = (Map<String, Object>) map.get(BODY);
-			if (bodyMap.get(DATA) != null) {
-				String encoded = (String) bodyMap.get(DATA);
-				try {
-					byte[] decodedBytes = Base64.getUrlDecoder().decode(encoded);
-					return new String(decodedBytes, StandardCharsets.UTF_8);
-				} catch (IllegalArgumentException e) {
-					return null;
-				}
-			}
-		}
-		return null;
-	}
-
 }

@@ -31,6 +31,7 @@ import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
@@ -64,8 +66,30 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(AdminSecurityGroupUtils.class);
 
+	/**
+	 * Moves a custom group's members and managers to a new id: new id, then old id
+	 */
+	private static final String[] CUSTOM_GROUP_ROW_RENAMES = {
+			"UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?",
+			"UPDATE GROUPMANAGERS SET GROUPID=? WHERE GROUPID=?" };
+
+	/** Deletes the members and managers kept under a custom group id */
+	private static final String[] CUSTOM_GROUP_ROW_DELETES = { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?",
+			"DELETE FROM GROUPMANAGERS WHERE GROUPID=?" };
+
 	private AdminSecurityGroupUtils() {
 
+	}
+
+	/**
+	 * The group utilities without an admin check, for callers in this package that
+	 * check the user's rights themselves, such as {@link SecurityGroupManagerUtils}
+	 * for a group's managers.
+	 * 
+	 * @return the group utilities
+	 */
+	static AdminSecurityGroupUtils getUncheckedInstance() {
+		return instance;
 	}
 
 	public static AdminSecurityGroupUtils getInstance(User user) {
@@ -111,6 +135,20 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
+	 * Group ids are SQL escaped each time an endpoint reads them, so an id stored
+	 * with a single quote could never be found again.
+	 *
+	 * @param groupId the id a group is being given
+	 * @throws IllegalArgumentException when the id is blank or has a single quote
+	 */
+	static void validateGroupId(String groupId) {
+		ValueUtils.requireNonBlank(groupId, "The group id cannot be null or empty");
+		if (groupId.contains("'")) {
+			throw new IllegalArgumentException("Group names cannot contain an apostrophe (')");
+		}
+	}
+
+	/**
 	 * Add a group with description
 	 * 
 	 * @param groupId
@@ -121,6 +159,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	public void addGroup(User user, String groupId, String groupType, String description) throws Exception {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		try {
+			validateGroupId(groupId);
 			if (groupExists(groupId, groupType)) {
 				throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " already exists");
 			}
@@ -138,6 +177,23 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, userDetails.getValue0());
 					ps.setString(parameterIndex++, userDetails.getValue1());
 				});
+
+				// the admin who creates a custom group is its first manager. Members and
+				// managers left under the id by an earlier group are not carried over.
+				if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(groupType)) {
+					for (String deleteQuery : CUSTOM_GROUP_ROW_DELETES) {
+						QueryExecutionUtility.executeUpdate(conn, deleteQuery, ps -> ps.setString(1, groupId));
+					}
+					QueryExecutionUtility.executeUpdate(conn, SecurityGroupManagerUtils.INSERT_MANAGER_QUERY, ps -> {
+						int parameterIndex = 1;
+						ps.setString(parameterIndex++, groupId);
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+						ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
+						ps.setString(parameterIndex++, userDetails.getValue0());
+						ps.setString(parameterIndex++, userDetails.getValue1());
+					});
+				}
 				return null;
 			});
 		} catch (Exception e) {
@@ -164,8 +220,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPINSIGHTPERMISSION WHERE ID=? AND TYPE=?",
-					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?",
-					"DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?" };
+					"DELETE FROM SMSS_GROUP WHERE ID=? AND TYPE=?", "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?",
+					"DELETE FROM GROUPMANAGERS WHERE GROUPID=?" };
 		} else {
 			queries = new String[] { "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND TYPE=?",
 					"DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND TYPE=?",
@@ -179,7 +235,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				for (String query : queries) {
 					try (PreparedStatement ps = conn.prepareStatement(query)) {
 						int parameterIndex = 1;
-						if (query.equals("DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=?")) {
+						// the custom group tables key the group by its id alone
+						if (query.endsWith("WHERE GROUPID=?")) {
 							ps.setString(parameterIndex++, groupId);
 							ps.execute();
 						} else {
@@ -188,69 +245,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 							ps.execute();
 						}
 					}
-				}
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to delete the group and clean up related permissions.", e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Edit an existing group across all the tables
-	 * 
-	 * @param curGroupId
-	 * @param curGroupType
-	 * @param newGroupId
-	 * @param newGroupType
-	 * @param newDescription
-	 * @throws Exception
-	 */
-	@Deprecated
-	public void editGroupAndPropagate(User user, String curGroupId, String curGroupType, String newGroupId,
-			String newGroupType, String newDescription) throws Exception {
-
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-
-		if (!groupExists(curGroupId, curGroupType)) {
-			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
-		}
-		String groupQuery;
-		String[] propagateQueries;
-		groupQuery = "UPDATE SMSS_GROUP SET ID=?, TYPE=?, DESCRIPTION=?, DATEADDED=?, USERID=?, USERIDTYPE=? WHERE ID=? AND TYPE=?";
-		propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPPROJECTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?",
-				"UPDATE GROUPINSIGHTPERMISSION SET ID=?, TYPE=? WHERE ID=? AND TYPE=?", };
-
-		try {
-			QueryExecutionUtility.write(securityDb, conn -> {
-
-				Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-				// group edit
-				QueryExecutionUtility.executeUpdate(conn, groupQuery, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newGroupId);
-					ps.setString(parameterIndex++, newGroupType);
-					securityDb.getQueryUtil().setNullableLargeText(ps, parameterIndex++, newDescription);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-					// where
-					ps.setString(parameterIndex++, curGroupId);
-					ps.setString(parameterIndex++, curGroupType);
-				});
-
-				// propagation
-				for (String query : propagateQueries) {
-					QueryExecutionUtility.executeUpdate(conn, query, ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newGroupId);
-						ps.setString(parameterIndex++, newGroupType);
-						ps.setString(parameterIndex++, curGroupId);
-						ps.setString(parameterIndex++, curGroupType);
-					});
 				}
 				return null;
 			});
@@ -278,6 +272,7 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Group " + curGroupId + " does not exist");
 		}
 		if (!curGroupId.equals(newGroupId)) {
+			validateGroupId(newGroupId);
 			if (groupExists(newGroupId, curGroupType)) {
 				throw new IllegalArgumentException(
 						"Group " + newGroupId + " of type " + curGroupType + " already exist");
@@ -285,7 +280,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		String groupQuery = "UPDATE SMSS_GROUP SET ID=?, DESCRIPTION=? WHERE ID=? AND TYPE=?";
-		String propagateCustomGroupQuery = "UPDATE CUSTOMGROUPASSIGNMENT SET GROUPID=? WHERE GROUPID=?";
 		String[] propagateQueries = new String[] { "UPDATE GROUPENGINEPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPPROJECTPERMISSION SET ID=? WHERE ID=? AND TYPE=?",
 				"UPDATE GROUPINSIGHTPERMISSION SET ID=? WHERE ID=? AND TYPE=?" };
@@ -302,13 +296,24 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 					ps.setString(parameterIndex++, curGroupType);
 				});
 
-				// custom groups
-				QueryExecutionUtility.executeUpdate(conn, propagateCustomGroupQuery, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, newGroupId);
-					// where
-					ps.setString(parameterIndex++, curGroupId);
-				});
+				// the members and managers of a custom group, which are keyed by the id
+				// alone, so a group of another type with the same id must not move them
+				if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(curGroupType)) {
+					// rows already under the new id belong to no group, so they are not
+					// carried into it
+					if (!newGroupId.equals(curGroupId)) {
+						for (String query : CUSTOM_GROUP_ROW_DELETES) {
+							QueryExecutionUtility.executeUpdate(conn, query, ps -> ps.setString(1, newGroupId));
+						}
+					}
+					for (String query : CUSTOM_GROUP_ROW_RENAMES) {
+						QueryExecutionUtility.executeUpdate(conn, query, ps -> {
+							ps.setString(1, newGroupId);
+							// where
+							ps.setString(2, curGroupId);
+						});
+					}
+				}
 
 				// propagation
 				for (String query : propagateQueries) {
@@ -439,7 +444,58 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		if (offset > 0) {
 			qs.setOffSet(offset);
 		}
-		return getSimpleQuery(qs);
+		List<Map<String, Object>> groups = getSimpleQuery(qs);
+		addMemberCounts(groups);
+		return groups;
+	}
+
+	/**
+	 * Adds {@code member_count}, how many members a custom group has, to each
+	 * custom group in a group list. Groups of other types take their members from
+	 * the login, so they get no count.
+	 *
+	 * @param groups rows with {@code id} and {@code type}, as the group lists
+	 *               return them
+	 */
+	public static void addMemberCounts(List<Map<String, Object>> groups) {
+		List<String> customIds = new ArrayList<>();
+		for (Map<String, Object> group : groups) {
+			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {
+				customIds.add(group.get("id").toString());
+			}
+		}
+		if (customIds.isEmpty()) {
+			return;
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID", "GROUPID"));
+		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
+				"CUSTOMGROUPASSIGNMENT__USERID", "MEMBERS"));
+		qs.addGroupBy(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID", "GROUPID"));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", customIds));
+		// count the members the member list shows, which leaves out deleted users
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__USERID", "SMSS_USER__ID", "inner.join");
+		qs.addRelation("CUSTOMGROUPASSIGNMENT__TYPE", "SMSS_USER__TYPE", "inner.join");
+
+		Map<String, Long> counts = new HashMap<>();
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				if (values[0] != null && values[1] instanceof Number) {
+					counts.put(values[0].toString(), ((Number) values[1]).longValue());
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to count the members of the custom groups.", e);
+			return;
+		}
+		for (Map<String, Object> group : groups) {
+			if (SecurityGroupManagerUtils.CUSTOM_GROUP_TYPE.equals(group.get("type")) && group.get("id") != null) {
+				group.put("member_count", counts.getOrDefault(group.get("id").toString(), 0L));
+			}
+		}
 	}
 
 	/**
@@ -483,9 +539,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
+	 * The members of a custom group.
+	 *
+	 * @param groupId    the custom group
+	 * @param searchTerm text matched against the member's id, name, username and
+	 *                   email, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the members, with the keys {@code userid}, {@code type},
+	 *         {@code dateadded}, {@code name}, {@code username} and {@code email}
 	 */
 	public List<Map<String, Object>> getGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		if (!groupExists(groupId, "CUSTOM")) {
@@ -493,22 +555,12 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		}
 
 		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__GROUPID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__USERID"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__TYPE"));
 		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__DATEADDED"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__ENDDATE"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBY"));
-		qs.addSelector(new QueryColumnSelector("CUSTOMGROUPASSIGNMENT__PERMISSIONGRANTEDBYTYPE"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
 		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__TYPE"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
@@ -560,9 +612,15 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
+	 * The users who are not members of a custom group.
+	 *
+	 * @param groupId    the custom group
+	 * @param searchTerm text matched against the user's id, name, username and
+	 *                   email, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the users, with the keys {@code id}, {@code type}, {@code name},
+	 *         {@code username} and {@code email}
 	 */
 	public List<Map<String, Object>> getNonGroupMembers(String groupId, String searchTerm, long limit, long offset) {
 		if (!groupExists(groupId, "CUSTOM")) {
@@ -575,12 +633,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME"));
 		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONE"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__PHONEEXTENSION"));
-		qs.addSelector(new QueryColumnSelector("SMSS_USER__COUNTRYCODE"));
 		{
 			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
 			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
@@ -608,43 +660,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
-	}
-
-	/**
-	 * This is only valid for members assigned to custom group assignments
-	 * 
-	 * @return
-	 */
-	public Long getNumNonMembersInGroup(String groupId, String searchTerm) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " with type custom does not exist");
-		}
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(
-				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, "SMSS_USER__ID", "numUsers"));
-		{
-			SelectQueryStruct exisitngMembersQs = new SelectQueryStruct();
-			exisitngMembersQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction(
-					"CUSTOMGROUPASSIGNMENT__USERID", "CUSTOMGROUPASSIGNMENT__TYPE", "UUID"));
-			exisitngMembersQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("CUSTOMGROUPASSIGNMENT__GROUPID", "==", groupId));
-
-			// add the subqs to the main qs
-			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
-					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_USER__ID", "SMSS_USER__TYPE", "UUID"), "!=",
-					exisitngMembersQs));
-		}
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter or = new OrQueryFilter();
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__NAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
-			or.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "?like", searchTerm));
-			qs.addExplicitFilter(or);
-		}
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 	/**
@@ -995,54 +1010,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 	/**
 	 * 
-	 * @param groupId
-	 * @param searchTerm
-	 * @return
-	 */
-	public Long getNumAvailableProjectsForGroup(String groupId, String groupType, String searchTerm, boolean onlyApps) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		String groupProjectPermission = "GROUPPROJECTPERMISSION__";
-		String projectPrefix = "PROJECT__";
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT,
-				projectPrefix + "PROJECTID", "numProjects"));
-
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTID", searchTerm));
-			searchFilter.addFilter(
-					securityDb.getQueryUtil().getSearchRegexFilter(projectPrefix + "PROJECTNAME", searchTerm));
-			qs.addExplicitFilter(searchFilter);
-		}
-
-		if (onlyApps) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(projectPrefix + "HASPORTAL", "==", true,
-					PixelDataType.BOOLEAN));
-		}
-
-		// filter out projects that are already added
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			subQs.addSelector(new QueryColumnSelector(groupProjectPermission + "PROJECTID")); // this is the group id
-			// filter for the group being specified
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "ID", "==", groupId));
-			subQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(groupProjectPermission + "TYPE", "==", groupType));
-			// filter out from engine list
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-		}
-
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
-	}
-
-	/**
-	 * 
 	 * @param user
 	 * @param groupId
 	 * @param groupType
@@ -1348,48 +1315,6 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			qs.setOffSet(offset);
 		}
 		return getSimpleQuery(qs);
-	}
-
-	/**
-	 * 
-	 * @param groupId
-	 * @param searchTerm
-	 * @return
-	 */
-	public Long getNumAvailableEnginesForGroup(String groupId, String groupType, String searchTerm) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		String groupEnginePermission = "GROUPENGINEPERMISSION__";
-		String enginePrefix = "ENGINE__";
-
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.COUNT, enginePrefix + "ENGINEID",
-				"numEngines"));
-		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
-			OrQueryFilter searchFilter = new OrQueryFilter();
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINEID", searchTerm));
-			searchFilter
-					.addFilter(securityDb.getQueryUtil().getSearchRegexFilter(enginePrefix + "ENGINENAME", searchTerm));
-			qs.addExplicitFilter(searchFilter);
-		}
-
-		// filter out engines that are already added
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			subQs.addSelector(new QueryColumnSelector(groupEnginePermission + "ENGINEID")); // this is the group id
-			// filter for the group being specified
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "ID", "==", groupId));
-			subQs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter(groupEnginePermission + "TYPE", "==", groupType));
-			// filter out from engine list
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(enginePrefix + "ENGINEID", "!=", subQs));
-		}
-
-		return QueryExecutionUtility.flushToLong(securityDb, qs);
 	}
 
 	/**

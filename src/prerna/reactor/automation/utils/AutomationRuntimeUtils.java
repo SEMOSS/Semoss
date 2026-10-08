@@ -37,7 +37,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -167,9 +166,8 @@ public final class AutomationRuntimeUtils {
 
 	/**
 	 * Validates container depth before serialization, then limits the encoded UTF-8
-	 * payload. Runtime values originate as JSON, so repeated container identity has
-	 * no defined meaning and is rejected with cycles before Gson can recurse
-	 * indefinitely.
+	 * payload. Repeated references serialize as ordinary duplicated JSON values;
+	 * only an object that appears again on its active ancestor path is cyclic.
 	 *
 	 * @param value     runtime value to serialize
 	 * @param maxBytes  maximum UTF-8 payload size
@@ -187,37 +185,39 @@ public final class AutomationRuntimeUtils {
 	}
 
 	private static void validateRuntimeDepth(Object value, String valueName) {
-		ArrayDeque<RuntimeValueDepth> pending = new ArrayDeque<>();
-		Set<Object> visitedContainers = Collections.newSetFromMap(new IdentityHashMap<>());
-		pending.push(new RuntimeValueDepth(value, 0));
-		while (!pending.isEmpty()) {
-			RuntimeValueDepth current = pending.pop();
-			Object currentValue = current.value();
-			if (!(currentValue instanceof Map<?, ?>) && !(currentValue instanceof Iterable<?>)
-					&& (currentValue == null || !currentValue.getClass().isArray())) {
-				continue;
-			}
-			if (current.depth() >= AutomationConstants.RUNTIME_JSON_MAX_DEPTH) {
-				throw new IllegalArgumentException(valueName + " exceeds the maximum JSON depth of "
-						+ AutomationConstants.RUNTIME_JSON_MAX_DEPTH + ".");
-			}
-			if (!visitedContainers.add(currentValue)) {
-				throw new IllegalArgumentException(valueName + " contains a repeated or cyclic JSON container.");
-			}
-			int childDepth = current.depth() + 1;
-			if (currentValue instanceof Map<?, ?> map) {
+		Set<Object> ancestors = Collections.newSetFromMap(new IdentityHashMap<>());
+		validateRuntimeDepth(value, valueName, 0, ancestors);
+	}
+
+	private static void validateRuntimeDepth(Object value, String valueName, int depth, Set<Object> ancestors) {
+		if (!(value instanceof Map<?, ?>) && !(value instanceof Iterable<?>)
+				&& (value == null || !value.getClass().isArray())) {
+			return;
+		}
+		if (depth >= AutomationConstants.RUNTIME_JSON_MAX_DEPTH) {
+			throw new IllegalArgumentException(valueName + " exceeds the maximum JSON depth of "
+					+ AutomationConstants.RUNTIME_JSON_MAX_DEPTH + ".");
+		}
+		if (!ancestors.add(value)) {
+			throw new IllegalArgumentException(valueName + " contains a cyclic JSON container.");
+		}
+		try {
+			int childDepth = depth + 1;
+			if (value instanceof Map<?, ?> map) {
 				for (Object child : map.values()) {
-					pending.push(new RuntimeValueDepth(child, childDepth));
+					validateRuntimeDepth(child, valueName, childDepth, ancestors);
 				}
-			} else if (currentValue instanceof Iterable<?> iterable) {
+			} else if (value instanceof Iterable<?> iterable) {
 				for (Object child : iterable) {
-					pending.push(new RuntimeValueDepth(child, childDepth));
+					validateRuntimeDepth(child, valueName, childDepth, ancestors);
 				}
 			} else {
-				for (int index = 0; index < Array.getLength(currentValue); index++) {
-					pending.push(new RuntimeValueDepth(Array.get(currentValue, index), childDepth));
+				for (int index = 0; index < Array.getLength(value); index++) {
+					validateRuntimeDepth(Array.get(value, index), valueName, childDepth, ancestors);
 				}
 			}
+		} finally {
+			ancestors.remove(value);
 		}
 	}
 
@@ -235,6 +235,4 @@ public final class AutomationRuntimeUtils {
 				: s.substring(0, AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH);
 	}
 
-	private record RuntimeValueDepth(Object value, int depth) {
-	}
 }

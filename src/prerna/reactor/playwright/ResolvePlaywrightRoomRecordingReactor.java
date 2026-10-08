@@ -38,6 +38,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.ValueUtils;
 
 /** Resolves the closest matching Playwright recording in an authorized room. */
 public class ResolvePlaywrightRoomRecordingReactor extends AbstractReactor {
@@ -55,10 +56,10 @@ public class ResolvePlaywrightRoomRecordingReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String roomId = trim(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
-		String hint = trim(this.keyValue.get(RECORDING_NAME_HINT));
-		String recordingFile = trim(this.keyValue.get(RECORDING_FILE));
-		String projectId = trim(this.keyValue.get(PROJECT_ID));
+		String roomId = ValueUtils.trimToEmpty(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
+		String hint = ValueUtils.trimToEmpty(this.keyValue.get(RECORDING_NAME_HINT));
+		String recordingFile = ValueUtils.trimToEmpty(this.keyValue.get(RECORDING_FILE));
+		String projectId = ValueUtils.trimToEmpty(this.keyValue.get(PROJECT_ID));
 
 		if (roomId.isEmpty()) {
 			throw new IllegalArgumentException("roomId is required");
@@ -76,19 +77,17 @@ public class ResolvePlaywrightRoomRecordingReactor extends AbstractReactor {
 		if (!projectId.isEmpty()) {
 			User user = this.insight.getUser();
 			if (!SecurityProjectUtils.userCanViewProject(user, projectId)) {
-				throw new IllegalArgumentException("Project does not exist or user does not have access to the project");
+				throw new IllegalArgumentException(
+						"Project does not exist or user does not have access to the project");
 			}
-			projectRecordingsFolder = Path.of(AssetUtility.getProjectAssetsFolder(projectId),
-					PlaywrightUtility.RECORDINGS_FOLDER_NAME).toAbsolutePath().normalize();
+			projectRecordingsFolder = Path
+					.of(AssetUtility.getProjectAssetsFolder(projectId), PlaywrightUtility.RECORDINGS_FOLDER_NAME)
+					.toAbsolutePath().normalize();
 		}
 
 		Map<String, Object> result = new PlaywrightRecordingCatalogService().resolve(roomFolder,
 				projectRecordingsFolder, projectId, hint, recordingFile);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static String trim(String value) {
-		return value == null ? "" : value.trim();
 	}
 
 	@Override

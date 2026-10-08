@@ -48,6 +48,7 @@ import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.model.MailboxActionResult;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
 import prerna.engine.impl.function.mail.spi.MailboxClient;
+import prerna.util.ValueUtils;
 
 /**
  * Function engine that reads a mailbox over IMAP, and can change it when the
@@ -129,13 +130,13 @@ public class IMAPFunctionEngine extends AbstractMailStoreFunctionEngine {
 	@Override
 	protected void openProtocolProperties(Properties properties) {
 		this.defaultFolder = MailProperties
-				.firstNonNull(MailProperties.trimToNull(properties.getProperty(DEFAULT_FOLDER_KEY)), INBOX_FOLDER);
+				.firstNonNull(ValueUtils.trimToNull(properties.getProperty(DEFAULT_FOLDER_KEY)), INBOX_FOLDER);
 		this.allowedFolders = new LinkedHashSet<>(
 				MailProperties.splitList(properties.getProperty(ALLOWED_FOLDERS_KEY)));
-		this.markAsRead = MailProperties.parseBoolean(properties.getProperty(MARK_AS_READ_KEY), false);
-		this.allowFlagChanges = MailProperties.parseBoolean(properties.getProperty(ALLOW_FLAG_CHANGES_KEY), false);
-		this.allowMove = MailProperties.parseBoolean(properties.getProperty(ALLOW_MOVE_KEY), false);
-		this.allowDelete = MailProperties.parseBoolean(properties.getProperty(ALLOW_DELETE_KEY), false);
+		this.markAsRead = ValueUtils.parseBoolean(properties.getProperty(MARK_AS_READ_KEY), false);
+		this.allowFlagChanges = ValueUtils.parseBoolean(properties.getProperty(ALLOW_FLAG_CHANGES_KEY), false);
+		this.allowMove = ValueUtils.parseBoolean(properties.getProperty(ALLOW_MOVE_KEY), false);
+		this.allowDelete = ValueUtils.parseBoolean(properties.getProperty(ALLOW_DELETE_KEY), false);
 		if (!isAllowedFolder(this.defaultFolder)) {
 			throw new IllegalArgumentException("The " + DEFAULT_FOLDER_KEY + " of " + this.defaultFolder
 					+ " is not one of the " + ALLOWED_FOLDERS_KEY + " = " + this.allowedFolders);

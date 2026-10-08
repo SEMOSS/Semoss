@@ -37,6 +37,7 @@ import prerna.engine.impl.function.mail.adapter.jakarta.auth.ExchangeStoreAuthen
 import prerna.engine.impl.function.mail.adapter.jakarta.auth.MailStoreAuthentication;
 import prerna.engine.impl.function.mail.auth.microsoft365.Microsoft365MailOAuth;
 import prerna.engine.impl.function.mail.config.JakartaStoreConfig;
+import prerna.util.ValueUtils;
 
 /**
  * Function engine that reads a Microsoft 365 mailbox through Graph by default,
@@ -82,10 +83,10 @@ public class ExchangePOP3FunctionEngine extends POP3FunctionEngine {
 	protected void openProtocolProperties(Properties smssProp) {
 		super.openProtocolProperties(smssProp);
 
-		Microsoft365MailOAuth.validateMailbox(trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))),
+		Microsoft365MailOAuth.validateMailbox(ValueUtils.trimToNull(smssProp.getProperty(key(USERNAME_SUFFIX))),
 				key(USERNAME_SUFFIX));
 
-		if (trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
+		if (ValueUtils.trimToNull(smssProp.getProperty(key(PASSWORD_SUFFIX))) != null) {
 			// a password here is a sign the engine was set up as though it were a
 			// plain mailbox, and Exchange would refuse it anyway
 			classLogger.warn("A {} was set but Exchange Online signs in with a token, so the password is ignored",
