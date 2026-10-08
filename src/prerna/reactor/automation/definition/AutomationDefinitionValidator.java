@@ -495,8 +495,17 @@ public final class AutomationDefinitionValidator {
 	private static void validateJevBranchConfig(String nodeId, Map<String, Object> config) {
 		requireConfigString(nodeId, config, AutomationConstants.CONFIG_ENGINE_ID);
 		requireConfigString(nodeId, config, AutomationConstants.CONFIG_STATE);
-		requireConfigString(nodeId, config, AutomationConstants.CONFIG_QUESTION);
 		validateOptionalConfigObject(nodeId, config, AutomationConstants.CONFIG_PARAM_VALUES);
+		if (config.containsKey(AutomationConstants.CONFIG_QUESTIONS)) {
+			validateJevQuestionsAndRoutes(nodeId, config);
+			return;
+		}
+		validateLegacyJevBranchConfig(nodeId, config);
+	}
+
+	/** Validates the original single-question routing contract for saved graphs. */
+	private static void validateLegacyJevBranchConfig(String nodeId, Map<String, Object> config) {
+		requireConfigString(nodeId, config, AutomationConstants.CONFIG_QUESTION);
 		String questionType = jevQuestionType(nodeId, config);
 
 		Object thresholdValue = config.get(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD);
@@ -529,6 +538,196 @@ public final class AutomationDefinitionValidator {
 		}
 		if (AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)) {
 			validateJevNoulRoutes(nodeId, clauses);
+		}
+	}
+
+	private record JevQuestionDefinition(String type, Set<String> options) {
+	}
+
+	/** Validates the multi-question TypeSafe request and its deterministic routes. */
+	private static void validateJevQuestionsAndRoutes(String nodeId, Map<String, Object> config) {
+		Object rawQuestions = config.get(AutomationConstants.CONFIG_QUESTIONS);
+		if (!(rawQuestions instanceof List<?> questions) || questions.isEmpty()
+				|| questions.size() > AutomationConstants.JEV_MAX_QUESTIONS) {
+			throw new IllegalArgumentException("Jev decision node '" + nodeId + "' config.questions must contain 1 through "
+					+ AutomationConstants.JEV_MAX_QUESTIONS + " questions.");
+		}
+
+		Map<String, JevQuestionDefinition> questionDefinitions = new LinkedHashMap<>();
+		for (int index = 0; index < questions.size(); index++) {
+			Map<String, Object> question = requireMap(questions.get(index),
+					"Jev decision node '" + nodeId + "' config.questions[" + index + "]");
+			String key = requireNonblankString(question.get(AutomationConstants.CONFIG_KEY),
+					"Jev decision node '" + nodeId + "' config.questions[" + index + "].key");
+			if (!PyUtils.isValidPythonVariableName(key)) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' question key '" + key
+						+ "' must be a non-keyword identifier.");
+			}
+			if (questionDefinitions.containsKey(key)) {
+				throw new IllegalArgumentException(
+						"Jev decision node '" + nodeId + "' has duplicate question key: " + key + ".");
+			}
+			String type = requireNonblankString(question.get(AutomationConstants.CONFIG_TYPE),
+					"Jev decision node '" + nodeId + "' config.questions[" + index + "].type");
+			if (!Set.of(AutomationConstants.JEV_QUESTION_TYPE_CHOICE, AutomationConstants.JEV_QUESTION_TYPE_SCORE,
+					AutomationConstants.JEV_QUESTION_TYPE_NOUL).contains(type)) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' question '" + key
+						+ "' type must be 'choice', 'score', or 'noul'.");
+			}
+			requireNonblankString(question.get(AutomationConstants.CONFIG_INSTRUCTIONS),
+					"Jev decision node '" + nodeId + "' question '" + key + "' instructions");
+			questionDefinitions.put(key, new JevQuestionDefinition(type, validateJevCriteria(nodeId, key, type,
+					question.get(AutomationConstants.CONFIG_CRITERIA))));
+		}
+
+		Object rawRoutes = config.get(AutomationConstants.CONFIG_CLAUSES);
+		if (!(rawRoutes instanceof List<?> routes) || routes.isEmpty()
+				|| routes.size() > AutomationConstants.JEV_MAX_ROUTES) {
+			throw new IllegalArgumentException("Jev decision node '" + nodeId + "' config.clauses must contain 1 through "
+					+ AutomationConstants.JEV_MAX_ROUTES + " routes.");
+		}
+		Set<String> routeIds = new HashSet<>();
+		for (int index = 0; index < routes.size(); index++) {
+			Map<String, Object> route = requireMap(routes.get(index),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "]");
+			String routeId = requireNonblankString(route.get(AutomationConstants.CONFIG_CLAUSE_ID),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "].id");
+			if (!routeIds.add(routeId)) {
+				throw new IllegalArgumentException(
+						"Jev decision node '" + nodeId + "' has duplicate route id: " + routeId + ".");
+			}
+			requireNonblankString(route.get(AutomationConstants.CONFIG_DESCRIPTION),
+					"Jev decision node '" + nodeId + "' config.clauses[" + index + "].description");
+			String match = route.getOrDefault(AutomationConstants.CONFIG_MATCH, AutomationConstants.JEV_ROUTE_MATCH_ALL)
+					.toString();
+			if (!AutomationConstants.JEV_ROUTE_MATCH_ALL.equals(match)
+					&& !AutomationConstants.JEV_ROUTE_MATCH_ANY.equals(match)) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' route '" + routeId
+						+ "' match must be 'all' or 'any'.");
+			}
+			Object rawConditions = route.get(AutomationConstants.CONFIG_CONDITIONS);
+			if (!(rawConditions instanceof List<?> conditions) || conditions.isEmpty()
+					|| conditions.size() > AutomationConstants.JEV_MAX_ROUTE_CONDITIONS) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' route '" + routeId
+						+ "' must contain 1 through " + AutomationConstants.JEV_MAX_ROUTE_CONDITIONS + " conditions.");
+			}
+			for (int conditionIndex = 0; conditionIndex < conditions.size(); conditionIndex++) {
+				validateJevRouteCondition(nodeId, routeId, conditionIndex,
+						requireMap(conditions.get(conditionIndex), "Jev decision node '" + nodeId + "' route '"
+								+ routeId + "' condition " + conditionIndex), questionDefinitions);
+			}
+		}
+	}
+
+	private static Set<String> validateJevCriteria(String nodeId, String key, String type, Object rawCriteria) {
+		if (AutomationConstants.JEV_QUESTION_TYPE_CHOICE.equals(type)) {
+			if (!(rawCriteria instanceof Map<?, ?> criteria) || criteria.isEmpty()
+					|| criteria.size() > AutomationConstants.JEV_MAX_CRITERIA) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' choice question '" + key
+						+ "' must contain 1 through " + AutomationConstants.JEV_MAX_CRITERIA + " choices.");
+			}
+			Set<String> options = new HashSet<>();
+			for (Map.Entry<?, ?> entry : criteria.entrySet()) {
+				if (!(entry.getKey() instanceof String option) || option.isBlank()) {
+					throw new IllegalArgumentException("Jev decision node '" + nodeId + "' choice question '" + key
+							+ "' contains a blank choice key.");
+				}
+				requireNonblankString(entry.getValue(), "Jev decision node '" + nodeId + "' choice '" + option
+						+ "' description");
+				options.add(option);
+			}
+			return Set.copyOf(options);
+		}
+		if (AutomationConstants.JEV_QUESTION_TYPE_SCORE.equals(type)) {
+			if (!(rawCriteria instanceof List<?> criteria) || criteria.size() < 2
+					|| criteria.size() > AutomationConstants.JEV_MAX_CRITERIA) {
+				throw new IllegalArgumentException("Jev decision node '" + nodeId + "' score question '" + key
+						+ "' must contain 2 through " + AutomationConstants.JEV_MAX_CRITERIA + " rubric levels.");
+			}
+			Set<String> options = new HashSet<>();
+			for (int index = 0; index < criteria.size(); index++) {
+				requireNonblankString(criteria.get(index), "Jev decision node '" + nodeId + "' score question '" + key
+						+ "' rubric level " + index);
+				options.add(String.valueOf(index));
+			}
+			return Set.copyOf(options);
+		}
+		if (rawCriteria == null) {
+			return Set.of();
+		}
+		if (!(rawCriteria instanceof Map<?, ?> criteria) || !criteria.keySet().equals(Set.of("true", "false"))) {
+			throw new IllegalArgumentException("Jev decision node '" + nodeId + "' Noul question '" + key
+					+ "' criteria must describe exactly the 'true' and 'false' outcomes.");
+		}
+		for (Map.Entry<?, ?> entry : criteria.entrySet()) {
+			requireNonblankString(entry.getValue(), "Jev decision node '" + nodeId + "' Noul question '" + key
+					+ "' " + entry.getKey() + " description");
+		}
+		return Set.of();
+	}
+
+	private static void validateJevRouteCondition(String nodeId, String routeId, int conditionIndex,
+			Map<String, Object> condition, Map<String, JevQuestionDefinition> questionDefinitions) {
+		String prefix = "Jev decision node '" + nodeId + "' route '" + routeId + "' condition " + conditionIndex;
+		String questionKey = requireNonblankString(condition.get(AutomationConstants.CONFIG_QUESTION_KEY),
+				prefix + " questionKey");
+		JevQuestionDefinition question = questionDefinitions.get(questionKey);
+		if (question == null) {
+			throw new IllegalArgumentException(prefix + " references unknown question '" + questionKey + "'.");
+		}
+		String field = requireNonblankString(condition.get(AutomationConstants.CONFIG_FIELD), prefix + " field");
+		if (!jevFieldsForType(question.type()).contains(field)) {
+			throw new IllegalArgumentException(prefix + " field '" + field + "' is not valid for " + question.type()
+					+ " questions.");
+		}
+		String operator = requireNonblankString(condition.get(AutomationConstants.CONFIG_OPERATOR),
+				prefix + " operator");
+		Object value = condition.get(AutomationConstants.CONFIG_VALUE);
+		if (AutomationConstants.JEV_FIELD_CHOICE.equals(field)) {
+			if (!(value instanceof String choice) || !question.options().contains(choice)) {
+				throw new IllegalArgumentException(prefix + " value must name a configured choice.");
+			}
+			validateJevStringOperator(prefix, operator);
+			return;
+		}
+		if (AutomationConstants.JEV_FIELD_PROBABILITY.equals(field)) {
+			String option = requireNonblankString(condition.get(AutomationConstants.CONFIG_OPTION), prefix + " option");
+			if (!question.options().contains(option)) {
+				throw new IllegalArgumentException(prefix + " option must name configured criteria.");
+			}
+		}
+		validateJevNumericOperator(prefix, operator);
+		if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue()) || number.doubleValue() < 0
+				|| number.doubleValue() > 1) {
+			throw new IllegalArgumentException(prefix + " value must be a number from 0 through 1.");
+		}
+	}
+
+	private static Set<String> jevFieldsForType(String type) {
+		if (AutomationConstants.JEV_QUESTION_TYPE_CHOICE.equals(type)) {
+			return Set.of(AutomationConstants.JEV_FIELD_CHOICE, AutomationConstants.JEV_FIELD_CONFIDENCE,
+					AutomationConstants.JEV_FIELD_PROBABILITY);
+		}
+		if (AutomationConstants.JEV_QUESTION_TYPE_SCORE.equals(type)) {
+			return Set.of(AutomationConstants.JEV_FIELD_SCORE, AutomationConstants.JEV_FIELD_CONFIDENCE,
+					AutomationConstants.JEV_FIELD_PROBABILITY);
+		}
+		return Set.of(AutomationConstants.JEV_FIELD_NOUL);
+	}
+
+	private static void validateJevStringOperator(String prefix, String operator) {
+		if (!AutomationConstants.JEV_OPERATOR_EQUALS.equals(operator)
+				&& !AutomationConstants.JEV_OPERATOR_NOT_EQUALS.equals(operator)) {
+			throw new IllegalArgumentException(prefix + " operator must be 'equals' or 'notEquals'.");
+		}
+	}
+
+	private static void validateJevNumericOperator(String prefix, String operator) {
+		if (!Set.of(AutomationConstants.JEV_OPERATOR_EQUALS, AutomationConstants.JEV_OPERATOR_NOT_EQUALS,
+				AutomationConstants.JEV_OPERATOR_GREATER_THAN, AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
+				AutomationConstants.JEV_OPERATOR_LESS_THAN, AutomationConstants.JEV_OPERATOR_LESS_THAN_OR_EQUAL)
+				.contains(operator)) {
+			throw new IllegalArgumentException(prefix + " contains an unsupported numeric operator.");
 		}
 	}
 

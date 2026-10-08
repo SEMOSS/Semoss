@@ -543,9 +543,8 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Evaluates one typed routing question through the configured TypeSafe/Jev
-	 * engine. The model may select only a configured route; responses below the
-	 * configured confidence threshold use the explicit fallback port.
+	 * Evaluates typed routing questions through the configured TypeSafe/Jev engine
+	 * and applies the configured route rules to the complete response.
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> executeJevDecisionNode(Insight executionInsight, String runId,
@@ -569,23 +568,8 @@ final class AutomationRunExecutionService {
 
 			List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
 					.get(AutomationConstants.CONFIG_CLAUSES);
-			String questionType = jevQuestionType(config);
-			Map<String, Object> criteria = new LinkedHashMap<>();
-			for (Map<String, Object> clause : clauses) {
-				Object criterion = AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)
-						? String.valueOf(clause.get(AutomationConstants.CONFIG_ANSWER))
-						: clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
-				criteria.put(String.valueOf(criterion),
-						clause.get(AutomationConstants.CONFIG_DESCRIPTION));
-			}
-			Map<String, Object> routeQuestion = new LinkedHashMap<>();
-			routeQuestion.put("type", questionType);
-			routeQuestion.put("instructions", resolveJevText(config.get(AutomationConstants.CONFIG_QUESTION), scope));
-			routeQuestion.put("criteria", criteria);
-			Map<String, Object> questions = Map.of("route", routeQuestion);
-			Map<String, Object> parameters = config.get(AutomationConstants.CONFIG_PARAM_VALUES) instanceof Map<?, ?> map
-					? (Map<String, Object>) map
-					: Map.of();
+			Map<String, Object> questions = jevQuestions(config, scope);
+			Map<String, Object> parameters = jevParameters(config);
 			Object state = resolveJevState(config.get(AutomationConstants.CONFIG_STATE), scope);
 			TypeSafeModelEngineResponse response = engine.evaluate(state, questions, executionInsight, parameters);
 			Map<String, Object> decision = jevDecision(response, clauses, config);
@@ -606,6 +590,68 @@ final class AutomationRunExecutionService {
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message);
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		}
+	}
+
+	/** Preserves TypeSafe option types after Gson has materialized JSON numbers as doubles. */
+	static Map<String, Object> jevParameters(Map<String, Object> config) {
+		Object configured = config.get(AutomationConstants.CONFIG_PARAM_VALUES);
+		if (!(configured instanceof Map<?, ?> values)) {
+			return Map.of();
+		}
+		Map<String, Object> parameters = new LinkedHashMap<>();
+		for (Map.Entry<?, ?> entry : values.entrySet()) {
+			if (entry.getKey() instanceof String key) {
+				parameters.put(key, entry.getValue());
+			}
+		}
+		Object retries = parameters.get("max_retries");
+		if (retries instanceof Number number) {
+			double value = number.doubleValue();
+			if (Double.isFinite(value) && value == Math.rint(value) && value >= Integer.MIN_VALUE
+					&& value <= Integer.MAX_VALUE) {
+				parameters.put("max_retries", (int) value);
+			}
+		}
+		return parameters;
+	}
+
+	/** Builds the native TypeSafe question map, retaining legacy single-question graphs. */
+	@SuppressWarnings("unchecked")
+	static Map<String, Object> jevQuestions(Map<String, Object> config, Map<String, Object> scope) {
+		Object configuredQuestions = config.get(AutomationConstants.CONFIG_QUESTIONS);
+		if (configuredQuestions instanceof List<?> questions) {
+			Map<String, Object> resolved = new LinkedHashMap<>();
+			for (Object value : questions) {
+				Map<String, Object> question = (Map<String, Object>) value;
+				String key = (String) question.get(AutomationConstants.CONFIG_KEY);
+				Map<String, Object> typedQuestion = new LinkedHashMap<>();
+				typedQuestion.put(AutomationConstants.CONFIG_TYPE, question.get(AutomationConstants.CONFIG_TYPE));
+				typedQuestion.put("instructions",
+						resolveJevText(question.get(AutomationConstants.CONFIG_INSTRUCTIONS), scope));
+				Object criteria = question.get(AutomationConstants.CONFIG_CRITERIA);
+				if (criteria instanceof Map<?, ?> || criteria instanceof List<?>) {
+					typedQuestion.put("criteria", criteria);
+				}
+				resolved.put(key, typedQuestion);
+			}
+			return resolved;
+		}
+
+		List<Map<String, Object>> clauses = (List<Map<String, Object>>) config
+				.get(AutomationConstants.CONFIG_CLAUSES);
+		String questionType = jevQuestionType(config);
+		Map<String, Object> criteria = new LinkedHashMap<>();
+		for (Map<String, Object> clause : clauses) {
+			Object criterion = AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(questionType)
+					? String.valueOf(clause.get(AutomationConstants.CONFIG_ANSWER))
+					: clause.get(AutomationConstants.CONFIG_CLAUSE_ID);
+			criteria.put(String.valueOf(criterion), clause.get(AutomationConstants.CONFIG_DESCRIPTION));
+		}
+		Map<String, Object> routeQuestion = new LinkedHashMap<>();
+		routeQuestion.put("type", questionType);
+		routeQuestion.put("instructions", resolveJevText(config.get(AutomationConstants.CONFIG_QUESTION), scope));
+		routeQuestion.put("criteria", criteria);
+		return Map.of("route", routeQuestion);
 	}
 
 	/**
@@ -639,6 +685,9 @@ final class AutomationRunExecutionService {
 	static Map<String, Object> jevDecision(TypeSafeModelEngineResponse response, List<Map<String, Object>> clauses,
 			Map<String, Object> config) {
 		Map<String, Object> providerResponse = response.getResponse();
+		if (config.containsKey(AutomationConstants.CONFIG_QUESTIONS)) {
+			return jevRuleDecision(providerResponse, clauses);
+		}
 		Object rawAnswers = providerResponse.get("answers");
 		if (!(rawAnswers instanceof Map<?, ?> answers) || !(answers.get("route") instanceof Map<?, ?> routeAnswer)) {
 			throw new IllegalStateException("Jev response did not include answers.route.");
@@ -646,6 +695,105 @@ final class AutomationRunExecutionService {
 		return AutomationConstants.JEV_QUESTION_TYPE_NOUL.equals(jevQuestionType(config))
 				? jevNoulDecision(providerResponse, routeAnswer, clauses, config)
 				: jevChoiceDecision(providerResponse, routeAnswer, clauses, config);
+	}
+
+	/** Applies ordered All/Any route rules to the complete typed Jev response. */
+	private static Map<String, Object> jevRuleDecision(Map<String, Object> providerResponse,
+			List<Map<String, Object>> routes) {
+		Object rawAnswers = providerResponse.get("answers");
+		if (!(rawAnswers instanceof Map<?, ?> answers)) {
+			throw new IllegalStateException("Jev response did not include answers.");
+		}
+
+		Map<String, Object> selectedRoute = null;
+		for (Map<String, Object> route : routes) {
+			if (jevRouteMatches(route, answers)) {
+				selectedRoute = route;
+				break;
+			}
+		}
+
+		Map<String, Object> decision = new LinkedHashMap<>();
+		decision.put("branch", selectedRoute == null ? AutomationConstants.CONTROL_PORT_ELSE
+				: AutomationConstants.CONTROL_PORT_CASE_PREFIX
+						+ selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
+		if (selectedRoute != null) {
+			decision.put("routeId", selectedRoute.get(AutomationConstants.CONFIG_CLAUSE_ID));
+			decision.put("route", selectedRoute.get(AutomationConstants.CONFIG_DESCRIPTION));
+			decision.put("routeMatch", selectedRoute.getOrDefault(AutomationConstants.CONFIG_MATCH,
+					AutomationConstants.JEV_ROUTE_MATCH_ALL));
+			decision.put("matchedConditions", selectedRoute.get(AutomationConstants.CONFIG_CONDITIONS));
+		}
+		decision.put("answers", answers);
+		decision.put("model", providerResponse.get("model"));
+		decision.put("usage", providerResponse.getOrDefault("usage", Map.of()));
+		return decision;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static boolean jevRouteMatches(Map<String, Object> route, Map<?, ?> answers) {
+		List<Map<String, Object>> conditions = (List<Map<String, Object>>) route
+				.get(AutomationConstants.CONFIG_CONDITIONS);
+		boolean matchAny = AutomationConstants.JEV_ROUTE_MATCH_ANY.equals(route.get(AutomationConstants.CONFIG_MATCH));
+		for (Map<String, Object> condition : conditions) {
+			boolean matches = jevConditionMatches(condition, answers);
+			if (matchAny && matches) {
+				return true;
+			}
+			if (!matchAny && !matches) {
+				return false;
+			}
+		}
+		return !matchAny;
+	}
+
+	private static boolean jevConditionMatches(Map<String, Object> condition, Map<?, ?> answers) {
+		String questionKey = (String) condition.get(AutomationConstants.CONFIG_QUESTION_KEY);
+		Object rawAnswer = answers.get(questionKey);
+		if (!(rawAnswer instanceof Map<?, ?> answer)) {
+			throw new IllegalStateException("Jev response did not include answers." + questionKey + ".");
+		}
+		String field = (String) condition.get(AutomationConstants.CONFIG_FIELD);
+		Object actual;
+		if (AutomationConstants.JEV_FIELD_PROBABILITY.equals(field)) {
+			Object rawProbabilities = answer.get("probabilities");
+			String option = (String) condition.get(AutomationConstants.CONFIG_OPTION);
+			if (!(rawProbabilities instanceof Map<?, ?> probabilities) || !probabilities.containsKey(option)) {
+				throw new IllegalStateException(
+						"Jev response did not include answers." + questionKey + ".probabilities." + option + ".");
+			}
+			actual = probabilities.get(option);
+		} else {
+			if (!answer.containsKey(field)) {
+				throw new IllegalStateException(
+						"Jev response did not include answers." + questionKey + "." + field + ".");
+			}
+			actual = answer.get(field);
+		}
+		return compareJevValues(actual, condition.get(AutomationConstants.CONFIG_VALUE),
+				(String) condition.get(AutomationConstants.CONFIG_OPERATOR));
+	}
+
+	private static boolean compareJevValues(Object actual, Object expected, String operator) {
+		if (AutomationConstants.JEV_OPERATOR_EQUALS.equals(operator)) {
+			return actual instanceof Number && expected instanceof Number
+					? Double.compare(((Number) actual).doubleValue(), ((Number) expected).doubleValue()) == 0
+					: java.util.Objects.equals(actual, expected);
+		}
+		if (AutomationConstants.JEV_OPERATOR_NOT_EQUALS.equals(operator)) {
+			return !compareJevValues(actual, expected, AutomationConstants.JEV_OPERATOR_EQUALS);
+		}
+		if (!(actual instanceof Number actualNumber) || !(expected instanceof Number expectedNumber)) {
+			throw new IllegalStateException("Jev numeric route condition received a non-numeric answer.");
+		}
+		int comparison = Double.compare(actualNumber.doubleValue(), expectedNumber.doubleValue());
+		return switch (operator) {
+		case AutomationConstants.JEV_OPERATOR_GREATER_THAN -> comparison > 0;
+		case AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL -> comparison >= 0;
+		case AutomationConstants.JEV_OPERATOR_LESS_THAN -> comparison < 0;
+		case AutomationConstants.JEV_OPERATOR_LESS_THAN_OR_EQUAL -> comparison <= 0;
+		default -> throw new IllegalStateException("Unsupported Jev route operator: " + operator + ".");
+		};
 	}
 
 	/** Maps an arbitrary choice answer to its stable route identifier. */
