@@ -70,9 +70,16 @@ public final class AgentLoopState {
                     : RuntimeTimeContext.resolveZone(null, user == null ? null : user.getZoneId());
         }
         if (ctx.getAgentConfig().hasPptxWorkflow()) {
-            pptxWorkflow = PptxWorkflow.create(ctx);
-            pptxWorkflow.onProgress(progress::workflow);
+            startPptxWorkflow(ctx, ctx.isResumeMode());
+        } else if (ctx.isResumeMode() && PptxWorkflow.onDemand(ctx) && PptxWorkflow.started(ctx)) {
+            startPptxWorkflow(ctx, true);
         }
+    }
+
+    /** Starts the managed PPTX workflow, restoring this run's saved state or capturing the current inputs. */
+    void startPptxWorkflow(prerna.reactor.agent.AgentRunContext ctx, boolean restore) {
+        pptxWorkflow = PptxWorkflow.create(ctx, restore);
+        pptxWorkflow.onProgress(progress::workflow);
     }
     AgentRunProgress progress() { return progress; }
     PptxWorkflow pptxWorkflow() { return pptxWorkflow; }
