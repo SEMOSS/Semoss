@@ -161,9 +161,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
+		boolean pptxOnDemand = PptxWorkflow.onDemand(ctx);
 		if (agentConfig.hasPptxWorkflow()) {
 			defaultAndExplicitTools
 					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+		}
+		if (agentConfig.hasPptxWorkflow() || pptxOnDemand) {
 			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
 			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
@@ -261,6 +264,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		if (agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		} else if (pptxOnDemand) {
+			composed.append("\n\n").append(CollaborationPrompts.PPTX_PROMPT);
 		}
 		opts.put("instructions", composed.toString());
 		// The agent and room layers are already composed; do not append them again.

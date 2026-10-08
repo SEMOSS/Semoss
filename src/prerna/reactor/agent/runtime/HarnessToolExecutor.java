@@ -132,6 +132,9 @@ final class HarnessToolExecutor {
 		if (toolCalls.isEmpty()) {
 			return toolResponse;
 		}
+		if (state.pptxWorkflow() == null && PptxWorkflow.onDemand(ctx) && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
+			state.startPptxWorkflow(ctx, false);
+		}
 		if (state.pptxWorkflow() != null && toolCalls.size() > 1 && toolCalls.stream().anyMatch(c -> Set.of(PptxWorkflow.TOOL, PptxEditSession.TOOL, PptxStructuredEdits.TOOL).contains(new ParsedToolCall(c).rawToolName))) {
             for (var call : toolCalls) call.put("_pptxBatchError", "BuildPptx, PreparePptxEdit and ApplyPptxEdits must each be called alone; no tools in this batch were executed.");
         }
@@ -593,8 +596,9 @@ final class HarnessToolExecutor {
 		// provider-facing names still resolve; fall back to legacy UUID prefixes.
 		ResolvedMcpTool resolved = resolveMcpTool(tc);
 		if (resolved == null) {
+			// AgentEffectivenessCalculator counts the "cannot resolve engine/project id" wording
 			String msg = "Tool execution error: cannot resolve engine/project id from tool name '" + tc.rawToolName
-					+ "'";
+					+ "'. No tool has that name; call it again with the name exactly as your tool list spells it.";
 			logger.warn("HarnessToolExecutor: {}", msg);
 			return new ToolExecOutcome(msg, false);
 		}
