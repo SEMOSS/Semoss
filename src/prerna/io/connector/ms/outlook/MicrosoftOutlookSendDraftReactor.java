@@ -34,13 +34,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.EmailUtility;
 
 /**
  * Sends a draft the signed in user already has, once they have decided it
@@ -61,7 +62,7 @@ import prerna.util.EmailUtility.EmailMetadata;
  * recorded as having been sent</li>
  * </ul>
  */
-public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
+public class MicrosoftOutlookSendDraftReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookSendDraftReactor.class);
 
@@ -73,7 +74,7 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String requestedDraftId = this.keyValue.get(DRAFT_ID);
@@ -84,7 +85,7 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 			MicrosoftOutlookMailHelper mail = new MicrosoftOutlookMailHelper();
 
@@ -133,5 +134,13 @@ public class MicrosoftOutlookSendDraftReactor extends AbstractReactor {
 			return "Id of the draft to send, as returned by MicrosoftOutlookSaveDraft or by reading the drafts folder.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// sends mail as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

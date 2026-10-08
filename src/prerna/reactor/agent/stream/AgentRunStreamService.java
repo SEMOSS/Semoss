@@ -228,6 +228,14 @@ public final class AgentRunStreamService {
 		publishItemEvent(runId, TYPE_ITEM_COMPLETED, item);
 	}
 
+    /** A complete replacement of the run's current measured progress. */
+    public void publishProgress(String runId, Map<String, Object> progress) {
+        Map<String, Object> item = new LinkedHashMap<>(progress);
+        item.put("id", runId + ":progress");
+        item.put("kind", "progress");
+        publishItemEvent(runId, TYPE_ITEM_COMPLETED, item);
+    }
+
 	public void publishToolStarted(String runId, Map<String, Object> toolItem) {
 		publishItemEvent(runId, TYPE_ITEM_STARTED, toolItem);
 	}

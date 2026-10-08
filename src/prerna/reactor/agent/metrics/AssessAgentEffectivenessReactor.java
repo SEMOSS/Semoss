@@ -276,10 +276,11 @@ public class AssessAgentEffectivenessReactor extends AbstractReactor {
 
 	private static String renderMessage(int index, Map<String, Object> message) {
 		StringBuilder sb = new StringBuilder();
-		String role = null;
-		Map<String, Object> ornaments = asMap(message.get("ornaments"));
-		if (ornaments != null) {
-			role = stringValue(ornaments.get("agentRunRole"));
+		Map<String, Object> agentRun = asMap(message.get("agentRun"));
+		String role = agentRun == null ? null : stringValue(agentRun.get("role"));
+		if (role == null) {
+			Map<String, Object> ornaments = asMap(message.get("ornaments"));
+			role = ornaments == null ? null : stringValue(ornaments.get("agentRunRole"));
 		}
 		if (role == null) {
 			role = "OUTPUT".equalsIgnoreCase(stringValue(message.get("io"))) ? "assistant" : "input";

@@ -32,13 +32,13 @@ import java.io.Serializable;
 public abstract class AbstractQuerySelector implements IQuerySelector, Serializable {
 
 	protected String alias;
-	
+
 	/**
 	 * Default constructor
 	 */
 	public AbstractQuerySelector() {
 		// we want the alias to be an empty string
-		// since we dont want to get null pointers 
+		// since we dont want to get null pointers
 		// when we to the equals when we merge selectors
 		this.alias = "";
 	}
@@ -54,7 +54,14 @@ public abstract class AbstractQuerySelector implements IQuerySelector, Serializa
 			}
 		}
 	}
-	
+
+	/**
+	 * Returns only the caller-supplied alias, before any value-derived default.
+	 */
+	public String getExplicitAlias() {
+		return this.alias;
+	}
+
 	@Override
 	public String toString() {
 		return this.getQueryStructName();

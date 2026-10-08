@@ -164,6 +164,8 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			// store in DIHelper so that when we move temp smss to smss it doesn't try to
 			// reload again
 			UploadUtilities.addEngineToDIHelperToIgnoreEngineWatchers(modelId, tempSmss.getAbsolutePath());
+			// Limits are stored only in MODELMETADATA and must exist before open.
+			SecurityModelMetadataUtils.upsertModelMetadata(modelId, modelMetadata);
 			model.open(tempSmss.getAbsolutePath());
 
 			smssFile = new File(tempSmss.getAbsolutePath().replace(".temp", ".smss"));
@@ -172,7 +174,6 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			model.setSmssFilePath(smssFile.getAbsolutePath());
 			UploadUtilities.addEngineToDIHelper(modelId, modelName, model, smssFile);
 			SecurityEngineUtils.addEngine(modelId, global, user);
-			SecurityModelMetadataUtils.upsertModelMetadata(modelId, modelMetadata);
 			if (modelDescription != null) {
 				SecurityEngineUtils.updateEngineMetadata(modelId, Map.of(Constants.DESCRIPTION, modelDescription));
 			}
@@ -186,6 +187,8 @@ public class CreateModelEngineReactor extends AbstractReactor {
 		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
+			SecurityEngineUtils.deleteEngine(modelId);
+			throw new IllegalArgumentException("Unable to create model engine " + modelName, e);
 		}
 
 		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), modelId);

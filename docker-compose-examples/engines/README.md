@@ -31,6 +31,24 @@ curl http://localhost:8123/ping                          # clickhouse (returns "
 curl -i http://localhost:9100/minio/health/live          # minio (204 when ready)
 docker exec semoss-sftp nc -z localhost 22 && echo ok    # sftp
 curl http://localhost:8085/api/service/readiness          # mail (greenmail)
+curl http://localhost:8082/health                        # unoserver
+curl http://localhost:3000/health                        # node-builder
+```
+
+## SEMOSS-maintained services
+
+[semoss-maintained/](semoss-maintained/) holds the services SEMOSS publishes
+itself. They are not engines: SEMOSS reaches them through a platform setting,
+which every SEMOSS compose file already points at the container name.
+
+| Folder | Image | Host port | SEMOSS setting |
+|--------|-------|-----------|----------------|
+| [unoserver/](semoss-maintained/unoserver/README.md) | `quay.io/semoss/unoserver:latest` | 8082 (-> 8080) | `UNOSERVER` |
+| [node-builder/](semoss-maintained/node-builder/README.md) | `quay.io/semoss/smss-node-builder:latest` | 3000 | `NODE_SERVER_ENDPOINT` |
+
+```bash
+docker compose -f semoss-maintained/unoserver/semoss-unoserver.yml up -d
+docker compose -f semoss-maintained/node-builder/semoss-node-builder.yml up -d
 ```
 
 ## Pointing SEMOSS at one
@@ -71,6 +89,8 @@ jdbc:clickhouse://semoss-clickhouse:8123/semoss   (clickhouse, HTTP port 8123)
 http://semoss-minio:9000                          (minio, internal S3 API port 9000)
 semoss-sftp:22                                    (sftp, internal port 22)
 semoss-mail:3025 / :3110 / :3143                   (mail, smtp / pop3 / imap)
+http://semoss-unoserver:8080                      (unoserver)
+http://semoss-node-builder:3000                   (node-builder)
 ```
 
 **SEMOSS on your host** (not in Docker) - use `localhost` and the published port:
@@ -84,6 +104,8 @@ jdbc:clickhouse://localhost:8123/semoss             (clickhouse, host port 8123)
 http://localhost:9100                               (minio, host port 9100)
 localhost:2222                                      (sftp, host port 2222)
 localhost:3025 / :3110 / :3143                       (mail, same ports on the host)
+http://localhost:8082                               (unoserver, host port 8082)
+http://localhost:3000                               (node-builder)
 ```
 
 > **pgvector port note:** pgvector is just Postgres, the same as the SEMOSS `db`

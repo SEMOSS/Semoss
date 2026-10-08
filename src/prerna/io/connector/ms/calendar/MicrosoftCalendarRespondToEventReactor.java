@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -66,12 +67,12 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 	private static final String SEND_RESPONSE = "sendResponse";
 
 	public MicrosoftCalendarRespondToEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, RESPONSE, COMMENT, SEND_RESPONSE };
-		this.keyRequired = new int[] { 1, 1, 0, 0 };
+		this.keysToGet = new String[] { EVENT_ID, RESPONSE, COMMENT, SEND_RESPONSE, MAILBOX };
+		this.keyRequired = new int[] { 1, 1, 0, 0, 0 };
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		String eventId = trimToNull(this.keyValue.get(EVENT_ID));
@@ -87,11 +88,12 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 		// what accepting or declining usually means
 		Boolean sendResponse = optionalBoolean(SEND_RESPONSE);
 		boolean tellOrganizer = sendResponse == null || sendResponse;
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			String replied = MicrosoftCalendarHelper.respondToEvent(accessToken, eventId, response, comment,
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			String replied = MicrosoftCalendarHelper.respondToEvent(accessToken, mailbox, eventId, response, comment,
 					tellOrganizer);
 
 			Map<String, Object> output = new LinkedHashMap<>();
@@ -114,7 +116,7 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 
 	@Override
 	public String getReactorDescription() {
-		return "Accept, decline or tentatively accept a Microsoft 365 meeting invitation as the signed in user.";
+		return "Accept, decline or tentatively accept a Microsoft 365 meeting invitation, as the signed in user or on behalf of somebody they are a delegate of.";
 	}
 
 	@Override
@@ -129,5 +131,13 @@ public class MicrosoftCalendarRespondToEventReactor extends AbstractMicrosoftCal
 			return "Optional boolean for whether the organizer is told of the reply. Defaults to true.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// answers an invite as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

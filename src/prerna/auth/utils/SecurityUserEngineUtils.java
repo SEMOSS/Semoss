@@ -46,6 +46,7 @@ import prerna.date.SemossDate;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.filters.AndQueryFilter;
 import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
@@ -100,14 +101,7 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("GROUPENGINEPERMISSION__PERMISSION"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 
-		// check if user has groups
-		Collection<String> userGroups = getUserGroupFiltersQs(user);
-		if (!userGroups.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ID", "==", userGroups));
-		} else {
-			// If no groups - return empty list
-			return new ArrayList<>();
-		}
+		qs.addExplicitFilter(getUserGroupPermissionFilter(user, "GROUPENGINEPERMISSION__"));
 
 		List<String> permissions = new ArrayList<>();
 		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
@@ -279,8 +273,12 @@ class SecurityUserEngineUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("ENGINE__ENGINEID"));
 		OrQueryFilter orFilter = new OrQueryFilter();
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__GLOBAL", "==", true, PixelDataType.BOOLEAN));
-		orFilter.addFilter(
+		AndQueryFilter directAccess = new AndQueryFilter();
+		directAccess.addFilter(
 				SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", getUserFiltersQs(user)));
+		directAccess.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__PERMISSION", "!=", null,
+				PixelDataType.CONST_INT));
+		orFilter.addFilter(directAccess);
 		qs.addExplicitFilter(orFilter);
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINEID", "==", engineId));
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");

@@ -55,6 +55,7 @@ public final class PlatformAgentTools {
 	private static final String PARAM_TOOLS = "tools";
 	private static final String PROP_DEFAULT_TOOLS_MCP_ID = "AGENT_DEFAULT_TOOLS_MCP_ID";
 	private static final String PROP_DEFAULT_TOOLS_MCP_PROJECT_ID = "AGENT_DEFAULT_TOOLS_MCP_PROJECT_ID";
+	private static final Set<String> DEFERRED_DEFAULT_TOOLS = Set.of("InspectPptx", "MultiEdit");
 
 	private static final Map<String, PlatformAgentToolHandlers.ToolHandler> PLATFORM_TOOLS =
 			PlatformAgentToolHandlers.handlersByName();
@@ -113,6 +114,9 @@ public final class PlatformAgentTools {
 	}
 
 	static String executeDefaultTool(String toolName, Map<String, Object> params, AgentRunContext ctx) throws Exception {
+        Map<String, Object> effective = new LinkedHashMap<>(ctx.getAgentConfig().getToolParameterDefaults(toolName));
+        if (params != null) effective.putAll(params);
+        params = effective;
 		String overrideMcpId = getDefaultToolsMcpId();
 		if (overrideMcpId != null) {
 			JSONObject tool = findMcpTool(overrideMcpId, toolName);
@@ -135,6 +139,10 @@ public final class PlatformAgentTools {
 			AgentRunContext ctx) throws Exception {
 		String output = executeDefaultTool(toolName, params, ctx);
 		if (getDefaultToolsMcpId() == null && output != null && output.startsWith("Error:")) {
+			return ToolExecutionResult.error(output, output);
+		}
+		if (getDefaultToolsMcpId() == null && "InspectPptx".equals(toolName) && output != null
+				&& "failed".equals(new JSONObject(output).optString("status"))) {
 			return ToolExecutionResult.error(output, output);
 		}
 		return ToolExecutionResult.success(output);
@@ -172,7 +180,11 @@ public final class PlatformAgentTools {
 	private static List<Map<String, Object>> getPlatformToolDefinitions() {
 		List<Map<String, Object>> tools = new ArrayList<>();
 		for (PlatformAgentToolHandlers.ToolHandler handler : PLATFORM_TOOLS.values()) {
-			tools.add(handler.asToolDefinition().toMap());
+			JSONObject tool = handler.asToolDefinition();
+			if (DEFERRED_DEFAULT_TOOLS.contains(handler.getName())) {
+				tool.getJSONObject("_meta").put(MCPUtility.SMSS_MCP_DEFERRED, true);
+			}
+			tools.add(tool.toMap());
 		}
 		return tools;
 	}

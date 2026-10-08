@@ -35,11 +35,12 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
-import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.EmailUtility;
 
 /**
  * Sends mail as whoever is signed in.
@@ -84,7 +85,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		// keeping the copy is the default because the sent mail is the user's own
@@ -94,7 +95,7 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 			String from = MicrosoftLoginUtils.getMicrosoftEmail(user);
 
 			ComposedMail composed = compose(true, "send");
@@ -132,5 +133,14 @@ public class MicrosoftOutlookSendMailReactor extends AbstractMicrosoftOutlookCom
 			return "Optional boolean for whether a copy is kept in the sender's Sent Items. Defaults to true.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// sends mail as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		meta.put(MCPUtility.UI_COMPONENT, MCPUtility.COMPONENT_EMAIL_SEND);
+		return meta;
 	}
 }

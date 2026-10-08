@@ -38,11 +38,13 @@ import com.google.gson.Gson;
 import prerna.engine.impl.model.Room;
 import prerna.om.Insight;
 import prerna.om.ThreadStore;
+import prerna.reactor.agent.AgentRunTarget;
 import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.AgentRunStatus;
+import prerna.reactor.agent.run.SubAgentRunCompletionMode;
 
 /**
  * Tool-call dispatch for synthesized subagent tools.
@@ -98,6 +100,15 @@ public final class SubAgentDispatcher {
 	 */
 	public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args, Room parentRoom, Insight callerInsight,
 			String parentJobId, String parentAuthoredSystemPrompt) {
+		return spawnNamed(spec, args, parentRoom, callerInsight, parentJobId, parentAuthoredSystemPrompt, null);
+	}
+
+	/**
+	 * Harness-safe named spawn with the parent's already-resolved working
+	 * directory.
+	 */
+	public static String spawnNamed(SubAgentSpec spec, Map<String, Object> args, Room parentRoom, Insight callerInsight,
+			String parentJobId, String parentAuthoredSystemPrompt, AgentRunTarget parentTarget) {
 		String prompt = stringArg(args, "prompt");
 		boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
 		if (prompt == null) {
@@ -114,6 +125,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info(
 				"SubAgentDispatcher.spawnNamed: alias={} parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
@@ -125,11 +137,8 @@ public final class SubAgentDispatcher {
 		req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
 		req.callerInsight = callerInsight;
 		if (inheritParentWorkdir) {
-			Object wd = parentRoom.getOptionsMap() != null
-					? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
-					: null;
-			req.workingDirOverride = (wd != null && !String.valueOf(wd).trim().isEmpty()) ? String.valueOf(wd).trim()
-					: parentRoom.getRoomFolderPath();
+			req.inheritedTarget = parentTarget;
+			req.workingDirOverride = resolveInheritedWorkingDir(parentTarget, parentRoom);
 		}
 
 		SpawnResult result = AgentSubAgentRegistry.getManager().spawn(req);
@@ -162,6 +171,15 @@ public final class SubAgentDispatcher {
 	 */
 	public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight,
 			String parentJobId, String parentAuthoredSystemPrompt) {
+		return spawnAnonymous(args, parentRoom, callerInsight, parentJobId, parentAuthoredSystemPrompt, null);
+	}
+
+	/**
+	 * Harness-safe anonymous spawn with the parent's already-resolved working
+	 * directory.
+	 */
+	public static String spawnAnonymous(Map<String, Object> args, Room parentRoom, Insight callerInsight,
+			String parentJobId, String parentAuthoredSystemPrompt, AgentRunTarget parentTarget) {
 		String prompt = stringArg(args, "prompt");
 		String context = stringArg(args, "context");
 		boolean inheritParentWorkdir = boolArg(args, "inherit_parent_workdir");
@@ -170,6 +188,7 @@ public final class SubAgentDispatcher {
 		}
 
 		SpawnRequest req = new SpawnRequest();
+		req.completionMode = completionModeArg(args);
 		req.parentJobId = resolveParentJobId(parentJobId);
 		logger.info("SubAgentDispatcher.spawnAnonymous: parentJobId={} (explicit={}) parentRoomId={} inheritWorkdir={}",
 				req.parentJobId, parentJobId, parentRoom.getId(), inheritParentWorkdir);
@@ -181,11 +200,8 @@ public final class SubAgentDispatcher {
 		req.parentAuthoredSystemPrompt = parentAuthoredSystemPrompt;
 		req.callerInsight = callerInsight;
 		if (inheritParentWorkdir) {
-			Object wd = parentRoom.getOptionsMap() != null
-					? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
-					: null;
-			req.workingDirOverride = (wd != null && !String.valueOf(wd).trim().isEmpty()) ? String.valueOf(wd).trim()
-					: parentRoom.getRoomFolderPath();
+			req.inheritedTarget = parentTarget;
+			req.workingDirOverride = resolveInheritedWorkingDir(parentTarget, parentRoom);
 		}
 
 		SpawnResult result = AgentSubAgentRegistry.getManager().spawn(req);
@@ -203,6 +219,24 @@ public final class SubAgentDispatcher {
 			return explicitParentJobId;
 		}
 		return ThreadStore.getJobId();
+	}
+
+	/**
+	 * Prefer the active run's resolved target over room configuration. The latter
+	 * remains the fallback for direct Pixel callers that lack an agent context.
+	 */
+	private static String resolveInheritedWorkingDir(AgentRunTarget parentTarget, Room parentRoom) {
+		if (parentTarget != null && parentTarget.getWorkingDirectory() != null
+				&& !parentTarget.getWorkingDirectory().trim().isEmpty()) {
+			return parentTarget.getWorkingDirectory().trim();
+		}
+		Object roomWorkingDir = parentRoom.getOptionsMap() != null
+				? parentRoom.getOptionsMap().get(AgentRunner.ROOM_OPTION_WORKING_DIR)
+				: null;
+		if (roomWorkingDir != null && !String.valueOf(roomWorkingDir).trim().isEmpty()) {
+			return String.valueOf(roomWorkingDir).trim();
+		}
+		return parentRoom.getRoomFolderPath();
 	}
 
 	// Non-blocking status peek. Always returns the {jobId, status, result, error}
@@ -299,6 +333,14 @@ public final class SubAgentDispatcher {
 			return (Boolean) v;
 		}
 		return Boolean.parseBoolean(String.valueOf(v).trim());
+	}
+
+	private static SubAgentRunCompletionMode completionModeArg(Map<String, Object> args) {
+		try {
+			return SubAgentRunCompletionMode.fromExternalValue(stringArg(args, "completionMode"));
+		} catch (IllegalArgumentException e) {
+			throw new IllegalArgumentException("completionMode must be WAIT, POST, or POST_AND_CONTINUE");
+		}
 	}
 
 	private static Map<String, Object> error(String msg) {

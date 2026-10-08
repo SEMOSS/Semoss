@@ -34,11 +34,19 @@ Chroma, OpenSearch, pgvector vector DBs, and a ClickHouse database) you can run
 alongside SEMOSS, plus notes on how to make the SEMOSS container connect to them.
 See [engines/README.md](engines/README.md).
 
+[engines/semoss-maintained/](engines/semoss-maintained/) holds the services
+SEMOSS itself publishes: [unoserver](engines/semoss-maintained/unoserver/) for
+document conversion and [node-builder](engines/semoss-maintained/node-builder/)
+for building project client apps. Every variant already sets `UNOSERVER` and
+`NODE_SERVER_ENDPOINT` to their container names, so bringing them up is all it
+takes to turn those features on.
+
 ## Usage
 
 All variants attach to a shared Docker network named `semoss-net` (so the optional
-services in [engines/](engines/) can reach SEMOSS by container name). Create it
-once before your first `up`:
+services in [engines/](engines/) can reach SEMOSS by container name). The
+Monolith `local-docker-testing` stacks for locally built images join the same
+network, so they see the same services. Create it once before your first `up`:
 
 ```bash
 docker network create semoss-net
@@ -99,3 +107,6 @@ ZooKeeper, `echo ruok | nc localhost 2181` should return `imok`.
   only - change the credentials and integrate an external SSO before exposing any
   of this.
 - Python is enabled (`NETTY_PYTHON` / `NATIVE_PY_SERVER`); R is off (`R_ON: 'false'`).
+- The node agent execution environment is on (`AGENT_DEFAULT_TOOLS_ENABLE_NODE: 'true'`),
+  which registers the `ExecuteNodeCode` agent tool. The image already sets
+  `NODE_HOME=/opt/node`; the compose files set it as well so the path is visible.

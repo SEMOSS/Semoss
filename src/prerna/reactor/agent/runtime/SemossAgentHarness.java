@@ -31,15 +31,21 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.github.f4b6a3.uuid.alt.GUID;
 
+import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.CollaborationAgentTools;
+import prerna.collaboration.CollaborationPrompts;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomMessageStore;
 import prerna.engine.impl.model.message.AbstractMessage;
+import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.engine.impl.model.message.InputMessage;
 import prerna.engine.impl.model.message.MessagePart;
 import prerna.engine.impl.model.message.MessageUtils;
@@ -50,6 +56,7 @@ import prerna.om.Insight;
 import prerna.om.ThreadStore;
 import prerna.reactor.agent.AgentHarnessResult;
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.IAgentHarness;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.config.SubAgentSpec;
@@ -60,6 +67,9 @@ import prerna.reactor.agent.exceptions.AgentInputRequiredException;
 import prerna.reactor.agent.exceptions.AgentMaxTurnsException;
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.reactor.agent.run.AgentRunActionStore;
+import prerna.reactor.agent.run.ChildRunCompletionService;
+import prerna.reactor.agent.run.DeferredAgentTools;
+import prerna.reactor.agent.run.HumanDelegationService;
 import prerna.reactor.agent.skill.SkillScanner;
 import prerna.reactor.agent.skill.SkillScanner.DiscoveredSkill;
 import prerna.reactor.agent.stream.AgentRunStreamService;
@@ -70,6 +80,8 @@ import prerna.reactor.model.CompactRoomMessagesReactor;
 import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
+import prerna.engine.impl.model.responses.AskErrorModelEngineResponse;
+import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
@@ -102,7 +114,11 @@ public class SemossAgentHarness implements IAgentHarness {
 
 	/** Harness-only paramMap key stripped before provider model calls. */
 	public static final String PARAM_MAX_SECONDS = "max_seconds";
-	private static final double AUTO_COMPACTION_TRIGGER_RATIO = 0.80;
+	// compaction triggers when estimate + reserve reaches the window; reserve =
+	// reply allowance + margin for the next tool round and estimate error
+	private static final int COMPACTION_MARGIN_TOKENS = 20_000;
+	private static final int DEFAULT_MAX_OUTPUT_TOKENS = 16_000;
+	private static final double MAX_RESERVE_RATIO = 0.25;
 
 	private static final String PARAM_FILE_PATH = "file_path";
 	private static final String PARAM_FILE_PATH_CAMEL = "filePath";
@@ -112,10 +128,6 @@ public class SemossAgentHarness implements IAgentHarness {
 	private static final String PARAM_SUBDIR = "subdir";
 	private static final String PARAM_WORKSPACE_ID = "workspace_id";
 	private static final String PARAM_WORKSPACE_ID_CAMEL = "workspaceId";
-	/** Ornament key tagging every room message produced by a given agent run. */
-	public static final String ORNAMENT_AGENT_RUN_ID = "agentRunId";
-	/** Ornament key tagging the role each message played within the run. */
-	public static final String ORNAMENT_AGENT_RUN_ROLE = "agentRunRole";
 	private static final String RUN_ROLE_INPUT = "input";
 	private static final String RUN_ROLE_REFLECTION_INPUT = "reflection_input";
 	private static final String RUN_ROLE_ASSISTANT = "assistant";
@@ -136,6 +148,7 @@ public class SemossAgentHarness implements IAgentHarness {
 	@Override
 	public AgentHarnessResult execute(AgentRunContext ctx) throws Exception {
 		Room room = ctx.getRoom();
+		DeferredAgentTools.refreshLoadedState(room);
 		AgentConfig agentConfig = ctx.getAgentConfig();
 		Map<String, Object> runtimeParamMap = ctx.getParamMap();
 		Map<String, Object> paramMap = new HashMap<>(runtimeParamMap);
@@ -147,6 +160,15 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
+		if (agentConfig.hasPptxWorkflow()) {
+			defaultAndExplicitTools
+					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
+			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
+			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
+		}
+		defaultAndExplicitTools.removeIf(tool -> DeferredAgentTools.isControlTool(String.valueOf(tool.get("name"))));
+		defaultAndExplicitTools.addAll(DeferredAgentTools.definitions());
 		stripHarnessOnlyParams(paramMap);
 		paramMap.put("stream", true);
 		activateFileSpace(ctx.getInsight(), ctx.getFilePath());
@@ -158,8 +180,24 @@ public class SemossAgentHarness implements IAgentHarness {
 		List<SubAgentSpec> subAgentSpecs = agentConfig.getSubagents();
 		boolean canSpawn = ctx.getSpawnDepth() < policy.getMaxSubagentDepth();
 		List<Map<String, Object>> subAgentTools = new ArrayList<>();
-		if (canSpawn) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			subAgentTools.addAll(SubAgentToolSynthesizer.allTools(subAgentSpecs));
+		}
+		// A delegation room answers its request; it cannot start new ones (no
+		// re-delegation yet).
+		String delegationActionId = HumanDelegationService.delegationActionId(ctx.getRoom());
+		if (delegationActionId != null) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildSubmitDelegationTool(
+					HumanDelegationService.requesterName(ctx.getInsight(), delegationActionId)));
+		} else if (CollaborationUtils.isCollaborationRoom(ctx.getRoom())
+				&& ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH && !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.add(SubAgentToolSynthesizer.buildDelegateTool());
+			subAgentTools.add(SubAgentToolSynthesizer.buildFindPersonTool());
+		}
+		// Microsoft 365 tools for every agent in a collaboration room
+		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && !agentConfig.hasPptxWorkflow()) {
+			subAgentTools.addAll(CollaborationAgentTools.definitions(ctx.getRoom(), ctx.getInsight().getUser(),
+					ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH));
 		}
 		injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
 
@@ -184,10 +222,16 @@ public class SemossAgentHarness implements IAgentHarness {
 		Map<String, Object> opts = room.getOptionsMap();
 		boolean hadInstructions = opts.containsKey("instructions");
 		Object originalInstructions = hadInstructions ? opts.get("instructions") : null;
+		boolean hadPromptOverride = opts.containsKey("overrideSystemPrompt");
+		Object originalPromptOverride = opts.get("overrideSystemPrompt");
 
-		StringBuilder composed = new StringBuilder(SemossHarnessPrompts.SYSTEM_PROMPT);
+		// a PPTX workflow run has no collaboration tools, so it keeps the general baseline
+		StringBuilder composed = new StringBuilder(
+				CollaborationUtils.isAssistantRoom(room) && !agentConfig.hasPptxWorkflow()
+						? CollaborationPrompts.THREAD_PROMPT : SemossHarnessPrompts.SYSTEM_PROMPT);
+		composed.append("\n\n").append(DeferredAgentTools.PROMPT);
 		// Prompt block matches the tools exposed to this run.
-		if (canSpawn) {
+		if (canSpawn && !agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(buildSubAgentPromptBlock(subAgentSpecs));
 		}
 		// Advertise skills materialized into the working dir (by SkillStager, earlier
@@ -201,8 +245,22 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (agentSidePrompt != null && !agentSidePrompt.isEmpty()) {
 			composed.append("\n\n").append(agentSidePrompt);
 		}
+		// what the owner's thread assistant remembers; after the static parts so they stay cacheable
+		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
+				&& !agentConfig.hasPptxWorkflow()) {
+			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
+					CollaborationUtils.threadIdOf(room));
+			if (memoryBlock != null) {
+				composed.append("\n\n").append(memoryBlock);
+			}
+		}
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
+		if (agentConfig.hasPptxWorkflow()) {
+			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		}
 		opts.put("instructions", composed.toString());
+		// The agent and room layers are already composed; do not append them again.
+		opts.put("overrideSystemPrompt", true);
 		room.setOptionsMap(opts);
 
 		logger.info(
@@ -211,14 +269,16 @@ public class SemossAgentHarness implements IAgentHarness {
 				agentSidePrompt != null ? agentSidePrompt.length() : 0, lengthOrZero(agentConfig.getAgentAgentsMd()),
 				lengthOrZero(agentConfig.getWorkdirAgentsMd()), lengthOrZero(agentConfig.getAuthoredPrompt()));
 
+		AgentLoopState state = new AgentLoopState();
+		String progressOutcome = "failed";
+		String inputMessageId = null;
+		String finalOutputMessageId = null;
+		state.initializeProgress(ctx);
 		try {
-			String systemPrompt = room.getSystemPromptForModel();
+			String systemPrompt = state.systemPrompt();
 
 			// Start the clock BEFORE the first model call so it counts against the resolved
 			// budget.
-			AgentLoopState state = new AgentLoopState();
-			String inputMessageId = null;
-			String finalOutputMessageId = null;
 			int runMessageStartIndex = room.getMessages().size();
 			boolean autoCompactionContextWarningLogged = false;
 
@@ -241,9 +301,20 @@ public class SemossAgentHarness implements IAgentHarness {
 							room.getId(), last.getMessageId());
 					Map<String, Object> resumeParams = new HashMap<>(paramMap);
 					injectHarnessTools(resumeParams, defaultAndExplicitTools, subAgentTools);
+					state.incrementIterations();
+					if (agentConfig.getFinishingTurns() > 0 && state.getIterations() >= ctx.getMaxTurns()) {
+						resumeParams.put("tool_choice", "none");
+					}
 					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-					Object resumeModelResponse = room.continueAfterToolExecutionResults(resumeParams,
-							last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight());
+					Object resumeModelResponse;
+					state.progress().beginModel();
+					try {
+						resumeModelResponse = room.continueAfterToolExecutionResultsWithRuntimeContext(resumeParams,
+								last.getParentMessageId(), ctx.getModelEngine(), ctx.getInsight(), systemPrompt,
+								state.runtimeContext());
+					} finally {
+						state.progress().endModel();
+					}
 					if (resumeModelResponse == null) {
 						throw new IllegalStateException("Cannot resume agent run because tool results are incomplete");
 					}
@@ -265,7 +336,11 @@ public class SemossAgentHarness implements IAgentHarness {
 				completeActiveItems(ctx.getRunId(), response);
 			} else {
 				// --- Normal mode: initial ask ---
-				AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
+				Object editFile = runtimeParamMap.get(PptxEditContext.PARAM);
+				boolean focusedEdit = state.pptxWorkflow() != null && editFile instanceof String file
+						&& state.pptxWorkflow().hasInput(file);
+				AutoCompactionOutcome compactionOutcome = focusedEdit ? AutoCompactionOutcome.NOT_NEEDED
+						: autoCompactIfNeeded(ctx, !autoCompactionContextWarningLogged);
 				if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
 					autoCompactionContextWarningLogged = true;
 				}
@@ -273,19 +348,34 @@ public class SemossAgentHarness implements IAgentHarness {
 				// run. Start run tagging after any automatic compaction messages.
 				runMessageStartIndex = room.getMessages().size();
 
+				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput()).withMediaInputs(ctx.getMediaInputPaths(), room)
-						.withMediaUrls(ctx.getMediaUrls()).withModelType(ctx.getModelEngine().getModelType())
-						.withParamMap(paramMap).build();
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
+						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
+				// A continuation prompt is platform-authored model context, not something the
+				// user said.
+				if (ctx.getInput() != null
+						&& ctx.getInput().startsWith(ChildRunCompletionService.CONTINUATION_PREFIX)) {
+					firstMsg.setVisible(false);
+				}
+				if (focusedEdit) {
+					firstMsg.setOrnament(RoomMessageStore.PPTX_EDIT_CONTEXT_START, true);
+				}
 				inputMessageId = firstMsg.getMessageId();
 
 				logger.info("SemossAgentHarness: initial ask room={} model={} inputLen={}", room.getId(),
 						ctx.getModelEngine().getEngineId(), ctx.getInput().length());
 
 				AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-				response = requireModelResponse(room.ask(firstMsg, ctx.getModelEngine(), null),
-						"during initial model call");
+				state.progress().beginModel();
+				try {
+					response = requireModelResponse(askWithOverflowRecovery(ctx, firstMsg),
+							"during initial model call");
+				} finally {
+					state.progress().endModel();
+				}
 				tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 				completeActiveItems(ctx.getRunId(), response);
 			}
@@ -303,7 +393,7 @@ public class SemossAgentHarness implements IAgentHarness {
 							"Agent run cancelled after " + state.getIterations() + " iterations");
 				}
 
-				if (state.getIterations() >= ctx.getMaxTurns()) {
+				if (state.getIterations() >= ctx.getMaxTurns() && hasAssistantToolCalls(response)) {
 					logger.warn("SemossAgentHarness: maxTurns ({}) reached room={}", ctx.getMaxTurns(), room.getId());
 					throw new AgentMaxTurnsException(ctx.getMaxTurns());
 				}
@@ -325,7 +415,6 @@ public class SemossAgentHarness implements IAgentHarness {
 					// Re-inject harness-owned tools so the tool-result follow-up call sees a fresh
 					// list (Room.appendToolsToParams mutates the existing 'tools' value in place).
 					injectHarnessTools(paramMap, defaultAndExplicitTools, subAgentTools);
-					AgentRunStreamService.get().beginModelCall(ctx.getRunId());
 					ResponseMessage next;
 					try {
 						next = HarnessToolExecutor.executeToolBatch(response, state, paramMap, ctx);
@@ -340,12 +429,24 @@ public class SemossAgentHarness implements IAgentHarness {
 						throw pauseEx;
 					}
 					tagAgentRunMessagesFrom(room, runMessageStartIndex, ctx.getRunId());
-					state.incrementIterations();
 					response = requireModelResponse(next, "after tool batch at iteration " + state.getIterations());
+					if (state.isTerminal()) {
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+					}
 					completeActiveItems(ctx.getRunId(), response);
 
 				} else {
-					if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
+					if (state.pptxWorkflow() != null) {
+						state.pptxWorkflow().modelStopped(response.getContent());
+						response = room.appendHarnessResponse(state.pptxWorkflow().finalText(), response.getMessageId(),
+								ctx.getModelEngine(), ctx.getInsight());
+						state.setFinalText(response.getContent());
+						finalOutputMessageId = response.getMessageId();
+						tagAgentRun(response, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+						state.setTerminal(true);
+						completeActiveItems(ctx.getRunId(), response);
+					} else if (state.getReflectionsUsed() < ctx.getMaxReflections()) {
 						AutoCompactionOutcome compactionOutcome = autoCompactIfNeeded(ctx,
 								!autoCompactionContextWarningLogged);
 						if (compactionOutcome == AutoCompactionOutcome.CONTEXT_WINDOW_UNAVAILABLE) {
@@ -364,13 +465,19 @@ public class SemossAgentHarness implements IAgentHarness {
 						Map<String, Object> reflectionParams = new HashMap<>(paramMap);
 						injectHarnessTools(reflectionParams, defaultAndExplicitTools, subAgentTools);
 						InputMessage reflectionMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-								.withText(SemossHarnessPrompts.REFLECTION_PROMPT)
+								.withText(SemossHarnessPrompts.REFLECTION_PROMPT + "\n\n" + state.runtimeContext(),
+										SemossHarnessPrompts.REFLECTION_PROMPT)
 								.withModelType(ctx.getModelEngine().getModelType()).withParamMap(reflectionParams)
 								.build();
 						tagAgentRun(reflectionMsg, ctx.getRunId(), RUN_ROLE_REFLECTION_INPUT);
 						AgentRunStreamService.get().beginModelCall(ctx.getRunId());
-						response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
-								"during reflection " + state.getReflectionsUsed());
+						state.progress().beginModel();
+						try {
+							response = requireModelResponse(room.ask(reflectionMsg, ctx.getModelEngine(), null),
+									"during reflection " + state.getReflectionsUsed());
+						} finally {
+							state.progress().endModel();
+						}
 						tagAgentRun(response, ctx.getRunId(), roleForAssistant(response));
 						completeActiveItems(ctx.getRunId(), response);
 
@@ -386,19 +493,56 @@ public class SemossAgentHarness implements IAgentHarness {
 
 			logger.info("SemossAgentHarness: done room={} iterations={} reflections={} elapsedMs={}", room.getId(),
 					state.getIterations(), state.getReflectionsUsed(), state.getElapsedMs());
-			if (state.getFinalText() != null) {
+			if (state.getFinalText() != null
+					&& (state.pptxWorkflow() == null || state.pptxWorkflow().completionError() == null)) {
 				AgentSubAgentRegistry.getManager().emitSubAgentCompleted(ThreadStore.getJobId(), state.getFinalText());
 			}
 
+			String completionError = state.pptxWorkflow() == null ? null : state.pptxWorkflow().completionError();
+			progressOutcome = completionError == null ? "completed" : "incomplete";
 			return new AgentHarnessResult(state.getFinalText(), state.getIterations(),
 					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
-					finalOutputMessageId);
+					finalOutputMessageId, completionError);
+		} catch (AgentInputRequiredException e) {
+			progressOutcome = "input_required";
+			throw e;
+		} catch (AgentCancelledException e) {
+			progressOutcome = "cancelled";
+			throw e;
+		} catch (Exception e) {
+			if (Thread.currentThread().isInterrupted()) {
+				throw new AgentCancelledException("Agent run cancelled");
+			}
+			if (state.pptxWorkflow() == null) {
+				throw e;
+			}
+			logger.warn("PPTX author stopped; preserving any validated saved artifact for run={}", ctx.getRunId(), e);
+			state.pptxWorkflow()
+					.executionFailed(e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+			var last = room.getMessages().isEmpty() ? null : room.getMessages().getLast();
+			ResponseMessage delivery = room.appendHarnessResponse(state.pptxWorkflow().finalText(),
+					last == null ? null : last.getMessageId(), ctx.getModelEngine(), ctx.getInsight());
+			tagAgentRun(delivery, ctx.getRunId(), RUN_ROLE_FINAL_OUTPUT);
+			persistAgentRunTags(room, ctx);
+			completeActiveItems(ctx.getRunId(), delivery);
+			String completionError = state.pptxWorkflow().completionError();
+			progressOutcome = completionError == null ? "completed" : "incomplete";
+			return new AgentHarnessResult(delivery.getContent(), state.getIterations(),
+					state.getToolCallRecordsSnapshot(), state.getReflectionsUsed(), inputMessageId,
+					delivery.getMessageId(), completionError);
 		} finally {
+			state.progress().close(Thread.currentThread().isInterrupted() ? "cancelled" : progressOutcome);
 			// Always restore -- we always mutated options.instructions above.
+			opts = room.getOptionsMap();
 			if (hadInstructions) {
 				opts.put("instructions", originalInstructions);
 			} else {
 				opts.remove("instructions");
+			}
+			if (hadPromptOverride) {
+				opts.put("overrideSystemPrompt", originalPromptOverride);
+			} else {
+				opts.remove("overrideSystemPrompt");
 			}
 			room.setOptionsMap(opts);
 			if (rootJobIdRegistered != null) {
@@ -439,11 +583,23 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 
 		AbstractMessage leaf = messages.getLast();
-		List<AbstractMessage> branch = MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId());
-		int contextTokens = currentContextTokens(branch);
-		double usageRatio = (double) contextTokens / contextWindow;
-		if (usageRatio < AUTO_COMPACTION_TRIGGER_RATIO) {
+		List<AbstractMessage> branch = RoomMessageStore
+				.providerContext(MessageUtils.getMessageBranchFromParent(messages, leaf.getMessageId()));
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
 			return AutoCompactionOutcome.NOT_NEEDED;
+		}
+
+		// a failed run left unanswered tool results as the leaf; prune tool payloads
+		// from it up so the next request is not stuck on them
+		if (leaf instanceof InputMessage && leaf.hasToolResultPart()) {
+			boolean pruned = room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.info(
+					"SemossAgentHarness: pruned tool results under unanswered leaf run={} room={} model={} "
+							+ "estimatedTokens={} contextWindow={} pruned={}",
+					ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow,
+					pruned);
+			return pruned ? AutoCompactionOutcome.COMPACTED : AutoCompactionOutcome.SKIPPED;
 		}
 
 		if (leaf instanceof InputMessage || leaf.hasToolCallPart()) {
@@ -468,7 +624,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 		for (Map<String, Object> result : results) {
 			if (Boolean.TRUE.equals(result.get("success"))) {
-				int tokensAfter = currentContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
+				int tokensAfter = estimateContextTokens(MessageUtils.getMessageBranchFromParent(room.getMessages(),
 						room.getMessages().getLast().getMessageId()));
 				logger.info(
 						"SemossAgentHarness: auto compaction completed run={} room={} model={} type={} "
@@ -517,11 +673,161 @@ public class SemossAgentHarness implements IAgentHarness {
 		reactor.getNounStore().addNoun(key, row);
 	}
 
-	private static int currentContextTokens(List<AbstractMessage> branch) {
-		if (branch == null || branch.size() < 2) {
+	static boolean needsCompaction(AgentRunContext ctx, int contextTokens, int contextWindow) {
+		return (long) contextTokens + compactionReserve(ctx, contextWindow) >= contextWindow;
+	}
+
+	// reply allowance (request max_tokens, else engine max, else default) + margin,
+	// capped so small windows do not compact every round
+	static int compactionReserve(AgentRunContext ctx, int contextWindow) {
+		long maxOutput = 0;
+		Map<String, Object> params = ctx.getAgentConfig().getModelParams();
+		Object requested = params == null ? null : params.get("max_tokens");
+		if (requested instanceof Number n) {
+			maxOutput = n.longValue();
+		} else if (requested != null) {
+			try {
+				maxOutput = Long.parseLong(requested.toString().trim());
+			} catch (NumberFormatException e) {
+				// fall through to engine/default
+			}
+		}
+		if (maxOutput <= 0) {
+			maxOutput = ctx.getModelEngine().getMaxTokens();
+		}
+		if (maxOutput <= 0) {
+			maxOutput = DEFAULT_MAX_OUTPUT_TOKENS;
+		}
+		long reserve = maxOutput + COMPACTION_MARGIN_TOKENS;
+		return (int) Math.min(reserve, (long) (contextWindow * MAX_RESERVE_RATIO));
+	}
+
+	/**
+	 * First model call of a run. On a context overflow, prune tool payloads in the
+	 * stored history and retry once; if there is nothing to prune or it still
+	 * overflows, the new message itself is too large. The input is only stored on
+	 * success, so the room is never left stuck.
+	 */
+	private static ResponseMessage askWithOverflowRecovery(AgentRunContext ctx, InputMessage firstMsg) {
+		Room room = ctx.getRoom();
+		try {
+			return room.ask(firstMsg, ctx.getModelEngine(), null);
+		} catch (RuntimeException e) {
+			AskErrorModelEngineResponse overflow = SemossModelEngineException.contextOverflowError(e);
+			if (overflow == null) {
+				throw e;
+			}
+			List<AbstractMessage> messages = room.getMessages();
+			AbstractMessage leaf = messages == null || messages.isEmpty() ? null : messages.getLast();
+			boolean historyHasTools = leaf != null && MessageUtils
+					.getMessageBranchFromParent(messages, leaf.getMessageId()).stream()
+					.anyMatch(m -> m.hasToolResultPart() || m.hasToolCallPart());
+			boolean pruned = historyHasTools && room.markPruneToolsAbove(leaf.getMessageId(), ctx.getInsight());
+			logger.warn("SemossAgentHarness: initial ask context overflow run={} room={} client={} rule={} "
+					+ "prunedHistory={}", ctx.getRunId(), room.getId(), overflow.getClient(),
+					overflow.getReasonDetail(), pruned);
+			if (pruned) {
+				try {
+					return room.ask(firstMsg, ctx.getModelEngine(), null);
+				} catch (RuntimeException retryError) {
+					if (!SemossModelEngineException.isContextOverflow(retryError)) {
+						throw retryError;
+					}
+					e = retryError;
+				}
+			}
+			throw new IllegalStateException("This message and its attachments are too large for the model's "
+					+ "context window. Send less text, fewer pages or smaller files, or start a new conversation.", e);
+		}
+	}
+
+	// results smaller than this are never stubbed; they are not what overflows the context
+	private static final int MIN_STUB_RESULT_CHARS = 2_000;
+
+	/**
+	 * After a context-overflow error on a tool continuation: fork the current
+	 * tool-results message with the largest results stubbed until estimate +
+	 * reserve fits. Returns how many results were replaced (0 = nothing to retry).
+	 */
+	static int forkOversizedToolResults(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		long tokensToFree = 0;
+		try {
+			int contextWindow = ctx.getModelEngine().getContextWindow();
+			List<AbstractMessage> messages = room.getMessages();
+			if (contextWindow > 0 && messages != null && !messages.isEmpty()) {
+				int estimate = estimateContextTokens(RoomMessageStore.providerContext(
+						MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId())));
+				tokensToFree = Math.max(0L,
+						(long) estimate + compactionReserve(ctx, contextWindow) - contextWindow);
+			}
+		} catch (RuntimeException e) {
+			// unknown window; the fork still stubs the largest result
+		}
+		int replaced = room.forkToolResultsWithStubs(toolCallMessageId, tokensToFree, MIN_STUB_RESULT_CHARS,
+				ctx.getInsight());
+		logger.info("SemossAgentHarness: context overflow fork run={} room={} toolCall={} tokensToFree={} replaced={}",
+				ctx.getRunId(), room.getId(), toolCallMessageId, tokensToFree, replaced);
+		return replaced;
+	}
+
+	// last provider-measured prompt plus everything after it; unmeasured messages
+	// (e.g. tool results not yet sent) are estimated at chars / 4
+	static int estimateContextTokens(List<AbstractMessage> branch) {
+		if (branch == null || branch.isEmpty()) {
 			return 0;
 		}
-		return branch.getLast().getTokensInMessage() + branch.get(branch.size() - 2).getTokensInMessage();
+		long total = 0;
+		for (int i = branch.size() - 1; i >= 0; i--) {
+			AbstractMessage message = branch.get(i);
+			int tokens = message.getTokensInMessage();
+			// an input's recorded tokens are the full prompt at that call
+			if (message instanceof InputMessage && tokens > 0) {
+				total += tokens;
+				break;
+			}
+			total += tokens > 0 ? tokens : MessageUtils.toJson(message).length() / 4;
+		}
+		return (int) Math.min(Integer.MAX_VALUE, total);
+	}
+
+	/**
+	 * In-loop check after a tool batch's results are stored and before the next
+	 * model call. Over the trigger ratio, older tool payloads are pruned from the
+	 * provider view; the current tool call and its results stay intact.
+	 */
+	static void pruneToolsBeforeContinuation(AgentRunContext ctx, String toolCallMessageId) {
+		Room room = ctx.getRoom();
+		int contextWindow;
+		try {
+			contextWindow = ctx.getModelEngine().getContextWindow();
+		} catch (RuntimeException e) {
+			return;
+		}
+		List<AbstractMessage> messages = room.getMessages();
+		if (contextWindow <= 0 || messages == null || messages.isEmpty()) {
+			return;
+		}
+		List<AbstractMessage> branch = RoomMessageStore
+				.providerContext(MessageUtils.getMessageBranchFromParent(messages, messages.getLast().getMessageId()));
+		int contextTokens = estimateContextTokens(branch);
+		if (!needsCompaction(ctx, contextTokens, contextWindow)) {
+			return;
+		}
+		// flag the message above the current tool call so pruning starts there
+		String pruneFromId = null;
+		for (AbstractMessage message : branch) {
+			if (toolCallMessageId.equals(message.getMessageId())) {
+				pruneFromId = message.getParentMessageId();
+				break;
+			}
+		}
+		boolean pruned = pruneFromId != null && !pruneFromId.isEmpty()
+				&& room.markPruneToolsAbove(pruneFromId, ctx.getInsight());
+		logger.info(
+				"SemossAgentHarness: in-loop tool pruning run={} room={} model={} estimatedTokens={} "
+						+ "contextWindow={} pruned={}",
+				ctx.getRunId(), room.getId(), ctx.getModelEngine().getEngineId(), contextTokens, contextWindow, pruned);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -654,10 +960,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (message == null || runId == null || runId.trim().isEmpty()) {
 			return;
 		}
-		message.setOrnament(ORNAMENT_AGENT_RUN_ID, runId);
-		if (role != null && !role.trim().isEmpty()) {
-			message.setOrnament(ORNAMENT_AGENT_RUN_ROLE, role);
-		}
+		message.setAgentRun(new AgentRunMessageContext(runId, role));
 	}
 
 	private static void tagAgentRunMessagesFrom(Room room, int startIndex, String runId) {
@@ -671,8 +974,9 @@ public class SemossAgentHarness implements IAgentHarness {
 			if (message == null) {
 				continue;
 			}
-			Object existingRole = message.getOrnament(ORNAMENT_AGENT_RUN_ROLE);
-			String role = existingRole == null ? roleForMessage(message) : String.valueOf(existingRole);
+			AgentRunMessageContext existingAgentRun = message.getAgentRun();
+			String role = existingAgentRun == null || existingAgentRun.getRole() == null ? roleForMessage(message)
+					: existingAgentRun.getRole();
 			tagAgentRun(message, runId, role);
 		}
 	}
@@ -772,6 +1076,7 @@ public class SemossAgentHarness implements IAgentHarness {
 			// onto toolCall; carry it in _meta so the FE (which only ever sees
 			// toolName/toolMeta for a pending action, never toolCall itself) can
 			// display it instead of the raw, engine-id-prefixed tool name.
+			// Kept apart from SMSS_ORIGINAL_TOOL_NAME, which approval executes.
 			if (meta == null || !meta.containsKey(MCPUtility.SMSS_ORIGINAL_TOOL_NAME)) {
 				Object resolvedTitle = toolCall.get("title") != null ? toolCall.get("title")
 						: toolCall.get("original_name");
@@ -779,7 +1084,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					if (meta == null) {
 						meta = new HashMap<>();
 					}
-					meta.put(MCPUtility.SMSS_ORIGINAL_TOOL_NAME, resolvedTitle);
+					meta.put(MCPUtility.SMSS_TOOL_TITLE, resolvedTitle);
 				}
 			}
 			action.put("toolMeta", meta);
@@ -855,11 +1160,14 @@ public class SemossAgentHarness implements IAgentHarness {
 		// "Agent-runtime paramMap key handling" for the design discussion (prefix
 		// convention vs. moving runtime info onto AgentRunContext as typed fields).
 		paramMap.remove(PARAM_MAX_SECONDS);
+		paramMap.remove(PptxEditContext.PARAM);
+		paramMap.remove(PptxEditContext.PROPOSALS_PARAM);
 		paramMap.remove(PARAM_FILE_PATH);
 		paramMap.remove(PARAM_FILE_PATH_CAMEL);
 		paramMap.remove(PARAM_PERMISSION_MODE);
 		paramMap.remove(PARAM_PERMISSION_MODE_SNAKE);
 		paramMap.remove(PARAM_PROJECT);
+		paramMap.remove(AgentRunner.PARAM_SPACE);
 		paramMap.remove(PARAM_SUBDIR);
 		paramMap.remove(PARAM_WORKSPACE_ID);
 		paramMap.remove(PARAM_WORKSPACE_ID_CAMEL);
@@ -882,15 +1190,81 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (workingDir != null) {
 			sb.append("\n- Working directory: ").append(workingDir);
 		}
-		if (projectParam != null) {
+		if (ctx != null && ctx.getAgentTarget() != null && ctx.getAgentTarget().isUser()) {
+			sb.append("\n- Working directory source: authenticated user assets");
+			sb.append("\n- User asset project id: ").append(ctx.getAgentTarget().getProjectId());
+		} else if (projectParam != null) {
 			sb.append("\n- Working directory source: target project ").append(projectParam);
 		} else if (roomId != null) {
 			sb.append("\n- Working directory source: room ").append(roomId);
 		}
 		if (targetProjectId != null) {
 			sb.append("\n- Target SEMOSS project id: ").append(targetProjectId);
-			sb.append("\n- Use this exact id for project-scoped Pixel or tool calls that act on the target project.");
-			sb.append("\n- Do not substitute the room id or another project id for the target project id.");
+			sb.append("""
+
+					- Use this exact id for project-scoped Pixel or tool calls that act on the target project.
+					- Do not substitute the room id or another project id for the target project id.\
+					""");
+		}
+		sb.append("""
+
+
+				## Tool environment
+				- BashCommand, when enabled, allows: %s. One command per call; no pipes, chaining, redirects, \
+				$(), backticks, absolute paths, ~ paths, or .. . \
+				Use working-directory-relative paths and read output from the tool result.\
+				""".formatted(PlatformAgentToolHandlers.describeAllowedCommands()));
+		sb.append("""
+
+				- In ExecutePythonCode, import Path from pathlib and smss_get_runtime_var from smssutil. \
+				Resolve each output as Path(smss_get_runtime_var("ROOT")) / "<filename>". \
+				Python's current directory may differ from ROOT. Do not change the shared process directory.
+				- Verify generated outputs through working-directory file tools before reporting completion. \
+				Also reopen binary documents with a format-appropriate reader at the exact ROOT destination.\
+				""");
+		if (CollaborationUtils.isCollaborationRoom(room)) {
+			sb.append("""
+
+
+					## Collaboration file delivery
+					- Before reading documents, load collaboration/references/documents/read-and-extract.md \
+					and python. For source text, use from smssutil import get_document_markdown, then \
+					get_document_markdown("<actual relative file path>"). The shared Docling wrapper includes \
+					notes/source labels and leaves originals unchanged. Use this route before raw ZIP/XML parsing \
+					or visual inspection for a text-reading task; use visual tools when visuals matter.
+					- Before creating or repairing files, load the relevant collaboration references and the \
+					python or pptx skill for that execution route. Continue truncated reads as needed.
+					- For every verified output saved inside this room, include a Markdown file link in the final answer: \
+					[summary.docx](room://summary.docx). Use the path relative to the room folder, including any subdirectory, \
+					and percent-encode spaces in each path segment. The link opens the file panel with Download. \
+					A bare filename is not a file handoff. Never link an unverified file or one outside the room. \
+					Do not offer email as a substitute for returning the file.
+					- Repair authorized local outputs without another permission turn, preserving the owner's edits. \
+					Ask only for a blocking new decision or unrelated overwrite. Do not bypass an access failure or retry \
+					a rejected external action. Finish with the verified artifact and a concise outcome.\
+					""");
+		}
+		if (ctx.getAgentConfig().hasPptxWorkflow()) {
+			sb.append("""
+
+					- node, npm, npx and ExecuteNodeCode are unavailable to the author. \
+					Save a single async IIFE as build-deck.js and call BuildPptx.
+					- For existing decks, call PreparePptxEdit first. \
+					Use its protected inputSnapshot and the editing helper; do not reconstruct the deck.
+					- ROOT is the working directory inside BuildPptx. \
+					Put all declarations inside the IIFE and await all asynchronous work.\
+					""");
+		} else {
+			sb.append(
+					"""
+
+							- node, npm, and npx are unavailable through BashCommand. Use ExecuteNodeCode for JavaScript.
+							- Each ExecuteNodeCode call must be one (async () => { ... })() with every require and declaration inside it. \
+							Top-level declarations collide with earlier calls. Await all work; use globalThis for durable state.
+							- In ExecuteNodeCode, ROOT is the working directory and relative paths resolve there. \
+							Write outputs with path.join(ROOT, "<exact filename>"). \
+							APP_ROOT and USER_ROOT identify project and user assets when available.\
+							""");
 		}
 		return sb.toString();
 	}
@@ -932,6 +1306,7 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (paramMap == null) {
 			return;
 		}
+		paramMap.put(DeferredAgentTools.RUN_AGENT_PARAM, true);
 		paramMap.remove("tools");
 		List<Map<String, Object>> tools = new ArrayList<>();
 		if (baseTools != null && !baseTools.isEmpty()) {
@@ -969,7 +1344,10 @@ public class SemossAgentHarness implements IAgentHarness {
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
 			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
-			if (isAsk || isSubAgentTool) {
+			// a tool with a native UI component needs its _meta on the call, auto or not
+			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
+			boolean hasComponent = ui instanceof Map && ((Map<String, Object>) ui).get(MCPUtility.UI_COMPONENT) != null;
+			if (isAsk || isSubAgentTool || hasComponent) {
 				metaByName.put(name, tool);
 			}
 		}
@@ -996,85 +1374,96 @@ public class SemossAgentHarness implements IAgentHarness {
 				sb.append(spec.getAlias());
 				first = false;
 			}
-			sb.append(".\n");
-			sb.append("You can also spawn anonymous subagents (clones of yourself) via `SpawnSubAgent`.\n\n");
+			sb.append("""
+					.
+					You can also spawn anonymous subagents (clones of yourself) via `SpawnSubAgent`.
+
+					""");
 		} else {
-			sb.append("You can spawn anonymous subagents (clones of yourself) via `SpawnSubAgent` ")
-					.append("to delegate independent pieces of work in parallel.\n\n");
+			sb.append("""
+					You can spawn anonymous subagents (clones of yourself) via `SpawnSubAgent` \
+					to delegate independent pieces of work in parallel.
+
+					""");
 		}
-		sb.append("Each spawn tool returns IMMEDIATELY with a `jobId` handle -- NOT the final answer.\n");
-		sb.append("- To get a subagent's answer, call `WaitForSubAgent(jobId=<handle>)`. This blocks ")
-				.append("until the subagent completes or your timeoutSec elapses.\n");
-		sb.append("- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.\n");
-		sb.append("- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.\n\n");
-		sb.append("Subagents have separate room transcripts. They may share your workdir only when ")
-				.append("you explicitly set `inherit_parent_workdir=true` while spawning them.\n\n");
+		sb.append("""
+				Each spawn tool returns IMMEDIATELY with a `jobId` handle -- NOT the final answer.
+				- To get a subagent's answer, call `WaitForSubAgent(jobId=<handle>)`. This blocks \
+				until the subagent completes or your timeoutSec elapses.
+				- To check progress without blocking, call `CheckSubAgentStatus(jobId=<handle>)`.
+				- You may fire multiple subagents BEFORE waiting on any -- they run in parallel.
 
-		sb.append("## Two patterns: blocking vs deferred\n\n");
-		sb.append("**Pattern A -- blocking (default for quick subagent work, <30s expected):**\n");
-		sb.append("  spawn -> spawn -> wait -> wait -> reply with combined results. ");
-		sb.append("User waits until you're done. Simple, but ties up the conversation.\n\n");
-		sb.append("**Pattern B -- deferred (use when subagents are expected to be slow, ");
-		sb.append("the user might want to keep talking, or you've spawned 3+ children):**\n");
-		sb.append("  spawn -> spawn -> reply to the user IMMEDIATELY with the jobIds and a note ");
-		sb.append("that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.\n");
-		sb.append("  Subagents continue running in the background between your turns -- they don't ");
-		sb.append("pause when you end your turn.\n\n");
+				Subagents have separate room transcripts. They may share your workdir only when \
+				you explicitly set `inherit_parent_workdir=true` while spawning them.
 
-		sb.append("### How to handle follow-ups in Pattern B\n\n");
+				## Two patterns: blocking vs deferred
 
-		sb.append("**Rule 0 -- standing orders persist across turns.** ");
-		sb.append("If the user's earlier prompt authorized a downstream action that depends on ");
-		sb.append("subagent completion (e.g. \"spawn 2 subagents to plan trips and then write the ");
-		sb.append("md files\" -- the writing is a standing order), then on ANY later turn where you ");
-		sb.append("observe the subagents are terminal, immediately collect their output via ");
-		sb.append("`WaitForSubAgent` AND execute the standing-order action in the same turn -- EVEN if ");
-		sb.append("the user's immediate message only asked for status. The user has already ");
-		sb.append("authorized the downstream work; asking for permission again is rude and wastes ");
-		sb.append("their time. The ONLY exception is if the user explicitly restricts you to ");
-		sb.append("status-only (\"just tell me if they're done, don't do anything else\").\n\n");
+				**Pattern A -- blocking (default for quick subagent work, <30s expected):**
+				  spawn -> spawn -> wait -> wait -> reply with combined results. \
+				User waits until you're done. Simple, but ties up the conversation.
 
-		sb.append("Concrete example of Rule 0 in action:\n");
-		sb.append("```\n");
-		sb.append("turn 1 user: \"spawn 2 subagents to plan trips. Don't wait. Then write md files.\"\n");
-		sb.append("turn 1 agent: spawn x 2, reply with jobIds, end turn.\n");
-		sb.append("turn 2 user: \"random unrelated question\"\n");
-		sb.append("turn 2 agent: answer normally.\n");
-		sb.append("turn 3 user: \"are they done?\"\n");
-		sb.append("turn 3 agent: check x 2 -> terminal observed -> IMMEDIATELY wait x 2 ->\n");
-		sb.append("              WriteFile x 2 -> reply: \"yes, done; here are the filenames\".\n");
-		sb.append("              (The 'write md files' standing order from turn 1 fires now.)\n");
-		sb.append("```\n\n");
+				**Pattern B -- deferred (use when subagents are expected to be slow, \
+				the user might want to keep talking, or you've spawned 3+ children):**
+				  spawn with completionMode=POST -> reply to the user IMMEDIATELY with the jobIds and a note \
+				that you've kicked them off (do NOT call WaitForSubAgent yet). End your turn.
+				  Subagents continue running in the background between your turns -- they don't \
+				pause when you end your turn.
 
-		sb.append("**Rule 1 -- user intent maps to a tool.** When there's no standing order yet ");
-		sb.append("(or you genuinely can't tell from context whether the user wants output):\n");
-		sb.append("- \"are they done?\" / \"what's the status?\" / \"check on them\" -> call ");
-		sb.append("`CheckSubAgentStatus(jobId)` (non-blocking) and report status only.\n");
-		sb.append("- \"what did they say?\" / \"give me the results\" / \"did you finish the task?\" / ");
-		sb.append("\"did you write the file?\" / any request for the actual output -> call ");
-		sb.append("`WaitForSubAgent(jobId)` directly. If the subagent is done, it returns immediately ");
-		sb.append("with the text. If still running, it blocks briefly. DO NOT call CheckSubAgentStatus ");
-		sb.append("first in this case -- just go straight to WaitForSubAgent.\n\n");
+				### How to handle follow-ups in Pattern B
 
-		sb.append("**Reporting status -- required format.** After calling CheckSubAgentStatus, your reply ");
-		sb.append("must begin with a direct binary answer before any narration:\n");
-		sb.append("- any job non-terminal -> start with \"No, not yet.\" then list each job's status.\n");
-		sb.append("- all jobs terminal -> start with \"Yes\" then list each.\n");
-		sb.append("- mixed -> start with \"Partially:\" then list which are done vs running.\n");
-		sb.append("Never make the user infer completion state from process narration like \"I'm ");
-		sb.append("checking...\" or \"if they're done, I'll...\". Those describe what you did; they ");
-		sb.append("don't answer the question. Answer first, narrate second.\n\n");
+				**Rule 0 -- standing orders persist across turns.** \
+				If the user's earlier prompt authorized a downstream action that depends on \
+				subagent completion (e.g. "spawn 2 subagents to plan trips and then write the \
+				md files" -- the writing is a standing order), then on ANY later turn where you \
+				observe the subagents are terminal, immediately collect their output via \
+				`WaitForSubAgent` AND execute the standing-order action in the same turn -- EVEN if \
+				the user's immediate message only asked for status. The user has already \
+				authorized the downstream work; asking for permission again is rude and wastes \
+				their time. The ONLY exception is if the user explicitly restricts you to \
+				status-only ("just tell me if they're done, don't do anything else").
 
-		sb.append("**Rule 2 -- never ask permission for the obvious next step.** When ");
-		sb.append("CheckSubAgentStatus returns terminal AND there's any reasonable next action ");
-		sb.append("(collect output, run the standing-order downstream work, summarize), just do ");
-		sb.append("it in the SAME turn. Don't say \"want me to collect the results?\" -- the user ");
-		sb.append("said what they want, just do it.\n\n");
+				Concrete example of Rule 0 in action:
+				```
+				turn 1 user: "spawn 2 subagents to plan trips. Don't wait. Then write md files."
+				turn 1 agent: spawn x 2, reply with jobIds, end turn.
+				turn 2 user: "random unrelated question"
+				turn 2 agent: answer normally.
+				turn 3 user: "are they done?"
+				turn 3 agent: check x 2 -> terminal observed -> IMMEDIATELY wait x 2 ->
+				              WriteFile x 2 -> reply: "yes, done; here are the filenames".
+				              (The 'write md files' standing order from turn 1 fires now.)
+				```
 
-		sb.append("Prefer Pattern B when: the user's request is open-ended planning/research that ");
-		sb.append("may take a while, or when blocking would prevent the user from following up. ");
-		sb.append("Prefer Pattern A when: the user explicitly asked for a single combined answer ");
-		sb.append("and the work is expected to be fast.");
+				**Rule 1 -- user intent maps to a tool.** When there's no standing order yet \
+				(or you genuinely can't tell from context whether the user wants output):
+				- "are they done?" / "what's the status?" / "check on them" -> call \
+				`CheckSubAgentStatus(jobId)` (non-blocking) and report status only.
+				- "what did they say?" / "give me the results" / "did you finish the task?" / \
+				"did you write the file?" / any request for the actual output -> call \
+				`WaitForSubAgent(jobId)` directly. If the subagent is done, it returns immediately \
+				with the text. If still running, it blocks briefly. DO NOT call CheckSubAgentStatus \
+				first in this case -- just go straight to WaitForSubAgent.
+
+				**Reporting status -- required format.** After calling CheckSubAgentStatus, your reply \
+				must begin with a direct binary answer before any narration:
+				- any job non-terminal -> start with "No, not yet." then list each job's status.
+				- all jobs terminal -> start with "Yes" then list each.
+				- mixed -> start with "Partially:" then list which are done vs running.
+				Never make the user infer completion state from process narration like "I'm \
+				checking..." or "if they're done, I'll...". Those describe what you did; they \
+				don't answer the question. Answer first, narrate second.
+
+				**Rule 2 -- never ask permission for the obvious next step.** When \
+				CheckSubAgentStatus returns terminal AND there's any reasonable next action \
+				(collect output, run the standing-order downstream work, summarize), just do \
+				it in the SAME turn. Don't say "want me to collect the results?" -- the user \
+				said what they want, just do it.
+
+				Prefer Pattern B when: the user's request is open-ended planning/research that \
+				may take a while, or when blocking would prevent the user from following up. \
+				Prefer Pattern A when: the user explicitly asked for a single combined answer \
+				and the work is expected to be fast.\
+				""");
 		return sb.toString();
 	}
 
@@ -1109,24 +1498,29 @@ public class SemossAgentHarness implements IAgentHarness {
 		StringBuilder sb = new StringBuilder();
 		sb.append("<available_skills>\n");
 		for (DiscoveredSkill skill : skills) {
-			sb.append("  <skill>\n");
-			sb.append("    <name>").append(xmlEscape(skill.getName())).append("</name>\n");
-			sb.append("    <description>\n");
-			sb.append("      ").append(xmlEscape(skill.getDescription())).append("\n");
-			sb.append("    </description>\n");
-			sb.append("    <location>").append(xmlEscape(skill.getDirectory())).append("</location>\n");
-			sb.append("  </skill>\n");
+			sb.append("""
+					  <skill>
+					    <name>%s</name>
+					    <description>
+					      %s
+					    </description>
+					    <location>%s</location>
+					  </skill>
+					""".formatted(xmlEscape(skill.getName()), xmlEscape(skill.getDescription()),
+					xmlEscape(skill.getDirectory())));
 		}
-		sb.append("</available_skills>\n");
-		sb.append("\n");
-		sb.append("Each entry above is a packaged set of instructions for a recurring task, ");
-		sb.append("written because getting that task right from memory is unreliable. When the ");
-		sb.append("work in front of you is covered by one, call LoadSkill(skill_name=\"<name>\") ");
-		sb.append("and follow what it says before writing anything. A description is all you get ");
-		sb.append("here; the actual patterns, parameters, and output shapes are only in the body. ");
-		sb.append("Loading a skill that turns out not to apply costs one tool call, so load it ");
-		sb.append("when unsure rather than guessing. This list is already complete -- you do not ");
-		sb.append("need ListSkill to discover these.");
+		sb.append("""
+				</available_skills>
+
+				Each entry above is a packaged set of instructions for a recurring task, \
+				written because getting that task right from memory is unreliable. When the \
+				work in front of you is covered by one, call LoadSkill(skill_name="<name>") \
+				and follow what it says before writing anything. A description is all you get \
+				here; the actual patterns, parameters, and output shapes are only in the body. \
+				Loading a skill that turns out not to apply costs one tool call, so load it \
+				when unsure rather than guessing. This list is already complete -- you do not \
+				need ListSkill to discover these.\
+				""");
 		return sb.toString();
 	}
 

@@ -128,7 +128,7 @@ public class PixelMCPToolBuilder {
 		// reactor are provided
 		Set<String> addedReactorNames = new LinkedHashSet<>();
 
-		// Phase 1: Scan for reactors that override getMcpToolMetadata()
+		// Phase 1: Scan reactors with non-null getMcpToolMetadata() (the default)
 		// If neither reactor nor package is provided, scans every reactor in the app
 		// If package is provided, filters by package prefix
 		if (project != null && (scanAll || hasPackages)) {
@@ -185,6 +185,13 @@ public class PixelMCPToolBuilder {
 			// Determine if explicit mcpMetadata was provided for this reactor
 			Map<String, Object> additionalMeta = mcpMetaExists ? mcpMetadataList.get(i) : new HashMap<>();
 			applyExecutionMode(meta, additionalMeta, reactorName);
+			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_DEFERRED)) {
+				Object deferred = additionalMeta.get(MCPUtility.SMSS_MCP_DEFERRED);
+				if (!(deferred instanceof Boolean)) {
+					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_DEFERRED + " must be a Boolean for " + reactorName);
+				}
+				meta.put(MCPUtility.SMSS_MCP_DEFERRED, deferred);
+			}
 			applyUiMetadata(meta, additionalMeta, reactorName);
 
 			reactorTool.put("_meta", meta);
@@ -301,6 +308,12 @@ public class PixelMCPToolBuilder {
 			}
 			uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayEnum != null ? displayEnum.getValue() : null);
 		}
+		// the reactor's own component and autoOpen stay unless the supplied metadata sets them
+		JSONObject declared = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
+		if (declared != null) {
+			MCPUtility.copyUiHints(declared.toMap(), uiJson);
+		}
+		MCPUtility.copyUiHints(uiMap, uiJson);
 		meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 	}
 

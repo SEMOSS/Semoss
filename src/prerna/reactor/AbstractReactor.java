@@ -53,6 +53,8 @@ import com.google.gson.ToNumberPolicy;
 import com.google.gson.reflect.TypeToken;
 
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.auth.User;
 import prerna.auth.utils.AbstractSecurityUtils;
 import prerna.auth.utils.SecurityEngineUtils;
@@ -931,6 +933,7 @@ public abstract class AbstractReactor implements IReactor {
 			if (resourceURI != null && !resourceURI.isEmpty()) {
 				uiJson.put(MCPUtility.UI_RESOURCE_URI, resourceURI);
 			}
+			MCPUtility.copyUiHints(mcpMeta, uiJson);
 			meta.put(MCPUtility.SMSS_MCP_UI, uiJson);
 			tool.put("_meta", meta);
 		}
@@ -940,9 +943,9 @@ public abstract class AbstractReactor implements IReactor {
 
 	/**
 	 * Returns MCP tool metadata for this reactor, or {@code null} if this reactor
-	 * is not an MCP tool. Reactors that should be discoverable by package scanning
-	 * in {@code MakePixelMCPReactor} must override this method and return a
-	 * non-null map.
+	 * is not an MCP tool. The default is non-null (auto + sidebar), so package and
+	 * full scans in {@code MakePixelMCPReactor} include every reactor; override and
+	 * return {@code null} to opt out.
 	 * <p>
 	 * Supported keys (use {@link MCPUtility} constants):
 	 * <ul>
@@ -951,7 +954,10 @@ public abstract class AbstractReactor implements IReactor {
 	 * <li>{@code displayLocation} - "sidebar", "inline", or "hidden"</li>
 	 * <li>{@code loadingMessage} - custom loading text shown during execution</li>
 	 * <li>{@code resourceURI} - portal page path for the tool's UI</li>
+	 * <li>{@code component} - native element name for the tool call</li>
+	 * <li>{@code autoOpen} - "true" to open the tool view automatically</li>
 	 * </ul>
+	 * {@code SMSS_MCP_DEFERRED} is not read here; set it through mcpMetadata.
 	 *
 	 * @return a map of MCP metadata key-value pairs, or {@code null} if not an MCP
 	 *         tool
@@ -1067,11 +1073,31 @@ public abstract class AbstractReactor implements IReactor {
 	}
 
 	/**
+	 * Requires an OAuth login for the requested provider before reactor work
+	 * starts. Token refresh, when supported, remains the provider connector's
+	 * responsibility.
+	 *
+	 * @param provider the provider required by the reactor
+	 * @return the user's provider token
+	 */
+	protected AccessToken requireLogin(AuthProvider provider) {
+		User user = this.insight == null ? null : this.insight.getUser();
+		AccessToken token = user == null ? null : user.getAccessToken(provider);
+		if (token == null || token.getAccess_token() == null || token.getAccess_token().isBlank()) {
+			Map<String, Object> retMap = new HashMap<>();
+			retMap.put("type", provider.getLabel());
+			retMap.put("message", "Please login to your " + provider.getDisplayName() + " account");
+			throwLoginError(retMap);
+		}
+		return token;
+	}
+
+	/**
 	 * Throw login required error
 	 * 
 	 * @param details
 	 */
-	public static void throwLoginError(Map details) {
+	public static void throwLoginError(Map<?, ?> details) {
 		SemossPixelException exception = new SemossPixelException(
 				NounMetadata.getErrorNounMessage(details, PixelOperationType.LOGGIN_REQUIRED_ERROR));
 		exception.setContinueThreadOfExecution(false);

@@ -1,0 +1,24 @@
+name: semoss-node-builder
+
+# node-builder - builds project client apps when they are published.
+#
+# Run:    docker compose -f semoss-node-builder.yml up -d
+# Stop:   docker compose -f semoss-node-builder.yml down
+# Check:  curl http://localhost:3000/health
+#
+# Equivalent to:
+#   docker run -d --name semoss-node-builder -p 3000:3000 quay.io/semoss/smss-node-builder:latest
+services:
+  node-builder:
+    image: quay.io/semoss/smss-node-builder:latest
+    container_name: semoss-node-builder
+    pull_policy: always
+    ports:
+      - "3000:3000"   # HTTP API
+    networks:
+      - semoss-net
+
+networks:
+  # shared with the SEMOSS compose files so SEMOSS can reach this by container name
+  semoss-net:
+    external: true

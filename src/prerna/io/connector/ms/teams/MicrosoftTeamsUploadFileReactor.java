@@ -34,8 +34,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.ms.AbstractMicrosoftReactor;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
@@ -61,7 +62,7 @@ import prerna.util.Utility;
  * folder.</li>
  * </ul>
  */
-public class MicrosoftTeamsUploadFileReactor extends AbstractReactor {
+public class MicrosoftTeamsUploadFileReactor extends AbstractMicrosoftReactor {
 
 	private static final Logger classLogger = LogManager.getLogger(MicrosoftTeamsUploadFileReactor.class);
 
@@ -77,7 +78,7 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractReactor {
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String teamId = this.keyValue.get(this.keysToGet[0]);
 		String channelId = this.keyValue.get(this.keysToGet[1]);
@@ -98,7 +99,7 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractReactor {
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
 
 			File sourceFile = resolveInsightFile(path);
 			// default the name in the channel to whatever the source file is called
@@ -181,5 +182,13 @@ public class MicrosoftTeamsUploadFileReactor extends AbstractReactor {
 			return "Optional behavior when a file of the same name exists: fail, rename or replace. Defaults to rename.";
 		}
 		return super.getDescriptionForKey(key);
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// shares a file into a team as the user, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }

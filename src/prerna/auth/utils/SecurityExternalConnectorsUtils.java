@@ -27,8 +27,6 @@
  *******************************************************************************/
 package prerna.auth.utils;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -44,7 +42,6 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -55,6 +52,7 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	private static final String GITHUB_APP_TABLE = "GITHUB_APP";
 	private static final String GITHUB_PROJECT_LINK_TABLE = "GITHUB_PROJECT_LINK";
+	private static final String MS_GRAPH_SUBSCRIPTION_TABLE = "MS_GRAPH_SUBSCRIPTION";
 
 	/**
 	 * Retrieves the ID and alias for each configured Salesforce connection.
@@ -134,61 +132,53 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = getGitHubApp(appId) != null;
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			Timestamp now = Utility.getCurrentSqlTimestampUTC();
-			if (exists) {
-				String sql = "UPDATE " + GITHUB_APP_TABLE + " SET SLUG = ?, APP_NAME = ?, OWNER_LOGIN = ?, "
-						+ "HTML_URL = ?, WEBHOOK_URL = ?, CLIENT_ID = ?, CLIENT_SECRET = ?, WEBHOOK_SECRET = ?, "
-						+ "PRIVATE_KEY = ?, UPDATED_ON = ? WHERE APP_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					int i = 1;
-					ps.setString(i++, slug);
-					ps.setString(i++, appName);
-					ps.setString(i++, ownerLogin);
-					ps.setString(i++, htmlUrl);
-					ps.setString(i++, webhookUrl);
-					ps.setString(i++, clientId);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, clientSecret, i++, securityGson);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, webhookSecret, i++, securityGson);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, privateKey, i++, securityGson);
-					ps.setTimestamp(i++, now);
-					ps.setLong(i++, appId);
-					ps.executeUpdate();
-					if (!conn.getAutoCommit()) {
-						conn.commit();
-					}
+			String boundSlug = slug;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Timestamp now = Utility.getCurrentSqlTimestampUTC();
+				if (exists) {
+					String sql = "UPDATE " + GITHUB_APP_TABLE + " SET SLUG = ?, APP_NAME = ?, OWNER_LOGIN = ?, "
+							+ "HTML_URL = ?, WEBHOOK_URL = ?, CLIENT_ID = ?, CLIENT_SECRET = ?, WEBHOOK_SECRET = ?, "
+							+ "PRIVATE_KEY = ?, UPDATED_ON = ? WHERE APP_ID = ?";
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+						int i = 1;
+						ps.setString(i++, boundSlug);
+						ps.setString(i++, appName);
+						ps.setString(i++, ownerLogin);
+						ps.setString(i++, htmlUrl);
+						ps.setString(i++, webhookUrl);
+						ps.setString(i++, clientId);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, clientSecret);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, webhookSecret);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, privateKey);
+						ps.setTimestamp(i++, now);
+						ps.setLong(i++, appId);
+					});
+				} else {
+					String sql = "INSERT INTO " + GITHUB_APP_TABLE + " (APP_ID, SLUG, APP_NAME, OWNER_LOGIN, HTML_URL, "
+							+ "WEBHOOK_URL, CLIENT_ID, CLIENT_SECRET, WEBHOOK_SECRET, PRIVATE_KEY, CREATED_ON, UPDATED_ON) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+						int i = 1;
+						ps.setLong(i++, appId);
+						ps.setString(i++, boundSlug);
+						ps.setString(i++, appName);
+						ps.setString(i++, ownerLogin);
+						ps.setString(i++, htmlUrl);
+						ps.setString(i++, webhookUrl);
+						ps.setString(i++, clientId);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, clientSecret);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, webhookSecret);
+						securityDb.getQueryUtil().setNullableLargeText(ps, i++, privateKey);
+						ps.setTimestamp(i++, now);
+						ps.setTimestamp(i++, now);
+					});
 				}
-			} else {
-				String sql = "INSERT INTO " + GITHUB_APP_TABLE + " (APP_ID, SLUG, APP_NAME, OWNER_LOGIN, HTML_URL, "
-						+ "WEBHOOK_URL, CLIENT_ID, CLIENT_SECRET, WEBHOOK_SECRET, PRIVATE_KEY, CREATED_ON, UPDATED_ON) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					int i = 1;
-					ps.setLong(i++, appId);
-					ps.setString(i++, slug);
-					ps.setString(i++, appName);
-					ps.setString(i++, ownerLogin);
-					ps.setString(i++, htmlUrl);
-					ps.setString(i++, webhookUrl);
-					ps.setString(i++, clientId);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, clientSecret, i++, securityGson);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, webhookSecret, i++, securityGson);
-					securityDb.getQueryUtil().handleInsertionOfClob(conn, ps, privateKey, i++, securityGson);
-					ps.setTimestamp(i++, now);
-					ps.setTimestamp(i++, now);
-					ps.execute();
-					if (!conn.getAutoCommit()) {
-						conn.commit();
-					}
-				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to save GitHub app.", e);
 			throw new SemossPixelException("Unable to save GitHub app: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -276,61 +266,47 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		boolean exists = getGitHubProjectLink(projectId) != null;
 
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			Timestamp now = Utility.getCurrentSqlTimestampUTC();
-			if (exists) {
-				String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET APP_ID = ?, INSTALLATION_ID = ?, "
-						+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, SUBDIR = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					int i = 1;
-					ps.setLong(i++, appId);
-					ps.setLong(i++, installationId);
-					ps.setLong(i++, repoId);
-					ps.setString(i++, repoFullName);
-					ps.setString(i++, branch);
-					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
-						ps.setNull(i++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(i++, normalizedSubdir);
-					}
-					ps.setTimestamp(i++, now);
-					ps.setString(i++, projectId);
-					ps.executeUpdate();
-					if (!conn.getAutoCommit()) {
-						conn.commit();
-					}
+			String boundBranch = branch;
+			String boundNormalizedSubdir = normalizedSubdir;
+			String boundProjectId = projectId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Timestamp now = Utility.getCurrentSqlTimestampUTC();
+				if (exists) {
+					String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET APP_ID = ?, INSTALLATION_ID = ?, "
+							+ "REPO_ID = ?, REPO_FULL_NAME = ?, BRANCH = ?, SUBDIR = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+						int i = 1;
+						ps.setLong(i++, appId);
+						ps.setLong(i++, installationId);
+						ps.setLong(i++, repoId);
+						ps.setString(i++, repoFullName);
+						ps.setString(i++, boundBranch);
+						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, i++, boundNormalizedSubdir);
+						ps.setTimestamp(i++, now);
+						ps.setString(i++, boundProjectId);
+					});
+				} else {
+					String sql = "INSERT INTO " + GITHUB_PROJECT_LINK_TABLE + " (PROJECT_ID, APP_ID, INSTALLATION_ID, "
+							+ "REPO_ID, REPO_FULL_NAME, BRANCH, SUBDIR, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+						int i = 1;
+						ps.setString(i++, boundProjectId);
+						ps.setLong(i++, appId);
+						ps.setLong(i++, installationId);
+						ps.setLong(i++, repoId);
+						ps.setString(i++, repoFullName);
+						ps.setString(i++, boundBranch);
+						securityDb.getQueryUtil().setStringEmptyAsNullable(ps, i++, boundNormalizedSubdir);
+						ps.setTimestamp(i++, now);
+						ps.setTimestamp(i++, now);
+					});
 				}
-			} else {
-				String sql = "INSERT INTO " + GITHUB_PROJECT_LINK_TABLE + " (PROJECT_ID, APP_ID, INSTALLATION_ID, "
-						+ "REPO_ID, REPO_FULL_NAME, BRANCH, SUBDIR, CREATED_ON, UPDATED_ON) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-				try (PreparedStatement ps = conn.prepareStatement(sql)) {
-					int i = 1;
-					ps.setString(i++, projectId);
-					ps.setLong(i++, appId);
-					ps.setLong(i++, installationId);
-					ps.setLong(i++, repoId);
-					ps.setString(i++, repoFullName);
-					ps.setString(i++, branch);
-					if (normalizedSubdir == null || normalizedSubdir.isEmpty()) {
-						ps.setNull(i++, java.sql.Types.VARCHAR);
-					} else {
-						ps.setString(i++, normalizedSubdir);
-					}
-					ps.setTimestamp(i++, now);
-					ps.setTimestamp(i++, now);
-					ps.execute();
-					if (!conn.getAutoCommit()) {
-						conn.commit();
-					}
-				}
-			}
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to save GitHub project link.", e);
 			throw new SemossPixelException("Unable to save GitHub project link: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -350,24 +326,22 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE + " SET BRANCH = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.setString(1, branch);
-				ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
-				ps.setString(3, projectId);
-				ps.executeUpdate();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			}
+			String boundBranch = branch;
+			String boundProjectId = projectId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String sql = "UPDATE " + GITHUB_PROJECT_LINK_TABLE
+						+ " SET BRANCH = ?, UPDATED_ON = ? WHERE PROJECT_ID = ?";
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+					ps.setString(1, boundBranch);
+					ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(3, boundProjectId);
+				});
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to update GitHub project link branch.", e);
 			throw new SemossPixelException("Unable to update GitHub project link branch: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -449,24 +423,19 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 
 	public static void deleteGitHubApp(long appId) throws SQLException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			try (PreparedStatement ps = conn
-					.prepareStatement("DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE APP_ID = ?")) {
-				ps.setLong(1, appId);
-				ps.executeUpdate();
-			}
-			try (PreparedStatement ps = conn
-					.prepareStatement("DELETE FROM " + GITHUB_APP_TABLE + " WHERE APP_ID = ?")) {
-				ps.setLong(1, appId);
-				ps.executeUpdate();
-			}
-			if (!conn.getAutoCommit()) {
-				conn.commit();
-			}
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
+			QueryExecutionUtility.write(securityDb, conn -> {
+
+				QueryExecutionUtility.executeUpdate(conn,
+						"DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE APP_ID = ?", ps -> ps.setLong(1, appId));
+				QueryExecutionUtility.executeUpdate(conn, "DELETE FROM " + GITHUB_APP_TABLE + " WHERE APP_ID = ?",
+						ps -> ps.setLong(1, appId));
+				return null;
+			});
+		} catch (SQLException | RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SQLException(e);
 		}
 
 	}
@@ -482,22 +451,16 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 		}
 
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Connection conn = null;
 		try {
-			conn = securityDb.getConnection();
-			String sql = "DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE PROJECT_ID = ?";
-			try (PreparedStatement ps = conn.prepareStatement(sql)) {
-				ps.setString(1, projectId);
-				ps.executeUpdate();
-				if (!conn.getAutoCommit()) {
-					conn.commit();
-				}
-			}
+			String boundProjectId = projectId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String sql = "DELETE FROM " + GITHUB_PROJECT_LINK_TABLE + " WHERE PROJECT_ID = ?";
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> ps.setString(1, boundProjectId));
+				return null;
+			});
 		} catch (Exception e) {
 			classLogger.error("Failed to delete GitHub project link.", e);
 			throw new SemossPixelException("Unable to delete GitHub project link: " + e.getMessage(), e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, conn);
 		}
 	}
 
@@ -631,5 +594,223 @@ public class SecurityExternalConnectorsUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("Connection id " + connectionId + " is not valid");
 		}
 		return resultList.get(0);
+	}
+
+	/**
+	 * Records a Microsoft Graph change notification subscription, replacing
+	 * whatever was held for the same subscription id.
+	 *
+	 * <p>
+	 * The row is what lets any container answer a notification for this
+	 * subscription: the client state recognizes the delivery, and the tokens let
+	 * that container act as the user the subscription was made for without ever
+	 * having seen their session. Both are credentials at rest, kept the same way
+	 * the GitHub app's client secret and private key are kept in this database.
+	 * </p>
+	 *
+	 * @param subscriptionId  the id Microsoft Graph gave the subscription
+	 * @param userId          id of the user it was created for
+	 * @param userProvider    the login provider that id belongs to
+	 * @param userEmail       that user's address, for rebuilding their identity
+	 * @param clientState     the secret every notification echoes back
+	 * @param resource        what the subscription watches
+	 * @param changeType      which changes it hears about
+	 * @param notificationUrl where Graph posts them
+	 * @param expiration      when Graph stops sending, or null when unknown
+	 * @param accessToken     the user's Microsoft access token
+	 * @param refreshToken    the user's Microsoft refresh token, which is what
+	 *                        keeps the subscription usable once the access token
+	 *                        runs out
+	 * @param tokenExpiration when that access token runs out, or null when unknown
+	 */
+	public static void upsertMicrosoftGraphSubscription(String subscriptionId, String userId, String userProvider,
+			String userEmail, String clientState, String resource, String changeType, String notificationUrl,
+			Timestamp expiration, String accessToken, String refreshToken, Timestamp tokenExpiration) {
+		if (subscriptionId == null || (subscriptionId = subscriptionId.trim()).isEmpty()) {
+			throw new IllegalArgumentException("A subscription id must not be empty.");
+		}
+		if (userId == null || userId.trim().isEmpty()) {
+			throw new IllegalArgumentException("A user id must not be empty.");
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			String boundSubscriptionId = subscriptionId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				Timestamp now = Utility.getCurrentSqlTimestampUTC();
+				// replacing rather than updating in place: a subscription id is Graph's to
+				// issue, so the same id arriving twice is the same subscription being
+				// recreated and the old row has nothing worth keeping
+				QueryExecutionUtility.executeUpdate(conn,
+						"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?",
+						ps -> ps.setString(1, boundSubscriptionId));
+				String sql = "INSERT INTO " + MS_GRAPH_SUBSCRIPTION_TABLE
+						+ " (SUBSCRIPTION_ID, USER_ID, USER_PROVIDER, "
+						+ "USER_EMAIL, CLIENT_STATE, RESOURCE, CHANGE_TYPE, NOTIFICATION_URL, EXPIRATION, ACCESS_TOKEN, "
+						+ "REFRESH_TOKEN, TOKEN_EXPIRATION, CREATED_ON, UPDATED_ON) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+					int i = 1;
+					ps.setString(i++, boundSubscriptionId);
+					ps.setString(i++, userId);
+					ps.setString(i++, userProvider);
+					ps.setString(i++, userEmail);
+					ps.setString(i++, clientState);
+					ps.setString(i++, resource);
+					ps.setString(i++, changeType);
+					ps.setString(i++, notificationUrl);
+					ps.setTimestamp(i++, expiration);
+					securityDb.getQueryUtil().setNullableLargeText(ps, i++, accessToken);
+					securityDb.getQueryUtil().setNullableLargeText(ps, i++, refreshToken);
+					ps.setTimestamp(i++, tokenExpiration);
+					ps.setTimestamp(i++, now);
+					ps.setTimestamp(i++, now);
+				});
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to save the Microsoft Graph subscription.", e);
+			throw new SemossPixelException("Unable to save the Microsoft Graph subscription: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * Retrieves one Microsoft Graph subscription.
+	 *
+	 * @param subscriptionId the id a notification carried
+	 * @return a map of the subscription fields, or {@code null} when this
+	 *         deployment did not create it
+	 */
+	public static Map<String, Object> getMicrosoftGraphSubscription(String subscriptionId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildMicrosoftGraphSubscriptionSelect();
+		qs.addExplicitFilter(
+				SimpleQueryFilter.makeColToValFilter("MS_GRAPH_SUBSCRIPTION__SUBSCRIPTION_ID", "==", subscriptionId));
+		List<Map<String, Object>> resultList = QueryExecutionUtility.flushRsToMap(securityDb, qs);
+		return resultList.isEmpty() ? null : resultList.get(0);
+	}
+
+	/**
+	 * Retrieves the Microsoft Graph subscriptions held for one user.
+	 *
+	 * @param userId the user to look for
+	 * @return their subscriptions, empty when they have none
+	 */
+	public static List<Map<String, Object>> getMicrosoftGraphSubscriptionsByUser(String userId) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = buildMicrosoftGraphSubscriptionSelect();
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("MS_GRAPH_SUBSCRIPTION__USER_ID", "==", userId));
+		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * Builds the common selector list for {@code MS_GRAPH_SUBSCRIPTION} reads.
+	 *
+	 * @return a {@link SelectQueryStruct} selecting all subscription columns
+	 */
+	private static SelectQueryStruct buildMicrosoftGraphSubscriptionSelect() {
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__SUBSCRIPTION_ID", "subscriptionId"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_ID", "userId"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_PROVIDER", "userProvider"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__USER_EMAIL", "userEmail"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CLIENT_STATE", "clientState"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__RESOURCE", "resource"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CHANGE_TYPE", "changeType"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__NOTIFICATION_URL", "notificationUrl"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__EXPIRATION", "expiration"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__ACCESS_TOKEN", "accessToken"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__REFRESH_TOKEN", "refreshToken"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__TOKEN_EXPIRATION", "tokenExpiration"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__CREATED_ON", "createdOn"));
+		qs.addSelector(new QueryColumnSelector("MS_GRAPH_SUBSCRIPTION__UPDATED_ON", "updatedOn"));
+		qs.addOrderBy("MS_GRAPH_SUBSCRIPTION__CREATED_ON");
+		return qs;
+	}
+
+	/**
+	 * Pushes a subscription's recorded expiry back out, after Graph has agreed to
+	 * the same.
+	 *
+	 * @param subscriptionId the subscription that was renewed
+	 * @param expiration     when it now expires
+	 */
+	public static void updateMicrosoftGraphSubscriptionExpiration(String subscriptionId, Timestamp expiration) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			String boundSubscriptionId = subscriptionId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE
+						+ " SET EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+					ps.setTimestamp(1, expiration);
+					ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(3, boundSubscriptionId);
+				});
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to record the renewal of Microsoft Graph subscription {}.", subscriptionId, e);
+		}
+	}
+
+	/**
+	 * Writes back the token a container refreshed, so the next container to receive
+	 * a notification starts from the fresh one.
+	 *
+	 * <p>
+	 * A refresh token is single use in Microsoft Entra: the refresh that mints a
+	 * new access token mints a new refresh token with it and retires the old one.
+	 * Not writing the new pair back would leave every other container holding a
+	 * refresh token that has already been spent.
+	 * </p>
+	 *
+	 * @param subscriptionId  the subscription whose user was refreshed
+	 * @param accessToken     the new access token
+	 * @param refreshToken    the new refresh token
+	 * @param tokenExpiration when the new access token runs out
+	 */
+	public static void updateMicrosoftGraphSubscriptionToken(String subscriptionId, String accessToken,
+			String refreshToken, Timestamp tokenExpiration) {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			String boundSubscriptionId = subscriptionId;
+			QueryExecutionUtility.write(securityDb, conn -> {
+				String sql = "UPDATE " + MS_GRAPH_SUBSCRIPTION_TABLE + " SET ACCESS_TOKEN = ?, REFRESH_TOKEN = ?, "
+						+ "TOKEN_EXPIRATION = ?, UPDATED_ON = ? WHERE SUBSCRIPTION_ID = ?";
+				QueryExecutionUtility.executeUpdate(conn, sql, ps -> {
+					int i = 1;
+					securityDb.getQueryUtil().setNullableLargeText(ps, i++, accessToken);
+					securityDb.getQueryUtil().setNullableLargeText(ps, i++, refreshToken);
+					ps.setTimestamp(i++, tokenExpiration);
+					ps.setTimestamp(i++, Utility.getCurrentSqlTimestampUTC());
+					ps.setString(i++, boundSubscriptionId);
+				});
+				return null;
+			});
+		} catch (Exception e) {
+			classLogger.error("Failed to write back the refreshed token for Microsoft Graph subscription {}.",
+					subscriptionId, e);
+		}
+	}
+
+	/**
+	 * Forgets a Microsoft Graph subscription. Only removes this deployment's record
+	 * of it; Graph keeps sending until the subscription itself is deleted.
+	 *
+	 * @param subscriptionId the subscription to forget
+	 * @throws SQLException if the delete cannot be run
+	 */
+	public static void deleteMicrosoftGraphSubscription(String subscriptionId) throws SQLException {
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		try {
+			QueryExecutionUtility.executeUpdate(securityDb,
+					"DELETE FROM " + MS_GRAPH_SUBSCRIPTION_TABLE + " WHERE SUBSCRIPTION_ID = ?",
+					ps -> ps.setString(1, subscriptionId));
+		} catch (SQLException | RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			throw new SQLException(e);
+		}
 	}
 }

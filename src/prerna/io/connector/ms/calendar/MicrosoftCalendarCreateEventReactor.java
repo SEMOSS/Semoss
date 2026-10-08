@@ -34,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -68,20 +69,21 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 	public MicrosoftCalendarCreateEventReactor() {
 		this.keysToGet = EVENT_KEYS.clone();
-		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+		this.keyRequired = new int[] { 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
-	public NounMetadata execute() {
+	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 
 		Map<String, Object> event = composeEvent(true, "create a calendar event");
 		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
+		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
 
 		try {
 			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getMicrosoftAccessToken(user);
-			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, calendarId, event,
+			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+			Map<String, Object> created = MicrosoftCalendarHelper.createEvent(accessToken, mailbox, calendarId, event,
 					DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
 			return new NounMetadata(created, PixelDataType.CUSTOM_DATA_STRUCTURE);
 		} catch (SemossPixelException e) {
@@ -96,6 +98,14 @@ public class MicrosoftCalendarCreateEventReactor extends AbstractMicrosoftCalend
 
 	@Override
 	public String getReactorDescription() {
-		return "Create an event on the signed in user's own Microsoft 365 calendar, inviting anybody named as an attendee.";
+		return "Create an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, inviting anybody named as an attendee.";
+	}
+
+	@Override
+	public Map<String, String> getMcpToolMetadata() {
+		// changes the user's calendar and can invite people, so an agent asks before running it
+		Map<String, String> meta = super.getMcpToolMetadata();
+		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
+		return meta;
 	}
 }
