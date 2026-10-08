@@ -371,12 +371,12 @@ public class UploadEngineReactor extends AbstractReactor {
 			SecurityEngineUtils.addEngineOwner(engineId, user.getAccessToken(ap).getId());
 		}
 
-			ClusterUtil.pushEngine(engineId);
-			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_CREATE",
-					engineType == null ? "ENGINE" : engineType.name(), engineId, engineName,
-					Map.of("global", global));
+		ClusterUtil.pushEngine(engineId);
+		UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_CREATE",
+				engineType == null ? "ENGINE" : engineType.name(), engineId, engineName,
+				Map.of("global", global));
 
-			Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
+		Map<String, Object> retMap = UploadUtilities.getEngineReturnData(this.insight.getUser(), engineId);
 		return new NounMetadata(retMap, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);
 	}
 

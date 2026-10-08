@@ -100,12 +100,12 @@ public class DeleteProjectReactor extends AbstractReactor {
 						"Project " + projectId + " is a built-in platform app/MCP/skill/agent and cannot be deleted");
 			}
 
-				IProject project = Utility.getProject(projectId);
-				IProject.PROJECT_TYPE projectType = project.getProjectType();
-				deleteProject(project);
-				UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_DELETE", projectId, null,
-						projectType == null ? null : Map.of("projectType", projectType.name()));
-				// also remove this project in case it is the current insight's project id
+			IProject project = Utility.getProject(projectId);
+			IProject.PROJECT_TYPE projectType = project.getProjectType();
+			deleteProject(project);
+			UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_DELETE", projectId, null,
+					projectType == null ? null : Map.of("projectType", projectType.name()));
+			// also remove this project in case it is the current insight's project id
 			if (projectId.equals(this.insight.getContextProjectId())) {
 				this.insight.setContextProjectId(null);
 				this.insight.setContextProjectName(null);

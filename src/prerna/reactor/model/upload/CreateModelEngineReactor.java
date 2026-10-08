@@ -187,7 +187,7 @@ public class CreateModelEngineReactor extends AbstractReactor {
 			ClusterUtil.pushEngine(modelId);
 			UserAuditTrailUtils.recordEngineLifecycle(user, "MODEL_CREATE", "MODEL", modelId, modelName,
 					Map.of("global", global, "modelType", modelType.getModelName()));
-			} catch (Exception e) {
+		} catch (Exception e) {
 			classLogger.error(Constants.STACKTRACE, e);
 			UploadUtilities.cleanUpCreateNewError(model, modelId, tempSmss, smssFile, specificEngineFolder);
 			SecurityEngineUtils.deleteEngine(modelId);

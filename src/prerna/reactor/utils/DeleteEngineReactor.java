@@ -105,10 +105,10 @@ public class DeleteEngineReactor extends AbstractReactor {
 				engineType = (IEngine.CATALOG_TYPE) typeAndSubtype[0];
 			}
 
-				deleteEngines(engine, engineId, engineName, engineType);
-				UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_DELETE",
-						engineType == null ? "ENGINE" : engineType.name(), engineId, engineName, null);
-				// Run the delete thread in the background for removing from cloud storage
+			deleteEngines(engine, engineId, engineName, engineType);
+			UserAuditTrailUtils.recordEngineLifecycle(user, "ENGINE_DELETE",
+					engineType == null ? "ENGINE" : engineType.name(), engineId, engineName, null);
+			// Run the delete thread in the background for removing from cloud storage
 			if (ClusterUtil.IS_CLUSTER) {
 				Thread.ofVirtual().start(new DeleteEngineRunner(engineId, engineType));
 			}
