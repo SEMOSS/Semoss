@@ -150,8 +150,8 @@ public final class StaticModelMetadataCatalog {
 	/**
 	 * Fill in any MODELMETADATA property the caller did not supply using the
 	 * catalog entry for {@link Constants#CATALOG_MODEL_KEY} when one was picked by
-	 * hand, falling back to the model id held in {@link Constants#MODEL}. Values the
-	 * caller did supply are never overwritten, and a catalog value that fails
+	 * hand, falling back to the model id held in {@link Constants#MODEL}. Values
+	 * the caller did supply are never overwritten, and a catalog value that fails
 	 * validation is skipped rather than failing the whole call - the catalog is
 	 * hand-maintained data and must not be able to break model creation.
 	 *
@@ -173,8 +173,9 @@ public final class StaticModelMetadataCatalog {
 			return;
 		}
 
-		String catalogModelKey = trimToNull(modelDetails.get(Constants.CATALOG_MODEL_KEY));
-		String modelId = catalogModelKey != null ? catalogModelKey : trimToNull(modelDetails.get(Constants.MODEL));
+		String catalogModelKey = ValueUtils.trimToNull(modelDetails.get(Constants.CATALOG_MODEL_KEY));
+		String modelId = catalogModelKey != null ? catalogModelKey
+				: ValueUtils.trimToNull(modelDetails.get(Constants.MODEL));
 		if (modelId == null) {
 			return;
 		}
@@ -192,7 +193,7 @@ public final class StaticModelMetadataCatalog {
 
 		List<String> applied = new ArrayList<>();
 		for (Map.Entry<String, Object> entry : defaults.entrySet()) {
-			if (trimToNull(modelDetails.get(entry.getKey())) == null) {
+			if (ValueUtils.trimToNull(modelDetails.get(entry.getKey())) == null) {
 				modelDetails.put(entry.getKey(), entry.getValue());
 				applied.add(entry.getKey());
 			}
@@ -312,7 +313,8 @@ public final class StaticModelMetadataCatalog {
 			return ModelCapabilityEnum.IMAGE_GENERATION.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.AUDIO)) {
-			return containsModality(inputModalities, ModelModalityEnum.TEXT) ? ModelCapabilityEnum.SPEECH_SYNTHESIS.name()
+			return containsModality(inputModalities, ModelModalityEnum.TEXT)
+					? ModelCapabilityEnum.SPEECH_SYNTHESIS.name()
 					: ModelCapabilityEnum.TRANSCRIPTION.name();
 		}
 		if (containsModality(outputModalities, ModelModalityEnum.VECTOR)) {
@@ -412,15 +414,15 @@ public final class StaticModelMetadataCatalog {
 	 * The catalog models importable through each of the requested serving
 	 * providers, keyed by the normalized provider key the caller asked for (see
 	 * {@link StaticBuiltinToolsCatalog#normalizeProviderKey(String)}). A model is
-	 * listed under a provider when the catalog's pricing object names that
-	 * provider as a serving host - the pricing entry's inner key is the exact
-	 * model id that host serves, which is what an import form needs to submit.
+	 * listed under a provider when the catalog's pricing object names that provider
+	 * as a serving host - the pricing entry's inner key is the exact model id that
+	 * host serves, which is what an import form needs to submit.
 	 * <p>
 	 * Only text-output models are returned; image/video/embedding entries are
 	 * curated by hand where they are supported at all. Token limits are dropped
 	 * when the catalog holds a 0/1 placeholder rather than a real value. Entries
-	 * are sorted newest release first. Hosts with no catalog models map to an
-	 * empty list so the caller can tell "no models" from "unknown host".
+	 * are sorted newest release first. Hosts with no catalog models map to an empty
+	 * list so the caller can tell "no models" from "unknown host".
 	 */
 	public static Map<String, List<Map<String, Object>>> listImportableModels(Path metadataFile,
 			Set<String> normalizedHosts) {
@@ -499,10 +501,10 @@ public final class StaticModelMetadataCatalog {
 
 	/**
 	 * The catalog entries that most resemble the given model id, best first, capped
-	 * at {@code limit}. Meant for the case where {@link #findModelKey} came up empty
-	 * and the user has to pick an entry themselves, so the returned maps carry
-	 * enough to render a suggestion - key, id, name, provider, family - alongside
-	 * the score they were ranked on.
+	 * at {@code limit}. Meant for the case where {@link #findModelKey} came up
+	 * empty and the user has to pick an entry themselves, so the returned maps
+	 * carry enough to render a suggestion - key, id, name, provider, family -
+	 * alongside the score they were ranked on.
 	 * <p>
 	 * Entries that look nothing like the id are left out entirely, so an id with no
 	 * plausible neighbour returns an empty list rather than the arbitrary head of
@@ -600,8 +602,7 @@ public final class StaticModelMetadataCatalog {
 
 		int longest = Math.max(left.length(), right.length());
 		Integer distance = EDIT_DISTANCE.apply(left, right);
-		double characterScore = distance == null || longest == 0 ? 0
-				: Math.max(0, 1 - ((double) distance / longest));
+		double characterScore = distance == null || longest == 0 ? 0 : Math.max(0, 1 - ((double) distance / longest));
 
 		double score = TOKEN_WEIGHT * tokenScore + (1 - TOKEN_WEIGHT) * characterScore;
 		if (left.startsWith(right) || right.startsWith(left)) {
@@ -780,12 +781,12 @@ public final class StaticModelMetadataCatalog {
 	}
 
 	/**
-	 * Flatten the catalog's pricing object - serving provider to model id to
-	 * rates - into an array ordered for display: the model maker's own pricing
-	 * first, then the serving providers a SEMOSS engine can connect to,
-	 * alphabetically. Aggregator pricing is dropped. Entries keep the original
-	 * catalog provider key (e.g. "amazon-bedrock") so the stored value can be
-	 * traced back to the file; matching runs on the normalized form.
+	 * Flatten the catalog's pricing object - serving provider to model id to rates
+	 * - into an array ordered for display: the model maker's own pricing first,
+	 * then the serving providers a SEMOSS engine can connect to, alphabetically.
+	 * Aggregator pricing is dropped. Entries keep the original catalog provider key
+	 * (e.g. "amazon-bedrock") so the stored value can be traced back to the file;
+	 * matching runs on the normalized form.
 	 */
 	private static JsonArray buildOrderedPricing(JsonObject model) {
 		JsonObject pricing = getObject(model, "pricing");
@@ -879,14 +880,6 @@ public final class StaticModelMetadataCatalog {
 			}
 		}
 		return values;
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String stringValue = value.toString().trim();
-		return stringValue.isEmpty() ? null : stringValue;
 	}
 
 	private static JsonObject loadMetadata(Path metadataFile) {

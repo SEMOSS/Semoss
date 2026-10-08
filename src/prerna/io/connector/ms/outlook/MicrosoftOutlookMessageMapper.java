@@ -34,6 +34,14 @@ import java.util.Map;
 
 import org.jsoup.Jsoup;
 
+import prerna.io.connector.ConnectorTimes;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailAttachment;
+import prerna.io.connector.mail.MailFolder;
+import prerna.io.connector.mail.MailMessage;
+import prerna.io.connector.mail.MailRecipients;
+import prerna.util.ValueUtils;
+
 /**
  * Turns the json Graph returns for a message into the map this codebase answers
  * with.
@@ -264,6 +272,92 @@ public class MicrosoftOutlookMessageMapper {
 		if (value != null) {
 			output.put(key, value);
 		}
+	}
+
+	/**
+	 * Describe one message the way every mail reactor answers with it.
+	 *
+	 * @param message         the message as Graph returned it
+	 * @param attachments     what is attached, or null when it was not asked for
+	 * @param displayBody     the body for showing to a person, or null
+	 * @param replyRecipients who a reply to everybody goes to, or null
+	 * @return the message
+	 */
+	public static MailMessage toMailMessage(Map<String, Object> message, List<MailAttachment> attachments,
+			Map<String, Object> displayBody, MailRecipients replyRecipients) {
+		String uniqueBody = message.get("uniqueBody") instanceof Map ? textOf((Map<?, ?>) message.get("uniqueBody"))
+				: null;
+		return new MailMessage(ValueUtils.toStringOrNull(message.get("id")),
+				ValueUtils.toStringOrNull(message.get("internetMessageId")),
+				ValueUtils.toStringOrNull(message.get("conversationId")), addressOf(message.get("from")),
+				nameOf(message.get("from")), addresses(message.get("toRecipients")),
+				addresses(message.get("ccRecipients")), ValueUtils.toStringOrNull(message.get("subject")),
+				ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(message.get("sentDateTime"))),
+				ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(message.get("receivedDateTime"))),
+				!Boolean.TRUE.equals(message.get("isRead")), Boolean.TRUE.equals(message.get("hasAttachments")),
+				bodyOf(message), uniqueBody, ValueUtils.toStringOrNull(message.get("webLink")), attachments,
+				displayBody, replyRecipients);
+	}
+
+	/**
+	 * Describe a draft the way the mail reactors that write answer with it.
+	 *
+	 * @param draft       the draft as Graph returned it
+	 * @param body        the body as the caller wrote it, or null to read it off
+	 *                    the draft
+	 * @param html        whether that body is html
+	 * @param attachments the names of the files attached
+	 * @return the draft
+	 */
+	public static ComposedMail toComposedMail(Map<String, Object> draft, String body, boolean html,
+			List<String> attachments) {
+		return new ComposedMail(ValueUtils.toStringOrNull(draft.get("id")),
+				ValueUtils.toStringOrNull(draft.get("conversationId")), ValueUtils.toStringOrNull(draft.get("webLink")),
+				addresses(draft.get("toRecipients")), addresses(draft.get("ccRecipients")),
+				addresses(draft.get("bccRecipients")), ValueUtils.toStringOrNull(draft.get("subject")),
+				body == null ? bodyOf(draft) : body, body != null && html, attachments);
+	}
+
+	/**
+	 * Describe one attachment the way every mail reactor answers with it.
+	 *
+	 * @param attachment the attachment as Graph returned it
+	 * @return the attachment
+	 */
+	public static MailAttachment toMailAttachment(Map<String, Object> attachment) {
+		String type = String.valueOf(attachment.get("@odata.type"));
+		String kind = type.endsWith("itemAttachment") ? MailAttachment.ITEM
+				: type.endsWith("referenceAttachment") ? MailAttachment.LINK : MailAttachment.FILE;
+		Object size = attachment.get("size");
+		return new MailAttachment(ValueUtils.toStringOrNull(attachment.get("id")),
+				ValueUtils.toStringOrNull(attachment.get("name")),
+				ValueUtils.toStringOrNull(attachment.get("contentType")),
+				size instanceof Number ? ((Number) size).longValue() : null,
+				Boolean.TRUE.equals(attachment.get("isInline")), kind);
+	}
+
+	/**
+	 * Describe one folder the way every mail reactor answers with it.
+	 *
+	 * @param folder the folder as Graph returned it
+	 * @return the folder
+	 */
+	public static MailFolder toMailFolder(Map<String, Object> folder) {
+		Object total = folder.get("totalItemCount");
+		Object unread = folder.get("unreadItemCount");
+		return new MailFolder(ValueUtils.toStringOrNull(folder.get("id")),
+				ValueUtils.toStringOrNull(folder.get("displayName")), MailFolder.FOLDER,
+				total instanceof Number ? ((Number) total).longValue() : null,
+				unread instanceof Number ? ((Number) unread).longValue() : null);
+	}
+
+	/**
+	 * @param recipients a recipient collection as Graph returned it
+	 * @return the addresses, empty when there are none
+	 */
+	public static List<String> addresses(Object recipients) {
+		String[] addresses = addressArray(recipients);
+		return addresses == null ? List.of() : List.of(addresses);
 	}
 
 }

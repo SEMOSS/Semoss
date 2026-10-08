@@ -83,6 +83,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossModelEngineException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * SEMOSS-native agent harness.
@@ -1103,7 +1104,7 @@ public class SemossAgentHarness implements IAgentHarness {
 					action.put("executionMode", execVal);
 				}
 			}
-			String resourceURI = uiMeta != null ? stringValue(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
+			String resourceURI = uiMeta != null ? ValueUtils.trimToNull(uiMeta.get(MCPUtility.UI_RESOURCE_URI)) : null;
 			boolean hasUi = resourceURI != null && !resourceURI.trim().isEmpty();
 			action.put("hasUi", hasUi);
 			action.put("uiUrl", hasUi ? resolveUiUrl(resourceURI, meta, action) : null);
@@ -1124,9 +1125,9 @@ public class SemossAgentHarness implements IAgentHarness {
 	 * {@code GetAgentRunAction} on load to fetch the rest from the row.
 	 */
 	private static String resolveUiUrl(String resourceURI, Map<String, Object> toolMeta, Map<String, Object> action) {
-		String projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
+		String projectId = toolMeta != null ? ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_ENGINE_ID)) : null;
 		if (projectId == null) {
-			projectId = toolMeta != null ? stringValue(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
+			projectId = toolMeta != null ? ValueUtils.trimToNull(toolMeta.get(MCPUtility.SMSS_PROJECT_ID)) : null;
 		}
 		if (MCPUtility.ROOM_MCP_ID.equals(projectId)) {
 			// Room scoped tools have no project portal to point at.
@@ -1149,14 +1150,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		// load to fetch the run context and prefill args from the persisted row.
 		return "/Monolith/public_home/" + projectId + "/portals/" + normalizedURI + "?actionId="
 				+ action.get("actionId");
-	}
-
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 	private static void stripHarnessOnlyParams(Map<String, Object> paramMap) {
@@ -1184,11 +1177,11 @@ public class SemossAgentHarness implements IAgentHarness {
 	}
 
 	private static String buildRuntimeContextPromptBlock(AgentRunContext ctx, Room room, Map<String, Object> paramMap) {
-		String roomId = room != null ? trimToNull(room.getId()) : null;
+		String roomId = room != null ? ValueUtils.trimToNull(room.getId()) : null;
 		String workingDir = ctx != null && ctx.getAgentConfig() != null
-				? trimToNull(ctx.getAgentConfig().getWorkingDir())
+				? ValueUtils.trimToNull(ctx.getAgentConfig().getWorkingDir())
 				: null;
-		String projectParam = trimToNull(paramMap != null ? paramMap.get(PARAM_PROJECT) : null);
+		String projectParam = ValueUtils.trimToNull(paramMap != null ? paramMap.get(PARAM_PROJECT) : null);
 		String targetProjectId = firstNonBlank(projectParam,
 				room != null && room.getOptionsMap() != null ? room.getOptionsMap().get("targetProjectId") : null);
 
@@ -1217,7 +1210,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		sb.append("""
 
-
 				## Tool environment
 				- BashCommand, when enabled, allows: %s. One command per call; no pipes, chaining, redirects, \
 				$(), backticks, absolute paths, ~ paths, or .. . \
@@ -1234,7 +1226,6 @@ public class SemossAgentHarness implements IAgentHarness {
 		if (CollaborationUtils.isCollaborationRoom(room)) {
 			sb.append(
 					"""
-
 
 							## Collaboration file delivery
 							- Before reading documents, load collaboration/references/documents/read-and-extract.md \
@@ -1284,20 +1275,12 @@ public class SemossAgentHarness implements IAgentHarness {
 			return null;
 		}
 		for (Object value : values) {
-			String s = trimToNull(value);
+			String s = ValueUtils.trimToNull(value);
 			if (s != null) {
 				return s;
 			}
 		}
 		return null;
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 	private static int lengthOrZero(String s) {

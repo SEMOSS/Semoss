@@ -27,86 +27,30 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.calendar.AbstractGetEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarEvent;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reads one event off the calendar of whoever is signed in.
+ * Reads one event from a Microsoft 365 calendar, the signed in user's own or
+ * one shared or delegated to them.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.Read} for {@code GET /me/events/{id}}</li>
- * </ul>
- * 
- * <p>
- * A listing leaves the body out by default, so this is how a caller reads what
- * a meeting is actually about, along with everybody invited and how they
- * replied.
+ * Required delegated Microsoft Graph scope: {@code Calendars.Read}, and
+ * {@code Calendars.Read.Shared} to read somebody else's.
  * </p>
  */
-public class MicrosoftCalendarGetEventReactor extends AbstractMicrosoftCalendarReactor {
+public class MicrosoftCalendarGetEventReactor extends AbstractGetEventReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarGetEventReactor.class);
-
-	private static final String MAX_BODY_CHARS = "maxBodyChars";
-
-	public MicrosoftCalendarGetEventReactor() {
-		this.keysToGet = new String[] { EVENT_ID, TIME_ZONE, MAX_BODY_CHARS, CALENDAR_ID, MAILBOX };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-
-		String eventId = trimToNull(this.keyValue.get(EVENT_ID));
-		if (eventId == null) {
-			throw new SemossPixelException("An " + EVENT_ID + " is required to read a calendar event.");
-		}
-		String timeZone = trimToNull(this.keyValue.get(TIME_ZONE));
-		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
-		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
-		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			Map<String, Object> event = MicrosoftCalendarHelper.getEvent(accessToken, mailbox, calendarId, eventId,
-					maxBodyChars, timeZone);
-			return new NounMetadata(event, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while reading calendar event '{}'", eventId, e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to read calendar event '{}'", eventId, e);
-			throw new SemossPixelException(
-					"An error occurred reading the calendar event. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Read one event from a Microsoft 365 calendar, the signed in user's own or one shared or delegated to them.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(EVENT_ID)) {
-			return "Id of the event to read, as returned by MicrosoftCalendarListEvents.";
-		} else if (key.equals(MAX_BODY_CHARS)) {
-			return "Optional longest body to return before it is truncated. Defaults to " + DEFAULT_MAX_BODY_CHARS
-					+ ".";
-		}
-		return super.getDescriptionForKey(key);
+	protected CalendarEvent getEvent(User user, String calendarId, String mailbox, String id) throws Exception {
+		return MicrosoftCalendarHelper.getEvent(MicrosoftLoginUtils.getValidAccessToken(user), mailbox, calendarId, id);
 	}
 }

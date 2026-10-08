@@ -37,7 +37,6 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,7 +45,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Strings;
 import org.apache.commons.text.StringSubstitutor;
 import org.apache.logging.log4j.LogManager;
@@ -83,6 +81,7 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.security.TypeReference;
+import prerna.util.ValueUtils;
 import prerna.util.gson.LocalDateTimeAdapter;
 import prerna.util.gson.ZonedDateTimeAdapter;
 
@@ -751,17 +750,13 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return the resolved, trimmed id, or null when there is none
 	 */
 	public static String resolveContextEngineIdOrNull(String engineId, Insight insight) {
-		if (isBlank(engineId) && insight != null) {
+		if (ValueUtils.isBlank(engineId) && insight != null) {
 			engineId = insight.getContextProjectId();
 		}
-		if (isBlank(engineId) && insight != null) {
+		if (ValueUtils.isBlank(engineId) && insight != null) {
 			engineId = insight.getProjectId();
 		}
-		return isBlank(engineId) ? null : engineId.trim();
-	}
-
-	private static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
+		return ValueUtils.isBlank(engineId) ? null : engineId.trim();
 	}
 
 	/**
@@ -2364,7 +2359,7 @@ public abstract class AbstractReactor implements IReactor {
 	 * @return the value, trimmed, or null when the caller left it out
 	 */
 	protected String readString(String key) {
-		return StringUtils.trimToNull(this.keyValue.get(key));
+		return ValueUtils.trimToNull(this.keyValue.get(key));
 	}
 
 	/**
@@ -2414,12 +2409,9 @@ public abstract class AbstractReactor implements IReactor {
 	 */
 	protected Integer readOptionalInt(String key) {
 		String value = readString(key);
-		if (value == null) {
-			return null;
-		}
 		try {
-			return new BigDecimal(value).intValueExact();
-		} catch (NumberFormatException | ArithmeticException e) {
+			return ValueUtils.parseWholeNumber(value);
+		} catch (NumberFormatException e) {
 			throw new SemossPixelException(key + " must be a whole number but received: " + value);
 		}
 	}
@@ -2473,29 +2465,9 @@ public abstract class AbstractReactor implements IReactor {
 		}
 		List<String> values = new ArrayList<>();
 		for (int i = 0; i < grs.size(); i++) {
-			addValue(values, grs.getNoun(i).getValue(), splitCommas);
+			values.addAll(ValueUtils.splitValues(grs.getNoun(i).getValue(), splitCommas));
 		}
 		return values.isEmpty() ? null : values;
-	}
-
-	private static void addValue(List<String> values, Object value, boolean splitCommas) {
-		if (value == null) {
-			return;
-		}
-		if (value instanceof Collection<?> collection) {
-			for (Object item : collection) {
-				addValue(values, item, splitCommas);
-			}
-			return;
-		}
-		// a single value can still be a comma separated list, since that is how
-		// somebody writing the pixel by hand tends to pass more than one
-		String[] entries = splitCommas ? value.toString().split(",") : new String[] { value.toString() };
-		for (String entry : entries) {
-			if (!entry.trim().isEmpty()) {
-				values.add(entry.trim());
-			}
-		}
 	}
 
 	/**

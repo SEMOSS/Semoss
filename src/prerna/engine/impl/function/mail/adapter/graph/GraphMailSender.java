@@ -44,6 +44,7 @@ import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
 import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.util.EmailUtility;
 import prerna.util.EmailUtility.EmailMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Sends through Microsoft Graph.
@@ -81,11 +82,11 @@ public class GraphMailSender implements MailSender {
 		this.tokenProvider = microsoft.tokenProvider();
 
 		this.mail = new MicrosoftOutlookMailHelper(microsoft.graphBaseUrl());
-		this.saveToSentItems = parseBoolean(smssProp.getProperty(MailProperties.SAVE_TO_SENT_ITEMS),
+		this.saveToSentItems = ValueUtils.parseBoolean(smssProp.getProperty(MailProperties.SAVE_TO_SENT_ITEMS),
 				this.saveToSentItems);
 
-		this.sender = trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER));
-		this.senderName = trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER_NAME));
+		this.sender = ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER));
+		this.senderName = ValueUtils.trimToNull(smssProp.getProperty(MailProperties.SMTP_SENDER_NAME));
 		if (this.sender == null) {
 			// unlike a relay, there is no way to post a message without naming the
 			// mailbox it comes from
@@ -173,20 +174,6 @@ public class GraphMailSender implements MailSender {
 			return from.substring(open + 1, close).trim();
 		}
 		return from.trim();
-	}
-
-	private static boolean parseBoolean(String value, boolean defaultValue) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return defaultValue;
-		}
-		return Boolean.parseBoolean(value);
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null || (value = value.trim()).isEmpty()) {
-			return null;
-		}
-		return value;
 	}
 
 }

@@ -34,8 +34,11 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
-/** Opens the Playwright Sockets portal to resolve and replay a room recording. */
+/**
+ * Opens the Playwright Sockets portal to resolve and replay a room recording.
+ */
 public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 
 	private static final String RECORDING_NAME_HINT = "recording_name_hint";
@@ -51,14 +54,14 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 	@Override
 	public NounMetadata execute() {
 		organizeKeys();
-		String hint = trim(this.keyValue.get(RECORDING_NAME_HINT));
-		String fileName = trim(this.keyValue.get(RECORDING_FILE));
+		String hint = ValueUtils.trimToEmpty(this.keyValue.get(RECORDING_NAME_HINT));
+		String fileName = ValueUtils.trimToEmpty(this.keyValue.get(RECORDING_FILE));
 		if (hint.isEmpty() && fileName.isEmpty()) {
 			throw new IllegalArgumentException(
 					"recording_name_hint or recording_file is required. Ask the user which room recording to play.");
 		}
 
-		String startUrl = trim(this.keyValue.get(START_URL));
+		String startUrl = ValueUtils.trimToEmpty(this.keyValue.get(START_URL));
 		if (!startUrl.isEmpty()) {
 			startUrl = OpenPlaywrightSocketsRoomRecordingReactor.normalizeUrl(startUrl);
 		}
@@ -68,15 +71,11 @@ public class PlayPlaywrightSocketsRoomRecordingReactor extends AbstractReactor {
 		result.put("mode", "play_recording");
 		result.put("recording_name_hint", hint);
 		result.put("recording_file", fileName);
-		result.put("project_id", trim(this.keyValue.get(PROJECT_ID)));
+		result.put("project_id", ValueUtils.trimToEmpty(this.keyValue.get(PROJECT_ID)));
 		result.put("start_url", startUrl);
 		result.put("instructions",
 				"The Playwright Sockets UI will open, find the closest matching recording in the current Playground room, and replay it. An accessible project recording may be used as a fallback.");
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
-	}
-
-	private static String trim(String value) {
-		return value == null ? "" : value.trim();
 	}
 
 	@Override

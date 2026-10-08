@@ -54,9 +54,9 @@ import jakarta.mail.Multipart;
 import jakarta.mail.Part;
 import jakarta.mail.internet.MimeUtility;
 import prerna.engine.impl.function.mail.attachment.AttachmentStore;
-import prerna.engine.impl.function.mail.config.MailProperties;
 import prerna.engine.impl.function.mail.policy.MailReadPolicy;
 import prerna.om.Insight;
+import prerna.util.ValueUtils;
 
 /**
  * Turns a MIME message into the map a caller of these engines receives.
@@ -249,7 +249,7 @@ public final class JakartaMessageMapper {
 		if (part.getSize() > 0) {
 			output.put("size", part.getSize());
 		}
-		putIfPresent(output, "contentType", MailProperties.trimToNull(part.getContentType()));
+		putIfPresent(output, "contentType", ValueUtils.trimToNull(part.getContentType()));
 
 		if (download && insight == null) {
 			classLogger.warn("Attachments can only be downloaded from within an insight that holds the files");
@@ -294,7 +294,7 @@ public final class JakartaMessageMapper {
 	 */
 	public static String firstHeader(Message message, String headerName) throws MessagingException {
 		String[] values = message.getHeader(headerName);
-		return values == null || values.length == 0 ? null : MailProperties.trimToNull(values[0]);
+		return values == null || values.length == 0 ? null : ValueUtils.trimToNull(values[0]);
 	}
 
 	/**

@@ -165,7 +165,6 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 
 	private static final String TEAMS_SITES_SELECTED_NOTE = """
 
-
 			Note that Sites.Selected only authorizes requests addressed under /sites/{id}, and this
 			engine resolves its root through /groups and /teams, which are not gated by it. It therefore
 			cannot work with a site scoped grant at all. Use the SHAREPOINT storage type pointed at the
@@ -970,7 +969,4 @@ public abstract class AbstractMicrosoftGraphStorageEngine extends AbstractStorag
 		return value.toString().trim();
 	}
 
-	protected static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
-	}
 }

@@ -50,6 +50,7 @@ import prerna.io.connector.calendar.EventRequest;
 import prerna.io.connector.calendar.EventTime;
 import prerna.io.connector.calendar.Recurrence;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.util.ValueUtils;
 
 /**
  * Turns the json Google Calendar returns into the records every calendar
@@ -142,10 +143,12 @@ public final class GoogleCalendarEventMapper {
 		Map<?, ?> organizer = event.get("organizer") instanceof Map<?, ?> map ? map : Map.of();
 		Object colorId = event.get("colorId");
 		String zone = start.get("timeZone") == null ? calendarZone : start.get("timeZone").toString();
-		return new CalendarEvent(stringOf(event.get("id")), stringOf(event.get("summary")), timeOf(start), timeOf(end),
-				zone, isAllDay, stringOf(event.get("location")), stringOf(organizer.get("email")),
-				stringOf(organizer.get("displayName")), attendees(event.get("attendees")),
-				stringOf(event.get("htmlLink")), joinUrl, joinUrl != null, "cancelled".equals(event.get("status")),
+		return new CalendarEvent(ValueUtils.toStringOrNull(event.get("id")),
+				ValueUtils.toStringOrNull(event.get("summary")), timeOf(start), timeOf(end), zone, isAllDay,
+				ValueUtils.toStringOrNull(event.get("location")), ValueUtils.toStringOrNull(organizer.get("email")),
+				ValueUtils.toStringOrNull(organizer.get("displayName")), attendees(event.get("attendees")),
+				ValueUtils.toStringOrNull(event.get("htmlLink")), joinUrl, joinUrl != null,
+				"cancelled".equals(event.get("status")),
 				"transparent".equals(event.get("transparency")) ? "free" : "busy", null, ownResponse(event, organizer),
 				reminderOf(event.get("reminders")), colorId == null ? List.of() : List.of(colorId.toString()),
 				event.get("recurringEventId") != null || event.get("recurrence") != null,
@@ -160,8 +163,8 @@ public final class GoogleCalendarEventMapper {
 	 * @return the calendar
 	 */
 	public static CalendarInfo toCalendar(Map<String, Object> entry, String account) {
-		String id = stringOf(entry.get("id"));
-		String role = stringOf(entry.get("accessRole"));
+		String id = ValueUtils.toStringOrNull(entry.get("id"));
+		String role = ValueUtils.toStringOrNull(entry.get("accessRole"));
 		boolean primary = Boolean.TRUE.equals(entry.get("primary"));
 		boolean owns = "owner".equals(role);
 		boolean writes = owns || "writer".equals(role);
@@ -169,10 +172,10 @@ public final class GoogleCalendarEventMapper {
 		// is named by their address
 		String owner = primary || owns ? account
 				: id != null && id.contains("@") && !id.endsWith("calendar.google.com") ? id : null;
-		String name = entry.get("summaryOverride") != null ? stringOf(entry.get("summaryOverride"))
-				: stringOf(entry.get("summary"));
-		return new CalendarInfo(id, name, stringOf(entry.get("backgroundColor")), owner, null, writes, owns, writes,
-				primary, !owns);
+		String name = entry.get("summaryOverride") != null ? ValueUtils.toStringOrNull(entry.get("summaryOverride"))
+				: ValueUtils.toStringOrNull(entry.get("summary"));
+		return new CalendarInfo(id, name, ValueUtils.toStringOrNull(entry.get("backgroundColor")), owner, null, writes,
+				owns, writes, primary, !owns);
 	}
 
 	/**
@@ -183,9 +186,9 @@ public final class GoogleCalendarEventMapper {
 	 * @return the calendar
 	 */
 	public static CalendarInfo toSharedCalendar(Map<String, Object> calendar) {
-		String id = stringOf(calendar.get("id"));
-		return new CalendarInfo(id, stringOf(calendar.get("summary")), null, id, null, false, false, false, false,
-				true);
+		String id = ValueUtils.toStringOrNull(calendar.get("id"));
+		return new CalendarInfo(id, ValueUtils.toStringOrNull(calendar.get("summary")), null, id, null, false, false,
+				false, false, true);
 	}
 
 	/**
@@ -196,9 +199,10 @@ public final class GoogleCalendarEventMapper {
 	 */
 	public static CalendarPermission toPermission(Map<String, Object> rule) {
 		Map<?, ?> scope = rule.get("scope") instanceof Map<?, ?> map ? map : Map.of();
-		String role = roleOf(stringOf(rule.get("role")));
-		return new CalendarPermission(stringOf(rule.get("id")), role, stringOf(scope.get("value")), null, null,
-				"domain".equals(scope.get("type")), !"owner".equals(role), false);
+		String role = roleOf(ValueUtils.toStringOrNull(rule.get("role")));
+		return new CalendarPermission(ValueUtils.toStringOrNull(rule.get("id")), role,
+				ValueUtils.toStringOrNull(scope.get("value")), null, null, "domain".equals(scope.get("type")),
+				!"owner".equals(role), false);
 	}
 
 	/**
@@ -217,15 +221,17 @@ public final class GoogleCalendarEventMapper {
 			if (calendar.get("busy") instanceof List<?> periods) {
 				for (Object period : periods) {
 					if (period instanceof Map<?, ?> times) {
-						busy.add(new Availability.Busy(ConnectorTimes.parseProviderTime(stringOf(times.get("start"))),
-								ConnectorTimes.parseProviderTime(stringOf(times.get("end"))), "busy", null, null));
+						busy.add(new Availability.Busy(
+								ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(times.get("start"))),
+								ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(times.get("end"))), "busy",
+								null, null));
 					}
 				}
 			}
 			String error = null;
 			if (calendar.get("errors") instanceof List<?> errors && !errors.isEmpty()
 					&& errors.get(0) instanceof Map<?, ?> first) {
-				error = stringOf(first.get("reason"));
+				error = ValueUtils.toStringOrNull(first.get("reason"));
 			}
 			entries.add(new Availability(address, busy, error));
 		}
@@ -409,8 +415,9 @@ public final class GoogleCalendarEventMapper {
 			}
 			String type = Boolean.TRUE.equals(attendee.get("resource")) ? "resource"
 					: Boolean.TRUE.equals(attendee.get("optional")) ? "optional" : "required";
-			described.add(new EventAttendee(stringOf(attendee.get("email")), stringOf(attendee.get("displayName")),
-					type, responseOf(stringOf(attendee.get("responseStatus")))));
+			described.add(new EventAttendee(ValueUtils.toStringOrNull(attendee.get("email")),
+					ValueUtils.toStringOrNull(attendee.get("displayName")), type,
+					responseOf(ValueUtils.toStringOrNull(attendee.get("responseStatus")))));
 		}
 		return described;
 	}
@@ -422,7 +429,7 @@ public final class GoogleCalendarEventMapper {
 		if (event.get("attendees") instanceof List<?> guests) {
 			for (Object guest : guests) {
 				if (guest instanceof Map<?, ?> attendee && Boolean.TRUE.equals(attendee.get("self"))) {
-					return responseOf(stringOf(attendee.get("responseStatus")));
+					return responseOf(ValueUtils.toStringOrNull(attendee.get("responseStatus")));
 				}
 			}
 		}
@@ -500,7 +507,4 @@ public final class GoogleCalendarEventMapper {
 		return text.trim();
 	}
 
-	private static String stringOf(Object value) {
-		return value == null ? null : value.toString();
-	}
 }

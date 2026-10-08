@@ -48,8 +48,8 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentHarnessRegistry;
 import prerna.reactor.agent.AgentRunContext;
-import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.AgentRunTarget;
+import prerna.reactor.agent.AgentRunner;
 import prerna.reactor.agent.config.AgentConfig;
 import prerna.reactor.agent.exceptions.AgentMaxSpawnDepthException;
 import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
@@ -58,6 +58,7 @@ import prerna.reactor.agent.run.AgentRunRequest;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.comm.PixelJobManager;
+import prerna.util.ValueUtils;
 
 /**
  * Process-wide registry for SEMOSS subagent runs.
@@ -185,8 +186,7 @@ public final class AgentSubAgentRegistry {
 		}
 
 		if (childDepth > policy.getMaxSubagentDepth()) {
-			logger.warn(
-					"AgentSubAgentRegistry: spawn REJECTED - childDepth={} > maxSubagentDepth={} (parentJobId={})",
+			logger.warn("AgentSubAgentRegistry: spawn REJECTED - childDepth={} > maxSubagentDepth={} (parentJobId={})",
 					childDepth, policy.getMaxSubagentDepth(), req.parentJobId);
 			throw new AgentMaxSpawnDepthException(childDepth, policy.getMaxSubagentDepth());
 		}
@@ -589,17 +589,17 @@ public final class AgentSubAgentRegistry {
 		if (namedSpawn) {
 			return null;
 		}
-		String explicitContext = trimToNull(req.additionalContext);
+		String explicitContext = ValueUtils.trimToNull(req.additionalContext);
 		if (explicitContext != null) {
 			return explicitContext;
 		}
-		return trimToNull(req.parentAuthoredSystemPrompt);
+		return ValueUtils.trimToNull(req.parentAuthoredSystemPrompt);
 	}
 
 	private static boolean workspaceHasConfiguredModel(String workspaceId) {
 		try {
 			JSONObject config = ModelInferenceLogsUtils.getWorkspaceConfigJson(workspaceId.trim());
-			return config != null && trimToNull(config.optString("model_id", null)) != null;
+			return config != null && ValueUtils.trimToNull(config.optString("model_id", null)) != null;
 		} catch (Exception e) {
 			logger.warn(
 					"Unable to resolve model_id for named subagent workspace '{}'; falling back to parent model: {}",
@@ -608,11 +608,4 @@ public final class AgentSubAgentRegistry {
 		}
 	}
 
-	private static String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		return trimmed.isEmpty() ? null : trimmed;
-	}
 }

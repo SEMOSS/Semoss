@@ -37,6 +37,7 @@ import prerna.io.connector.ms.MicrosoftLoginUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Reads one message posted in a Teams channel, or one reply to it.
@@ -68,10 +69,10 @@ public class MicrosoftTeamsGetChannelMessageReactor extends AbstractMicrosoftTea
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
-		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));
-		String messageId = trimToNull(this.keyValue.get(MESSAGE_ID));
-		String replyId = trimToNull(this.keyValue.get(REPLY_ID));
+		String teamId = ValueUtils.trimToNull(this.keyValue.get(TEAM_ID));
+		String channelId = ValueUtils.trimToNull(this.keyValue.get(CHANNEL_ID));
+		String messageId = ValueUtils.trimToNull(this.keyValue.get(MESSAGE_ID));
+		String replyId = ValueUtils.trimToNull(this.keyValue.get(REPLY_ID));
 		boolean includeReplies = Boolean.parseBoolean(this.keyValue.get(INCLUDE_REPLIES));
 		int maxBodyChars = positiveInt(MAX_BODY_CHARS, DEFAULT_MAX_BODY_CHARS, Integer.MAX_VALUE);
 

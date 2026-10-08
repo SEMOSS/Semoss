@@ -52,6 +52,7 @@ import prerna.io.connector.mail.MailMessage;
 import prerna.io.connector.mail.MailRecipientRules;
 import prerna.io.connector.mail.MailRecipients;
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.util.ValueUtils;
 
 /**
  * Turns the json Gmail returns for a message or a label into the records every
@@ -111,7 +112,7 @@ public final class GoogleGmailMessageMapper {
 		String text = textBody(leaves, html);
 		List<MailAttachment> attachments = attachments(leaves);
 		InternetAddress sender = firstAddress(header(payload, "From"));
-		String threadId = stringOf(message.get("threadId"));
+		String threadId = ValueUtils.toStringOrNull(message.get("threadId"));
 
 		Map<String, Object> displayBody = null;
 		if (includeDisplayBody) {
@@ -126,7 +127,7 @@ public final class GoogleGmailMessageMapper {
 				addresses(header(payload, "Reply-To")), sender == null ? null : sender.getAddress(),
 				addresses(header(payload, "To")), addresses(header(payload, "Cc")), account) : null;
 
-		return new MailMessage(stringOf(message.get("id")), header(payload, "Message-ID"), threadId,
+		return new MailMessage(ValueUtils.toStringOrNull(message.get("id")), header(payload, "Message-ID"), threadId,
 				sender == null ? null : sender.getAddress(), sender == null ? null : blankToNull(sender.getPersonal()),
 				addresses(header(payload, "To")), addresses(header(payload, "Cc")), header(payload, "Subject"),
 				parseDate(header(payload, "Date")), internalDate(message.get("internalDate")),
@@ -145,8 +146,8 @@ public final class GoogleGmailMessageMapper {
 		boolean system = "system".equalsIgnoreCase(String.valueOf(label.get("type")));
 		Object total = label.get("messagesTotal");
 		Object unread = label.get("messagesUnread");
-		String id = stringOf(label.get("id"));
-		return new MailFolder(id, system ? systemName(id) : stringOf(label.get("name")),
+		String id = ValueUtils.toStringOrNull(label.get("id"));
+		return new MailFolder(id, system ? systemName(id) : ValueUtils.toStringOrNull(label.get("name")),
 				system ? MailFolder.SYSTEM : MailFolder.LABEL,
 				total instanceof Number ? ((Number) total).longValue() : null,
 				unread instanceof Number ? ((Number) unread).longValue() : null);
@@ -293,9 +294,9 @@ public final class GoogleGmailMessageMapper {
 			return null;
 		}
 		if (sentOrDraft.get("message") instanceof Map<?, ?> message) {
-			return stringOf(message.get("threadId"));
+			return ValueUtils.toStringOrNull(message.get("threadId"));
 		}
-		return stringOf(sentOrDraft.get("threadId"));
+		return ValueUtils.toStringOrNull(sentOrDraft.get("threadId"));
 	}
 
 	/**
@@ -407,9 +408,9 @@ public final class GoogleGmailMessageMapper {
 			// a part with a content id is shown in the body unless it says it is attached
 			boolean inline = kind.startsWith("inline")
 					|| (header(part, "Content-ID") != null && !kind.startsWith("attachment"));
-			attachments.add(
-					new MailAttachment(partId(part), stringOf(part.get("filename")), stringOf(part.get("mimeType")),
-							size instanceof Number ? ((Number) size).longValue() : null, inline, MailAttachment.FILE));
+			attachments.add(new MailAttachment(partId(part), ValueUtils.toStringOrNull(part.get("filename")),
+					ValueUtils.toStringOrNull(part.get("mimeType")),
+					size instanceof Number ? ((Number) size).longValue() : null, inline, MailAttachment.FILE));
 		}
 		return attachments;
 	}
@@ -492,7 +493,4 @@ public final class GoogleGmailMessageMapper {
 		return value == null || value.isBlank() ? null : value.trim();
 	}
 
-	private static String stringOf(Object value) {
-		return value == null ? null : value.toString();
-	}
 }
