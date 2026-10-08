@@ -214,6 +214,8 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("SUBJECT", VARCHAR_255),
 				Pair.with("MUTED", BOOLEAN_DATATYPE_NAME),
 				Pair.with("AUTOMATED", BOOLEAN_DATATYPE_NAME),
+				// the owner said this thread is not automated; no later run may flag it again
+				Pair.with("AUTOMATED_OVERRIDE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("GOAL", CLOB_DATATYPE_NAME),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),

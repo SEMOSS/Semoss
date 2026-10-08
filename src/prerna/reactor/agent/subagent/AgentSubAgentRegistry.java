@@ -56,6 +56,7 @@ import prerna.reactor.agent.exceptions.AgentSpawnBudgetExhaustedException;
 import prerna.reactor.agent.run.AgentRunHandle;
 import prerna.reactor.agent.run.AgentRunRequest;
 import prerna.reactor.agent.run.AgentRunService;
+import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.comm.PixelJobManager;
 
 /**
@@ -215,6 +216,8 @@ public final class AgentSubAgentRegistry {
 			// parent-specific runtime context. The child must compose its own runtime
 			// prompt from a clean authored system prompt.
 			clonedOptions.remove(ROOM_OPTION_INSTRUCTIONS);
+			// Schema loads belong to the parent's room, not the new child room.
+			clonedOptions.remove(DeferredAgentTools.LOADED_OPTION);
 
 			boolean namedSpawn = req.workspaceId != null && !req.workspaceId.trim().isEmpty();
 			boolean namedWorkspaceHasModel = namedSpawn && workspaceHasConfiguredModel(req.workspaceId);

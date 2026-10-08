@@ -80,7 +80,7 @@ policy are unchanged; old cards are not automatically reclassified.
 
 `useDefaultAgentTools` and `disabledDefaultTools` control the agent's general built-in tools. Default-tool availability can also be supplied by a deployment-configured MCP project. Explicit resource attachments and their permission checks still matter; a skill does not grant an engine, filesystem, or tool permission.
 
-Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
+Tool execution mode such as `SMSS_MCP_EXECUTION=ask` requires an approval decision; see [MCP tools and `_meta` options](mcp_tools.md) for every tool metadata key, including deferred loading. The executor persists that decision point as a run action. [Tool hooks](../../src/prerna/reactor/agent/IToolHook.java) participate before and after dispatch; run hooks surround the overall harness lifecycle.
 
 ## Budgets and limits
 

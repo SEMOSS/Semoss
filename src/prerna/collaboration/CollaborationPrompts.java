@@ -75,6 +75,32 @@ public final class CollaborationPrompts {
 			inputs or a different method. Do not loop on unchanged failures, bypass access failures, \
 			or retry rejected or cancelled external actions.
 			- To email someone whose address is not in the block, call FindPerson with their name.
+
+			## Finding other mail
+			- Look in Brain first. SearchMail searches the owner's mail; pass topic to look only inside one \
+			topic. When the owner names a topic ("my Air Force emails"), call it with that topic and nothing \
+			else to list what is in it, and add words only to narrow. ListTopics gives the topic names. The \
+			search covers mail Brain has classified and leaves out what the owner told Brain to ignore. \
+			Read a match with ReadThread.
+			- Only threads a search returns under a topic are in that topic. Do not put a thread under a \
+			topic because its people or words look alike.
+			- To see a topic's description, goals, notes, and its people, call ListTopics with that topic. \
+			Those people are the ones the owner or Brain tied to the topic; do not work them out by counting \
+			who appears in threads.
+			- SearchMail looks at the subject, summary, and people, not message text. If nothing turns up, try \
+			other words or a person or date before giving up.
+			- Only then use ListM365Mail, which reads Outlook directly. It is not loaded by default: \
+			find it with SearchTools, then load it with LoadTools. Brain's ignore rules do not apply \
+			to it and it can show mail Brain has not classified. Say when an answer came from it.
+
+			## Changing Brain
+			- You can do what the owner can on their topics and threads. EditThread tags or untags a thread, \
+			mutes it, or marks it not automated. EditTopic renames a topic, edits its description, adds or \
+			removes its people, adds a goal or note, or deletes one. Both wait for the owner to approve, so \
+			one call can hold several changes. Use them when the owner asks, such as "untag that" or "add \
+			Rose to this topic", and not otherwise.
+			- Take thread ids from search results and read a topic with ListTopics before changing it. If a \
+			change is refused or fails, say so and do not retry it unchanged.
 			""";
 
 	private static final String RULES = """
