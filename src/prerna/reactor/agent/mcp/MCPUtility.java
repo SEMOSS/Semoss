@@ -125,9 +125,15 @@ public final class MCPUtility {
 	public static final String UI_DISPLAY_LOCATION = "displayLocation";
 	public static final String UI_AUTO_OPEN = "autoOpen";
 	/**
-	 * What a tool call holds, so a page can show it with a native element: a
-	 * chat card, or a panel such as a query editor. Pages that do not know the
-	 * name show the generic tool view.
+	 * Starts a {@link #UI_RESOURCE_URI} naming one of the client's own components
+	 * as the tool's view, such as {@code component://mail/list?provider=google},
+	 * which the client renders in the page rather than loading a portal.
+	 */
+	public static final String UI_COMPONENT_SCHEME = "component://";
+	/**
+	 * What a tool call holds, so a page can show it with a native element: a chat
+	 * card, or a panel such as a query editor. Pages that do not know the name show
+	 * the generic tool view.
 	 */
 	public static final String UI_COMPONENT = "component";
 
@@ -688,7 +694,8 @@ public final class MCPUtility {
 			}
 		}
 		ModelTypeEnum modelType = modelEngine.getModelType();
-		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at 64
+		// OpenAI's Responses API allows 128-char tool names; Chat Completions stays at
+		// 64
 		if (modelType == ModelTypeEnum.OPEN_AI && smssProp != null
 				&& "responses".equalsIgnoreCase(smssProp.getProperty("CHAT_TYPE", "").trim())) {
 			return OPENAI_RESPONSES_MAX_TOOL_NAME_LENGTH;
@@ -1352,8 +1359,8 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI
-	 * keys every tool builder passes through as they are.
+	 * Copies the {@link #UI_COMPONENT} and {@link #UI_AUTO_OPEN} hints, the UI keys
+	 * every tool builder passes through as they are.
 	 */
 	public static void copyUiHints(Map<String, ?> from, JSONObject to) {
 		if (from == null) {
@@ -1563,13 +1570,13 @@ public final class MCPUtility {
 	 * A tool can hand back a model response that carries generated media, such as
 	 * an image model called through the LLM reactor. Left as is, that result is
 	 * megabytes of base64 text: too large for the browser to post back, far more
-	 * than the calling model should read, and replayed with every later turn of
-	 * the room.
+	 * than the calling model should read, and replayed with every later turn of the
+	 * room.
 	 * <p>
 	 * Each MEDIA part holding base64 data is written to the room folder, and the
 	 * result is replaced by a {@code SEMOSSMultimodalToolResponse} envelope that
-	 * names those files relative to the room. Image and PDF references are
-	 * expanded back into inline data only in the payload sent to the model (see
+	 * names those files relative to the room. Image and PDF references are expanded
+	 * back into inline data only in the payload sent to the model (see
 	 * {@code MessageUtils#toJsonArrayWithImageData}); other media is named in the
 	 * text only.
 	 *
@@ -1672,8 +1679,8 @@ public final class MCPUtility {
 	}
 
 	/**
-	 * Writes one tool media part into the room folder under its own file name, or
-	 * a generated one when it has none. An existing file is never replaced, since
+	 * Writes one tool media part into the room folder under its own file name, or a
+	 * generated one when it has none. An existing file is never replaced, since
 	 * earlier turns may still reference it.
 	 *
 	 * @param roomFolder the room folder
