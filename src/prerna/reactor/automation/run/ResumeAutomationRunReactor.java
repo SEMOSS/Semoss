@@ -38,6 +38,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Continues a durable Automation run after its trace-linked child agent reaches
@@ -85,6 +86,8 @@ public class ResumeAutomationRunReactor extends AbstractReactor {
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, null).resumeWaitingRun(runId,
 				projectId);
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_RESUME", projectId, runId,
+				null, null);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

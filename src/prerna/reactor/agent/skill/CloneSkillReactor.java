@@ -49,6 +49,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.AssetUtility;
 
 /**
@@ -169,6 +170,8 @@ public class CloneSkillReactor extends AbstractReactor {
 		response.put("name", newName);
 		response.put("slug", newSlug);
 		response.put("source_skill_id", sourceSkillId);
+		UserAuditTrailUtils.recordResourceEvent(user, "SKILL_CREATE", "SKILL", newSkillId, newName, newSkillId, null,
+				null, Map.of("clonedFrom", sourceSkillId));
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 

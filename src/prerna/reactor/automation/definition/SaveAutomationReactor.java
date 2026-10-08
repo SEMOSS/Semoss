@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Validates and saves an automation graph definition and its per-node Python
@@ -80,6 +81,10 @@ public class SaveAutomationReactor extends AbstractReactor {
 		result.put(AutomationConstants.DOC_NODE_SOURCES, files.nodeSources());
 		result.put(AutomationConstants.RESULT_REVISION,
 				AutomationDefinitionService.calculateRevision(files.definition(), files.nodeSources()));
+		// only the revision hash and node count are audited, never the workflow source
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_UPDATE", projectId, null, null,
+				Map.of("revision", String.valueOf(result.get(AutomationConstants.RESULT_REVISION)), "nodeSourceCount",
+						files.nodeSources() == null ? 0 : files.nodeSources().size()));
 		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
 				.parseAndValidateForAuthoring(files.definition());
 		result.put(AutomationConstants.DOC_GLOBALS, AutomationRuntime.declaredGlobals(validated));

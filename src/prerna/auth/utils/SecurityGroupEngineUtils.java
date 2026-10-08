@@ -449,8 +449,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, userDetails.getValue0());
 						ps.setString(parameterIndex++, userDetails.getValue1());
 					});
-			UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null, groupId,
-					groupType, permission, endDate == null ? null : Map.of("endDate", endDate));
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "ENGINE", engineId, null, null,
+					engineId, null, groupId, groupType, null, permission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -552,8 +553,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, groupType);
 						ps.setString(parameterIndex++, engineId);
 					});
-			UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null, groupId,
-					groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "ENGINE", engineId, null, null,
+					engineId, null, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
 					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
@@ -607,8 +609,9 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, groupType);
 						ps.setString(parameterIndex++, engineId);
 					});
-			UserAuditTrailUtils.recordPermissionDelete(user, "ENGINE", engineId, null, null, engineId, null, groupId,
-					groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null);
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "ENGINE", engineId, null, null,
+					engineId, null, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null, null);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

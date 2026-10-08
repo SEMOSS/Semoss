@@ -45,6 +45,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.usertracking.UserTrackingUtils;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.UploadUtilities;
 import prerna.util.Utility;
 
@@ -108,6 +109,8 @@ public class CreateAutomationReactor extends AbstractReactor {
 		}
 
 		classLogger.info("Created automation project '{}' with id {}", projectName, projectId);
+		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("AUTOMATION_CREATE")
+				.actorUser(user).target("AUTOMATION", projectId, projectName).context(projectId, null, null, null));
 
 		Map<String, Object> result = UploadUtilities.getProjectReturnData(user, projectId);
 		return new NounMetadata(result, PixelDataType.UPLOAD_RETURN_MAP, PixelOperationType.MARKET_PLACE_ADDITION);

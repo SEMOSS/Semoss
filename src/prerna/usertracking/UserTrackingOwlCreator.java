@@ -29,6 +29,7 @@ package prerna.usertracking;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import org.javatuples.Pair;
 
@@ -113,29 +114,73 @@ public class UserTrackingOwlCreator extends AbstractOwlCreator {
 				Pair.with("TOTAL_EXECUTION_TIME", "BIGINT"),
 				Pair.with("FAILED_EXECUTION", BOOLEAN_DATATYPE_NAME)));
 
-		addTable("USER_AUDIT_EVENTS", Arrays.asList(
+		addTable(UserAuditTrailUtils.TABLE, Arrays.asList(
+				// event
 				Pair.with("EVENT_ID", VARCHAR_255),
 				Pair.with("EVENT_TIME", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("EVENT_OCCURRED_TIME", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("EVENT_TYPE", VARCHAR_255),
 				Pair.with("ACTION", VARCHAR_255),
 				Pair.with("STATUS", "VARCHAR(50)"),
+				Pair.with("CATEGORY", "VARCHAR(100)"),
+				Pair.with("SEVERITY", "VARCHAR(50)"),
+				// actor
 				Pair.with("ACTOR_USER_ID", VARCHAR_255),
 				Pair.with("ACTOR_USER_TYPE", VARCHAR_255),
 				Pair.with("ACTOR_USER_NAME", VARCHAR_255),
-				Pair.with("SESSION_ID", VARCHAR_255),
+				Pair.with("ACTOR_IS_ADMIN", BOOLEAN_DATATYPE_NAME),
+				// affected user
+				Pair.with("SUBJECT_USER_ID", VARCHAR_255),
+				Pair.with("SUBJECT_USER_TYPE", VARCHAR_255),
+				Pair.with("SUBJECT_USER_NAME", VARCHAR_255),
+				// request
+				Pair.with("SESSION_ID_HASH", VARCHAR_255),
 				Pair.with("REQUEST_ID", VARCHAR_255),
 				Pair.with("IP_ADDR", VARCHAR_255),
+				Pair.with("USER_AGENT", "VARCHAR(1000)"),
+				Pair.with("HTTP_METHOD", "VARCHAR(20)"),
+				Pair.with("REQUEST_PATH", "VARCHAR(2000)"),
+				Pair.with("HTTP_STATUS", INTEGER_DATATYPE_NAME),
+				// target
 				Pair.with("TARGET_TYPE", VARCHAR_255),
 				Pair.with("TARGET_ID", VARCHAR_255),
 				Pair.with("TARGET_NAME", "VARCHAR(1000)"),
+				// resource context
 				Pair.with("PROJECT_ID", VARCHAR_255),
 				Pair.with("ENGINE_ID", VARCHAR_255),
 				Pair.with("INSIGHT_ID", VARCHAR_255),
 				Pair.with("ROOM_ID", VARCHAR_255),
+				// change
 				Pair.with("OLD_VALUE", CLOB_DATATYPE_NAME),
 				Pair.with("NEW_VALUE", CLOB_DATATYPE_NAME),
 				Pair.with("DETAILS", CLOB_DATATYPE_NAME),
-				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME)));
+				// failure
+				Pair.with("ERROR_CODE", VARCHAR_255),
+				Pair.with("ERROR_MESSAGE", CLOB_DATATYPE_NAME),
+				// source
+				Pair.with("SOURCE_APP", "VARCHAR(100)"),
+				Pair.with("SOURCE_MODULE", VARCHAR_255),
+				Pair.with("SOURCE_CLASS", VARCHAR_255),
+				// optional integrity
+				Pair.with("HASH_PREVIOUS", "VARCHAR(100)"),
+				Pair.with("HASH_CURRENT", "VARCHAR(100)")));
 		// @formatter:on
+	}
+
+	/**
+	 * Indexes that keep the admin audit queries (newest first, filtered by actor,
+	 * target, or resource) from scanning the whole table.
+	 *
+	 * @return audit table indexes
+	 */
+	public static List<OwlIndex> getIndexes() {
+		String table = UserAuditTrailUtils.TABLE;
+		return List.of(OwlIndex.of("USER_AUDIT_EVENTS_TIME_INDEX", table, "EVENT_TIME"),
+				OwlIndex.of("USER_AUDIT_EVENTS_TYPE_INDEX", table, "EVENT_TYPE"),
+				OwlIndex.of("USER_AUDIT_EVENTS_ACTOR_INDEX", table, "ACTOR_USER_ID"),
+				OwlIndex.of("USER_AUDIT_EVENTS_SUBJECT_INDEX", table, "SUBJECT_USER_ID"),
+				OwlIndex.of("USER_AUDIT_EVENTS_TARGET_INDEX", table, "TARGET_ID"),
+				OwlIndex.of("USER_AUDIT_EVENTS_PROJECT_INDEX", table, "PROJECT_ID"),
+				OwlIndex.of("USER_AUDIT_EVENTS_ENGINE_INDEX", table, "ENGINE_ID"));
 	}
 }

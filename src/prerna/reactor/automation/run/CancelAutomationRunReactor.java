@@ -42,6 +42,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Requests cancellation of a running or agent-waiting automation. Active
@@ -107,7 +108,10 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 
 		String status = (String) runDetail.get(AutomationConstants.STATUS);
 		if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(status)) {
-			return cancelWaitingAgentRun(projectId, runId);
+			NounMetadata cancelled = cancelWaitingAgentRun(projectId, runId);
+			UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_CANCEL", projectId,
+					runId, null, Map.of("previousStatus", status));
+			return cancelled;
 		}
 		if (!AutomationConstants.STATUS_RUNNING.equals(status)) {
 			throw new IllegalArgumentException(
@@ -123,6 +127,8 @@ public class CancelAutomationRunReactor extends AbstractReactor {
 		boolean signalledLocally = AutomationRunRegistry.requestCancellation(runId);
 
 		classLogger.info("Cancel requested for automation run {}: signalledLocally={}", runId, signalledLocally);
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_CANCEL", projectId, runId,
+				null, Map.of("previousStatus", status));
 
 		Map<String, Object> result = new HashMap<>();
 		result.put(AutomationConstants.RUN_ID, runId);

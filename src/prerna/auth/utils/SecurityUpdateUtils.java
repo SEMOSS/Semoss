@@ -33,7 +33,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -52,6 +54,7 @@ import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -619,6 +622,15 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 				}
 				ps.setTimestamp(parameterIndex++, timestamp);
 			});
+			Map<String, Object> created = new HashMap<>();
+			created.put("name", name);
+			created.put("email", email);
+			created.put("admin", admin);
+			created.put("publisher", publisher);
+			created.put("exporter", exporter);
+			UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType("USER_CREATE")
+					.severity(admin ? UserAuditTrailUtils.SEVERITY_CRITICAL : null).subject(id, type, name)
+					.target("USER", id, name).newValue(created));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

@@ -39,8 +39,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -75,6 +77,7 @@ import prerna.query.querystruct.selectors.QueryIfSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
@@ -89,6 +92,74 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	private SecurityAdminUtils() {
 
+	}
+
+	/**
+	 * Every method on this class is only reachable by an admin (see
+	 * {@link #getInstance(User)}), so admin audit events mark the actor as an admin.
+	 */
+	private static UserAuditTrailUtils.AuditEvent adminAudit(User actor, String eventType) {
+		return new UserAuditTrailUtils.AuditEvent().eventType(eventType).action(eventType).actorUser(actor)
+				.actorIsAdmin(true);
+	}
+
+	private static void auditEngineUpdate(String engineId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, "ENGINE_UPDATE")
+				.target(SecurityEngineUtils.getAuditEngineTypeName(engineId), engineId,
+						SecurityEngineUtils.getEngineDisplayNameForId(engineId))
+				.context(null, engineId, null, null).details(details));
+	}
+
+	private static void auditProjectUpdate(String projectId, Map<String, Object> details) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, "PROJECT_UPDATE").target("PROJECT", projectId, null)
+				.context(projectId, null, null, null).details(details));
+	}
+
+	private static void auditAdminPermissionDelete(String targetType, String targetId, String projectId,
+			String engineId, String insightId, String removedUserId, Integer previousPermission) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, "PERMISSION_DELETE").subject(removedUserId, null, null)
+				.target(targetType, targetId, null).context(projectId, engineId, insightId, null)
+				.oldValue(previousPermission == null ? null
+						: Map.of("permission", AccessPermissionEnum.getPermissionValueById(previousPermission))));
+	}
+
+	private static void auditAccountLock(String action, int numDaysSinceLastLogin, int accountsUpdated) {
+		UserAuditTrailUtils.recordEvent(adminAudit(null, "USER_DEACTIVATE").action(action).target("USER", null, null)
+				.details(Map.of("daysSinceLastLogin", numDaysSinceLastLogin, "accountsUpdated", accountsUpdated)));
+	}
+
+	private static void auditAccessRequestApprovals(String approverId, String approverType, String targetType,
+			String targetId, String projectId, String engineId, String insightId, List<Map<String, Object>> requests) {
+		for (Map<String, Object> request : requests) {
+			String requesterId = (String) request.get("userid");
+			String requesterType = (String) request.get("type");
+			String permission = (String) request.get("permission");
+			UserAuditTrailUtils.recordEvent(adminAudit(null, "PERMISSION_ADD").actor(approverId, approverType, null)
+					.subject(requesterId, requesterType, null).target(targetType, targetId, null)
+					.context(projectId, engineId, insightId, null)
+					.newValue(permission == null ? null : Map.of("permission", permission))
+					.details(Map.of("source", "ACCESS_REQUEST")));
+			UserAuditTrailUtils.recordEvent(adminAudit(null, "ACCESS_REQUEST_APPROVE").actor(approverId, approverType, null)
+					.subject(requesterId, requesterType, null).target(targetType, targetId, null)
+					.context(projectId, engineId, insightId, null)
+					.newValue(permission == null ? null : Map.of("permission", permission))
+					.details(request.get("requestid") == null ? null : Map.of("requestId", request.get("requestid"))));
+		}
+	}
+
+	private static void auditAccessRequestDenials(String approverId, String approverType, String targetType,
+			String targetId, String projectId, String engineId, String insightId, List<String> requestIds) {
+		for (String requestId : requestIds) {
+			UserAuditTrailUtils.recordEvent(adminAudit(null, "ACCESS_REQUEST_REJECT").actor(approverId, approverType, null)
+					.target(targetType, targetId, null).context(projectId, engineId, insightId, null)
+					.details(Map.of("requestId", requestId)));
+		}
+	}
+
+	private static void auditUserAdmin(User actor, String eventType, String userId, String userType, Object oldValue,
+			Object newValue, Object details) {
+		UserAuditTrailUtils.recordUserAdmin(actor, true, eventType, userId, userType, null, oldValue, newValue,
+				details);
 	}
 
 	public static SecurityAdminUtils getInstance(User user) {
@@ -1020,6 +1091,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		String editUserQuery = securityDb.getQueryUtil().createUpdatePreparedStatementString("SMSS_USER",
 				columnsToUpdate, whereCol);
+		Map<String, Object> auditBefore = getUserAuditSnapshot(userId, type);
 		try {
 			Boolean boundAdminValue = adminValue;
 			Boolean boundPublisherValue = publisherValue;
@@ -1080,7 +1152,84 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				classLogger.error("Failed to update user account information in the security database", e);
 			}
 		}
+		auditEditUser(userId, type, auditBefore, getUserAuditSnapshot(userId, type), updatePassword);
 		return true;
+	}
+
+	/**
+	 * Non-sensitive user fields compared before and after an admin edit.
+	 */
+	private static Map<String, Object> getUserAuditSnapshot(String userId, String type) {
+		Map<String, Object> snapshot = new LinkedHashMap<>();
+		try {
+			SelectQueryStruct qs = new SelectQueryStruct();
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__NAME", "name"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL", "email"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__USERNAME", "username"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__ADMIN", "admin"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__PUBLISHER", "publisher"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__EXPORTER", "exporter"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGERESTRICTION", "modelUsageRestriction"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELUSAGEFREQUENCY", "modelUsageFrequency"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXTOKENS", "modelMaxTokens"));
+			qs.addSelector(new QueryColumnSelector("SMSS_USER__MODELMAXRESPONSETIME", "modelMaxResponseTime"));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", userId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__TYPE", "==", type));
+			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(SystemEngineRegistry.getSecurityDb(),
+					qs);
+			if (rows != null && !rows.isEmpty()) {
+				snapshot.putAll(rows.get(0));
+			}
+		} catch (Exception e) {
+			classLogger.debug("Unable to read the user before/after values for the audit trail", e);
+		}
+		return snapshot;
+	}
+
+	private static void auditEditUser(String userId, String type, Map<String, Object> before,
+			Map<String, Object> after, boolean passwordReset) {
+		Set<String> roleFields = Set.of("admin", "publisher", "exporter");
+		Map<String, Object> oldProfile = new LinkedHashMap<>();
+		Map<String, Object> newProfile = new LinkedHashMap<>();
+		Map<String, Object> oldRoles = new LinkedHashMap<>();
+		Map<String, Object> newRoles = new LinkedHashMap<>();
+		Set<String> keys = new HashSet<>(before.keySet());
+		keys.addAll(after.keySet());
+		for (String key : keys) {
+			Object oldValue = normalizeAuditValue(before.get(key));
+			Object newValue = normalizeAuditValue(after.get(key));
+			if (Objects.equals(oldValue, newValue)) {
+				continue;
+			}
+			if (roleFields.contains(key)) {
+				oldRoles.put(key, oldValue);
+				newRoles.put(key, newValue);
+			} else {
+				oldProfile.put(key, oldValue);
+				newProfile.put(key, newValue);
+			}
+		}
+		auditUserAdmin(null, "USER_UPDATE", userId, type, oldProfile, newProfile,
+				Map.of("changedFields", new ArrayList<>(newProfile.keySet())));
+		if (!newRoles.isEmpty()) {
+			boolean grantedAdmin = Boolean.TRUE.equals(newRoles.get("admin"));
+			UserAuditTrailUtils.recordEvent(adminAudit(null, "USER_ROLE_UPDATE")
+					.severity(grantedAdmin ? UserAuditTrailUtils.SEVERITY_CRITICAL : null)
+					.subject(userId, type, null).target("USER", userId, null).oldValue(oldRoles).newValue(newRoles));
+		}
+		if (passwordReset) {
+			auditUserAdmin(null, "USER_PASSWORD_RESET", userId, type, null, null, null);
+		}
+	}
+
+	private static Object normalizeAuditValue(Object value) {
+		if (value instanceof Number number && !(value instanceof Double || value instanceof Float)) {
+			return number.longValue();
+		}
+		if (value instanceof String text && text.isEmpty()) {
+			return null;
+		}
+		return value;
 	}
 
 	/**
@@ -1154,6 +1303,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 //				}
 //			}
 //		}
+		auditUserAdmin(null, "USER_DELETE", userIdToDelete, userTypeToDelete, null, null, null);
 		return true;
 	}
 
@@ -1180,6 +1330,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user email", e);
 			throw new IllegalArgumentException("An error occurred updating this user's email");
 		}
+		auditUserAdmin(null, "USER_UPDATE", userId, userType, null, Map.of("email", String.valueOf(newEmail)),
+				Map.of("changedFields", List.of("email")));
 	}
 
 	/**
@@ -1204,6 +1356,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user publisher privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as a publisher");
 		}
+		auditUserAdmin(null, "USER_ROLE_UPDATE", userId, null, null, Map.of("publisher", isPublisher), null);
 	}
 
 	/**
@@ -1228,6 +1381,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user exporter privilege", e);
 			throw new IllegalArgumentException("An error occurred setting this user as an exporter");
 		}
+		auditUserAdmin(null, "USER_ROLE_UPDATE", userId, null, null, Map.of("exporter", isExporter), null);
 	}
 
 	/**
@@ -1263,6 +1417,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update user lock status", e);
 			throw new IllegalArgumentException("An error occurred setting this user as locked/unlocked");
 		}
+		auditUserAdmin(null, isLocked ? "USER_DEACTIVATE" : "USER_ACTIVATE", userId, type, null,
+				Map.of("locked", isLocked), null);
 	}
 
 	/**
@@ -1319,6 +1475,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				});
 				return null;
 			});
+			auditUserAdmin(null, "USER_UPDATE", userId, userType == null ? null : userType.toString(), null, null,
+					Map.of("field", "metadata", "metadataKeys", new ArrayList<>(metadata.keySet())));
 		} catch (Exception e) {
 			classLogger.error("Failed to update user metadata", e);
 		}
@@ -1782,6 +1940,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine public");
 		}
+		auditEngineUpdate(engineId, Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1805,6 +1964,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the engine discoverable flag");
 		}
+		auditEngineUpdate(engineId, Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -1825,6 +1985,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project global visibility setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project public");
 		}
+		auditProjectUpdate(projectId, Map.of("field", "global", "global", global));
 		return true;
 	}
 
@@ -1858,6 +2019,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project template setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project template flag", e);
 		}
+		auditProjectUpdate(projectId, Map.of("field", "template", "template", isTemplate));
 		return true;
 	}
 
@@ -1882,6 +2044,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project discoverability setting", e);
 			throw new IllegalArgumentException("An error occurred setting the project discoverable flag");
 		}
+		auditProjectUpdate(projectId, Map.of("field", "discoverable", "discoverable", discoverable));
 		return true;
 	}
 
@@ -2035,6 +2198,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
 		}
+		UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null, newUserId, null,
+				permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2106,6 +2271,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred adding the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
 		}
+		for (Map<String, Object> permissionRow : permission) {
+			UserAuditTrailUtils.recordPermissionAdd(user, "ENGINE", engineId, null, null, engineId, null,
+					(String) permissionRow.get("userid"), (String) permissionRow.get("type"),
+					(String) permissionRow.get("permission"), permissionRow);
+		}
 	}
 
 	/**
@@ -2161,6 +2331,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred adding the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
 		}
+		for (Map<String, String> permissionRow : permission) {
+			UserAuditTrailUtils.recordPermissionAdd(user, "PROJECT", projectId, null, projectId, null, null,
+					permissionRow.get("userid"), permissionRow.get("type"), permissionRow.get("permission"),
+					permissionRow);
+		}
 	}
 
 	/**
@@ -2211,6 +2386,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred adding the user permissions for this insight. Detailed error message = "
 							+ e.getMessage());
 		}
+		for (Map<String, String> permissionRow : permission) {
+			UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId,
+					permissionRow.get("userid"), permissionRow.get("type"), permissionRow.get("permission"),
+					endDate == null ? null : Map.of("endDate", endDate));
+		}
 	}
 
 	/**
@@ -2254,6 +2434,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred adding the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
 		}
+		UserAuditTrailUtils.recordPermissionAdd(user, "PROJECT", projectId, null, projectId, null, null, newUserId,
+				null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2405,6 +2587,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_PROJECTS", "PROJECT", null, null, null, null,
+				userId, null, permission, Map.of("isAddNew", isAddNew));
 	}
 
 	/**
@@ -2571,6 +2755,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				}
 			}
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_ENGINES", "ENGINE", null, null, null, null,
+				userId, null, permission, Map.of("isAddNew", isAddNew, "engineTypes", logETypes));
 	}
 
 	/**
@@ -2622,6 +2808,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ENGINE_TO_ALL_USERS", "ENGINE", engineId, null,
+				engineId, null, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2671,6 +2859,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_PROJECT_TO_ALL_USERS", "PROJECT", projectId,
+				projectId, null, null, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2728,6 +2918,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_ALL_PROJECT_INSIGHTS", "PROJECT", projectId,
+				projectId, null, null, userId, null, permission, null);
 	}
 
 	/**
@@ -2791,6 +2983,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
 		}
+		UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null,
+				existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission),
+				newPermission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2873,6 +3068,13 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred updating the user permissions for this engine. Detailed error message = "
 							+ e.getMessage());
 		}
+		for (Map<String, Object> permissionRow : permission) {
+			String userId = (String) permissionRow.get("userid");
+			UserAuditTrailUtils.recordPermissionUpdate(user, "ENGINE", engineId, null, null, engineId, null, userId,
+					(String) permissionRow.get("type"),
+					AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(userId)),
+					(String) permissionRow.get("permission"), permissionRow);
+		}
 	}
 
 	/**
@@ -2918,6 +3120,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred updating the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
 		}
+		UserAuditTrailUtils.recordPermissionUpdate(user, "PROJECT", projectId, null, projectId, null, null,
+				existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission),
+				newPermission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -2978,6 +3183,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred updating the user permissions for this project. Detailed error message = "
 							+ e.getMessage());
+		}
+		for (Map<String, String> request : requests) {
+			UserAuditTrailUtils.recordPermissionUpdate(user, "PROJECT", projectId, null, projectId, null, null,
+					request.get("userid"), request.get("type"),
+					AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(request.get("userid"))),
+					request.get("permission"), endDate == null ? null : Map.of("endDate", endDate));
 		}
 	}
 
@@ -3040,6 +3251,12 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					"An error occurred updating the user permissions for this insight. Detailed error message = "
 							+ e.getMessage());
 		}
+		for (Map<String, String> request : requests) {
+			UserAuditTrailUtils.recordPermissionUpdate(user, "INSIGHT", insightId, null, projectId, null, insightId,
+					request.get("userid"), request.get("type"),
+					AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(request.get("userid"))),
+					request.get("permission"), endDate == null ? null : Map.of("endDate", endDate));
+		}
 	}
 
 	/**
@@ -3070,6 +3287,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the users access to this engine");
 		}
+		auditAdminPermissionDelete("ENGINE", engineId, null, engineId, null, existingUserId, existingUserPermission);
 	}
 
 	/**
@@ -3102,6 +3320,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine users", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this engine");
+		}
+		for (String existingUserId : existingUserIds) {
+			auditAdminPermissionDelete("ENGINE", engineId, null, engineId, null, existingUserId,
+					existingUserPermission.get(existingUserId));
 		}
 	}
 
@@ -3136,6 +3358,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove project users", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions from this project");
 		}
+		for (String existingUserId : existingUserIds) {
+			auditAdminPermissionDelete("PROJECT", projectId, projectId, null, null, existingUserId,
+					existingUserPermission.get(existingUserId));
+		}
 	}
 
 	/**
@@ -3168,6 +3394,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove insight users", e);
 			throw new IllegalArgumentException("An error occurred removing insight permissions for this project");
 		}
+		for (String existingUserId : existingUserIds) {
+			auditAdminPermissionDelete("INSIGHT", insightId, projectId, null, insightId, existingUserId,
+					existingUserPermission.get(existingUserId));
+		}
 	}
 
 	/**
@@ -3196,6 +3426,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove project user", e);
 			throw new IllegalArgumentException("An error occurred removing user permissions for this project");
 		}
+		auditAdminPermissionDelete("PROJECT", projectId, projectId, null, null, existingUserId,
+				existingUserPermission);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////
@@ -3255,6 +3487,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				+ "'";
 		securityDb.insertData(query);
 		securityDb.commit();
+		for (String insightId : insightIds) {
+			UserAuditTrailUtils.recordEvent(adminAudit(null, "INSIGHT_DELETE").target("INSIGHT", insightId, null)
+					.context(projectId, null, insightId, null));
+		}
 	}
 
 	/**
@@ -3371,6 +3607,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to add insight user", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId, newUserId,
+				null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3426,6 +3664,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_INSIGHT_USERS", "INSIGHT", insightId, projectId,
+				null, insightId, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3472,6 +3712,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update insight user permission", e);
 			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordPermissionUpdate(user, "INSIGHT", insightId, null, projectId, null, insightId,
+				existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission),
+				newPermission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3505,6 +3748,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove insight user", e);
 			throw new IllegalArgumentException("An error occurred deleting user permissions for this insight");
 		}
+		auditAdminPermissionDelete("INSIGHT", insightId, projectId, null, insightId, existingUserId,
+				existingUserPermission);
 	}
 
 	/**
@@ -3529,6 +3774,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update insight global within project", e);
 			throw new IllegalArgumentException("An error occurred setting this insight global");
 		}
+		UserAuditTrailUtils.recordEvent(adminAudit(null, "INSIGHT_UPDATE").target("INSIGHT", insightId, null)
+				.context(projectId, null, insightId, null).details(Map.of("field", "global", "global", isPublic)));
 	}
 
 	/**
@@ -3691,6 +3938,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update engine user permissions", e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this engine");
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_ENGINE_USERS", "ENGINE", engineId, null,
+				engineId, null, null, null, newPermission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3725,6 +3974,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update project user permissions", e);
 			throw new IllegalArgumentException("An error occurred editing user permissions for this project");
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_PROJECT_USERS", "PROJECT", projectId,
+				projectId, null, null, null, null, newPermission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3778,6 +4029,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_ENGINE_USERS", "ENGINE", engineId, null,
+				engineId, null, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3831,6 +4084,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "ADD_ALL_PROJECT_USERS", "PROJECT", projectId, projectId,
+				null, null, null, null, permission, endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3867,6 +4122,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to update insight user permissions", e);
 			throw new IllegalArgumentException("An error occurred updating the permissions for this insight");
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "UPDATE_ALL_INSIGHT_USERS", "INSIGHT", insightId,
+				projectId, null, insightId, null, null, newPermission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3920,6 +4178,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to grant default insight access to new users", e);
 			throw new IllegalArgumentException("An error occurred granting the user permission for all the projects");
 		}
+		UserAuditTrailUtils.recordBulkPermissionChange(user, "GRANT_INSIGHT_TO_ALL_USERS", "INSIGHT", insightId,
+				projectId, null, insightId, null, null, permission,
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -3953,6 +4214,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		classLogger.info("Number of accounts locked = {}", numUpdated);
+		auditAccountLock("LOCK_INACTIVE_ACCOUNTS", numDaysSinceLastLogin, numUpdated);
 		return numUpdated;
 	}
 
@@ -4091,6 +4353,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		}
 
 		classLogger.info("Number of accounts locked = {}", numUpdated);
+		auditAccountLock("RECALCULATE_ACCOUNT_LOCKS", numDaysSinceLastLogin, numUpdated);
 		return numUpdated;
 	}
 
@@ -4223,6 +4486,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while deleting enginepermission with detailed message = " + e.getMessage());
 		}
+		auditAccessRequestApprovals(userId, userType, "ENGINE", engineId, null, engineId, null, requests);
 	}
 
 	/**
@@ -4259,6 +4523,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		}
+		auditAccessRequestDenials(userId, userType, "ENGINE", engineId, null, engineId, null, requestIds);
 	}
 
 	/**
@@ -4343,6 +4608,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		}
+		auditAccessRequestApprovals(userId, userType, "PROJECT", projectId, projectId, null, null, requests);
 	}
 
 	/**
@@ -4379,6 +4645,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		}
+		auditAccessRequestDenials(userId, userType, "PROJECT", projectId, projectId, null, null, RequestIdList);
 	}
 
 	/**
@@ -4465,6 +4732,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
 		}
+		auditAccessRequestApprovals(userId, userType, "INSIGHT", insightId, projectId, null, insightId, requests);
 	}
 
 	/**
@@ -4502,6 +4770,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException(
 					"An error occurred while updating user access request detailed message = " + e.getMessage());
 		}
+		auditAccessRequestDenials(userId, userType, "INSIGHT", insightId, projectId, null, insightId, RequestIdList);
 	}
 
 	/**

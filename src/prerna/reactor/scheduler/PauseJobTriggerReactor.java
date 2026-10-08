@@ -42,6 +42,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
 public class PauseJobTriggerReactor extends AbstractReactor {
@@ -92,6 +93,7 @@ public class PauseJobTriggerReactor extends AbstractReactor {
 
 			if (scheduler.checkExists(jobKey)) {
 				scheduler.pauseTrigger(triggerKey);
+				UserAuditTrailUtils.recordJobEvent(user, "JOB_PAUSE", jobId, null, jobGroup, null);
 				return new NounMetadata(false, PixelDataType.BOOLEAN, PixelOperationType.UNSCHEDULE_JOB);
 			}
 		} catch (SchedulerException se) {

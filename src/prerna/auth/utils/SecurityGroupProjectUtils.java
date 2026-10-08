@@ -452,8 +452,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, userDetails.getValue0());
 						ps.setString(parameterIndex++, userDetails.getValue1());
 					});
-			UserAuditTrailUtils.recordPermissionAdd(user, "PROJECT", projectId, null, projectId, null, null, groupId,
-					groupType, permission, endDate == null ? null : Map.of("endDate", endDate));
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "PROJECT", projectId, null,
+					projectId, null, null, groupId, groupType, null, permission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -556,9 +557,10 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, groupType);
 						ps.setString(parameterIndex++, projectId);
 					});
-			UserAuditTrailUtils.recordPermissionUpdate(user, "PROJECT", projectId, null, projectId, null, null,
-					groupId, groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission),
-					newPermission, endDate == null ? null : Map.of("endDate", endDate));
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "PROJECT", projectId, null,
+					projectId, null, null, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -611,8 +613,9 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, groupType);
 						ps.setString(parameterIndex++, projectId);
 					});
-			UserAuditTrailUtils.recordPermissionDelete(user, "PROJECT", projectId, null, projectId, null, null,
-					groupId, groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null);
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "PROJECT", projectId, null,
+					projectId, null, null, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null, null);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

@@ -48,6 +48,7 @@ import prerna.query.querystruct.filters.OrQueryFilter;
 import prerna.query.querystruct.filters.SimpleQueryFilter;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -299,7 +300,21 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		details.put("SECRETKEY", secretKey);
 		details.put("TOKENNAME", normalizedTokenName);
 		details.put("TOKENDESCRIPTION", normalizedTokenDescription);
+		auditAccessKey("API_KEY_CREATE", accessToken, accessKey, normalizedTokenName);
 		return details;
+	}
+
+	/**
+	 * Audits an access key change. Only a short prefix of the access key id is
+	 * stored and the secret key is never passed in.
+	 */
+	private static void auditAccessKey(String eventType, AccessToken owner, String accessKey, String tokenName) {
+		String keyPrefix = accessKey == null ? null
+				: accessKey.substring(0, Math.min(8, accessKey.length())) + "...";
+		UserAuditTrailUtils.recordEvent(new UserAuditTrailUtils.AuditEvent().eventType(eventType)
+				.subject(owner == null ? null : owner.getId(),
+						owner == null || owner.getProvider() == null ? null : owner.getProvider().getLabel(), null)
+				.target("API_KEY", keyPrefix, tokenName));
 	}
 
 	/**
@@ -341,10 +356,15 @@ public class SecurityUserAccessKeyUtils extends AbstractSecurityUtils {
 		}
 		String insertQuery = "DELETE FROM " + SMSS_USER_ACCESS_KEYS_TABLE_NAME + " WHERE ACCESSKEY=?";
 		try {
-			return QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
+			boolean deleted = QueryExecutionUtility.executeUpdate(securityDb, insertQuery, ps -> {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, accessKey);
 			}) > 0;
+			if (deleted) {
+				Object tokenName = validateAssignedToUser.get(0).get("TOKENNAME");
+				auditAccessKey("API_KEY_DELETE", token, accessKey, tokenName == null ? null : tokenName.toString());
+			}
+			return deleted;
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

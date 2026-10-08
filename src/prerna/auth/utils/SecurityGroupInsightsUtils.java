@@ -407,8 +407,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, userDetails.getValue0());
 						ps.setString(parameterIndex++, userDetails.getValue1());
 					});
-			UserAuditTrailUtils.recordPermissionAdd(user, "INSIGHT", insightId, null, projectId, null, insightId,
-					groupId, groupType, permission, endDate == null ? null : Map.of("endDate", endDate));
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "INSIGHT", insightId, null,
+					projectId, null, insightId, groupId, groupType, null, permission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -515,9 +516,10 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, projectId);
 						ps.setString(parameterIndex++, insightId);
 					});
-			UserAuditTrailUtils.recordPermissionUpdate(user, "INSIGHT", insightId, null, projectId, null, insightId,
-					groupId, groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission),
-					newPermission, endDate == null ? null : Map.of("endDate", endDate));
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "INSIGHT", insightId, null,
+					projectId, null, insightId, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), newPermission,
+					endDate == null ? null : Map.of("endDate", endDate));
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {
@@ -571,8 +573,9 @@ public class SecurityGroupInsightsUtils extends AbstractSecurityUtils {
 						ps.setString(parameterIndex++, projectId);
 						ps.setString(parameterIndex++, insightId);
 					});
-			UserAuditTrailUtils.recordPermissionDelete(user, "INSIGHT", insightId, null, projectId, null, insightId,
-					groupId, groupType, AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null);
+			UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "INSIGHT", insightId, null,
+					projectId, null, insightId, groupId, groupType,
+					AccessPermissionEnum.getPermissionValueById(existingGroupPermission), null, null);
 		} catch (RuntimeException e) {
 			throw e;
 		} catch (Exception e) {

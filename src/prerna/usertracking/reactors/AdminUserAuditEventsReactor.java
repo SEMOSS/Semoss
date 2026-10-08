@@ -54,19 +54,28 @@
  *******************************************************************************/
 package prerna.usertracking.reactors;
 
+import java.util.Map;
+
 import prerna.auth.utils.SecurityAdminUtils;
 import prerna.query.querystruct.AbstractQueryStruct;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.qs.AbstractQueryStructReactor;
+import prerna.sablecc2.om.GenRowStruct;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
 
 public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 
-	private static final String TABLE = "USER_AUDIT_EVENTS";
+	private static final String TABLE = UserAuditTrailUtils.TABLE;
+	private static final String EXPORT_KEY = "export";
+
+	public AdminUserAuditEventsReactor() {
+		this.keysToGet = new String[] { EXPORT_KEY };
+	}
 
 	@Override
 	public NounMetadata execute() {
@@ -81,7 +90,18 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 			throw new IllegalStateException("User tracking database is not loaded. Confirm "
 					+ Constants.USER_TRACKING_DB + ".smss exists and restart SEMOSS.");
 		}
+		boolean export = isExport();
+		UserAuditTrailUtils.recordAuditAccess(this.insight.getUser(), export ? "AUDIT_EXPORT" : "AUDIT_QUERY",
+				Map.of("insightId", String.valueOf(this.insight.getInsightId())));
 		return super.execute();
+	}
+
+	private boolean isExport() {
+		GenRowStruct grs = this.store == null ? null : this.store.getNoun(EXPORT_KEY);
+		if (grs == null || grs.isEmpty()) {
+			return false;
+		}
+		return Boolean.parseBoolean(String.valueOf(grs.get(0)));
 	}
 
 	@Override
@@ -91,40 +111,26 @@ public class AdminUserAuditEventsReactor extends AbstractQueryStructReactor {
 		this.qs.setQsType(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE);
 
 		SelectQueryStruct sQs = new SelectQueryStruct();
-		addSelector(sQs, "EVENT_ID");
-		addSelector(sQs, "EVENT_TIME");
-		addSelector(sQs, "EVENT_TYPE");
-		addSelector(sQs, "ACTION");
-		addSelector(sQs, "STATUS");
-		addSelector(sQs, "ACTOR_USER_ID");
-		addSelector(sQs, "ACTOR_USER_TYPE");
-		addSelector(sQs, "ACTOR_USER_NAME");
-		addSelector(sQs, "SESSION_ID");
-		addSelector(sQs, "REQUEST_ID");
-		addSelector(sQs, "IP_ADDR");
-		addSelector(sQs, "TARGET_TYPE");
-		addSelector(sQs, "TARGET_ID");
-		addSelector(sQs, "TARGET_NAME");
-		addSelector(sQs, "PROJECT_ID");
-		addSelector(sQs, "ENGINE_ID");
-		addSelector(sQs, "INSIGHT_ID");
-		addSelector(sQs, "ROOM_ID");
-		addSelector(sQs, "OLD_VALUE");
-		addSelector(sQs, "NEW_VALUE");
-		addSelector(sQs, "DETAILS");
-		addSelector(sQs, "ERROR_MESSAGE");
+		for (String column : UserAuditTrailUtils.COLUMNS) {
+			sQs.addSelector(new QueryColumnSelector(TABLE + "__" + column));
+		}
 		sQs.addOrderBy(TABLE + "__EVENT_TIME", "DESC");
 
 		this.qs.merge(sQs);
 		return this.qs;
 	}
 
-	private static void addSelector(SelectQueryStruct qs, String column) {
-		qs.addSelector(new QueryColumnSelector(TABLE + "__" + column));
+	@Override
+	public String getReactorDescription() {
+		return "Admin-only query struct for reading business/security audit events from the user tracking database. "
+				+ "Pass export=true when the results are being exported so the access is recorded as AUDIT_EXPORT.";
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Admin-only query struct for reading business/security audit events from the user tracking database.";
+	protected String getDescriptionForKey(String key) {
+		if (EXPORT_KEY.equals(key)) {
+			return "Whether the audit events are being exported (recorded as AUDIT_EXPORT instead of AUDIT_QUERY)";
+		}
+		return super.getDescriptionForKey(key);
 	}
 }

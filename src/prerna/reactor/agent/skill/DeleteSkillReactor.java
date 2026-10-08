@@ -42,6 +42,7 @@ import prerna.project.api.IProject;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.usertracking.UserTrackingUtils;
 import prerna.util.SystemDefaultEngines;
 import prerna.util.UploadUtilities;
@@ -127,6 +128,8 @@ public class DeleteSkillReactor extends AbstractReactor {
 			classLogger.error("Failed to delete skill '{}'.", skillId, e);
 			return getError("Error during skill delete: " + e.getMessage());
 		}
+		UserAuditTrailUtils.recordResourceEvent(user, "SKILL_DELETE", "SKILL", skillId, project.getProjectName(),
+				skillId, null, null, null);
 		return new NounMetadata(true, PixelDataType.BOOLEAN);
 	}
 

@@ -380,6 +380,36 @@ public class UserTrackingUtils {
 		} finally {
 			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
 		}
+		syncAuditIndexes(userTrackingDb);
+		UserAuditTrailUtils.clearLegacyRawSessionIds(userTrackingDb);
+	}
+
+	/**
+	 * Creates the audit trail indexes in their own transaction. Indexes only speed
+	 * up the admin audit query, so a failure is logged and never blocks startup.
+	 *
+	 * @param userTrackingDb the user tracking database
+	 */
+	private static void syncAuditIndexes(IRDBMSEngine userTrackingDb) {
+		Connection conn = null;
+		try {
+			conn = userTrackingDb.getConnection();
+			AbstractOwlCreator.syncIndexes(userTrackingDb, conn, UserTrackingOwlCreator.getIndexes());
+			if (!conn.getAutoCommit()) {
+				conn.commit();
+			}
+		} catch (Exception e) {
+			classLogger.warn("Unable to create the audit trail indexes", e);
+			try {
+				if (conn != null && !conn.getAutoCommit()) {
+					conn.rollback();
+				}
+			} catch (Exception rollbackException) {
+				classLogger.warn("Unable to roll back the audit trail index creation", rollbackException);
+			}
+		} finally {
+			ConnectionUtils.closeAllConnectionsIfPooling(userTrackingDb, conn, null, null);
+		}
 	}
 
 }

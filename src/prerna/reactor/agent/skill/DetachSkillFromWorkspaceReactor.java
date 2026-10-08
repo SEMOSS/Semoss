@@ -42,6 +42,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Detaches a skill from a workspace. Mirrors
@@ -123,6 +124,8 @@ public class DetachSkillFromWorkspaceReactor extends AbstractReactor {
 				response.put("dependency_warning",
 						"Skill detached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
+			UserAuditTrailUtils.recordResourceEvent(user, "SKILL_DETACH", "SKILL", skillId, null, workspaceId, null,
+					null, Map.of("workspaceId", workspaceId));
 		}
 
 		return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);

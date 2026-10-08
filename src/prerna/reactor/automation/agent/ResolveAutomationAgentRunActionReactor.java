@@ -38,6 +38,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Lets an Automation project editor resolve a pending trace-linked agent
@@ -70,6 +71,14 @@ public class ResolveAutomationAgentRunActionReactor extends AbstractReactor {
 				this.keyValue.get(ReactorKeysEnum.MCP_TOOL_STATUS.getKey()), getMap());
 		Map<String, Object> output = new HashMap<>();
 		output.put("result", result);
+		Map<String, Object> auditDetails = new HashMap<>();
+		auditDetails.put("decision", this.keyValue.get(DECISION_KEY));
+		auditDetails.put("actionId", this.keyValue.get(ACTION_ID_KEY));
+		auditDetails.put("agentRunId", this.keyValue.get(AGENT_RUN_ID_KEY));
+		auditDetails.put("nodeId", this.keyValue.get(NODE_ID_KEY));
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_ACTION_RESOLVE",
+				this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()), this.keyValue.get(AUTOMATION_RUN_ID_KEY), null,
+				auditDetails);
 		return new NounMetadata(output, PixelDataType.MAP, PixelOperationType.MCP_TOOL_EXECUTION);
 	}
 

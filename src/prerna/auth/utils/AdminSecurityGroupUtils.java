@@ -31,6 +31,7 @@ import java.sql.PreparedStatement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ import prerna.query.querystruct.selectors.QueryFunctionHelper;
 import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -140,6 +142,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				});
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(user, true, "GROUP_CREATE", groupId, groupType, null, null, null,
+					description == null ? null : Map.of("description", description), null);
 		} catch (Exception e) {
 			classLogger.error("Unable to add group.", e);
 			throw e;
@@ -191,6 +195,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(null, true, "GROUP_DELETE", groupId, groupType, null, null, null, null,
+					null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -254,6 +260,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(user, true, "GROUP_UPDATE", newGroupId, newGroupType, null, null,
+					Map.of("groupId", curGroupId, "groupType", curGroupType),
+					Map.of("groupId", newGroupId, "groupType", newGroupType), null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -322,6 +331,11 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				}
 				return null;
 			});
+			Map<String, Object> newDetails = new HashMap<>();
+			newDetails.put("groupId", newGroupId);
+			newDetails.put("description", newDescription);
+			UserAuditTrailUtils.recordGroupAdmin(user, true, "GROUP_UPDATE", newGroupId, curGroupType, null, null,
+					Map.of("groupId", curGroupId), newDetails, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -375,6 +389,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				});
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(user, true, "GROUP_MEMBER_ADD", groupId, "CUSTOM", userId, userType,
+					null, null, endDate == null ? null : Map.of("endDate", endDate));
 		} catch (Exception e) {
 			classLogger.error("Unable to delete the group and clean up related permissions.", e);
 			throw e;
@@ -409,6 +425,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 				});
 				return null;
 			});
+			UserAuditTrailUtils.recordGroupAdmin(null, true, "GROUP_MEMBER_REMOVE", groupId, "CUSTOM", userId, userType,
+					null, null, null);
 		} catch (Exception e) {
 			classLogger.error("Unable to remove user from group.", e);
 			throw e;
@@ -697,6 +715,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "PROJECT", projectId, null, projectId,
+				null, null, groupId, groupType, null, AccessPermissionEnum.getPermissionValueById(permission),
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -749,6 +770,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "PROJECT", projectId, null,
+				projectId, null, null, groupId, groupType, AccessPermissionEnum.getPermissionValueById(curPermission),
+				AccessPermissionEnum.getPermissionValueById(permission),
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -780,6 +805,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to remove group project permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "PROJECT", projectId, null,
+				projectId, null, null, groupId, groupType, AccessPermissionEnum.getPermissionValueById(curPermission),
+				null, null);
 	}
 
 	/**
@@ -1092,6 +1120,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred adding the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_ADD", "ENGINE", engineId, null, null,
+				engineId, null, groupId, groupType, null, AccessPermissionEnum.getPermissionValueById(permission),
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -1144,6 +1175,10 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
 			throw new IllegalArgumentException("Error occurred editing the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_UPDATE", "ENGINE", engineId, null, null,
+				engineId, null, groupId, groupType, AccessPermissionEnum.getPermissionValueById(curPermission),
+				AccessPermissionEnum.getPermissionValueById(permission),
+				endDate == null ? null : Map.of("endDate", endDate));
 	}
 
 	/**
@@ -1175,6 +1210,9 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 			classLogger.error("Unable to remove group engine permission.", e);
 			throw new IllegalArgumentException("Error occurred deleting the group permission");
 		}
+		UserAuditTrailUtils.recordGroupPermissionChange(user, "PERMISSION_DELETE", "ENGINE", engineId, null, null,
+				engineId, null, groupId, groupType, AccessPermissionEnum.getPermissionValueById(curPermission), null,
+				null);
 	}
 
 	/**

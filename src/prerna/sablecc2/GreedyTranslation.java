@@ -68,6 +68,7 @@ import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.ITask;
 import prerna.sablecc2.om.task.options.TaskOptions;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.insight.InsightUtility;
 
 public class GreedyTranslation extends LazyTranslation {
@@ -75,6 +76,9 @@ public class GreedyTranslation extends LazyTranslation {
 	private static final Logger classLogger = LogManager.getLogger(GreedyTranslation.class);
 
 	protected PixelRunner runner;
+
+	// result key of the step whose failure was already audited from a thrown error
+	private String auditedFailureResultKey = null;
 
 	public GreedyTranslation(PixelRunner runner, Insight insight) {
 		super(insight);
@@ -516,6 +520,13 @@ public class GreedyTranslation extends LazyTranslation {
 	}
 
 	@Override
+	protected void trackError(String pixel, boolean meta, Exception ex) {
+		super.trackError(pixel, meta, ex);
+		this.auditedFailureResultKey = this.resultKey;
+		UserAuditTrailUtils.recordPixelFailure(this.insight, pixel, reactorName(this.curReactor), ex, null);
+	}
+
+	@Override
 	protected void postProcess(String pixelExpression) {
 		super.postProcess(pixelExpression);
 		// get the noun meta result
@@ -524,6 +535,7 @@ public class GreedyTranslation extends LazyTranslation {
 		// set it as the frame for the runner
 		NounMetadata noun = planner.getVariableValue(this.resultKey);
 		if (noun != null) {
+			auditReturnedError(pixelExpression, noun);
 			this.runner.addResult(pixelExpression, noun, this.pixelObj.isMeta());
 			// if there was a previous result
 			// remove it
@@ -544,6 +556,30 @@ public class GreedyTranslation extends LazyTranslation {
 		this.runner.addResult(pixelExpression, errorNoun, this.pixelObj.isMeta());
 		this.curReactor = null;
 		this.prevReactor = null;
+	}
+
+	/**
+	 * Reactors that catch their own failure and return an error noun never reach
+	 * {@link #trackError}; audit those here, once per step.
+	 */
+	private void auditReturnedError(String pixelExpression, NounMetadata noun) {
+		boolean alreadyAudited = this.resultKey != null && this.resultKey.equals(this.auditedFailureResultKey);
+		this.auditedFailureResultKey = null;
+		if (alreadyAudited) {
+			return;
+		}
+		boolean isError = noun.getNounType() == PixelDataType.ERROR
+				|| (noun.getOpType() != null && noun.getOpType().contains(PixelOperationType.ERROR));
+		if (!isError) {
+			return;
+		}
+		Object value = noun.getValue();
+		UserAuditTrailUtils.recordPixelFailure(this.insight, pixelExpression, reactorName(this.curReactor), null,
+				value == null ? null : String.valueOf(value));
+	}
+
+	private static String reactorName(IReactor reactor) {
+		return reactor == null ? null : reactor.getClass().getSimpleName();
 	}
 
 }

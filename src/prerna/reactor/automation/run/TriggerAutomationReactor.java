@@ -27,6 +27,7 @@
  *******************************************************************************/
 package prerna.reactor.automation.run;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Authenticates, validates, and initializes an Automation run before delegating its lifecycle to
@@ -82,10 +84,32 @@ public class TriggerAutomationReactor extends AbstractReactor {
 
 		initializeRun(runId, projectId, definition, effectiveInputs, runNodes, traceRoomIds,
 				files.nodeSources());
+		String triggerType = getTriggerType();
+		UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_START", projectId, runId,
+				null, Map.of("triggerType", triggerType, "nodeCount", runNodes.size(), "inputKeys",
+						new ArrayList<>(effectiveInputs.keySet())));
 
 		Map<String, Object> result = new AutomationRunExecutionService(this.insight, ThreadStore.getJobId())
 				.executeInitializedRun(runId, projectId, definition, runNodes, traceRoomIds);
+		auditRunEnd(projectId, runId, triggerType);
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	private void auditRunEnd(String projectId, String runId, String triggerType) {
+		try {
+			Map<String, Object> run = AutomationRunStore.getRunDetail(runId);
+			String runStatus = run == null ? null : String.valueOf(run.get(AutomationConstants.STATUS));
+			if (AutomationConstants.STATUS_WAITING_FOR_INPUT.equals(runStatus)) {
+				return;
+			}
+			String auditStatus = AutomationConstants.STATUS_FAILED.equals(runStatus)
+					|| AutomationConstants.STATUS_INTERRUPTED.equals(runStatus) ? UserAuditTrailUtils.STATUS_FAILURE
+							: UserAuditTrailUtils.STATUS_SUCCESS;
+			UserAuditTrailUtils.recordAutomationEvent(this.insight.getUser(), "AUTOMATION_RUN_END", projectId, runId,
+					auditStatus, Map.of("triggerType", triggerType, "runStatus", String.valueOf(runStatus)));
+		} catch (Exception e) {
+			// auditing must never change the outcome of the run
+		}
 	}
 
 	private void initializeRun(String runId, String projectId,

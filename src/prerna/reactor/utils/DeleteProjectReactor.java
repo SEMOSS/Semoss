@@ -102,8 +102,9 @@ public class DeleteProjectReactor extends AbstractReactor {
 
 			IProject project = Utility.getProject(projectId);
 			IProject.PROJECT_TYPE projectType = project.getProjectType();
+			String projectName = project.getProjectName();
 			deleteProject(project);
-			UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_DELETE", projectId, null,
+			UserAuditTrailUtils.recordProjectLifecycle(user, "PROJECT_DELETE", projectId, projectName,
 					projectType == null ? null : Map.of("projectType", projectType.name()));
 			// also remove this project in case it is the current insight's project id
 			if (projectId.equals(this.insight.getContextProjectId())) {

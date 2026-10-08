@@ -87,7 +87,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityEngineUtils.class);
 
-	private static String getAuditEngineTypeName(String engineId) {
+	static String getAuditEngineTypeName(String engineId) {
 		IEngine.CATALOG_TYPE engineType = getEngineType(engineId);
 		return engineType == null ? "ENGINE" : engineType.name();
 	}
@@ -1513,6 +1513,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		}
+		UserAuditTrailUtils.recordPermissionDelete(user, "ENGINE", engineId, null, null, engineId, null,
+				existingUserId, null, AccessPermissionEnum.getPermissionValueById(existingUserPermission), null);
 	}
 
 	/**
@@ -1561,6 +1563,11 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, batchRow);
 				ps.setString(parameterIndex++, engineId);
 			});
+			for (String existingUserId : existingUserIds) {
+				UserAuditTrailUtils.recordPermissionDelete(user, "ENGINE", engineId, null, null, engineId, null,
+						existingUserId, null,
+						AccessPermissionEnum.getPermissionValueById(existingUserPermission.get(existingUserId)), null);
+			}
 		} catch (Exception e) {
 			classLogger.error("Failed to remove engine users", e);
 		}
@@ -1581,6 +1588,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			classLogger.error("Failed to remove expired engine user", e);
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this engine");
 		}
+		UserAuditTrailUtils.recordExpiredPermissionRemoval("ENGINE", engineId, null, engineId, null, userId);
 	}
 
 	/**

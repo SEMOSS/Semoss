@@ -47,6 +47,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 
 /**
  * Attaches a skill to a workspace. A skill is a Project of type {@code SKILL}
@@ -167,6 +168,8 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 						"Skill attached but PROJECTDEPENDENCIES sync failed: " + depEx.getMessage());
 			}
 
+			UserAuditTrailUtils.recordResourceEvent(user, "SKILL_ATTACH", "SKILL", skillId, null, workspaceId, null,
+					null, Map.of("workspaceId", workspaceId));
 			return new NounMetadata(response, PixelDataType.MAP, PixelOperationType.OPERATION);
 		} catch (Exception e) {
 			classLogger.error("Failed to attach skill '{}' to workspace '{}'", skillId, workspaceId, e);

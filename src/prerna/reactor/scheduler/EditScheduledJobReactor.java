@@ -51,6 +51,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Utility;
 
 public class EditScheduledJobReactor extends ScheduleJobReactor {
@@ -203,6 +204,8 @@ public class EditScheduledJobReactor extends ScheduleJobReactor {
 
 			Map<String, Object> retMap = createRetMap(jobId, jobName, jobGroup, cronExpression, cronTimeZone, recipe,
 					recipeParameters, triggerOnLoad, uiState, providerInfo.toString());
+			UserAuditTrailUtils.recordJobEvent(user, "JOB_UPDATE", jobId, jobName, jobGroup,
+					Map.of("cronExpression", String.valueOf(cronExpression), "triggerNow", triggerNow));
 
 			return new NounMetadata(retMap, PixelDataType.MAP, PixelOperationType.SCHEDULE_JOB);
 		} catch (SchedulerException se) {

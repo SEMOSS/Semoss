@@ -3050,6 +3050,7 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
 		}
+		UserAuditTrailUtils.recordExpiredPermissionRemoval("INSIGHT", insightId, projectId, null, insightId, userId);
 	}
 
 	/**

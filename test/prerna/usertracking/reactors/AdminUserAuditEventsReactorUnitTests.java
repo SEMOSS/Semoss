@@ -54,6 +54,7 @@ import prerna.query.querystruct.selectors.QueryColumnOrderBySelector;
 import prerna.rdf.engine.wrappers.WrapperManager;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.task.BasicIteratorTask;
+import prerna.usertracking.UserAuditTrailUtils;
 import prerna.util.Constants;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
@@ -120,7 +121,7 @@ class AdminUserAuditEventsReactorUnitTests {
 			var query = (SelectQueryStruct) reactor(user).execute().getValue();
 			assertEquals(Constants.USER_TRACKING_DB, query.getEngineId());
 			assertEquals(AbstractQueryStruct.QUERY_STRUCT_TYPE.ENGINE, query.getQsType());
-			assertEquals(22, query.getSelectors().size());
+			assertEquals(UserAuditTrailUtils.COLUMNS.size(), query.getSelectors().size());
 			var order = (QueryColumnOrderBySelector) query.getOrderBy().get(0);
 			assertEquals("USER_AUDIT_EVENTS__EVENT_TIME", order.getQueryStructName());
 			assertSame(engine, query.retrieveQueryStructEngine());
