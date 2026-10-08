@@ -144,7 +144,15 @@ public final class BrainTopicReviewUtils {
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
 		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
-			Map<String, Object> current = read(ownerId, ownerType, false);
+			Map<String, Object> existing = read(ownerId, ownerType, false);
+			// an untouched first draft whose suggestions failed (e.g. not signed in yet) is generated again
+			if (existing != null && integer(existing.get("revision")) == 1 && existing.get("appliedRevision") == null
+					&& !Objects.toString(map(existing.get("draft")).get("modelError"), "").isEmpty()) {
+				CollaborationDbUtils.update("DELETE FROM BRAIN_TOPIC_REVIEW WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+						+ "AND REVIEW_ID = ? AND REVISION = 1", ownerId, ownerType, existing.get("id"));
+				existing = null;
+			}
+			Map<String, Object> current = existing;
 			if (current != null) {
 				CollaborationDbUtils.batch(conn -> {
 					Map<String, Object> locked = requireReview(ownerId, ownerType, (String) current.get("id"), true);
