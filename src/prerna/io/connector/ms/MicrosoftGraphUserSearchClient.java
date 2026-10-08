@@ -29,7 +29,9 @@ package prerna.io.connector.ms;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,9 +100,51 @@ public class MicrosoftGraphUserSearchClient {
 	public GraphApiResponse getUserDetails(AccessToken accessToken, String groupId, String searchTerm, String nextLink)
 			throws Exception {
 		classLogger.info("getUserDetails based on Graph Api");
-		AccessToken resolvedAccessToken = resolveAccessToken(accessToken);
-		String uri = buildUri(groupId, searchTerm, nextLink);
+		return execute(accessToken, buildUri(groupId, searchTerm, nextLink));
+	}
 
+	/**
+	 * Finds one directory user by the value of a Graph user property, such as their
+	 * {@code id}. The response holds a {@code value} array with the user, or an
+	 * empty one when the directory has no such user. When a group scopes the
+	 * directory, only that group's members are matched; otherwise only members of
+	 * the tenant, not guests.
+	 *
+	 * @param accessToken the delegated user token, or null to use the application
+	 *                    credentials
+	 * @param groupId     the Graph group that scopes the directory, or null
+	 * @param property    the Graph user property to match
+	 * @param value       the value it must equal
+	 * @param select      the Graph user properties to return
+	 * @return the response, with the access token that was used
+	 * @throws Exception when the Graph call fails
+	 */
+	public GraphApiResponse findUser(AccessToken accessToken, String groupId, String property, String value,
+			Collection<String> select) throws Exception {
+		// a single quote ends an OData string, so double it inside the value
+		String filter = property + " eq '" + value.replace("'", "''") + "'";
+		String path;
+		if (groupId == null || groupId.isEmpty()) {
+			filter += " and userType eq 'Member'";
+			path = "/v1.0/users";
+		} else {
+			path = "/v1.0/groups/" + groupId + "/members/microsoft.graph.user";
+		}
+		List<String> queryParams = new ArrayList<>();
+		queryParams.add("$filter=" + URLEncoder.encode(filter, StandardCharsets.UTF_8.toString()));
+		queryParams.add("$select=" + URLEncoder.encode(String.join(",", select), StandardCharsets.UTF_8.toString()));
+		queryParams.add("$top=1");
+		queryParams.add("$count=true");
+		return execute(accessToken,
+				MicrosoftTokenFiller.MS_GRAPH_BASE_API + path + "?" + String.join("&", queryParams));
+	}
+
+	/**
+	 * Runs a Graph request, refreshing an expired token and retrying once when the
+	 * call fails on one.
+	 */
+	private GraphApiResponse execute(AccessToken accessToken, String uri) throws Exception {
+		AccessToken resolvedAccessToken = resolveAccessToken(accessToken);
 		try {
 			String jsonResponse = executeGraphRequest(uri, resolvedAccessToken);
 			return new GraphApiResponse(jsonResponse, resolvedAccessToken);

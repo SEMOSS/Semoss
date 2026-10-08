@@ -33,9 +33,10 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Reading loosely typed values: text that may be missing or blank, objects that
- * stand for text, and text that stands for a boolean or a number, as they
- * arrive from configuration, request bodies, JSON and pixel inputs.
+ * Reading loosely typed values: text that may be missing or blank, text that
+ * must be there, objects that stand for text, and text that stands for a
+ * boolean or a number, as they arrive from configuration, request bodies, JSON
+ * and pixel inputs.
  *
  * <p>
  * Blank means empty once trimmed with {@link String#trim()}, the same way every
@@ -74,6 +75,23 @@ public final class ValueUtils {
 	 */
 	public static String trimToNull(Object value) {
 		return value == null ? null : trimToNull(value.toString());
+	}
+
+	/**
+	 * Read text that must be there, such as a required request parameter or id.
+	 *
+	 * @param value   the text
+	 * @param message the error message when it is missing
+	 * @return the text trimmed
+	 * @throws IllegalArgumentException with the message when the text is null or
+	 *                                  blank
+	 */
+	public static String requireNonBlank(String value, String message) {
+		String trimmed = trimToNull(value);
+		if (trimmed == null) {
+			throw new IllegalArgumentException(message);
+		}
+		return trimmed;
 	}
 
 	/**

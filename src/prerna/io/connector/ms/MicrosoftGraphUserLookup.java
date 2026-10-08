@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -65,7 +66,9 @@ import prerna.util.ValueUtils;
  * {@code name}, {@code email}, {@code username}, {@code type}), remapped by
  * {@code ms_graphapi_jsonPattern} when that is set. A user picked from the
  * directory is added to the security database as a Microsoft user, which their
- * first Microsoft login matches on the Graph id.
+ * first Microsoft login matches on the Graph id. Their name, email and username
+ * are read from the directory when they are added, never taken from the
+ * request.
  * </p>
  */
 public class MicrosoftGraphUserLookup {
@@ -96,6 +99,12 @@ public class MicrosoftGraphUserLookup {
 	public static final String LOOKUP_PARAM = "msGraphLookup";
 
 	private static final String NEXT_LINK_KEY = "@odata.nextLink";
+
+	/**
+	 * The Graph user properties a lookup by id returns when no field mapping is set
+	 */
+	private static final List<String> DEFAULT_SELECT = List.of(Constants.MS_GRAPH_ID, Constants.MS_GRAPH_DISPLAY_NAME,
+			Constants.MS_GRAPH_EMAIL, Constants.MS_GRAPH_USER_PRINCIPAL_NAME);
 
 	private MicrosoftGraphUserLookup() {
 
@@ -190,17 +199,10 @@ public class MicrosoftGraphUserLookup {
 	 * @throws Exception              when the Graph call fails
 	 */
 	public static UserPage searchUsers(User user, String searchTerm, String nextLink) throws Exception {
-		boolean applicationCredentials = usesApplicationCredentials();
-		AccessToken delegatedToken = applicationCredentials ? null : user.getAccessToken(AuthProvider.MICROSOFT);
-		if (!applicationCredentials && delegatedToken == null) {
-			throw new IllegalAccessException("Sign in with Microsoft to search your organization's directory");
-		}
-
+		AccessToken delegatedToken = getDelegatedToken(user);
 		MicrosoftGraphUserSearchClient.GraphApiResponse response = new MicrosoftGraphUserSearchClient()
 				.getUserDetails(delegatedToken, getGroupId(), searchTerm, nextLink);
-		if (!applicationCredentials && response.getAccessToken() != null) {
-			user.setAccessToken(response.getAccessToken());
-		}
+		keepRefreshedToken(user, delegatedToken, response);
 
 		JSONObject body = new JSONObject(response.getResponseBody());
 		JSONArray values = body.optJSONArray(Constants.MS_GRAPH_VALUE);
@@ -216,6 +218,74 @@ public class MicrosoftGraphUserLookup {
 			users.add(toUserMap(graphUser, fieldMapping));
 		}
 		return new UserPage(users, graphUsers, ValueUtils.trimToNull(body.optString(NEXT_LINK_KEY, null)));
+	}
+
+	/**
+	 * Looks a directory user up by their id, so what is stored for them comes from
+	 * the directory rather than from the request.
+	 *
+	 * @param user   the signed in user. Their Microsoft login is used unless
+	 *               application credentials are configured, and a refreshed login
+	 *               is saved back onto them.
+	 * @param userId the user's id in the SEMOSS user shape: their Graph id, or the
+	 *               Graph property {@code ms_graphapi_jsonPattern} maps the id to
+	 * @return the user in the SEMOSS user shape, or null when the directory has no
+	 *         user with exactly that id
+	 * @throws IllegalAccessException when lookups need the user's Microsoft login
+	 *                                and they are not signed in to Microsoft
+	 * @throws Exception              when the Graph call fails
+	 */
+	public static Map<String, Object> findDirectoryUser(User user, String userId) throws Exception {
+		AccessToken delegatedToken = getDelegatedToken(user);
+		Map<String, String> fieldMapping = getFieldMapping();
+		String idProperty = Constants.MS_GRAPH_ID;
+		Set<String> select = new LinkedHashSet<>(DEFAULT_SELECT);
+		if (fieldMapping != null && !fieldMapping.isEmpty()) {
+			idProperty = fieldMapping.getOrDefault(Constants.USER_MAP_ID, Constants.MS_GRAPH_ID);
+			select.addAll(fieldMapping.values());
+		}
+
+		MicrosoftGraphUserSearchClient.GraphApiResponse response = new MicrosoftGraphUserSearchClient()
+				.findUser(delegatedToken, getGroupId(), idProperty, userId, select);
+		keepRefreshedToken(user, delegatedToken, response);
+
+		JSONArray values = new JSONObject(response.getResponseBody()).optJSONArray(Constants.MS_GRAPH_VALUE);
+		if (values == null || values.length() == 0) {
+			return null;
+		}
+		Map<String, Object> graphUser = GSON.fromJson(values.getJSONObject(0).toString(),
+				new TypeToken<Map<String, Object>>() {
+				}.getType());
+		Map<String, Object> directoryUser = toUserMap(graphUser, fieldMapping);
+		// Graph compares strings without case, but the stored id must be exact
+		return userId.equals(ValueUtils.trimToNull(directoryUser.get(Constants.USER_MAP_ID))) ? directoryUser : null;
+	}
+
+	/**
+	 * @return the user's Microsoft login for a directory call, or null when the
+	 *         calls use the application credentials
+	 * @throws IllegalAccessException when the calls need the user's Microsoft login
+	 *                                and they are not signed in to Microsoft
+	 */
+	private static AccessToken getDelegatedToken(User user) throws IllegalAccessException {
+		if (usesApplicationCredentials()) {
+			return null;
+		}
+		AccessToken delegatedToken = user == null ? null : user.getAccessToken(AuthProvider.MICROSOFT);
+		if (delegatedToken == null) {
+			throw new IllegalAccessException("Sign in with Microsoft to use your organization's directory");
+		}
+		return delegatedToken;
+	}
+
+	/**
+	 * Saves a delegated login the Graph client refreshed back onto the user.
+	 */
+	private static void keepRefreshedToken(User user, AccessToken delegatedToken,
+			MicrosoftGraphUserSearchClient.GraphApiResponse response) {
+		if (delegatedToken != null && response.getAccessToken() != null) {
+			user.setAccessToken(response.getAccessToken());
+		}
 	}
 
 	/**
@@ -294,23 +364,26 @@ public class MicrosoftGraphUserLookup {
 	/**
 	 * Adds the users in a permission request that are not in the security database
 	 * yet, as Microsoft users, so the permissions can be granted to them. Each
-	 * entry carries {@code userid}, {@code name}, {@code email} and
-	 * {@code username}, the way the add permission endpoints receive them.
+	 * entry carries {@code userid}, the way the add permission endpoints receive
+	 * it; the users' details are read from the directory.
 	 *
+	 * @param user            the signed in user making the request
 	 * @param userPermissions the permission request entries
 	 * @return the number of users added, including users who were waiting under an
 	 *         admin added row keyed by their email
+	 * @throws IllegalArgumentException when a user is in neither the security
+	 *                                  database nor the directory
+	 * @throws IllegalAccessException   when lookups need the user's Microsoft login
+	 *                                  and they are not signed in to Microsoft
 	 */
-	public static int addMissingUsers(List<? extends Map<String, ?>> userPermissions) {
+	public static int addMissingUsers(User user, List<? extends Map<String, ?>> userPermissions)
+			throws IllegalAccessException {
 		if (userPermissions == null) {
 			return 0;
 		}
 		int added = 0;
 		for (Map<String, ?> entry : userPermissions) {
-			if (addMissingUser(ValueUtils.trimToNull(entry.get(Constants.MAP_USERID)),
-					ValueUtils.trimToNull(entry.get(Constants.MAP_NAME)),
-					ValueUtils.trimToNull(entry.get(Constants.MAP_EMAIL)),
-					ValueUtils.trimToNull(entry.get(Constants.MAP_USERNAME)))) {
+			if (addMissingUser(user, ValueUtils.trimToNull(entry.get(Constants.MAP_USERID)))) {
 				added++;
 			}
 		}
@@ -319,26 +392,45 @@ public class MicrosoftGraphUserLookup {
 
 	/**
 	 * Adds a directory user to the security database as a Microsoft user when they
-	 * are not in it yet.
+	 * are not in it yet, with the name, email and username the directory holds for
+	 * them.
 	 *
-	 * @param userId   the user's Microsoft id
-	 * @param name     their display name, or null
-	 * @param email    their email, or null
-	 * @param username their user principal name, or null
+	 * @param user   the signed in user adding them
+	 * @param userId the directory user's id
 	 * @return true when the user was added, including a user who was waiting under
 	 *         an admin added row keyed by their email; false when they were already
-	 *         in the security database or could not be added
+	 *         in the security database
+	 * @throws IllegalArgumentException when the directory has no user with that id,
+	 *                                  the lookup fails, or the user could not be
+	 *                                  added
+	 * @throws IllegalAccessException   when lookups need the user's Microsoft login
+	 *                                  and they are not signed in to Microsoft
 	 */
-	public static boolean addMissingUser(String userId, String name, String email, String username) {
+	public static boolean addMissingUser(User user, String userId) throws IllegalAccessException {
 		String id = ValueUtils.trimToNull(userId);
 		if (id == null || SecurityQueryUtils.checkUserExist(id)) {
 			return false;
 		}
+
+		Map<String, Object> directoryUser;
+		try {
+			directoryUser = findDirectoryUser(user, id);
+		} catch (IllegalAccessException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to look up directory user {}", id, e);
+			throw new IllegalArgumentException(
+					"Could not look up user " + id + " in your organization's directory. Try again.");
+		}
+		if (directoryUser == null) {
+			throw new IllegalArgumentException("User " + id + " is not in your organization's directory");
+		}
+
 		AccessToken token = new AccessToken();
 		token.setId(id);
-		token.setName(ValueUtils.trimToNull(name));
-		token.setEmail(ValueUtils.trimToNull(email));
-		token.setUsername(ValueUtils.trimToNull(username));
+		token.setName(ValueUtils.trimToNull(directoryUser.get(Constants.USER_MAP_NAME)));
+		token.setEmail(ValueUtils.trimToNull(directoryUser.get(Constants.USER_MAP_EMAIL)));
+		token.setUsername(ValueUtils.trimToNull(directoryUser.get(Constants.USER_MAP_USERNAME)));
 		token.setProvider(AuthProvider.MICROSOFT);
 		// addOAuthUser returns false when it adopts a row an admin added under
 		// the user's email, so check the outcome rather than the return value
@@ -347,7 +439,7 @@ public class MicrosoftGraphUserLookup {
 			return true;
 		}
 		classLogger.warn("Could not add directory user {} to the security database", id);
-		return false;
+		throw new IllegalArgumentException("Could not add user " + id + " from your organization's directory");
 	}
 
 	private static String normalizeEmail(Object email) {
