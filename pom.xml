@@ -734,11 +734,12 @@
 			<!-- Source: https://mvnrepository.com/artifact/com.rabbitmq/amqp-client -->
 			<!-- Converge transitive pull (janusgraph-core -> metrics-graphite -> amqp-client 5.26.0);
 			     SEMOSS never calls com.rabbitmq.* directly. Closes CVE-2026-69220, CVE-2026-69219,
-			     CVE-2026-75516, CVE-2026-63337, CVE-2026-63335, CVE-2026-63336, CVE-2026-61634. -->
+			     CVE-2026-75516, CVE-2026-63337, CVE-2026-63335, CVE-2026-63336, CVE-2026-61634,
+			     CVE-2026-106123, CVE-2026-106122, CVE-2026-106121. -->
 			<dependency>
 				<groupId>com.rabbitmq</groupId>
 				<artifactId>amqp-client</artifactId>
-				<version>5.34.0</version>
+				<version>5.37.0</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
@@ -1747,10 +1748,11 @@
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.lz4/lz4-java -->
+		<!-- Closes CVE-2026-106451, CVE-2026-106450, CVE-2026-106449. -->
 		<dependency>
 	   		<groupId>at.yawk.lz4</groupId>
 	   		<artifactId>lz4-java</artifactId>
-	    	<version>1.11.2</version>
+	    	<version>1.11.4</version>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.eclipse.rdf4j/rdf4j-sail-memory -->
 		<dependency>
