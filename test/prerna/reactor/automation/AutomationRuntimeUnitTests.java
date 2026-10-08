@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -137,5 +138,23 @@ public class AutomationRuntimeUnitTests {
 
 		assertEquals(List.of("start", "loop", "body-node"), AutomationRuntime.allNodes(definition).stream()
 				.map(node -> String.valueOf(node.get(AutomationConstants.NODE_FIELD_ID))).toList());
+	}
+
+	@Test
+	void convertsPrivateFrameResultIntoPublicSummary() {
+		Map<String, Object> value = Map.of(AutomationConstants.INTERNAL_FRAME_RESULT,
+				Map.of("rowCount", 12, "columnCount", 3));
+
+		assertEquals(Map.of("dataType", "table", "rowCount", 12L, "columnCount", 3L),
+				AutomationRuntime.frameOutputSummary(value));
+		assertNull(AutomationRuntime.frameOutputSummary(Map.of("rows", List.of())));
+	}
+
+	@Test
+	void rejectsMalformedPrivateFrameResult() {
+		assertThrows(IllegalStateException.class,
+				() -> AutomationRuntime.frameOutputSummary(
+						Map.of(AutomationConstants.INTERNAL_FRAME_RESULT,
+								Map.of("rowCount", -1, "columnCount", 3))));
 	}
 }

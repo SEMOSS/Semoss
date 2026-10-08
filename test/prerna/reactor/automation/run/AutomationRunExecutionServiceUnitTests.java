@@ -30,6 +30,9 @@ package prerna.reactor.automation.run;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,10 +41,16 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IHeadersDataRow;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Covers deterministic execution-service mappings and run Insight lookup. */
 public class AutomationRunExecutionServiceUnitTests {
@@ -133,6 +142,48 @@ public class AutomationRunExecutionServiceUnitTests {
 				() -> AutomationRunExecutionService.loopItems("${missing}", Map.of(), "loop"));
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationRunExecutionService.loopItems(42, Map.of(), "loop"));
+	}
+
+	@Test
+	void readsLoopRowsThroughTheSemossFrameContract() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		IHeadersDataRow first = mock(IHeadersDataRow.class);
+		IHeadersDataRow second = mock(IHeadersDataRow.class);
+		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME", "HERO__POWER" });
+		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
+		when(wrapper.hasNext()).thenReturn(true, true, false);
+		when(wrapper.next()).thenReturn(first, second);
+		when(first.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
+		when(first.getValues()).thenReturn(new Object[] { "Storm", "Weather control" });
+		when(second.getHeaders()).thenReturn(new String[] { "NAME", "POWER" });
+		when(second.getValues()).thenReturn(new Object[] { "Flash", "Super speed" });
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertEquals(List.of(Map.of("NAME", "Storm", "POWER", "Weather control"),
+				Map.of("NAME", "Flash", "POWER", "Super speed")),
+				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 2));
+	}
+
+	@Test
+	void rejectsFrameLoopInputBeyondTheConfiguredBound() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		IHeadersDataRow row = mock(IHeadersDataRow.class);
+		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME" });
+		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
+		when(wrapper.hasNext()).thenReturn(true, true);
+		when(wrapper.next()).thenReturn(row);
+		when(row.getHeaders()).thenReturn(new String[] { "NAME" });
+		when(row.getValues()).thenReturn(new Object[] { "Storm" });
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 1));
 	}
 
 	@Test

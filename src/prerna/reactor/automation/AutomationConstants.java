@@ -235,8 +235,12 @@ public final class AutomationConstants {
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
-	/** Largest row limit accepted by a generated database query node. */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	/**
+	 * Largest row limit accepted by a generated database query node. Large query
+	 * results remain in the run Insight's frame and therefore do not cross the
+	 * bounded JSON node-output contract.
+	 */
+	public static final int DB_QUERY_MAX_LIMIT = 50_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
@@ -328,6 +332,17 @@ public final class AutomationConstants {
 	 * persistence.
 	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
+	/**
+	 * Reserved Python-to-Java signal that a node retained its output as a run-owned
+	 * SEMOSS frame. Removed before scope and history persistence.
+	 */
+	public static final String INTERNAL_FRAME_RESULT = "__automation_frame__";
+	/**
+	 * Reserved generated-source signal requesting a guarded database query whose
+	 * result is loaded directly into a run-owned frame. Removed before scope and
+	 * history persistence.
+	 */
+	public static final String INTERNAL_DATABASE_QUERY = "__automation_database_query__";
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_WORKSPACE_ID = "workspaceId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";

@@ -28,6 +28,7 @@
 package prerna.reactor.automation.run;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -50,10 +51,13 @@ import com.google.re2j.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
+import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IModelEngine;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.api.ITypeSafeEngine;
 import prerna.engine.impl.model.RoomUtils;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
@@ -61,6 +65,8 @@ import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.om.ThreadStore;
 import prerna.project.api.IProject;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.automation.AutomationRuntime;
@@ -164,7 +170,9 @@ final class AutomationRunExecutionService {
 				finishRun(runId, projectId);
 			}
 		} catch (Exception e) {
-			classLogger.error("Python automation run failed for project {}, run {}", projectId, runId, e);
+			String executionInsightId = executionInsight == null ? null : executionInsight.getInsightId();
+			classLogger.error("Python Automation run failed for project '{}', run '{}', execution Insight '{}'",
+					projectId, runId, executionInsightId, e);
 			finishFailedRun(runId, projectId, e);
 			result = Map.of("error", safeMessage(e));
 		} finally {
@@ -224,6 +232,9 @@ final class AutomationRunExecutionService {
 		}
 		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
 		Set<String> visited = new HashSet<>();
+		// Invocation metadata only: these aliases resolve to live SEMOSS frames rather
+		// than the JSON row previews also registered in the run Insight.
+		Map<String, String> frameBindings = new LinkedHashMap<>();
 		String currentNodeId = initialNodeId;
 		boolean pathCompleted = true;
 		while (currentNodeId != null) {
@@ -250,10 +261,11 @@ final class AutomationRunExecutionService {
 			} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
 				nodeResult = executeJevDecisionNode(executionInsight, runId, node, scope);
 			} else if (AutomationConstants.NODE_CONTROL_LOOP.equals(type)) {
-				nodeResult = executeLoopNode(executionInsight, projectId, runId, node, nodeSources, scope);
+				nodeResult = executeLoopNode(executionInsight, projectId, runId, node, nodeSources, scope,
+						frameBindings);
 			} else {
 				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
-						traceRoomIds.get(nodeId),
+						frameBindings, traceRoomIds.get(nodeId),
 						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
 			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
@@ -296,7 +308,8 @@ final class AutomationRunExecutionService {
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<String, Object> executeLoopNode(Insight executionInsight, String projectId, String runId,
-			Map<String, Object> loopNode, Map<String, String> nodeSources, Map<String, Object> parentScope) {
+			Map<String, Object> loopNode, Map<String, String> nodeSources, Map<String, Object> parentScope,
+			Map<String, String> frameBindings) {
 		String loopNodeId = (String) loopNode.get(AutomationConstants.NODE_FIELD_ID);
 		Timestamp started = Utility.getSqlTimestampUTC(LocalDateTime.ofInstant(Instant.now(), ZoneOffset.UTC));
 		long startedMs = System.currentTimeMillis();
@@ -307,12 +320,14 @@ final class AutomationRunExecutionService {
 			String loopMode = String.valueOf(config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE,
 					AutomationConstants.LOOP_MODE_FOR_EACH));
 			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
-			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
-					? loopItems(config.get(AutomationConstants.CONFIG_LOOP_ITEMS), parentScope, loopNodeId)
-					: List.of();
 			int batchSize = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
 					? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
 					: 1;
+			long maximumItems = (long) maximumIterations * batchSize;
+			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+					? loopItems(config.get(AutomationConstants.CONFIG_LOOP_ITEMS), parentScope, executionInsight,
+							frameBindings, loopNodeId, maximumItems)
+					: List.of();
 			int iterationLimit = switch (loopMode) {
 			case AutomationConstants.LOOP_MODE_FOR_EACH -> items.isEmpty() ? 0
 					: (items.size() + batchSize - 1) / batchSize;
@@ -415,7 +430,8 @@ final class AutomationRunExecutionService {
 						nodeResult = executeJevDecisionNode(executionInsight, runId, executionNode, iterationScope);
 					} else {
 						nodeResult = executeNodeSource(executionInsight, projectId, runId, executionNode,
-								nodeSources.get(current), iterationScope, bodyTraceRoomIds.get(current), null);
+								nodeSources.get(current), iterationScope, frameBindings,
+								bodyTraceRoomIds.get(current), null);
 					}
 					if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 						throw new IllegalStateException("Loop body node '" + current + "' did not complete successfully.");
@@ -513,6 +529,90 @@ final class AutomationRunExecutionService {
 			return items;
 		}
 		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
+	}
+
+	/**
+	 * Resolves a loop input from either ordinary scope data or a live SEMOSS frame
+	 * owned by the run Insight. Frame rows are read through {@link ITableDataFrame},
+	 * so loop execution does not depend on the frame's Python, native, or other
+	 * backend implementation.
+	 */
+	private static List<Object> loopItems(Object configuredItems, Map<String, Object> scope, Insight executionInsight,
+			Map<String, String> frameBindings, String loopNodeId, long maximumItems) {
+		String frameAlias = exactFrameAlias(configuredItems, frameBindings);
+		if (frameAlias == null) {
+			return loopItems(configuredItems, scope, loopNodeId);
+		}
+		return frameRows(executionInsight, frameAlias, loopNodeId, maximumItems);
+	}
+
+	/** Returns an exact scope reference when it identifies a live frame binding. */
+	private static String exactFrameAlias(Object configuredItems, Map<String, String> frameBindings) {
+		if (!(configuredItems instanceof String value)) {
+			return null;
+		}
+		Matcher reference = EXACT_SCOPE_REFERENCE.matcher(value.trim());
+		if (!reference.matches()) {
+			return null;
+		}
+		String alias = reference.group(1);
+		return frameBindings.containsKey(alias) ? alias : null;
+	}
+
+	/**
+	 * Reads a bounded set of frame rows as the same ordered maps a business user
+	 * receives from a JSON table result. One additional row is requested solely to
+	 * detect input that exceeds the loop's configured execution bound.
+	 */
+	static List<Object> frameRows(Insight executionInsight, String frameAlias, String loopNodeId,
+			long maximumItems) {
+		NounMetadata noun = executionInsight.getVarStore().get(frameAlias);
+		if (noun == null || noun.getNounType() != PixelDataType.FRAME
+				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+			throw new IllegalStateException("Loop node '" + loopNodeId + "' cannot access SEMOSS frame '"
+					+ frameAlias + "' in its run Insight.");
+		}
+
+		String[] selectors = frame.getQsHeaders();
+		if (selectors.length == 0) {
+			return List.of();
+		}
+		SelectQueryStruct queryStruct = new SelectQueryStruct();
+		for (String selector : selectors) {
+			queryStruct.addSelector(new QueryColumnSelector(selector));
+		}
+		queryStruct.setLimit(maximumItems + 1);
+
+		List<Object> rows = new ArrayList<>();
+		try (IRawSelectWrapper wrapper = frame.query(queryStruct)) {
+			while (wrapper.hasNext()) {
+				if (rows.size() == maximumItems) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its "
+							+ "configured maximum of " + maximumItems + " items.");
+				}
+				IHeadersDataRow row = wrapper.next();
+				String[] headers = row.getHeaders();
+				Object[] values = row.getValues();
+				Map<String, Object> item = new LinkedHashMap<>();
+				for (int index = 0; index < headers.length; index++) {
+					item.put(headers[index], values[index]);
+				}
+				rows.add(item);
+			}
+			return rows;
+		} catch (IOException e) {
+			classLogger.error("Unable to close SEMOSS frame '{}' while resolving loop node '{}'.", frameAlias,
+					loopNodeId, e);
+			throw new IllegalStateException(
+					"Loop node '" + loopNodeId + "' could not finish reading SEMOSS frame '" + frameAlias + "'.",
+					e);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to read SEMOSS frame '{}' for loop node '{}'.", frameAlias, loopNodeId, e);
+			throw new IllegalStateException(
+					"Loop node '" + loopNodeId + "' could not read SEMOSS frame '" + frameAlias + "'.", e);
+		}
 	}
 
 	/** Resolves a generated loop's exact dotted scope path without coercing its value. */
@@ -843,8 +943,8 @@ final class AutomationRunExecutionService {
 	 * to ask for human input before the result is persisted.
 	 */
 	private Map<String, Object> executeNodeSource(Insight executionInsight, String projectId, String runId,
-			Map<String, Object> node, String source, Map<String, Object> scope, String traceRoomId,
-			String resumeNodeId) {
+			Map<String, Object> node, String source, Map<String, Object> scope, Map<String, String> frameBindings,
+			String traceRoomId, String resumeNodeId) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException(
 					"Automation node has no persisted Python source: " + node.get(AutomationConstants.NODE_FIELD_ID));
@@ -868,11 +968,30 @@ final class AutomationRunExecutionService {
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
-					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, outputVariable),
+					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, outputVariable, frameBindings),
 					getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
-			registerNodeFrame(executionInsight, outputVariable, value);
+			if (AutomationDatabaseQueryExecutor.supports(node) && AutomationDatabaseQueryExecutor.isRequest(value)) {
+				value = AutomationDatabaseQueryExecutor.execute(executionInsight, value, outputVariable, runId, nodeId);
+				frameBindings.put(outputVariable, registeredFrameBackend(executionInsight, outputVariable));
+			} else {
+				Map<String, Object> frameSummary = AutomationRuntime.frameOutputSummary(value);
+				if (frameSummary != null) {
+					String backend = registerNodeFrame(executionInsight, outputVariable);
+					frameBindings.put(outputVariable, backend);
+					classLogger.debug(
+							"Registered SEMOSS frame output '{}' for Automation run '{}', node '{}', "
+									+ "execution Insight '{}', backend '{}': {} rows, {} columns",
+							outputVariable, runId, nodeId, executionInsight.getInsightId(),
+							backend,
+							frameSummary.get("rowCount"), frameSummary.get("columnCount"));
+					value = frameSummary;
+				} else {
+					registerRowPreviewFrame(executionInsight, runId, nodeId, outputVariable, value);
+					frameBindings.remove(outputVariable);
+				}
+			}
 			value = awaitGeneratedAgentRun(executionInsight, runId, node, value, traceRoomId, scope);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
 					scope);
@@ -887,16 +1006,45 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Promotes row-shaped output through the same Python-frame reactor used by
-	 * Notebook. The bounded JSON value remains the Automation contract; this named
-	 * frame only lets the UI inspect it through standard paged frame queries.
+	 * Registers row-shaped JSON output as an optional, paged frame preview. The JSON
+	 * value remains the node-to-node contract, so preview registration failure is
+	 * logged without failing the run.
+	 *
+	 * @param executionInsight run Insight that owns the Python session and frame
+	 * @param runId            durable Automation run identifier
+	 * @param nodeId           node that produced the row output
+	 * @param outputVariable   node output alias
+	 * @param value            normalized JSON node result
 	 */
-	private static void registerNodeFrame(Insight executionInsight, String outputVariable, Object value) {
+	private static void registerRowPreviewFrame(Insight executionInsight, String runId, String nodeId,
+			String outputVariable, Object value) {
 		if (!(value instanceof List<?> rows) || rows.isEmpty()
 				|| rows.stream().anyMatch(row -> !(row instanceof Map<?, ?>))) {
 			return;
 		}
+		try {
+			registerNodeFrame(executionInsight, outputVariable);
+			classLogger.debug(
+					"Registered tabular preview '{}' for Automation run '{}', node '{}', execution Insight '{}'",
+					outputVariable, runId, nodeId, executionInsight.getInsightId());
+		} catch (RuntimeException e) {
+			classLogger.warn(
+					"Unable to register optional tabular preview '{}' for Automation run '{}', node '{}', "
+							+ "execution Insight '{}'; the JSON result remains available",
+					outputVariable, runId, nodeId, executionInsight.getInsightId(), e);
+		}
+	}
 
+	/**
+	 * Registers a Python variable through the same SEMOSS frame bridge used by
+	 * Notebook. The current bridge creates the platform's PY frame backend; callers
+	 * carry only the returned backend identity.
+	 *
+	 * @param executionInsight run Insight that owns the Python session and frame
+	 * @param outputVariable   Python variable and SEMOSS frame alias
+	 * @throws IllegalStateException when the variable cannot be registered as a frame
+	 */
+	private static String registerNodeFrame(Insight executionInsight, String outputVariable) {
 		NounStore nounStore = new NounStore("GenerateFrameFromPyVariable");
 		nounStore.makeGenRowStruct(ReactorKeysEnum.VARIABLE.getKey())
 				.add(new NounMetadata(outputVariable, PixelDataType.CONST_STRING));
@@ -907,11 +1055,28 @@ final class AutomationRunExecutionService {
 		reactor.setInsight(executionInsight);
 		reactor.setNounStore(nounStore);
 		try {
-			reactor.execute();
+			NounMetadata result = reactor.execute();
+			if (!(result.getValue() instanceof ITableDataFrame frame)) {
+				throw new IllegalStateException("SEMOSS frame registration returned a non-frame value.");
+			}
+			return frame.getFrameType().getTypeAsString();
 		} catch (RuntimeException e) {
-			classLogger.warn("Unable to register tabular output '{}' in Automation execution insight '{}'",
-					outputVariable, executionInsight.getInsightId(), e);
+			throw new IllegalStateException(
+					"Unable to register Python frame output '" + outputVariable + "' in execution Insight '"
+							+ executionInsight.getInsightId() + "'.",
+					e);
 		}
+	}
+
+	/** Returns the backend of an already registered SEMOSS frame alias. */
+	private static String registeredFrameBackend(Insight executionInsight, String outputVariable) {
+		NounMetadata noun = executionInsight.getVarStore().get(outputVariable);
+		if (noun == null || noun.getNounType() != PixelDataType.FRAME
+				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+			throw new IllegalStateException("Automation frame output '" + outputVariable
+					+ "' was not registered in execution Insight '" + executionInsight.getInsightId() + "'.");
+		}
+		return frame.getFrameType().getTypeAsString();
 	}
 
 	/**

@@ -37,6 +37,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
@@ -226,10 +228,25 @@ public final class AutomationRuntime {
 	}
 
 	/**
-	 * Runs one node module with the workflow scope supplied by the Java scheduler.
+	 * Builds the Python invocation for one persisted node source.
+	 *
+	 * <p>
+	 * The serialized {@code scope} remains the public node contract. Names in
+	 * {@code frameBindings} identifies scope entries whose bounded summaries must be
+	 * rebound to live SEMOSS frames already owned by the run Insight. Each value is
+	 * the frame backend reported by SEMOSS. Bindings are execution metadata and are
+	 * not exposed to node authors or persisted in run history.
+	 *
+	 * @param source             persisted Python source defining {@code run(scope)}
+	 * @param scope              bounded run scope supplied by the Java scheduler
+	 * @param outputVariable     node output alias used for live frame registration
+	 * @param frameBindings    output aliases and SEMOSS backend types for live frames
+	 * @return Python script that invokes the Automation runtime boundary
+	 * @throws IllegalStateException when the Automation Python runtime is unavailable
 	 */
-	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable) {
-		return buildPythonInvocation("execute_node", source, scope, outputVariable);
+	public static String buildNodeInvocationScript(String source, Map<String, Object> scope, String outputVariable,
+			Map<String, String> frameBindings) {
+		return buildPythonInvocation("execute_node", source, scope, outputVariable, frameBindings);
 	}
 
 	/**
@@ -238,18 +255,19 @@ public final class AutomationRuntime {
 	 * {@code run(scope)} to define computed globals.
 	 */
 	public static String buildTriggerInvocationScript(String source, Map<String, Object> scope) {
-		return buildPythonInvocation("execute_trigger", source, scope, null);
+		return buildPythonInvocation("execute_trigger", source, scope, null, Map.of());
 	}
 
 	private static String buildPythonInvocation(String function, String source, Map<String, Object> scope,
-			String outputVariable) {
+			String outputVariable, Map<String, String> frameBindings) {
 		Path runtimePath = Path.of(Utility.getBaseFolder(), Constants.PY_BASE_FOLDER, "semoss_automation_runtime.py")
 				.toAbsolutePath().normalize();
 		if (!Files.isRegularFile(runtimePath)) {
 			throw new IllegalStateException("Automation Python runtime is unavailable: " + runtimePath);
 		}
 		String frameArguments = outputVariable == null ? ""
-				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals()";
+				: ", " + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", globals(), "
+						+ AutomationRuntimeUtils.GSON.toJson(new TreeMap<>(frameBindings));
 		return """
 				import importlib.util as _automation_importlib
 				_automation_spec = _automation_importlib.spec_from_file_location(
@@ -379,6 +397,45 @@ public final class AutomationRuntime {
 			return result;
 		}
 		return value;
+	}
+
+	/**
+	 * Converts an internal Python frame result into the bounded table summary stored
+	 * in scope and run history. The frame itself remains owned by the run Insight and
+	 * is available only while that Insight's Python session is live.
+	 *
+	 * @param value normalized result returned by the Python Automation runtime
+	 * @return bounded table summary, or {@code null} for an ordinary node result
+	 * @throws IllegalStateException when the internal frame result is malformed
+	 */
+	public static Map<String, Object> frameOutputSummary(Object value) {
+		if (!(value instanceof Map<?, ?> result)
+				|| !result.containsKey(AutomationConstants.INTERNAL_FRAME_RESULT)) {
+			return null;
+		}
+		Object rawSummary = result.get(AutomationConstants.INTERNAL_FRAME_RESULT);
+		if (result.size() != 1 || !(rawSummary instanceof Map<?, ?> summary)) {
+			throw new IllegalStateException("Python automation node returned an invalid frame result.");
+		}
+
+		long rowCount = nonNegativeWholeNumber(summary.get("rowCount"), "rowCount");
+		long columnCount = nonNegativeWholeNumber(summary.get("columnCount"), "columnCount");
+		Map<String, Object> publicSummary = new LinkedHashMap<>();
+		publicSummary.put("dataType", "table");
+		publicSummary.put("rowCount", rowCount);
+		publicSummary.put("columnCount", columnCount);
+		return publicSummary;
+	}
+
+	private static long nonNegativeWholeNumber(Object value, String field) {
+		if (!(value instanceof Number number)) {
+			throw new IllegalStateException("Python automation frame result is missing " + field + ".");
+		}
+		double numeric = number.doubleValue();
+		if (!Double.isFinite(numeric) || numeric < 0 || numeric != Math.rint(numeric)) {
+			throw new IllegalStateException("Python automation frame result has an invalid " + field + ".");
+		}
+		return number.longValue();
 	}
 
 	private static String encode(String value) {
