@@ -148,6 +148,7 @@ Python 3.14 requires these explicitly documented compatibility changes:
 | pyarrow | 20.0.0 | 23.0.1 | First CPython 3.14 wheels (22.0.0), then CVE-2026-25087 |
 | datasets | 2.14.3 | 4.4.0 | Arrow API and Python 3.14 pickling compatibility |
 | pipecat-ai | 0.0.103 | 1.0.0 | Compatible ONNX Runtime, Numba, and soxr dependencies |
+| pipecat-ai | 1.0.0 | 1.4.0 | Closes CVE-2026-44716, CVE-2026-54695 (AWS Inspector2 findings) |
 
 Additional constraints are `dill>=0.4.0` and `protobuf<7`; the upstream security
 overrides remain applied. Exact pins, failed older candidates, source references,

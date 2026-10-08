@@ -55,7 +55,7 @@ dependencies = [
     "pandasql>=0.7.3",
     "pdfplumber>=0.11.10",
     "pip-system-certs>=5.3",
-    "pipecat-ai==1.0.0",
+    "pipecat-ai==1.4.0",
     "protobuf>=6.33.5",
     "pyarrow==23.0.1",
     "pydantic>=2.13.4",
