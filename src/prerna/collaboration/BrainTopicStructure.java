@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import java.time.Instant;
@@ -18,25 +45,28 @@ import java.util.regex.Pattern;
 // Deterministic topic discovery over permitted headers; no model calls, bodies, database writes or embeddings.
 public final class BrainTopicStructure {
 
-	// wide: any real (non-bulk) thread can seed or join a topic, not only threads the owner took part in; for a pool
+	// wide: any real (non-bulk) thread can seed or join a topic, not only threads
+	// the owner took part in; for a pool
 	// the classifier has already cleared of automated mail
-	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes,
-			int dropAt, int attempts, int spareVotes, int maxTokens, boolean wide) {
+	public record Settings(int pool, int seeds, int topics, double mergeCut, double floor, int votes, int dropAt,
+			int attempts, int spareVotes, int maxTokens, boolean wide) {
 		public Settings {
 			if (pool < 1 || pool > 1000 || seeds < 1 || topics < 1 || topics > 40 || votes < 1 || votes > 9
-					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0
-					|| spareVotes > 1 || mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1
-					|| maxTokens < 1 || maxTokens > 8000) {
+					|| dropAt < 1 || dropAt > votes || attempts < 1 || attempts > 2 || spareVotes < 0 || spareVotes > 1
+					|| mergeCut < 0 || mergeCut > 1 || floor < 0 || floor > 1 || maxTokens < 1 || maxTokens > 8000) {
 				throw new IllegalArgumentException("Invalid topic onboarding settings");
 			}
 		}
 	}
 
-	// Before a completed sort, require owner engagement; after sort, WIDE trusts the non-automated pool.
+	// Before a completed sort, require owner engagement; after sort, WIDE trusts
+	// the non-automated pool.
 	public static final Settings A1 = new Settings(300, 40, 25, 0.6, 0.1, 3, 2, 2, 1, 4000, false);
-	// after a sort: every real thread, and a longer list for the owner to narrow down
+	// after a sort: every real thread, and a longer list for the owner to narrow
+	// down
 	public static final Settings WIDE = new Settings(1000, 60, 40, 0.6, 0.1, 3, 2, 2, 1, 6000, true);
-	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*", Pattern.CASE_INSENSITIVE);
+	private static final Pattern PREFIX = Pattern.compile("^((\\[EXTERNAL\\] )?(RE|FW|Fwd): )*",
+			Pattern.CASE_INSENSITIVE);
 	private static final Pattern WORD = Pattern.compile("(?U)\\b\\w\\w+\\b");
 
 	public record Message(String subject, String at, String sender, List<String> to, List<String> cc, boolean bulk) {
@@ -45,11 +75,12 @@ public final class BrainTopicStructure {
 	public record MailThread(String id, List<Message> messages) {
 	}
 
-	public record Facts(String id, String subject, String at, List<String> people, Set<String> senders,
-			boolean wrote, boolean bulk, boolean vip, boolean outside, int messages, boolean engaged) {
+	public record Facts(String id, String subject, String at, List<String> people, Set<String> senders, boolean wrote,
+			boolean bulk, boolean vip, boolean outside, int messages, boolean engaged) {
 	}
 
-	// Indices refer to pool entries and seed topics. filed is discovery membership, never BRAIN_THREAD_TOPIC.
+	// Indices refer to pool entries and seed topics. filed is discovery membership,
+	// never BRAIN_THREAD_TOPIC.
 	public record Prepared(List<Facts> pool, List<List<Integer>> seeds, Map<Integer, Integer> filed,
 			List<Map<String, Object>> cards, int gated) {
 	}
@@ -57,14 +88,15 @@ public final class BrainTopicStructure {
 	private BrainTopicStructure() {
 	}
 
-	public static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain,
-			Set<String> vips, Settings settings) {
+	public static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings) {
 		return prepare(input, owner, ownDomain, vips, settings, Set.of());
 	}
 
-	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain,
-			Set<String> vips, Settings settings, Set<String> sentHistory) {
-		// Engagement uses all permitted Sent contacts, not just the threads that survive the pool limit.
+	static Prepared prepare(List<MailThread> input, String owner, Predicate<String> ownDomain, Set<String> vips,
+			Settings settings, Set<String> sentHistory) {
+		// Engagement uses all permitted Sent contacts, not just the threads that
+		// survive the pool limit.
 		Set<String> sentTo = new HashSet<>(sentHistory);
 		for (MailThread thread : input) {
 			for (Message m : thread.messages()) {
@@ -96,11 +128,11 @@ public final class BrainTopicStructure {
 			boolean vip = people.stream().anyMatch(vips::contains);
 			people.remove(owner);
 			pool.add(new Facts(thread.id(), subject(messages.getFirst().subject()), messages.getLast().at(),
-					new ArrayList<>(people), senders, wrote, bulk, vip, outside,
-					messages.size(), engaged));
+					new ArrayList<>(people), senders, wrote, bulk, vip, outside, messages.size(), engaged));
 		}
-		pool.sort(Comparator.comparing(Facts::bulk).thenComparing(Comparator.comparingInt(BrainTopicStructure::rank)
-				.reversed()).thenComparing(Comparator.comparingInt(Facts::messages).reversed())
+		pool.sort(Comparator.comparing(Facts::bulk)
+				.thenComparing(Comparator.comparingInt(BrainTopicStructure::rank).reversed())
+				.thenComparing(Comparator.comparingInt(Facts::messages).reversed())
 				.thenComparing(Comparator.comparing(Facts::at).reversed()));
 		pool = new ArrayList<>(pool.subList(0, Math.min(settings.pool(), pool.size())));
 		final List<Facts> ranked = pool;
@@ -108,7 +140,8 @@ public final class BrainTopicStructure {
 		if (pool.size() < 3) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
-		// Similarity balances subject wording and participants, with less weight across distant dates.
+		// Similarity balances subject wording and participants, with less weight across
+		// distant dates.
 		List<List<String>> words = pool.stream().map(t -> words(t.subject())).toList();
 		double[][] text = tfidf(words, 0.15);
 		double[][] people = tfidf(pool.stream().map(Facts::people).toList(), 0.1);
@@ -120,7 +153,8 @@ public final class BrainTopicStructure {
 						* (0.5 + 0.5 * Math.exp(-days / 60));
 			}
 		}
-		// Seed coherent groups first; only then apply engagement/non-bulk eligibility and the seed cap.
+		// Seed coherent groups first; only then apply engagement/non-bulk eligibility
+		// and the seed cap.
 		List<List<Integer>> groups = linkage(sim, 0.9);
 		groups.removeIf(g -> g.size() < 3);
 		groups.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
@@ -135,7 +169,8 @@ public final class BrainTopicStructure {
 		if (seeds.isEmpty()) {
 			return new Prepared(pool, List.of(), Map.of(), List.of(), gated);
 		}
-		// Merge seeds by their normalized participant centroid. mergeCut is distance (1 - cosine), not similarity.
+		// Merge seeds by their normalized participant centroid. mergeCut is distance (1
+		// - cosine), not similarity.
 		double[][] centroids = new double[seeds.size()][people[0].length];
 		for (int i = 0; i < seeds.size(); i++) {
 			for (int j : seeds.get(i)) {
@@ -161,7 +196,8 @@ public final class BrainTopicStructure {
 		}
 		merged.sort(Comparator.<List<Integer>>comparingInt(List::size).reversed());
 		merged = new ArrayList<>(merged.subList(0, Math.min(settings.topics(), merged.size())));
-		// Extend discovery groups using each remaining thread's three closest seed members; cards stay seed-only.
+		// Extend discovery groups using each remaining thread's three closest seed
+		// members; cards stay seed-only.
 		Map<Integer, Integer> filed = new LinkedHashMap<>();
 		for (int i = 0; i < merged.size(); i++) {
 			for (int j : merged.get(i)) {
@@ -195,8 +231,7 @@ public final class BrainTopicStructure {
 	}
 
 	private static int rank(Facts t) {
-		return (t.wrote() ? 1 : 0) + (t.senders().size() >= 2 ? 1 : 0) + (t.vip() ? 1 : 0)
-				+ (t.outside() ? 1 : 0);
+		return (t.wrote() ? 1 : 0) + (t.senders().size() >= 2 ? 1 : 0) + (t.vip() ? 1 : 0) + (t.outside() ? 1 : 0);
 	}
 
 	static String domain(String address) {
@@ -269,7 +304,8 @@ public final class BrainTopicStructure {
 		}
 	}
 
-	// Average linkage by nearest-neighbour chains, with input order resolving equal distances.
+	// Average linkage by nearest-neighbour chains, with input order resolving equal
+	// distances.
 	private static List<List<Integer>> linkage(double[][] sim, double cut) {
 		int n = sim.length;
 		double[][] distance = new double[n][n];
@@ -379,8 +415,9 @@ public final class BrainTopicStructure {
 			card.put("threads", group.size());
 			card.put("from", months.getFirst());
 			card.put("to", months.getLast());
-			card.put("people", counts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-					.limit(3).map(Map.Entry::getKey).toList());
+			card.put("people",
+					counts.entrySet().stream().sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(3)
+							.map(Map.Entry::getKey).toList());
 			card.put("subjects", subjects.stream().limit(6).toList());
 			out.add(card);
 		}

@@ -1,3 +1,30 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import java.io.IOException;
@@ -13,11 +40,14 @@ import java.util.Map;
 
 import prerna.reactor.agent.mcp.MCPUtility;
 
-/** Room-local snapshots keep the reviewed email separate from later file edits. */
+/**
+ * Room-local snapshots keep the reviewed email separate from later file edits.
+ */
 public final class EmailAttachmentFiles {
 
 	public static final String DIRECTORY = ".email-attachments";
-	// Inline Graph attachments require small files; leave room for base64 and the body.
+	// Inline Graph attachments require small files; leave room for base64 and the
+	// body.
 	public static final int MAX_BYTES = 2_500_000;
 	public static final int MAX_FILES = 10;
 
@@ -61,10 +91,14 @@ public final class EmailAttachmentFiles {
 			contents.add(bytes);
 		}
 		List<Map<String, Object>> descriptors = new ArrayList<>();
-		if (paths.isEmpty()) return descriptors;
+		if (paths.isEmpty()) {
+			return descriptors;
+		}
 		Path root = Path.of(rootFolder).toRealPath();
 		Path directory = Files.createDirectories(root.resolve(DIRECTORY)).toRealPath();
-		if (!directory.startsWith(root)) throw new IllegalArgumentException("Invalid email attachment directory.");
+		if (!directory.startsWith(root)) {
+			throw new IllegalArgumentException("Invalid email attachment directory.");
+		}
 		for (int i = 0; i < sources.size(); i++) {
 			Path copy = Files.createTempDirectory(directory, "file-").resolve(sources.get(i).getFileName());
 			Files.write(copy, contents.get(i));

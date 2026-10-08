@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import prerna.engine.impl.function.mail.config.MailProperties;
+import prerna.util.ValueUtils;
 
 /**
  * How much of a mailbox a reading engine is willing to hand over.
@@ -83,7 +84,7 @@ public record MailReadPolicy(int maxMessages, int defaultMessages, int maxBodyCh
 		int bodyChars = Math.max(100, NumberUtils.toInt(properties.getProperty(MailProperties.MAX_BODY_CHARS), 10_000));
 		long attachmentSize = Math.max(1024L,
 				NumberUtils.toLong(properties.getProperty(MailProperties.MAX_ATTACHMENT_SIZE), 5L * 1024L * 1024L));
-		boolean allowDownloads = MailProperties
+		boolean allowDownloads = ValueUtils
 				.parseBoolean(properties.getProperty(MailProperties.ALLOW_ATTACHMENT_DOWNLOAD), false);
 		Set<String> domains = new LinkedHashSet<>();
 		for (String domain : MailProperties.splitList(properties.getProperty(MailProperties.ALLOWED_SENDER_DOMAINS))) {
