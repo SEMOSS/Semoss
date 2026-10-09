@@ -165,7 +165,7 @@ final class AutomationRunExecutionService {
 			scope.putAll(AutomationRunStore.getRunInputs(runId));
 			Map<String, String> runNodeSources = AutomationRunStore.getRunNodeSources(runId);
 			result = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes, runNodeSources,
-					scope, traceRoomIds, AutomationRuntime.startNodeId(definition));
+					scope, traceRoomIds, AutomationRuntime.startNodeId(definition), Map.of());
 			if (!Boolean.TRUE.equals(result.get("waitingForInput"))) {
 				finishRun(runId, projectId);
 			}
@@ -224,7 +224,7 @@ final class AutomationRunExecutionService {
 	private Map<String, Object> executeInControlOrder(Insight executionInsight, String projectId, String runId,
 			AutomationDefinitionValidator.ValidatedDefinition definition, List<Map<String, Object>> runNodes,
 			Map<String, String> nodeSources, Map<String, Object> scope, Map<String, String> traceRoomIds,
-			String initialNodeId) {
+			String initialNodeId, Map<String, String> initialFrameBindings) {
 		Map<String, Object> result = new LinkedHashMap<>();
 		Map<String, Map<String, Object>> nodesById = new LinkedHashMap<>();
 		for (Map<String, Object> node : runNodes) {
@@ -232,9 +232,7 @@ final class AutomationRunExecutionService {
 		}
 		Map<String, Map<String, String>> controlTargets = AutomationRuntime.controlTargets(definition);
 		Set<String> visited = new HashSet<>();
-		// Invocation metadata only: these aliases resolve to live SEMOSS frames rather
-		// than the JSON row previews also registered in the run Insight.
-		Map<String, String> frameBindings = new LinkedHashMap<>();
+		Map<String, String> frameBindings = new LinkedHashMap<>(initialFrameBindings);
 		String currentNodeId = initialNodeId;
 		boolean pathCompleted = true;
 		while (currentNodeId != null) {
@@ -972,13 +970,30 @@ final class AutomationRunExecutionService {
 					getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
 			Object value = AutomationRuntime.normalizeNodeResult(raw);
-			if (AutomationDatabaseQueryExecutor.supports(node) && AutomationDatabaseQueryExecutor.isRequest(value)) {
+			boolean databaseFrameRequest = AutomationDatabaseQueryExecutor.supports(node)
+					&& AutomationDatabaseQueryExecutor.isRequest(value);
+			Map<String, Object> frameSummary = AutomationRuntime.frameOutputSummary(value);
+			String parentLoopNodeId = stringValue(node.get(AutomationConstants.PARENT_NODE_ID));
+			if (parentLoopNodeId != null && (databaseFrameRequest || frameSummary != null)) {
+				if (frameSummary != null) {
+					discardPythonFrameOutput(translator, outputVariable, runId, nodeId);
+				}
+				throw new IllegalStateException("Loop node '" + parentLoopNodeId
+						+ "' does not support frame-producing body node '" + nodeId
+						+ "'. Return JSON or move the frame-producing node outside the loop.");
+			}
+			if (databaseFrameRequest) {
 				value = AutomationDatabaseQueryExecutor.execute(executionInsight, value, outputVariable, runId, nodeId);
 				frameBindings.put(outputVariable, registeredFrameBackend(executionInsight, outputVariable));
 			} else {
-				Map<String, Object> frameSummary = AutomationRuntime.frameOutputSummary(value);
 				if (frameSummary != null) {
-					String backend = registerNodeFrame(executionInsight, outputVariable);
+					String backend;
+					try {
+						backend = registerNodeFrame(executionInsight, outputVariable);
+					} catch (RuntimeException registrationError) {
+						discardPythonFrameOutput(translator, outputVariable, runId, nodeId);
+						throw registrationError;
+					}
 					frameBindings.put(outputVariable, backend);
 					classLogger.debug(
 							"Registered SEMOSS frame output '{}' for Automation run '{}', node '{}', "
@@ -1002,6 +1017,17 @@ final class AutomationRunExecutionService {
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
 					traceForNode(node, traceRoomId, null, null));
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
+		}
+	}
+
+	/** Removes a failed or unsupported frame result from the run's Python namespace. */
+	private static void discardPythonFrameOutput(PyTranslator translator, String outputVariable, String runId,
+			String nodeId) {
+		try {
+			translator.runScript("globals().pop(" + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", None)");
+		} catch (RuntimeException cleanupError) {
+			classLogger.warn("Unable to discard Python frame output '{}' for Automation run '{}', node '{}'",
+					outputVariable, runId, nodeId, cleanupError);
 		}
 	}
 
@@ -1722,12 +1748,14 @@ final class AutomationRunExecutionService {
 							|| AutomationConstants.NODE_STATUS_SKIPPED.equals(row.get(AutomationConstants.STATUS)))
 					.count();
 			AutomationRunRegistry.register(runId, translator, executionInsight, streamJobId, completedNodes);
-			Map<String, Object> scope = reconstructScope(runId, executionInsight.getUser(),
+			ReconstructedScope reconstructed = reconstructScope(runId, executionInsight,
 					AutomationRuntime.startNodeId(definition));
+			Map<String, Object> scope = reconstructed.scope();
 			String resumeNodeId = stringValue(wait.get(AutomationConstants.RESUME_NODE_ID));
 			if (resumeNodeId != null) {
 				continuation = executeInControlOrder(executionInsight, projectId, runId, definition, runNodes,
-						AutomationRunStore.getRunNodeSources(runId), scope, traceRoomIds(runId), resumeNodeId);
+						AutomationRunStore.getRunNodeSources(runId), scope, traceRoomIds(runId), resumeNodeId,
+						reconstructed.frameBindings());
 			} else {
 				continuation.put("scope", scope);
 			}
@@ -1786,12 +1814,13 @@ final class AutomationRunExecutionService {
 	 * the control loop and must stay out of scope, exactly as it does on a straight-through run.
 	 *
 	 * @param runId       run being resumed
-	 * @param user        user the run executes as, for timezone-local runtime values
+	 * @param executionInsight live run Insight used to resolve frame-backed outputs
 	 * @param startNodeId trigger node ID taken from this run's definition snapshot
-	 * @return scope equivalent to the one the run held before it paused
+	 * @return reconstructed scope and verified live frame bindings
 	 */
-	private static Map<String, Object> reconstructScope(String runId, prerna.auth.User user, String startNodeId) {
-		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, user);
+	private static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId) {
+		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
+		Map<String, String> frameBindings = new LinkedHashMap<>();
 		scope.putAll(AutomationRunStore.getRunInputs(runId));
 		for (Map<String, Object> row : AutomationRunStore.getNodeOutputsForRun(runId)) {
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(row.get(AutomationConstants.STATUS))) {
@@ -1801,6 +1830,10 @@ final class AutomationRunExecutionService {
 			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
 			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
 			if (outputVar != null) {
+				if (AutomationRuntime.isFrameOutputSummary(value)) {
+					frameBindings.put(outputVar,
+							requireResumableFrameBackend(executionInsight, runId, outputVar));
+				}
 				scope.put(outputVar, value);
 			} else if (startNodeId.equals(stringValue(row.get(AutomationConstants.NODE_ID)))
 					&& value instanceof Map<?, ?> globals) {
@@ -1813,7 +1846,20 @@ final class AutomationRunExecutionService {
 		}
 		AutomationRuntimeUtils.toBoundedRuntimeJson(scope, AutomationConstants.RUN_SCOPE_MAX_BYTES,
 				"Reconstructed automation run scope");
-		return scope;
+		return new ReconstructedScope(scope, frameBindings);
+	}
+
+	/** Resolves one persisted frame summary only while its run-owned frame is live. */
+	static String requireResumableFrameBackend(Insight executionInsight, String runId, String outputVariable) {
+		try {
+			return registeredFrameBackend(executionInsight, outputVariable);
+		} catch (IllegalStateException unavailable) {
+			throw new IllegalStateException("Automation run '" + runId + "' cannot resume because frame-backed output '"
+					+ outputVariable + "' is no longer available in its execution Insight.", unavailable);
+		}
+	}
+
+	private record ReconstructedScope(Map<String, Object> scope, Map<String, String> frameBindings) {
 	}
 
 	/**

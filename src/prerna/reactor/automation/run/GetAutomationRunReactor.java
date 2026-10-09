@@ -35,7 +35,9 @@ import java.util.Map;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
+import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -53,6 +55,9 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
 public class GetAutomationRunReactor extends AbstractReactor {
 
 	private static final String OUTPUT_FRAME_KEY = "OUTPUT_FRAME";
+	private static final String OUTPUT_FRAME_UNAVAILABLE_KEY = "OUTPUT_FRAME_UNAVAILABLE";
+	private static final String FRAME_UNAVAILABLE_MESSAGE =
+			"Frame data is unavailable because this run's execution workspace is closed.";
 
 	// Not standardized in ReactorKeysEnum — matches the local-key convention used
 	// by prerna.reactor.agent (e.g. GetAgentRunReactor.RUN_ID_KEY).
@@ -96,15 +101,27 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		Insight executionInsight = AutomationRunExecutionService.getAvailableExecutionInsight(runId);
 		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
 			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsight.getInsightId());
-			for (int index = 0; index < nodeOutputs.size(); index++) {
-				Object outputVariable = nodeOutputs.get(index).get(AutomationConstants.OUTPUT_VAR_NAME);
+		}
+		int resultIndex = 0;
+		for (Map<String, Object> nodeOutput : nodeOutputs) {
+			if (nodeOutput.get(AutomationConstants.PARENT_NODE_ID) != null) {
+				continue;
+			}
+			Map<String, Object> nodeResult = nodeResults.get(resultIndex++);
+			Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
+			if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
 				if (!(outputVariable instanceof String name)) {
 					continue;
 				}
 				NounMetadata frame = executionInsight.getVarStore().get(name);
 				if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
-					nodeResults.get(index).put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
+					nodeResult.put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
+					continue;
 				}
+			}
+			if (isFrameOutput(nodeOutput)) {
+				nodeResult.put(OUTPUT_FRAME_UNAVAILABLE_KEY, true);
+				nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, FRAME_UNAVAILABLE_MESSAGE);
 			}
 		}
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
@@ -112,6 +129,19 @@ public class GetAutomationRunReactor extends AbstractReactor {
 			runDetail.put("wait", wait);
 		}
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
+	}
+
+	private static boolean isFrameOutput(Map<String, Object> nodeOutput) {
+		Object rawValue = nodeOutput.get(AutomationConstants.OUTPUT_VALUE);
+		if (!(rawValue instanceof String outputValue)) {
+			return false;
+		}
+		try {
+			Object value = AutomationRuntimeUtils.GSON.fromJson(outputValue, Object.class);
+			return AutomationRuntime.isFrameOutputSummary(value);
+		} catch (RuntimeException ignored) {
+			return false;
+		}
 	}
 
 	@Override

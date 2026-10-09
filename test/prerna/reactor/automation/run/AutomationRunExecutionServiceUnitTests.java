@@ -30,6 +30,7 @@ package prerna.reactor.automation.run;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
@@ -184,6 +186,21 @@ public class AutomationRunExecutionServiceUnitTests {
 
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 1));
+	}
+
+	@Test
+	void resumeRequiresTheOriginalLiveFrameBinding() {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(),
+				AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "heroes"));
+		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+				() -> AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "missing"));
+		assertTrue(unavailable.getMessage().contains("cannot resume"));
 	}
 
 	@Test

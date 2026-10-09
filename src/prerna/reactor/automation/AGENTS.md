@@ -121,6 +121,9 @@ Notebook's named-frame convention. `GetAutomationRun` returns the ordinary `FRAM
 Insight remains live; the UI reads it with the existing
 `Frame | QueryAll | Offset | Limit | Collect` path. Frame-backed scope is live run state, not a durable-data contract:
 when the run Insight has closed, callers fall back to bounded persisted metadata or output preview.
+An agent-wait resume rebinds a frame only when that same execution Insight still owns it; otherwise the run fails
+before executing a dependent node. Loops may consume a registered frame through bounded SEMOSS queries, but a
+loop-body node may not produce a frame until iteration-owned frame identity and history are supported.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine
