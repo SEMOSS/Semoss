@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
@@ -255,6 +256,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		// stay cacheable
 		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
+			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
+			if (ownerBlock != null) {
+				composed.append("\n\n").append(ownerBlock);
+			}
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
