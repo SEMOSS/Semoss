@@ -2207,6 +2207,35 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * The user's open rooms in a project, with their options and without their messages.
+	 *
+	 * @param userId    user identifier
+	 * @param projectId project identifier
+	 * @return one map per open room: ROOM_ID, OPTIONS (JSON text)
+	 */
+	public static List<Map<String, Object>> getActiveRoomOptions(String userId, String projectId) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		String query = "SELECT ROOM_ID, OPTIONS FROM ROOM WHERE USER_ID = ? AND PROJECT_ID = ? AND IS_ACTIVE = ?";
+		try {
+			return QueryExecutionUtility.queryList(modelInferenceLogsDb, query, stmt -> {
+				stmt.setString(1, userId);
+				stmt.setString(2, projectId);
+				stmt.setBoolean(3, true);
+			}, resultSet -> {
+				Map<String, Object> row = new HashMap<>();
+				row.put("ROOM_ID", resultSet.getString("ROOM_ID"));
+				row.put("OPTIONS", resultSet.getString("OPTIONS"));
+				return row;
+			});
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Failed to read rooms for userId '{}' in project '{}'.", userId, projectId, e);
+			throw new IllegalStateException("Could not read the rooms", e);
+		}
+	}
+
+	/**
 	 * Returns active-room rows for the specified user/room pair.
 	 *
 	 * @param roomId room identifier

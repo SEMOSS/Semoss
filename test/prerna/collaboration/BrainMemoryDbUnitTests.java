@@ -374,7 +374,7 @@ class BrainMemoryDbUnitTests {
 		sql("UPDATE BRAIN_MEMORY_LINK SET REF_ID = 'th-2' WHERE MEMORY_ID = (SELECT MEMORY_ID FROM BRAIN_MEMORY "
 				+ "WHERE TEXT = 'Wrong thread')");
 
-		List<String> ids = ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", 4000));
+		List<String> ids = ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000));
 		assertEquals(Set.of(preference, aboutThread, aboutPriya, aboutAcme, aboutAccount), Set.copyOf(ids));
 		assertEquals(List.of(preference, aboutThread, aboutPriya), ids.subList(0, 3));
 
@@ -382,22 +382,30 @@ class BrainMemoryDbUnitTests {
 		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, CHANNEL, CREATED_AT) VALUES (?, ?, 'r1', "
 				+ "'exclude_channel', 'outlook', CURRENT_TIMESTAMP)", ownerId, ownerType);
 		assertEquals(Set.of(preference, aboutAcme, aboutAccount),
-				Set.copyOf(ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", 4000))));
+				Set.copyOf(ids(BrainMemoryRecall.recall(ownerId, ownerType, "th-1", null, 4000))));
 
 		// a /new session only gets what applies everywhere
-		assertEquals(List.of(preference), ids(BrainMemoryRecall.recall(ownerId, ownerType, "session:abc", 4000)));
+		assertEquals(List.of(preference), ids(BrainMemoryRecall.recall(ownerId, ownerType, "session:abc", null, 4000)));
 
-		Map<String, Object> shown = BrainMemoryRecall.recallMemories(user, "th-1");
+		Map<String, Object> shown = BrainMemoryRecall.recallMemories(user, "th-1", null);
 		assertEquals(true, shown.get("enabled"));
 		assertEquals(3, ((List<?>) shown.get("items")).size());
 		assertTrue(((String) shown.get("prompt")).contains("[m:" + preference + "] Sign emails as Rob"));
-		assertTrue(BrainMemoryRecall.promptBlock(user, "th-1").contains("### What you remember for this thread"));
+		// the owner's chat opened from th-1
+		Room room = mock(Room.class);
+		when(room.getId()).thenReturn("room-1");
+		when(room.getProjectId()).thenReturn(CollaborationUtils.COLLABORATION_PROJECT_ID);
+		when(room.getOptionsMap()).thenReturn(Map.of("source", Map.of("threadId", "th-1")));
+		String block = BrainMemoryRecall.promptBlock(user, room);
+		assertTrue(block.contains("### What you remember for this thread"));
+		// only the thread's chat gets its topic memories; a room not read as one would fall back to the session's
+		assertTrue(block.contains("[m:" + aboutAcme + "] Acme needs three quotes"));
 
 		// memory off: no block for the prompt and nothing recalled
 		sql("INSERT INTO BRAIN_SETTINGS (OWNER_ID, OWNER_TYPE, FILE_AT, ASK_AT, VERSION, MEMORY_USE) "
 				+ "VALUES (?, ?, 85, 40, 1, FALSE)", ownerId, ownerType);
-		assertNull(BrainMemoryRecall.promptBlock(user, "th-1"));
-		assertEquals(false, BrainMemoryRecall.recallMemories(user, "th-1").get("enabled"));
+		assertNull(BrainMemoryRecall.promptBlock(user, room));
+		assertEquals(false, BrainMemoryRecall.recallMemories(user, "th-1", null).get("enabled"));
 		assertThrows(IllegalArgumentException.class, () -> BrainMemoryUtils.requireAssistantMemory(user));
 	}
 

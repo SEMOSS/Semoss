@@ -279,6 +279,17 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("HIDDEN_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("FIRST_SEEN_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("LAST_SEEN_AT", TIMESTAMP_DATATYPE_NAME)));
+		// a chat's email threads: linked, or removed (not added back); SEEN_REF is the newest email of the
+		// thread the chat's assistant has been given, so later ones are new to the chat
+		addTable("BRAIN_THREAD_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("ORIGIN", VARCHAR_20),
+				Pair.with("SEEN_REF", VARCHAR_255),
+				Pair.with("SEEN_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// metadata and gate decision only, never a message body
 		addTable("BRAIN_MESSAGE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,

@@ -109,11 +109,15 @@ public final class BrainTopicSuggest {
 		BrainOrgDomains.Org ownOrg = BrainOrgDomains.load(ownerId, ownerType, myDomain);
 		Map<String, String> emails = new HashMap<>();
 		Map<String, String> names = new HashMap<>();
+		Map<String, String> accountOfPerson = new HashMap<>();
 		CollaborationDbUtils.query(
-				"SELECT PERSON_ID, EMAIL_NORM, DISPLAY_NAME FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
+				"SELECT PERSON_ID, EMAIL_NORM, DISPLAY_NAME, ACCOUNT_ID FROM BRAIN_PERSON WHERE OWNER_ID = ? AND OWNER_TYPE = ?", rs -> {
 					emails.put(rs.getString(1), rs.getString(2));
 					if (rs.getString(3) != null) {
 						names.put(rs.getString(1), rs.getString(3));
+					}
+					if (rs.getString(4) != null) {
+						accountOfPerson.put(rs.getString(1), rs.getString(4));
 					}
 					return null;
 				}, ownerId, ownerType);
@@ -302,7 +306,8 @@ public final class BrainTopicSuggest {
 					for (String p : t.people()) {
 						byPerson.merge(p, 1, Integer::sum);
 						String d = org(BrainMailImport.domain(emails.get(p)));
-						String a = accountByDomain.get(d);
+						// the owner's own link (one outside contact kept by email) beats the domain's account
+						String a = accountOfPerson.getOrDefault(p, accountByDomain.get(d));
 						if (a != null) {
 							accountsHere.add(a);
 						}
