@@ -45,6 +45,7 @@ import prerna.util.ConnectionUtils;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Persistence layer for the {@code AGENT_RUN_ACTION} table.
@@ -90,20 +91,20 @@ public final class AgentRunActionStore {
 			ps = db.getPreparedStatement(query);
 			for (Map<String, Object> action : actions) {
 				int idx = 1;
-				String actionId = stringValue(action.get("actionId"));
+				String actionId = ValueUtils.trimToNull(action.get("actionId"));
 				if (actionId == null) {
 					throw new IllegalArgumentException("actionId is required for AGENT_RUN_ACTION rows");
 				}
 				ps.setString(idx++, actionId);
 				ps.setString(idx++, runId);
 				ps.setString(idx++, roomId);
-				setNullableString(ps, idx++, stringValue(action.get("parentMessageId")));
-				setNullableString(ps, idx++, stringValue(action.get("toolCallId")));
-				setNullableString(ps, idx++, stringValue(action.get("toolName")));
+				setNullableString(ps, idx++, ValueUtils.trimToNull(action.get("parentMessageId")));
+				setNullableString(ps, idx++, ValueUtils.trimToNull(action.get("toolCallId")));
+				setNullableString(ps, idx++, ValueUtils.trimToNull(action.get("toolName")));
 				setClob(db, ps, idx++, toJson(action.get("toolArgs")));
 				setClob(db, ps, idx++, toJson(action.get("toolMeta")));
 				ps.setString(idx++, booleanValue(action.get("hasUi")) ? "true" : "false");
-				setClob(db, ps, idx++, stringValue(action.get("uiUrl")));
+				setClob(db, ps, idx++, ValueUtils.trimToNull(action.get("uiUrl")));
 				ps.setString(idx++, "PENDING");
 				ps.setTimestamp(idx++, Utility.getCurrentSqlTimestampUTC());
 				setNullableString(ps, idx++, userId);
@@ -217,9 +218,9 @@ public final class AgentRunActionStore {
 	 * Loads an action without applying the owning-user predicate.
 	 *
 	 * <p>
-	 * This method is reserved for Automation APIs that have already verified project
-	 * edit access and the exact persisted Automation trace. Generic agent APIs must
-	 * use {@link #getActionById(String, String)}.
+	 * This method is reserved for Automation APIs that have already verified
+	 * project edit access and the exact persisted Automation trace. Generic agent
+	 * APIs must use {@link #getActionById(String, String)}.
 	 *
 	 * @param actionId agent action identifier
 	 * @return matching action, or {@code null} when it does not exist
@@ -245,8 +246,7 @@ public final class AgentRunActionStore {
 			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DATE_CREATED", "dateCreated"));
 			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__DECIDED_AT", "decidedAt"));
 			qs.addSelector(new QueryColumnSelector("AGENT_RUN_ACTION__USER_ID", "userId"));
-			qs.addExplicitFilter(
-					SimpleQueryFilter.makeColToValFilter("AGENT_RUN_ACTION__ACTION_ID", "==", actionId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("AGENT_RUN_ACTION__ACTION_ID", "==", actionId));
 
 			List<Map<String, Object>> rows = QueryExecutionUtility.flushRsToMap(db, qs);
 			if (rows.isEmpty()) {
@@ -254,13 +254,13 @@ public final class AgentRunActionStore {
 			}
 			Map<String, Object> action = rows.get(0);
 			action.put("hasUi", booleanValue(action.get("hasUi")));
-			action.put("toolArgs", stringValue(action.get("toolArgs")));
-			action.put("editedArgs", stringValue(action.get("editedArgs")));
-			action.put("toolMeta", stringValue(action.get("toolMeta")));
-			action.put("uiUrl", stringValue(action.get("uiUrl")));
-			action.put("result", stringValue(action.get("result")));
-			action.put("dateCreated", stringValue(action.get("dateCreated")));
-			action.put("decidedAt", stringValue(action.get("decidedAt")));
+			action.put("toolArgs", ValueUtils.trimToNull(action.get("toolArgs")));
+			action.put("editedArgs", ValueUtils.trimToNull(action.get("editedArgs")));
+			action.put("toolMeta", ValueUtils.trimToNull(action.get("toolMeta")));
+			action.put("uiUrl", ValueUtils.trimToNull(action.get("uiUrl")));
+			action.put("result", ValueUtils.trimToNull(action.get("result")));
+			action.put("dateCreated", ValueUtils.trimToNull(action.get("dateCreated")));
+			action.put("decidedAt", ValueUtils.trimToNull(action.get("decidedAt")));
 			return action;
 		} catch (Exception e) {
 			throw new IllegalStateException("Failed to load Automation AGENT_RUN_ACTION actionId=" + actionId, e);
@@ -339,7 +339,10 @@ public final class AgentRunActionStore {
 		}
 	}
 
-	/** Actions of one tool type assigned to a user, newest first; status is optional. */
+	/**
+	 * Actions of one tool type assigned to a user, newest first; status is
+	 * optional.
+	 */
 	static List<Map<String, Object>> getAssignedActions(String userId, String toolName, String status, int limit) {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
@@ -379,8 +382,8 @@ public final class AgentRunActionStore {
 		IRDBMSEngine db = SystemEngineRegistry.getModelInferenceLogsDb();
 		PreparedStatement ps = null;
 		try {
-			ps = db.getPreparedStatement("UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECIDED_AT = ? "
-					+ "WHERE RUN_ID = ? AND STATUS = ?");
+			ps = db.getPreparedStatement(
+					"UPDATE AGENT_RUN_ACTION SET STATUS = ?, DECIDED_AT = ? " + "WHERE RUN_ID = ? AND STATUS = ?");
 			ps.setString(1, "CANCELLED");
 			ps.setTimestamp(2, Utility.getCurrentSqlTimestampUTC());
 			ps.setString(3, runId);
@@ -487,8 +490,8 @@ public final class AgentRunActionStore {
 		map.put("status", rs.getString("STATUS"));
 		map.put("result", clobToString(rs, "RESULT"));
 		map.put("toolStatus", rs.getString("TOOL_STATUS"));
-		map.put("dateCreated", stringValue(rs.getTimestamp("DATE_CREATED")));
-		map.put("decidedAt", stringValue(rs.getTimestamp("DECIDED_AT")));
+		map.put("dateCreated", ValueUtils.trimToNull(rs.getTimestamp("DATE_CREATED")));
+		map.put("decidedAt", ValueUtils.trimToNull(rs.getTimestamp("DECIDED_AT")));
 		map.put("userId", rs.getString("USER_ID"));
 		return map;
 	}
@@ -496,14 +499,6 @@ public final class AgentRunActionStore {
 	private static String clobToString(ResultSet rs, String colName) throws Exception {
 		String val = rs.getString(colName);
 		return val == null || val.trim().isEmpty() ? null : val;
-	}
-
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String s = String.valueOf(value).trim();
-		return s.isEmpty() ? null : s;
 	}
 
 	private static boolean booleanValue(Object value) {

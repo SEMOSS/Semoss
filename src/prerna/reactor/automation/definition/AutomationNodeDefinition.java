@@ -79,7 +79,8 @@ public record AutomationNodeDefinition(AutomationNodeType nodeType, String label
 
 	/** Supported structured result value shapes exposed to authoring clients. */
 	public enum OutputFieldType {
-		BOOLEAN("boolean"), NUMBER("number"), OBJECT("object"), STRING("string"), STRING_LIST("string[]");
+		BOOLEAN("boolean"), NUMBER("number"), OBJECT("object"), OBJECT_LIST("object[]"), STRING("string"),
+		STRING_LIST("string[]");
 
 		private final String value;
 

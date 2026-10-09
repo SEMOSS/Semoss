@@ -135,7 +135,9 @@ public class QueryExecutionUtility {
 		T map(ResultSet result) throws Exception;
 	}
 
-	/** Executes one prepared DML statement in an owned write transaction. */
+	/**
+	 * Executes one prepared DML statement in an owned write transaction.
+	 */
 	public static int executeUpdate(IRDBMSEngine engine, String sql, StatementBinder binder) throws Exception {
 		return write(engine, connection -> executeUpdate(connection, sql, binder));
 	}
@@ -326,23 +328,15 @@ public class QueryExecutionUtility {
 				connection.commit();
 			} else if (manualTransaction) {
 				rollbackAttempted = true;
-				try {
-					connection.rollback();
-				} catch (Exception | Error cleanup) {
-					classLogger.error("Error completing JDBC read transaction", cleanup);
-					throw cleanup;
-				}
+				failure = ConnectionUtils.rollbackConnection(connection);
 			}
-			transactionEnded = true;
+			transactionEnded = failure == null;
 		} catch (Exception | Error e) {
 			failure = e;
 			if (!rollbackAttempted && (manualTransaction || changeAttempted)) {
-				try {
-					connection.rollback();
-					transactionEnded = true;
-				} catch (Exception | Error cleanup) {
-					failure = jdbcCleanupFailure(failure, cleanup, "Error rolling back JDBC transaction");
-				}
+				Throwable cleanup = ConnectionUtils.rollbackConnection(connection);
+				transactionEnded = cleanup == null;
+				failure = ConnectionUtils.jdbcCleanupFailure(failure, cleanup);
 			}
 		}
 		// Never enable auto-commit after a failed rollback, or guess an unread state.
@@ -350,14 +344,11 @@ public class QueryExecutionUtility {
 			try {
 				connection.setAutoCommit(originalAutoCommit);
 			} catch (Exception | Error cleanup) {
-				failure = jdbcCleanupFailure(failure, cleanup, "Error restoring JDBC auto-commit");
+				failure = ConnectionUtils.jdbcCleanupFailure(failure, cleanup, "Error restoring JDBC auto-commit");
 			}
 		}
-		try {
-			ConnectionUtils.closeConnectionIfPooling(engine, connection);
-		} catch (Exception | Error cleanup) {
-			failure = jdbcCleanupFailure(failure, cleanup, "Error releasing JDBC connection");
-		}
+		failure = ConnectionUtils.jdbcCleanupFailure(failure,
+				ConnectionUtils.closeConnectionIfPooling(engine, connection));
 		if (failure instanceof Exception) {
 			throw (Exception) failure;
 		}
@@ -365,17 +356,6 @@ public class QueryExecutionUtility {
 			throw (Error) failure;
 		}
 		return result;
-	}
-
-	private static Throwable jdbcCleanupFailure(Throwable failure, Throwable cleanup, String message) {
-		classLogger.error(message, cleanup);
-		if (failure == null) {
-			return cleanup;
-		}
-		if (failure != cleanup) {
-			failure.addSuppressed(cleanup);
-		}
-		return failure;
 	}
 
 	/**
@@ -654,6 +634,19 @@ public class QueryExecutionUtility {
 		} catch (Exception e) {
 			classLogger.error("Error flushing query result set to List<Map>", e);
 			throw new IllegalArgumentException("Error executing query: " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Compiles a structured JDBC query with separate bindings and materializes the
+	 * usual wrapper-provided headers and value types. Closes the owned read on all
+	 * paths.
+	 */
+	public static List<Map<String, Object>> flushPreparedRsToMap(IRDBMSEngine engine, SelectQueryStruct qs) {
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getPreparedWrapper(engine, qs)) {
+			return flushWrapperToMap(wrapper);
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Error executing prepared query", e);
 		}
 	}
 

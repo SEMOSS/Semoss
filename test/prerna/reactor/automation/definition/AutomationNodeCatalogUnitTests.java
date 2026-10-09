@@ -107,6 +107,31 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
+	void storageListAdvertisesOptionalFileTypes() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_STORAGE_LIST);
+		assertNotNull(definition);
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals("string[]", fieldsByKey.get("extensions").get("type"));
+		assertEquals(List.of(), definition.defaultConfig().get("extensions"));
+	}
+
+	@Test
+	void dataExtractAdvertisesOneGenericJsonXmlContract() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_DATA_EXTRACT);
+		assertNotNull(definition);
+		assertEquals("data", definition.toMap().get("category"));
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals("textarea", fieldsByKey.get(AutomationConstants.CONFIG_SOURCE).get("type"));
+		assertEquals("string", fieldsByKey.get(AutomationConstants.CONFIG_PATH).get("type"));
+		assertEquals("auto", definition.defaultConfig().get(AutomationConstants.CONFIG_FORMAT));
+		assertEquals(false, definition.nodeType().supportsCustomCode());
+	}
+
+	@Test
 	void optionalEngineParametersAreBackendOwned() {
 		Map<String, Map<String, Object>> uploadFields = find(AutomationConstants.NODE_STORAGE_UPLOAD).configFields()
 				.stream().collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
@@ -140,6 +165,27 @@ public class AutomationNodeCatalogUnitTests {
 				fieldsByKey.get(AutomationConstants.CONFIG_QUESTION_TYPE).get("defaultValue"));
 		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
 				definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTION_TYPE));
+	}
+
+	@Test
+	void loopAdvertisesBoundedSequentialConfiguration() {
+		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_LOOP);
+		assertNotNull(definition);
+		assertEquals(AutomationConstants.LOOP_MODE_FOR_EACH,
+				definition.defaultConfig().get(AutomationConstants.CONFIG_LOOP_MODE));
+		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
+				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
+						AutomationNodeDefinition.ConfigField::toMap));
+		assertEquals(AutomationConstants.LOOP_MAX_ITERATIONS,
+				fieldsByKey.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS).get("maximum"));
+		assertEquals(1, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE).get("minimum"));
+		assertEquals(1, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_COUNT).get("minimum"));
+		assertEquals(false, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_ITEMS).get("required"));
+		assertEquals(false, fieldsByKey.get(AutomationConstants.CONFIG_LOOP_COUNT).get("required"));
+		assertNotNull(fieldsByKey.get(AutomationConstants.CONFIG_LOOP_CONDITION));
+		assertEquals(AutomationNodeDefinition.OutputFieldType.OBJECT_LIST,
+				definition.outputFields().stream().filter(field -> "results".equals(field.key())).findFirst().orElseThrow()
+						.type());
 	}
 
 	/** Writes need edit rights on the engine; a read only needs view. */

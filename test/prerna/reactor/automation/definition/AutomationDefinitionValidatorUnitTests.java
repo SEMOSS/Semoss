@@ -364,4 +364,106 @@ public class AutomationDefinitionValidatorUnitTests {
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(json));
 	}
+
+	@Test
+	void acceptsABoundedLoopWithAnAcyclicBody() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DEVELOPER_PYTHON, Map.of());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-python");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "body_result");
+		bodyNode.put(AutomationConstants.NODE_FIELD_CODE_MODE, AutomationConstants.NODE_CODE_MODE_CUSTOM);
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1, 2, 3),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+
+		AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), loop));
+	}
+
+	@Test
+	void acceptsDottedForEachRepeatAndWhileLoopConfiguration() {
+		Map<String, Object> dottedForEach = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, "${download.files}",
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), dottedForEach));
+
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 5,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "${status} != \"complete\"",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop));
+	}
+
+	@Test
+	void rejectsRepeatCountAboveItsSafetyLimitAndInvalidWhileCondition() {
+		Map<String, Object> repeat = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_REPEAT,
+						AutomationConstants.CONFIG_LOOP_COUNT, 11,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), repeat)));
+
+		Map<String, Object> whileLoop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "status is complete",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), whileLoop)));
+	}
+
+	@Test
+	void permitsAnIncompleteLoopBodyOnlyWhileAuthoring() {
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		String json = definition(Map.of(), loop);
+
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
+	}
+
+	@Test
+	void rejectsNestedLoops() {
+		Map<String, Object> nested = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		nested.put(AutomationConstants.NODE_FIELD_ID, "nested-loop");
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(nested), AutomationConstants.DOC_EDGES, List.of()));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidate(definition(Map.of(), loop)));
+	}
+
+	@Test
+	void rejectsAnUnboundedLoop() {
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS,
+						AutomationConstants.LOOP_MAX_ITERATIONS + 1));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidateForAuthoring(definition(Map.of(), loop)));
+	}
 }

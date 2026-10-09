@@ -36,6 +36,7 @@ import java.util.Map;
 import prerna.om.Insight;
 import prerna.reactor.agent.AgentRunContext;
 import prerna.reactor.agent.AgentRunner;
+import prerna.util.ValueUtils;
 
 /**
  * Everything needed to execute one agent run: the room, the user's input, the
@@ -180,7 +181,10 @@ public final class AgentRunRequest {
 				SubAgentRunCompletionMode.WAIT, ownerAuthType, childRunId, continuationDepth + 1, null);
 	}
 
-	/** Returns a copy marking this run as a child answered by a person rather than a model. */
+	/**
+	 * Returns a copy marking this run as a child answered by a person rather than a
+	 * model.
+	 */
 	AgentRunRequest withHumanExecutor(String executorLabel) {
 		return new AgentRunRequest(roomId, input, engineIdFallback, harnessType, workspaceId, maxTurns, maxReflections,
 				paramMap, agentParamMap, mediaInputPaths, mediaUrls, insight, resumeMode, parentRunId, completionMode,
@@ -272,19 +276,21 @@ public final class AgentRunRequest {
 		if (map == null) {
 			return null;
 		}
-		return new AgentRunRequest(stringValue(map.get("roomId")), stringValue(map.get("input")),
-				stringValue(map.get("engineIdFallback")), stringValue(map.get("harnessType")),
-				stringValue(map.get("workspaceId")), intValue(map.get("maxTurns"), AgentRunContext.DEFAULT_MAX_TURNS),
+		return new AgentRunRequest(ValueUtils.toNonBlankString(map.get("roomId")),
+				ValueUtils.toNonBlankString(map.get("input")), ValueUtils.toNonBlankString(map.get("engineIdFallback")),
+				ValueUtils.toNonBlankString(map.get("harnessType")),
+				ValueUtils.toNonBlankString(map.get("workspaceId")),
+				intValue(map.get("maxTurns"), AgentRunContext.DEFAULT_MAX_TURNS),
 				intValue(map.get("maxReflections"), AgentRunContext.DEFAULT_MAX_REFLECTIONS),
 				map.get("paramMap") instanceof Map ? (Map<String, Object>) map.get("paramMap") : null,
 				map.get("agentParamMap") instanceof Map ? (Map<String, Object>) map.get("agentParamMap") : null,
 				listValue(map.get("mediaInputPaths")), listValue(map.get("mediaUrls")), insight,
-				booleanValue(map.get("resumeMode")), stringValue(map.get("parentRunId")),
+				booleanValue(map.get("resumeMode")), ValueUtils.toNonBlankString(map.get("parentRunId")),
 				SubAgentRunCompletionMode.fromPersistedValue(map.get("completionMode")),
-				stringValue(map.get("ownerAuthType")), stringValue(map.get("continuationChildRunId")),
+				ValueUtils.toNonBlankString(map.get("ownerAuthType")),
+				ValueUtils.toNonBlankString(map.get("continuationChildRunId")),
 				intValue(map.get("continuationDepth"), 0),
-				"HUMAN".equals(map.get("executorType")) ? String.valueOf(map.getOrDefault("executorLabel", ""))
-						: null);
+				"HUMAN".equals(map.get("executorType")) ? String.valueOf(map.getOrDefault("executorLabel", "")) : null);
 	}
 
 	private static String resolveOwnerAuthType(Insight insight) {
@@ -326,16 +332,8 @@ public final class AgentRunRequest {
 		return result;
 	}
 
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String str = String.valueOf(value);
-		return str.trim().isEmpty() ? null : str;
-	}
-
 	private static String trimmedStringValue(Object value) {
-		String str = stringValue(value);
+		String str = ValueUtils.toNonBlankString(value);
 		return str == null ? null : str.trim();
 	}
 

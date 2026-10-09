@@ -29,23 +29,15 @@ package prerna.io.connector.google.calendar;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.function.Predicate;
 
 import org.apache.hc.core5.http.ContentType;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -55,756 +47,266 @@ import com.google.gson.reflect.TypeToken;
 import prerna.io.connector.google.GoogleLoginUtils;
 import prerna.security.HttpHelperUtility;
 
-public class GoogleCalendarHelper {
-
-	private static final Logger classLogger = LogManager.getLogger(GoogleCalendarHelper.class);
+/**
+ * The Google Calendar API, as plain calls for one signed in user.
+ *
+ * <p>
+ * What the methods return is Google's own json, parsed into maps.
+ * {@link GoogleCalendarEventMapper} turns that into the records every calendar
+ * reactor answers with. Google answers an error with a status the http helper
+ * throws on, so nothing here has to look for one.
+ * </p>
+ *
+ * <p>
+ * A calendar is named by its id, and somebody else's primary calendar by their
+ * address, which reaches it only where they have shared it with the user.
+ * </p>
+ */
+public final class GoogleCalendarHelper {
 
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping()
 			.setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
-	// Calendar event time fields
-	private static final String START = "start";
-	private static final String END = "end";
-	private static final String START_TIME = "startTime";
-	private static final String END_TIME = "endTime";
-	private static final String DATE_TIME = "dateTime";
-	private static final String DATE = "date";
-	private static final String TIME_ZONE = "timeZone";
+	private static final String BASE = "https://www.googleapis.com/calendar/v3";
 
-	// Event details fields
-	private static final String SUMMARY = "summary";
-	private static final String LOCATION = "location";
-	private static final String DESCRIPTION = "description";
+	/** The calendar Google reads when none is named. */
+	public static final String PRIMARY = "primary";
 
-	// Recurrence rule fields
-	private static final String RRULE_PREFIX = "RRULE:FREQ=";
-	private static final String UNTIL_PREFIX = ";UNTIL=";
-	private static final String RECURRENCE = "recurrence";
-	private static final String RECURRING_EVENT_ID = "recurringEventId";
-	private static final String WEEKLY = "WEEKLY";
-	private static final String DAILY = "DAILY";
+	/** The most events Google lists on one page. */
+	private static final int MAX_EVENTS_PAGE = 2500;
 
-	// Attendees and Organizer information fields
-	private static final String ATTENDEES = "attendees";
-	private static final String EMAIL = "email";
-	private static final String ORGANIZER = "organizer";
+	/**
+	 * How many events a page asks for at the least, so a narrowed listing does not
+	 * read a few at a time.
+	 */
+	private static final int MIN_EVENTS_PAGE = 250;
 
-	// Calendar and event identifiers
-	private static final String CALENDAR_ID = "primary";
-	private static final String ID = "id";
+	/**
+	 * The most pages a listing reads, so a narrow search cannot walk a whole
+	 * calendar.
+	 */
+	private static final int MAX_PAGES = 20;
 
-	// Conference data fields
-	private static final String CONFERENCE_DATA = "conferenceData";
-	private static final String CONFERENCE_SOLUTION_KEY = "conferenceSolutionKey";
-	private static final String TYPE = "type";
-	private static final String HANGOUTS_MEET = "hangoutsMeet";
-	private static final String CREATE_REQUEST = "createRequest";
-	private static final String REQUEST_ID = "requestId";
-	private static final String HTML_LINK = "htmlLink";
-	private static final String LINK = "link";
+	/** The most calendars Google lists on one page. */
+	private static final int MAX_CALENDARS_PAGE = 250;
 
-	// URL-related
-	private static final String GOOGLE_CALENDAR_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events?conferenceDataVersion=1";
-	private static final String GOOGLE_CALENDAR_EVENT_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/primary/events/%s";
+	private final String accessToken;
 
-	private GoogleCalendarHelper() {
-
+	/**
+	 * @param accessToken the signed in user's Google access token
+	 */
+	public GoogleCalendarHelper(String accessToken) {
+		this.accessToken = accessToken;
 	}
 
 	/**
-	 * Creates a non-recurring Google Calendar event.
-	 *
-	 * @param accessToken             OAuth access token for Google APIs.
-	 * @param summary                 event title.
-	 * @param location                event location.
-	 * @param desc                    event description.
-	 * @param startdatetime           event start timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param enddatetime             event end timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param zoneId                  time zone used for event date-time fields.
-	 * @param attendeeEmails          attendee email addresses to include on the
-	 *                                invite.
-	 * @param enableVideoConferencing whether to attach Google Meet conference
-	 *                                details.
-	 * @return a map containing the created event ID and HTML link.
-	 * @throws Exception if the event creation request fails.
+	 * @param calendarId the calendar named, or null
+	 * @param mailbox    whose calendar, or null
+	 * @return the calendar to work against: the one named, else that person's
+	 *         primary calendar, else the user's own
 	 */
-	public static Map<String, Object> createEvent(String accessToken, String summary, String location, String desc,
-			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails,
-			Boolean enableVideoConferencing) throws Exception {
-		final String REMINDERS = "reminders";
-		final String USE_DEFAULT = "useDefault";
-		final String OVERRIDES = "overrides";
-		final String METHOD = "method";
-		final String MINUTES = "minutes";
-		final String EMAIL_METHOD = "email";
-		final String POPUP_METHOD = "popup";
-
-		try {
-			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
-
-			Map<String, Object> event = new HashMap<>();
-			event.put(SUMMARY, summary);
-			event.put(LOCATION, location);
-			event.put(DESCRIPTION, desc);
-
-			Map<String, Object> start = new HashMap<>();
-			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, zoneId.getId());
-			event.put(START, start);
-
-			Map<String, Object> end = new HashMap<>();
-			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, zoneId.getId());
-			event.put(END, end);
-
-			List<Map<String, Object>> attendees = new ArrayList<>();
-			List<String> safeAttendeeEmails = attendeeEmails != null ? attendeeEmails : new ArrayList<>();
-			for (String email : safeAttendeeEmails) {
-				Map<String, Object> attendee = new HashMap<>();
-				attendee.put(EMAIL, email);
-				attendees.add(attendee);
-			}
-			event.put(ATTENDEES, attendees);
-
-			Map<String, Object> emailReminder = new HashMap<>();
-			emailReminder.put(METHOD, EMAIL_METHOD);
-			emailReminder.put(MINUTES, 24 * 60);
-
-			Map<String, Object> popupReminder = new HashMap<>();
-			popupReminder.put(METHOD, POPUP_METHOD);
-			popupReminder.put(MINUTES, 10);
-
-			Map<String, Object> reminders = new HashMap<>();
-			reminders.put(USE_DEFAULT, false);
-			reminders.put(OVERRIDES, Arrays.asList(emailReminder, popupReminder));
-			event.put(REMINDERS, reminders);
-
-			if (enableVideoConferencing) {
-				Map<String, Object> conferenceSolutionKey = new HashMap<>();
-				conferenceSolutionKey.put(TYPE, HANGOUTS_MEET);
-
-				Map<String, Object> createConferenceRequest = new HashMap<>();
-				createConferenceRequest.put(REQUEST_ID, UUID.randomUUID().toString());
-				createConferenceRequest.put(CONFERENCE_SOLUTION_KEY, conferenceSolutionKey);
-
-				Map<String, Object> conferenceData = new HashMap<>();
-				conferenceData.put(CREATE_REQUEST, createConferenceRequest);
-
-				event.put(CONFERENCE_DATA, conferenceData);
-			}
-
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String jsonBody = GSON.toJson(event);
-			String response = HttpHelperUtility.postRequestStringBody(url, headers, jsonBody,
-					ContentType.APPLICATION_JSON, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> map = new HashMap<>();
-			map.put(ID, json.get(ID));
-			map.put(LINK, json.get(HTML_LINK));
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to create Google Calendar event with summary '{}'", summary, e);
-			throw e;
+	public static String calendarOf(String calendarId, String mailbox) {
+		if (calendarId != null && !calendarId.isBlank()) {
+			return calendarId.trim();
 		}
-	}
-
-	/**
-	 * Reads event details from Google Calendar for a given event ID.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param id          unique event ID.
-	 * @param zoneId      time zone used to convert recurrence-until values to local
-	 *                    time.
-	 * @return a map containing event details, attendee metadata, and recurrence
-	 *         information.
-	 * @throws Exception if the event cannot be fetched or parsed.
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, Object> readEvent(String accessToken, String id, ZoneId zoneId) throws Exception {
-		final String FREQUENCY = "frequency";
-		final String UNTIL = "until";
-		final String AUDIO = "audio";
-		final String VIDEO = "video";
-		final String FREQ = "FREQ=";
-		final String RRULE = "RRULE:";
-		final String UNTIL_PREFIX = "UNTIL=";
-		final String HANGOUT_LINK = "hangoutLink";
-		final String RESPONSE_STATUS = "responseStatus";
-
-		try {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, id);
-
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-
-			Map<String, Object> map = new HashMap<>();
-			map.put(SUMMARY, json.get(SUMMARY));
-			map.put(DESCRIPTION, json.get(DESCRIPTION));
-			map.put(LOCATION, json.get(LOCATION));
-			List<Map<String, Object>> attendeeList = new ArrayList<>();
-			List<Map<String, Object>> attendees = (List<Map<String, Object>>) json.get(ATTENDEES);
-
-			if (attendees != null) {
-				for (Map<String, Object> att : attendees) {
-					Map<String, Object> attendeeMap = new HashMap<>();
-					attendeeMap.put(EMAIL, att.get(EMAIL));
-					attendeeMap.put(RESPONSE_STATUS, att.get(RESPONSE_STATUS));
-					attendeeList.add(attendeeMap);
-				}
-			}
-			map.put(ATTENDEES, attendeeList);
-
-			Map<String, Object> start = (Map<String, Object>) json.get(START);
-			Map<String, Object> end = (Map<String, Object>) json.get(END);
-
-			map.put(START_TIME, extractEventTimeValue(start));
-			map.put(END_TIME, extractEventTimeValue(end));
-
-			Map<String, Object> organizer = (Map<String, Object>) json.get(ORGANIZER);
-			map.put(ORGANIZER, organizer != null ? organizer.get(EMAIL) : null);
-
-			map.put(HANGOUT_LINK, json.get(HANGOUT_LINK));
-			map.put(HTML_LINK, json.get(HTML_LINK));
-
-			boolean hasVideo = json.get(HANGOUT_LINK) != null;
-			map.put(VIDEO, hasVideo);
-			map.put(AUDIO, hasVideo);
-
-			String frequency = null;
-			String until = null;
-			String untilDateTime = null;
-
-			List<String> recurrence = (List<String>) json.get(RECURRENCE);
-			if (recurrence != null) {
-				for (String rule : recurrence) {
-					if (rule.startsWith(RRULE)) {
-						String[] parts = rule.substring(6).split(";");
-						for (String part : parts) {
-							if (part.startsWith(FREQ)) {
-								frequency = part.substring(5);
-							} else if (part.startsWith(UNTIL_PREFIX)) {
-								until = part.substring(6);
-							}
-						}
-					}
-				}
-			}
-			if (until != null) {
-				untilDateTime = localDateTimeFormatConverter(until, zoneId.getId());
-			}
-			map.put(FREQUENCY, frequency);
-			map.put(UNTIL, untilDateTime);
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to read Google Calendar event id {}", id, e);
-			throw e;
+		if (mailbox != null && !mailbox.isBlank()) {
+			return mailbox.trim();
 		}
+		return PRIMARY;
 	}
 
 	/**
-	 * Updates a Google Calendar event and optionally modifies recurrence and Meet
-	 * details.
-	 *
-	 * @param accessToken             OAuth access token for Google APIs.
-	 * @param id                      unique event ID.
-	 * @param summary                 updated event title.
-	 * @param location                updated event location.
-	 * @param desc                    updated event description.
-	 * @param startdatetime           updated start timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param enddatetime             updated end timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param zoneId                  time zone used for date-time conversion.
-	 * @param attendeeEmails          updated attendee email addresses.
-	 * @param frequency               recurrence frequency (DAILY, WEEKLY, or NONE).
-	 * @param untilTime               optional local end date-time for recurring
-	 *                                events. When omitted, recurrence is
-	 *                                open-ended.
-	 * @param enableVideoConferencing whether to attach Google Meet conference
-	 *                                details.
-	 * @return {@code true} when the update request succeeds.
-	 * @throws Exception if request validation or update fails.
+	 * @return every calendar in the user's list, their own and the ones shared with
+	 *         them
 	 */
-	@SuppressWarnings("unchecked")
-	public static Boolean updateEvent(String accessToken, String id, String summary, String location, String desc,
-			String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails, String frequency,
-			String untilTime, Boolean enableVideoConferencing) throws Exception {
-		final String NONE = "NONE";
-		final String GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events/%s?conferenceDataVersion=1";
-
-		try {
-			String url = String.format(GOOGLE_CALENDAR_UPDATE_URL_TEMPLATE, CALENDAR_ID, id);
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String getEventUrl = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, id);
-			String existingResponse = HttpHelperUtility.getRequest(getEventUrl, headers, null, null, null);
-			Map<String, Object> existingEvent = GSON.fromJson(existingResponse, new TypeToken<Map<String, Object>>() {
-			}.getType());
-
-			String until = null;
-			if (untilTime != null && !untilTime.isEmpty()) {
-				String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
-				until = untilFormatConverter(dateTimeWithOffset);
-			}
-
-			Map<String, Object> event = new HashMap<>();
-			event.put(SUMMARY, summary != null ? summary : existingEvent.get(SUMMARY));
-			event.put(LOCATION, location != null ? location : existingEvent.get(LOCATION));
-			event.put(DESCRIPTION, desc != null ? desc : existingEvent.get(DESCRIPTION));
-
-			Map<String, Object> existingStart = (Map<String, Object>) existingEvent.get(START);
-			Map<String, Object> start = buildEventTimePayload(existingStart, startdatetime, zoneId);
-			if (!start.isEmpty()) {
-				event.put(START, start);
-			}
-
-			Map<String, Object> existingEnd = (Map<String, Object>) existingEvent.get(END);
-			Map<String, Object> end = buildEventTimePayload(existingEnd, enddatetime, zoneId);
-			if (!end.isEmpty()) {
-				event.put(END, end);
-			}
-
-			if (attendeeEmails != null) {
-				List<Map<String, Object>> attendees = new ArrayList<>();
-				for (String email : attendeeEmails) {
-					Map<String, Object> attendee = new HashMap<>();
-					attendee.put(EMAIL, email);
-					attendees.add(attendee);
-				}
-				event.put(ATTENDEES, attendees);
-			} else if (existingEvent.get(ATTENDEES) != null) {
-				event.put(ATTENDEES, existingEvent.get(ATTENDEES));
-			}
-
-			if (Boolean.TRUE.equals(enableVideoConferencing)) {
-				Map<String, Object> conferenceSolutionKey = new HashMap<>();
-				conferenceSolutionKey.put(TYPE, HANGOUTS_MEET);
-
-				Map<String, Object> createConferenceRequest = new HashMap<>();
-				createConferenceRequest.put(REQUEST_ID, UUID.randomUUID().toString());
-				createConferenceRequest.put(CONFERENCE_SOLUTION_KEY, conferenceSolutionKey);
-
-				Map<String, Object> conferenceData = new HashMap<>();
-				conferenceData.put(CREATE_REQUEST, createConferenceRequest);
-
-				event.put(CONFERENCE_DATA, conferenceData);
-			} else if (Boolean.FALSE.equals(enableVideoConferencing)) {
-				event.put(CONFERENCE_DATA, null);
-			}
-
-			if (frequency != null && !frequency.trim().isEmpty()) {
-				frequency = frequency.trim().toUpperCase();
-				if (!frequency.equals(DAILY) && !frequency.equals(WEEKLY) && !frequency.equals(NONE)) {
-					throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY' or 'NONE'");
-				}
-				if (frequency.equals(NONE)) {
-					event.put(RECURRENCE, null);
-				} else if (frequency.equals(DAILY) || frequency.equals(WEEKLY)) {
-					if (until == null || until.trim().isEmpty()) {
-						event.put(RECURRENCE, Arrays.asList(RRULE_PREFIX + frequency));
-					} else {
-						event.put(RECURRENCE, Arrays.asList(RRULE_PREFIX + frequency + UNTIL_PREFIX + until));
-					}
-				}
-			} else if (existingEvent.get(RECURRENCE) != null) {
-				event.put(RECURRENCE, existingEvent.get(RECURRENCE));
-			}
-
-			String jsonBody = GSON.toJson(event);
-			HttpHelperUtility.putRequestStringBody(url, headers, jsonBody, ContentType.APPLICATION_JSON, null, null,
-					null);
-			return true;
-		} catch (Exception e) {
-			classLogger.error("Failed to update Google Calendar event id {}", id, e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Deletes a Google Calendar event by ID.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param id          unique event ID.
-	 * @return a status map indicating successful deletion.
-	 * @throws Exception if the delete request fails.
-	 */
-	public static Map<String, Object> deleteEvent(String accessToken, String id) throws Exception {
-		final String STATUS_KEY = "status";
-
-		try {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, id);
-			HttpHelperUtility.deleteRequestStringBody(url, headers, null, null, null);
-			Map<String, Object> result = new HashMap<>();
-			result.put(STATUS_KEY, true);
-			return result;
-		} catch (Exception e) {
-			classLogger.error("Failed to delete Google Calendar event id {}", id, e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Creates a recurring Google Calendar event.
-	 *
-	 * @param accessToken             OAuth access token for Google APIs.
-	 * @param summary                 event title.
-	 * @param location                event location.
-	 * @param description             event description.
-	 * @param startdatetime           event start timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param enddatetime             event end timestamp in RFC3339-compatible
-	 *                                format.
-	 * @param zoneId                  time zone used for date-time conversion.
-	 * @param attendeeEmails          attendee email addresses to include on the
-	 *                                invite.
-	 * @param frequency               recurrence frequency (DAILY or WEEKLY).
-	 * @param untilTime               optional local end date-time for the recurring
-	 *                                schedule. When omitted, recurrence is
-	 *                                open-ended.
-	 * @param enableVideoConferencing whether to attach Google Meet conference
-	 *                                details.
-	 * @return a map containing the created event ID and HTML link.
-	 * @throws Exception if validation fails or the create request fails.
-	 */
-	public static Map<String, Object> recurringEvent(String accessToken, String summary, String location,
-			String description, String startdatetime, String enddatetime, ZoneId zoneId, List<String> attendeeEmails,
-			String frequency, String untilTime, Boolean enableVideoConferencing) throws Exception {
-
-		try {
-			if (frequency == null) {
-				throw new IllegalArgumentException("Frequency must not be null and must be 'DAILY' or 'WEEKLY'");
-			}
-			frequency = frequency.trim().toUpperCase();
-			if (!frequency.equals(DAILY) && !frequency.equals(WEEKLY)) {
-				throw new IllegalArgumentException("Frequency must be 'DAILY' or 'WEEKLY'");
-			}
-			String url = String.format(GOOGLE_CALENDAR_URL_TEMPLATE, CALENDAR_ID);
-
-			String until = null;
-			if (untilTime != null && !untilTime.isEmpty()) {
-				String dateTimeWithOffset = toRfc3339(untilTime, zoneId.getId());
-				until = untilFormatConverter(dateTimeWithOffset);
-			}
-			Map<String, Object> event = new HashMap<>();
-			event.put(SUMMARY, summary);
-			event.put(LOCATION, location);
-			event.put(DESCRIPTION, description);
-
-			Map<String, Object> start = new HashMap<>();
-			start.put(DATE_TIME, startdatetime);
-			start.put(TIME_ZONE, zoneId.getId());
-			event.put(START, start);
-
-			Map<String, Object> end = new HashMap<>();
-			end.put(DATE_TIME, enddatetime);
-			end.put(TIME_ZONE, zoneId.getId());
-			event.put(END, end);
-			List<Map<String, Object>> attendees = new ArrayList<>();
-			List<String> safeAttendeeEmails = attendeeEmails != null ? attendeeEmails : new ArrayList<>();
-			for (String email : safeAttendeeEmails) {
-				Map<String, Object> attendee = new HashMap<>();
-				attendee.put(EMAIL, email);
-				attendees.add(attendee);
-			}
-			event.put(ATTENDEES, attendees);
-			if (enableVideoConferencing) {
-				Map<String, Object> conferenceSolutionKey = new HashMap<>();
-				conferenceSolutionKey.put(TYPE, HANGOUTS_MEET);
-
-				Map<String, Object> createConferenceRequest = new HashMap<>();
-				createConferenceRequest.put(REQUEST_ID, UUID.randomUUID().toString());
-				createConferenceRequest.put(CONFERENCE_SOLUTION_KEY, conferenceSolutionKey);
-
-				Map<String, Object> conferenceData = new HashMap<>();
-				conferenceData.put(CREATE_REQUEST, createConferenceRequest);
-
-				event.put(CONFERENCE_DATA, conferenceData);
-			} else {
-				event.put(CONFERENCE_DATA, null);
-			}
-			if (until == null || until.trim().isEmpty()) {
-				event.put(RECURRENCE, Arrays.asList(RRULE_PREFIX + frequency));
-			} else {
-				event.put(RECURRENCE, Arrays.asList(RRULE_PREFIX + frequency + UNTIL_PREFIX + until));
-			}
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String jsonBody = GSON.toJson(event);
-			String response = HttpHelperUtility.postRequestStringBody(url, headers, jsonBody,
-					ContentType.APPLICATION_JSON, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			Map<String, Object> map = new HashMap<>();
-			map.put(ID, json.get(ID));
-			map.put(LINK, json.get(HTML_LINK));
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to create recurring Google Calendar event with summary '{}'", summary, e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Lists Google Calendar events within a date-time window.
-	 *
-	 * @param accessToken   OAuth access token for Google APIs.
-	 * @param startDateTime window start in local date-time format (for example,
-	 *                      {@code 2026-03-31T09:00:00}).
-	 * @param endDateTime   window end in local date-time format.
-	 * @param zoneId        user time zone used to convert local date-time values to
-	 *                      RFC3339.
-	 * @return a date-grouped event list.
-	 * @throws Exception if list retrieval or date conversion fails.
-	 */
-	@SuppressWarnings("unchecked")
-	public static List<Map<String, Object>> getEventList(String accessToken, String startDateTime, String endDateTime,
-			ZoneId zoneId) throws Exception {
-		final String GOOGLE_CALENDAR_LIST_TEMPLATE = "https://www.googleapis.com/calendar/v3/calendars/%s/events";
-		final String EVENTS = "events";
-		final String ORDER_BY = "orderBy";
-		final String SINGLE_EVENTS = "singleEvents";
-		final String SINGLE_EVENTS_TRUE = "true";
-		final String TIME_MIN = "timeMin";
-		final String TIME_MAX = "timeMax";
-		final String MAX_RESULTS = "maxResults";
-		final String MAX_RESULTS_100 = "100";
-		final String PAGE_TOKEN = "pageToken";
-		final String ITEMS = "items";
-		final String NEXT_PAGE_TOKEN = "nextPageToken";
-
-		Map<String, List<Map<String, Object>>> events = new LinkedHashMap<>();
-		String url = String.format(GOOGLE_CALENDAR_LIST_TEMPLATE, CALENDAR_ID);
+	public List<Map<String, Object>> listCalendars() {
+		List<Map<String, Object>> calendars = new ArrayList<>();
 		String pageToken = null;
 		do {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			Map<String, String> params = new HashMap<>();
-			params.put(ORDER_BY, START_TIME);
-			params.put(SINGLE_EVENTS, SINGLE_EVENTS_TRUE);
-			String startTime = null;
-			if (startDateTime != null && !startDateTime.isEmpty()) {
-				startTime = toRfc3339(startDateTime, zoneId.getId());
-			}
+			Map<String, Object> page = get(BASE + "/users/me/calendarList?maxResults=" + MAX_CALENDARS_PAGE
+					+ (pageToken == null ? "" : "&pageToken=" + encode(pageToken)));
+			calendars.addAll(listOf(page, "items"));
+			pageToken = nextPageToken(page);
+		} while (pageToken != null);
+		return calendars;
+	}
 
-			String endTime = null;
-			if (endDateTime != null && !endDateTime.isEmpty()) {
-				endTime = toRfc3339(endDateTime, zoneId.getId());
-			}
-			if (startTime != null) {
-				params.put(TIME_MIN, startTime);
-			}
-			if (endTime != null) {
-				params.put(TIME_MAX, endTime);
-			}
-			params.put(MAX_RESULTS, MAX_RESULTS_100);
-			if (pageToken != null) {
-				params.put(PAGE_TOKEN, pageToken);
-			}
-			StringBuilder fullUrl = new StringBuilder(url);
-			fullUrl.append("?");
-			for (Map.Entry<String, String> entry : params.entrySet()) {
-				fullUrl.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8)).append("=")
-						.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8)).append("&");
-			}
-			fullUrl.setLength(fullUrl.length() - 1);
-			String response = HttpHelperUtility.getRequest(fullUrl.toString(), headers, null, null, null);
+	/**
+	 * @param calendarId the calendar
+	 * @return the calendar, with its name and zone
+	 */
+	public Map<String, Object> getCalendar(String calendarId) {
+		return get(BASE + "/calendars/" + encode(calendarId));
+	}
 
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
-			List<Map<String, Object>> items = (List<Map<String, Object>>) json.get(ITEMS);
-			if (items != null && !items.isEmpty()) {
-				for (Map<String, Object> item : items) {
-					Map<String, Object> map = new HashMap<>();
-					map.put(SUMMARY, item.get(SUMMARY));
-					map.put(ID, item.get(ID));
-					String recurringEventId = (String) item.get(RECURRING_EVENT_ID);
-					if (recurringEventId != null) {
-						map.put(RECURRING_EVENT_ID, item.get(RECURRING_EVENT_ID));
-					}
-					Map<String, Object> start = (Map<String, Object>) item.get(START);
-					String date = extractEventDate(start);
-					if (date == null || date.isEmpty()) {
-						continue;
-					}
-					if (!events.containsKey(date)) {
-						events.put(date, new ArrayList<>());
-					}
-					events.get(date).add(map);
+	/**
+	 * One run of events read from a calendar.
+	 *
+	 * @param events   the events, earliest first
+	 * @param timeZone the calendar's own zone
+	 * @param hasMore  whether there are more after them
+	 */
+	public record EventRun(List<Map<String, Object>> events, String timeZone, boolean hasMore) {
+
+	}
+
+	/**
+	 * List the events in a window, earliest first, a repeating event once for every
+	 * sitting, reading page after page until enough of them match.
+	 *
+	 * @param calendarId the calendar
+	 * @param start      the start of the window
+	 * @param end        the end of the window
+	 * @param keep       which events count, such as the ones whose subject matches
+	 * @param needed     how many matching events to read, counted from the first
+	 * @return the events
+	 */
+	public EventRun listEvents(String calendarId, Instant start, Instant end, Predicate<Map<String, Object>> keep,
+			int needed) {
+		List<Map<String, Object>> events = new ArrayList<>();
+		String timeZone = null;
+		String pageToken = null;
+		int pages = 0;
+		do {
+			String url = BASE + "/calendars/" + encode(calendarId) + "/events?singleEvents=true&orderBy=startTime"
+					+ "&timeMin=" + encode(DateTimeFormatter.ISO_INSTANT.format(start)) + "&timeMax="
+					+ encode(DateTimeFormatter.ISO_INSTANT.format(end)) + "&maxResults="
+					+ Math.min(MAX_EVENTS_PAGE, Math.max(MIN_EVENTS_PAGE, needed))
+					+ (pageToken == null ? "" : "&pageToken=" + encode(pageToken));
+			Map<String, Object> page = get(url);
+			if (timeZone == null && page != null && page.get("timeZone") != null) {
+				timeZone = page.get("timeZone").toString();
+			}
+			for (Map<String, Object> event : listOf(page, "items")) {
+				if (keep.test(event)) {
+					events.add(event);
 				}
 			}
-			pageToken = (String) json.get(NEXT_PAGE_TOKEN);
+			pageToken = nextPageToken(page);
+			pages++;
+		} while (pageToken != null && events.size() < needed && pages < MAX_PAGES);
+		return new EventRun(events, timeZone, pageToken != null);
+	}
+
+	/**
+	 * @param calendarId the calendar
+	 * @param eventId    the event
+	 * @return the event
+	 */
+	public Map<String, Object> getEvent(String calendarId, String eventId) {
+		return get(eventUrl(calendarId, eventId));
+	}
+
+	/**
+	 * Create an event, inviting its attendees.
+	 *
+	 * @param calendarId the calendar
+	 * @param event      the event, as {@link GoogleCalendarEventMapper#buildEvent}
+	 *                   writes it
+	 * @return the event as Google created it
+	 */
+	public Map<String, Object> insertEvent(String calendarId, Map<String, Object> event) {
+		return send("POST",
+				BASE + "/calendars/" + encode(calendarId) + "/events?conferenceDataVersion=1&sendUpdates=all", event);
+	}
+
+	/**
+	 * Change an event, writing only what the changes set and telling its attendees.
+	 *
+	 * @param calendarId  the calendar
+	 * @param eventId     the event
+	 * @param changes     the fields to set
+	 * @param sendUpdates whether attendees are told
+	 * @return the event as Google left it
+	 */
+	public Map<String, Object> patchEvent(String calendarId, String eventId, Map<String, Object> changes,
+			boolean sendUpdates) {
+		return send("PATCH", eventUrl(calendarId, eventId) + "?conferenceDataVersion=1&sendUpdates="
+				+ (sendUpdates ? "all" : "none"), changes);
+	}
+
+	/**
+	 * Delete an event, canceling it for its attendees.
+	 *
+	 * @param calendarId the calendar
+	 * @param eventId    the event
+	 */
+	public void deleteEvent(String calendarId, String eventId) {
+		HttpHelperUtility.deleteRequestStringBody(eventUrl(calendarId, eventId) + "?sendUpdates=all",
+				GoogleLoginUtils.getBearerHeader(this.accessToken), null, null, null);
+	}
+
+	/**
+	 * @param calendars the people, by address
+	 * @param start     the start of the window
+	 * @param end       the end of the window
+	 * @return when each of them is busy, keyed by address under {@code calendars}
+	 */
+	public Map<String, Object> freeBusy(List<String> calendars, Instant start, Instant end) {
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("timeMin", DateTimeFormatter.ISO_INSTANT.format(start));
+		body.put("timeMax", DateTimeFormatter.ISO_INSTANT.format(end));
+		body.put("items", calendars.stream().map(id -> Map.of("id", id)).toList());
+		return send("POST", BASE + "/freeBusy", body);
+	}
+
+	/**
+	 * @param calendarId the calendar
+	 * @return who it is shared with, which only its owner may read
+	 */
+	public List<Map<String, Object>> listAcl(String calendarId) {
+		List<Map<String, Object>> rules = new ArrayList<>();
+		String pageToken = null;
+		do {
+			Map<String, Object> page = get(BASE + "/calendars/" + encode(calendarId) + "/acl"
+					+ (pageToken == null ? "" : "?pageToken=" + encode(pageToken)));
+			rules.addAll(listOf(page, "items"));
+			pageToken = nextPageToken(page);
 		} while (pageToken != null);
-
-		if (events.isEmpty()) {
-			classLogger.info("No events found in the given date range");
-		}
-
-		List<Map<String, Object>> eventList = new ArrayList<>();
-		for (Map.Entry<String, List<Map<String, Object>>> entry : events.entrySet()) {
-			Map<String, Object> map = new LinkedHashMap<>();
-			map.put(DATE, entry.getKey());
-			map.put(EVENTS, entry.getValue());
-			eventList.add(map);
-		}
-		return eventList;
+		return rules;
 	}
 
-	/**
-	 * Searches for a single Google Calendar event by ID.
-	 *
-	 * @param accessToken OAuth access token for Google APIs.
-	 * @param eventId     unique event ID.
-	 * @return a map with basic event details and recurrence type metadata.
-	 * @throws Exception if lookup fails.
-	 */
-	@SuppressWarnings("unchecked")
-	public static Map<String, Object> searchEvent(String accessToken, String eventId) throws Exception {
-		final String SINGLE_EVENT = "singleEvent";
+	private static String eventUrl(String calendarId, String eventId) {
+		return BASE + "/calendars/" + encode(calendarId) + "/events/" + encode(eventId);
+	}
 
-		try {
-			Map<String, String> headers = GoogleLoginUtils.getBearerHeader(accessToken);
-			String url = String.format(GOOGLE_CALENDAR_EVENT_URL_TEMPLATE, eventId);
+	private Map<String, Object> get(String url) {
+		return readMap(HttpHelperUtility.getRequest(url, GoogleLoginUtils.getBearerHeader(this.accessToken), null, null,
+				null));
+	}
 
-			String response = HttpHelperUtility.getRequest(url, headers, null, null, null);
-			Map<String, Object> json = GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
-			}.getType());
+	private Map<String, Object> send(String method, String url, Map<String, Object> body) {
+		String json = GSON.toJson(body);
+		String response = "PATCH".equals(method)
+				? HttpHelperUtility.patchRequestStringBody(url, GoogleLoginUtils.getBearerHeader(this.accessToken),
+						json, ContentType.APPLICATION_JSON, null, null, null)
+				: HttpHelperUtility.postRequestStringBody(url, GoogleLoginUtils.getBearerHeader(this.accessToken), json,
+						ContentType.APPLICATION_JSON, null, null, null);
+		return readMap(response);
+	}
 
-			Map<String, Object> map = new HashMap<>();
-			map.put(SUMMARY, json.get(SUMMARY));
-			map.put(SINGLE_EVENT, json.get(RECURRING_EVENT_ID) == null);
-
-			Map<String, Object> start = (Map<String, Object>) json.get(START);
-			Map<String, Object> end = (Map<String, Object>) json.get(END);
-
-			map.put(START_TIME, extractEventTimeValue(start));
-			map.put(END_TIME, extractEventTimeValue(end));
-
-			Map<String, Object> organizer = (Map<String, Object>) json.get(ORGANIZER);
-			map.put(ORGANIZER, organizer != null ? organizer.get(EMAIL) : null);
-
-			return map;
-		} catch (Exception e) {
-			classLogger.error("Failed to search Google Calendar event id {}", eventId, e);
-			throw e;
-		}
+	private static String nextPageToken(Map<String, Object> page) {
+		Object token = page == null ? null : page.get("nextPageToken");
+		return token == null ? null : token.toString();
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Map<String, Object> buildEventTimePayload(Map<String, Object> existingTime, String updatedDateTime,
-			ZoneId zoneId) {
-		Map<String, Object> time = new HashMap<>();
-		if (existingTime != null) {
-			time.putAll(existingTime);
+	private static List<Map<String, Object>> listOf(Map<String, Object> response, String key) {
+		if (response == null || !(response.get(key) instanceof List)) {
+			return List.of();
 		}
-		if (updatedDateTime != null && !updatedDateTime.isEmpty()) {
-			time.put(DATE_TIME, updatedDateTime);
-			time.put(TIME_ZONE, zoneId.getId());
-			time.remove(DATE);
-		}
-		return time;
+		return (List<Map<String, Object>>) response.get(key);
 	}
 
-	private static String extractEventTimeValue(Map<String, Object> timeMap) {
-		if (timeMap == null) {
+	private static Map<String, Object> readMap(String response) {
+		if (response == null || response.trim().isEmpty()) {
 			return null;
 		}
-		Object dateTimeObj = timeMap.get(DATE_TIME);
-		if (dateTimeObj instanceof String) {
-			String dateTime = (String) dateTimeObj;
-			return dateTime.length() >= 19 ? dateTime.substring(0, 19) : dateTime;
-		}
-		Object dateObj = timeMap.get(DATE);
-		if (dateObj instanceof String) {
-			return (String) dateObj;
-		}
-		return null;
+		return GSON.fromJson(response, new TypeToken<Map<String, Object>>() {
+		}.getType());
 	}
 
-	private static String extractEventDate(Map<String, Object> timeMap) {
-		if (timeMap == null) {
-			return null;
-		}
-		Object dateTimeObj = timeMap.get(DATE_TIME);
-		if (dateTimeObj instanceof String) {
-			String dateTime = (String) dateTimeObj;
-			return dateTime.length() >= 10 ? dateTime.substring(0, 10) : dateTime;
-		}
-		Object dateObj = timeMap.get(DATE);
-		if (dateObj instanceof String) {
-			return (String) dateObj;
-		}
-		return null;
-	}
-
-	/**
-	 * Converts an RFC3339 timestamp to Google Calendar recurrence {@code UNTIL}
-	 * format in UTC.
-	 *
-	 * @param untilTime RFC3339 date-time string with offset.
-	 * @return formatted recurrence end time ({@code yyyyMMdd'T'HHmmss'Z'}).
-	 * @throws Exception if parsing or formatting fails.
-	 */
-	public static String untilFormatConverter(String untilTime) throws Exception {
-		final String YYYY_M_MDD_T_H_HMMSS_Z = "yyyyMMdd'T'HHmmss'Z'";
-
-		try {
-			OffsetDateTime parsedDateTime = OffsetDateTime.parse(untilTime);
-			OffsetDateTime utcDateTime = parsedDateTime.withOffsetSameInstant(ZoneOffset.UTC);
-			DateTimeFormatter format = DateTimeFormatter.ofPattern(YYYY_M_MDD_T_H_HMMSS_Z);
-			return utcDateTime.format(format);
-		} catch (Exception e) {
-			classLogger.error("Failed to convert RFC3339 value '{}' to UNTIL format", untilTime, e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Converts a Google recurrence {@code UNTIL} value into local date-time text.
-	 *
-	 * @param untilDateTime recurrence {@code UNTIL} value
-	 *                      ({@code yyyyMMdd'T'HHmmssX}).
-	 * @param zoneId        target zone ID for conversion.
-	 * @return local date-time string ({@code yyyy-MM-dd'T'HH:mm:ss}).
-	 * @throws Exception if parsing or time-zone conversion fails.
-	 */
-	public static String localDateTimeFormatConverter(String untilDateTime, String zoneId) throws Exception {
-		final String YYYY_MM_DD_T_HH_MM_SS = "yyyy-MM-dd'T'HH:mm:ss";
-		final String YYYY_M_MDD_T_H_HMMSS_X = "yyyyMMdd'T'HHmmssX";
-
-		try {
-			DateTimeFormatter format = DateTimeFormatter.ofPattern(YYYY_M_MDD_T_H_HMMSS_X);
-			OffsetDateTime utcDateTime = OffsetDateTime.parse(untilDateTime, format);
-			ZoneId zone = ZoneId.of(zoneId);
-			ZonedDateTime localDateTime = utcDateTime.atZoneSameInstant(zone);
-			DateTimeFormatter outputFormatter = DateTimeFormatter.ofPattern(YYYY_MM_DD_T_HH_MM_SS);
-			return localDateTime.format(outputFormatter);
-		} catch (Exception e) {
-			classLogger.error("Failed to convert UNTIL value '{}' to local time for zone {}", untilDateTime, zoneId, e);
-			throw e;
-		}
-	}
-
-	/**
-	 * Converts a local date-time string into RFC3339 format for Google Calendar
-	 * requests.
-	 *
-	 * @param dateTime local date-time string ({@code yyyy-MM-dd'T'HH:mm:ss}).
-	 * @param zoneId   zone ID used to apply the correct offset.
-	 * @return RFC3339 date-time string with offset.
-	 * @throws Exception if parsing or time-zone conversion fails.
-	 */
-	public static String toRfc3339(String dateTime, String zoneId) throws Exception {
-		try {
-			ZoneId zone = ZoneId.of(zoneId);
-			LocalDateTime localDateTime = LocalDateTime.parse(dateTime);
-			ZonedDateTime zonedDateTime = localDateTime.atZone(zone);
-			return zonedDateTime.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
-		} catch (Exception e) {
-			classLogger.error("Failed to convert local date-time '{}' in zone {} to RFC3339", dateTime, zoneId, e);
-			throw e;
-		}
+	private static String encode(String value) {
+		return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
 	}
 }

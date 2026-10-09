@@ -133,6 +133,18 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> chats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return importChats(user, since, maxChats, maxPerChat).messages();
+	}
+
+	@Override
+	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return importChats(user, since, maxChats, maxPerChat, (done, total) -> {
+		});
+	}
+
+	@Override
+	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat, ChatProgress progress)
+			throws Exception {
 		// one token for the run, so parallel calls do not race a refresh
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		String selfId = (String) get(token, BASE + "/me?$select=id").get("id");
@@ -161,28 +173,41 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			for (Map<String, Object> chat : chats) {
 				calls.add(pool.submit(() -> chatMessages(token, chat, selfId, since, maxPerChat)));
 			}
-			List<Map<String, Object>> out = new ArrayList<>();
-			int skipped = 0;
-			for (Future<List<Map<String, Object>>> call : calls) {
-				try {
-					out.addAll(call.get());
-				} catch (ExecutionException e) {
-					Exception cause = e.getCause() instanceof Exception c ? c : e;
-					// no permission stops the run; one chat that fails (throttled, gone) is skipped
-					if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 40[13]\\b.*")) {
-						throw cause;
-					}
-					skipped++;
-					classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
-				}
-			}
-			if (skipped > 0 && out.isEmpty()) {
-				throw new IllegalStateException("No Teams chat could be read (" + skipped + " failed)");
-			}
-			return out;
+			return collectChats(calls, progress);
 		} finally {
 			pool.shutdownNow();
 		}
+	}
+
+	// A failure anywhere in one chat (including members or later pages) leaves the other chats whole.
+	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls) throws InterruptedException {
+		return collectChats(calls, (done, total) -> {
+		});
+	}
+
+	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls, ChatProgress progress)
+			throws InterruptedException {
+		List<Map<String, Object>> out = new ArrayList<>();
+		int skipped = 0;
+		boolean reauthNeeded = false;
+		int done = 0;
+		progress.read(0, calls.size());
+		for (Future<List<Map<String, Object>>> call : calls) {
+			progress.read(done++, calls.size());
+			try {
+				out.addAll(call.get());
+			} catch (ExecutionException e) {
+				Throwable cause = e.getCause() == null ? e : e.getCause();
+				skipped++;
+				reauthNeeded |= BrainMailHeaderSource.needsReauth(cause);
+				classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw e;
+			}
+		}
+		progress.read(calls.size(), calls.size());
+		return new ChatImport(out, skipped, reauthNeeded);
 	}
 
 	// one chat's members, then its messages since the window opened, newest first

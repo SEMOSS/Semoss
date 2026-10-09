@@ -158,6 +158,19 @@ public final class AutomationNodeCatalog {
 		definitions.add(storageDefinition(AutomationNodeType.STORAGE_DELETE, "Delete file",
 				"Delete a file from connected storage.", true, false));
 
+		definitions.add(definition(AutomationNodeType.DATA_EXTRACT, "Extract value",
+				"Read one value from JSON, XML, or a file in this run's workspace.",
+				orderedConfig(AutomationConstants.CONFIG_SOURCE, "", AutomationConstants.CONFIG_PATH, "",
+						AutomationConstants.CONFIG_FORMAT, "auto", AutomationConstants.CONFIG_MISSING_VALUE, null,
+						AutomationConstants.CONFIG_NULL_VALUE, null),
+				List.of(field(AutomationConstants.CONFIG_SOURCE, ConfigFieldType.TEXT, "Data or file path", true, ""),
+						field(AutomationConstants.CONFIG_PATH, ConfigFieldType.STRING, "Value path", true, ""),
+						field(AutomationConstants.CONFIG_FORMAT, ConfigFieldType.STRING, "Data format", true, "auto"),
+						field(AutomationConstants.CONFIG_MISSING_VALUE, ConfigFieldType.JSON,
+								"If the path is missing", false, null),
+						field(AutomationConstants.CONFIG_NULL_VALUE, ConfigFieldType.JSON, "If the value is null", false,
+								null)),
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_SEARCH, "Search vectors",
 				"Search records in a vector database.", true));
 		definitions.add(vectorDefinition(AutomationNodeType.VECTOR_ADD, "Add vector documents",
@@ -214,6 +227,29 @@ public final class AutomationNodeCatalog {
 				controlInputs(),
 				List.of(port("case:<clause-id>", "Route", PortKind.CONTROL, PortDirection.OUTPUT, null),
 						port("else", "Fallback", PortKind.CONTROL, PortDirection.OUTPUT, null))));
+		definitions.add(definition(AutomationNodeType.CONTROL_LOOP, "Repeat steps",
+				"Run a nested sequence for each item, a fixed number of times, or while a condition is true.",
+				orderedConfig("mode", AutomationConstants.LOOP_MODE_FOR_EACH, "items", List.of(), "batchSize", 1,
+						"count", 1, "condition", "", "maxIterations",
+						AutomationConstants.LOOP_DEFAULT_MAX_ITERATIONS),
+				List.of(field("mode", ConfigFieldType.STRING, "Mode", true,
+						AutomationConstants.LOOP_MODE_FOR_EACH),
+						field("items", ConfigFieldType.JSON, "Items", false, List.of()),
+						optionalBoundedIntegerField("batchSize", "Batch size", 1,
+								AutomationConstants.LOOP_MIN_BATCH_SIZE, AutomationConstants.LOOP_MAX_BATCH_SIZE),
+						optionalBoundedIntegerField("count", "Number of times", 1, 1,
+								AutomationConstants.LOOP_MAX_ITERATIONS),
+						field("condition", ConfigFieldType.TEXT, "Continue while", false, ""),
+						boundedIntegerField("maxIterations", "Maximum iterations",
+								AutomationConstants.LOOP_DEFAULT_MAX_ITERATIONS, 1,
+								AutomationConstants.LOOP_MAX_ITERATIONS)),
+				List.of(outputField("processed", OutputFieldType.NUMBER, "Processed",
+						"Number of items processed.", true),
+						outputField("iterations", OutputFieldType.NUMBER, "Iterations",
+								"Number of loop-body executions.", true),
+						outputField("results", OutputFieldType.OBJECT_LIST, "Results",
+								"Ordered outputs collected from each iteration.", true)),
+				controlInputs(), controlAndResultOutputs()));
 		definitions.add(new AutomationNodeDefinition(AutomationNodeType.DEVELOPER_PYTHON, "Python",
 				"Run custom Python for advanced transformations.", AutomationConstants.NODE_CODE_MODE_CUSTOM, Map.of(),
 				List.of(), List.of(), controlInputs(), controlAndResultOutputs()));
@@ -238,6 +274,10 @@ public final class AutomationNodeCatalog {
 		List<ConfigField> fields = new ArrayList<>();
 		fields.add(engineField(IEngine.CATALOG_TYPE.STORAGE));
 		fields.add(field("path", ConfigFieldType.STRING, "Storage path", pathRequired, ""));
+		if (nodeType == AutomationNodeType.STORAGE_LIST) {
+			defaultConfig.put("extensions", List.of());
+			fields.add(field("extensions", ConfigFieldType.STRING_LIST, "File types", false, List.of()));
+		}
 		if (destinationRequired) {
 			fields.add(field("destination", ConfigFieldType.STRING, "Destination", requireDestination,
 					destinationDefault));
@@ -324,6 +364,11 @@ public final class AutomationNodeCatalog {
 	private static ConfigField boundedIntegerField(String key, String label, int defaultValue, Integer minimum,
 			Integer maximum) {
 		return new ConfigField(key, ConfigFieldType.INTEGER, label, true, defaultValue, minimum, maximum, null);
+	}
+
+	private static ConfigField optionalBoundedIntegerField(String key, String label, int defaultValue, Integer minimum,
+			Integer maximum) {
+		return new ConfigField(key, ConfigFieldType.INTEGER, label, false, defaultValue, minimum, maximum, null);
 	}
 
 	private static Port port(String id, String label, PortKind kind, PortDirection direction, String dataType) {

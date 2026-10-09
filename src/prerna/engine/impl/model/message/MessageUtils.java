@@ -740,9 +740,30 @@ public class MessageUtils {
 		return history;
 	}
 
+	/** Deep copy via the persistence serializer; keeps the room links and attachment bytes it skips. */
+	public static <T extends AbstractMessage> T deepCopy(T m) {
+		@SuppressWarnings("unchecked")
+		T copy = (T) GSON_FOR_DB.fromJson(GSON_FOR_DB.toJson(m), m.getClass());
+		copy.roomId = m.roomId;
+		copy.roomFolderPath = m.roomFolderPath;
+		// base64Data and the media room folder are not serialized; without them the
+		// provider gets attachments with no data
+		List<MessagePart> from = m.getParts();
+		List<MessagePart> to = copy.getParts();
+		if (from != null && to != null && from.size() == to.size()) {
+			for (int i = 0; i < from.size(); i++) {
+				if (from.get(i) instanceof MediaMessagePart src && to.get(i) instanceof MediaMessagePart dst
+						&& src.getMediaInfo() != null && dst.getMediaInfo() != null) {
+					dst.getMediaInfo().setBase64Data(src.getMediaInfo().getBase64Data());
+				}
+			}
+		}
+		return copy;
+	}
+
+	// only messages with tool parts change, so the rest stay as-is
 	private static AbstractMessage deepCopyForPruning(AbstractMessage m) {
-		String json = GSON_FOR_DB.toJson(m);
-		return GSON_FOR_DB.fromJson(json, m.getClass());
+		return m.hasToolResultPart() || m.hasToolCallPart() ? deepCopy(m) : m;
 	}
 
 	private static void pruneToolsPartFromMessage(AbstractMessage m) {

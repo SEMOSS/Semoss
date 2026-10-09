@@ -89,11 +89,15 @@ public final class BrainAttachments {
 	static Map<String, Object> stage(User user, String ownerId, String ownerType, String folder, String threadId,
 			String messageId, String attachmentId, String attachmentName, String fileName, boolean includeText,
 			BrainMessageSource messages, long maxBytes) {
+		if ((attachmentId == null || attachmentId.isBlank()) && attachmentName != null && !attachmentName.isBlank()) {
+			messageId = emailWithFile(user, ownerId, ownerType, threadId, messageId, attachmentName, messages);
+		}
 		BrainThreadMessages.Readable email = BrainThreadMessages.readable(user, ownerId, ownerType, threadId,
 				messageId, messages);
 		if (email == null) {
 			throw new IllegalArgumentException("This email is not available in the thread.");
 		}
+		messageId = email.graphId();
 		if (!"email".equals(email.source())) {
 			throw new IllegalArgumentException("Only email attachments can be opened for now.");
 		}
@@ -201,13 +205,21 @@ public final class BrainAttachments {
 		}
 		List<String> names = new ArrayList<>();
 		List<Object> ids = new ArrayList<>();
+		List<Object> loose = new ArrayList<>();
 		for (Map<String, Object> item : listed) {
 			if ("file".equals(item.get("kind"))) {
 				names.add(String.valueOf(item.get("name")));
 				if (attachmentName.strip().equalsIgnoreCase(String.valueOf(item.get("name")))) {
 					ids.add(item.get("id"));
 				}
+				if (looseName(attachmentName).equals(looseName(String.valueOf(item.get("name"))))) {
+					loose.add(item.get("id"));
+				}
 			}
+		}
+		// models retype "Q3_Plan 1.pdf" as "Q3 Plan 1.pdf"; an exact name still wins
+		if (ids.isEmpty() && loose.size() == 1) {
+			ids = loose;
 		}
 		if (ids.size() == 1) {
 			return String.valueOf(ids.get(0));
@@ -215,6 +227,37 @@ public final class BrainAttachments {
 		throw new IllegalArgumentException((ids.isEmpty() ? "This email has no attached file named " + attachmentName
 				: "More than one attached file on this email is named " + attachmentName)
 				+ ". Its attached files: " + (names.isEmpty() ? "none" : String.join(", ", names)) + ".");
+	}
+
+	/**
+	 * The thread's newest email carrying a file of that name. The assistant names files
+	 * reliably but cannot copy 150-character email ids, so its id is only a hint; the
+	 * passed id is returned unchanged when it is on the thread or nothing matches.
+	 */
+	private static String emailWithFile(User user, String ownerId, String ownerType, String threadId,
+			String messageId, String attachmentName, BrainMessageSource messages) {
+		List<String> ids = BrainThreadMessages.emailGraphIds(ownerId, ownerType, threadId);
+		if (ids.isEmpty() || messageId != null && ids.stream().anyMatch(messageId::equalsIgnoreCase)) {
+			return messageId;
+		}
+		Map<String, List<Map<String, Object>>> listed;
+		try {
+			listed = messages.attachments(user, "email", ids);
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Could not list the attachments of thread {}", threadId, e);
+			return messageId;
+		}
+		String wanted = looseName(attachmentName);
+		return ids.stream()
+				.filter(id -> listed.getOrDefault(id, List.of()).stream().anyMatch(
+						item -> "file".equals(item.get("kind")) && wanted.equals(looseName(String.valueOf(item.get("name"))))))
+				.findFirst().orElse(messageId);
+	}
+
+	private static String looseName(String name) {
+		return name.strip().toLowerCase(java.util.Locale.ROOT).replaceAll("[\\s_-]+", " ");
 	}
 
 	// a failed text copy still leaves the file itself usable

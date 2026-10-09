@@ -39,6 +39,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.io.connector.ms.MicrosoftMessageDisplay;
+import prerna.util.ValueUtils;
 
 /**
  * Turns the json Graph returns for Teams chats and messages into the maps the
@@ -202,7 +203,7 @@ public class MicrosoftTeamsMessageMapper {
 		Object viewpoint = chat.get(VIEWPOINT);
 		if (viewpoint instanceof Map) {
 			Map<?, ?> viewpointMap = (Map<?, ?>) viewpoint;
-			lastReadDateTime = asString(viewpointMap.get(LAST_MESSAGE_READ));
+			lastReadDateTime = ValueUtils.toNonBlankString(viewpointMap.get(LAST_MESSAGE_READ));
 			putIfPresent(output, LAST_MESSAGE_READ, lastReadDateTime);
 			output.put("isHidden", Boolean.TRUE.equals(viewpointMap.get("isHidden")));
 		}
@@ -211,7 +212,8 @@ public class MicrosoftTeamsMessageMapper {
 		if (preview instanceof Map) {
 			Map<String, Object> lastMessage = toMessage(asStringKeyedMap(preview), PREVIEW_BODY_CHARS, false);
 			output.put("lastMessage", lastMessage);
-			output.put("hasUnread", isUnread(asString(lastMessage.get("createdDateTime")), lastReadDateTime));
+			output.put("hasUnread",
+					isUnread(ValueUtils.toNonBlankString(lastMessage.get("createdDateTime")), lastReadDateTime));
 		}
 
 		List<Map<String, Object>> members = new ArrayList<>();
@@ -484,17 +486,6 @@ public class MicrosoftTeamsMessageMapper {
 					lastMessageDateTime, e);
 			return true;
 		}
-	}
-
-	/**
-	 * @param value the value to read
-	 * @return the value as a string, or null when there is nothing to read
-	 */
-	private static String asString(Object value) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return null;
-		}
-		return value.toString();
 	}
 
 	@SuppressWarnings("unchecked")

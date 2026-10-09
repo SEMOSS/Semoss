@@ -14,13 +14,13 @@ ARG JDK_VERSION=25.0.3
 
 # FIPS 140-3 build switch. This file produces two images from one definition:
 #
-#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.24 .
+#   docker build -f Dockerfile.tomcat -t quay.io/semoss/tomcat-builder:11.0.26 .
 #   docker build -f Dockerfile.tomcat --build-arg FIPS_ENABLED=true \
-#       -t quay.io/semoss/tomcat-builder:11.0.24-fips .
+#       -t quay.io/semoss/tomcat-builder:11.0.26-fips .
 #
 # With FIPS_ENABLED=false nothing below is installed, so the non-FIPS image is
 # byte-identical to what it was before this switch existed. Downstream images
-# pick a base with --build-arg TOMCAT_TAG=11.0.24-fips.
+# pick a base with --build-arg TOMCAT_TAG=11.0.26-fips.
 #
 # IMPORTANT: a -fips base must be paired with a war built using -P dev,fips.
 # A default war carries BouncyCastle in WEB-INF/lib, which would sit alongside
@@ -43,10 +43,10 @@ ARG BCPKIX_FIPS_VERSION=2.1.12
 ARG BCUTIL_FIPS_VERSION=2.1.7
 
 # Maven default version
-ARG MAVEN_HOME=/opt/apache-maven-3.9.14
+ARG MAVEN_HOME=/opt/apache-maven-3.9.16
 
 # Tomcat default version
-ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_VERSION=11.0.26
 ARG TOMCAT_HOME=/opt/apache-tomcat-${TOMCAT_VERSION}
 
 FROM ${BASE_REGISTRY}/${BASE_IMAGE}:${BASE_TAG} AS builder
@@ -122,19 +122,19 @@ RUN apt-get -y install apt-transport-https ca-certificates git wget dirmngr gnup
 	&& echo '# container environment variables. Tomcat keeps its SystemPropertySource too,' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo '# so -D overrides still work. Used by the <Manager> in conf/context.xml.' >> $TOMCAT_HOME/bin/setenv.sh \
 	&& echo 'CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.tomcat.util.digester.PROPERTY_SOURCE=org.apache.tomcat.util.digester.EnvironmentPropertySource"' >> $TOMCAT_HOME/bin/setenv.sh \
-	&& wget https://archive.apache.org/dist/maven/maven-3/3.9.14/binaries/apache-maven-3.9.14-bin.tar.gz\
+	&& wget https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz\
 	&& tar -zxvf apache-maven-*.tar.gz \
-	&& mkdir /opt/apache-maven-3.9.14 \
-	&& mv apache-maven-3.9.14/* /opt/apache-maven-3.9.14/ \
-	&& rm -r apache-maven-3.9.14 \
-	&& rm apache-maven-3.9.14-bin.tar.gz \
+	&& mkdir /opt/apache-maven-3.9.16 \
+	&& mv apache-maven-3.9.16/* /opt/apache-maven-3.9.16/ \
+	&& rm -r apache-maven-3.9.16 \
+	&& rm apache-maven-3.9.16-bin.tar.gz \
 	&& apt-get -y install nano \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/start.sh \
 	&& echo 'exec catalina.sh run' >> $TOMCAT_HOME/bin/start.sh \
 	&& echo '#!/bin/sh' > $TOMCAT_HOME/bin/stop.sh \
 	&& echo 'shutdown.sh -force' >> $TOMCAT_HOME/bin/stop.sh \
 	&& chmod 777 $TOMCAT_HOME/bin/*.sh \
-	&& chmod 777 /opt/apache-maven-3.9.14/bin/*.cmd \
+	&& chmod 777 /opt/apache-maven-3.9.16/bin/*.cmd \
 	&& apt-get clean all
 
 # ---------------------------------------------------------------------------

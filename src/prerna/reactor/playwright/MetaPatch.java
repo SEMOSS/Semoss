@@ -28,7 +28,8 @@
 package prerna.reactor.playwright;
 
 import java.util.Map;
-import java.util.Objects;
+
+import prerna.util.ValueUtils;
 
 /**
  * Represents a patch for updating metadata, specifically the title,
@@ -56,11 +57,9 @@ public record MetaPatch(String title, String description, String intent) {
 		if (paramValues == null) {
 			return new MetaPatch(null, null, null);
 		}
-		return new MetaPatch(stringValue(paramValues.get("title")), stringValue(paramValues.get("description")),
-				stringValue(paramValues.get("intent")));
+		return new MetaPatch(ValueUtils.toStringOrNull(paramValues.get("title")),
+				ValueUtils.toStringOrNull(paramValues.get("description")),
+				ValueUtils.toStringOrNull(paramValues.get("intent")));
 	}
 
-	private static String stringValue(Object value) {
-		return value == null ? null : Objects.toString(value);
-	}
 }

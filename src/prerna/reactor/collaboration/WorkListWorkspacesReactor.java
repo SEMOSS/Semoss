@@ -49,7 +49,7 @@ public class WorkListWorkspacesReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Lists thread workspaces (goal, steps, facts) for every thread that has one, or for one thread";
+		return "Lists thread workspaces (goal, steps) for every thread that has one, or for one thread";
 	}
 
 	@Override

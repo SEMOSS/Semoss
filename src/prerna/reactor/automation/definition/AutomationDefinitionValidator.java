@@ -126,10 +126,11 @@ public final class AutomationDefinitionValidator {
 		List<Map<String, Object>> nodes = requireMapList(graph.get(AutomationConstants.DOC_NODES), "graph.nodes");
 		List<Map<String, Object>> edges = requireMapList(graph.get(AutomationConstants.DOC_EDGES), "graph.edges");
 
-		Map<String, String> nodeTypes = validateNodes(nodes);
+		Map<String, String> nodeTypes = validateNodes(nodes, true);
 		Map<String, Set<String>> branchPorts = branchPorts(nodes);
 		validateEdges(edges, nodeTypes, branchPorts);
 		validateControlPath(edges, nodeTypes, branchPorts, requireExecutableGraph);
+		validateLoopBodies(nodes, nodeTypes.keySet(), requireExecutableGraph);
 		validateTriggerBindings(definition.get(AutomationConstants.DOC_TRIGGER_BINDINGS));
 
 		String snapshot = AutomationRuntimeUtils.GSON.toJson(canonicalize(definition));
@@ -144,7 +145,7 @@ public final class AutomationDefinitionValidator {
 		}
 	}
 
-	private static Map<String, String> validateNodes(List<Map<String, Object>> nodes) {
+	private static Map<String, String> validateNodes(List<Map<String, Object>> nodes, boolean requireStart) {
 		Map<String, String> nodeTypes = new LinkedHashMap<>();
 		Set<String> outputVariables = new HashSet<>();
 		int startCount = 0;
@@ -196,10 +197,10 @@ public final class AutomationDefinitionValidator {
 					&& !AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode)) {
 				throw new IllegalArgumentException("Node '" + nodeId + "' has unsupported codeMode: " + codeMode + ".");
 			}
-			if (isRoutingNode(typedNode)
+			if (isJavaOwnedNode(typedNode)
 					&& !AutomationConstants.NODE_CODE_MODE_GENERATED.equals(codeMode)) {
 				throw new IllegalArgumentException(
-						"Routing node '" + nodeId + "' must use generated mode; routing is evaluated by Java.");
+						"Java-owned node '" + nodeId + "' must use generated mode.");
 			}
 			if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(codeMode) && !(config instanceof Map<?, ?>)) {
 				throw new IllegalArgumentException("Custom node '" + nodeId + "' must declare a config object.");
@@ -209,8 +210,11 @@ public final class AutomationDefinitionValidator {
 				validateGeneratedAppPixel(nodeId, nodeType, nodeConfig);
 			}
 		}
-		if (startCount != 1) {
+		if (requireStart && startCount != 1) {
 			throw new IllegalArgumentException("Python automation definition must contain exactly one start node.");
+		}
+		if (!requireStart && startCount != 0) {
+			throw new IllegalArgumentException("A loop body cannot contain a trigger.start node.");
 		}
 		return nodeTypes;
 	}
@@ -273,6 +277,7 @@ public final class AutomationDefinitionValidator {
 			requireConfigString(nodeId, config, "path");
 			validateOptionalConfigString(nodeId, config, "version");
 		}
+		case DATA_EXTRACT -> validateDataExtractConfig(nodeId, config);
 		case VECTOR_SEARCH -> {
 			requireConfigString(nodeId, config, "value");
 			validateOptionalConfigObject(nodeId, config, "filters");
@@ -299,14 +304,82 @@ public final class AutomationDefinitionValidator {
 		case CONTROL_WAIT -> validateWaitConfig(nodeId, config);
 		case CONTROL_IF -> validateBranchConfig(nodeId, config);
 		case CONTROL_JEV -> validateJevBranchConfig(nodeId, config);
-		case STORAGE_LIST, TRIGGER_START, DEVELOPER_PYTHON -> {
+		case CONTROL_LOOP -> validateLoopConfig(nodeId, config);
+		case STORAGE_LIST -> validateOptionalStringListOrPlaceholder(nodeId, config, "extensions");
+		case TRIGGER_START, DEVELOPER_PYTHON -> {
 			// These node types have no additional required configuration here.
 		}
 		}
 	}
 
+	private static void validateDataExtractConfig(String nodeId, Map<String, Object> config) {
+		Object source = config.get(AutomationConstants.CONFIG_SOURCE);
+		if (source == null || source instanceof String string && string.isBlank()) {
+			throw new IllegalArgumentException(
+					"Node '" + nodeId + "' config.source must contain data, a scope reference, or a file path.");
+		}
+		requireConfigString(nodeId, config, AutomationConstants.CONFIG_PATH);
+		String format = config.get(AutomationConstants.CONFIG_FORMAT) instanceof String value ? value : "auto";
+		if (!("auto".equals(format) || "json".equals(format) || "xml".equals(format))) {
+			throw new IllegalArgumentException(
+					"Node '" + nodeId + "' config.format must be auto, json, or xml.");
+		}
+	}
+
 	private static boolean isRoutingNode(AutomationNodeType nodeType) {
 		return nodeType == AutomationNodeType.CONTROL_IF || nodeType == AutomationNodeType.CONTROL_JEV;
+	}
+
+	private static boolean isJavaOwnedNode(AutomationNodeType nodeType) {
+		return isRoutingNode(nodeType) || nodeType == AutomationNodeType.CONTROL_LOOP;
+	}
+
+	private static void validateLoopConfig(String nodeId, Map<String, Object> config) {
+		Object mode = config.getOrDefault(AutomationConstants.CONFIG_LOOP_MODE,
+				AutomationConstants.LOOP_MODE_FOR_EACH);
+		validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 1,
+				AutomationConstants.LOOP_MAX_ITERATIONS);
+		if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(mode)) {
+			Object items = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
+			boolean scopeReference = items instanceof String value && isScopePlaceholder(value.trim());
+			if (!(items instanceof List<?>) && !scopeReference) {
+				throw new IllegalArgumentException("Loop node '" + nodeId
+						+ "' config.items must be an array or an exact scope reference such as ${files} or ${download.files}.");
+			}
+			validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_BATCH_SIZE,
+					AutomationConstants.LOOP_MIN_BATCH_SIZE, AutomationConstants.LOOP_MAX_BATCH_SIZE);
+			return;
+		}
+		if (AutomationConstants.LOOP_MODE_REPEAT.equals(mode)) {
+			validateBoundedInteger(nodeId, config, AutomationConstants.CONFIG_LOOP_COUNT, 1,
+					AutomationConstants.LOOP_MAX_ITERATIONS);
+			int count = ((Number) config.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
+			int maximumIterations = ((Number) config.get(AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS)).intValue();
+			if (count > maximumIterations) {
+				throw new IllegalArgumentException("Loop node '" + nodeId
+						+ "' config.count cannot exceed config.maxIterations.");
+			}
+			return;
+		}
+		if (AutomationConstants.LOOP_MODE_WHILE.equals(mode)) {
+			String condition = requireNonblankString(config.get(AutomationConstants.CONFIG_LOOP_CONDITION),
+					"Loop node '" + nodeId + "' config.condition");
+			AutomationConditionEvaluator.validate(condition);
+			return;
+		}
+		throw new IllegalArgumentException("Loop node '" + nodeId
+				+ "' config.mode must be 'forEach', 'repeat', or 'while'.");
+	}
+
+	private static void validateBoundedInteger(String nodeId, Map<String, Object> config, String key, int minimum,
+			int maximum) {
+		Object value = config.get(key);
+		if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())
+				|| number.doubleValue() != Math.rint(number.doubleValue()) || number.intValue() < minimum
+				|| number.intValue() > maximum) {
+			throw new IllegalArgumentException("Node '" + nodeId + "' config." + key
+					+ " must be a whole number from " + minimum + " through " + maximum + ".");
+		}
 	}
 
 	/**
@@ -805,6 +878,115 @@ public final class AutomationDefinitionValidator {
 		if (visitedCount != nodeTypes.size()) {
 			throw new IllegalArgumentException("Automation control edges must not contain a cycle.");
 		}
+	}
+
+	/**
+	 * Validates each loop as a container around its own acyclic graph. The body is
+	 * deliberately not represented by a back-edge in the parent graph: Java owns
+	 * iteration, cancellation, and bounds while the ordinary node executors own the
+	 * work inside one iteration.
+	 */
+	private static void validateLoopBodies(List<Map<String, Object>> nodes, Set<String> parentNodeIds,
+			boolean requireExecutableGraph) {
+		Set<String> allNodeIds = new HashSet<>(parentNodeIds);
+		Set<String> parentOutputVariables = new HashSet<>();
+		for (Map<String, Object> node : nodes) {
+			Object outputVariable = node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+			if (outputVariable instanceof String value) {
+				parentOutputVariables.add(value);
+			}
+		}
+		for (Map<String, Object> node : nodes) {
+			if (!AutomationConstants.NODE_CONTROL_LOOP.equals(node.get(AutomationConstants.NODE_FIELD_TYPE))) {
+				continue;
+			}
+			String loopNodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
+			Object rawBody = node.get(AutomationConstants.NODE_FIELD_BODY);
+			if (rawBody == null && !requireExecutableGraph) {
+				continue;
+			}
+			Map<String, Object> body = requireMap(rawBody, "Loop node '" + loopNodeId + "' body");
+			List<Map<String, Object>> bodyNodes = requireMapList(body.get(AutomationConstants.DOC_NODES),
+					"Loop node '" + loopNodeId + "' body.nodes");
+			List<Map<String, Object>> bodyEdges = requireMapList(body.get(AutomationConstants.DOC_EDGES),
+					"Loop node '" + loopNodeId + "' body.edges");
+			if (bodyNodes.isEmpty()) {
+				if (requireExecutableGraph) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' requires at least one body node.");
+				}
+				continue;
+			}
+			if (bodyNodes.size() > AutomationConstants.LOOP_MAX_BODY_NODES) {
+				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' body exceeds the maximum of "
+						+ AutomationConstants.LOOP_MAX_BODY_NODES + " nodes.");
+			}
+			for (Map<String, Object> bodyNode : bodyNodes) {
+				String bodyType = String.valueOf(bodyNode.get(AutomationConstants.NODE_FIELD_TYPE));
+				if (AutomationConstants.NODE_CONTROL_LOOP.equals(bodyType)) {
+					throw new IllegalArgumentException(
+							"Loop node '" + loopNodeId + "' cannot contain a nested loop in phase 1.");
+				}
+				if (AutomationConstants.NODE_AGENT_RUN.equals(bodyType)) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId
+							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
+				}
+			}
+			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);
+			for (String bodyNodeId : bodyNodeTypes.keySet()) {
+				if (!allNodeIds.add(bodyNodeId)) {
+					throw new IllegalArgumentException(
+							"Automation definition has duplicate node id: " + bodyNodeId + ".");
+				}
+			}
+			for (Map<String, Object> bodyNode : bodyNodes) {
+				Object outputVariable = bodyNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+				if (outputVariable instanceof String value && parentOutputVariables.contains(value)) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' body outputVar '" + value
+							+ "' cannot shadow a parent graph outputVar.");
+				}
+			}
+			Map<String, Set<String>> bodyBranchPorts = branchPorts(bodyNodes);
+			validateEdges(bodyEdges, bodyNodeTypes, bodyBranchPorts);
+			validateLoopBodyControlPath(loopNodeId, bodyEdges, bodyNodeTypes, bodyBranchPorts,
+					requireExecutableGraph);
+		}
+	}
+
+	private static void validateLoopBodyControlPath(String loopNodeId, List<Map<String, Object>> edges,
+			Map<String, String> nodeTypes, Map<String, Set<String>> branchPorts, boolean requireExecutableGraph) {
+		Map<String, Integer> incoming = new LinkedHashMap<>();
+		for (String nodeId : nodeTypes.keySet()) {
+			incoming.put(nodeId, 0);
+		}
+		for (Map<String, Object> edge : edges) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				incoming.compute((String) edge.get(AutomationConstants.EDGE_FIELD_TARGET),
+						(ignored, count) -> count + 1);
+			}
+		}
+		List<String> roots = incoming.entrySet().stream().filter(entry -> entry.getValue() == 0).map(Map.Entry::getKey)
+				.toList();
+		if (requireExecutableGraph && roots.size() != 1) {
+			throw new IllegalArgumentException(
+					"Loop node '" + loopNodeId + "' body must have exactly one entry node.");
+		}
+
+		String virtualStart = "__loop_body_start__";
+		while (nodeTypes.containsKey(virtualStart)) {
+			virtualStart += "_";
+		}
+		Map<String, String> augmentedTypes = new LinkedHashMap<>();
+		augmentedTypes.put(virtualStart, AutomationConstants.NODE_START);
+		augmentedTypes.putAll(nodeTypes);
+		List<Map<String, Object>> augmentedEdges = new ArrayList<>(edges);
+		if (requireExecutableGraph) {
+			augmentedEdges.add(Map.of(AutomationConstants.NODE_FIELD_ID, virtualStart + "-edge",
+					AutomationConstants.EDGE_FIELD_KIND, AutomationConstants.EDGE_KIND_CONTROL,
+					AutomationConstants.EDGE_FIELD_SOURCE, virtualStart, AutomationConstants.EDGE_FIELD_SOURCE_PORT,
+					AutomationConstants.CONTROL_PORT_OUT, AutomationConstants.EDGE_FIELD_TARGET, roots.get(0),
+					AutomationConstants.EDGE_FIELD_TARGET_PORT, AutomationConstants.CONTROL_PORT_IN));
+		}
+		validateControlPath(augmentedEdges, augmentedTypes, branchPorts, requireExecutableGraph);
 	}
 
 	private static void validateTriggerBindings(Object value) {

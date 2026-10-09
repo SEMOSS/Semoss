@@ -138,7 +138,7 @@ public class BrainEditTopicReactor extends AbstractCollaborationReactor {
 		} else if (ADD_GOAL.equals(key)) {
 			return "Text of a goal to add";
 		} else if (ADD_NOTE.equals(key)) {
-			return "Text of a note to add";
+			return "Text of a note to add; it is kept as the owner's memory about the topic";
 		} else if (DELETE_NOTE_ID.equals(key)) {
 			return "Id of a goal or note to delete, from ListTopics";
 		}

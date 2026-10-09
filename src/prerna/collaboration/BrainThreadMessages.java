@@ -59,7 +59,9 @@ public final class BrainThreadMessages {
 	}
 
 	// one message that today's rules still show, as the source returned it
-	record Readable(String source, Map<String, Object> message, Map<String, Object> sender, String at) {
+	/** graphId is the stored id, which callers use instead of the one they passed. */
+	record Readable(String source, Map<String, Object> message, Map<String, Object> sender, String at,
+			String graphId) {
 	}
 
 	private BrainThreadMessages() {
@@ -282,6 +284,20 @@ public final class BrainThreadMessages {
 	 * sender and keyword rules after. Null when a rule hides it or it is gone; a
 	 * login problem is thrown so the UI can prompt.
 	 */
+	/** The Graph ids of an email thread's messages, newest first; empty for any other source. */
+	static List<String> emailGraphIds(String ownerId, String ownerType, String threadId) {
+		String source = CollaborationDbUtils.queryOne(
+				"SELECT SOURCE FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("SOURCE"), ownerId, ownerType, threadId);
+		if (!"email".equals(source)) {
+			return List.of();
+		}
+		return CollaborationDbUtils.query(
+				"SELECT GRAPH_ID FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? "
+						+ "AND GRAPH_ID IS NOT NULL ORDER BY RECEIVED_AT DESC, MESSAGE_KEY",
+				rs -> rs.getString("GRAPH_ID"), ownerId, ownerType, threadId);
+	}
+
 	static Readable readable(User user, String ownerId, String ownerType, String threadId, String graphId,
 			BrainMessageSource messages) {
 		String[] thread = CollaborationDbUtils.queryOne(
@@ -311,8 +327,16 @@ public final class BrainThreadMessages {
 				break;
 			}
 		}
+		// Models copy these 150-character ids with a letter's case flipped; within one thread a
+		// case-insensitive match is still unique.
+		if (row == null && graphId != null) {
+			List<Row> loose = rows.stream().filter(candidate -> graphId.equalsIgnoreCase(candidate.graphId()))
+					.toList();
+			row = loose.size() == 1 ? loose.get(0) : null;
+		}
 		if (row == null) {
-			return null;
+			throw new IllegalArgumentException(
+					"No email with that messageId is on this thread. Copy the id exactly from the thread's messages.");
 		}
 		List<BrainRulesGate.Rule> rules = BrainRulesGate.activeRules(ownerId, ownerType);
 		if (BrainRulesGate.NEVER.equals(row.decision()) || BrainRulesGate.OFF.equals(row.decision())
@@ -322,7 +346,7 @@ public final class BrainThreadMessages {
 		}
 		Map<String, Object> message;
 		try {
-			message = messages.fetch(user, source, conversationId, graphId);
+			message = messages.fetch(user, source, conversationId, row.graphId());
 		} catch (SemossPixelException e) {
 			throw e;
 		} catch (Exception e) {
@@ -343,7 +367,7 @@ public final class BrainThreadMessages {
 		if (BrainRulesGate.keywordRule(rules, (String) clean.get("subject"), (String) clean.get("body")) != null) {
 			return null;
 		}
-		return new Readable(source, message, sender, row.at());
+		return new Readable(source, message, sender, row.at(), row.graphId());
 	}
 
 	/**

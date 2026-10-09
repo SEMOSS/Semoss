@@ -46,6 +46,7 @@ import prerna.engine.api.IEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationDefinitionService;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.definition.AutomationNodeType;
@@ -183,7 +184,9 @@ public final class AutomationProjectService {
 					definitionJson, nodeSources);
 			AutomationMcpSync.sync(projectId, files.definition(), user);
 			syncDefinitionAssets(projectId, user, "Update automation definition");
-			return files;
+			// Return the same normalized aggregate a subsequent GetAutomation call will
+			// read. This keeps the optimistic-concurrency token stable after Save.
+			return AutomationDefinitionService.load(projectId);
 		} finally {
 			projectLock.unlock();
 		}
@@ -225,7 +228,7 @@ public final class AutomationProjectService {
 	@SuppressWarnings("unchecked")
 	public static void validateDefinitionReferences(AutomationDefinitionValidator.ValidatedDefinition definition,
 			User user) {
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : AutomationRuntime.allNodes(definition)) {
 			String nodeType = (String) node.get(AutomationConstants.NODE_FIELD_TYPE);
 			AutomationNodeType typedNode = AutomationNodeType.fromType(nodeType);
 			Object rawConfig = node.get(AutomationConstants.NODE_FIELD_CONFIG);

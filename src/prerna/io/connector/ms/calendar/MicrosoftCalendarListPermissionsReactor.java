@@ -27,92 +27,33 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
+import prerna.io.connector.calendar.AbstractListPermissionsReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarPermission;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Reads who a calendar is shared with and what each of them may do with it.
+ * Reads who a Microsoft 365 calendar is shared with, and whether each of them
+ * is a reader, a writer or a delegate.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.Read} for {@code GET /me/calendar/calendarPermissions}
- * and {@code GET /me/calendars/{id}/calendarPermissions}</li>
- * <li>{@code Calendars.Read.Shared} as well, when a {@code mailbox} names
- * somebody else, for {@code GET /users/{id}/calendar/calendarPermissions}</li>
- * </ul>
- *
- * <p>
- * This is what tells a share from a delegation. Both are a permission on a
- * calendar, and the {@code role} is the difference: a reader or a writer has
- * been shared the calendar, while a delegate has also been given the right to
- * receive and answer meeting requests on the owner's behalf, which is what
- * {@code MicrosoftCalendarRespondToEvent} needs a mailbox for.
- * </p>
- *
- * <p>
- * Read against the signed in user's own calendar, this answers who they have
- * shared it with. Read against somebody else's, by naming their mailbox, it
- * answers what that person granted the signed in user.
+ * Required delegated Microsoft Graph scope: {@code Calendars.Read}, and
+ * {@code Calendars.Read.Shared} to read somebody else's.
  * </p>
  */
-public class MicrosoftCalendarListPermissionsReactor extends AbstractMicrosoftCalendarReactor {
+public class MicrosoftCalendarListPermissionsReactor extends AbstractListPermissionsReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarListPermissionsReactor.class);
-
-	public MicrosoftCalendarListPermissionsReactor() {
-		this.keysToGet = new String[] { CALENDAR_ID, MAILBOX };
-		this.keyRequired = new int[] { 0, 0 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
-		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			List<Map<String, Object>> permissions = MicrosoftCalendarHelper.listCalendarPermissions(accessToken,
-					mailbox, calendarId);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			if (mailbox != null) {
-				output.put(MAILBOX, mailbox);
-			}
-			if (calendarId != null) {
-				output.put(CALENDAR_ID, calendarId);
-			}
-			output.put("count", permissions.size());
-			output.put("permissions", permissions);
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while reading the permissions on a Microsoft calendar", e);
-			throw e;
-		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid input passed to read the permissions on a Microsoft calendar", e);
-			throw new SemossPixelException(e.getMessage());
-		} catch (Exception e) {
-			classLogger.error("Failed to read the permissions on a Microsoft calendar", e);
-			throw new SemossPixelException(
-					"An error occurred retrieving the calendar permissions. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Read who a Microsoft 365 calendar is shared with, and whether each of them is a reader, a writer or a delegate.";
+	protected List<CalendarPermission> listPermissions(User user, String calendarId, String mailbox) throws Exception {
+		return MicrosoftCalendarHelper.listCalendarPermissions(MicrosoftLoginUtils.getValidAccessToken(user), mailbox,
+				calendarId);
 	}
 }

@@ -32,7 +32,10 @@ import static org.mockito.Mockito.verify;
 
 import java.sql.PreparedStatement;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import prerna.query.querystruct.filters.SimpleQueryFilter;
 
 class PostgresQueryUtilUnitTests {
 
@@ -46,4 +49,13 @@ class PostgresQueryUtilUnitTests {
 		verify(ps).setString(1, "  text  ");
 		verify(ps).setBytes(2, bytes);
 	}
+
+	@Test
+	void preparedRegexPreservesPatternSyntaxAndUsesBoundComparison() {
+		var util = new PostgresQueryUtil();
+		var filter = (SimpleQueryFilter) util.getPreparedSearchRegexFilter("ITEMS__V", "O'Brien\\path");
+		Assertions.assertEquals("o'brien\\path", filter.getRComparison().getValue());
+		Assertions.assertEquals("~", filter.getComparator());
+	}
+
 }

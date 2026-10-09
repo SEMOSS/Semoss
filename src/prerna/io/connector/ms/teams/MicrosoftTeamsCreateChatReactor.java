@@ -38,6 +38,7 @@ import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Starts a Teams chat with one or more people.
@@ -78,8 +79,8 @@ public class MicrosoftTeamsCreateChatReactor extends AbstractMicrosoftTeamsMessa
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
 		String[] members = values(MEMBERS);
-		String chatType = trimToNull(this.keyValue.get(CHAT_TYPE));
-		String topic = trimToNull(this.keyValue.get(TOPIC));
+		String chatType = ValueUtils.trimToNull(this.keyValue.get(CHAT_TYPE));
+		String topic = ValueUtils.trimToNull(this.keyValue.get(TOPIC));
 
 		if (members == null) {
 			throw new SemossPixelException("At least one other person is required to start a Microsoft Teams chat.");

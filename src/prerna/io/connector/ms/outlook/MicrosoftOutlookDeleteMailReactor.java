@@ -27,81 +27,28 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.mail.AbstractDeleteMailReactor;
+import prerna.io.connector.mail.MailApp;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Deletes a message from the signed in user's mailbox.
+ * Deletes a message from the signed in user's own Microsoft 365 mailbox, which
+ * moves it to Deleted Items.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Mail.ReadWrite} for {@code DELETE /me/messages/{id}}</li>
- * </ul>
- *
- * <p>
- * The message goes to Deleted Items rather than disappearing, so it can be
- * fished back out of Outlook for as long as that folder keeps it. Moving it to
- * {@code archive} with {@code MicrosoftOutlookMoveMail} is the gentler way to
- * get something out of an inbox.
+ * Required delegated Microsoft Graph scope: {@code Mail.ReadWrite}.
  * </p>
  */
-public class MicrosoftOutlookDeleteMailReactor extends AbstractMicrosoftOutlookMessageReactor {
+public class MicrosoftOutlookDeleteMailReactor extends AbstractDeleteMailReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookDeleteMailReactor.class);
-
-	public MicrosoftOutlookDeleteMailReactor() {
-		this.keysToGet = new String[] { UID };
-		this.keyRequired = new int[] { 1 };
+	@Override
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String uid = requiredUid("delete a message");
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			new MicrosoftOutlookMailHelper().deleteMessage(accessToken, null, uid);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put(UID, uid);
-			output.put("deleted", true);
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while deleting the message '{}'", uid, e);
-			throw e;
-		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid input passed to delete a message", e);
-			throw new SemossPixelException(e.getMessage());
-		} catch (Exception e) {
-			classLogger.error("Failed to delete the message '{}'", uid, e);
-			throw new SemossPixelException("An error occurred deleting the message. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "Delete a message from the signed in user's own Microsoft 365 mailbox, which sends it to Deleted Items.";
-	}
-
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// deletes the user's mail, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+	protected void deleteMail(User user, String id) throws Exception {
+		new MicrosoftOutlookMailHelper().deleteMessage(MicrosoftLoginUtils.getValidAccessToken(user), null, id);
 	}
 }
