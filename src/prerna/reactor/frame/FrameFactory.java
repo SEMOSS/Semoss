@@ -34,6 +34,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.h2.H2Frame;
 import prerna.ds.rdbms.postgres.PostgresFrame;
@@ -111,6 +112,10 @@ public class FrameFactory {
 			PandasFrame frame = new PandasFrame(alias, insight.getPyTranslator());
 			return frame;
 		}
+		case "POLARS": {
+			PolarsFrame frame = new PolarsFrame(alias, insight.getPyTranslator());
+			return frame;
+		}
 
 		case "NATIVE": {
 			NativeFrame frame = new NativeFrame(alias);
@@ -170,6 +175,8 @@ public class FrameFactory {
 		if (frame instanceof RDataTable) {
 			cache = true;
 		} else if (frame instanceof PandasFrame) {
+			cache = true;
+		} else if (frame instanceof PolarsFrame) {
 			cache = true;
 		} else if (frame instanceof NativeFrame) {
 			cache = ((NativeFrame) frame).engineQueryCacheable();

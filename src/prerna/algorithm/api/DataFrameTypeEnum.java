@@ -33,6 +33,7 @@ public enum DataFrameTypeEnum {
 	GRAPH ("GRAPH"),
 	R ("R"),
 	PYTHON ("PY"),
+	POLARS ("POLARS"),
 	NATIVE ("NATIVE"), 
 	IGRAPH ("IGRAPH");
 	
