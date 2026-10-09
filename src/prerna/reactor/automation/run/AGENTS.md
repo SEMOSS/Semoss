@@ -25,6 +25,9 @@ contract.
   pass's declared body outputs into its next isolated scope.
 - Keep frame display data scoped to the execution Insight. A frame is not a
   durable-history contract.
+- Generated database reads must keep `SqlQuery` as the authorization and routing
+  owner, then import its task once into the run-owned frame. Do not collect rows
+  into an Automation JSON result before creating that frame.
 - Do not pass engine objects, arbitrary Java objects, or unbounded payloads
   through Python scope or browser responses.
 - Do not add a persistence interface until there is a real second store.

@@ -96,24 +96,45 @@ non-private Python-identifier name. `trigger.start.config.pythonSource` holds th
 setup source. Java puts defaults in the runtime scope unless
 inputs override them; the globals are returned by Trigger and become Playground defaults. `developer.python`
 and custom-code nodes execute their own persisted `run(scope)` source. Node source may return any
-JSON-serializable value; Java persists it as the current node output. Generated sources import their documented
+JSON-serializable value or a supported Python frame. JSON values are persisted as the current node output. A frame
+stays in the run Insight's Python state, is registered as a standard SEMOSS frame under the node's `outputVar`,
+and persists only bounded table metadata. A later Python node still reads the live object through
+`scope["outputVar"]`; no frame identifier is exposed to the graph or browser. For a generated `database.query`, that
+scope value is now a pandas `DataFrame`, not the former `list[dict]`; downstream custom Python must use DataFrame
+operations such as `iterrows()`, `itertuples()`, or `to_dict("records")` when row dictionaries are required. This is
+currently a PY/pandas backend contract only. Frames retain normal SEMOSS live-object semantics: downstream in-place
+changes are visible through every alias that references the same frame, and run-history frame previews are live views,
+not immutable per-node snapshots. Return the mutated frame from a node to publish it under that node's output alias.
+Polars and other frame backends require separate platform support.
+Generated sources import their documented
 `ai_server` engine class and invoke it directly; wait nodes use `time.sleep`.
 Each run reloads its persisted effective trigger-input snapshot before execution. Each node receives a read-only,
 run-local `scope` mapping containing trigger inputs, globals, runtime metadata, and prior
 outputs keyed by `outputVar`. Custom Python reads it directly; `${...}` references are reserved for supported
 generated-node configuration fields and are not rewritten inside custom source. Generated nodes use the documented
-engine SDK unless an existing Pixel reactor owns required server policy. Generated database reads use `SqlQuery`,
-which retains SQL routing, authorization, configured engine-pipeline guardrails, and bounded row collection. Generated
+engine SDK unless an existing Pixel reactor owns required server policy. Generated database reads emit an internal
+resolved request that Java sends through `SqlQuery`, which retains SQL routing, authorization, configured
+engine-pipeline guardrails, and bounded row collection. The returned task is imported once into the configured Python
+frame backend owned by the execution Insight; pandas is the currently supported backend, and full rows do not cross
+the Python-to-Java node-result boundary. The durable node-output row stores an internal `OUTPUT_KIND=FRAME`
+discriminator only after Java has registered the frame; resume and history must use that metadata and must never infer
+frame identity from user-controlled JSON fields. Generated
 database writes use the database SDK's `ExecQuery` path, which retains edit authorization, audit logging, commit
 behavior, and configured `insertData` guardrails. Generated updates always require a `WHERE` clause; use custom Python
 for an intentionally unbounded operation. Return a value so Java can store it under the node's `outputVar`.
 
-Node output, run inputs, and aggregate scope remain bounded by `AutomationConstants`. Row-shaped node output is
-also registered under its `outputVar` as a standard SEMOSS Python frame in that run's execution Insight, matching
+JSON node output, run inputs, and aggregate scope remain bounded by `AutomationConstants`. Row-shaped JSON output
+is also registered under its `outputVar` as a standard SEMOSS Python frame for paged inspection, while an explicit
+supported Python frame uses that frame as its live node-to-node backing. Both live in that run's execution Insight, matching
 Notebook's named-frame convention. `GetAutomationRun` returns the ordinary `FRAME_MAP` noun while the execution
 Insight remains live; the UI reads it with the existing
-`Frame | QueryAll | Offset | Limit | Collect` path. The frame is a display boundary, not a durable-data contract:
-when the run Insight has closed, callers fall back to the persisted output preview.
+`Frame | QueryAll | Offset | Limit | Collect` path. Frame-backed scope is live run state, not a durable-data contract:
+when the run Insight has closed, callers fall back to bounded persisted metadata or output preview.
+An agent-wait resume rebinds a frame only when that same execution Insight still owns it; otherwise the run fails
+before executing a dependent node. Loops may consume a registered frame through bounded SEMOSS queries, but a
+loop-body node may not produce a frame until iteration-owned frame identity and history are supported.
+Executable validation rejects generated `database.query` nodes inside loop bodies before any loop iteration can run;
+custom nodes retain the runtime guard because their return type is not statically known.
 
 The bridge reloads the Java-bound node from the immutable run snapshot and retains the callback
 insight's user/security context. It does not accept an arbitrary node definition, node id, engine
