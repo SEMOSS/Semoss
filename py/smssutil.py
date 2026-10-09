@@ -999,7 +999,7 @@ def generate_mcp(
                                 if isinstance(deco.args[0].value, str):
                                     mcp_execution_mode = deco.args[0].value
 
-            if mcp_execution_mode != "disabled" and mcp_execution_mode != "auto":
+            if mcp_execution_mode not in ("disabled", "auto", "ask", "yesno"):
                 mcp_execution_mode = "ask"
 
             cleaned_mcp_ui_map: dict = {}
@@ -1337,12 +1337,12 @@ def mcp_response(*parts: dict) -> dict:
 
 
 @deprecated(
-    reason="Use @mcp_metadata({'execution':'auto'|'ask'|'disabled'}) instead",
+    reason="Use @mcp_metadata({'execution':'auto'|'ask'|'yesno'|'disabled'}) instead",
     version="5.1.0",
 )
 def mcp_execution(arg: str):
     """
-    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask'|'disabled')
+    Decorator factory to mark a function for MCP execution. Usage: @mcp_execution('auto'|'ask'|'yesno'|'disabled')
     """
 
     def _decorator(func):
@@ -1360,7 +1360,7 @@ def mcp_execution(arg: str):
 def mcp_metadata(_mcp_metadata: dict):
     """
     Decorator factory to add metadata to MCP functions.
-    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
+    Usage: @mcp_metadata({'loadingMessage': 'Loading...', 'resourceURI': null, 'execution':'auto'|'ask'|'yesno'|'disabled', 'displayLocation': 'inline'|'sidebar'|'hidden', 'component': 'email-compose', 'autoOpen': True, 'deferred': True})
     """
 
     def _decorator(func):

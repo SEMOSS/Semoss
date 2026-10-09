@@ -1339,7 +1339,7 @@ public class SemossAgentHarness implements IAgentHarness {
 				continue;
 			}
 			Object execution = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_EXECUTION);
-			boolean isAsk = "ask".equalsIgnoreCase(String.valueOf(execution));
+			boolean isAsk = MCPUtility.isAskLikeExecution(String.valueOf(execution));
 			boolean isSubAgentTool = SubAgentToolSynthesizer.isSubAgentTool(name, subAgentSpecs);
 			// a tool with a native UI component needs its _meta on the call, auto or not
 			Object ui = ((Map<String, Object>) metaObj).get(MCPUtility.SMSS_MCP_UI);
