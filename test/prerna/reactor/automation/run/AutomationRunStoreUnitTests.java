@@ -45,6 +45,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.reactor.automation.AutomationConstants;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.SystemEngineRegistry;
 
@@ -67,7 +68,7 @@ class AutomationRunStoreUnitTests {
 		db.execute(
 				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
-				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
+				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
 	}
 
 	private void initialize(String runId, Map<String, String> sources) {
@@ -134,7 +135,9 @@ class AutomationRunStoreUnitTests {
 			db.execute(
 					"CREATE TABLE AUTOMATION_RUN_WAITS (WAIT_ID VARCHAR, RUN_ID VARCHAR, NODE_ID VARCHAR, WAIT_TYPE VARCHAR, AGENT_RUN_ID VARCHAR, ROOM_ID VARCHAR, RESUME_NODE_ID VARCHAR, STATUS VARCHAR, CREATED_BY VARCHAR, STARTED_AT TIMESTAMP, EXPIRES_AT TIMESTAMP, RESOLVED_AT TIMESTAMP, RESOLVED_BY VARCHAR)");
 			AutomationRunStore.initializeRun("run", "project", "automation", 1, "hash", "{}", Map.of(), "manual",
-					"user", List.of(Map.of("id", "node", "label", "Node"), Map.of("id", "skipped", "label", "Skipped")),
+					"user", List.of(Map.of("id", "node", "label", "Node"),
+							Map.of("id", "summary", "label", "Summary"),
+							Map.of("id", "skipped", "label", "Skipped")),
 					Map.of(), Map.of());
 			assertTrue(AutomationRunStore.claimRun("run"));
 			AutomationRunStore.markNodeRunning("run", "node");
@@ -151,12 +154,21 @@ class AutomationRunStoreUnitTests {
 			AutomationRunStore.resolveWait("run", waitId, "resolver");
 			assertEquals("RESOLVED", db.value("SELECT STATUS FROM AUTOMATION_RUN_WAITS"));
 			var started = java.sql.Timestamp.from(java.time.Instant.now());
-			AutomationRunStore.updateNodeSuccess("run", "node", started, 5L, "output", "  {}  ", "preview", null,
-					"agent");
+			AutomationRunStore.updateNodeSuccess("run", "node", started, 5L, "output",
+					AutomationConstants.OUTPUT_KIND_FRAME, "  {}  ", "preview", null, "agent");
 			assertEquals("  {}  ", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+			assertEquals(AutomationConstants.OUTPUT_KIND_FRAME,
+					db.value("SELECT OUTPUT_KIND FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+			String ordinarySummary = "{\"dataType\":\"table\",\"rowCount\":2,\"columnCount\":1}";
+			AutomationRunStore.markNodeRunning("run", "summary");
+			AutomationRunStore.updateNodeSuccess("run", "summary", started, 5L, "summary_output", null,
+					ordinarySummary, "ordinary JSON", null, null);
+			assertNull(db.value("SELECT OUTPUT_KIND FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='summary'"));
+			assertEquals(ordinarySummary,
+					db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='summary'"));
 			AutomationRunStore.updateNodeFailed("run", "node", started, 6L, "failure");
 			AutomationRunStore.updateNodeFailedWithResult("run", "node", started, 7L, "output", null, null, null,
-					"failed result");
+					null, "failed result");
 			assertEquals("agent", db.value("SELECT AGENT_RUN_ID FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			assertNull(db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			AutomationRunStore.skipPendingNodes("run", "not selected");
@@ -187,6 +199,22 @@ class AutomationRunStoreUnitTests {
 			AutomationRunStore.markStaleRunsInterrupted();
 			assertEquals("INTERRUPTED", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID='stale'"));
 			assertEquals("SUBMITTED", db.value("SELECT STATUS FROM AUTOMATION_RUNS WHERE RUN_ID='fresh'"));
+		}
+	}
+
+	@Test
+	void schemaUpgradeIsIdempotentAcrossTwoInitializations() throws Exception {
+		try (var db = new JdbcTestDatabase()) {
+			schema(db);
+			db.execute("ALTER TABLE AUTOMATION_NODE_OUTPUTS DROP COLUMN OUTPUT_KIND");
+
+			AutomationRunStore.initialize();
+			AutomationRunStore.initialize();
+
+			assertEquals(1, ((Number) db.value("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS "
+					+ "WHERE TABLE_NAME='AUTOMATION_NODE_OUTPUTS' AND COLUMN_NAME='OUTPUT_KIND'")).intValue());
+			assertEquals(1, ((Number) db.value("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
+					+ "WHERE TABLE_NAME='AUTOMATION_RUNS'")).intValue());
 		}
 	}
 }

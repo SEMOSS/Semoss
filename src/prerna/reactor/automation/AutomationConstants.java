@@ -96,6 +96,10 @@ public final class AutomationConstants {
 	public static final String EXECUTION_ORDER = "EXECUTION_ORDER";
 	public static final String DURATION_MS = "DURATION_MS";
 	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
+	/** Internal durable discriminator for node output storage semantics. */
+	public static final String OUTPUT_KIND = "OUTPUT_KIND";
+	/** Output kind for a value backed by a frame in the run Insight. */
+	public static final String OUTPUT_KIND_FRAME = "FRAME";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
@@ -263,8 +267,12 @@ public final class AutomationConstants {
 	public static final int DEFAULT_DB_QUERY_LIMIT = 50;
 	/** Smallest row limit accepted by a generated database query node. */
 	public static final int DB_QUERY_MIN_LIMIT = 1;
-	/** Largest row limit accepted by a generated database query node. */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	/**
+	 * Largest row limit accepted by a generated database query node. Large query
+	 * results remain in the run Insight's frame and therefore do not cross the
+	 * bounded JSON node-output contract.
+	 */
+	public static final int DB_QUERY_MAX_LIMIT = 50_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
@@ -356,6 +364,20 @@ public final class AutomationConstants {
 	 * persistence.
 	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
+	/** Runtime-owned Python-to-Java node result discriminator. */
+	public static final String INTERNAL_NODE_RESULT_KIND = "__automation_result_kind__";
+	/** Runtime-owned Python-to-Java ordinary node value. */
+	public static final String INTERNAL_NODE_RESULT_VALUE = "__automation_result_value__";
+	/** Runtime result kind for an ordinary JSON-compatible node value. */
+	public static final String INTERNAL_NODE_RESULT_KIND_VALUE = "VALUE";
+	/** Runtime result kind for a frame retained in the run Insight. */
+	public static final String INTERNAL_NODE_RESULT_KIND_FRAME = "FRAME";
+	/**
+	 * Reserved generated-source signal requesting a guarded database query whose
+	 * result is loaded directly into a run-owned frame. Removed before scope and
+	 * history persistence.
+	 */
+	public static final String INTERNAL_DATABASE_QUERY = "__automation_database_query__";
 	public static final String TRACE_ROOM_ID = "roomId";
 	public static final String TRACE_WORKSPACE_ID = "workspaceId";
 	public static final String TRACE_MODEL_MESSAGE_ID = "modelMessageId";

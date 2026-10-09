@@ -1129,6 +1129,12 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
 							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
 				}
+				if (requireExecutableGraph && AutomationConstants.NODE_DATABASE_QUERY.equals(bodyType)
+						&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
+								.equals(bodyNode.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+					throw new IllegalArgumentException("Loop node '" + loopNodeId
+							+ "' cannot contain a generated database.query node because frame outputs inside iterations are not supported.");
+				}
 			}
 			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);
 			for (String bodyNodeId : bodyNodeTypes.keySet()) {

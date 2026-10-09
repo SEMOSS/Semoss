@@ -30,6 +30,7 @@ package prerna.reactor.automation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.LinkedHashMap;
@@ -138,4 +139,31 @@ public class AutomationRuntimeUnitTests {
 		assertEquals(List.of("start", "loop", "body-node"), AutomationRuntime.allNodes(definition).stream()
 				.map(node -> String.valueOf(node.get(AutomationConstants.NODE_FIELD_ID))).toList());
 	}
+
+	@Test
+	void decodesRuntimeOwnedFrameResult() {
+		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(
+				Map.of(AutomationConstants.INTERNAL_NODE_RESULT_KIND,
+						AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME));
+
+		assertTrue(result.frame());
+		assertNull(result.value());
+	}
+
+	@Test
+	void keepsFrameShapedUserJsonAsAnOrdinaryValue() {
+		Map<String, Object> value = Map.of("__automation_frame__", Map.of("rowCount", 12, "columnCount", 3));
+		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(Map.of(
+				AutomationConstants.INTERNAL_NODE_RESULT_KIND, AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE,
+				AutomationConstants.INTERNAL_NODE_RESULT_VALUE, value));
+
+		assertFalse(result.frame());
+		assertEquals(value, result.value());
+	}
+
+	@Test
+	void rejectsMalformedRuntimeResult() {
+		assertThrows(IllegalStateException.class, () -> AutomationRuntime.decodeNodeResult(Map.of("value", 1)));
+	}
+
 }
