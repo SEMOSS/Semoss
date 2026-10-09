@@ -113,6 +113,13 @@ public final class BrainThreadClassifier {
 		Map<String, Object> params = new LinkedHashMap<>();
 		if (threadIds != null && !threadIds.isEmpty()) {
 			params.put("threads", threadIds.size());
+		} else {
+			// the full sort waits for the whole import, Teams chats included
+			Map<String, Object> importing = CollaborationJobUtils.latest(owner.getValue0(), owner.getValue1(),
+					BrainMailImport.KIND);
+			if (importing != null && CollaborationJobUtils.RUNNING.equals(importing.get("status"))) {
+				throw new IllegalArgumentException("Your import is still running. Sort starts once it finishes.");
+			}
 		}
 		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), JOB_KIND, params, job -> {
 			// own insight so the run does not depend on the page that started it
@@ -128,7 +135,8 @@ public final class BrainThreadClassifier {
 					"automatedSenders", "senderVoteCalls" }) {
 				job.count(key, summary.get(key));
 			}
-		});
+		// a full sort during onboarding: topics are grouped and named while the owner looks at the sorted mail
+		}, threadIds == null || threadIds.isEmpty() ? () -> BrainTopicReviewUtils.prepare(user) : null);
 	}
 
 	// onboarding, after topics are picked: real mail the sort kept (not automated, no topic link) is filed against

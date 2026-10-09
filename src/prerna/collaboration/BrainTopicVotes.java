@@ -33,6 +33,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -51,7 +56,7 @@ public final class BrainTopicVotes {
 			automated or bulk (notifications, receipts, newsletters, marketing, alerts), or company-wide news and announcements
 			that need nothing from them; "unclear" when you cannot tell. Then name it the way a colleague would, in 2 to 5 words,
 			after the project, client or piece of work (for not_work, say what kind of mail it is). Do not name a topic after a
-			person or a date. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
+			person, and never put a month, date or year in a name. Also write "about": one plain sentence, under 25 words, saying what mail belongs in this topic
 			(the project, client or work it covers and what it involves), so someone could sort a new email into it.
 
 			Answer for every cluster id given, once each.
@@ -93,29 +98,57 @@ public final class BrainTopicVotes {
 		Map<String, Object> parameters = Map.of("temperature", 0, "schema", schema(ids), "max_tokens",
 				settings.maxTokens());
 		List<Map<String, Vote>> votes = new ArrayList<>();
-		int calls = 0;
+		AtomicInteger calls = new AtomicInteger();
 		int failed = 0;
 		// A vote counts only with complete card coverage; retries and the spare slot
-		// share a bounded budget.
-		for (int slot = 0; slot < settings.votes() + settings.spareVotes() && votes.size() < settings.votes(); slot++) {
-			Map<String, Vote> vote = null;
-			for (int attempt = 0; attempt < settings.attempts() && vote == null; attempt++) {
-				calls++;
+		// share a bounded budget. The votes run at the same time, the spare only after.
+		Callable<Map<String, Vote>> slot = () -> {
+			for (int attempt = 0; attempt < settings.attempts(); attempt++) {
+				calls.incrementAndGet();
 				try {
-					vote = validate(caller.ask(prompt, INSTRUCTIONS, parameters), ids);
+					Map<String, Vote> vote = validate(caller.ask(prompt, INSTRUCTIONS, parameters), ids);
+					if (vote != null) {
+						return vote;
+					}
 				} catch (RuntimeException e) {
 					// A failed call consumes its budget; private prompts and replies are never
 					// logged here.
 				}
 			}
-			if (vote == null) {
-				failed++;
-			} else {
-				votes.add(vote);
+			return null;
+		};
+		ExecutorService pool = Executors.newFixedThreadPool(settings.votes());
+		try {
+			List<Future<Map<String, Vote>>> running = new ArrayList<>();
+			for (int i = 0; i < settings.votes(); i++) {
+				running.add(pool.submit(slot));
 			}
+			for (Future<Map<String, Vote>> future : running) {
+				Map<String, Vote> vote = future.get();
+				if (vote == null) {
+					failed++;
+				} else {
+					votes.add(vote);
+				}
+			}
+			for (int spare = 0; spare < settings.spareVotes() && votes.size() < settings.votes(); spare++) {
+				Map<String, Vote> vote = slot.call();
+				if (vote == null) {
+					failed++;
+				} else {
+					votes.add(vote);
+				}
+			}
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Topic voting was interrupted", e);
+		} catch (Exception e) {
+			throw new IllegalStateException("Topic voting failed", e);
+		} finally {
+			pool.shutdownNow();
 		}
 		if (votes.size() != settings.votes()) {
-			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls, failed);
+			return new Result("vote_failed", votes, Set.of(), Map.of(), Map.of(), calls.get(), failed);
 		}
 		// Only a not_work majority removes a group; unclear remains available for the
 		// owner's review.
@@ -140,7 +173,7 @@ public final class BrainTopicVotes {
 			votes.stream().map(v -> v.get(id)).filter(v -> v.name().equals(name)).findFirst()
 					.ifPresent(v -> abouts.put(index, v.about()));
 		}
-		return new Result("ok", votes, dropped, names, abouts, calls, failed);
+		return new Result("ok", votes, dropped, names, abouts, calls.get(), failed);
 	}
 
 	public static Map<String, Vote> validate(String reply, List<String> ids) {

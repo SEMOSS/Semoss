@@ -84,7 +84,7 @@ final class BrainTopicReviewEvidence {
 			row.put("links", links);
 			row.put("people", people(ownerId, ownerType, threadId, rules));
 			row.put("rejectedTopicIds", BrainThreadTopicDecisions.rejected(ownerId, ownerType, threadId).stream().sorted().toList());
-			row.put("canCorrect", "email".equals(row.get("source")));
+			row.put("canCorrect", REVIEWABLE.contains(row.get("source")));
 			row.put("version", version(ownerId, ownerType, threadId));
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
@@ -124,11 +124,14 @@ final class BrainTopicReviewEvidence {
 		return ids;
 	}
 
+	// email threads and Teams chats; calendar items are not corrected here
+	private static final Set<Object> REVIEWABLE = Set.of("email", "teams");
+
 	static void requireEmail(String ownerId, String ownerType, String threadId) {
 		List<Map<String, Object>> rows = headers(ownerId, ownerType, List.of(threadId));
-		if (rows.isEmpty() || !"email".equals(rows.get(0).get("source"))
+		if (rows.isEmpty() || !REVIEWABLE.contains(rows.get(0).get("source"))
 				|| !eligible(ownerId, ownerType, rows).contains(threadId)) {
-			throw new IllegalArgumentException("This conversation is no longer available for email topic review. Refresh its examples.");
+			throw new IllegalArgumentException("This conversation is no longer available for topic review. Refresh its examples.");
 		}
 	}
 

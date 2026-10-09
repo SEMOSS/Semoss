@@ -111,6 +111,17 @@ public interface BrainMailHeaderSource {
 		return new ChatImport(chats(user, since, maxChats, maxPerChat), 0, false);
 	}
 
+	/** Chats read so far out of every chat in the window, while a long Teams read runs. */
+	@FunctionalInterface
+	interface ChatProgress {
+		void read(int done, int total);
+	}
+
+	default ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat, ChatProgress progress)
+			throws Exception {
+		return importChats(user, since, maxChats, maxPerChat);
+	}
+
 	// HttpHelperUtility exposes the status in its exception message. A 403 describes access, not expired login.
 	static boolean needsReauth(Throwable error) {
 		for (Throwable cause = error; cause != null; cause = cause.getCause()) {

@@ -42,6 +42,7 @@ import prerna.auth.User;
 /** Owner-scoped, resumable topic setup. Draft writes and apply receipts use optimistic revisions. */
 public final class BrainTopicReviewUtils {
 	private static final int MAX_TOPICS = 100;
+	public static final String MAP_KIND = "topic_map";
 	private static final String COLUMNS = "REVIEW_ID, REVISION, DRAFT_JSON, APPLIED_REVISION, RESULT_JSON, "
 			+ "FILING_JOB_ID, UPDATED_AT";
 
@@ -75,6 +76,63 @@ public final class BrainTopicReviewUtils {
 		result.put("reviewId", reviewId);
 		result.put("revision", revision);
 		return result;
+	}
+
+	/** One onboarding chat turn. Read-only: it returns a reply and proposed draft changes for the owner. */
+	public static Map<String, Object> chat(User user, String reviewId, int revision, Object messages) {
+		List<Map<String, Object>> turns = new ArrayList<>();
+		for (Map<String, Object> message : maps(messages)) {
+			String role = text(message.get("role"), "Message role", 20);
+			if (!Set.of("owner", "assistant").contains(role)) throw new IllegalArgumentException("Each message is from the owner or the assistant");
+			turns.add(Map.of("role", role, "text", text(message.get("text"), "Message", 4000)));
+		}
+		if (turns.isEmpty() || !"owner".equals(turns.get(turns.size() - 1).get("role"))) throw new IllegalArgumentException("Write a message for the assistant");
+		List<Map<String, Object>> recent = new ArrayList<>(turns.subList(Math.max(0, turns.size() - 20), turns.size()));
+		var owner = CollaborationDbUtils.ownerOf(user);
+		Map<String, Object> context = new LinkedHashMap<>();
+		CollaborationDbUtils.batch(conn -> {
+			Map<String, Object> review = requireReview(owner.getValue0(), owner.getValue1(), reviewId, true);
+			requireRevision(review, revision);
+			context.putAll(BrainTopicReviewChat.context(owner.getValue0(), owner.getValue1(), review, recent));
+		});
+		Map<String, Object> result = new LinkedHashMap<>(BrainTopicReviewChat.ask(user, context));
+		result.put("reviewId", reviewId);
+		result.put("revision", revision);
+		return result;
+	}
+
+	/** How many of the owner's conversations involve these people, for a live count while shaping a topic. */
+	public static Map<String, Object> reach(User user, Object people) {
+		List<String> ids = strings(people);
+		if (ids.size() > 60) throw new IllegalArgumentException("Count at most 60 people at a time");
+		Map<String, Object> result = new LinkedHashMap<>();
+		result.put("threads", 0);
+		result.put("together", 0);
+		result.put("samples", List.of());
+		if (ids.isEmpty()) return result;
+		var owner = CollaborationDbUtils.ownerOf(user);
+		List<Object> params = new ArrayList<>(List.of(owner.getValue0(), owner.getValue1(), true, false));
+		params.addAll(ids);
+		String matched = "SELECT p.THREAD_ID, COUNT(DISTINCT p.PERSON_ID) AS PEOPLE FROM BRAIN_THREAD t JOIN BRAIN_THREAD_PARTICIPANT p "
+				+ "ON p.OWNER_ID = t.OWNER_ID AND p.OWNER_TYPE = t.OWNER_TYPE AND p.THREAD_ID = t.THREAD_ID "
+				+ "WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND (t.AUTOMATED IS NULL OR t.AUTOMATED <> ?) "
+				+ "AND (p.INCLUDED IS NULL OR p.INCLUDED <> ?) AND p.PERSON_ID IN (" + CollaborationDbUtils.placeholders(ids.size()) + ") "
+				+ "GROUP BY p.THREAD_ID";
+		result.put("threads", CollaborationDbUtils.count("SELECT COUNT(*) FROM (" + matched + ") m", params.toArray()));
+		int least = Math.min(2, ids.size());
+		result.put("together", CollaborationDbUtils.count("SELECT COUNT(*) FROM (" + matched + ") m WHERE m.PEOPLE >= " + least, params.toArray()));
+		// recent examples, preferring conversations with more of these people
+		result.put("samples", CollaborationDbUtils.query(CollaborationDbUtils.page("SELECT t.SUBJECT, m.PEOPLE, t.LAST_MESSAGE_AT FROM ("
+				+ matched + ") m JOIN BRAIN_THREAD t ON t.OWNER_ID = ? AND t.OWNER_TYPE = ? AND t.THREAD_ID = m.THREAD_ID "
+				+ "ORDER BY m.PEOPLE DESC, t.LAST_MESSAGE_AT DESC", 3, 0), rs -> Objects.toString(rs.getString(1), "Untitled conversation"),
+				concat(params, owner.getValue0(), owner.getValue1()).toArray()));
+		return result;
+	}
+
+	private static List<Object> concat(List<Object> params, Object... more) {
+		List<Object> out = new ArrayList<>(params);
+		out.addAll(List.of(more));
+		return out;
 	}
 
 	/** Preview the exact impact for manually chosen groups or assistant proposals. */
@@ -139,6 +197,7 @@ public final class BrainTopicReviewUtils {
 	}
 
 	/** Initialize once, or resume the same draft. Generation is outside the database transaction. */
+	/** The review draft, or the job building it: the topic map is made once, in the background. */
 	public static Map<String, Object> start(User user) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -163,31 +222,111 @@ public final class BrainTopicReviewUtils {
 				});
 				return envelope(user, read(ownerId, ownerType, false));
 			}
-			Map<String, Object> suggestions = BrainTopicSuggest.topics(user);
-			List<Map<String, Object>> topics = new ArrayList<>();
-			for (Map<String, Object> suggestion : maps(suggestions.get("topics"))) {
-				String id = text(suggestion.get("id"), "topic id", 50);
-				Map<String, Object> saved = BrainTopicUtils.getTopic(ownerId, ownerType, id);
-				Map<String, Object> topic = new LinkedHashMap<>(suggestion);
-				topic.put("key", id);
-				topic.put("keep", Boolean.TRUE.equals(suggestion.get("suggested")));
-				topic.put("description", Objects.toString(saved.get("description"), ""));
-				// Suggested short names are automatic. An explicit alias in an accepted topic is retained.
-				String shortName = Objects.toString(saved.get("short"), "");
-				topic.put("short", !BrainTopicUtils.SUGGESTED.equals(saved.get("status"))
-						&& !shortName.equals(saved.get("name")) ? shortName : "");
-				topic.put("removedPeople", List.of());
-				topic.put("accepted", !BrainTopicUtils.SUGGESTED.equals(saved.get("status")));
-				topics.add(topic);
+		}
+		return Map.of("exists", false, "pending", true, "job", startMap(user));
+	}
+
+	/** Start (or join) the job that builds the first draft; after a sort it runs on its own. */
+	public static Map<String, Object> startMap(User user) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), MAP_KIND, Map.of(),
+				job -> build(user, job));
+	}
+
+	/** After the onboarding sort: build the topic map while the owner looks at the sorted mail. */
+	public static void prepare(User user) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		if (read(owner.getValue0(), owner.getValue1(), false) == null) {
+			startMap(user);
+		}
+	}
+
+	// suggestions, then broad areas over them, then the first draft
+	private static void build(User user, CollaborationJobUtils.Job job) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		job.step("reading", 2);
+		Map<String, Object> suggestions = BrainTopicSuggest.topics(user, false, job);
+		List<Map<String, Object>> topics = new ArrayList<>();
+		for (Map<String, Object> suggestion : maps(suggestions.get("topics"))) {
+			String id = text(suggestion.get("id"), "topic id", 50);
+			Map<String, Object> saved = BrainTopicUtils.getTopic(ownerId, ownerType, id);
+			Map<String, Object> topic = new LinkedHashMap<>(suggestion);
+			topic.put("key", id);
+			topic.put("keep", Boolean.TRUE.equals(suggestion.get("suggested")));
+			topic.put("description", Objects.toString(saved.get("description"), ""));
+			// Suggested short names are automatic. An explicit alias in an accepted topic is retained.
+			String shortName = Objects.toString(saved.get("short"), "");
+			topic.put("short", !BrainTopicUtils.SUGGESTED.equals(saved.get("status"))
+					&& !shortName.equals(saved.get("name")) ? shortName : "");
+			topic.put("removedPeople", List.of());
+			topic.put("accepted", !BrainTopicUtils.SUGGESTED.equals(saved.get("status")));
+			topics.add(topic);
+		}
+		Map<String, Object> draft = new LinkedHashMap<>();
+		List<Map<String, Object>> fresh = topics.stream().filter(topic -> !Boolean.TRUE.equals(topic.get("accepted"))).toList();
+		if (!fresh.isEmpty()) {
+			job.step("areas", 80);
+			List<BrainTopicAreas.Topic> named = fresh.stream().map(topic -> new BrainTopicAreas.Topic(
+					(String) topic.get("name"), nullableText(topic.get("about")), strings(topic.get("threadIds")).size())).toList();
+			String engineId = BrainTopicModel.engine(user);
+			List<BrainTopicAreas.Area> grouped = engineId == null ? BrainTopicAreas.single(named)
+					: BrainTopicAreas.group(BrainTopicOnboarding.caller(user, engineId), named);
+			List<Map<String, Object>> areas = BrainTopicReviewAreas.build(fresh, grouped);
+			job.count("areas", areas.stream().map(area -> area.get("name")).toList());
+			draft.put("areas", areas);
+		}
+		draft.put("topics", topics);
+		draft.put("modelError", Objects.toString(suggestions.get("modelError"), ""));
+		job.step("saving", 95);
+		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
+			// a draft made meanwhile wins; this map is dropped
+			if (read(ownerId, ownerType, false) != null) {
+				return;
 			}
-			Map<String, Object> draft = new LinkedHashMap<>();
-			draft.put("topics", topics);
-			draft.put("modelError", Objects.toString(suggestions.get("modelError"), ""));
 			BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
 			Timestamp now = CollaborationDbUtils.now();
 			CollaborationDbUtils.update("INSERT INTO BRAIN_TOPIC_REVIEW (OWNER_ID, OWNER_TYPE, REVIEW_ID, REVISION, "
 					+ "DRAFT_JSON, CREATED_AT, UPDATED_AT) VALUES (?, ?, ?, ?, ?, ?, ?)", ownerId, ownerType,
 					UUID.randomUUID().toString(), 1, CollaborationDbUtils.toJson(draft), now, now);
+		}
+	}
+
+	/** Keep an area's topics separate (split) or as one topic again. */
+	public static Map<String, Object> area(User user, String reviewId, int revision, String areaKey, boolean split) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", ownerId, ownerType)) {
+			CollaborationDbUtils.batch(conn -> {
+				Map<String, Object> current = requireReview(ownerId, ownerType, reviewId, true);
+				requireRevision(current, revision);
+				Map<String, Object> draft = map(current.get("draft"));
+				List<Map<String, Object>> areas = maps(draft.get("areas"));
+				Map<String, Object> area = areas.stream().filter(entry -> Objects.equals(areaKey, entry.get("key")))
+						.findFirst().orElseThrow(() -> new IllegalArgumentException("Area not found"));
+				if (strings(area.get("topicKeys")).size() < 2 || split == Boolean.TRUE.equals(area.get("split"))) {
+					return;
+				}
+				List<Map<String, Object>> topics = maps(draft.get("topics"));
+				if (strings(area.get("topicKeys")).stream().anyMatch(key -> topics.stream().anyMatch(topic ->
+						key.equals(topic.get("key")) && Boolean.TRUE.equals(topic.get("accepted"))))) {
+					throw new IllegalArgumentException("A saved topic cannot be regrouped here");
+				}
+				List<Map<String, Object>> corrections = maps(draft.get("corrections"));
+				draft.put("corrections", split ? BrainTopicReviewAreas.split(topics, corrections, area)
+						: BrainTopicReviewAreas.join(topics, corrections, area));
+				draft.put("topics", topics);
+				draft.put("areas", areas);
+				int updated = CollaborationDbUtils.update("UPDATE BRAIN_TOPIC_REVIEW SET DRAFT_JSON = ?, "
+						+ "REVISION = ?, UPDATED_AT = ? WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND REVIEW_ID = ? "
+						+ "AND REVISION = ?", CollaborationDbUtils.toJson(draft), revision + 1,
+						CollaborationDbUtils.now(), ownerId, ownerType, reviewId, revision);
+				if (updated != 1) {
+					throw conflict();
+				}
+			});
 			return envelope(user, read(ownerId, ownerType, false));
 		}
 	}
@@ -205,7 +344,7 @@ public final class BrainTopicReviewUtils {
 				Map<String, Object> current = requireReview(ownerId, ownerType, reviewId, true);
 				Map<String, Object> draft = map(current.get("draft"));
 				BrainTopicReviewProfiles.initialize(ownerId, ownerType, draft);
-				List<Map<String, Object>> topics = normalize(changes.get("topics"), maps(draft.get("topics")));
+				List<Map<String, Object>> topics = normalize(ownerId, ownerType, changes.get("topics"), maps(draft.get("topics")));
 				String guidance = changes.containsKey("guidance") ? text(changes.get("guidance"), "Work context", 6000) : Objects.toString(draft.get("guidance"), "");
 				String granularity = changes.containsKey("granularity") ? text(changes.get("granularity"), "Topic detail", 20) : Objects.toString(draft.get("granularity"), "broad");
 				if (!Set.of("broad", "projects", "detailed").contains(granularity)) throw new IllegalArgumentException("Choose broad, projects or detailed topic grouping");
@@ -256,6 +395,13 @@ public final class BrainTopicReviewUtils {
 					BrainTopicReviewStructure.validateApply(conn, ownerId, ownerType, current);
 					BrainTopicReviewOperations.validateApply(ownerId, ownerType, current);
 					List<Map<String, Object>> topics = maps(draft.get("topics"));
+					// the parts of an area the owner skipped are skipped with it, not merged
+					for (Map<String, Object> topic : topics) {
+						if (topic.get("mergedIntoKey") instanceof String into && topics.stream().noneMatch(target ->
+								into.equals(target.get("key")) && Boolean.TRUE.equals(target.get("keep")))) {
+							topic.remove("mergedIntoKey");
+						}
+					}
 					List<Map<String, Object>> kept = new ArrayList<>();
 					List<String> skipped = new ArrayList<>();
 					for (Map<String, Object> topic : topics) {
@@ -306,6 +452,13 @@ public final class BrainTopicReviewUtils {
 							}
 						}
 						topic.put("appliedRemovedPeople", strings(topic.get("removedPeople")));
+						// an addition the owner took back after an earlier apply is removed, not left behind
+						for (String personId : strings(topic.get("appliedAddedPeople"))) {
+							if (!strings(topic.get("addedPeople")).contains(personId)) {
+								BrainTopicUtils.setTopicPerson(user, savedId, personId, BrainTopicUtils.REMOVED, null);
+							}
+						}
+						topic.put("appliedAddedPeople", strings(topic.get("addedPeople")));
 						topic.put("accepted", true);
 						topic.put("id", savedId);
 						topic.put("name", saved.get("name"));
@@ -325,6 +478,7 @@ public final class BrainTopicReviewUtils {
 						String id = BrainTopicReviewProfiles.id(topic);
 						Map<String, Object> saved = BrainTopicUtils.saveTopic(user, Map.of("id", id, "keywords", BrainTopicReviewProfiles.terms(topic.get("terms"))));
 						for (String personId : strings(topic.get("removedPeople"))) BrainTopicUtils.setTopicPerson(user, id, personId, BrainTopicUtils.REMOVED, null);
+						for (String personId : strings(topic.get("addedPeople"))) BrainTopicUtils.setTopicPerson(user, id, personId, BrainTopicUtils.MEMBER, null);
 						BrainTopicReviewProfiles.accept(ownerId, ownerType, topic);
 						Map<String, Object> receipt = kept.stream().filter(row -> Objects.equals(row.get("key"), topic.get("key"))).findFirst().orElseThrow();
 						receipt.put("keywords", saved.get("keywords"));
@@ -403,7 +557,8 @@ public final class BrainTopicReviewUtils {
 				CollaborationDbUtils.now(), ownerId, ownerType, reviewId, revision);
 	}
 
-	private static List<Map<String, Object>> normalize(Object value, List<Map<String, Object>> originals) {
+	private static List<Map<String, Object>> normalize(String ownerId, String ownerType, Object value,
+			List<Map<String, Object>> originals) {
 		List<Map<String, Object>> incoming = maps(value);
 		if (incoming.size() > MAX_TOPICS) {
 			throw new IllegalArgumentException("Review up to " + MAX_TOPICS + " topics at a time");
@@ -453,6 +608,27 @@ public final class BrainTopicReviewUtils {
 				throw new IllegalArgumentException("Only people shown on this topic can be removed from its draft");
 			}
 			topic.put("removedPeople", removed);
+			// the owner may add any of their own non-automated people; names are kept for the card
+			List<String> added = strings(edit.get("addedPeople"));
+			if (added.size() > 30) {
+				throw new IllegalArgumentException("Add at most 30 people to a topic");
+			}
+			List<Map<String, Object>> addedInfo = new ArrayList<>();
+			for (String personId : added) {
+				if (allowedPeople.contains(personId)) {
+					throw new IllegalArgumentException("This person is already on the topic; restore them instead of adding them");
+				}
+				String name = CollaborationDbUtils.queryOne("SELECT DISPLAY_NAME, EMAIL_NORM FROM BRAIN_PERSON WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ? AND PERSON_ID = ? AND COALESCE(RELATIONSHIP, '') <> ?",
+						rs -> Objects.toString(rs.getString(1), Objects.toString(rs.getString(2), "")), ownerId, ownerType,
+						personId, BrainSenderTyping.AUTOMATED);
+				if (name == null) {
+					throw new IllegalArgumentException("Only your own contacts can be added to a topic");
+				}
+				addedInfo.add(Map.of("id", personId, "name", name.isBlank() ? personId : name));
+			}
+			topic.put("addedPeople", added);
+			topic.put("addedPeopleInfo", addedInfo);
 			normalized.add(topic);
 		}
 		for (String key : byKey.keySet()) {

@@ -138,6 +138,13 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat) throws Exception {
+		return importChats(user, since, maxChats, maxPerChat, (done, total) -> {
+		});
+	}
+
+	@Override
+	public ChatImport importChats(User user, Instant since, int maxChats, int maxPerChat, ChatProgress progress)
+			throws Exception {
 		// one token for the run, so parallel calls do not race a refresh
 		String token = MicrosoftLoginUtils.getValidAccessToken(user);
 		String selfId = (String) get(token, BASE + "/me?$select=id").get("id");
@@ -166,7 +173,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			for (Map<String, Object> chat : chats) {
 				calls.add(pool.submit(() -> chatMessages(token, chat, selfId, since, maxPerChat)));
 			}
-			return collectChats(calls);
+			return collectChats(calls, progress);
 		} finally {
 			pool.shutdownNow();
 		}
@@ -174,10 +181,19 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	// A failure anywhere in one chat (including members or later pages) leaves the other chats whole.
 	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls) throws InterruptedException {
+		return collectChats(calls, (done, total) -> {
+		});
+	}
+
+	static ChatImport collectChats(List<Future<List<Map<String, Object>>>> calls, ChatProgress progress)
+			throws InterruptedException {
 		List<Map<String, Object>> out = new ArrayList<>();
 		int skipped = 0;
 		boolean reauthNeeded = false;
+		int done = 0;
+		progress.read(0, calls.size());
 		for (Future<List<Map<String, Object>>> call : calls) {
+			progress.read(done++, calls.size());
 			try {
 				out.addAll(call.get());
 			} catch (ExecutionException e) {
@@ -190,6 +206,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 				throw e;
 			}
 		}
+		progress.read(calls.size(), calls.size());
 		return new ChatImport(out, skipped, reauthNeeded);
 	}
 
