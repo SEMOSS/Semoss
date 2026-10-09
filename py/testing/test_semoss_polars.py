@@ -159,6 +159,23 @@ def test_iterator_import_parses_temporal_schema():
         )
 
 
+def test_iterator_import_parses_boolean_strings():
+    imported = SemossPolarsFrame.from_rows(
+        ["name", "active"],
+        [["alpha", "true"], ["beta", "FALSE"], ["gamma", None]],
+        {"name": "STRING", "active": "BOOLEAN"},
+    )
+    assert imported.schema()["types"] == ["STRING", "BOOLEAN"]
+    assert imported.data["active"].to_list() == [True, False, None]
+
+    with pytest.raises(ValueError, match="Boolean column 'active'"):
+        SemossPolarsFrame.from_rows(
+            ["active"],
+            [["not-a-boolean"]],
+            {"active": "BOOLEAN"},
+        )
+
+
 def test_lazy_and_nested_types_are_rejected():
     with pytest.raises(TypeError, match="collect"):
         SemossPolarsFrame(pl.DataFrame({"x": [1]}).lazy())

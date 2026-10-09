@@ -354,7 +354,32 @@ class SemossPolarsFrame:
         if not rows:
             return cls(pl.DataFrame(schema=polars_schema or headers))
 
-        frame = pl.DataFrame(rows, schema=headers, orient="row", strict=False)
+        normalized_rows = [list(row) for row in rows]
+        if schema:
+            for index, header in enumerate(headers):
+                if schema.get(header, "").upper() != "BOOLEAN":
+                    continue
+                for row in normalized_rows:
+                    value = row[index]
+                    if not isinstance(value, str):
+                        continue
+                    normalized = value.strip().lower()
+                    if normalized == "true":
+                        row[index] = True
+                    elif normalized == "false":
+                        row[index] = False
+                    else:
+                        raise ValueError(
+                            f"Boolean column '{header}' contains invalid value "
+                            f"'{value}'"
+                        )
+
+        frame = pl.DataFrame(
+            normalized_rows,
+            schema=headers,
+            orient="row",
+            strict=False,
+        )
         if polars_schema:
             expressions = []
             for header, target in polars_schema.items():

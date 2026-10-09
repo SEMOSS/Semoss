@@ -53,7 +53,7 @@ public class UpdateRowValuesReactor extends AbstractPolarsFrameReactor {
 		PolarsFrame frame = getPolarsFrame();
 		String column = cleanColumn(this.keyValue.get(this.keysToGet[0]));
 		Object value = parseValue(frame, column, this.keyValue.get(this.keysToGet[1]));
-		SelectQueryStruct queryStruct = (SelectQueryStruct) getValueFromKeyOrCurRow(this.keysToGet[2], 0);
+		SelectQueryStruct queryStruct = (SelectQueryStruct) getValueFromKeyOrCurRow(this.keysToGet[2], 2);
 		if (queryStruct == null) {
 			throw new IllegalArgumentException("A filtered query structure is required");
 		}

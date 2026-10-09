@@ -167,10 +167,18 @@ public class PolarsFrame extends AbstractTableDataFrame {
 			importParquet((ParquetFileIterator) iterator);
 			return;
 		}
-		List<String> headers = this.metaData.getOrderedAliasOrUniqueNames();
+		List<String> iteratorHeaders = null;
 		List<List<Object>> rows = new ArrayList<>();
 		while (iterator.hasNext()) {
-			Object[] values = iterator.next().getValues();
+			IHeadersDataRow dataRow = iterator.next();
+			Object[] values = dataRow.getValues();
+			String[] rowHeaders = dataRow.getHeaders();
+			if (iteratorHeaders == null && rowHeaders != null && rowHeaders.length == values.length) {
+				iteratorHeaders = new ArrayList<>(rowHeaders.length);
+				for (String header : rowHeaders) {
+					iteratorHeaders.add(header);
+				}
+			}
 			List<Object> row = new ArrayList<>(values.length);
 			for (Object value : values) {
 				row.add(value);
@@ -178,6 +186,7 @@ public class PolarsFrame extends AbstractTableDataFrame {
 			rows.add(row);
 		}
 
+		List<String> headers = iteratorHeaders == null ? this.metaData.getOrderedAliasOrUniqueNames() : iteratorHeaders;
 		Map<String, String> schema = new LinkedHashMap<>();
 		Map<String, SemossDataType> typeMap = this.metaData.getHeaderToTypeMap();
 		for (String header : headers) {
