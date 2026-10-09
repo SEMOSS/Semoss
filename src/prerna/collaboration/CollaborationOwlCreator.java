@@ -213,7 +213,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("PERSON_ID", VARCHAR_50),
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
-				Pair.with("ROLE_LABEL", VARCHAR_50),
+				Pair.with("ROLE_LABEL", VARCHAR_255),
 				Pair.with("ENGAGEMENT", INTEGER_DATATYPE_NAME),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
