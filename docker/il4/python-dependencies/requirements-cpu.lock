@@ -3401,7 +3401,9 @@ pip-system-certs==5.3 \
 pipecat-ai==1.4.0 \
     --hash=sha256:4d1e68da79e0632dcdaf66581fbf07e840249dfb715dc6e57b423d20fc3520d7 \
     --hash=sha256:d7e1f2ee6f2646720daed3a028835d0e26e5e93787d0424ab00f4c7b6034a170
-    # via semoss (pyproject.toml)
+    # via
+    #   -c requirements-cpu.lock
+    #   semoss (pyproject.toml)
     # from https://pypi.org/simple
 pluggy==1.6.0 \
     --hash=sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3 \
@@ -4184,7 +4186,9 @@ pyyaml==6.0.3 \
 pyyaml-include==1.4.1 \
     --hash=sha256:1a96e33a99a3e56235f5221273832464025f02ff3d8539309a3bf00dec624471 \
     --hash=sha256:323c7f3a19c82fbc4d73abbaab7ef4f793e146a13383866831631b26ccc7fb00
-    # via pipecat-ai
+    # via
+    #   -c requirements-cpu.lock
+    #   pipecat-ai
     # from https://pypi.org/simple
 rapidfuzz==3.14.6 \
     --hash=sha256:07c7aa0b1e4b9999a54f9e73317d6743ff85442c8ef7b7fbbe6b190fd37d9e75 \
@@ -5670,12 +5674,10 @@ websockets==16.1.1 \
     #   langsmith
     #   pipecat-ai
     # from https://pypi.org/simple
-werkzeug==3.1.8 \
-    --hash=sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50 \
-    --hash=sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44
-    # via
-    #   -c requirements-cpu.lock
-    #   flask
+werkzeug==3.1.9 \
+    --hash=sha256:55ca7c70a75689be937aa27f8ff4b018f06ff4838fc73045560bf0f5a1291060 \
+    --hash=sha256:6392e50c78460ba618e5b21f08a71f59c99ce99cdc6cf6e3dd7e6ccca8754fab
+    # via flask
     # from https://pypi.org/simple
 widgetsnbextension==4.0.16 \
     --hash=sha256:a31a8774885b96fe825462f5d6496166f0c7cae111195b6465c801d230eb5a4e \
