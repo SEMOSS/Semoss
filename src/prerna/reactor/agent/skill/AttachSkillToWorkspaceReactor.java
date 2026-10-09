@@ -47,6 +47,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Attaches a skill to a workspace. A skill is a Project of type {@code SKILL}
@@ -56,10 +57,11 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * {@code CONFIG_JSON.skills[]}. Authorization piggybacks on project
  * permissions: edit on the workspace, view on the skill. Idempotent.
  *
- * <p>Inputs:
+ * <p>
+ * Inputs:
  * <ul>
- *   <li>{@code workspaceId} - target workspace (required)</li>
- *   <li>{@code skillId}     - skill project to attach (required)</li>
+ * <li>{@code workspaceId} - target workspace (required)</li>
+ * <li>{@code skillId} - skill project to attach (required)</li>
  * </ul>
  */
 public class AttachSkillToWorkspaceReactor extends AbstractReactor {
@@ -78,7 +80,7 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 		organizeKeys();
 
 		String workspaceId = this.keyValue.get(ReactorKeysEnum.WORKSPACE_ID.getKey());
-		String skillId     = nullIfBlank(this.keyValue.get(SKILL_ID));
+		String skillId = ValueUtils.trimToNull(this.keyValue.get(SKILL_ID));
 
 		if (workspaceId == null || workspaceId.isEmpty()) {
 			throw new IllegalArgumentException("workspaceId is required");
@@ -172,14 +174,6 @@ public class AttachSkillToWorkspaceReactor extends AbstractReactor {
 			classLogger.error("Failed to attach skill '{}' to workspace '{}'", skillId, workspaceId, e);
 			throw new IllegalArgumentException("Failed to attach skill to workspace: " + e.getMessage(), e);
 		}
-	}
-
-	private static String nullIfBlank(String s) {
-		if (s == null) {
-			return null;
-		}
-		String t = s.trim();
-		return t.isEmpty() ? null : t;
 	}
 
 	@Override

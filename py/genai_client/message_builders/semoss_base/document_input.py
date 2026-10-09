@@ -38,6 +38,10 @@ class DocumentInputError(ValueError):
     """An attachment could not be delivered without losing its contents."""
 
 
+class ContextBudgetError(DocumentInputError):
+    """The request is too large for the model's context; callers may compact and retry."""
+
+
 @dataclass(frozen=True)
 class ExtractedDocument:
     text: str
@@ -207,7 +211,7 @@ class DocumentInputProcessor:
                     message.type = SEMOSSMessageType.INPUT_TEXT
 
             if extracted_chars > self.max_text_chars:
-                raise DocumentInputError(
+                raise ContextBudgetError(
                     "The attached documents contain too much text for one conversation "
                     f"({self.max_text_chars:,} character limit). Use fewer pages or files."
                 )
@@ -472,7 +476,7 @@ class DocumentInputProcessor:
                 ]
             text_bytes += len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         if text_bytes + int(output_tokens) > settings.context_window:
-            raise DocumentInputError(
+            raise ContextBudgetError(
                 "The extracted documents and conversation exceed the conservative "
                 "text budget for this model. Attach fewer pages, start a new conversation, "
                 "or reduce the requested output length. No content was truncated."

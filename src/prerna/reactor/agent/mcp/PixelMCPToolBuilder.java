@@ -67,6 +67,7 @@ public class PixelMCPToolBuilder {
 	private static final Logger classLogger = LogManager.getLogger(PixelMCPToolBuilder.class);
 
 	private PixelMCPToolBuilder() {
+
 	}
 
 	/**
@@ -188,7 +189,8 @@ public class PixelMCPToolBuilder {
 			if (additionalMeta.containsKey(MCPUtility.SMSS_MCP_DEFERRED)) {
 				Object deferred = additionalMeta.get(MCPUtility.SMSS_MCP_DEFERRED);
 				if (!(deferred instanceof Boolean)) {
-					throw new IllegalArgumentException(MCPUtility.SMSS_MCP_DEFERRED + " must be a Boolean for " + reactorName);
+					throw new IllegalArgumentException(
+							MCPUtility.SMSS_MCP_DEFERRED + " must be a Boolean for " + reactorName);
 				}
 				meta.put(MCPUtility.SMSS_MCP_DEFERRED, deferred);
 			}
@@ -268,8 +270,9 @@ public class PixelMCPToolBuilder {
 	}
 
 	/**
-	 * Sets how the tool presents itself. Supplied metadata overrides what the
-	 * reactor declares.
+	 * Sets how the tool presents itself. Each key the supplied metadata sets
+	 * overrides the same key the reactor declares, and every key it leaves out
+	 * keeps what the reactor declares, such as the view the reactor names.
 	 *
 	 * @param meta           the tool's metadata being assembled
 	 * @param additionalMeta metadata supplied for this reactor
@@ -292,7 +295,8 @@ public class PixelMCPToolBuilder {
 			return;
 		}
 
-		JSONObject uiJson = new JSONObject();
+		JSONObject declared = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
+		JSONObject uiJson = declared == null ? new JSONObject() : new JSONObject(declared.toMap());
 		if (uiMap.containsKey(MCPUtility.UI_RESOURCE_URI)) {
 			uiJson.put(MCPUtility.UI_RESOURCE_URI, uiMap.get(MCPUtility.UI_RESOURCE_URI));
 		}
@@ -307,11 +311,6 @@ public class PixelMCPToolBuilder {
 						+ Arrays.toString(MCPDisplayOption.values()));
 			}
 			uiJson.put(MCPUtility.UI_DISPLAY_LOCATION, displayEnum != null ? displayEnum.getValue() : null);
-		}
-		// the reactor's own component and autoOpen stay unless the supplied metadata sets them
-		JSONObject declared = meta.optJSONObject(MCPUtility.SMSS_MCP_UI);
-		if (declared != null) {
-			MCPUtility.copyUiHints(declared.toMap(), uiJson);
 		}
 		MCPUtility.copyUiHints(uiMap, uiJson);
 		meta.put(MCPUtility.SMSS_MCP_UI, uiJson);

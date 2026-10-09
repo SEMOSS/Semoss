@@ -2165,6 +2165,48 @@ public class ModelInferenceLogsUtils {
 	}
 
 	/**
+	 * The user's open rooms among the given ids, without their messages.
+	 *
+	 * @param userId  user identifier
+	 * @param roomIds room identifiers
+	 * @return one map per open room: ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS (JSON text), UPDATED_AT (Timestamp)
+	 */
+	public static List<Map<String, Object>> getActiveRoomSummaries(String userId, List<String> roomIds) {
+		IRDBMSEngine modelInferenceLogsDb = SystemEngineRegistry.getModelInferenceLogsDb();
+		List<Map<String, Object>> rooms = new ArrayList<>();
+		int batchSize = 500;
+		for (int i = 0; i < roomIds.size(); i += batchSize) {
+			List<String> batch = roomIds.subList(i, Math.min(i + batchSize, roomIds.size()));
+			String query = "SELECT ROOM_ID, ROOM_NAME, PROJECT_ID, OPTIONS, UPDATED_AT FROM ROOM WHERE USER_ID = ? "
+					+ "AND IS_ACTIVE = ? AND ROOM_ID IN (" + String.join(", ", Collections.nCopies(batch.size(), "?"))
+					+ ")";
+			try {
+				rooms.addAll(QueryExecutionUtility.queryList(modelInferenceLogsDb, query, stmt -> {
+					stmt.setString(1, userId);
+					stmt.setBoolean(2, true);
+					for (int j = 0; j < batch.size(); j++) {
+						stmt.setString(j + 3, batch.get(j));
+					}
+				}, resultSet -> {
+					Map<String, Object> row = new HashMap<>();
+					row.put("ROOM_ID", resultSet.getString("ROOM_ID"));
+					row.put("ROOM_NAME", resultSet.getString("ROOM_NAME"));
+					row.put("PROJECT_ID", resultSet.getString("PROJECT_ID"));
+					row.put("OPTIONS", resultSet.getString("OPTIONS"));
+					row.put("UPDATED_AT", resultSet.getTimestamp("UPDATED_AT"));
+					return row;
+				}));
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Exception e) {
+				classLogger.error("Failed to read rooms for userId '{}'.", userId, e);
+				throw new IllegalStateException("Could not read the rooms", e);
+			}
+		}
+		return rooms;
+	}
+
+	/**
 	 * Returns active-room rows for the specified user/room pair.
 	 *
 	 * @param roomId room identifier

@@ -27,30 +27,35 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
+import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.jsoup.Jsoup;
 
+import prerna.io.connector.ConnectorTimes;
+import prerna.io.connector.calendar.Availability;
+import prerna.io.connector.calendar.CalendarEvent;
+import prerna.io.connector.calendar.CalendarInfo;
+import prerna.io.connector.calendar.CalendarPermission;
+import prerna.io.connector.calendar.EventAttendee;
+import prerna.io.connector.calendar.EventTime;
+import prerna.util.ValueUtils;
+
 /**
- * Turns the json Graph returns for a calendar into the maps the calendar
- * reactors answer with.
+ * Turns the json Graph returns for a calendar, an event, a permission or a
+ * schedule into the records every calendar reactor answers with.
  *
  * <p>
- * Kept apart from {@link MicrosoftCalendarHelper} for the same reason the mail
- * mapper is kept apart from its helper: what an event looks like on the way out
- * is a decision about this codebase's shape, not about how Graph is called, and
- * a reactor that reads an event back after writing one should see it described
- * the same way a listing describes it.
- * </p>
- * 
- * <p>
- * A moment comes back as Graph gave it, a naive date and time under
- * {@code start} with the zone it should be read in alongside it under
- * {@code startTimeZone}. That zone is whatever the request asked to be answered
- * in, so a caller that named one sees its own times rather than UTC.
+ * Every read asks Graph for its times in UTC, so a time here without an offset
+ * is a UTC time.
  * </p>
  */
 public class MicrosoftCalendarEventMapper {
@@ -58,7 +63,6 @@ public class MicrosoftCalendarEventMapper {
 	private static final String ADDRESS = "address";
 	private static final String NAME = "name";
 	private static final String DATE_TIME = "dateTime";
-	private static final String TIME_ZONE = "timeZone";
 	private static final String EMAIL_ADDRESS = "emailAddress";
 	private static final String DISPLAY_NAME = "displayName";
 
@@ -69,50 +73,27 @@ public class MicrosoftCalendarEventMapper {
 	/**
 	 * Describe one event.
 	 *
-	 * @param event        the event as Graph returned it
-	 * @param includeBody  whether the body text comes back
-	 * @param maxBodyChars the longest body to return before truncating it, or 0 to
-	 *                     return whatever length it is
-	 * @return the event as a map
+	 * @param event the event as Graph returned it
+	 * @return the event
 	 */
-	public static Map<String, Object> toEvent(Map<String, Object> event, boolean includeBody, int maxBodyChars) {
-		Map<String, Object> output = new LinkedHashMap<>();
-		output.put("id", event.get("id"));
-		putIfPresent(output, "subject", event.get("subject"));
-		putMoment(output, "start", event.get("start"));
-		putMoment(output, "end", event.get("end"));
-		output.put("isAllDay", Boolean.TRUE.equals(event.get("isAllDay")));
-		putIfPresent(output, "location", displayNameOf(event.get("location")));
-		putIfPresent(output, "organizer", addressOf(event.get("organizer")));
-		putIfPresent(output, "organizerName", nameOf(event.get("organizer")));
-
-		List<Map<String, Object>> attendees = attendees(event.get("attendees"));
-		if (!attendees.isEmpty()) {
-			output.put("attendees", attendees);
-		}
-
-		putIfPresent(output, "webLink", event.get("webLink"));
-		putIfPresent(output, "joinUrl", joinUrlOf(event.get("onlineMeeting")));
-		output.put("isOnlineMeeting", Boolean.TRUE.equals(event.get("isOnlineMeeting")));
-		output.put("isCancelled", Boolean.TRUE.equals(event.get("isCancelled")));
-		putIfPresent(output, "showAs", event.get("showAs"));
-		putIfPresent(output, "importance", event.get("importance"));
-		putIfPresent(output, "responseStatus", responseOf(event.get("responseStatus")));
-		putIfPresent(output, "reminderMinutesBeforeStart", event.get("reminderMinutesBeforeStart"));
-		putIfPresent(output, "categories", event.get("categories"));
-		// a series master is the rule, and an occurrence or an exception is one
-		// sitting of it, so this says whether the event repeats at all
-		output.put("isRecurring", event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")));
-
-		if (includeBody) {
-			String body = bodyOf(event);
-			if (maxBodyChars > 0 && body.length() > maxBodyChars) {
-				body = body.substring(0, maxBodyChars) + " ... [truncated]";
-				output.put("bodyTruncated", true);
-			}
-			output.put("body", body);
-		}
-		return output;
+	public static CalendarEvent toEvent(Map<String, Object> event) {
+		boolean isAllDay = Boolean.TRUE.equals(event.get("isAllDay"));
+		Object categories = event.get("categories");
+		Object reminder = event.get("reminderMinutesBeforeStart");
+		return new CalendarEvent(ValueUtils.toStringOrNull(event.get("id")),
+				ValueUtils.toStringOrNull(event.get("subject")),
+				timeOf(event.get("start"), isAllDay, event.get("originalStartTimeZone")),
+				timeOf(event.get("end"), isAllDay, event.get("originalEndTimeZone")),
+				ValueUtils.toStringOrNull(event.get("originalStartTimeZone")), isAllDay,
+				displayNameOf(event.get("location")), addressOf(event.get("organizer")), nameOf(event.get("organizer")),
+				attendees(event.get("attendees")), ValueUtils.toStringOrNull(event.get("webLink")),
+				joinUrlOf(event.get("onlineMeeting")), Boolean.TRUE.equals(event.get("isOnlineMeeting")),
+				Boolean.TRUE.equals(event.get("isCancelled")), ValueUtils.toStringOrNull(event.get("showAs")),
+				ValueUtils.toStringOrNull(event.get("importance")), responseOf(event.get("responseStatus")),
+				reminder instanceof Number ? ((Number) reminder).intValue() : null, stringList(categories),
+				// a series master is the rule, and an occurrence or an exception is one
+				// sitting of it, so this says whether the event repeats at all
+				event.get("seriesMasterId") != null || "seriesMaster".equals(event.get("type")), bodyOf(event));
 	}
 
 	/**
@@ -130,24 +111,18 @@ public class MicrosoftCalendarEventMapper {
 	 * @param userEmail optional address of the signed in user; without it the owner
 	 *                  is still reported and only {@code isSharedWithMe} is left
 	 *                  out
-	 * @return the calendar as a map
+	 * @return the calendar
 	 */
-	public static Map<String, Object> toCalendar(Map<String, Object> calendar, String userEmail) {
-		Map<String, Object> output = new LinkedHashMap<>();
-		output.put("id", calendar.get("id"));
-		putIfPresent(output, "name", calendar.get("name"));
-		putIfPresent(output, "color", calendar.get("color"));
+	public static CalendarInfo toCalendar(Map<String, Object> calendar, String userEmail) {
 		String owner = addressOfEmail(calendar.get("owner"));
-		putIfPresent(output, "owner", owner);
-		putIfPresent(output, "ownerName", nameOfEmail(calendar.get("owner")));
-		output.put("canEdit", Boolean.TRUE.equals(calendar.get("canEdit")));
-		output.put("canShare", Boolean.TRUE.equals(calendar.get("canShare")));
-		output.put("canViewPrivateItems", Boolean.TRUE.equals(calendar.get("canViewPrivateItems")));
-		output.put("isDefaultCalendar", Boolean.TRUE.equals(calendar.get("isDefaultCalendar")));
-		if (userEmail != null && !userEmail.trim().isEmpty() && owner != null) {
-			output.put("isSharedWithMe", !owner.equalsIgnoreCase(userEmail.trim()));
-		}
-		return output;
+		Boolean isSharedWithMe = userEmail != null && !userEmail.trim().isEmpty() && owner != null
+				? !owner.equalsIgnoreCase(userEmail.trim())
+				: null;
+		return new CalendarInfo(ValueUtils.toStringOrNull(calendar.get("id")),
+				ValueUtils.toStringOrNull(calendar.get("name")), ValueUtils.toStringOrNull(calendar.get("color")),
+				owner, nameOfEmail(calendar.get("owner")), Boolean.TRUE.equals(calendar.get("canEdit")),
+				Boolean.TRUE.equals(calendar.get("canShare")), Boolean.TRUE.equals(calendar.get("canViewPrivateItems")),
+				Boolean.TRUE.equals(calendar.get("isDefaultCalendar")), isSharedWithMe);
 	}
 
 	/**
@@ -162,61 +137,54 @@ public class MicrosoftCalendarEventMapper {
 	 * </p>
 	 *
 	 * @param permission the permission as Graph returned it
-	 * @return the permission as a map
+	 * @return the permission
 	 */
-	public static Map<String, Object> toCalendarPermission(Map<String, Object> permission) {
-		Map<String, Object> output = new LinkedHashMap<>();
-		output.put("id", permission.get("id"));
-		putIfPresent(output, "role", permission.get("role"));
-		putIfPresent(output, ADDRESS, addressOfEmail(permission.get("emailAddress")));
-		putIfPresent(output, NAME, nameOfEmail(permission.get("emailAddress")));
-		putIfPresent(output, "allowedRoles", permission.get("allowedRoles"));
-		output.put("isInsideOrganization", Boolean.TRUE.equals(permission.get("isInsideOrganization")));
-		output.put("isRemovable", Boolean.TRUE.equals(permission.get("isRemovable")));
-		// a delegate is a share plus the right to act for the owner, and the role is
-		// the only thing that says which of the two this is
-		Object role = permission.get("role");
-		output.put("isDelegate", role != null && role.toString().toLowerCase().startsWith("delegate"));
-		return output;
+	public static CalendarPermission toPermission(Map<String, Object> permission) {
+		String role = ValueUtils.toStringOrNull(permission.get("role"));
+		return new CalendarPermission(ValueUtils.toStringOrNull(permission.get("id")), role,
+				addressOfEmail(permission.get("emailAddress")), nameOfEmail(permission.get("emailAddress")),
+				stringList(permission.get("allowedRoles")), Boolean.TRUE.equals(permission.get("isInsideOrganization")),
+				Boolean.TRUE.equals(permission.get("isRemovable")),
+				// a delegate is a share plus the right to act for the owner, and the role is
+				// the only thing that says which of the two this is
+				role != null && role.toLowerCase(Locale.ROOT).startsWith("delegate"));
 	}
 
 	/**
-	 * Describe the free and busy view of one mailbox.
+	 * Describe when one mailbox is busy.
 	 *
 	 * <p>
-	 * The availability view is a string of digits, one for each slot of the window,
-	 * where 0 is free and anything else is some degree of busy. It comes through as
-	 * it is because reading it that way is cheaper than reading the items.
+	 * Graph reports every item in the window, free ones included, and says what the
+	 * mailbox is busy with only where its owner shares that much. Only what is not
+	 * free is kept.
 	 * </p>
 	 *
 	 * @param schedule the entry as Graph returned it
-	 * @return the entry as a map
+	 * @return the availability
 	 */
-	public static Map<String, Object> toSchedule(Map<String, Object> schedule) {
-		Map<String, Object> output = new LinkedHashMap<>();
-		output.put("scheduleId", schedule.get("scheduleId"));
-		putIfPresent(output, "availabilityView", schedule.get("availabilityView"));
-		putIfPresent(output, "error", errorOf(schedule.get("error")));
-
-		List<Map<String, Object>> items = new ArrayList<>();
-		Object scheduleItems = schedule.get("scheduleItems");
-		if (scheduleItems instanceof List) {
-			for (Object scheduleItem : (List<?>) scheduleItems) {
-				if (!(scheduleItem instanceof Map)) {
+	public static Availability toAvailability(Map<String, Object> schedule) {
+		List<Availability.Busy> busy = new ArrayList<>();
+		if (schedule.get("scheduleItems") instanceof List<?> items) {
+			for (Object entry : items) {
+				if (!(entry instanceof Map<?, ?> item)) {
 					continue;
 				}
-				Map<?, ?> item = (Map<?, ?>) scheduleItem;
-				Map<String, Object> described = new LinkedHashMap<>();
-				putMoment(described, "start", item.get("start"));
-				putMoment(described, "end", item.get("end"));
-				putIfPresent(described, "status", item.get("status"));
-				putIfPresent(described, "subject", item.get("subject"));
-				putIfPresent(described, "location", item.get("location"));
-				items.add(described);
+				String status = ValueUtils.toStringOrNull(item.get("status"));
+				if ("free".equalsIgnoreCase(status)) {
+					continue;
+				}
+				EventTime start = timeOf(item.get("start"), false, null);
+				EventTime end = timeOf(item.get("end"), false, null);
+				if (start == null || end == null) {
+					continue;
+				}
+				busy.add(new Availability.Busy(start.instant(), end.instant(), status,
+						ValueUtils.toStringOrNull(item.get("subject")),
+						ValueUtils.toStringOrNull(item.get("location"))));
 			}
 		}
-		output.put("scheduleItems", items);
-		return output;
+		return new Availability(ValueUtils.toStringOrNull(schedule.get("scheduleId")), busy,
+				errorOf(schedule.get("error")));
 	}
 
 	/**
@@ -242,163 +210,123 @@ public class MicrosoftCalendarEventMapper {
 	}
 
 	/**
-	 * Set a moment and the zone it is to be read in, out of the pair Graph answers
-	 * with.
+	 * Read a moment out of the {@code dateTimeTimeZone} Graph answers with.
 	 *
-	 * @param output the map being built
-	 * @param key    the key the moment is set under, with the zone alongside it
-	 * @param moment the {@code dateTimeTimeZone} as Graph returned it
+	 * <p>
+	 * A whole day event is kept from midnight to midnight in its own zone, so read
+	 * in UTC it lands a few hours either side of midnight. When the event's zone is
+	 * one Java knows, the day is read in it. Outlook usually names it the Windows
+	 * way, which Java does not know, and then the day is the one the UTC time is
+	 * nearest to: midnight anywhere west of UTC falls early on the day in UTC, and
+	 * anywhere from one to thirteen hours east of it falls at 11:00 or later the
+	 * day before. Only zones more than ten hours west of UTC or fourteen hours east
+	 * of it, which are a few islands, would read as the wrong day.
+	 * </p>
+	 *
+	 * @param moment   the {@code dateTimeTimeZone} as Graph returned it
+	 * @param wholeDay whether the event covers whole days
+	 * @param zone     the zone the event was created in, as Graph names it, or null
+	 * @return the time, or null when there is none
 	 */
-	private static void putMoment(Map<String, Object> output, String key, Object moment) {
-		if (!(moment instanceof Map)) {
-			return;
+	private static EventTime timeOf(Object moment, boolean wholeDay, Object zone) {
+		if (!(moment instanceof Map<?, ?> momentMap)) {
+			return null;
 		}
-		Map<?, ?> momentMap = (Map<?, ?>) moment;
-		putIfPresent(output, key, momentMap.get(DATE_TIME));
-		putIfPresent(output, key + "TimeZone", momentMap.get(TIME_ZONE));
+		Instant instant = ConnectorTimes.parseProviderTime(ValueUtils.toStringOrNull(momentMap.get(DATE_TIME)));
+		if (instant == null) {
+			return null;
+		}
+		if (!wholeDay) {
+			return EventTime.of(instant);
+		}
+		ZoneId eventZone = knownZone(zone);
+		if (eventZone != null) {
+			return EventTime.ofDate(LocalDateTime.ofInstant(instant, eventZone).plusHours(12).toLocalDate());
+		}
+		LocalDateTime utc = LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
+		LocalDate date = utc.getHour() >= 11 ? utc.toLocalDate().plusDays(1) : utc.toLocalDate();
+		return EventTime.ofDate(date);
 	}
 
 	/**
-	 * The attendees of an event, each with how they replied.
-	 *
-	 * @param attendees the collection as Graph returned it
-	 * @return the attendees, empty when there are none
+	 * @param zone a zone as Graph names it
+	 * @return the zone, when it is UTC or an IANA zone, or null for a Windows name
 	 */
-	private static List<Map<String, Object>> attendees(Object attendees) {
-		List<Map<String, Object>> described = new ArrayList<>();
-		if (!(attendees instanceof List)) {
+	private static ZoneId knownZone(Object zone) {
+		if (zone == null) {
+			return null;
+		}
+		String name = zone.toString().trim();
+		if (name.equalsIgnoreCase("UTC") || name.equalsIgnoreCase("tzone://Microsoft/Utc")) {
+			return ZoneOffset.UTC;
+		}
+		try {
+			return ZoneId.of(name);
+		} catch (DateTimeException e) {
+			return null;
+		}
+	}
+
+	private static List<EventAttendee> attendees(Object attendees) {
+		List<EventAttendee> described = new ArrayList<>();
+		if (!(attendees instanceof List<?> entries)) {
 			return described;
 		}
-		for (Object entry : (List<?>) attendees) {
-			if (!(entry instanceof Map)) {
+		for (Object entry : entries) {
+			if (!(entry instanceof Map<?, ?> attendee)) {
 				continue;
 			}
-			Map<?, ?> attendee = (Map<?, ?>) entry;
-			Map<String, Object> output = new LinkedHashMap<>();
-			putIfPresent(output, ADDRESS, addressOfEmail(attendee.get(EMAIL_ADDRESS)));
-			putIfPresent(output, NAME, nameOfEmail(attendee.get(EMAIL_ADDRESS)));
-			putIfPresent(output, "type", attendee.get("type"));
-			putIfPresent(output, "response", responseOf(attendee.get("status")));
-			if (!output.isEmpty()) {
-				described.add(output);
-			}
+			described.add(new EventAttendee(addressOfEmail(attendee.get(EMAIL_ADDRESS)),
+					nameOfEmail(attendee.get(EMAIL_ADDRESS)), ValueUtils.toStringOrNull(attendee.get("type")),
+					responseOf(attendee.get("status"))));
 		}
 		return described;
 	}
 
-	/**
-	 * The address out of something carrying an {@code emailAddress}, such as an
-	 * organizer.
-	 *
-	 * @param holder the object as Graph returned it
-	 * @return the address, or null when there is none
-	 */
 	private static String addressOf(Object holder) {
-		if (!(holder instanceof Map)) {
-			return null;
-		}
-		return addressOfEmail(((Map<?, ?>) holder).get(EMAIL_ADDRESS));
+		return holder instanceof Map<?, ?> map ? addressOfEmail(map.get(EMAIL_ADDRESS)) : null;
 	}
 
-	/**
-	 * The display name out of something carrying an {@code emailAddress}.
-	 *
-	 * @param holder the object as Graph returned it
-	 * @return the name, or null when there is none
-	 */
 	private static String nameOf(Object holder) {
-		if (!(holder instanceof Map)) {
-			return null;
-		}
-		return nameOfEmail(((Map<?, ?>) holder).get(EMAIL_ADDRESS));
+		return holder instanceof Map<?, ?> map ? nameOfEmail(map.get(EMAIL_ADDRESS)) : null;
 	}
 
-	/**
-	 * @param emailAddress the {@code emailAddress} as Graph returned it
-	 * @return the address, or null when there is none
-	 */
 	private static String addressOfEmail(Object emailAddress) {
-		if (!(emailAddress instanceof Map)) {
-			return null;
-		}
-		Object address = ((Map<?, ?>) emailAddress).get(ADDRESS);
-		return address == null ? null : address.toString();
+		return emailAddress instanceof Map<?, ?> map ? ValueUtils.toStringOrNull(map.get(ADDRESS)) : null;
 	}
 
-	/**
-	 * @param emailAddress the {@code emailAddress} as Graph returned it
-	 * @return the display name, or null when there is none
-	 */
 	private static String nameOfEmail(Object emailAddress) {
-		if (!(emailAddress instanceof Map)) {
-			return null;
-		}
-		Object name = ((Map<?, ?>) emailAddress).get(NAME);
-		return name == null ? null : name.toString();
+		return emailAddress instanceof Map<?, ?> map ? ValueUtils.toStringOrNull(map.get(NAME)) : null;
 	}
 
-	/**
-	 * @param location the {@code location} as Graph returned it
-	 * @return where it is, or null when nowhere was set
-	 */
 	private static String displayNameOf(Object location) {
-		if (!(location instanceof Map)) {
+		if (!(location instanceof Map<?, ?> map)) {
 			return null;
 		}
-		Object displayName = ((Map<?, ?>) location).get(DISPLAY_NAME);
-		if (displayName == null || displayName.toString().trim().isEmpty()) {
-			return null;
-		}
-		return displayName.toString();
+		String displayName = ValueUtils.toStringOrNull(map.get(DISPLAY_NAME));
+		return displayName == null || displayName.trim().isEmpty() ? null : displayName;
 	}
 
-	/**
-	 * @param onlineMeeting the {@code onlineMeeting} as Graph returned it
-	 * @return the link somebody joins by, or null when there is no meeting
-	 */
 	private static String joinUrlOf(Object onlineMeeting) {
-		if (!(onlineMeeting instanceof Map)) {
-			return null;
-		}
-		Object joinUrl = ((Map<?, ?>) onlineMeeting).get("joinUrl");
-		return joinUrl == null ? null : joinUrl.toString();
+		return onlineMeeting instanceof Map<?, ?> map ? ValueUtils.toStringOrNull(map.get("joinUrl")) : null;
 	}
 
-	/**
-	 * @param status the {@code responseStatus} as Graph returned it
-	 * @return how it was replied to, or null when there is no reply
-	 */
 	private static String responseOf(Object status) {
-		if (!(status instanceof Map)) {
-			return null;
-		}
-		Object response = ((Map<?, ?>) status).get("response");
-		return response == null ? null : response.toString();
+		return status instanceof Map<?, ?> map ? ValueUtils.toStringOrNull(map.get("response")) : null;
 	}
 
-	/**
-	 * @param error the {@code error} as Graph returned it against one mailbox
-	 * @return what went wrong reading that mailbox, or null when nothing did
-	 */
 	private static String errorOf(Object error) {
-		if (!(error instanceof Map)) {
+		if (!(error instanceof Map<?, ?> map)) {
 			return null;
 		}
-		Map<?, ?> errorMap = (Map<?, ?>) error;
-		return errorMap.get("responseCode") + ": " + errorMap.get("message");
+		return map.get("responseCode") + ": " + map.get("message");
 	}
 
-	/**
-	 * Set a value, and only when there is one.
-	 *
-	 * @param output the map being built
-	 * @param key    the key to set
-	 * @param value  the value, which is left out when it is null
-	 */
-	private static void putIfPresent(Map<String, Object> output, String key, Object value) {
-		if (value != null) {
-			output.put(key, value);
+	private static List<String> stringList(Object values) {
+		if (!(values instanceof List<?> list)) {
+			return null;
 		}
+		return list.stream().filter(value -> value != null).map(Object::toString).toList();
 	}
 
 }

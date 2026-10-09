@@ -59,6 +59,7 @@ import prerna.tcp.PayloadStruct;
 import prerna.util.Constants;
 import prerna.util.DIHelper;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * Python-sidecar GitHub Copilot manager. Mirrors {@link ClaudeCodeManager}:
@@ -124,7 +125,7 @@ public class GitHubCopilotPyManager {
 		String accessKey = keyPair[0];
 		String secretKey = keyPair[1];
 
-		String cliPath = trimToNull(DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH));
+		String cliPath = ValueUtils.trimToNull(DIHelper.getInstance().getProperty(Constants.GITHUB_COPILOT_CLI_PATH));
 		Map<String, String> sandboxEnv = Collections.emptyMap();
 
 		if (sandboxPolicy != null && sandboxPolicy.getEnforcement() != EnforcementMode.DISABLED) {
@@ -245,14 +246,6 @@ public class GitHubCopilotPyManager {
 	private boolean sessionStateExists(String roomFolderPath, String roomId) {
 		Path eventsLog = Paths.get(roomFolderPath, "session-state", roomId, "events.jsonl");
 		return Files.exists(eventsLog);
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	// Sidecar process plumbing - copied from ClaudeCodeManager.

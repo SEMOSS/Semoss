@@ -28,9 +28,13 @@
 package prerna.auth.utils;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -390,6 +394,54 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		}
 
 		return false;
+	}
+
+	/**
+	 * Find which of the given ids and emails already belong to users in the
+	 * security database. An email matches a user whose email is that address, or
+	 * whose id is that address.
+	 * 
+	 * @param ids    user ids
+	 * @param emails lower case email addresses
+	 * @return the matched ids, as stored and in lower case, and the matched emails
+	 *         in lower case
+	 */
+	public static Set<String> findExistingUserIdsAndEmails(Collection<String> ids, Collection<String> emails) {
+		Set<String> found = new HashSet<>();
+		Set<String> idValues = new HashSet<>(ids);
+		idValues.addAll(emails);
+		if (idValues.isEmpty()) {
+			return found;
+		}
+
+		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_USER__EMAIL"));
+		OrQueryFilter orFilter = new OrQueryFilter();
+		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "==", new ArrayList<>(idValues)));
+		if (!emails.isEmpty()) {
+			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__EMAIL", "==", new ArrayList<>(emails)));
+		}
+		qs.addExplicitFilter(orFilter);
+
+		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
+			while (wrapper.hasNext()) {
+				Object[] values = wrapper.next().getValues();
+				if (values[0] != null) {
+					String id = values[0].toString();
+					found.add(id);
+					found.add(id.toLowerCase(Locale.ROOT));
+				}
+				if (values[1] != null) {
+					found.add(values[1].toString().toLowerCase(Locale.ROOT));
+				}
+			}
+		} catch (Exception e) {
+			classLogger.error("Unable to look up which users already exist.", e);
+		}
+
+		return found;
 	}
 
 	public static boolean checkUserEmailExist(String email) {

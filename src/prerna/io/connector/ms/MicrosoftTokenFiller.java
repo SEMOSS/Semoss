@@ -36,6 +36,7 @@ import prerna.auth.AuthProvider;
 import prerna.io.connector.AbstractOAuthTokenFiller;
 import prerna.security.HttpHelperUtility;
 import prerna.util.SocialPropertiesUtil;
+import prerna.util.ValueUtils;
 
 /**
  * Microsoft (Azure AD) OAuth2 provider. The authorize/token endpoints default
@@ -57,13 +58,13 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	protected String getDefaultAuthorizeUrl(String prefix) {
 		String tenant = socialData.getProperty(prefix + "tenant");
-		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
+		return ValueUtils.isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/authorize";
 	}
 
 	@Override
 	protected String getDefaultTokenUrl(String prefix) {
 		String tenant = socialData.getProperty(prefix + "tenant");
-		return isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
+		return ValueUtils.isBlank(tenant) ? null : MS_BASE + tenant + "/oauth2/v2.0/token";
 	}
 
 	@Override
@@ -99,25 +100,25 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 	@Override
 	public AccessToken refreshAccessToken(AccessToken currentAccessToken, Map<String, Object> params) {
 		String refreshToken = getRefreshToken(currentAccessToken);
-		if (isBlank(refreshToken)) {
+		if (ValueUtils.isBlank(refreshToken)) {
 			return null;
 		}
 
 		String clientId = SocialPropertiesUtil.getInstance().getProperty("ms_client_id");
-		if (isBlank(clientId)) {
+		if (ValueUtils.isBlank(clientId)) {
 			clientId = SocialPropertiesUtil.getInstance().getProperty("ms_graphapi_client_id");
 		}
 		String clientSecret = SocialPropertiesUtil.getInstance().getProperty("ms_secret_key");
-		if (isBlank(clientSecret)) {
+		if (ValueUtils.isBlank(clientSecret)) {
 			clientSecret = SocialPropertiesUtil.getInstance().getProperty("ms_graphapi_secret_key");
 		}
 		String tenantId = SocialPropertiesUtil.getInstance().getProperty("ms_tenant");
-		if (isBlank(clientId) || isBlank(tenantId)) {
+		if (ValueUtils.isBlank(clientId) || ValueUtils.isBlank(tenantId)) {
 			return null;
 		}
 
 		String tokenEndpoint = SocialPropertiesUtil.getInstance().getProperty("ms_token_url");
-		if (isBlank(tokenEndpoint)) {
+		if (ValueUtils.isBlank(tokenEndpoint)) {
 			tokenEndpoint = MS_BASE + tenantId + "/oauth2/v2.0/token";
 		}
 
@@ -125,12 +126,12 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 		refreshParams.put("client_id", clientId);
 		refreshParams.put("grant_type", "refresh_token");
 		refreshParams.put("refresh_token", refreshToken);
-		if (!isBlank(clientSecret)) {
+		if (!ValueUtils.isBlank(clientSecret)) {
 			refreshParams.put("client_secret", clientSecret);
 		}
 
 		AccessToken refreshedToken = HttpHelperUtility.getAccessToken(tokenEndpoint, refreshParams, true, true);
-		if (refreshedToken == null || isBlank(refreshedToken.getAccess_token())) {
+		if (refreshedToken == null || ValueUtils.isBlank(refreshedToken.getAccess_token())) {
 			return null;
 		}
 
@@ -141,7 +142,7 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 		mergedToken.setStartTime(refreshedToken.getStartTime());
 
 		String updatedRefreshToken = getRefreshToken(refreshedToken);
-		if (!isBlank(updatedRefreshToken)) {
+		if (!ValueUtils.isBlank(updatedRefreshToken)) {
 			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, updatedRefreshToken);
 		} else {
 			mergedToken.addMetaValue(AbstractOAuthTokenFiller.REFRESH_TOKEN_KEY, refreshToken);
@@ -162,7 +163,7 @@ public class MicrosoftTokenFiller extends AbstractOAuthTokenFiller {
 			return null;
 		}
 		for (String refreshToken : refreshTokens) {
-			if (!isBlank(refreshToken)) {
+			if (!ValueUtils.isBlank(refreshToken)) {
 				return refreshToken;
 			}
 		}

@@ -27,10 +27,16 @@
  *******************************************************************************/
 package prerna.io.connector.google;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.auth.AccessToken;
+import prerna.auth.AuthProvider;
 import prerna.io.connector.AbstractOAuthTokenFiller;
+import prerna.security.HttpHelperUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Google OAuth2 provider. Uses the fixed Google authorize/token/userinfo
@@ -77,11 +83,79 @@ public class GoogleTokenFiller extends AbstractOAuthTokenFiller {
 		return false;
 	}
 
+	/**
+	 * Trade the refresh token a sign in was given for a new access token.
+	 *
+	 * <p>
+	 * Google issues a refresh token only to a sign in that asked for offline
+	 * access, and usually does not issue a new one on a refresh, so the one the
+	 * user already holds is kept on the refreshed token.
+	 * </p>
+	 *
+	 * @param currentAccessToken the token that has run out
+	 * @param params             not used
+	 * @return the refreshed token, or null when there is no refresh token or Google
+	 *         refused it
+	 */
+	@Override
+	public AccessToken refreshAccessToken(AccessToken currentAccessToken, Map<String, Object> params) {
+		String refreshToken = getRefreshToken(currentAccessToken);
+		String prefix = AuthProvider.GOOGLE.getSocialPrefix() + "_";
+		String clientId = socialData.getProperty(prefix + "client_id");
+		if (ValueUtils.isBlank(refreshToken) || ValueUtils.isBlank(clientId)) {
+			return null;
+		}
+
+		Map<String, String> refreshParams = new HashMap<>();
+		refreshParams.put("client_id", clientId);
+		refreshParams.put("grant_type", "refresh_token");
+		refreshParams.put("refresh_token", refreshToken);
+		String clientSecret = socialData.getProperty(prefix + "secret_key");
+		if (!ValueUtils.isBlank(clientSecret)) {
+			refreshParams.put("client_secret", clientSecret);
+		}
+
+		String tokenUrl = resolve(socialData.getProperty(prefix + "token_url"), TOKEN_URL);
+		AccessToken refreshedToken = HttpHelperUtility.getAccessToken(tokenUrl, refreshParams, true, true);
+		if (refreshedToken == null || ValueUtils.isBlank(refreshedToken.getAccess_token())) {
+			return null;
+		}
+
+		AccessToken mergedToken = AccessToken.copyToken(currentAccessToken);
+		mergedToken.setAccess_token(refreshedToken.getAccess_token());
+		mergedToken.setToken_type(refreshedToken.getToken_type());
+		mergedToken.setExpires_in(refreshedToken.getExpires_in());
+		mergedToken.setStartTime(refreshedToken.getStartTime());
+		String updatedRefreshToken = getRefreshToken(refreshedToken);
+		mergedToken.addMetaValue(REFRESH_TOKEN_KEY,
+				ValueUtils.isBlank(updatedRefreshToken) ? refreshToken : updatedRefreshToken);
+		if (mergedToken.getProvider() == null) {
+			mergedToken.setProvider(AuthProvider.GOOGLE);
+		}
+		return mergedToken;
+	}
+
+	private static String getRefreshToken(AccessToken accessToken) {
+		if (accessToken == null) {
+			return null;
+		}
+		Collection<String> refreshTokens = accessToken.getMetaValues(REFRESH_TOKEN_KEY);
+		if (refreshTokens == null) {
+			return null;
+		}
+		for (String refreshToken : refreshTokens) {
+			if (!ValueUtils.isBlank(refreshToken)) {
+				return refreshToken;
+			}
+		}
+		return null;
+	}
+
 	@Override
 	protected Map<String, String> getExtraAuthorizeParams(String prefix) {
 		Map<String, String> extra = new LinkedHashMap<>();
 		String accessType = socialData.getProperty(prefix + "access_type");
-		if (!isBlank(accessType)) {
+		if (!ValueUtils.isBlank(accessType)) {
 			extra.put("access_type", accessType);
 		}
 		return extra;

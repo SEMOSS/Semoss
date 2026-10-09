@@ -420,6 +420,11 @@ public class PostgresQueryUtil extends AnsiSqlQueryUtil {
 	}
 
 	@Override
+	public IQueryFilter getPreparedSearchRegexFilter(String columnQs, String searchTerm) {
+		return getSearchRegexFilter(columnQs, searchTerm);
+	}
+
+	@Override
 	public IQueryFilter getSearchRegexFilter(String columnQs, String searchTerm) {
 		QueryFunctionSelector fun = new QueryFunctionSelector();
 		fun.setFunction(QueryFunctionHelper.LOWER);
