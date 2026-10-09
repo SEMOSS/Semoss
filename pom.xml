@@ -61,7 +61,11 @@
 		     cannot share a single property. -->
 		<jackson2.version>2.22.3</jackson2.version>
 		<jackson2.annotations.version>2.22</jackson2.annotations.version>
-		<jackson3.version>3.1.7</jackson3.version>
+		<!-- 3.1.7->3.2.3 closes CVE-2026-91776/89425/68497/89407/91777 against the
+		     real jackson-core/jackson-databind jars (WEB-INF/lib). Shaded 2.x copies
+		     of the same CVEs embedded in gremlin-shaded/databricks-jdbc are untouched
+		     by this bump; those are not independently patchable. -->
+		<jackson3.version>3.2.3</jackson3.version>
 		<httpcore5.version>5.4.3</httpcore5.version>
 		<docx4j.version>11.5.14</docx4j.version>
 		<sesame.version>2.7.12</sesame.version>
