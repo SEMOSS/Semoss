@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -84,7 +84,9 @@ class PptxStructuredEditsTest {
 					anyMap(), any(), any(), any(), eq("error"));
 			verify(room).continueAfterToolExecutionResultsWithRuntimeContext(anyMap(), any(), any(), any(), any(),
 					anyString());
-			verifyNoInteractions(operations);
+			// only the start-of-run review availability check; no build or review ran
+			verify(operations).reviewUnavailable();
+			verifyNoMoreInteractions(operations);
 		}
 	}
 

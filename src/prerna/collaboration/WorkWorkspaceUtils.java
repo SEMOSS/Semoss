@@ -59,7 +59,7 @@ public final class WorkWorkspaceUtils {
 	private WorkWorkspaceUtils() {
 	}
 
-	// every thread with a goal or step (or just the one thread), oldest steps first
+	// every thread with a step (or just the one thread), oldest steps first
 	public static Map<String, Object> listWorkspaces(User user, String threadId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
@@ -69,15 +69,6 @@ public final class WorkWorkspaceUtils {
 				: new Object[] { ownerId, ownerType, threadId };
 
 		Map<String, Map<String, Object>> workspaces = new LinkedHashMap<>();
-		for (Map<String, Object> row : CollaborationDbUtils.query("SELECT THREAD_ID, GOAL FROM BRAIN_THREAD" + OWNED
-				+ " AND GOAL IS NOT NULL" + oneThread + " ORDER BY THREAD_ID", rs -> {
-					Map<String, Object> r = new LinkedHashMap<>();
-					r.put("threadId", CollaborationDbUtils.getString(rs, "THREAD_ID"));
-					r.put("goal", CollaborationDbUtils.getString(rs, "GOAL"));
-					return r;
-				}, params)) {
-			workspace(workspaces, (String) row.get("threadId")).put("goal", row.get("goal"));
-		}
 		for (Map<String, Object> step : CollaborationDbUtils.query("SELECT " + STEP_COLUMNS + " FROM WORK_THREAD_STEP"
 				+ OWNED + oneThread + " AND (STATUS IS NULL OR STATUS <> '" + DISMISSED + "') ORDER BY CREATED_AT, STEP_ID",
 				WorkWorkspaceUtils::mapStep, params)) {
@@ -210,6 +201,7 @@ public final class WorkWorkspaceUtils {
 		return workspaces.computeIfAbsent(threadId, id -> {
 			Map<String, Object> w = new LinkedHashMap<>();
 			w.put("threadId", id);
+			// thread goals are retired (topic goals replace them); kept empty until the client drops the field
 			w.put("goal", null);
 			w.put("steps", new ArrayList<>());
 			return w;

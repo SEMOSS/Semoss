@@ -868,6 +868,23 @@ public final class MCPUtility {
 	}
 
 	/**
+	 * The one listed tool whose name after its engine prefix equals the called
+	 * name's: models misspell the prefix ("apixaber_" for "apixabay_") but keep the
+	 * function. Null when the call has no prefix or several tools share the name.
+	 */
+	static String sameFunctionName(Map<String, Map<String, Object>> listed, String called) {
+		int prefixEnd = called == null ? -1 : called.indexOf('_');
+		if (prefixEnd < 0) {
+			return null;
+		}
+		String function = called.substring(prefixEnd + 1);
+		List<String> matches = listed.keySet().stream()
+				.filter(name -> name.indexOf('_') >= 0 && name.substring(name.indexOf('_') + 1).equals(function))
+				.toList();
+		return matches.size() == 1 ? matches.get(0) : null;
+	}
+
+	/**
 	 * Updates the tool response with engine/tool metadata. Uses llmNameToToolJson
 	 * for direct lookup (short-prefix names) when provided, falling back to
 	 * UUID-regex parsing for legacy full-UUID-prefix names.
@@ -887,15 +904,18 @@ public final class MCPUtility {
 				responseToolMap.put("title", llmFacingName);
 			}
 
-			if (llmNameToToolJson != null && llmNameToToolJson.containsKey(llmFacingName)) {
-				Map<String, Object> toolEntry = llmNameToToolJson.get(llmFacingName);
+			String listedName = llmNameToToolJson == null || llmNameToToolJson.containsKey(llmFacingName)
+					? llmFacingName
+					: sameFunctionName(llmNameToToolJson, llmFacingName);
+			if (llmNameToToolJson != null && listedName != null && llmNameToToolJson.containsKey(listedName)) {
+				Map<String, Object> toolEntry = llmNameToToolJson.get(listedName);
 				Object rawMeta = toolEntry.get("_meta");
 				Map<String, Object> enrichedMeta = (rawMeta instanceof Map) ? (Map<String, Object>) rawMeta
 						: new HashMap<>();
 
 				String origFunctionName = (String) enrichedMeta.get(SMSS_FUNCTION_NAME);
 				if (origFunctionName == null) {
-					origFunctionName = llmFacingName;
+					origFunctionName = listedName;
 				}
 
 				responseToolMap.put("_tool_found", true);

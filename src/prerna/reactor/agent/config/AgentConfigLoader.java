@@ -866,7 +866,7 @@ public final class AgentConfigLoader {
 	 *
 	 * @return unmodifiable list, never {@code null}
 	 */
-	static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+	public static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
 		if (cfgJson == null || !cfgJson.has("subagents")) {
 			return Collections.emptyList();
 		}

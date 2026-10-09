@@ -101,11 +101,19 @@ public final class CollaborationUtils {
 	 * room.
 	 */
 	public static String threadIdOf(Room room) {
-		if (!isAssistantRoom(room) || room.getOptionsMap() == null) {
+		if (!isAssistantRoom(room)) {
+			return null;
+		}
+		return threadIdOf(room.getOptionsMap());
+	}
+
+	// the same, from an assistant room's stored options
+	static String threadIdOf(Map<String, Object> options) {
+		if (options == null) {
 			return null;
 		}
 		for (String key : List.of(ROOM_OPTION_SOURCE, ROOM_OPTION_WORK_THREAD)) {
-			if (room.getOptionsMap().get(key) instanceof Map<?, ?> link) {
+			if (options.get(key) instanceof Map<?, ?> link) {
 				Object threadId = link.get("threadId");
 				if (threadId != null && !String.valueOf(threadId).isBlank()) {
 					return String.valueOf(threadId);

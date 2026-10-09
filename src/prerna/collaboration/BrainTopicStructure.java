@@ -230,6 +230,49 @@ public final class BrainTopicStructure {
 		return new Prepared(pool, merged, filed, cards(pool, merged, sim), gated);
 	}
 
+	/** Distinctive subject words and phrases of one group, offered to the owner as optional clues. */
+	public static List<String> terms(Prepared prepared, int topic, int limit) {
+		List<Integer> members = prepared.filed().entrySet().stream().filter(e -> e.getValue() == topic)
+				.map(Map.Entry::getKey).toList();
+		if (members.size() < 2) {
+			return List.of();
+		}
+		Map<String, Integer> poolDf = new HashMap<>();
+		for (Facts t : prepared.pool()) {
+			new HashSet<>(words(subject(t.subject()))).forEach(token -> poolDf.merge(token, 1, Integer::sum));
+		}
+		Map<String, Integer> groupDf = new HashMap<>();
+		for (int j : members) {
+			new HashSet<>(words(subject(prepared.pool().get(j).subject()))).forEach(token -> groupDf.merge(token, 1, Integer::sum));
+		}
+		int least = Math.max(2, (int) Math.ceil(members.size() * 0.2));
+		int size = prepared.pool().size();
+		List<Map.Entry<String, Double>> scored = new ArrayList<>();
+		groupDf.forEach((token, df) -> {
+			// digits and very short words are rarely a useful clue
+			if (df < least || token.length() < 3 || token.chars().allMatch(c -> Character.isDigit(c) || c == ' ')) {
+				return;
+			}
+			double coverage = (double) df / members.size();
+			double idf = Math.log((1.0 + size) / (1 + poolDf.getOrDefault(token, 0)));
+			scored.add(Map.entry(token, coverage * idf * (token.contains(" ") ? 1.3 : 1.0)));
+		});
+		scored.sort(Map.Entry.<String, Double>comparingByValue().reversed());
+		List<String> out = new ArrayList<>();
+		for (Map.Entry<String, Double> entry : scored) {
+			String token = entry.getKey();
+			// a phrase and its own words are one clue
+			if (out.stream().anyMatch(kept -> kept.contains(token) || token.contains(kept))) {
+				continue;
+			}
+			out.add(token);
+			if (out.size() >= limit) {
+				break;
+			}
+		}
+		return out;
+	}
+
 	private static int rank(Facts t) {
 		return (t.wrote() ? 1 : 0) + (t.senders().size() >= 2 ? 1 : 0) + (t.vip() ? 1 : 0) + (t.outside() ? 1 : 0);
 	}

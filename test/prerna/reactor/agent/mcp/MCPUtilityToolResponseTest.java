@@ -34,6 +34,7 @@ package prerna.reactor.agent.mcp;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -74,5 +75,33 @@ class MCPUtilityToolResponseTest {
 		assertEquals("project-1", enrichedArguments.get("project_id"));
 		assertEquals(Map.of("field_", "new search"), enrichedArguments.get("paramValues"));
 		assertFalse(enrichedArguments.containsKey("start_url"));
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void aMisspelledEnginePrefixResolvesTheOneToolWithThatFunctionAndKeepsItsExecutionMode() {
+		Map<String, Object> toolCall = new HashMap<>();
+		toolCall.put("name", "apixaber_search_pixabay_images");
+		toolCall.put("arguments", new HashMap<>());
+		ResponseMessage response = ResponseMessage.toolResponse(toolCall);
+		Map<String, Object> pixabay = new HashMap<>();
+		pixabay.put("_meta", Map.of(MCPUtility.SMSS_ENGINE_ID, "pixabay", MCPUtility.SMSS_FUNCTION_NAME,
+				"search_pixabay_images", MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue()));
+
+		MCPUtility.updateToolResponseWithProjectMeta(response, new HashMap<>(),
+				Map.of("apixabay_search_pixabay_images", pixabay, "aroom_search_files", new HashMap<>()));
+
+		Map<String, Object> enriched = response.getToolResponses().get(0);
+		Map<String, Object> meta = (Map<String, Object>) enriched.get("_meta");
+		assertEquals("search_pixabay_images", enriched.get("original_name"));
+		assertEquals("pixabay", meta.get(MCPUtility.SMSS_ENGINE_ID));
+		assertEquals(MCPUtility.MCPExecution.ASK.getValue(), meta.get(MCPUtility.SMSS_MCP_EXECUTION));
+	}
+
+	@Test
+	void aNameWithoutAPrefixOrSharedByTwoToolsStaysUnresolved() {
+		Map<String, Map<String, Object>> listed = Map.of("adb1_query", Map.of(), "adb2_query", Map.of());
+		assertNull(MCPUtility.sameFunctionName(listed, "adb3_query"));
+		assertNull(MCPUtility.sameFunctionName(Map.of("aroom_ReadFile", Map.of()), "ReadFile"));
 	}
 }

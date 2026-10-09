@@ -25,12 +25,17 @@ references/
   actions/update-and-report.md
 ```
 
-The existing Python package remains a separate default. PPTX is not automatically
-added to collaboration rooms; an explicitly configured presentation agent or skill
-can still supply it for presentation work. `InspectPptx` is disabled in collaboration
-rooms through the resolved default-tool policy, so it is omitted from their tool
-catalog and stale calls are rejected. The dedicated presentation workflow retains
-its managed review; ordinary Playground tools remain unchanged.
+The Python and PPTX packages are separate defaults. Root collaboration runs whose
+agent has no managed PPTX workflow are offered `PreparePptxEdit`, `ApplyPptxEdits`
+and `BuildPptx` next to the collaboration tools, and get
+`CollaborationPrompts.PPTX_PROMPT`. The managed workflow (validation, the system PPTX
+Reviewer, restore on broken output) starts on the first of those calls
+(`PptxWorkflow.onDemand`); a turn that never calls one runs as an ordinary chat.
+`InspectPptx` is disabled in collaboration rooms through the resolved default-tool
+policy, so it is omitted from their tool catalog and stale calls are rejected.
+Every collaboration room also gets the platform Pixabay MCP
+(`SystemDefaultEngines.getCollaborationMCPs()`, resolved in
+`Room.getAllToolsJsonForRoom`). Ordinary Playground tools remain unchanged.
 Collaboration references
 distinguish Python's process directory from the execution's `ROOT`. Document reading
 prefers the base image's Docling converter for structured Markdown, with bounded
@@ -42,8 +47,7 @@ and no output is written. The helper guidance lives in the collaboration skill a
 its document/file references. The collaboration runtime prompt advertises it before
 optional skill loading so reading does not default to visual inspection or hand-written
 Office XML parsing. Other base skills are unchanged by this wrapper update.
-This feature does not register a presentation UI app, enable new action-item tools, or activate
-the managed PPTX author/reviewer workflow on ordinary chat turns.
+This feature does not register a presentation UI app or enable new action-item tools.
 
 ## Resolution and loading
 
@@ -56,9 +60,6 @@ its existing pinned-version metadata instead of being replaced by an unpinned de
 Clients need not send a skills argument or persist the defaults in room options.
 The backend applies them each time it resolves the effective run configuration.
 The `AgentConfigLoader: collaboration skills` log records default and effective IDs.
-On the next run in an existing room, the former managed PPTX copy is removed when
-PPTX is absent from the effective configuration. Explicit attachments and local
-skill folders without matching managed metadata remain intact.
 
 The existing `SkillStager` materializes packages under the active working directory's
 `.claude/skills/`. The harness advertises discovered names, descriptions, and locations

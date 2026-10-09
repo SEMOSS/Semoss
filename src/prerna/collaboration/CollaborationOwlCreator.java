@@ -120,6 +120,17 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("MEMORY_USE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("MEMORY_LEARN", BOOLEAN_DATATYPE_NAME),
 				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// One resumable topic-review draft per owner; only profiles and bounded evidence metadata.
+		addTable("BRAIN_TOPIC_REVIEW", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("REVIEW_ID", VARCHAR_50),
+				Pair.with("REVISION", INTEGER_DATATYPE_NAME),
+				Pair.with("DRAFT_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("APPLIED_REVISION", INTEGER_DATATYPE_NAME),
+				Pair.with("RESULT_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("FILING_JOB_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: people ---
 		addTable("BRAIN_ACCOUNT", Arrays.asList(
@@ -202,10 +213,18 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("PERSON_ID", VARCHAR_50),
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
-				Pair.with("ROLE_LABEL", VARCHAR_50),
+				Pair.with("ROLE_LABEL", VARCHAR_255),
 				Pair.with("ENGAGEMENT", INTEGER_DATATYPE_NAME),
 				Pair.with("REASON", CLOB_DATATYPE_NAME),
 				Pair.with("CHANGED_BY", VARCHAR_255),
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// a chat's topics: linked, suggested (a soft tag) or dismissed (not suggested again)
+		addTable("BRAIN_TOPIC_ROOM", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
+				Pair.with("STATE", VARCHAR_20),
+				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
 
 		// --- Brain: threads ---
@@ -221,6 +240,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				// the owner said this thread is not automated; no later run may flag it again
 				Pair.with("AUTOMATED_OVERRIDE", BOOLEAN_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
+				// retired: topic goals replace the thread goal; nothing reads or writes it
 				Pair.with("GOAL", CLOB_DATATYPE_NAME),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
 				// the newest message the summary and generated steps were made from, and when
@@ -238,6 +258,13 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("IS_PRIMARY", BOOLEAN_DATATYPE_NAME),
 				Pair.with("SIGNALS_JSON", CLOB_DATATYPE_NAME),
 				Pair.with("CLASSIFIER_VERSION", VARCHAR_50),
+				Pair.with("CHANGED_BY", VARCHAR_255),
+				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
+		// Relationship-level rejections protect explicit corrections from later automatic filing.
+		addTable("BRAIN_THREAD_TOPIC_REJECTION", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("TOPIC_ID", VARCHAR_50),
 				Pair.with("CHANGED_BY", VARCHAR_255),
 				Pair.with("CHANGED_AT", TIMESTAMP_DATATYPE_NAME)));
 		addTable("BRAIN_THREAD_PARTICIPANT", Arrays.asList(

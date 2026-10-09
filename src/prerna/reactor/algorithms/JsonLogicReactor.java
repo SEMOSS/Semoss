@@ -27,6 +27,8 @@
  *******************************************************************************/
 package prerna.reactor.algorithms;
 
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -45,7 +47,13 @@ import prerna.sablecc2.om.nounmeta.NounMetadata;
  * serialized as JSON.
  * 
  * Usage: JsonLogic(rule=["{\">=\": [{\"var\": \"age\"}, 21]}"],
- * data=["{\"age\": 25}"]) Returns: true
+ * data=["{\"age\": 25}"])
+ * Returns: true (no additional return)
+ *
+ * Failed rule: JsonLogic(rule=["{\">=\": [{\"var\": \"age\"}, 21]}"],
+ * data=["{\"age\": 18}"])
+ * Returns: false, with additional return "Condition failed for age: 18.0 >=
+ * 21.0"
  */
 public class JsonLogicReactor extends AbstractReactor {
 
@@ -69,10 +77,16 @@ public class JsonLogicReactor extends AbstractReactor {
 
 		try {
 			classLogger.info("Evaluating JSON Logic rule");
-			Object result = evaluateWithPython(ruleJson, dataJson);
+			Map<?, ?> evaluation = evaluateWithPython(ruleJson, dataJson);
+			Object result = evaluation.get("result");
 			classLogger.info("JSON Logic evaluation completed successfully");
 			PixelDataType returnType = determineReturnType(result);
-			return new NounMetadata(result, returnType);
+			NounMetadata noun = new NounMetadata(result, returnType);
+			if (evaluation.get("reason") instanceof String) {
+				noun.addAdditionalReturn(
+						new NounMetadata(evaluation.get("reason"), PixelDataType.CONST_STRING));
+			}
+			return noun;
 		} catch (com.google.gson.JsonSyntaxException e) {
 			classLogger.error("Invalid JSON syntax in rule or data: {}", e.getMessage());
 			throw new SemossPixelException("Invalid JSON syntax: " + e.getMessage(), e);
@@ -90,14 +104,14 @@ public class JsonLogicReactor extends AbstractReactor {
 	 * @param dataJson The data to evaluate against as a JSON string (can be null)
 	 * @return The evaluation result
 	 */
-	private Object evaluateWithPython(String ruleJson, String dataJson) {
+	private Map<?, ?> evaluateWithPython(String ruleJson, String dataJson) {
 		try {
 			PyTranslator pt = this.insight.getPyTranslator();
 
-			// Build Python script to import and call evaluate_json
+			// Build Python script to import and call the diagnostic evaluator
 			StringBuilder script = new StringBuilder();
-			script.append("from utils.json_logic import evaluate_json\n");
-			script.append("evaluate_json(");
+			script.append("from utils.json_logic import evaluate_json_with_reason\n");
+			script.append("evaluate_json_with_reason(");
 			script.append(PyUtils.determineStringType(ruleJson));
 			script.append(", ");
 			script.append(
@@ -109,11 +123,13 @@ public class JsonLogicReactor extends AbstractReactor {
 
 			if (pyResponse instanceof String) {
 				String resultJson = (String) pyResponse;
-				// Parse the result JSON back to a Java object
-				return GSON.fromJson(resultJson, Object.class);
+				Object parsed = GSON.fromJson(resultJson, Object.class);
+				if (parsed instanceof Map) {
+					return (Map<?, ?>) parsed;
+				}
 			}
 
-			return pyResponse;
+			throw new IllegalStateException("Python JSON Logic evaluator returned an invalid response");
 
 		} catch (Exception e) {
 			classLogger.error("Error calling Python JSON Logic evaluator", e);

@@ -44,6 +44,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainMemoryUtils.Memory;
 import prerna.collaboration.BrainMemoryUtils.Ref;
 import prerna.collaboration.BrainRulesGate.Rule;
+import prerna.engine.impl.model.Room;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
@@ -92,21 +93,26 @@ public final class BrainMemoryRecall {
 	 * The Memory section that ends a thread assistant's prompt, or null when the owner has memory off. Never throws:
 	 * a failure here only costs the run its memories.
 	 */
-	public static String promptBlock(User user, String threadId) {
+	public static String promptBlock(User user, Room room) {
+		String threadId = CollaborationUtils.threadIdOf(room);
 		try {
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 			if (!BrainProfileUtils.usesMemory(owner.getValue0(), owner.getValue1())) {
 				return null;
 			}
-			return render(recall(owner.getValue0(), owner.getValue1(), threadId, promptChars()));
+			return render(recall(owner.getValue0(), owner.getValue1(), threadId,
+					BrainTopicBrief.chatTopics(user, room), promptChars()));
 		} catch (RuntimeException e) {
-			classLogger.warn("Could not recall memories for thread {}; the run goes on without them", threadId, e);
+			classLogger.warn("Could not recall memories for room {}; the run goes on without them", room.getId(), e);
 			return null;
 		}
 	}
 
-	/** BrainRecallMemories: exactly what the thread's assistant gets, for the thread's Context panel. */
-	public static Map<String, Object> recallMemories(User user, String threadId) {
+	/**
+	 * BrainRecallMemories: exactly what the thread's assistant gets, for the thread's Context panel. With a roomId
+	 * the chat's topics are used, as in that chat's runs.
+	 */
+	public static Map<String, Object> recallMemories(User user, String threadId, String roomId) {
 		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
 		Map<String, Object> result = new LinkedHashMap<>();
 		boolean on = BrainProfileUtils.usesMemory(owner.getValue0(), owner.getValue1());
@@ -118,7 +124,12 @@ public final class BrainMemoryRecall {
 			result.put("prompt", null);
 			return result;
 		}
-		Recall recall = recall(owner.getValue0(), owner.getValue1(), threadId, promptChars());
+		List<String> chatTopics = null;
+		if (roomId != null) {
+			threadId = threadId != null ? threadId : BrainTopicRoomUtils.requireChat(user, roomId).threadId();
+			chatTopics = BrainTopicBrief.applying(user, BrainTopicRoomUtils.topicsOf(user, roomId));
+		}
+		Recall recall = recall(owner.getValue0(), owner.getValue1(), threadId, chatTopics, promptChars());
 		for (Line line : recall.lines()) {
 			Map<String, Object> item = BrainMemoryUtils.toMap(line.memory(), recall.names());
 			item.put("bucket", line.bucket());
@@ -130,8 +141,9 @@ public final class BrainMemoryRecall {
 		return result;
 	}
 
-	static Recall recall(String ownerId, String ownerType, String threadId, int maxChars) {
-		Scope scope = scope(ownerId, ownerType, threadId);
+	// chatTopics replaces the thread's own topics; null keeps them
+	static Recall recall(String ownerId, String ownerType, String threadId, List<String> chatTopics, int maxChars) {
+		Scope scope = scope(ownerId, ownerType, threadId, chatTopics);
 		List<Memory> active = BrainMemoryUtils.load(ownerId, ownerType, Set.of(BrainMemoryUtils.ACTIVE));
 		List<Line> lines = select(active, scope, CollaborationDbUtils.now());
 		List<Line> shown = budget(lines, maxChars);
@@ -145,15 +157,16 @@ public final class BrainMemoryRecall {
 
 	// ---- the thread ----
 
-	static Scope scope(String ownerId, String ownerType, String threadId) {
+	static Scope scope(String ownerId, String ownerType, String threadId, List<String> chatTopics) {
 		Set<String> neverIngest = BrainMemoryUtils.neverIngest(ownerId, ownerType);
 		String source = threadId == null || threadId.startsWith(BrainMemoryUtils.SESSION_THREAD_PREFIX) ? null
 				: CollaborationDbUtils.queryOne(
 						"SELECT SOURCE FROM BRAIN_THREAD WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
 						rs -> String.valueOf(rs.getString("SOURCE")), ownerId, ownerType, threadId);
 		if (source == null) {
-			// a /new session or an unknown thread: only what applies everywhere
-			return new Scope(null, Set.of(), Set.of(), Set.of(), false, neverIngest);
+			// a /new session or an unknown thread: what applies everywhere, and the chat's topics
+			Set<String> topics = chatTopics == null ? Set.of() : new HashSet<>(chatTopics);
+			return new Scope(null, Set.of(), topics, topicAccounts(ownerId, ownerType, topics), false, neverIngest);
 		}
 		List<String> allTopics = new ArrayList<>();
 		Set<String> topics = new HashSet<>();
@@ -192,15 +205,24 @@ public final class BrainMemoryRecall {
 				excluded.add(personId);
 			}
 		}
-		if (!topics.isEmpty()) {
-			List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
-			params.addAll(topics);
-			accounts.addAll(CollaborationDbUtils.query("SELECT ACCOUNT_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
-					+ "AND OWNER_TYPE = ? AND ACCOUNT_ID IS NOT NULL AND TOPIC_ID IN ("
-					+ CollaborationDbUtils.placeholders(topics.size()) + ")", rs -> rs.getString("ACCOUNT_ID"),
-					params.toArray()));
+		// in a chat, its own topics stand in for the thread's
+		if (chatTopics != null) {
+			topics = new HashSet<>(chatTopics);
 		}
+		accounts.addAll(topicAccounts(ownerId, ownerType, topics));
 		return new Scope(threadId, people, topics, accounts, keptOut, excluded);
+	}
+
+	private static Set<String> topicAccounts(String ownerId, String ownerType, Set<String> topics) {
+		if (topics.isEmpty()) {
+			return new HashSet<>();
+		}
+		List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+		params.addAll(topics);
+		return new HashSet<>(CollaborationDbUtils.query("SELECT ACCOUNT_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND ACCOUNT_ID IS NOT NULL AND TOPIC_ID IN ("
+				+ CollaborationDbUtils.placeholders(topics.size()) + ")", rs -> rs.getString("ACCOUNT_ID"),
+				params.toArray()));
 	}
 
 	// a channel or topic rule with no person keeps the whole thread out of the assistant

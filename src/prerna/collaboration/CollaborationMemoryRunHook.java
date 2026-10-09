@@ -35,7 +35,8 @@ import prerna.reactor.agent.IAgentRunHook;
 
 /**
  * Added by AgentConfigLoader to every root run in an assistant room: once the run finishes, it asks for a
- * review of the chat (BrainMemoryReview), which waits for the chat to go quiet first.
+ * review of the chat (BrainMemoryReview), which waits for the chat to go quiet first, and for a topic check of
+ * the chat (BrainChatTopics).
  */
 public final class CollaborationMemoryRunHook implements IAgentRunHook {
 
@@ -49,6 +50,7 @@ public final class CollaborationMemoryRunHook implements IAgentRunHook {
 		User user = ctx.getInsight() == null ? null : ctx.getInsight().getUser();
 		if (user != null && CollaborationUtils.isAssistantRoom(room)) {
 			BrainMemoryReview.schedule(user, room.getId(), CollaborationUtils.threadIdOf(room));
+			BrainChatTopics.schedule(user, room.getId());
 		}
 	}
 }
