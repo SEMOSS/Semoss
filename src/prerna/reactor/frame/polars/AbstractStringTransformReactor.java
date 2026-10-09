@@ -35,6 +35,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Shared implementation for Polars string-column transformations.
+ */
 public abstract class AbstractStringTransformReactor extends AbstractPolarsFrameReactor {
 
 	private final String operation;

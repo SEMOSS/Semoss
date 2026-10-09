@@ -41,6 +41,11 @@ import prerna.ds.py.PolarsFrame;
 import prerna.om.Variable.LANGUAGE;
 import prerna.reactor.frame.AbstractFrameReactor;
 
+/**
+ * Base for frame-specific Polars reactors. It validates the active frame,
+ * converts scalar Pixel inputs using frame metadata, and reports generated code
+ * as non-user Python execution.
+ */
 public abstract class AbstractPolarsFrameReactor extends AbstractFrameReactor implements ICodeExecution {
 
 	private final List<String> codeExecuted = new ArrayList<>();

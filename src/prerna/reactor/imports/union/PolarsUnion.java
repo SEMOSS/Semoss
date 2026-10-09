@@ -36,6 +36,11 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PolarsFrame;
 import prerna.om.Insight;
 
+/**
+ * Performs schema-aligned union operations directly between Polars frames.
+ * Column names, order, and dtypes must match; callers must rename or convert
+ * columns before invoking the union.
+ */
 public class PolarsUnion extends AbstractUnion {
 
 	@Override

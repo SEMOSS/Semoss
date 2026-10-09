@@ -48,6 +48,9 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Verifies structural plan compilation without starting a Python runtime.
+ */
 class PolarsQueryInterpreterUnitTests {
 
 	private static final Gson GSON = new Gson();

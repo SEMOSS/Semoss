@@ -34,6 +34,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Strictly converts a Polars column to a supported SEMOSS scalar type.
+ */
 public class ChangeColumnTypeReactor extends AbstractPolarsFrameReactor {
 
 	public ChangeColumnTypeReactor() {

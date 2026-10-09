@@ -6,14 +6,19 @@ import argparse
 import platform
 import time
 import tracemalloc
+from collections.abc import Callable
+from typing import TypeVar
 
 import numpy as np
 import pandas as pd
 import polars as pl
 from polars.testing import assert_frame_equal
 
+T = TypeVar("T")
 
-def timed(name, operation):
+
+def timed(name: str, operation: Callable[[], T]) -> T:
+    """Run one benchmark stage and report elapsed time and Python peak memory."""
     tracemalloc.start()
     start = time.perf_counter()
     result = operation()
@@ -25,6 +30,7 @@ def timed(name, operation):
 
 
 def main(rows: int) -> None:
+    """Compare equivalent pandas and Polars work on deterministic input."""
     rng = np.random.default_rng(7)
     source = {
         "category": rng.choice(["a", "b", "c", None], rows).tolist(),
@@ -76,5 +82,10 @@ def main(rows: int) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--rows", type=int, default=1_000_000)
+    parser.add_argument(
+        "--rows",
+        type=int,
+        default=1_000_000,
+        help="number of deterministic source rows",
+    )
     main(parser.parse_args().rows)

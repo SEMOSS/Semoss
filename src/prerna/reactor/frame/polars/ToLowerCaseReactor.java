@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.frame.polars;
 
+/**
+ * Converts selected Polars columns to lowercase strings.
+ */
 public class ToLowerCaseReactor extends AbstractStringTransformReactor {
 	public ToLowerCaseReactor() {
 		super("lower");

@@ -45,6 +45,7 @@ def _dtype_base_name(dtype: pl.DataType) -> str:
 
 
 def semoss_type(dtype: pl.DataType) -> str:
+    """Map one supported Polars dtype to its SEMOSS scalar type."""
     if dtype in _INTEGER_TYPES:
         return "INT"
     if dtype in _FLOAT_TYPES:
@@ -210,9 +211,15 @@ def _normalize_value(value: Any) -> Any:
 
 
 class SemossPolarsFrame:
-    """Owns one eager Polars DataFrame for a single SEMOSS Insight."""
+    """Own one eager Polars DataFrame for a single SEMOSS Insight.
+
+    Query plans are structural dictionaries produced by Java and execute as
+    Polars expressions. Mutations validate a replacement DataFrame before
+    rebinding ``data``, leaving the original unchanged when validation fails.
+    """
 
     def __init__(self, frame: pl.DataFrame | None = None):
+        """Create a wrapper around an eager, supported Polars DataFrame."""
         if frame is None:
             frame = pl.DataFrame()
         if isinstance(frame, pl.LazyFrame):
@@ -228,10 +235,12 @@ class SemossPolarsFrame:
 
     @classmethod
     def from_csv(cls, path: str, **options: Any) -> "SemossPolarsFrame":
+        """Read a CSV file with native Polars options."""
         return cls(pl.read_csv(path, **options))
 
     @classmethod
     def from_parquet(cls, path: str, **options: Any) -> "SemossPolarsFrame":
+        """Read a parquet file with native Polars options."""
         return cls(pl.read_parquet(path, **options))
 
     @classmethod
@@ -244,6 +253,7 @@ class SemossPolarsFrame:
         limit: int,
         schema: dict[str, str],
     ) -> "SemossPolarsFrame":
+        """Read a SEMOSS CSV import with projection, aliases, and type hints."""
         type_map = {
             "BOOLEAN": pl.Boolean,
             "INT": pl.Int64,
@@ -277,6 +287,7 @@ class SemossPolarsFrame:
         output_columns: list[str],
         limit: int,
     ) -> "SemossPolarsFrame":
+        """Read a projected SEMOSS parquet import and apply output aliases."""
         frame = pl.read_parquet(path, columns=columns or None)
         if limit >= 0:
             frame = frame.head(limit)
@@ -286,6 +297,7 @@ class SemossPolarsFrame:
 
     @classmethod
     def from_ipc(cls, path: str) -> "SemossPolarsFrame":
+        """Restore frame data from an Arrow IPC file."""
         return cls(pl.read_ipc(path))
 
     @classmethod
@@ -295,6 +307,12 @@ class SemossPolarsFrame:
         rows: list[list[Any]],
         schema: dict[str, str] | None = None,
     ) -> "SemossPolarsFrame":
+        """Create a typed frame from the SEMOSS iterator row boundary.
+
+        Timezone-aware timestamp strings are normalized to UTC. A column that
+        mixes aware and naive timestamp strings is rejected because no single
+        Polars datetime dtype can preserve both semantics.
+        """
         polars_schema = None
         if schema:
             type_map = {
@@ -357,9 +375,11 @@ class SemossPolarsFrame:
         return cls(frame)
 
     def clone(self) -> "SemossPolarsFrame":
+        """Return an independent clone of the owned DataFrame."""
         return SemossPolarsFrame(self.data.clone())
 
     def clean_columns(self, columns: list[str]) -> None:
+        """Replace all headers after SEMOSS validates and cleans them."""
         if len(columns) != self.data.width:
             raise ValueError("Cleaned Polars columns must match the frame width")
         replacement = self.data.clone()
@@ -367,6 +387,7 @@ class SemossPolarsFrame:
         self._replace(replacement)
 
     def schema(self) -> dict[str, Any]:
+        """Return columns and Polars/SEMOSS types for metadata recreation."""
         _validate_schema(self.data)
         return {
             "columns": self.data.columns,
@@ -375,6 +396,7 @@ class SemossPolarsFrame:
         }
 
     def query(self, plan: dict[str, Any]) -> dict[str, Any]:
+        """Execute a structural lazy query plan and materialize scalar rows."""
         lazy = self.data.lazy()
         row_filter = _filter_expression(plan.get("filter"))
         if row_filter is not None:
@@ -443,20 +465,25 @@ class SemossPolarsFrame:
         )
 
     def write_ipc(self, path: str) -> None:
+        """Persist the owned DataFrame as Arrow IPC."""
         target = Path(path)
         target.parent.mkdir(parents=True, exist_ok=True)
         self.data.write_ipc(target)
 
     def rename(self, old: str, new: str) -> None:
+        """Rename one column transactionally."""
         self._replace(self.data.rename({old: new}, strict=True))
 
     def drop(self, columns: list[str]) -> None:
+        """Drop columns transactionally."""
         self._replace(self.data.drop(columns, strict=True))
 
     def duplicate(self, source: str, target: str) -> None:
+        """Duplicate one column under a new name."""
         self._replace(self.data.with_columns(pl.col(source).alias(target)))
 
     def cast(self, column: str, semoss_dtype: str) -> None:
+        """Strictly cast a column to a supported SEMOSS scalar type."""
         type_map = {
             "BOOLEAN": pl.Boolean,
             "INT": pl.Int64,
@@ -473,6 +500,7 @@ class SemossPolarsFrame:
         )
 
     def string_transform(self, columns: list[str], operation: str) -> None:
+        """Apply a supported string transform to selected columns."""
         transforms = {
             "trim": lambda column: column.str.strip_chars(),
             "upper": lambda column: column.str.to_uppercase(),
@@ -489,6 +517,7 @@ class SemossPolarsFrame:
     def replace(
         self, column: str, old_value: Any, new_value: Any, regex: bool = False
     ) -> None:
+        """Replace literal values in one column."""
         expression = pl.col(column)
         if regex:
             expression = expression.cast(pl.String).str.replace_all(
@@ -501,6 +530,7 @@ class SemossPolarsFrame:
     def update_rows(
         self, filter_spec: dict[str, Any], column: str, value: Any
     ) -> None:
+        """Update one column where a required structural filter matches."""
         predicate = _filter_expression(filter_spec)
         if predicate is None:
             raise ValueError("A row filter is required for update")
@@ -514,12 +544,14 @@ class SemossPolarsFrame:
         )
 
     def drop_rows(self, filter_spec: dict[str, Any]) -> None:
+        """Delete rows where a required structural filter matches."""
         predicate = _filter_expression(filter_spec)
         if predicate is None:
             raise ValueError("A row filter is required for row deletion")
         self._replace(self.data.filter(~predicate))
 
     def append_rows(self, rows: list[list[Any]]) -> None:
+        """Append rows using the existing DataFrame schema."""
         if not rows:
             return
         addition = pl.DataFrame(
@@ -531,6 +563,7 @@ class SemossPolarsFrame:
         self._replace(self.data.vstack(addition))
 
     def union(self, other: "SemossPolarsFrame", distinct: bool) -> None:
+        """Append a frame with an identical schema, optionally deduplicating."""
         if self.data.schema != other.data.schema:
             raise TypeError(
                 "Polars union requires identical column names, order, and dtypes"
@@ -549,6 +582,7 @@ class SemossPolarsFrame:
         right_on: list[str],
         how: str,
     ) -> None:
+        """Equality-join typed iterator rows into this frame."""
         right = SemossPolarsFrame.from_rows(headers, rows, schema).data
         merged = self.data.join(
             right,

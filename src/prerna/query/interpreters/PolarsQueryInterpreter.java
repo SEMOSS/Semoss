@@ -55,12 +55,26 @@ import prerna.query.querystruct.selectors.QueryFunctionSelector;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Compiles a {@link SelectQueryStruct} into the structural query plan consumed
+ * by {@code SemossPolarsFrame}. The plan contains data only; user values are
+ * serialized as JSON and are never interpolated into executable Python.
+ *
+ * <p>
+ * Unsupported selectors, filters, and sorts fail during compilation rather
+ * than falling back to pandas or raw Python.
+ */
 public class PolarsQueryInterpreter extends AbstractQueryInterpreter {
 
 	private static final Gson GSON = new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
 
 	private GenRowFilters frameFilters = new GenRowFilters();
 
+	/**
+	 * Sets the frame-level filters that are combined with the query's filters.
+	 *
+	 * @param frameFilters frame filters, or {@code null} for none
+	 */
 	public void setFrameFilters(GenRowFilters frameFilters) {
 		this.frameFilters = frameFilters == null ? new GenRowFilters() : frameFilters;
 	}
@@ -73,6 +87,14 @@ public class PolarsQueryInterpreter extends AbstractQueryInterpreter {
 		return GSON.toJson(buildPlan((SelectQueryStruct) this.qs));
 	}
 
+	/**
+	 * Builds the JSON-serializable plan for a structured Polars query.
+	 *
+	 * @param selectQs query to compile
+	 * @return ordered map containing selectors, filters, grouping, sorting, and
+	 *         pagination
+	 * @throws IllegalArgumentException if the query contains an unsupported shape
+	 */
 	public Map<String, Object> buildPlan(SelectQueryStruct selectQs) {
 		Map<String, Object> plan = new LinkedHashMap<>();
 		List<Map<String, Object>> selectors = new ArrayList<>();
@@ -113,6 +135,13 @@ public class PolarsQueryInterpreter extends AbstractQueryInterpreter {
 		return plan;
 	}
 
+	/**
+	 * Converts SEMOSS row filters into a JSON-serializable Polars filter tree.
+	 *
+	 * @param filters filters to convert, or {@code null}
+	 * @return filter tree, or {@code null} when no filters are present
+	 * @throws IllegalArgumentException if a filter cannot be represented by Polars
+	 */
 	public static Map<String, Object> convertFilters(GenRowFilters filters) {
 		if (filters == null || filters.isEmpty()) {
 			return null;

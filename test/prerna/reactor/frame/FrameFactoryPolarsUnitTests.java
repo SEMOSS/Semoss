@@ -40,6 +40,10 @@ import prerna.om.Insight;
 import prerna.reactor.ReactorFactory;
 import prerna.reactor.frame.polars.ToUpperCaseReactor;
 
+/**
+ * Verifies explicit Polars creation, pandas alias compatibility, and
+ * frame-specific reactor discovery.
+ */
 class FrameFactoryPolarsUnitTests {
 
 	@Test

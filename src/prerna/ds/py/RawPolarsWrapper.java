@@ -39,10 +39,20 @@ import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 
+/**
+ * Adapts a materialized {@link PolarsIterator} to the SEMOSS raw-wrapper
+ * contract. Query execution and external resource ownership remain with
+ * {@link PolarsFrame}; closing this wrapper therefore requires no cleanup.
+ */
 public class RawPolarsWrapper implements IRawSelectWrapper {
 
 	private PolarsIterator iterator;
 
+	/**
+	 * Sets the materialized iterator exposed by this wrapper.
+	 *
+	 * @param iterator result iterator
+	 */
 	public void setIterator(PolarsIterator iterator) {
 		this.iterator = iterator;
 	}

@@ -66,6 +66,20 @@ import prerna.query.querystruct.transform.QSAliasToPhysicalConverter;
 import prerna.reactor.imports.ImportUtility;
 import prerna.ui.components.playsheets.datamakers.DataMakerComponent;
 
+/**
+ * Owns one eager Polars DataFrame inside an Insight's Python runtime.
+ *
+ * <p>
+ * The generated Python identifier is independent of the user-visible frame
+ * alias, which keeps aliases out of executable Python. Queries cross the bridge
+ * as structural JSON plans and execute as Polars lazy plans. Mutations build a
+ * replacement DataFrame before rebinding it, so a failed mutation leaves the
+ * original data unchanged.
+ *
+ * <p>
+ * The frame borrows the Insight's {@link PyTranslator}; closing the frame
+ * removes only its generated Python variable and does not close the translator.
+ */
 public class PolarsFrame extends AbstractTableDataFrame {
 
 	public static final String DATA_MAKER_NAME = "PolarsFrame";
@@ -77,10 +91,21 @@ public class PolarsFrame extends AbstractTableDataFrame {
 	private final String runtimeName;
 	private boolean cache = true;
 
+	/**
+	 * Creates an empty Polars frame with a generated alias.
+	 *
+	 * @param pyTranslator translator owned by the containing Insight
+	 */
 	public PolarsFrame(PyTranslator pyTranslator) {
 		this(null, pyTranslator);
 	}
 
+	/**
+	 * Creates an empty Polars frame.
+	 *
+	 * @param tableName    user-visible frame alias, or {@code null} to generate one
+	 * @param pyTranslator translator owned by the containing Insight
+	 */
 	public PolarsFrame(String tableName, PyTranslator pyTranslator) {
 		this.pyTranslator = pyTranslator;
 		this.frameName = tableName == null || tableName.trim().isEmpty()
@@ -103,10 +128,20 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		}
 	}
 
+	/**
+	 * @return generated Python identifier used only inside the Insight runtime
+	 */
 	public String getRuntimeName() {
 		return this.runtimeName;
 	}
 
+	/**
+	 * Replaces this frame's empty data with a clone of an existing
+	 * {@code polars.DataFrame} variable.
+	 *
+	 * @param variableName valid Python identifier in the same Insight runtime
+	 * @throws IllegalArgumentException if the name is not a Python identifier
+	 */
 	public void registerExistingVariable(String variableName) {
 		if (variableName == null || !PYTHON_IDENTIFIER.matcher(variableName).matches()) {
 			throw new IllegalArgumentException("Invalid Python variable name");
@@ -117,6 +152,12 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		recreateMeta();
 	}
 
+	/**
+	 * Imports all remaining rows. CSV and parquet iterators use native readers;
+	 * all other iterators are materialized through the typed row boundary.
+	 *
+	 * @param iterator source rows
+	 */
 	public void addRowsViaIterator(Iterator<IHeadersDataRow> iterator) {
 		if (iterator instanceof CsvFileIterator) {
 			importCsv((CsvFileIterator) iterator);
@@ -315,6 +356,10 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		return DATA_MAKER_NAME;
 	}
 
+	/**
+	 * Rebuilds SEMOSS metadata from the authoritative Polars schema, cleaning and
+	 * rebinding invalid headers when required. Query and metric caches are cleared.
+	 */
 	public void recreateMeta() {
 		Object schemaOutput = this.pyTranslator.runDirectPy(this.runtimeName + ".schema()");
 		if (!(schemaOutput instanceof Map)) {
@@ -354,10 +399,21 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		clearQueryCache();
 	}
 
+	/**
+	 * Renames one physical column and refreshes frame metadata.
+	 *
+	 * @param oldColumn current column name
+	 * @param newColumn replacement column name
+	 */
 	public void renameColumn(String oldColumn, String newColumn) {
 		runMutation("rename", cleanColumn(oldColumn), newColumn);
 	}
 
+	/**
+	 * Drops physical columns and refreshes frame metadata.
+	 *
+	 * @param columns columns to drop
+	 */
 	public void dropColumns(List<String> columns) {
 		List<String> cleaned = new ArrayList<>();
 		for (String column : columns) {
@@ -366,14 +422,32 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		runMutation("drop", cleaned);
 	}
 
+	/**
+	 * Duplicates a physical column.
+	 *
+	 * @param source source column
+	 * @param target new column
+	 */
 	public void duplicateColumn(String source, String target) {
 		runMutation("duplicate", cleanColumn(source), target);
 	}
 
+	/**
+	 * Strictly converts a column to a supported SEMOSS scalar type.
+	 *
+	 * @param column column to convert
+	 * @param type   SEMOSS type name
+	 */
 	public void changeColumnType(String column, String type) {
 		runMutation("cast", cleanColumn(column), type);
 	}
 
+	/**
+	 * Applies a supported string operation to the selected columns.
+	 *
+	 * @param columns   columns to transform
+	 * @param operation {@code trim}, {@code upper}, or {@code lower}
+	 */
 	public void stringTransform(List<String> columns, String operation) {
 		List<String> cleaned = new ArrayList<>();
 		for (String column : columns) {
@@ -382,22 +456,58 @@ public class PolarsFrame extends AbstractTableDataFrame {
 		runMutation("string_transform", cleaned, operation);
 	}
 
+	/**
+	 * Replaces values in one column.
+	 *
+	 * @param column   target column
+	 * @param oldValue value to replace
+	 * @param newValue replacement value
+	 * @param regex    whether to use the string replacement path
+	 */
 	public void replaceValue(String column, Object oldValue, Object newValue, boolean regex) {
 		runMutation("replace", cleanColumn(column), oldValue, newValue, regex);
 	}
 
+	/**
+	 * Deletes rows matching a structural filter plan.
+	 *
+	 * @param filterPlan non-empty filter plan
+	 */
 	public void dropRows(Map<String, Object> filterPlan) {
 		runMutation("drop_rows", filterPlan);
 	}
 
+	/**
+	 * Updates one column in rows matching a structural filter plan.
+	 *
+	 * @param filterPlan non-empty filter plan
+	 * @param column     column to update
+	 * @param value      replacement value
+	 */
 	public void updateRows(Map<String, Object> filterPlan, String column, Object value) {
 		runMutation("update_rows", filterPlan, cleanColumn(column), value);
 	}
 
+	/**
+	 * Appends another Polars frame using strict schema alignment.
+	 *
+	 * @param other    frame in the same Python runtime
+	 * @param distinct whether to remove duplicate rows
+	 */
 	public void unionWith(PolarsFrame other, boolean distinct) {
 		runMutation("union", other.runtimeName, distinct);
 	}
 
+	/**
+	 * Joins typed rows into this frame using equality keys.
+	 *
+	 * @param headers source headers
+	 * @param rows    source rows
+	 * @param schema  source SEMOSS types by header
+	 * @param leftOn  left join columns
+	 * @param rightOn right join columns
+	 * @param how     Polars join type
+	 */
 	public void mergeRows(List<String> headers, List<List<Object>> rows, Map<String, String> schema,
 			List<String> leftOn, List<String> rightOn, String how) {
 		runMutation("merge_rows", headers, rows, schema, leftOn, rightOn, how);

@@ -34,6 +34,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Registers an existing {@code polars.DataFrame} variable as a SEMOSS frame.
+ * Arbitrary Python expressions and lazy frames are intentionally rejected.
+ */
 public class GenerateFrameFromPolarsVariableReactor extends AbstractReactor {
 
 	public GenerateFrameFromPolarsVariableReactor() {

@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.frame.polars;
 
+/**
+ * Strips leading and trailing characters from selected Polars string columns.
+ */
 public class TrimColumnsReactor extends AbstractStringTransformReactor {
 	public TrimColumnsReactor() {
 		super("trim");

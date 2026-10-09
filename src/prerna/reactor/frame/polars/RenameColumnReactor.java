@@ -38,6 +38,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.ModifyHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Renames a Polars column and rewrites frame filters to the validated new name.
+ */
 public class RenameColumnReactor extends AbstractPolarsFrameReactor {
 
 	public RenameColumnReactor() {

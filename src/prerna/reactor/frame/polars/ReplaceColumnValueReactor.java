@@ -35,6 +35,10 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Replaces literal values in one Polars column using metadata-aware input
+ * conversion.
+ */
 public class ReplaceColumnValueReactor extends AbstractPolarsFrameReactor {
 
 	public ReplaceColumnValueReactor() {

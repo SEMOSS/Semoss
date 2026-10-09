@@ -34,6 +34,9 @@ import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.AddHeaderNounMetadata;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Duplicates one Polars column under a validated new name.
+ */
 public class DuplicateColumnReactor extends AbstractPolarsFrameReactor {
 
 	public DuplicateColumnReactor() {

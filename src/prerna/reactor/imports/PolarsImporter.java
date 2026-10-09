@@ -47,16 +47,34 @@ import prerna.query.querystruct.SelectQueryStruct;
 import prerna.sablecc2.om.Join;
 import prerna.query.querystruct.filters.IQueryFilter;
 
+/**
+ * Imports query results into a {@link PolarsFrame}. CSV and parquet iterators
+ * are delegated to native Polars readers; other sources cross the existing
+ * typed SEMOSS row boundary. Merge supports equality joins only.
+ */
 public class PolarsImporter extends AbstractImporter {
 
 	private final PolarsFrame frame;
 	private final SelectQueryStruct queryStruct;
 	private Iterator<IHeadersDataRow> iterator;
 
+	/**
+	 * Creates an importer and generates the source iterator from the query.
+	 *
+	 * @param frame       destination Polars frame
+	 * @param queryStruct source query
+	 */
 	public PolarsImporter(PolarsFrame frame, SelectQueryStruct queryStruct) {
 		this(frame, queryStruct, null);
 	}
 
+	/**
+	 * Creates an importer using an existing source iterator.
+	 *
+	 * @param frame       destination Polars frame
+	 * @param queryStruct source query
+	 * @param iterator    source rows, or {@code null} to generate them
+	 */
 	public PolarsImporter(PolarsFrame frame, SelectQueryStruct queryStruct, Iterator<IHeadersDataRow> iterator) {
 		this.frame = frame;
 		this.queryStruct = queryStruct;

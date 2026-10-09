@@ -40,6 +40,11 @@ import prerna.algorithm.api.SemossDataType;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.om.HeadersDataRow;
 
+/**
+ * Iterates over a materialized Polars query result while retaining the original
+ * result size and supporting reset. The iterator owns an independent copy of
+ * the row list supplied by the Python bridge.
+ */
 public class PolarsIterator implements Iterator<IHeadersDataRow> {
 
 	private final String[] headers;
@@ -49,6 +54,13 @@ public class PolarsIterator implements Iterator<IHeadersDataRow> {
 	private int index;
 	private String query;
 
+	/**
+	 * Creates an iterator for one materialized result.
+	 *
+	 * @param headers ordered result headers
+	 * @param data    rows returned by the Python bridge
+	 * @param types   SEMOSS types aligned with the headers
+	 */
 	public PolarsIterator(String[] headers, List<Object> data, SemossDataType[] types) {
 		this.headers = headers;
 		this.types = types;
@@ -71,26 +83,46 @@ public class PolarsIterator implements Iterator<IHeadersDataRow> {
 		return dataRow;
 	}
 
+	/**
+	 * @return ordered result headers
+	 */
 	public String[] getHeaders() {
 		return this.headers;
 	}
 
+	/**
+	 * @return SEMOSS types aligned with the headers
+	 */
 	public SemossDataType[] getTypes() {
 		return this.types;
 	}
 
+	/**
+	 * @return row count before iteration began
+	 */
 	public int getInitialSize() {
 		return this.initialSize;
 	}
 
+	/**
+	 * Associates the structural query plan with rows produced by this iterator.
+	 *
+	 * @param query serialized query plan
+	 */
 	public void setQuery(String query) {
 		this.query = query;
 	}
 
+	/**
+	 * @return serialized query plan associated with the result
+	 */
 	public String getQuery() {
 		return this.query;
 	}
 
+	/**
+	 * Rewinds iteration to the first row.
+	 */
 	public void reset() {
 		this.index = 0;
 	}

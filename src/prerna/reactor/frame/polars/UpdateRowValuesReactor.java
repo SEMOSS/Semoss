@@ -37,6 +37,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Updates one Polars column in rows selected by an explicit structured filter.
+ */
 public class UpdateRowValuesReactor extends AbstractPolarsFrameReactor {
 
 	public UpdateRowValuesReactor() {

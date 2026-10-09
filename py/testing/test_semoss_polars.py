@@ -108,6 +108,7 @@ def test_ipc_round_trip(tmp_path, frame):
     restored = SemossPolarsFrame.from_ipc(str(path))
     assert_frame_equal(restored.data, frame.data)
 
+
 def test_sort_uses_physical_column_before_alias_projection(frame):
     result = frame.query(
         {
@@ -138,6 +139,7 @@ def test_iterator_import_union_and_clean_columns():
     )
     left.union(right, distinct=True)
     assert left.data.rows() == [("a", 1), ("b", 2), ("c", 3)]
+
 
 def test_iterator_import_parses_temporal_schema():
     imported = SemossPolarsFrame.from_rows(

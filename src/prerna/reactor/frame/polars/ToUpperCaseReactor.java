@@ -27,6 +27,9 @@
  *******************************************************************************/
 package prerna.reactor.frame.polars;
 
+/**
+ * Converts selected Polars columns to uppercase strings.
+ */
 public class ToUpperCaseReactor extends AbstractStringTransformReactor {
 	public ToUpperCaseReactor() {
 		super("upper");

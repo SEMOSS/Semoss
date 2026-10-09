@@ -37,6 +37,9 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
+/**
+ * Deletes Polars rows selected by an explicit structured filter.
+ */
 public class DropRowsReactor extends AbstractPolarsFrameReactor {
 
 	public DropRowsReactor() {
