@@ -585,6 +585,7 @@ final class AutomationRunExecutionService {
 		for (String selector : selectors) {
 			queryStruct.addSelector(new QueryColumnSelector(selector));
 		}
+		queryStruct.setDistinct(false);
 		queryStruct.setOffSet(offset);
 		queryStruct.setLimit(limit);
 

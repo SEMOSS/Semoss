@@ -40,6 +40,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
+import prerna.om.HeadersDataRow;
 import prerna.om.Insight;
 import prerna.om.InsightStore;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -177,6 +180,54 @@ public class AutomationRunExecutionServiceUnitTests {
 		verify(frame).query(query.capture());
 		assertEquals(10, query.getValue().getOffset());
 		assertEquals(2, query.getValue().getLimit());
+		assertFalse(query.getValue().isDistinct());
+	}
+
+	@Test
+	void preservesDuplicateFrameRowsAcrossMultipleBatches() throws Exception {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		List<Integer> physicalRows = List.of(7, 7, 9);
+		List<SelectQueryStruct> queries = new ArrayList<>();
+		List<IRawSelectWrapper> wrappers = new ArrayList<>();
+		when(frame.getQsHeaders()).thenReturn(new String[] { "VALUES__VALUE" });
+		when(frame.query(any(SelectQueryStruct.class))).thenAnswer(invocation -> {
+			SelectQueryStruct query = invocation.getArgument(0);
+			queries.add(query);
+			List<Integer> queryRows = query.isDistinct() ? physicalRows.stream().distinct().toList() : physicalRows;
+			int from = (int) Math.min(query.getOffset(), queryRows.size());
+			int to = Math.min(from + (int) query.getLimit(), queryRows.size());
+			IRawSelectWrapper wrapper = wrapperFor(queryRows.subList(from, to));
+			wrappers.add(wrapper);
+			return wrapper;
+		});
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("values", new NounMetadata(frame, PixelDataType.FRAME));
+
+		List<Object> firstBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 0, 2);
+		List<Object> finalBatch = AutomationRunExecutionService.frameRows(insight, "values", "loop", 2, 1);
+
+		assertEquals(List.of(Map.of("VALUE", 7), Map.of("VALUE", 7)), firstBatch);
+		assertEquals(List.of(Map.of("VALUE", 9)), finalBatch);
+		assertEquals(3, firstBatch.size() + finalBatch.size());
+		assertEquals(2, queries.size());
+		assertFalse(queries.get(0).isDistinct());
+		assertEquals(0, queries.get(0).getOffset());
+		assertEquals(2, queries.get(0).getLimit());
+		assertFalse(queries.get(1).isDistinct());
+		assertEquals(2, queries.get(1).getOffset());
+		assertEquals(1, queries.get(1).getLimit());
+		verify(wrappers.get(0)).close();
+		verify(wrappers.get(1)).close();
+	}
+
+	private static IRawSelectWrapper wrapperFor(List<Integer> values) {
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		Iterator<Integer> iterator = values.iterator();
+		when(wrapper.hasNext()).thenAnswer(invocation -> iterator.hasNext());
+		when(wrapper.next()).thenAnswer(invocation -> new HeadersDataRow(new String[] { "VALUE" },
+				new Object[] { iterator.next() }));
+		return wrapper;
 	}
 
 	@Test
