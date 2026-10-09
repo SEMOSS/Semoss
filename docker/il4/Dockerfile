@@ -58,6 +58,11 @@ COPY python-dependencies/ ./
 ENV UV_PYTHON_DOWNLOADS=never
 RUN --mount=type=cache,target=/build/python/.cache \
     VENV=/opt/semoss-python sh install.sh
+# fsspec 2023.10.0 stays pinned (fsspec>=2026.6.0 needs datasets>=5.1.0, which
+# needs pyarrow>=24.0.0, reopening the pyarrow/datasets Python 3.14 pin); this
+# closes CVE-2026-104851 (GHSA-27vj-qcqg-25rc) directly instead. SEMOSS does
+# not use fsspec's ReferenceFileSystem/Kerchunk implementation.
+RUN --network=none /opt/semoss-python/bin/python3.14 fsspec_compat.py /opt/semoss-python
 ADD --checksum=sha256:e57f64187974277726a3417ca6f181ec5403676c717672eef6a748a7b20e0106 \
     https://raw.githubusercontent.com/nltk/nltk_data/550b6625bcef1f2abff2ff770a5a0d272c9c6b2a/packages/tokenizers/punkt_tab.zip /build/punkt_tab.zip
 RUN --network=none python3.14 -m zipfile -e /build/punkt_tab.zip /opt/nltk_data/tokenizers && \
