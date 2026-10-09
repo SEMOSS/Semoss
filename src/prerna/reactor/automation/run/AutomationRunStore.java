@@ -61,6 +61,7 @@ import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_PENDING;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_RUNNING;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SKIPPED;
 import static prerna.reactor.automation.AutomationConstants.NODE_STATUS_SUCCESS;
+import static prerna.reactor.automation.AutomationConstants.OUTPUT_KIND;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_PREVIEW;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VALUE;
 import static prerna.reactor.automation.AutomationConstants.OUTPUT_VAR_NAME;
@@ -254,7 +255,7 @@ public final class AutomationRunStore {
 
 	private static final String UPDATE_NODE_OUTPUT_SUCCESS = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_KIND = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
 			MODEL_MESSAGE_ID = ?, AGENT_RUN_ID = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
@@ -268,7 +269,7 @@ public final class AutomationRunStore {
 	// the parent stops.
 	private static final String UPDATE_NODE_OUTPUT_FAILED_WITH_RESULT = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, STARTED_AT = ?, COMPLETED_AT = ?, \
-			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
+			DURATION_MS = ?, OUTPUT_VAR_NAME = ?, OUTPUT_KIND = ?, OUTPUT_VALUE = ?, OUTPUT_PREVIEW = ?, \
 			AGENT_RUN_ID = COALESCE(?, AGENT_RUN_ID), ERROR_MESSAGE = ? \
 			WHERE RUN_ID = ? AND NODE_ID = ?""";
 
@@ -1177,6 +1178,14 @@ public final class AutomationRunStore {
 	 */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String modelMessageId, String agentRunId) {
+		updateNodeSuccess(runId, nodeId, startedAt, durationMs, outputVar, null, outputValue, outputPreview,
+				modelMessageId, agentRunId);
+	}
+
+	/** Updates a node output and its internal storage kind after successful execution. */
+	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
+			String agentRunId) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the successful automation node result");
 
 		try {
@@ -1190,6 +1199,7 @@ public final class AutomationRunStore {
 					ps.setTimestamp(index++, toTimestamp(Instant.now()));
 					ps.setLong(index++, durationMs);
 					ps.setString(index++, outputVar);
+					queryUtil.setNullableString(ps, index++, outputKind);
 					// Handle CLOB for potentially large output values
 					queryUtil.setNullableLargeText(ps, index++, outputValue);
 					ps.setString(index++, outputPreview);
@@ -1266,6 +1276,14 @@ public final class AutomationRunStore {
 	 */
 	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputValue, String outputPreview, String agentRunId, String errorMessage) {
+		updateNodeFailedWithResult(runId, nodeId, startedAt, durationMs, outputVar, null, outputValue, outputPreview,
+				agentRunId, errorMessage);
+	}
+
+	/** Persists a failed durable result and its internal storage kind. */
+	public static void updateNodeFailedWithResult(String runId, String nodeId, Timestamp startedAt, long durationMs,
+			String outputVar, String outputKind, String outputValue, String outputPreview, String agentRunId,
+			String errorMessage) {
 		IRDBMSEngine schedulerDb = requireSchedulerDb("persisting the failed automation agent result");
 
 		try {
@@ -1278,6 +1296,7 @@ public final class AutomationRunStore {
 					ps.setTimestamp(index++, toTimestamp(Instant.now()));
 					ps.setLong(index++, durationMs);
 					ps.setString(index++, outputVar);
+					queryUtil.setNullableString(ps, index++, outputKind);
 					queryUtil.setNullableLargeText(ps, index++, outputValue);
 					ps.setString(index++, outputPreview);
 					schedulerDb.getQueryUtil().setNullableString(ps, index++, agentRunId);
@@ -1313,6 +1332,7 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + COMPLETED_AT, COMPLETED_AT));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + DURATION_MS, DURATION_MS));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VAR_NAME, OUTPUT_VAR_NAME));
+		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_KIND, OUTPUT_KIND));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_VALUE, OUTPUT_VALUE));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + OUTPUT_PREVIEW, OUTPUT_PREVIEW));
 		qs.addSelector(new QueryColumnSelector(TABLE_NODE_OUTPUTS + "__" + ROOM_ID, ROOM_ID));

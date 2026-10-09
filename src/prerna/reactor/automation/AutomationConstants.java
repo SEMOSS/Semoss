@@ -96,6 +96,10 @@ public final class AutomationConstants {
 	public static final String EXECUTION_ORDER = "EXECUTION_ORDER";
 	public static final String DURATION_MS = "DURATION_MS";
 	public static final String OUTPUT_VAR_NAME = "OUTPUT_VAR_NAME";
+	/** Internal durable discriminator for node output storage semantics. */
+	public static final String OUTPUT_KIND = "OUTPUT_KIND";
+	/** Output kind for a value backed by a frame in the run Insight. */
+	public static final String OUTPUT_KIND_FRAME = "FRAME";
 	public static final String OUTPUT_VALUE = "OUTPUT_VALUE";
 	public static final String OUTPUT_PREVIEW = "OUTPUT_PREVIEW";
 	public static final String ROOM_ID = "ROOM_ID";
@@ -240,7 +244,7 @@ public final class AutomationConstants {
 	 * results remain in the run Insight's frame and therefore do not cross the
 	 * bounded JSON node-output contract.
 	 */
-	public static final int DB_QUERY_MAX_LIMIT = 50_000;
+	public static final int DB_QUERY_MAX_LIMIT = 1_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;

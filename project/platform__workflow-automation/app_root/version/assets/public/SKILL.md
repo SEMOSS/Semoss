@@ -102,17 +102,19 @@ the save-time validator enforces that the field list alone will not tell you.
 
 ### Database
 
-Four operations, each of which renders a different SDK call:
+Four operations, each of which uses the existing SEMOSS database execution path:
 
-| Node | SDK call | Statement it must contain |
+| Node | Execution path | Statement it must contain |
 |---|---|---|
-| `database.query` | `execQuery` | `SELECT` or `WITH` |
+| `database.query` | `SqlQuery` task imported into the run Insight's pandas frame | `SELECT` or `WITH` |
 | `database.insert` | `insertData` | `INSERT` |
 | `database.update` | `updateData` | `UPDATE`, **and a `WHERE` clause** |
 | `database.delete` | `removeData` | `DELETE`, **and a `WHERE` clause** |
 
-`execQuery` only runs reads, which is why the writes each have their own method. The
-statement type must match the node type; a `SELECT` in a delete node is rejected. The
+`database.query` publishes a pandas `DataFrame` in downstream Python scope. Use DataFrame operations,
+or call `to_dict("records")` only when a downstream API specifically needs row dictionaries. Query nodes cannot
+currently run inside loop bodies because iteration-owned frame outputs are not yet supported. The statement type must
+match the node type; a `SELECT` in a delete node is rejected. The
 `WHERE` requirement on update and delete exists because an automation runs unattended
 and an unqualified statement rewrites or empties the whole table.
 

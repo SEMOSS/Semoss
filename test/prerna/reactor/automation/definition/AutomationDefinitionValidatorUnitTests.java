@@ -383,6 +383,24 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void rejectsGeneratedDatabaseQueryInsideExecutableLoop() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,
+						AutomationConstants.CONFIG_LOOP_ITEMS, List.of(1, 2),
+						AutomationConstants.CONFIG_LOOP_BATCH_SIZE, 1,
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+		String json = definition(Map.of(), loop);
+
+		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
+		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
+	}
+
+	@Test
 	void acceptsDottedForEachRepeatAndWhileLoopConfiguration() {
 		Map<String, Object> dottedForEach = workNode(AutomationConstants.NODE_CONTROL_LOOP,
 				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_FOR_EACH,

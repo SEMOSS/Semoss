@@ -427,27 +427,6 @@ public final class AutomationRuntime {
 		return publicSummary;
 	}
 
-	/**
-	 * Returns whether a persisted node value is the bounded public summary for a
-	 * live frame output. This shape is reserved by the Automation runtime so wait
-	 * resume and history readers can distinguish frame identity from ordinary JSON.
-	 */
-	public static boolean isFrameOutputSummary(Object value) {
-		if (!(value instanceof Map<?, ?> summary) || !"table".equals(summary.get("dataType"))) {
-			return false;
-		}
-		return isNonNegativeWholeNumber(summary.get("rowCount"))
-				&& isNonNegativeWholeNumber(summary.get("columnCount"));
-	}
-
-	private static boolean isNonNegativeWholeNumber(Object value) {
-		if (!(value instanceof Number number)) {
-			return false;
-		}
-		double numeric = number.doubleValue();
-		return Double.isFinite(numeric) && numeric >= 0 && numeric == Math.rint(numeric);
-	}
-
 	private static long nonNegativeWholeNumber(Object value, String field) {
 		if (!(value instanceof Number number)) {
 			throw new IllegalStateException("Python automation frame result is missing " + field + ".");

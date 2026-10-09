@@ -71,6 +71,52 @@ class ExtractDataElementTests(unittest.TestCase):
 
 
 class DataFrameOutputTests(unittest.TestCase):
+    def test_preserves_scalar_dict_and_list_results(self) -> None:
+        session_globals: dict[str, object] = {}
+        for name, source, expected in (
+            ("scalar", "def run(scope):\n    return 7\n", 7),
+            ("mapping", "def run(scope):\n    return {'ok': True}\n", {"ok": True}),
+            ("values", "def run(scope):\n    return [1, 2, 3]\n", [1, 2, 3]),
+        ):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    expected,
+                    execute_node(
+                        _encode({}),
+                        _encode(source),
+                        1024,
+                        name,
+                        session_globals,
+                        {},
+                    ),
+                )
+
+    def test_keeps_table_shaped_json_as_ordinary_json(self) -> None:
+        session_globals: dict[str, object] = {}
+        result = execute_node(
+            _encode({}),
+            _encode(
+                "def run(scope):\n"
+                "    return {'dataType': 'table', 'rowCount': 2, "
+                "'columnCount': 1, 'label': 'ordinary JSON'}\n"
+            ),
+            1024,
+            "result",
+            session_globals,
+            {},
+        )
+
+        self.assertEqual(
+            {
+                "dataType": "table",
+                "rowCount": 2,
+                "columnCount": 1,
+                "label": "ordinary JSON",
+            },
+            result,
+        )
+        self.assertNotIn("result", session_globals)
+
     def test_retains_dataframe_and_rebinds_it_for_the_next_node(self) -> None:
         session_globals: dict[str, object] = {}
         result = execute_node(

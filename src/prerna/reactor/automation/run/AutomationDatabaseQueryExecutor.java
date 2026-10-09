@@ -28,7 +28,6 @@
 package prerna.reactor.automation.run;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -45,7 +44,6 @@ import prerna.reactor.imports.ImportFactory;
 import prerna.reactor.qs.SqlQueryReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.sablecc2.om.task.BasicIteratorTask;
@@ -89,10 +87,10 @@ final class AutomationDatabaseQueryExecutor {
 	 * @param outputVariable node output alias and Python frame variable name
 	 * @param runId          durable Automation run identifier used for diagnostics
 	 * @param nodeId         executing node identifier used for diagnostics
-	 * @return bounded public summary stored in scope and run history
+	 * @return registered frame identity and bounded public summary
 	 */
-	static Map<String, Object> execute(Insight insight, Object rawRequest, String outputVariable, String runId,
-			String nodeId) {
+	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, Object rawRequest, String outputVariable,
+			String runId, String nodeId) {
 		QueryRequest request = parseRequest(rawRequest);
 		BasicIteratorTask task = createTask(insight, request);
 		ITableDataFrame frame = null;
@@ -107,22 +105,16 @@ final class AutomationDatabaseQueryExecutor {
 			importer.setInsight(insight);
 			importer.insertData();
 
-			long rowCount = frame.size(outputVariable);
-			int columnCount = frame.getColumnHeaders().length;
-			NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME,
-					PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
-			insight.getVarStore().put(outputVariable, noun);
+			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
+					frame);
 			registered = true;
 
 			classLogger.debug(
 					"Loaded database query output '{}' for Automation run '{}', node '{}', execution Insight '{}': "
 							+ "{} rows, {} columns",
-					outputVariable, runId, nodeId, insight.getInsightId(), rowCount, columnCount);
-			Map<String, Object> summary = new LinkedHashMap<>();
-			summary.put("dataType", "table");
-			summary.put("rowCount", rowCount);
-			summary.put("columnCount", columnCount);
-			return summary;
+					outputVariable, runId, nodeId, insight.getInsightId(), output.summary().get("rowCount"),
+					output.summary().get("columnCount"));
+			return output;
 		} catch (Exception e) {
 			if (!registered && frame != null) {
 				closeFailedFrame(frame, outputVariable, runId, nodeId);

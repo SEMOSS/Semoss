@@ -73,11 +73,8 @@ import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.definition.AutomationConditionEvaluator;
 import prerna.reactor.automation.definition.AutomationDefinitionValidator;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
-import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.comm.PixelJobManager;
-import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.EngineUtility;
 import prerna.util.Utility;
@@ -493,8 +490,8 @@ final class AutomationRunExecutionService {
 					"Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output,
-					preview, null, null);
+			AutomationRunStore.updateNodeSuccess(runId, loopNodeId, started, duration, loopOutputVar, output, preview,
+					null, null);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, loopNode, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			return nodeResult(loopNodeId, AutomationConstants.NODE_STATUS_SUCCESS, value, null);
@@ -692,8 +689,7 @@ final class AutomationRunExecutionService {
 					AutomationConstants.NODE_OUTPUT_MAX_BYTES, "Automation Jev decision '" + nodeId + "' output");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
-					null);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, decision, null);
@@ -915,8 +911,7 @@ final class AutomationRunExecutionService {
 					"Automation run scope");
 			long duration = System.currentTimeMillis() - startedMs;
 			String preview = AutomationRuntimeUtils.generatePreview(output);
-			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null,
-					null);
+			AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration, null, output, preview, null, null);
 			AutomationRunRegistry.nodeCompleted(runId);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null);
 			Map<String, Object> result = nodeResult(nodeId, AutomationConstants.NODE_STATUS_SUCCESS, output, null);
@@ -973,35 +968,41 @@ final class AutomationRunExecutionService {
 			boolean databaseFrameRequest = AutomationDatabaseQueryExecutor.supports(node)
 					&& AutomationDatabaseQueryExecutor.isRequest(value);
 			Map<String, Object> frameSummary = AutomationRuntime.frameOutputSummary(value);
+			boolean frameProducing = databaseFrameRequest || frameSummary != null;
+			String outputKind = null;
 			String parentLoopNodeId = stringValue(node.get(AutomationConstants.PARENT_NODE_ID));
-			if (parentLoopNodeId != null && (databaseFrameRequest || frameSummary != null)) {
+			if (parentLoopNodeId != null && frameProducing) {
 				if (frameSummary != null) {
-					discardPythonFrameOutput(translator, outputVariable, runId, nodeId);
+					AutomationFrameOutput.discardPythonValue(translator, outputVariable, runId, nodeId);
 				}
 				throw new IllegalStateException("Loop node '" + parentLoopNodeId
 						+ "' does not support frame-producing body node '" + nodeId
 						+ "'. Return JSON or move the frame-producing node outside the loop.");
 			}
 			if (databaseFrameRequest) {
-				value = AutomationDatabaseQueryExecutor.execute(executionInsight, value, outputVariable, runId, nodeId);
-				frameBindings.put(outputVariable, registeredFrameBackend(executionInsight, outputVariable));
+				AutomationFrameOutput.RegisteredFrame registeredFrame = AutomationDatabaseQueryExecutor.execute(
+						executionInsight, value, outputVariable, runId, nodeId);
+				value = registeredFrame.summary();
+				frameBindings.put(outputVariable, registeredFrame.backend());
+				outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 			} else {
 				if (frameSummary != null) {
-					String backend;
+					AutomationFrameOutput.RegisteredFrame registeredFrame;
 					try {
-						backend = registerNodeFrame(executionInsight, outputVariable);
+						registeredFrame = AutomationFrameOutput.registerPythonVariable(executionInsight, outputVariable);
 					} catch (RuntimeException registrationError) {
-						discardPythonFrameOutput(translator, outputVariable, runId, nodeId);
+						AutomationFrameOutput.discardPythonValue(translator, outputVariable, runId, nodeId);
 						throw registrationError;
 					}
-					frameBindings.put(outputVariable, backend);
+					frameBindings.put(outputVariable, registeredFrame.backend());
+					outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 					classLogger.debug(
 							"Registered SEMOSS frame output '{}' for Automation run '{}', node '{}', "
 									+ "execution Insight '{}', backend '{}': {} rows, {} columns",
 							outputVariable, runId, nodeId, executionInsight.getInsightId(),
-							backend,
-							frameSummary.get("rowCount"), frameSummary.get("columnCount"));
-					value = frameSummary;
+							registeredFrame.backend(),
+							registeredFrame.summary().get("rowCount"), registeredFrame.summary().get("columnCount"));
+					value = registeredFrame.summary();
 				} else {
 					registerRowPreviewFrame(executionInsight, runId, nodeId, outputVariable, value);
 					frameBindings.remove(outputVariable);
@@ -1009,7 +1010,7 @@ final class AutomationRunExecutionService {
 			}
 			value = awaitGeneratedAgentRun(executionInsight, runId, node, value, traceRoomId, scope);
 			return persistNativeNodeResult(runId, projectId, node, value, started, startedMs, traceRoomId, resumeNodeId,
-					scope);
+					scope, outputKind);
 		} catch (Exception e) {
 			long duration = System.currentTimeMillis() - startedMs;
 			String message = safeMessage(e);
@@ -1017,17 +1018,6 @@ final class AutomationRunExecutionService {
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, null, message,
 					traceForNode(node, traceRoomId, null, null));
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
-		}
-	}
-
-	/** Removes a failed or unsupported frame result from the run's Python namespace. */
-	private static void discardPythonFrameOutput(PyTranslator translator, String outputVariable, String runId,
-			String nodeId) {
-		try {
-			translator.runScript("globals().pop(" + AutomationRuntimeUtils.GSON.toJson(outputVariable) + ", None)");
-		} catch (RuntimeException cleanupError) {
-			classLogger.warn("Unable to discard Python frame output '{}' for Automation run '{}', node '{}'",
-					outputVariable, runId, nodeId, cleanupError);
 		}
 	}
 
@@ -1049,7 +1039,7 @@ final class AutomationRunExecutionService {
 			return;
 		}
 		try {
-			registerNodeFrame(executionInsight, outputVariable);
+			AutomationFrameOutput.registerPythonVariable(executionInsight, outputVariable);
 			classLogger.debug(
 					"Registered tabular preview '{}' for Automation run '{}', node '{}', execution Insight '{}'",
 					outputVariable, runId, nodeId, executionInsight.getInsightId());
@@ -1059,50 +1049,6 @@ final class AutomationRunExecutionService {
 							+ "execution Insight '{}'; the JSON result remains available",
 					outputVariable, runId, nodeId, executionInsight.getInsightId(), e);
 		}
-	}
-
-	/**
-	 * Registers a Python variable through the same SEMOSS frame bridge used by
-	 * Notebook. The current bridge creates the platform's PY frame backend; callers
-	 * carry only the returned backend identity.
-	 *
-	 * @param executionInsight run Insight that owns the Python session and frame
-	 * @param outputVariable   Python variable and SEMOSS frame alias
-	 * @throws IllegalStateException when the variable cannot be registered as a frame
-	 */
-	private static String registerNodeFrame(Insight executionInsight, String outputVariable) {
-		NounStore nounStore = new NounStore("GenerateFrameFromPyVariable");
-		nounStore.makeGenRowStruct(ReactorKeysEnum.VARIABLE.getKey())
-				.add(new NounMetadata(outputVariable, PixelDataType.CONST_STRING));
-		nounStore.makeGenRowStruct(ReactorKeysEnum.OVERRIDE.getKey())
-				.add(new NounMetadata(false, PixelDataType.BOOLEAN));
-
-		GenerateFrameFromPyVariableReactor reactor = new GenerateFrameFromPyVariableReactor();
-		reactor.setInsight(executionInsight);
-		reactor.setNounStore(nounStore);
-		try {
-			NounMetadata result = reactor.execute();
-			if (!(result.getValue() instanceof ITableDataFrame frame)) {
-				throw new IllegalStateException("SEMOSS frame registration returned a non-frame value.");
-			}
-			return frame.getFrameType().getTypeAsString();
-		} catch (RuntimeException e) {
-			throw new IllegalStateException(
-					"Unable to register Python frame output '" + outputVariable + "' in execution Insight '"
-							+ executionInsight.getInsightId() + "'.",
-					e);
-		}
-	}
-
-	/** Returns the backend of an already registered SEMOSS frame alias. */
-	private static String registeredFrameBackend(Insight executionInsight, String outputVariable) {
-		NounMetadata noun = executionInsight.getVarStore().get(outputVariable);
-		if (noun == null || noun.getNounType() != PixelDataType.FRAME
-				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
-			throw new IllegalStateException("Automation frame output '" + outputVariable
-					+ "' was not registered in execution Insight '" + executionInsight.getInsightId() + "'.");
-		}
-		return frame.getFrameType().getTypeAsString();
 	}
 
 	/**
@@ -1532,7 +1478,7 @@ final class AutomationRunExecutionService {
 	 * cancellation record itself.
 	 */
 	private Map<String, Object> persistCancelledNodeResult(String runId, Map<String, Object> node, String nodeId,
-			Object value, Timestamp started, long startedMs, String traceRoomId) {
+			Object value, Timestamp started, long startedMs, String traceRoomId, String outputKind) {
 		long duration = System.currentTimeMillis() - startedMs;
 		String message = "Run cancelled by user";
 		Object persistedValue = null;
@@ -1551,7 +1497,8 @@ final class AutomationRunExecutionService {
 		} else {
 			// A null agent run id preserves the one recorded when the child run started.
 			AutomationRunStore.updateNodeFailedWithResult(runId, nodeId, started, duration,
-					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, null, message);
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, null,
+					message);
 		}
 		streamNodeProgress(runId, node, AutomationConstants.STATUS_CANCELLED, duration, preview, message,
 				traceForNode(node, traceRoomId, null, null));
@@ -1571,10 +1518,10 @@ final class AutomationRunExecutionService {
 	 */
 	private Map<String, Object> persistNativeNodeResult(String runId, String projectId, Map<String, Object> node,
 			Object value, Timestamp started, long startedMs, String traceRoomId, String resumeNodeId,
-			Map<String, Object> scope) {
+			Map<String, Object> scope, String outputKind) {
 		String nodeId = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 		if (AutomationRunRegistry.isCancellationRequested(runId)) {
-			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId);
+			return persistCancelledNodeResult(runId, node, nodeId, value, started, startedMs, traceRoomId, outputKind);
 		}
 		GeneratedNodeResult generatedResult = splitGeneratedNodeResult(node, value);
 		Object persistedValue = generatedResult.value();
@@ -1616,14 +1563,14 @@ final class AutomationRunExecutionService {
 		String modelMessageId = generatedAgentNode ? null : extractModelMessageId(node, traceMetadata, traceRoomId);
 		if (agentFailure != null) {
 			AutomationRunStore.updateNodeFailedWithResult(runId, nodeId, started, duration,
-					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, agentRunId,
+					(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, agentRunId,
 					agentFailure);
 			streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_FAILED, duration, preview, agentFailure,
 					traceForNode(node, traceRoomId, null, agentRunId));
 			return nodeResult(nodeId, AutomationConstants.NODE_STATUS_FAILED, persistedValue, agentFailure);
 		}
 		AutomationRunStore.updateNodeSuccess(runId, nodeId, started, duration,
-				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), output, preview, modelMessageId,
+				(String) node.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR), outputKind, output, preview, modelMessageId,
 				agentRunId);
 		AutomationRunRegistry.nodeCompleted(runId);
 		streamNodeProgress(runId, node, AutomationConstants.NODE_STATUS_SUCCESS, duration, preview, null,
@@ -1830,7 +1777,7 @@ final class AutomationRunExecutionService {
 			Object value = raw == null ? null : AutomationRuntimeUtils.GSON.fromJson(raw.toString(), Object.class);
 			String outputVar = stringValue(row.get(AutomationConstants.OUTPUT_VAR_NAME));
 			if (outputVar != null) {
-				if (AutomationRuntime.isFrameOutputSummary(value)) {
+				if (AutomationConstants.OUTPUT_KIND_FRAME.equals(row.get(AutomationConstants.OUTPUT_KIND))) {
 					frameBindings.put(outputVar,
 							requireResumableFrameBackend(executionInsight, runId, outputVar));
 				}
@@ -1852,7 +1799,7 @@ final class AutomationRunExecutionService {
 	/** Resolves one persisted frame summary only while its run-owned frame is live. */
 	static String requireResumableFrameBackend(Insight executionInsight, String runId, String outputVariable) {
 		try {
-			return registeredFrameBackend(executionInsight, outputVariable);
+			return AutomationFrameOutput.requireBackend(executionInsight, outputVariable);
 		} catch (IllegalStateException unavailable) {
 			throw new IllegalStateException("Automation run '" + runId + "' cannot resume because frame-backed output '"
 					+ outputVariable + "' is no longer available in its execution Insight.", unavailable);

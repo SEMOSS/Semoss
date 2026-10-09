@@ -35,9 +35,7 @@ import java.util.Map;
 import prerna.om.Insight;
 import prerna.reactor.AbstractReactor;
 import prerna.reactor.automation.AutomationConstants;
-import prerna.reactor.automation.AutomationRuntime;
 import prerna.reactor.automation.project.AutomationProjectService;
-import prerna.reactor.automation.utils.AutomationRuntimeUtils;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -131,17 +129,9 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		return new NounMetadata(runDetail, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
-	private static boolean isFrameOutput(Map<String, Object> nodeOutput) {
-		Object rawValue = nodeOutput.get(AutomationConstants.OUTPUT_VALUE);
-		if (!(rawValue instanceof String outputValue)) {
-			return false;
-		}
-		try {
-			Object value = AutomationRuntimeUtils.GSON.fromJson(outputValue, Object.class);
-			return AutomationRuntime.isFrameOutputSummary(value);
-		} catch (RuntimeException ignored) {
-			return false;
-		}
+	/** Returns whether the durable row explicitly identifies a live frame output. */
+	static boolean isFrameOutput(Map<String, Object> nodeOutput) {
+		return AutomationConstants.OUTPUT_KIND_FRAME.equals(nodeOutput.get(AutomationConstants.OUTPUT_KIND));
 	}
 
 	@Override

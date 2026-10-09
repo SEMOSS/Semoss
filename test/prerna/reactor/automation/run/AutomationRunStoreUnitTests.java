@@ -45,6 +45,7 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
+import prerna.reactor.automation.AutomationConstants;
 import prerna.util.JdbcTestDatabase;
 import prerna.util.SystemEngineRegistry;
 
@@ -67,7 +68,7 @@ class AutomationRunStoreUnitTests {
 		db.execute(
 				"CREATE TABLE AUTOMATION_RUNS (RUN_ID VARCHAR PRIMARY KEY, PROJECT_ID VARCHAR, AUTOMATION_ID VARCHAR, DEFINITION_VERSION INT, DEFINITION_HASH VARCHAR, DEFINITION_SNAPSHOT CLOB, INPUT_SNAPSHOT CLOB, STATUS VARCHAR, TRIGGER_TYPE VARCHAR, STARTED_AT TIMESTAMP, LAST_HEARTBEAT TIMESTAMP, TOTAL_NODES INT, COMPLETED_NODES INT, CREATED_BY VARCHAR, CANCEL_REQUESTED BOOLEAN, RESULT_SUMMARY VARCHAR, COMPLETED_AT TIMESTAMP, FAILED_NODE_ID VARCHAR, ERROR_MESSAGE VARCHAR)",
 				"CREATE TABLE AUTOMATION_RUN_NODE_SOURCES (RUN_ID VARCHAR, NODE_ID VARCHAR, SOURCE_HASH VARCHAR, SOURCE_CODE CLOB)",
-				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
+				"CREATE TABLE AUTOMATION_NODE_OUTPUTS (RUN_ID VARCHAR, NODE_ID VARCHAR, NODE_LABEL VARCHAR, EXECUTION_ORDER INT, STATUS VARCHAR, ROOM_ID VARCHAR, WORKSPACE_ID VARCHAR, STARTED_AT TIMESTAMP, COMPLETED_AT TIMESTAMP, DURATION_MS BIGINT, OUTPUT_VAR_NAME VARCHAR, OUTPUT_KIND VARCHAR, OUTPUT_VALUE CLOB, OUTPUT_PREVIEW VARCHAR, MODEL_MESSAGE_ID VARCHAR, AGENT_RUN_ID VARCHAR, ERROR_MESSAGE VARCHAR)");
 	}
 
 	private void initialize(String runId, Map<String, String> sources) {
@@ -151,12 +152,14 @@ class AutomationRunStoreUnitTests {
 			AutomationRunStore.resolveWait("run", waitId, "resolver");
 			assertEquals("RESOLVED", db.value("SELECT STATUS FROM AUTOMATION_RUN_WAITS"));
 			var started = java.sql.Timestamp.from(java.time.Instant.now());
-			AutomationRunStore.updateNodeSuccess("run", "node", started, 5L, "output", "  {}  ", "preview", null,
-					"agent");
+			AutomationRunStore.updateNodeSuccess("run", "node", started, 5L, "output",
+					AutomationConstants.OUTPUT_KIND_FRAME, "  {}  ", "preview", null, "agent");
 			assertEquals("  {}  ", db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
+			assertEquals(AutomationConstants.OUTPUT_KIND_FRAME,
+					db.value("SELECT OUTPUT_KIND FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			AutomationRunStore.updateNodeFailed("run", "node", started, 6L, "failure");
 			AutomationRunStore.updateNodeFailedWithResult("run", "node", started, 7L, "output", null, null, null,
-					"failed result");
+					null, "failed result");
 			assertEquals("agent", db.value("SELECT AGENT_RUN_ID FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			assertNull(db.value("SELECT OUTPUT_VALUE FROM AUTOMATION_NODE_OUTPUTS WHERE NODE_ID='node'"));
 			AutomationRunStore.skipPendingNodes("run", "not selected");

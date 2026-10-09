@@ -158,12 +158,4 @@ public class AutomationRuntimeUnitTests {
 								Map.of("rowCount", -1, "columnCount", 3))));
 	}
 
-	@Test
-	void recognizesOnlyTheReservedPersistedFrameSummary() {
-		assertTrue(AutomationRuntime
-				.isFrameOutputSummary(Map.of("dataType", "table", "rowCount", 0, "columnCount", 2)));
-		assertFalse(AutomationRuntime
-				.isFrameOutputSummary(Map.of("dataType", "table", "rowCount", -1, "columnCount", 2)));
-		assertFalse(AutomationRuntime.isFrameOutputSummary(Map.of("dataType", "table", "rows", List.of())));
-	}
 }
