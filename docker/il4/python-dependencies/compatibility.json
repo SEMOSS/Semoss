@@ -70,6 +70,21 @@
       "migration_caveat": "Adds one new transitive dependency, pyyaml-include==1.4.1 (confirmed via a full lock diff: no other package's resolved version moved). Verified beyond the standard harness: patched a copy of py/audio/lk_to_pcat.py with the existing audio_compat.py (hash-guarded, unchanged), built the real python-dependencies image stage for linux/amd64 with pipecat-ai 1.4.0, and ran the project's own docker/il4/tests/check_audio.py against it inside that image - all three SEMOSS audio pipelines (speech_to_speech_realtime, listen_and_transcribe, listen_translate_and_transcribe) constructed correctly and the user/assistant transcript event payloads matched exactly. Only DeprecationWarnings surfaced (PipelineTask -> PipelineWorker, and several service constructors' positional kwargs in favor of a settings= object), none of which affect current behavior. Live external audio/model/service integrations remain untested."
     }
   ],
+  "applied_source_patches": [
+    {
+      "requirement": "fsspec",
+      "version": "2023.10.0",
+      "patch": "fsspec_compat.py",
+      "reason": "Closes CVE-2026-104851 / GHSA-27vj-qcqg-25rc (Server-Side Template Injection -> RCE in fsspec.implementations.reference.ReferenceFileSystem, CVSS 8.8), an AWS Inspector2 finding against the published container image. The upstream fix ships in fsspec 2026.6.0, but fsspec is a transitive-only dependency (via dask, datasets, huggingface-hub, torch) and datasets==4.4.0 caps it at fsspec[http]<=2025.10.0; reaching 2026.6.0 would require datasets>=5.1.0, which in turn requires pyarrow>=24.0.0 - reopening the pyarrow==23.0.1 pin that was carefully tuned for CPython 3.14 wheel availability and CVE-2026-25087 (see the pyarrow entry above). Forcing fsspec past datasets' own tested upper bound via an override, or taking the full datasets/pyarrow major-version chain, both carry materially more risk than the vulnerability itself once its actual reach is accounted for: the vulnerable code (CWE-94/CWE-1336) only triggers through ReferenceFileSystem's Kerchunk reference-JSON parsing, which SEMOSS does not use anywhere (confirmed: no reference to ReferenceFileSystem, kerchunk, or the reference:// protocol in py/). Applied the exact upstream fix instead, isolated to just the three vulnerable sinks, from fsspec commit 86438783 (PR #2039): unrestricted jinja2.Template(...).render(...) replaced with jinja2.sandbox.SandboxedEnvironment().from_string(...).render(...) in _process_references1/_render_jinja, _process_templates, and _process_gen.",
+      "evidence": [
+        "https://github.com/fsspec/filesystem_spec/security/advisories/GHSA-27vj-qcqg-25rc",
+        "https://github.com/fsspec/filesystem_spec/commit/86438783f93b1398ef245b92f0e6063b445b611c",
+        "https://pypi.org/pypi/datasets/4.4.0/json",
+        "https://pypi.org/pypi/datasets/5.1.0/json"
+      ],
+      "verification": "Hash-guarded against fsspec 2023.10.0's exact reference.py source (same pattern as audio_compat.py); each of the three replacement blocks confirmed to occur exactly once, and the patched source compiles. Functionally verified twice: once in an ad hoc venv, and again inside the real built python-dependencies image for linux/amd64. Reproduced the advisory's own RCE proof-of-concept (a Kerchunk reference JSON with a 'gen' array whose templated key/url triggers jinja2.sandbox.SecurityError before the patch raises an unhandled exception) - unpatched fsspec 2023.10.0 fires the RCE (marker file created), patched fsspec raises jinja2.sandbox.SecurityError and creates no marker file. Also confirmed the advisory's documented benign case (plain '{{var}}' substitution) still resolves correctly, so legitimate Kerchunk usage is unaffected. The project's own validate.py (29 checks, 260 locked packages) passes unchanged since fsspec's version and public API are untouched."
+    }
+  ],
   "additional_constraints": [
     {
       "requirement": "dill>=0.4.0",

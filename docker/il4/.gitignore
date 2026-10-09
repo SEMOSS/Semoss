@@ -48,4 +48,5 @@
 !python-dependencies/*.json
 !python-dependencies/install.sh
 !python-dependencies/validate.py
+!python-dependencies/fsspec_compat.py
 /dev-build-artifacts/

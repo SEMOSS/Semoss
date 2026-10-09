@@ -193,6 +193,17 @@ Datasets 4.x no longer supports dataset loading scripts. Review existing saved
 datasets, pickle migrations, custom loaders, and external model integrations
 before migrating production data.
 
+`fsspec` stays pinned at 2023.10.0 rather than bumped to 2026.6.0: reaching
+that version needs `datasets>=5.1.0`, which needs `pyarrow>=24.0.0`, reopening
+the pyarrow pin above. CVE-2026-104851 (GHSA-27vj-qcqg-25rc, RCE via
+`ReferenceFileSystem`'s Kerchunk template parsing, a feature SEMOSS does not
+use) is closed instead with a targeted, hash-guarded source patch
+([fsspec_compat.py](./python-dependencies/fsspec_compat.py)) applying the
+exact upstream fix. See `applied_source_patches` in
+[compatibility.json](./python-dependencies/compatibility.json) for the full
+verification, including reproducing the advisory's RCE proof-of-concept
+against both the unpatched and patched package.
+
 The build uses hash-pinned uv and build tools, verifies dependency artifact hashes,
 routes PyTorch packages explicitly to its CPU index, and checks the installed
 dependency graph. Annoy, pandasql, and swifter require source builds; their sdists,
