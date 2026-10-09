@@ -105,6 +105,12 @@ public final class CollaborationJobUtils {
 	// the running job of this kind, or a new one started with work
 	public static Map<String, Object> start(String ownerId, String ownerType, String kind, Map<String, Object> params,
 			Work work) {
+		return start(ownerId, ownerType, kind, params, work, null);
+	}
+
+	// then runs after the job is recorded done, so it can start a job that waits for this one
+	public static Map<String, Object> start(String ownerId, String ownerType, String kind, Map<String, Object> params,
+			Work work, Runnable then) {
 		synchronized (CollaborationDbUtils.ownerLock("job", ownerId, ownerType)) {
 			Map<String, Object> latest = latest(ownerId, ownerType, kind);
 			if (latest != null && RUNNING.equals(latest.get("status"))) {
@@ -119,14 +125,23 @@ public final class CollaborationJobUtils {
 			ALIVE.add(jobId);
 			Job job = new Job(ownerId, ownerType, jobId);
 			POOL.submit(() -> {
+				boolean done = false;
 				try {
 					work.run(job);
 					finish(job, DONE, null);
+					done = true;
 				} catch (Throwable e) {
 					classLogger.warn("Collaboration job {} ({}) failed", jobId, kind, e);
 					finish(job, FAILED, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
 				} finally {
 					ALIVE.remove(jobId);
+				}
+				if (done && then != null) {
+					try {
+						then.run();
+					} catch (RuntimeException e) {
+						classLogger.warn("Follow-up of collaboration job {} ({}) failed", jobId, kind, e);
+					}
 				}
 			});
 			return get(ownerId, ownerType, jobId);
@@ -138,6 +153,34 @@ public final class CollaborationJobUtils {
 		return latest(owner.getValue0(), owner.getValue1(), kind);
 	}
 
+	/** Read a specific job belonging to the signed-in owner, including restart recovery. */
+	public static Map<String, Object> get(User user, String jobId) {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return recover(owner.getValue0(), owner.getValue1(), get(owner.getValue0(), owner.getValue1(), jobId));
+	}
+
+	/** Latest sort or topic-filing job; unrelated classify jobs do not replace its result. */
+	public static Map<String, Object> latest(User user, String kind, String mode) {
+		if (mode == null) {
+			return latest(user, kind);
+		}
+		if (!"classify".equals(kind) || !("sort".equals(mode) || "topics".equals(mode))) {
+			throw new IllegalArgumentException("mode requires kind classify and must be sort or topics");
+		}
+		var owner = CollaborationDbUtils.ownerOf(user);
+		for (Map<String, Object> job : CollaborationDbUtils.query(
+				"SELECT " + COLUMNS + " FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? "
+						+ "ORDER BY STARTED_AT DESC, JOB_ID DESC", CollaborationJobUtils::map,
+				owner.getValue0(), owner.getValue1(), kind)) {
+			Map<String, Object> params = CollaborationDbUtils.parseMap(CollaborationDbUtils.toJson(job.get("params")));
+			String actual = "topics".equals(params.get("mode")) ? "topics" : "sort";
+			if (mode.equals(actual)) {
+				return recover(owner.getValue0(), owner.getValue1(), job);
+			}
+		}
+		return null;
+	}
+
 	// newest job of the kind (any kind when null), with a restart-orphaned RUNNING
 	// row marked failed
 	public static Map<String, Object> latest(String ownerId, String ownerType, String kind) {
@@ -147,24 +190,37 @@ public final class CollaborationJobUtils {
 				: new Object[] { ownerId, ownerType, kind };
 		Map<String, Object> job = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(sql, 1, 0),
 				CollaborationJobUtils::map, params);
-		if (job != null && RUNNING.equals(job.get("status")) && !ALIVE.contains(job.get("id"))) {
-			CollaborationDbUtils.update(
-					"UPDATE COLLAB_JOB SET STATUS = ?, ERROR = ?, FINISHED_AT = ? "
-							+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ? AND STATUS = ?",
-					FAILED, "Stopped by a server restart; start it again", CollaborationDbUtils.now(), ownerId,
-					ownerType, job.get("id"), RUNNING);
-			return get(ownerId, ownerType, (String) job.get("id"));
+		return recover(ownerId, ownerType, job);
+	}
+
+	private static Map<String, Object> recover(String ownerId, String ownerType, Map<String, Object> job) {
+		synchronized (CollaborationDbUtils.ownerLock("job", ownerId, ownerType)) {
+			// Start records the row and ALIVE under this same lock; a read between those writes is not an orphan.
+			if (job != null && RUNNING.equals(job.get("status")) && !ALIVE.contains(job.get("id"))) {
+				CollaborationDbUtils.update(
+						"UPDATE COLLAB_JOB SET STATUS = ?, ERROR = ?, FINISHED_AT = ? "
+								+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND JOB_ID = ? AND STATUS = ?",
+						FAILED, "Stopped by a server restart; start it again", CollaborationDbUtils.now(), ownerId,
+						ownerType, job.get("id"), RUNNING);
+				return get(ownerId, ownerType, (String) job.get("id"));
+			}
+			return job;
 		}
-		return job;
 	}
 
 	// any job of this owner still running on this server; callers hold the job lock
 	// so none can start
 	static boolean anyRunning(String ownerId, String ownerType) {
+		return anyRunning(ownerId, ownerType, null);
+	}
+
+	// as above, ignoring jobs of one kind (a job checking for others besides itself)
+	static boolean anyRunning(String ownerId, String ownerType, String exceptKind) {
 		return CollaborationDbUtils
-				.query("SELECT JOB_ID FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND STATUS = ?",
-						rs -> rs.getString("JOB_ID"), ownerId, ownerType, RUNNING)
-				.stream().anyMatch(ALIVE::contains);
+				.query("SELECT JOB_ID, KIND FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND STATUS = ?",
+						rs -> exceptKind != null && exceptKind.equals(rs.getString("KIND")) ? null : rs.getString("JOB_ID"),
+						ownerId, ownerType, RUNNING)
+				.stream().anyMatch(id -> id != null && ALIVE.contains(id));
 	}
 
 	static Map<String, Object> get(String ownerId, String ownerType, String jobId) {

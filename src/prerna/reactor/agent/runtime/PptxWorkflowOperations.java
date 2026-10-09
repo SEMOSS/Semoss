@@ -37,10 +37,13 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import prerna.reactor.agent.AgentRunContext;
+import prerna.reactor.agent.config.AgentConfigLoader;
+import prerna.reactor.agent.config.SubAgentSpec;
 import prerna.reactor.agent.exceptions.AgentCancelledException;
 import prerna.reactor.agent.run.AgentRunService;
 import prerna.reactor.agent.subagent.SubAgentDispatcher;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.util.Constants;
 import prerna.util.pptx.SemossPptxInspector;
 
 /**
@@ -101,31 +104,27 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 	}
 
 	@Override
+	public String reviewUnavailable() {
+		try {
+			reviewer(null);
+			return null;
+		} catch (IllegalArgumentException e) {
+			// the vision preflight: neither the run's model nor the configured default accepts images
+			return e.getMessage() + "; set " + SemossPptxInspector.DEFAULT_MODEL_PROPERTY
+					+ " to a model with image input to enable it";
+		} catch (Exception e) {
+			return e.getMessage();
+		}
+	}
+
+	@Override
 	public JSONObject review(String file, List<Integer> slides, String instructions, String engine) throws Exception {
 		var cfg = ctx.getAgentConfig().getPptxWorkflow();
-		String alias = String.valueOf(cfg.getOrDefault("reviewer_alias", "agent_pptx_reviewer"));
-		var spec = ctx.getAgentConfig().getSubagents().stream().filter(s -> alias.equals(s.getAlias())).findFirst()
-				.orElseThrow(() -> new IllegalStateException("Configured PPTX reviewer is not attached: " + alias));
-		if (ctx.getSpawnDepth() >= ctx.getAgentConfig().getSpawnPolicy().getMaxSubagentDepth()) {
-			throw new IllegalStateException("PPTX reviewer exceeds this agent's configured spawn depth");
-		}
+		Reviewer reviewer = reviewer(engine);
+		var spec = reviewer.spec();
+		String reviewEngine = reviewer.engine();
 		JSONObject parameters = new JSONObject().put("filePath", file).put("slides", new JSONArray(slides))
 				.put("instructions", bounded(instructions, 11000)).put("context", bounded(ctx.getInput(), 11000));
-		// The system reviewer has a known InspectPptx contract. Custom reviewers retain their own routing.
-		String reviewEngine = engine;
-		if ("pptx-reviewer".equals(spec.getWorkspaceId())) {
-			JSONObject reviewer = ModelInferenceLogsUtils.getWorkspaceConfigJson(spec.getWorkspaceId());
-			String fallback = ctx.getModelEngine().getEngineId();
-			if (reviewer != null) {
-				if (!reviewer.optString("model_id").isBlank()) fallback = reviewer.getString("model_id");
-				JSONObject policy = reviewer.optJSONObject("tool_policy");
-				JSONObject defaults = policy == null ? null : policy.optJSONObject("parameter_defaults");
-				JSONObject inspection = defaults == null ? null : defaults.optJSONObject("InspectPptx");
-				if ((reviewEngine == null || reviewEngine.isBlank()) && inspection != null)
-					reviewEngine = inspection.optString("engine", null);
-			}
-			reviewEngine = SemossPptxInspector.preflight(reviewEngine, fallback, ctx.getInsight());
-		}
 		if (reviewEngine != null && !reviewEngine.isBlank()) parameters.put("engine", reviewEngine);
 		String prompt = "Inspect the saved PowerPoint using InspectPptx with these exact parameters. Return its report unchanged. "
 				+ "Do not edit files or ask for human approval.\n" + parameters;
@@ -162,6 +161,40 @@ final class PptxWorkflowOperations implements PptxWorkflow.Operations {
 				AgentRunService.get().cancelRun(childId, "PPTX parent stopped waiting for review");
 			}
 		}
+	}
+
+	private record Reviewer(SubAgentSpec spec, String engine) {
+	}
+
+	/** The reviewer to spawn and its vision engine; throws when this run cannot review. */
+	private Reviewer reviewer(String engine) {
+		var cfg = ctx.getAgentConfig().getPptxWorkflow();
+		String alias = String.valueOf(cfg.getOrDefault("reviewer_alias", "agent_pptx_reviewer"));
+		var spec = ctx.getAgentConfig().getSubagents().stream().filter(s -> alias.equals(s.getAlias())).findFirst()
+				// a collaboration run's own agent need not attach one; it uses the system reviewer
+				.or(() -> PptxWorkflow.onDemand(ctx) ? AgentConfigLoader.resolveSubagents(new JSONObject().put("subagents",
+						new JSONArray().put(new JSONObject().put("workspaceId", Constants.AGENT_PPTX_REVIEWER))))
+						.stream().findFirst() : java.util.Optional.empty())
+				.orElseThrow(() -> new IllegalStateException("Configured PPTX reviewer is not attached: " + alias));
+		if (ctx.getSpawnDepth() >= ctx.getAgentConfig().getSpawnPolicy().getMaxSubagentDepth()) {
+			throw new IllegalStateException("PPTX reviewer exceeds this agent's configured spawn depth");
+		}
+		// The system reviewer has a known InspectPptx contract. Custom reviewers retain their own routing.
+		String reviewEngine = engine;
+		if ("pptx-reviewer".equals(spec.getWorkspaceId())) {
+			JSONObject reviewer = ModelInferenceLogsUtils.getWorkspaceConfigJson(spec.getWorkspaceId());
+			String fallback = ctx.getModelEngine().getEngineId();
+			if (reviewer != null) {
+				if (!reviewer.optString("model_id").isBlank()) fallback = reviewer.getString("model_id");
+				JSONObject policy = reviewer.optJSONObject("tool_policy");
+				JSONObject defaults = policy == null ? null : policy.optJSONObject("parameter_defaults");
+				JSONObject inspection = defaults == null ? null : defaults.optJSONObject("InspectPptx");
+				if ((reviewEngine == null || reviewEngine.isBlank()) && inspection != null)
+					reviewEngine = inspection.optString("engine", null);
+			}
+			reviewEngine = SemossPptxInspector.preflight(reviewEngine, fallback, ctx.getInsight());
+		}
+		return new Reviewer(spec, reviewEngine);
 	}
 
 	static JSONObject parseReviewResult(JSONObject result, String childId) {

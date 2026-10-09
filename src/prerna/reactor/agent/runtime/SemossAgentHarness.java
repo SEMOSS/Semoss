@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
@@ -161,9 +162,12 @@ public class SemossAgentHarness implements IAgentHarness {
 		}
 		List<Map<String, Object>> defaultAndExplicitTools = PlatformAgentTools.resolveDefaultTools(paramMap,
 				agentConfig.getDisabledDefaultTools());
+		boolean pptxOnDemand = PptxWorkflow.onDemand(ctx);
 		if (agentConfig.hasPptxWorkflow()) {
 			defaultAndExplicitTools
 					.removeIf(tool -> Set.of("ExecuteNodeCode", "InspectPptx").contains(tool.get("name")));
+		}
+		if (agentConfig.hasPptxWorkflow() || pptxOnDemand) {
 			defaultAndExplicitTools.add(PptxWorkflow.toolDefinition());
 			defaultAndExplicitTools.add(PptxWorkflow.editToolDefinition());
 			defaultAndExplicitTools.add(PptxStructuredEdits.definition());
@@ -252,8 +256,11 @@ public class SemossAgentHarness implements IAgentHarness {
 		// stay cacheable
 		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
-			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(),
-					CollaborationUtils.threadIdOf(room));
+			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
+			if (ownerBlock != null) {
+				composed.append("\n\n").append(ownerBlock);
+			}
+			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
 			}
@@ -261,6 +268,8 @@ public class SemossAgentHarness implements IAgentHarness {
 		composed.append("\n\n").append(buildRuntimeContextPromptBlock(ctx, room, runtimeParamMap));
 		if (agentConfig.hasPptxWorkflow()) {
 			composed.append("\n\n").append(PptxWorkflow.PROMPT);
+		} else if (pptxOnDemand) {
+			composed.append("\n\n").append(CollaborationPrompts.PPTX_PROMPT);
 		}
 		opts.put("instructions", composed.toString());
 		// The agent and room layers are already composed; do not append them again.

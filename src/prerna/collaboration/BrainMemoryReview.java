@@ -210,7 +210,7 @@ public final class BrainMemoryReview {
 				throw new IllegalStateException("Brain's text model (" + engine + ") could not be loaded");
 			}
 
-			Scope scope = BrainMemoryRecall.scope(ownerId, ownerType, threadId);
+			Scope scope = BrainMemoryRecall.scope(ownerId, ownerType, threadId, null);
 			Map<String, Ref> refs = new LinkedHashMap<>();
 			Map<String, String> kept = new LinkedHashMap<>();
 			Map<String, Object> input = input(ownerId, ownerType, scope, turns, refs, kept);
@@ -227,7 +227,7 @@ public final class BrainMemoryReview {
 
 	// the room's messages without disturbing a run that may be using it: a copy of the loaded room's list,
 	// or the saved copy when it is not loaded
-	private static List<AbstractMessage> messages(User user, String roomId) {
+	static List<AbstractMessage> messages(User user, String roomId) {
 		Room cached = user.getRoomHash().get(roomId);
 		if (cached != null) {
 			try (RoomMessageStore.RoomMutationLock ignored = RoomMessageStore.acquireMutationLock(roomId)) {

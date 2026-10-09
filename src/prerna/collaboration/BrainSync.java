@@ -213,6 +213,21 @@ public final class BrainSync {
 				return teamsLast.isBefore(since) ? later(teamsLast, floor) : since;
 			}
 		}
+		// When the first Teams import was partial there is no successful Teams checkpoint yet.
+		// Retry its selected window instead of using mail's newer checkpoint and losing skipped chats.
+		Map<String, Object> imported = CollaborationDbUtils.queryOne(CollaborationDbUtils.page(
+				"SELECT COUNTS_JSON FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND KIND = ? "
+						+ "AND STATUS = ? ORDER BY STARTED_AT DESC", 1, 0),
+				rs -> CollaborationDbUtils.parseMap(CollaborationDbUtils.getString(rs, "COUNTS_JSON")),
+				ownerId, ownerType, BrainMailImport.KIND, CollaborationJobUtils.DONE);
+		return retryTeamsSince(since, floor, imported);
+	}
+
+	static Instant retryTeamsSince(Instant since, Instant floor, Map<String, Object> imported) {
+		if (imported != null && imported.get("teamsSince") instanceof String at) {
+			Instant firstWindow = Instant.parse(at);
+			return firstWindow.isBefore(since) ? later(firstWindow, floor) : since;
+		}
 		return since;
 	}
 

@@ -60,6 +60,7 @@ import com.google.gson.reflect.TypeToken;
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
 import prerna.cluster.util.ClusterUtil;
+import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.InternalMCP;
@@ -85,6 +86,7 @@ import prerna.reactor.agent.run.DeferredAgentTools;
 import prerna.sablecc2.PixelRunner;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.theme.PlaygroundThemeUtils;
+import prerna.util.SystemDefaultEngines;
 import prerna.util.Utility;
 
 public class Room implements Serializable {
@@ -1375,6 +1377,19 @@ public class Room implements Serializable {
 				}
 			} catch (ClassCastException e) {
 				classLogger.error("Malformed 'workspace' value in the options map", e);
+			}
+		}
+
+		// collaboration rooms get the platform defaults whatever their agent
+		if (CollaborationUtils.isCollaborationRoom(this)) {
+			for (String toolId : SystemDefaultEngines.getCollaborationMCPs()) {
+				if (ensureUnique.add(toolId)) {
+					try {
+						aggregated.addAll(getToolJson(toolId, maxLength, sanitizeToolNamesForLLM, lookup));
+					} catch (Exception e) {
+						classLogger.error("Unable to add collaboration default mcp " + toolId, e);
+					}
+				}
 			}
 		}
 
