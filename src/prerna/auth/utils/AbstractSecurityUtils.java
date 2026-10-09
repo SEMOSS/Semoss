@@ -1863,6 +1863,38 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// GROUP MANAGERS TABLE
+			// the users who manage the members of a custom group
+			colNames = new String[] { "GROUPID", "USERID", "TYPE", "DATEADDED", "PERMISSIONGRANTEDBY",
+					"PERMISSIONGRANTEDBYTYPE" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, VARCHAR_255, TIMESTAMP_DATATYPE_NAME, VARCHAR_255,
+					VARCHAR_255 };
+			if (allowIfExistsTable) {
+				String sql = queryUtil.createTableIfNotExists("GROUPMANAGERS", colNames, types);
+				classLogger.info("Running sql {}", sql);
+				securityDb.insertData(sql);
+			} else {
+				// see if table exists
+				if (!queryUtil.tableExists(conn, "GROUPMANAGERS", database, schema)) {
+					// make the table
+					String sql = queryUtil.createTable("GROUPMANAGERS", colNames, types);
+					classLogger.info("Running sql {}", sql);
+					securityDb.insertData(sql);
+				}
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "GROUPMANAGERS", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						classLogger.info("Column '{}' is not present in current list of columns: {}", col, allCols);
+						String addColumnSql = queryUtil.alterTableAddColumn("GROUPMANAGERS", col, types[i]);
+						classLogger.info("Running sql {}", addColumnSql);
+						securityDb.insertData(addColumnSql);
+					}
+				}
+			}
+
 			// GROUP ENGINE PERMISSION
 			// TODO::: look into how we want to allow user hiding of dbs that are assigned
 			// at group lvl
@@ -2695,6 +2727,7 @@ public abstract class AbstractSecurityUtils {
 		allValues.put("ENGINEACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
 		allValues.put("ENGINEPERMISSION", new String[] { "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPENGINEPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
+		allValues.put("GROUPMANAGERS", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPINSIGHTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("GROUPPROJECTPERMISSION", new String[] { "TYPE", "PERMISSIONGRANTEDBYTYPE" });
 		allValues.put("INSIGHTACCESSREQUEST", new String[] { "REQUEST_TYPE", "APPROVER_TYPE", "SUBMITTED_BY_TYPE" });
@@ -3183,7 +3216,7 @@ public abstract class AbstractSecurityUtils {
 	}
 
 	/**
-	 * Get a vector of the user ids
+	 * Get an array of the user ids
 	 * 
 	 * @param user
 	 * @return
@@ -3198,6 +3231,22 @@ public abstract class AbstractSecurityUtils {
 		}
 
 		return filters;
+	}
+
+	/**
+	 * Original login IDs for JDBC binding. Do not SQL-escape these values.
+	 *
+	 * @param user the user for whom to get filter values
+	 * @return a collection of the user's login IDs
+	 */
+	static Collection<String> getUserFilterValues(User user) {
+		List<String> values = new ArrayList<>();
+		if (user != null) {
+			for (AuthProvider login : user.getLogins()) {
+				values.add(user.getAccessToken(login).getId());
+			}
+		}
+		return values;
 	}
 
 	/**
@@ -3299,6 +3348,24 @@ public abstract class AbstractSecurityUtils {
 					Utility.inputSQLSanitizer(creator.getValue0())));
 			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==",
 					Utility.inputSQLSanitizer(creator.getValue1())));
+			anyCreator.addFilter(thisCreator);
+		}
+		return anyCreator;
+	}
+
+	/**
+	 * Creator filters for JDBC binding. Pass original values without SQL escaping.
+	 */
+	static IQueryFilter getPreparedCreatedByFilter(String createdByCol, String createdByTypeCol,
+			Collection<Pair<String, String>> creators) {
+		if (creators == null || creators.isEmpty()) {
+			throw new IllegalArgumentException("A creator filter needs at least one creator");
+		}
+		OrQueryFilter anyCreator = new OrQueryFilter();
+		for (Pair<String, String> creator : creators) {
+			AndQueryFilter thisCreator = new AndQueryFilter();
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByCol, "==", creator.getValue0()));
+			thisCreator.addFilter(SimpleQueryFilter.makeColToValFilter(createdByTypeCol, "==", creator.getValue1()));
 			anyCreator.addFilter(thisCreator);
 		}
 		return anyCreator;

@@ -28,23 +28,16 @@
 package prerna.io.connector.ms;
 
 import prerna.auth.AuthProvider;
-import prerna.reactor.AbstractReactor;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.io.connector.AbstractConnectorReactor;
 
 /**
  * Checks the user's Microsoft login before validating inputs or calling the
  * provider.
  */
-public abstract class AbstractMicrosoftReactor extends AbstractReactor {
+public abstract class AbstractMicrosoftReactor extends AbstractConnectorReactor {
 
 	@Override
-	public final NounMetadata execute() {
-		requireLogin(AuthProvider.MICROSOFT);
-		return executeAuthenticated();
+	protected final AuthProvider getAuthProvider() {
+		return AuthProvider.MICROSOFT;
 	}
-
-	/**
-	 * Runs the reactor after the provider login has been checked.
-	 */
-	protected abstract NounMetadata executeAuthenticated();
 }

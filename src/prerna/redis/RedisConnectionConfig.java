@@ -33,6 +33,7 @@ import java.util.Set;
 
 import prerna.cluster.sync.IClusterSynchronizer;
 import prerna.cluster.util.clients.AppCloudClientProperties;
+import prerna.util.ValueUtils;
 import redis.clients.jedis.HostAndPort;
 
 /**
@@ -146,23 +147,25 @@ public final class RedisConnectionConfig {
 		if (!anyRedisConfigured()) {
 			return null;
 		}
-		String host = trimToNull(property(REDIS_HOST));
+		String host = ValueUtils.trimToNull(property(REDIS_HOST));
 		if (host == null) {
 			host = "localhost";
 		}
 		int port = (int) getLongProperty(REDIS_PORT, 6379L);
 		int timeoutMs = (int) getLongProperty(REDIS_TIMEOUT_MS, 2000L);
-		String password = trimToNull(property(REDIS_PASSWORD));
+		String password = ValueUtils.trimToNull(property(REDIS_PASSWORD));
 		int poolMaxTotal = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_TOTAL, 64L));
 		int poolMaxIdle = Math.max(1, (int) getLongProperty(REDIS_POOL_MAX_IDLE, 16L));
 		poolMaxIdle = Math.min(poolMaxIdle, poolMaxTotal);
 		int poolMinIdle = Math.max(0, (int) getLongProperty(REDIS_POOL_MIN_IDLE, 1L));
 		poolMinIdle = Math.min(poolMinIdle, poolMaxIdle);
-		boolean sentinelEnabled = Boolean.parseBoolean(nullToEmpty(trimToNull(property(REDIS_SENTINEL_ENABLED))));
-		String masterName = trimToNull(property(REDIS_MASTER_NAME));
+		boolean sentinelEnabled = Boolean
+				.parseBoolean(nullToEmpty(ValueUtils.trimToNull(property(REDIS_SENTINEL_ENABLED))));
+		String masterName = ValueUtils.trimToNull(property(REDIS_MASTER_NAME));
 		Set<HostAndPort> sentinelNodes = parseNodes(property(REDIS_SENTINEL_NODES), DEFAULT_SENTINEL_PORT);
-		String sentinelPassword = trimToNull(property(REDIS_SENTINEL_PASSWORD));
-		boolean clusterEnabled = Boolean.parseBoolean(nullToEmpty(trimToNull(property(REDIS_CLUSTER_ENABLED))));
+		String sentinelPassword = ValueUtils.trimToNull(property(REDIS_SENTINEL_PASSWORD));
+		boolean clusterEnabled = Boolean
+				.parseBoolean(nullToEmpty(ValueUtils.trimToNull(property(REDIS_CLUSTER_ENABLED))));
 		Set<HostAndPort> clusterNodes = parseNodes(property(REDIS_CLUSTER_NODES), DEFAULT_REDIS_PORT);
 		int clusterMaxAttempts = Math.max(1, (int) getLongProperty(REDIS_CLUSTER_MAX_ATTEMPTS, 5L));
 		return new RedisConnectionConfig(host.trim(), port, password, timeoutMs, poolMaxTotal, poolMaxIdle, poolMinIdle,
@@ -194,7 +197,7 @@ public final class RedisConnectionConfig {
 	 * @return an ordered, unmodifiable set of endpoints (never null)
 	 */
 	private static Set<HostAndPort> parseNodes(String raw, int defaultPort) {
-		String value = trimToNull(raw);
+		String value = ValueUtils.trimToNull(raw);
 		if (value == null) {
 			return Collections.emptySet();
 		}
@@ -315,7 +318,7 @@ public final class RedisConnectionConfig {
 	}
 
 	private static long getLongProperty(String key, long defaultValue) {
-		String value = trimToNull(property(key));
+		String value = ValueUtils.trimToNull(property(key));
 		if (value == null) {
 			return defaultValue;
 		}
@@ -332,14 +335,6 @@ public final class RedisConnectionConfig {
 		}
 		// checks DIHelper (RDF_Map) first, then falls back to environment variables
 		return PROPS.get(key);
-	}
-
-	private static String trimToNull(String value) {
-		if (value == null) {
-			return null;
-		}
-		String trimmed = value.trim();
-		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	private static String nullToEmpty(String value) {

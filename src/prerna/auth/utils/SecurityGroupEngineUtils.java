@@ -62,6 +62,25 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupEngineUtils.class);
 
 	/**
+	 * Only an engine's owners, and admins, change which groups have access to it. A
+	 * group's managers decide who is in it, so attaching a group trusts them with
+	 * the access.
+	 *
+	 * @param user     the user
+	 * @param engineId the engine
+	 * @return whether the user is an admin or one of the engine's owners
+	 */
+	public static boolean userCanManageGroupAccess(User user, String engineId) {
+		return SecurityAdminUtils.userIsAdmin(user) || SecurityEngineUtils.userIsOwner(user, engineId);
+	}
+
+	private static void checkCanManageGroupAccess(User user, String engineId) throws IllegalAccessException {
+		if (!userCanManageGroupAccess(user, engineId)) {
+			throw new IllegalAccessException("Only this engine's owners can change which teams have access to it.");
+		}
+	}
+
+	/**
 	 * Determine if a group can view a database
 	 * 
 	 * @param user
@@ -420,9 +439,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	public static void addEngineGroupPermission(User user, String groupId, String groupType, String engineId,
 			String permission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityEngineUtils.userCanEditEngine(user, engineId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this engine's permissions.");
-		}
+		checkCanManageGroupAccess(user, engineId);
 
 		if (getGroupDatabasePermission(groupId, groupType, engineId) != null) {
 			throw new IllegalArgumentException(
@@ -498,11 +515,7 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	public static void editDatabaseGroupPermission(User user, String groupId, String groupType, String engineId,
 			String newPermission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
+		checkCanManageGroupAccess(user, engineId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
@@ -512,23 +525,6 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group database permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this database since you are not currently an owner.");
-			}
-		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -569,28 +565,13 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 	public static void removeDatabaseGroupPermission(User user, String groupId, String groupType, String engineId)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the database
-		Integer userPermissionLvl = getBestDatabasePermission(user, engineId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this database's permissions.");
-		}
+		checkCanManageGroupAccess(user, engineId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupDatabasePermission(groupId, groupType, engineId);
 		if (existingGroupPermission == null) {
 			throw new IllegalArgumentException(
 					"Attempting to modify group permission for a user who does not currently have access to the database");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group database permission.");
-			}
 		}
 
 		try {
@@ -721,5 +702,50 @@ public class SecurityGroupEngineUtils extends AbstractSecurityUtils {
 				"GROUPENGINEPERMISSION__ID", "numGroups"));
 		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * Groups that do not have access to an engine yet, for its owners to choose
+	 * from.
+	 *
+	 * @param user       an engine owner, or an admin
+	 * @param engineId   the engine
+	 * @param searchTerm text matched against the group id, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the groups, with the keys {@code id}, {@code type} and
+	 *         {@code description}
+	 * @throws IllegalAccessException when the user is not an owner or an admin
+	 */
+	public static List<Map<String, Object>> getAvailableGroupsForEngine(User user, String engineId, String searchTerm,
+			long limit, long offset) throws IllegalAccessException {
+		checkCanManageGroupAccess(user, engineId);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
+		{
+			// leave out the groups that already have access
+			SelectQueryStruct attachedQs = new SelectQueryStruct();
+			attachedQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("GROUPENGINEPERMISSION__ID",
+					"GROUPENGINEPERMISSION__TYPE", "GROUPKEY"));
+			attachedQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("GROUPENGINEPERMISSION__ENGINEID", "==", engineId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_GROUP__ID", "SMSS_GROUP__TYPE", "GROUPKEY"),
+					"!=", attachedQs));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
 	}
 }

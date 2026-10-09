@@ -101,11 +101,16 @@ public final class BrainAgentEdits {
 				changes.add("goal added");
 			}
 			if (isSet(addNote)) {
-				BrainTopicUtils.saveTopicNote(user, topic, null, BrainTopicUtils.NOTE, addNote.trim(), "confirmed");
+				// a topic's notes are Brain memories about it, saved as the owner's topic page saves them
+				Map<String, Object> note = new LinkedHashMap<>();
+				note.put("kind", BrainMemoryUtils.FACT);
+				note.put("text", addNote.trim());
+				note.put("about", List.of(Map.of("type", BrainMemoryUtils.TOPIC, "id", topic)));
+				BrainMemoryUtils.saveMemory(user, note);
 				changes.add("note added");
 			}
 			if (isSet(deleteNoteId)) {
-				BrainTopicUtils.deleteTopicNote(user, topic, deleteNoteId.trim());
+				deleteNote(user, ownerId, ownerType, topic, deleteNoteId.trim());
 				changes.add("goal or note deleted");
 			}
 		} catch (RuntimeException e) {
@@ -116,8 +121,27 @@ public final class BrainAgentEdits {
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
 		out.put("changes", changes);
-		out.put("topic", BrainTopicUtils.getTopic(user, topic));
+		out.put("topic", BrainTopicUtils.getTopic(user, topic, null));
 		return out;
+	}
+
+	// a goal is a BRAIN_TOPIC_NOTE row; a note is a memory linked to the topic (its id from ListTopics' notes)
+	private static void deleteNote(User user, String ownerId, String ownerType, String topic, String noteId) {
+		boolean goal = CollaborationDbUtils.queryOne("SELECT NOTE_ID FROM BRAIN_TOPIC_NOTE WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND TOPIC_ID = ? AND NOTE_ID = ?", rs -> rs.getString(1), ownerId, ownerType, topic,
+				noteId) != null;
+		if (goal) {
+			BrainTopicUtils.deleteTopicNote(user, topic, noteId);
+			return;
+		}
+		String memoryId = BrainMemoryUtils.memoryIdOf(noteId);
+		boolean note = CollaborationDbUtils.queryOne("SELECT MEMORY_ID FROM BRAIN_MEMORY_LINK WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ? AND MEMORY_ID = ? AND REF_TYPE = ? AND REF_ID = ?", rs -> rs.getString(1), ownerId,
+				ownerType, memoryId, BrainMemoryUtils.TOPIC, topic) != null;
+		if (!note) {
+			throw new IllegalArgumentException("This topic has no goal or note " + noteId + "; take the id from ListTopics");
+		}
+		BrainMemoryUtils.deleteMemory(user, memoryId);
 	}
 
 	// ---- thread ----
@@ -168,7 +192,8 @@ public final class BrainAgentEdits {
 	// ---- lookups ----
 
 	// a topic id, or a topic name that picks exactly one
-	private static String topic(String ownerId, String ownerType, String ref) {
+	// a topic id, else a topic name
+	static String topic(String ownerId, String ownerType, String ref) {
 		String value = ref.trim();
 		boolean isId = CollaborationDbUtils.queryOne("SELECT TOPIC_ID FROM BRAIN_TOPIC WHERE OWNER_ID = ? "
 				+ "AND OWNER_TYPE = ? AND TOPIC_ID = ?", rs -> rs.getString(1), ownerId, ownerType, value) != null;

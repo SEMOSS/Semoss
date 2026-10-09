@@ -62,6 +62,25 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(SecurityGroupProjectUtils.class);
 
 	/**
+	 * Only a project's owners, and admins, change which groups have access to it. A
+	 * group's managers decide who is in it, so attaching a group trusts them with
+	 * the access.
+	 *
+	 * @param user      the user
+	 * @param projectId the project
+	 * @return whether the user is an admin or one of the project's owners
+	 */
+	public static boolean userCanManageGroupAccess(User user, String projectId) {
+		return SecurityAdminUtils.userIsAdmin(user) || SecurityProjectUtils.userIsOwner(user, projectId);
+	}
+
+	private static void checkCanManageGroupAccess(User user, String projectId) throws IllegalAccessException {
+		if (!userCanManageGroupAccess(user, projectId)) {
+			throw new IllegalAccessException("Only this project's owners can change which teams have access to it.");
+		}
+	}
+
+	/**
 	 * Determine if a group can view a project
 	 * 
 	 * @param user
@@ -423,9 +442,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	public static void addProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String permission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!SecurityProjectUtils.userCanEditProject(user, projectId)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId);
 
 		if (getGroupProjectPermission(groupId, groupType, projectId) != null) {
 			throw new IllegalArgumentException(
@@ -502,11 +519,7 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	public static void editProjectGroupPermission(User user, String groupId, String groupType, String projectId,
 			String newPermission, String endDate) throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the project
-		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
@@ -516,23 +529,6 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		}
 
 		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group project permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this project since you are not currently an owner.");
-			}
-		}
 
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
@@ -573,28 +569,13 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 	public static void removeProjectGroupPermission(User user, String groupId, String groupType, String projectId)
 			throws IllegalAccessException {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the project
-		Integer userPermissionLvl = getBestProjectPermission(user, projectId);
-		if (userPermissionLvl == null || !AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
+		checkCanManageGroupAccess(user, projectId);
 
 		// make sure we are trying to edit a permission that exists
 		Integer existingGroupPermission = getGroupProjectPermission(groupId, groupType, projectId);
 		if (existingGroupPermission == null) {
 			throw new IllegalArgumentException(
 					"Attempting to modify group permission for a user who does not currently have access to the project");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this group permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingGroupPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this group project permission.");
-			}
 		}
 
 		try {
@@ -727,5 +708,50 @@ public class SecurityGroupProjectUtils extends AbstractSecurityUtils {
 		qs.addExplicitFilter(
 				SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
 		return QueryExecutionUtility.flushToLong(securityDb, qs);
+	}
+
+	/**
+	 * Groups that do not have access to a project yet, for its owners to choose
+	 * from.
+	 *
+	 * @param user       a project owner, or an admin
+	 * @param projectId  the project
+	 * @param searchTerm text matched against the group id, or null
+	 * @param limit      page size, or 0 or less for all
+	 * @param offset     rows to skip
+	 * @return the groups, with the keys {@code id}, {@code type} and
+	 *         {@code description}
+	 * @throws IllegalAccessException when the user is not an owner or an admin
+	 */
+	public static List<Map<String, Object>> getAvailableGroupsForProject(User user, String projectId, String searchTerm,
+			long limit, long offset) throws IllegalAccessException {
+		checkCanManageGroupAccess(user, projectId);
+		SelectQueryStruct qs = new SelectQueryStruct();
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__ID"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__TYPE"));
+		qs.addSelector(new QueryColumnSelector("SMSS_GROUP__DESCRIPTION"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__ID"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_GROUP__TYPE"));
+		{
+			// leave out the groups that already have access
+			SelectQueryStruct attachedQs = new SelectQueryStruct();
+			attachedQs.addSelector(QueryFunctionSelector.makeConcat2ColumnsFunction("GROUPPROJECTPERMISSION__ID",
+					"GROUPPROJECTPERMISSION__TYPE", "GROUPKEY"));
+			attachedQs.addExplicitFilter(
+					SimpleQueryFilter.makeColToValFilter("GROUPPROJECTPERMISSION__PROJECTID", "==", projectId));
+			qs.addExplicitFilter(SimpleQueryFilter.makeQuerySelectorToSubQuery(
+					QueryFunctionSelector.makeConcat2ColumnsFunction("SMSS_GROUP__ID", "SMSS_GROUP__TYPE", "GROUPKEY"),
+					"!=", attachedQs));
+		}
+		if (searchTerm != null && !(searchTerm = searchTerm.trim()).isEmpty()) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("SMSS_GROUP__ID", "?like", searchTerm));
+		}
+		if (limit > 0) {
+			qs.setLimit(limit);
+		}
+		if (offset > 0) {
+			qs.setOffSet(offset);
+		}
+		return getSimpleQuery(qs);
 	}
 }

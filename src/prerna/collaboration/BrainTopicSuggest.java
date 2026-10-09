@@ -70,7 +70,7 @@ public final class BrainTopicSuggest {
 	 * link to saved accounts.
 	 */
 	public static Map<String, Object> accounts(User user) {
-		return suggest(user, false, false);
+		return suggest(user, false, false, null);
 	}
 
 	/**
@@ -82,14 +82,20 @@ public final class BrainTopicSuggest {
 	}
 
 	public static Map<String, Object> topics(User user, boolean dryRun) {
+		return topics(user, dryRun, null);
+	}
+
+	// a job (null outside one) hears how grouping and naming are going
+	static Map<String, Object> topics(User user, boolean dryRun, CollaborationJobUtils.Job job) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		// Serialize generation through replacement for this owner; accepted topics are never replaced.
-		synchronized (CollaborationDbUtils.ownerLock("topic-onboarding", owner.getValue0(), owner.getValue1())) {
-			return suggest(user, true, dryRun);
+		synchronized (CollaborationDbUtils.ownerLock("topic-suggest", owner.getValue0(), owner.getValue1())) {
+			return suggest(user, true, dryRun, job);
 		}
 	}
 
-	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun) {
+	private static Map<String, Object> suggest(User user, boolean writeTopics, boolean dryRun,
+			CollaborationJobUtils.Job job) {
 		var owner = CollaborationDbUtils.ownerOf(user);
 		String ownerId = owner.getValue0();
 		String ownerType = owner.getValue1();
@@ -240,7 +246,7 @@ public final class BrainTopicSuggest {
 			}
 			// The only topic proposer: snapshot -> deterministic groups -> complete model votes, with no writes yet.
 			BrainTopicOnboarding.Result result = BrainTopicOnboarding.propose(user, engineId, ownerId, ownerType,
-					threads, self, emails, vips, ownOrg, topicNames);
+					threads, self, emails, vips, ownOrg, topicNames, job);
 			out.putAll(result.diagnostics());
 			if (out.containsKey("modelError")) {
 				out.put("topics", List.of());
@@ -349,6 +355,8 @@ public final class BrainTopicSuggest {
 						.sorted((x, y) -> y.getValue() - x.getValue()).map(Map.Entry::getKey).limit(3)
 						.collect(Collectors.toList()));
 				row.put("about", c.about());
+				// optional clues the owner can turn on; never saved as keywords on their own
+				row.put("suggestedTerms", c.suggestedTerms());
 				row.put("sampleSubjects", samples(c, mailThreads, writers, self).stream().limit(3)
 						.collect(Collectors.toList()));
 				int mine = (int) c.threads().stream().filter(t -> writers.getOrDefault(t.id(), Set.of()).contains(self)).count();
@@ -390,7 +398,8 @@ public final class BrainTopicSuggest {
 	}
 
 	// about: the topic model's one line on what the topic covers, stored as its description
-	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about) {
+	record Candidate(String key, String name, List<Thread> threads, List<String> keywords, String reason, String about,
+			List<String> suggestedTerms) {
 	}
 
 	// the organisation's domain: mail.adatum.example is adatum.example

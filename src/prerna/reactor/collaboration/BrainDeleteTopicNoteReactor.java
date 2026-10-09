@@ -55,7 +55,7 @@ public class BrainDeleteTopicNoteReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public String getReactorDescription() {
-		return "Deletes a goal or note from a Brain topic";
+		return "Deletes a goal from a Brain topic";
 	}
 
 	@Override

@@ -56,9 +56,16 @@ public final class AutomationRuntime {
 	private AutomationRuntime() {
 	}
 
-	public static List<Map<String, Object>> nodesForRun(AutomationDefinitionValidator.ValidatedDefinition definition) {
+	public static List<Map<String, Object>> nodesForRun(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return nodesForGraph(definition.nodes(), definition.edges());
+	}
+
+	/** Returns graph nodes in run-history order with runtime defaults applied. */
+	public static List<Map<String, Object>> nodesForGraph(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		List<Map<String, Object>> nodes = new ArrayList<>();
-		for (Map<String, Object> original : controlOrderedNodes(definition)) {
+		for (Map<String, Object> original : controlOrderedNodes(graphNodes, graphEdges)) {
 			Map<String, Object> node = new LinkedHashMap<>(original);
 			node.putIfAbsent(AutomationConstants.NODE_FIELD_LABEL, node.get(AutomationConstants.NODE_FIELD_ID));
 			Object nodeType = node.get(AutomationConstants.NODE_FIELD_TYPE);
@@ -71,6 +78,43 @@ public final class AutomationRuntime {
 			nodes.add(node);
 		}
 		return nodes;
+	}
+
+	/**
+	 * Returns canonical nodes from the parent graph and every loop body. Loop-body
+	 * nodes remain ordinary source-owning nodes even though they are materialized
+	 * into run history only when an iteration executes.
+	 */
+	public static List<Map<String, Object>> allNodes(
+			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		List<Map<String, Object>> nodes = new ArrayList<>();
+		for (Map<String, Object> node : definition.nodes()) {
+			nodes.add(node);
+			nodes.addAll(loopBodyNodes(node));
+		}
+		return nodes;
+	}
+
+	/** Returns the canonical nodes owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyNodes(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_NODES) instanceof List<?> nodes)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) nodes;
+	}
+
+	/** Returns the canonical edges owned by one loop body. */
+	@SuppressWarnings("unchecked")
+	public static List<Map<String, Object>> loopBodyEdges(Map<String, Object> loopNode) {
+		Object body = loopNode.get(AutomationConstants.NODE_FIELD_BODY);
+		if (!(body instanceof Map<?, ?> bodyMap)
+				|| !(((Map<String, Object>) bodyMap).get(AutomationConstants.DOC_EDGES) instanceof List<?> edges)) {
+			return List.of();
+		}
+		return (List<Map<String, Object>>) (List<?>) edges;
 	}
 
 	private static String defaultOutputVariable(Map<String, Object> node) {
@@ -89,15 +133,21 @@ public final class AutomationRuntime {
 	 */
 	static List<Map<String, Object>> controlOrderedNodes(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlOrderedNodes(definition.nodes(), definition.edges());
+	}
+
+	/** Returns a deterministic topological order for an already validated graph. */
+	static List<Map<String, Object>> controlOrderedNodes(List<Map<String, Object>> graphNodes,
+			List<Map<String, Object>> graphEdges) {
 		Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
 		Map<String, Integer> incoming = new LinkedHashMap<>();
-		for (Map<String, Object> node : definition.nodes()) {
+		for (Map<String, Object> node : graphNodes) {
 			String id = (String) node.get(AutomationConstants.NODE_FIELD_ID);
 			nodes.put(id, node);
 			incoming.put(id, 0);
 		}
 		Map<String, List<String>> outgoing = new HashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : graphEdges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -141,8 +191,13 @@ public final class AutomationRuntime {
 
 	public static Map<String, Map<String, String>> controlTargets(
 			AutomationDefinitionValidator.ValidatedDefinition definition) {
+		return controlTargets(definition.edges());
+	}
+
+	/** Indexes each control edge by source node and source port. */
+	public static Map<String, Map<String, String>> controlTargets(List<Map<String, Object>> edges) {
 		Map<String, Map<String, String>> targets = new LinkedHashMap<>();
-		for (Map<String, Object> edge : definition.edges()) {
+		for (Map<String, Object> edge : edges) {
 			if (!AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
 				continue;
 			}
@@ -152,6 +207,22 @@ public final class AutomationRuntime {
 			targets.computeIfAbsent(source, ignored -> new LinkedHashMap<>()).put(sourcePort, target);
 		}
 		return targets;
+	}
+
+	/** Returns the sole zero-incoming node in an already validated loop body. */
+	public static String graphEntryNodeId(List<Map<String, Object>> nodes, List<Map<String, Object>> edges) {
+		Map<String, Integer> incoming = new LinkedHashMap<>();
+		for (Map<String, Object> node : nodes) {
+			incoming.put((String) node.get(AutomationConstants.NODE_FIELD_ID), 0);
+		}
+		for (Map<String, Object> edge : edges) {
+			if (AutomationConstants.EDGE_KIND_CONTROL.equals(edge.get(AutomationConstants.EDGE_FIELD_KIND))) {
+				incoming.compute((String) edge.get(AutomationConstants.EDGE_FIELD_TARGET),
+						(ignored, count) -> count + 1);
+			}
+		}
+		return incoming.entrySet().stream().filter(entry -> entry.getValue() == 0).map(Map.Entry::getKey).findFirst()
+				.orElseThrow(() -> new IllegalArgumentException("Loop body has no entry node."));
 	}
 
 	/**

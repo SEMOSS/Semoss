@@ -30,6 +30,7 @@ package prerna.engine.impl.function.mail.config;
 import java.util.Properties;
 
 import prerna.io.connector.ms.MicrosoftGraphAppTokenProvider;
+import prerna.util.ValueUtils;
 
 /**
  * The app registration a Microsoft 365 engine signs in with.
@@ -61,13 +62,13 @@ public record Microsoft365Config(String tenant, String clientId, String clientSe
 	 * @return the credentials, which are not checked until a token is asked for
 	 */
 	public static Microsoft365Config from(Properties properties, String defaultScope) {
-		String tenant = MailProperties.trimToNull(properties.getProperty(MailProperties.EXCHANGE_TENANT));
-		String clientId = MailProperties.trimToNull(properties.getProperty(MailProperties.EXCHANGE_CLIENT_ID));
-		String clientSecret = MailProperties.trimToNull(properties.getProperty(MailProperties.EXCHANGE_CLIENT_SECRET));
+		String tenant = ValueUtils.trimToNull(properties.getProperty(MailProperties.EXCHANGE_TENANT));
+		String clientId = ValueUtils.trimToNull(properties.getProperty(MailProperties.EXCHANGE_CLIENT_ID));
+		String clientSecret = ValueUtils.trimToNull(properties.getProperty(MailProperties.EXCHANGE_CLIENT_SECRET));
 		String scope = MailProperties.firstNonNull(
-				MailProperties.trimToNull(properties.getProperty(MailProperties.EXCHANGE_SCOPE)), defaultScope);
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.EXCHANGE_SCOPE)), defaultScope);
 		return new Microsoft365Config(tenant, clientId, clientSecret, scope,
-				MailProperties.trimToNull(properties.getProperty(MailProperties.GRAPH_BASE_URL)));
+				ValueUtils.trimToNull(properties.getProperty(MailProperties.GRAPH_BASE_URL)));
 	}
 
 	/**

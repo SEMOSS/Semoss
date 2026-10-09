@@ -331,6 +331,9 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.WORKSPACE_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.MODEL_MESSAGE_ID, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.AGENT_RUN_ID, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.PARENT_NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.ITERATION_INDEX, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.SOURCE_NODE_ID, AutomationConstants.VARCHAR_255),
 				Pair.with(AutomationConstants.ERROR_MESSAGE, CLOB_DATATYPE)));
 
 		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, Arrays.asList(

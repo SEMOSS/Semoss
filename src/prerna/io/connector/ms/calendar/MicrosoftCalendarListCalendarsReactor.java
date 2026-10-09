@@ -27,90 +27,34 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.List;
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.ConnectorPage;
+import prerna.io.connector.calendar.AbstractListCalendarsReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarInfo;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.ReactorKeysEnum;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Lists the calendars of whoever is signed in.
+ * Lists the Microsoft 365 calendars of the signed in user.
  *
  * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.Read} for {@code GET /me/calendars}</li>
- * <li>{@code Calendars.Read.Shared} as well, when a {@code mailbox} names
- * somebody else, for {@code GET /users/{id}/calendars}</li>
- * </ul>
- *
- * <p>
- * The id of a calendar here is what the other calendar reactors take as their
- * {@code calendarId}, and the one marked {@code isDefaultCalendar} is the one
- * they use when that key is left out.
- * </p>
- *
- * <p>
- * A calendar somebody else owns that the signed in user accepted a share of
- * sits in this list alongside their own, marked {@code isSharedWithMe} and
- * naming its {@code owner}. Its id is a local one, so it is passed back with no
- * {@code mailbox}; the shared calendars that do <em>not</em> appear here are
- * the primary ones, which are reached by naming the owner's mailbox instead.
- * {@code MicrosoftCalendarListPermissions} says what the share allows.
+ * Required delegated Microsoft Graph scope: {@code Calendars.Read}, and
+ * {@code Calendars.Read.Shared} to read somebody else's.
  * </p>
  */
-public class MicrosoftCalendarListCalendarsReactor extends AbstractMicrosoftCalendarReactor {
+public class MicrosoftCalendarListCalendarsReactor extends AbstractListCalendarsReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarListCalendarsReactor.class);
-
-	public MicrosoftCalendarListCalendarsReactor() {
-		this.keysToGet = new String[] { ReactorKeysEnum.LIMIT.getKey(), MAILBOX };
-		this.keyRequired = new int[] { 0, 0 };
+	@Override
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		int limit = positiveInt(ReactorKeysEnum.LIMIT.getKey(), 0, Integer.MAX_VALUE);
-		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			// the signed in user's own address is what tells their calendars apart
-			// from the ones other people shared with them
-			String userEmail = MicrosoftLoginUtils.getMicrosoftEmail(user);
-			List<Map<String, Object>> calendars = MicrosoftCalendarHelper.listCalendars(accessToken, mailbox, userEmail,
-					limit);
-			return new NounMetadata(calendars, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while listing the signed in user's Microsoft calendars", e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to list the signed in user's Microsoft calendars", e);
-			throw new SemossPixelException(
-					"An error occurred retrieving the list of calendars. Error message: " + e.getMessage());
-		}
-	}
-
-	@Override
-	public String getReactorDescription() {
-		return "List the Microsoft 365 calendars of the signed in user.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(ReactorKeysEnum.LIMIT.getKey())) {
-			return "Optional maximum number of calendars to return. All calendars are returned when omitted.";
-		}
-		return super.getDescriptionForKey(key);
+	protected ConnectorPage<CalendarInfo> listCalendars(User user, String mailbox, int offset, int limit)
+			throws Exception {
+		// the signed in user's own address is what tells their calendars apart from
+		// the ones other people shared with them
+		return MicrosoftCalendarHelper.listCalendars(MicrosoftLoginUtils.getValidAccessToken(user), mailbox,
+				MicrosoftLoginUtils.getMicrosoftEmail(user), offset, limit);
 	}
 }
