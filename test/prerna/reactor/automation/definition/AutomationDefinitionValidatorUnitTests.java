@@ -206,6 +206,17 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
+	void acceptsTheMaximumDatabaseQueryLimit() {
+		Map<String, Object> maximumLimit = databaseQueryConfig();
+		maximumLimit.put(AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT);
+		AutomationDefinitionValidator.ValidatedDefinition validated = AutomationDefinitionValidator
+				.parseAndValidateForAuthoring(definition(Map.of(),
+						workNode(AutomationConstants.NODE_DATABASE_QUERY, maximumLimit)));
+
+		assertEquals(2, validated.nodes().size());
+	}
+
+	@Test
 	void acceptsAJevDecisionDraft() {
 		Map<String, Object> node = workNode(AutomationConstants.NODE_CONTROL_JEV, jevConfig());
 		node.remove(AutomationConstants.NODE_FIELD_OUTPUT_VAR);

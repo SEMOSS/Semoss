@@ -79,13 +79,13 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 	void parsesTheResolvedInternalRequest() {
 		Map<String, Object> request = Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
 				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
-						AutomationConstants.CONFIG_LIMIT, 250));
+						AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT));
 
 		assertTrue(AutomationDatabaseQueryExecutor.isRequest(request));
 		AutomationDatabaseQueryExecutor.QueryRequest parsed = AutomationDatabaseQueryExecutor.parseRequest(request);
 		assertEquals("engine-1", parsed.databaseId());
 		assertEquals("SELECT 1", parsed.query());
-		assertEquals(250, parsed.limit());
+		assertEquals(50_000, parsed.limit());
 	}
 
 	@Test

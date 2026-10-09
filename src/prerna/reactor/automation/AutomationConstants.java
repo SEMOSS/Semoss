@@ -244,7 +244,7 @@ public final class AutomationConstants {
 	 * results remain in the run Insight's frame and therefore do not cross the
 	 * bounded JSON node-output contract.
 	 */
-	public static final int DB_QUERY_MAX_LIMIT = 1_000;
+	public static final int DB_QUERY_MAX_LIMIT = 50_000;
 	public static final int DEFAULT_VECTOR_SEARCH_LIMIT = 5;
 	public static final int DEFAULT_LIST_RUNS_LIMIT = 25;
 	public static final int WAIT_MIN_SECONDS = 0;
