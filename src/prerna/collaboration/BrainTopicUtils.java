@@ -56,6 +56,8 @@ public final class BrainTopicUtils {
 	public static final String MEMBER = "member";
 	public static final String REMOVED = "removed";
 	public static final List<String> PERSON_STATES = List.of(MEMBER, SUGGESTED, REMOVED);
+	// BRAIN_TOPIC_PERSON.ROLE_LABEL is VARCHAR(50); job titles run up to 255
+	static final int MAX_ROLE_LENGTH = 50;
 
 	public static final Set<String> KINDS = Set.of("client", "internal", "event", "personal");
 
@@ -410,6 +412,9 @@ public final class BrainTopicUtils {
 		if (state == null || !PERSON_STATES.contains(state)) {
 			throw new IllegalArgumentException("Person state must be one of " + PERSON_STATES);
 		}
+		if (role != null && role.length() > MAX_ROLE_LENGTH) {
+			throw new IllegalArgumentException("Role must be " + MAX_ROLE_LENGTH + " characters or fewer");
+		}
 		requireTopic(ownerId, ownerType, topicId);
 		Map<String, Object> person = CollaborationDbUtils.queryOne(
 				"SELECT JOB_TITLE FROM BRAIN_PERSON " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND PERSON_ID = ?",
@@ -438,7 +443,8 @@ public final class BrainTopicUtils {
 								+ "PERSON_ID, STATE, ORIGIN, ROLE_LABEL, REASON, CHANGED_BY, CHANGED_AT) "
 								+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 						ownerId, ownerType, topicId, personId, state, origin,
-						role != null ? role : person.get("jobTitle"), reason, BrainProfileUtils.YOU, now);
+						role != null ? role : defaultRole((String) person.get("jobTitle")), reason, BrainProfileUtils.YOU,
+						now);
 			} else {
 				CollaborationDbUtils.update(conn,
 						"UPDATE BRAIN_TOPIC_PERSON SET STATE = ?, ORIGIN = ?, "
@@ -449,6 +455,19 @@ public final class BrainTopicUtils {
 			touchTopic(conn, ownerId, ownerType, topicId, now);
 		});
 		return getTopicPerson(ownerId, ownerType, topicId, personId);
+	}
+
+	// a job title too long for the role column is cut at a word, not rejected
+	static String defaultRole(String jobTitle) {
+		if (jobTitle == null || jobTitle.length() <= MAX_ROLE_LENGTH) {
+			return jobTitle;
+		}
+		String cut = jobTitle.substring(0, MAX_ROLE_LENGTH - 3);
+		int space = cut.lastIndexOf(' ');
+		if (space > MAX_ROLE_LENGTH / 2) {
+			cut = cut.substring(0, space);
+		}
+		return cut.replaceAll("[\\s,;:-]+$", "") + "...";
 	}
 
 	private static Map<String, Object> getTopicPerson(String ownerId, String ownerType, String topicId,
