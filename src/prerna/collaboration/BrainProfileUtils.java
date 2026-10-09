@@ -99,6 +99,41 @@ public final class BrainProfileUtils {
 		return profile;
 	}
 
+	// who the assistant writes as; role and style only once the owner set or confirmed them
+	@SuppressWarnings("unchecked")
+	public static String promptBlock(User user) {
+		Map<String, Object> profile;
+		try {
+			profile = user == null ? null : getProfile(user);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the Collaboration profile for the assistant prompt", e);
+			return null;
+		}
+		if (profile == null) {
+			return null;
+		}
+		StringBuilder out = new StringBuilder("## Owner\nThe owner you work for. Write and sign as them.");
+		appendField(out, "Name", profile.get("name"));
+		appendField(out, "Email", profile.get("email"));
+		appendField(out, "Organization", profile.get("org"));
+		appendField(out, "Timezone", profile.get("timezone"));
+		Map<String, Object> role = (Map<String, Object>) profile.get("role");
+		if (role != null && YOU.equals(role.get("source"))) {
+			appendField(out, "Role", role.get("value"));
+		}
+		Map<String, Object> style = (Map<String, Object>) profile.get("style");
+		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
+			appendField(out, "Writing style", style.get("summary"));
+		}
+		return out.toString();
+	}
+
+	private static void appendField(StringBuilder out, String label, Object value) {
+		if (value instanceof String text && !text.isBlank()) {
+			out.append("\n- ").append(label).append(": ").append(text.strip());
+		}
+	}
+
 	// partial Profile: only keys present are written; a field the owner types
 	// becomes source "you"
 	@SuppressWarnings("unchecked")
