@@ -143,7 +143,9 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public final class AutomationRunStore {
 
 	private static final Logger classLogger = LogManager.getLogger(AutomationRunStore.class);
-	/** Keeps dynamically materialized body rows after the stable parent graph rows. */
+	/**
+	 * Keeps dynamically materialized body rows after the stable parent graph rows.
+	 */
 	private static final int LOOP_EXECUTION_ORDER_OFFSET = 1_000_000;
 
 	/** Prefix identifying the automation tables inside the scheduler OWL schema. */
@@ -246,8 +248,7 @@ public final class AutomationRunStore {
 			PARENT_NODE_ID, ITERATION_INDEX, SOURCE_NODE_ID) \
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""";
 
-	private static final String INCREMENT_RUN_TOTAL_NODES =
-			"UPDATE AUTOMATION_RUNS SET TOTAL_NODES = TOTAL_NODES + ? WHERE RUN_ID = ?";
+	private static final String INCREMENT_RUN_TOTAL_NODES = "UPDATE AUTOMATION_RUNS SET TOTAL_NODES = TOTAL_NODES + ? WHERE RUN_ID = ?";
 
 	private static final String SKIP_PENDING_NODE_OUTPUT = """
 			UPDATE AUTOMATION_NODE_OUTPUTS SET STATUS = ?, ERROR_MESSAGE = ? \
@@ -743,11 +744,11 @@ public final class AutomationRunStore {
 	 * identity, so repeated executions never overwrite each other and clients do
 	 * not have to parse synthetic identifiers.
 	 *
-	 * @param runId         owning run
-	 * @param loopNodeId    canonical parent loop node
+	 * @param runId          owning run
+	 * @param loopNodeId     canonical parent loop node
 	 * @param iterationIndex zero-based iteration
-	 * @param orderedNodes  body nodes in deterministic execution-history order
-	 * @param traceRoomIds  optional conversational room IDs keyed by source node
+	 * @param orderedNodes   body nodes in deterministic execution-history order
+	 * @param traceRoomIds   optional conversational room IDs keyed by source node
 	 * @return runtime node IDs keyed by canonical body node ID
 	 */
 	public static Map<String, String> insertLoopIterationNodes(String runId, String loopNodeId, int iterationIndex,
@@ -1144,9 +1145,9 @@ public final class AutomationRunStore {
 	/**
 	 * Marks only the unselected nodes in one materialized loop iteration skipped.
 	 *
-	 * @param runId  owning run
+	 * @param runId   owning run
 	 * @param nodeIds runtime node IDs that remain pending
-	 * @param reason persisted skip explanation
+	 * @param reason  persisted skip explanation
 	 */
 	public static void skipPendingNodes(String runId, List<String> nodeIds, String reason) {
 		if (nodeIds == null || nodeIds.isEmpty()) {
@@ -1182,7 +1183,10 @@ public final class AutomationRunStore {
 				modelMessageId, agentRunId);
 	}
 
-	/** Updates a node output and its internal storage kind after successful execution. */
+	/**
+	 * Updates a node output and its internal storage kind after successful
+	 * execution.
+	 */
 	public static void updateNodeSuccess(String runId, String nodeId, Timestamp startedAt, long durationMs,
 			String outputVar, String outputKind, String outputValue, String outputPreview, String modelMessageId,
 			String agentRunId) {
@@ -1431,14 +1435,11 @@ public final class AutomationRunStore {
 			nodeResult.put(AutomationConstants.DURATION_MS, output.get(AutomationConstants.DURATION_MS));
 			String outputForDisplay = (String) output.get(AutomationConstants.OUTPUT_PREVIEW);
 			String outputValue = (String) output.get(AutomationConstants.OUTPUT_VALUE);
-			if ((outputForDisplay == null || outputForDisplay.isBlank()) && outputValue != null
-					&& outputValue.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH) {
-				outputForDisplay = outputValue;
+			if ((outputForDisplay == null || outputForDisplay.isBlank()) && outputValue != null) {
+				outputForDisplay = AutomationRuntimeUtils.generatePreview(outputValue);
 			}
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, outputForDisplay);
-			if (outputValue != null && outputValue.length() <= AutomationConstants.OUTPUT_PREVIEW_MAX_LENGTH) {
-				nodeResult.put(AutomationConstants.OUTPUT_VALUE, outputValue);
-			}
+			nodeResult.put(AutomationConstants.OUTPUT_VALUE, outputValue);
 			nodeResult.put(AutomationConstants.ERROR_MESSAGE, output.get(AutomationConstants.ERROR_MESSAGE));
 			Map<String, Object> trace = new LinkedHashMap<>();
 			putIfPresent(trace, AutomationConstants.TRACE_AUTOMATION_RUN_ID, output.get(AutomationConstants.RUN_ID));
