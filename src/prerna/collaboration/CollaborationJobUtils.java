@@ -105,6 +105,12 @@ public final class CollaborationJobUtils {
 	// the running job of this kind, or a new one started with work
 	public static Map<String, Object> start(String ownerId, String ownerType, String kind, Map<String, Object> params,
 			Work work) {
+		return start(ownerId, ownerType, kind, params, work, null);
+	}
+
+	// then runs after the job is recorded done, so it can start a job that waits for this one
+	public static Map<String, Object> start(String ownerId, String ownerType, String kind, Map<String, Object> params,
+			Work work, Runnable then) {
 		synchronized (CollaborationDbUtils.ownerLock("job", ownerId, ownerType)) {
 			Map<String, Object> latest = latest(ownerId, ownerType, kind);
 			if (latest != null && RUNNING.equals(latest.get("status"))) {
@@ -119,14 +125,23 @@ public final class CollaborationJobUtils {
 			ALIVE.add(jobId);
 			Job job = new Job(ownerId, ownerType, jobId);
 			POOL.submit(() -> {
+				boolean done = false;
 				try {
 					work.run(job);
 					finish(job, DONE, null);
+					done = true;
 				} catch (Throwable e) {
 					classLogger.warn("Collaboration job {} ({}) failed", jobId, kind, e);
 					finish(job, FAILED, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
 				} finally {
 					ALIVE.remove(jobId);
+				}
+				if (done && then != null) {
+					try {
+						then.run();
+					} catch (RuntimeException e) {
+						classLogger.warn("Follow-up of collaboration job {} ({}) failed", jobId, kind, e);
+					}
 				}
 			});
 			return get(ownerId, ownerType, jobId);
@@ -196,10 +211,16 @@ public final class CollaborationJobUtils {
 	// any job of this owner still running on this server; callers hold the job lock
 	// so none can start
 	static boolean anyRunning(String ownerId, String ownerType) {
+		return anyRunning(ownerId, ownerType, null);
+	}
+
+	// as above, ignoring jobs of one kind (a job checking for others besides itself)
+	static boolean anyRunning(String ownerId, String ownerType, String exceptKind) {
 		return CollaborationDbUtils
-				.query("SELECT JOB_ID FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND STATUS = ?",
-						rs -> rs.getString("JOB_ID"), ownerId, ownerType, RUNNING)
-				.stream().anyMatch(ALIVE::contains);
+				.query("SELECT JOB_ID, KIND FROM COLLAB_JOB WHERE OWNER_ID = ? AND OWNER_TYPE = ? " + "AND STATUS = ?",
+						rs -> exceptKind != null && exceptKind.equals(rs.getString("KIND")) ? null : rs.getString("JOB_ID"),
+						ownerId, ownerType, RUNNING)
+				.stream().anyMatch(id -> id != null && ALIVE.contains(id));
 	}
 
 	static Map<String, Object> get(String ownerId, String ownerType, String jobId) {
