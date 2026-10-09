@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +44,9 @@ import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
+import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /** Covers the shared Insight-owned frame registration boundary. */
 public class AutomationFrameOutputUnitTests {
@@ -87,6 +90,26 @@ public class AutomationFrameOutputUnitTests {
 		assertThrows(IllegalStateException.class,
 				() -> AutomationFrameOutput.register(insight, "query_result", frame));
 		assertNull(insight.getVarStore().get("query_result"));
+	}
+
+	@Test
+	void registrationFailureRemovesTheAliasAndClosesTheCreatedFrame() {
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		when(frame.size("query_result")).thenThrow(new IllegalStateException("size failed"));
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+
+		try (var reactors = mockConstruction(GenerateFrameFromPyVariableReactor.class, (reactor, context) -> when(
+				reactor.execute()).thenAnswer(invocation -> {
+					insight.getVarStore().put("query_result", new NounMetadata(frame, PixelDataType.FRAME));
+					return new NounMetadata(frame, PixelDataType.FRAME);
+				}))) {
+			assertThrows(IllegalStateException.class,
+					() -> AutomationFrameOutput.registerPythonVariable(insight, "query_result"));
+		}
+
+		assertNull(insight.getVarStore().get("query_result"));
+		verify(frame).close();
 	}
 
 	@Test

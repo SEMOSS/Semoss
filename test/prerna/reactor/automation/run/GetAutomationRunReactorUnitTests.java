@@ -27,9 +27,11 @@
  ******************************************************************************/
 package prerna.reactor.automation.run;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -47,5 +49,18 @@ class GetAutomationRunReactorUnitTests {
 
 		assertFalse(GetAutomationRunReactor.isFrameOutput(ordinaryJson));
 		assertTrue(GetAutomationRunReactor.isFrameOutput(frame));
+	}
+
+	@Test
+	void marksExpiredFrameHistoryAsUnavailable() {
+		Map<String, Object> frameOutput = Map.of(AutomationConstants.OUTPUT_KIND,
+				AutomationConstants.OUTPUT_KIND_FRAME, AutomationConstants.OUTPUT_VAR_NAME, "query_result");
+		Map<String, Object> historyResult = new HashMap<>();
+
+		new GetAutomationRunReactor().decorateFrameResult(null, "project", frameOutput, historyResult);
+
+		assertEquals(true, historyResult.get("OUTPUT_FRAME_UNAVAILABLE"));
+		assertEquals("Frame data is unavailable because this run's execution workspace is closed.",
+				historyResult.get(AutomationConstants.OUTPUT_PREVIEW));
 	}
 }

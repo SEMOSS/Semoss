@@ -28,11 +28,16 @@
 package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
@@ -201,6 +206,74 @@ public class AutomationRunExecutionServiceUnitTests {
 		IllegalStateException unavailable = assertThrows(IllegalStateException.class,
 				() -> AutomationRunExecutionService.requireResumableFrameBackend(insight, "run-1", "missing"));
 		assertTrue(unavailable.getMessage().contains("cannot resume"));
+	}
+
+	@Test
+	void lostExecutionInsightDoesNotReplayTheSuccessfulDatabaseNode() {
+		String runId = "run-1";
+		String insightId = "automation-" + runId;
+		Map<String, Object> frameOutput = new LinkedHashMap<>();
+		frameOutput.put(AutomationConstants.STATUS, AutomationConstants.NODE_STATUS_SUCCESS);
+		frameOutput.put(AutomationConstants.NODE_ID, "query");
+		frameOutput.put(AutomationConstants.OUTPUT_VAR_NAME, "query_result");
+		frameOutput.put(AutomationConstants.OUTPUT_KIND, AutomationConstants.OUTPUT_KIND_FRAME);
+		frameOutput.put(AutomationConstants.OUTPUT_VALUE,
+				"{\"dataType\":\"table\",\"rowCount\":10,\"columnCount\":2}");
+		Insight originalInsight = new Insight();
+		originalInsight.setInsightId(insightId);
+		InsightStore.getInstance().put(originalInsight);
+		assertEquals(insightId, AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+		InsightStore.getInstance().remove(insightId);
+		assertNull(AutomationRunExecutionService.getAvailableExecutionInsightId(runId));
+
+		Insight replacementInsight = new Insight();
+		replacementInsight.setInsightId(insightId);
+
+		try (var store = mockStatic(AutomationRunStore.class, CALLS_REAL_METHODS);
+				var database = mockStatic(AutomationDatabaseQueryExecutor.class)) {
+			store.when(() -> AutomationRunStore.getRunInputs(runId)).thenReturn(Map.of());
+			store.when(() -> AutomationRunStore.getNodeOutputsForRun(runId)).thenReturn(List.of(frameOutput));
+
+			IllegalStateException unavailable = assertThrows(IllegalStateException.class,
+					() -> AutomationRunExecutionService.reconstructScope(runId, replacementInsight, "trigger"));
+
+			assertTrue(unavailable.getMessage().contains("cannot resume"));
+			database.verifyNoInteractions();
+		}
+	}
+
+	@Test
+	void serviceOwnedExecutionInsightCleanupClosesFramesAndClearsTheWorkspace() {
+		String insightId = "automation-run-cleanup";
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		Insight insight = new Insight();
+		insight.setInsightId(insightId);
+		insight.setDeletePythonGlobalsOnDropInsight(false);
+		insight.getVarStore().put("query_result", new NounMetadata(frame, PixelDataType.FRAME));
+		InsightStore.getInstance().put(insight);
+
+		AutomationRunExecutionService.releaseExecutionInsight(insight, true);
+
+		assertFalse(InsightStore.getInstance().containsKey(insightId));
+		assertNull(insight.getVarStore().get("query_result"));
+		verify(frame, atLeastOnce()).close();
+	}
+
+	@Test
+	void sessionOwnedExecutionInsightRemainsUnderSessionLifecycle() {
+		String insightId = "automation-run-session";
+		Insight insight = new Insight();
+		insight.setInsightId(insightId);
+		insight.getVarStore().put("value", new NounMetadata("retained", PixelDataType.CONST_STRING));
+		InsightStore.getInstance().put(insight);
+
+		try {
+			AutomationRunExecutionService.releaseExecutionInsight(insight, false);
+			assertTrue(InsightStore.getInstance().containsKey(insightId));
+			assertEquals("retained", insight.getVarStore().get("value").getValue());
+		} finally {
+			InsightStore.getInstance().remove(insightId);
+		}
 	}
 
 	@Test

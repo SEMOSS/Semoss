@@ -106,21 +106,7 @@ public class GetAutomationRunReactor extends AbstractReactor {
 				continue;
 			}
 			Map<String, Object> nodeResult = nodeResults.get(resultIndex++);
-			Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
-			if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
-				if (!(outputVariable instanceof String name)) {
-					continue;
-				}
-				NounMetadata frame = executionInsight.getVarStore().get(name);
-				if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
-					nodeResult.put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
-					continue;
-				}
-			}
-			if (isFrameOutput(nodeOutput)) {
-				nodeResult.put(OUTPUT_FRAME_UNAVAILABLE_KEY, true);
-				nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, FRAME_UNAVAILABLE_MESSAGE);
-			}
+			decorateFrameResult(executionInsight, projectId, nodeOutput, nodeResult);
 		}
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
 		if (wait != null) {
@@ -132,6 +118,31 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	/** Returns whether the durable row explicitly identifies a live frame output. */
 	static boolean isFrameOutput(Map<String, Object> nodeOutput) {
 		return AutomationConstants.OUTPUT_KIND_FRAME.equals(nodeOutput.get(AutomationConstants.OUTPUT_KIND));
+	}
+
+	/**
+	 * Adds either the live frame payload or the explicit closed-workspace state.
+	 *
+	 * @param executionInsight live run Insight, or {@code null} after cleanup
+	 * @param projectId        owning Automation project
+	 * @param nodeOutput       durable node-output row
+	 * @param nodeResult       result returned to the caller
+	 */
+	void decorateFrameResult(Insight executionInsight, String projectId, Map<String, Object> nodeOutput,
+			Map<String, Object> nodeResult) {
+		Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
+		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())
+				&& outputVariable instanceof String name) {
+			NounMetadata frame = executionInsight.getVarStore().get(name);
+			if (frame != null && frame.getNounType() == PixelDataType.FRAME) {
+				nodeResult.put(OUTPUT_FRAME_KEY, processNounMetadata(frame));
+				return;
+			}
+		}
+		if (isFrameOutput(nodeOutput)) {
+			nodeResult.put(OUTPUT_FRAME_UNAVAILABLE_KEY, true);
+			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, FRAME_UNAVAILABLE_MESSAGE);
+		}
 	}
 
 	@Override

@@ -174,9 +174,8 @@ final class AutomationRunExecutionService {
 			result = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationRunRegistry.unregister(runId);
-			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
-				cleanupExecutionInsight(executionInsight);
-			}
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
 		}
 		return buildResult(runId, projectId, result);
 	}
@@ -1447,6 +1446,20 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
+	 * Releases a service-owned execution Insight after any terminal execution path.
+	 * Session-owned and pre-existing Insights remain under their existing platform
+	 * owner.
+	 *
+	 * @param executionInsight run-local Insight, when opening completed
+	 * @param cleanupRequired  whether this service owns the Insight teardown
+	 */
+	static void releaseExecutionInsight(Insight executionInsight, boolean cleanupRequired) {
+		if (cleanupRequired) {
+			cleanupExecutionInsight(executionInsight);
+		}
+	}
+
+	/**
 	 * Allocates one run-local room for each generated conversational node.
 	 *
 	 * @param runNodes validated nodes in run-history order
@@ -1715,9 +1728,8 @@ final class AutomationRunExecutionService {
 			continuation = Map.of("error", safeMessage(e));
 		} finally {
 			AutomationRunRegistry.unregister(runId);
-			if (executionInsightLease == null || executionInsightLease.cleanupOnCompletion()) {
-				cleanupExecutionInsight(executionInsight);
-			}
+			releaseExecutionInsight(executionInsight,
+					executionInsightLease == null || executionInsightLease.cleanupOnCompletion());
 		}
 		return buildResult(runId, projectId, continuation);
 	}
@@ -1765,7 +1777,7 @@ final class AutomationRunExecutionService {
 	 * @param startNodeId trigger node ID taken from this run's definition snapshot
 	 * @return reconstructed scope and verified live frame bindings
 	 */
-	private static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId) {
+	static ReconstructedScope reconstructScope(String runId, Insight executionInsight, String startNodeId) {
 		Map<String, Object> scope = AutomationRuntimeUtils.buildInitialScope(runId, executionInsight.getUser());
 		Map<String, String> frameBindings = new LinkedHashMap<>();
 		scope.putAll(AutomationRunStore.getRunInputs(runId));
@@ -1806,7 +1818,7 @@ final class AutomationRunExecutionService {
 		}
 	}
 
-	private record ReconstructedScope(Map<String, Object> scope, Map<String, String> frameBindings) {
+	record ReconstructedScope(Map<String, Object> scope, Map<String, String> frameBindings) {
 	}
 
 	/**
