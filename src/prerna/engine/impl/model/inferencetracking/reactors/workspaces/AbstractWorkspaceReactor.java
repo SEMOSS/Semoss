@@ -46,6 +46,7 @@ import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.project.api.IProject;
 import prerna.prompt.PromptUtils;
 import prerna.reactor.AbstractReactor;
+import prerna.reactor.agent.IAgentHook;
 import prerna.reactor.agent.hooks.AgentHookRegistry;
 import prerna.reactor.agent.skill.SkillProjects;
 import prerna.sablecc2.om.ReactorKeysEnum;
@@ -345,12 +346,14 @@ public abstract class AbstractWorkspaceReactor extends AbstractReactor {
 				throw new IllegalArgumentException(
 						"hooks[" + i + "] unknown kind '" + kind + "'. Known kinds: " + AgentHookRegistry.knownKinds());
 			}
-			if (AgentHookRegistry.PIXEL.equals(kind)) {
-				Object pixelObj = entry.get("pixel");
-				if (pixelObj == null || String.valueOf(pixelObj).trim().isEmpty()) {
-					throw new IllegalArgumentException(
-							"hooks[" + i + "] kind='pixel' requires a non-empty 'pixel' field");
-				}
+			IAgentHook hook = AgentHookRegistry.resolve(kind);
+			try {
+				hook.configure(new JSONObject(entry));
+			} catch (IllegalArgumentException e) {
+				throw new IllegalArgumentException("hooks[" + i + "] " + e.getMessage(), e);
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"hooks[" + i + "] kind='" + kind + "' configuration is invalid: " + e.getMessage(), e);
 			}
 		}
 	}

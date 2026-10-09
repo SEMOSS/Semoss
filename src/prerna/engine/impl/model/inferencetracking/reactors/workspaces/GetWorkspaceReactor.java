@@ -207,6 +207,7 @@ public class GetWorkspaceReactor extends AbstractReactor {
 		// Server-computed capability list (not stored data, so kept out of config_json)
 		// driving the FE's "add hook" dropdown for CONFIG_JSON.hooks[].
 		current.put("known_hook_kinds", new ArrayList<>(AgentHookRegistry.knownKinds()));
+		current.put("hook_capabilities", AgentHookRegistry.formCapabilities());
 
 		return new NounMetadata(current, PixelDataType.MAP);
 	}
