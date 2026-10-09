@@ -903,4 +903,9 @@ public abstract class AbstractModelEngine extends AbstractEngine implements IMod
 	public int getContextWindow() {
 		return this.contextWindow;
 	}
+
+	@Override
+	public long getMaxTokens() {
+		return this.maxTokens == null ? 0 : this.maxTokens;
+	}
 }

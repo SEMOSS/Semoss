@@ -61,6 +61,7 @@ import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /** Returns compact room recording summaries for model-assisted selection. */
 public class FindPlaywrightRoomRecordingsReactor extends AbstractReactor {
@@ -83,7 +84,7 @@ public class FindPlaywrightRoomRecordingsReactor extends AbstractReactor {
 
 		Path roomFolder = Path.of(this.insight.getInsightFolder()).toAbsolutePath().normalize();
 		Map<String, Object> result = new PlaywrightRecordingCatalogService().findRoomRecordings(roomFolder,
-				trim(this.keyValue.get(QUERY)), parseLimit(this.keyValue.get(MAX_CANDIDATES)));
+				ValueUtils.trimToEmpty(this.keyValue.get(QUERY)), parseLimit(this.keyValue.get(MAX_CANDIDATES)));
 		return new NounMetadata(result, PixelDataType.MAP, PixelOperationType.OPERATION);
 	}
 
@@ -96,10 +97,6 @@ public class FindPlaywrightRoomRecordingsReactor extends AbstractReactor {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("max_candidates must be an integer");
 		}
-	}
-
-	private static String trim(String value) {
-		return value == null ? "" : value.trim();
 	}
 
 	@Override

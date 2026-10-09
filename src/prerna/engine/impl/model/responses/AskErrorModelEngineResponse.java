@@ -36,12 +36,18 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
     public static final String CLIENT = "client";
     public static final String MODEL = "model";
     public static final String TRACEBACK = "traceback";
+    public static final String REASON = "reason";
+    public static final String REASON_DETAIL = "reason_detail";
+    // request did not fit the model context; callers may compact/fork and retry
+    public static final String REASON_CONTEXT_OVERFLOW = "CONTEXT_OVERFLOW";
 
     protected String errorType;
     protected int code;
     protected String client;
     protected String model;
     protected String traceback;
+    protected String reason;
+    protected String reasonDetail;
 
     public AskErrorModelEngineResponse(String message, String errorType, int code, String client, String model, String traceback) {
         super(message, 0, 0);
@@ -66,6 +72,16 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
     
     public String getTraceback() { return this.traceback; }
 
+    public String getReason() { return this.reason; }
+
+    public void setReason(String reason) { this.reason = reason; }
+
+    public String getReasonDetail() { return this.reasonDetail; }
+
+    public void setReasonDetail(String reasonDetail) { this.reasonDetail = reasonDetail; }
+
+    public boolean isContextOverflow() { return REASON_CONTEXT_OVERFLOW.equals(this.reason); }
+
     @Override
     public Map<String, Object> toMap() {
         Map<String, Object> map = super.toMap();
@@ -74,6 +90,8 @@ public class AskErrorModelEngineResponse extends AskModelEngineResponse<String> 
         map.put(CLIENT, this.client);
         map.put(MODEL, this.model);
         map.put(TRACEBACK, this.traceback);
+        map.put(REASON, this.reason);
+        map.put(REASON_DETAIL, this.reasonDetail);
         return map;
     }
 }

@@ -49,6 +49,7 @@ import prerna.engine.impl.model.message.AbstractMessage;
 import prerna.engine.impl.model.message.AgentRunMessageContext;
 import prerna.om.Insight;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /** Delivers detached child results and submits their optional continuation. */
 public final class ChildRunCompletionService {
@@ -243,14 +244,16 @@ public final class ChildRunCompletionService {
 
 	@SuppressWarnings("unchecked")
 	private static Delivery deliveryFrom(Map<String, Object> completion) {
-		Map<String, Object> request = GSON.fromJson(stringValue(completion.get("requestJson")), Map.class);
+		Map<String, Object> request = GSON.fromJson(ValueUtils.trimToNull(completion.get("requestJson")), Map.class);
 		SubAgentRunCompletionMode mode = SubAgentRunCompletionMode
 				.fromPersistedValue(request == null ? null : request.get("completionMode"));
 		AgentRunRequest parsed = request == null ? null : AgentRunRequest.fromPersistedMap(request, null);
 		return new Delivery(required(completion, "childRunId"), required(completion, "parentRunId"),
 				required(completion, "parentRoomId"), required(completion, "userId"),
-				AgentRunStatus.valueOf(required(completion, "status")), mode, stringValue(completion.get("finalText")),
-				stringValue(completion.get("errorMessage")), stringValue(completion.get("parentRequestJson")),
+				AgentRunStatus.valueOf(required(completion, "status")), mode,
+				ValueUtils.trimToNull(completion.get("finalText")),
+				ValueUtils.trimToNull(completion.get("errorMessage")),
+				ValueUtils.trimToNull(completion.get("parentRequestJson")),
 				parsed == null ? null : parsed.getHumanExecutorLabel(), parsed == null ? null : parsed.getInput());
 	}
 
@@ -396,7 +399,7 @@ public final class ChildRunCompletionService {
 	}
 
 	private static String required(Map<String, Object> values, String key) {
-		String value = stringValue(values.get(key));
+		String value = ValueUtils.trimToNull(values.get(key));
 		if (value == null) {
 			throw new IllegalStateException("Missing child completion field: " + key);
 		}
@@ -407,11 +410,4 @@ public final class ChildRunCompletionService {
 		return value == null || value.isBlank() ? fallback : value;
 	}
 
-	private static String stringValue(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
-	}
 }

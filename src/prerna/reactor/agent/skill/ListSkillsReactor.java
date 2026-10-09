@@ -47,6 +47,7 @@ import prerna.sablecc2.om.PixelOperationType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 import prerna.util.AssetUtility;
+import prerna.util.ValueUtils;
 
 /**
  * Lists every skill discovered on disk under the conventional skill-host
@@ -118,8 +119,8 @@ public class ListSkillsReactor extends AbstractReactor {
 		organizeKeys();
 		Logger logger = getLogger(this.getClass().getName());
 
-		String projectId = trimToNull(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
-		String roomId = trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
+		String projectId = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.PROJECT.getKey()));
+		String roomId = ValueUtils.trimToNull(this.keyValue.get(ReactorKeysEnum.ROOM_ID.getKey()));
 		if (projectId != null && roomId != null) {
 			throw new IllegalArgumentException("Specify only one of project or roomId, not both.");
 		}
@@ -201,14 +202,6 @@ public class ListSkillsReactor extends AbstractReactor {
 			out.add(fm);
 		}
 		return out;
-	}
-
-	private static String trimToNull(String s) {
-		if (s == null) {
-			return null;
-		}
-		String trimmed = s.trim();
-		return trimmed.isEmpty() ? null : trimmed;
 	}
 
 	private static String resolveUserId(User user) {

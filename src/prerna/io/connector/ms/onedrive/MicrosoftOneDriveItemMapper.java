@@ -30,6 +30,8 @@ package prerna.io.connector.ms.onedrive;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.util.ValueUtils;
+
 /**
  * Turns the json Graph returns for a drive and its items into the maps the
  * OneDrive reactors answer with.
@@ -215,9 +217,9 @@ public class MicrosoftOneDriveItemMapper {
 	 */
 	public static String driveIdOf(Map<String, Object> item, String fallback) {
 		Map<String, Object> described = effectiveItem(item);
-		String driveId = stringOf(parentField(described, DRIVE_ID));
+		String driveId = ValueUtils.toNonBlankString(parentField(described, DRIVE_ID));
 		if (driveId == null) {
-			driveId = stringOf(parentField(item, DRIVE_ID));
+			driveId = ValueUtils.toNonBlankString(parentField(item, DRIVE_ID));
 		}
 		return driveId == null ? fallback : driveId;
 	}
@@ -229,7 +231,7 @@ public class MicrosoftOneDriveItemMapper {
 	 * @return the item id, or null when there is none
 	 */
 	public static String itemIdOf(Map<String, Object> item) {
-		return stringOf(effectiveItem(item).get(ID));
+		return ValueUtils.toNonBlankString(effectiveItem(item).get(ID));
 	}
 
 	/**
@@ -245,7 +247,7 @@ public class MicrosoftOneDriveItemMapper {
 	 * @return the name the item carries in its drive, or null when it has none
 	 */
 	public static String nameOf(Map<String, Object> item) {
-		return stringOf(effectiveItem(item).get(NAME));
+		return ValueUtils.toNonBlankString(effectiveItem(item).get(NAME));
 	}
 
 	/**
@@ -257,7 +259,7 @@ public class MicrosoftOneDriveItemMapper {
 	 *         Graph did not say
 	 */
 	private static String relativePathOf(Map<String, Object> item) {
-		String path = stringOf(parentField(item, PATH));
+		String path = ValueUtils.toNonBlankString(parentField(item, PATH));
 		if (path == null) {
 			return null;
 		}
@@ -276,7 +278,7 @@ public class MicrosoftOneDriveItemMapper {
 	 * @return the id of the folder holding it, or null when Graph did not say
 	 */
 	private static String parentIdOf(Map<String, Object> item) {
-		return stringOf(parentField(item, ID));
+		return ValueUtils.toNonBlankString(parentField(item, ID));
 	}
 
 	/**
@@ -301,7 +303,7 @@ public class MicrosoftOneDriveItemMapper {
 		if (!(file instanceof Map)) {
 			return null;
 		}
-		return stringOf(((Map<?, ?>) file).get(MIME_TYPE));
+		return ValueUtils.toNonBlankString(((Map<?, ?>) file).get(MIME_TYPE));
 	}
 
 	/**
@@ -329,7 +331,7 @@ public class MicrosoftOneDriveItemMapper {
 		if (!(user instanceof Map)) {
 			return null;
 		}
-		return stringOf(((Map<?, ?>) user).get(DISPLAY_NAME));
+		return ValueUtils.toNonBlankString(((Map<?, ?>) user).get(DISPLAY_NAME));
 	}
 
 	/**
@@ -344,18 +346,7 @@ public class MicrosoftOneDriveItemMapper {
 		if (!(user instanceof Map)) {
 			return null;
 		}
-		return stringOf(((Map<?, ?>) user).get(EMAIL));
-	}
-
-	/**
-	 * @param value the value to read
-	 * @return the value as a string, or null when there is nothing to read
-	 */
-	private static String stringOf(Object value) {
-		if (value == null || value.toString().trim().isEmpty()) {
-			return null;
-		}
-		return value.toString();
+		return ValueUtils.toNonBlankString(((Map<?, ?>) user).get(EMAIL));
 	}
 
 	/**

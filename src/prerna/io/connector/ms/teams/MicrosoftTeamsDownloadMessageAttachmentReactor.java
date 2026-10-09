@@ -39,6 +39,7 @@ import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.ReactorKeysEnum;
 import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.util.ValueUtils;
 
 /**
  * Downloads something attached to a Teams message into the insight folder.
@@ -85,12 +86,12 @@ public class MicrosoftTeamsDownloadMessageAttachmentReactor extends AbstractMicr
 	@Override
 	protected NounMetadata executeAuthenticated() {
 		this.organizeKeys();
-		String chatId = trimToNull(this.keyValue.get(CHAT_ID));
-		String teamId = trimToNull(this.keyValue.get(TEAM_ID));
-		String channelId = trimToNull(this.keyValue.get(CHANNEL_ID));
-		String messageId = trimToNull(this.keyValue.get(MESSAGE_ID));
-		String replyId = trimToNull(this.keyValue.get(REPLY_ID));
-		String attachmentId = trimToNull(this.keyValue.get(ATTACHMENT_ID));
+		String chatId = ValueUtils.trimToNull(this.keyValue.get(CHAT_ID));
+		String teamId = ValueUtils.trimToNull(this.keyValue.get(TEAM_ID));
+		String channelId = ValueUtils.trimToNull(this.keyValue.get(CHANNEL_ID));
+		String messageId = ValueUtils.trimToNull(this.keyValue.get(MESSAGE_ID));
+		String replyId = ValueUtils.trimToNull(this.keyValue.get(REPLY_ID));
+		String attachmentId = ValueUtils.trimToNull(this.keyValue.get(ATTACHMENT_ID));
 
 		if (messageId == null) {
 			throw new SemossPixelException(

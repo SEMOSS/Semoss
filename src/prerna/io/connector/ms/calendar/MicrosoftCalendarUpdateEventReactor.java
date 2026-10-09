@@ -27,103 +27,46 @@
  *******************************************************************************/
 package prerna.io.connector.ms.calendar;
 
-import java.util.Map;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.calendar.AbstractUpdateEventReactor;
+import prerna.io.connector.calendar.CalendarApp;
+import prerna.io.connector.calendar.CalendarEvent;
+import prerna.io.connector.calendar.EventRequest;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Changes an event on the calendar of whoever is signed in.
+ * Changes an event on a Microsoft 365 calendar, the signed in user's own or one
+ * shared with them to write, leaving whatever is not passed as it was.
  *
  * <p>
- * Only the fields passed are changed, so moving a meeting an hour later means
- * passing the event id and the new times and nothing else. Whoever is invited
- * is told about a change to the time, the place or the attendees the way
- * Outlook tells them.
- * </p>
- *
- * <p>
- * Required delegated Microsoft Graph scope:
- * </p>
- * <ul>
- * <li>{@code Calendars.ReadWrite} for {@code PATCH /me/events/{id}}</li>
- * </ul>
- *
- * <p>
- * Passing attendees replaces the guest list rather than adding to it, which is
- * how Graph reads the field, so a caller adding somebody passes everybody.
+ * Required delegated Microsoft Graph scope: {@code Calendars.ReadWrite}, and
+ * {@code Calendars.ReadWrite.Shared} to write somebody else's.
  * </p>
  */
-public class MicrosoftCalendarUpdateEventReactor extends AbstractMicrosoftCalendarEventReactor {
-
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftCalendarUpdateEventReactor.class);
+public class MicrosoftCalendarUpdateEventReactor extends AbstractUpdateEventReactor {
 
 	public MicrosoftCalendarUpdateEventReactor() {
-		// the event to change, then everything that can be changed about it
-		this.keysToGet = new String[EVENT_KEYS.length + 1];
-		this.keysToGet[0] = EVENT_ID;
-		System.arraycopy(EVENT_KEYS, 0, this.keysToGet, 1, EVENT_KEYS.length);
-		this.keyRequired = new int[this.keysToGet.length];
-		this.keyRequired[0] = 1;
+		// only Outlook keeps how urgent an event is
+		super(IMPORTANCE);
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-
-		String eventId = trimToNull(this.keyValue.get(EVENT_ID));
-		if (eventId == null) {
-			throw new SemossPixelException("An " + EVENT_ID + " is required to change a calendar event.");
-		}
-		Map<String, Object> changes = composeEvent(false, "change on the calendar event");
-		String calendarId = trimToNull(this.keyValue.get(CALENDAR_ID));
-		String mailbox = trimToNull(this.keyValue.get(MAILBOX));
-
-		try {
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			Map<String, Object> updated = MicrosoftCalendarHelper.updateEvent(accessToken, mailbox, calendarId, eventId,
-					changes, DEFAULT_MAX_BODY_CHARS, requestedTimeZone());
-			return new NounMetadata(updated, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while changing calendar event '{}'", eventId, e);
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Failed to change calendar event '{}'", eventId, e);
-			throw new SemossPixelException(
-					"An error occurred changing the calendar event. Error message: " + e.getMessage());
-		}
+	protected CalendarApp getCalendarApp() {
+		return CalendarApp.MICROSOFT_CALENDAR;
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Change an event on a Microsoft 365 calendar, the signed in user's own or one shared with them to write, leaving whatever is not passed as it was.";
+	protected void checkProviderValues(EventRequest request) {
+		MicrosoftCalendarHelper.checkEventValues(request);
 	}
 
 	@Override
-	protected String getDescriptionForKey(String key) {
-		if (key.equals(EVENT_ID)) {
-			return "Id of the event to change, as returned by MicrosoftCalendarListEvents.";
-		} else if (key.equals(ATTENDEES)) {
-			return "Optional email addresses of the required attendees. Passing any attendees replaces the whole guest list, so pass everybody who should be on it.";
-		} else if (key.equals(OPTIONAL_ATTENDEES)) {
-			return "Optional email addresses of the optional attendees. Passing any attendees replaces the whole guest list, so pass everybody who should be on it.";
-		}
-		return super.getDescriptionForKey(key);
+	protected String describeProviderValues(String key) {
+		return MicrosoftCalendarHelper.describeEventValues(key);
 	}
 
 	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// changes the user's calendar and can notify attendees, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+	protected CalendarEvent updateEvent(User user, EventRequest request) throws Exception {
+		return MicrosoftCalendarHelper.updateEvent(MicrosoftLoginUtils.getValidAccessToken(user), request);
 	}
 }

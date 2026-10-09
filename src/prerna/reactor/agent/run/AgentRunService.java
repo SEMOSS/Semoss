@@ -58,6 +58,7 @@ import prerna.reactor.agent.stream.ClaudeCodeRunActivityAdapter;
 import prerna.reactor.agent.subagent.AgentSubAgentRegistry;
 import prerna.reactor.agent.subagent.SubAgentMeta;
 import prerna.util.Utility;
+import prerna.util.ValueUtils;
 
 /**
  * The entry point for agent runs. Reactors, REST resources, and subagent
@@ -125,7 +126,10 @@ public final class AgentRunService {
 		return new AgentRunHandle(runId, request.getRoomId(), AgentRunStatus.SUBMITTED);
 	}
 
-	/** Submit deterministic server-owned work through the normal RunAgent queue path. */
+	/**
+	 * Submit deterministic server-owned work through the normal RunAgent queue
+	 * path.
+	 */
 	boolean runBackgroundWithIdIfAbsent(String runId, AgentRunRequest request) {
 		if (runId == null || runId.isBlank() || request == null || request.getInsight() == null) {
 			throw new IllegalArgumentException("Background agent submission requires runId and an execution Insight");
@@ -155,7 +159,10 @@ public final class AgentRunService {
 		return submitted;
 	}
 
-	/** Creates the minimal authenticated context required by logged-out background work. */
+	/**
+	 * Creates the minimal authenticated context required by logged-out background
+	 * work.
+	 */
 	static Insight createBackgroundExecutionInsight(String userId, AgentRunRequest request) {
 		if (request == null || userId == null || userId.isBlank()) {
 			throw new SecurityException("Agent run is missing its durable owner identity");
@@ -208,12 +215,18 @@ public final class AgentRunService {
 		queueLoop.signal();
 	}
 
-	/** Queue one terminal child's single-message delivery behind its parent room turn. */
+	/**
+	 * Queue one terminal child's single-message delivery behind its parent room
+	 * turn.
+	 */
 	public void queueChildCompletion(String childRunId) {
 		queueLoop.enqueueChildCompletion(childRunId);
 	}
 
-	/** Rebuild lightweight delivery work from durable child rows when a room is loaded. */
+	/**
+	 * Rebuild lightweight delivery work from durable child rows when a room is
+	 * loaded.
+	 */
 	public void queueChildCompletionsForRoom(String parentRoomId, Insight insight) {
 		try {
 			String userId = resolveUserId(insight);
@@ -226,7 +239,8 @@ public final class AgentRunService {
 		} catch (Exception e) {
 			logger.warn("Unable to queue child completions for roomId={}: {}", parentRoomId, e.getMessage(), e);
 		}
-		// Starts the loop, and with it the one-time recovery scan, on the first room open.
+		// Starts the loop, and with it the one-time recovery scan, on the first room
+		// open.
 		queueLoop.signal();
 	}
 
@@ -258,8 +272,8 @@ public final class AgentRunService {
 	 * <p>
 	 * Generic agent APIs must use {@link #signalWorkerForResume(String, Insight)}.
 	 *
-	 * @param runId agent run identifier
-	 * @param insight approving Automation editor insight
+	 * @param runId     agent run identifier
+	 * @param insight   approving Automation editor insight
 	 * @param ownerRoom room loaded under the durable agent-run owner
 	 */
 	public void signalWorkerForAutomationResume(String runId, Insight insight, Room ownerRoom) {
@@ -269,8 +283,7 @@ public final class AgentRunService {
 		queueLoop.rememberAutomationResume(runId, insight, ownerRoom);
 		try {
 			AgentRunRecord record = AgentRunStore.getRunForAutomation(runId, insight);
-			if (record != null && record.request() != null
-					&& isSemossHarness(record.request().getHarnessType())) {
+			if (record != null && record.request() != null && isSemossHarness(record.request().getHarnessType())) {
 				AgentRunStreamService.get().register(runId);
 			}
 		} catch (Exception e) {
@@ -307,8 +320,8 @@ public final class AgentRunService {
 	 * The Automation reactor must verify project access and the exact persisted
 	 * Automation run, node, and agent-run relationship before calling this method.
 	 *
-	 * @param runId agent run identifier
-	 * @param insight current Automation editor insight
+	 * @param runId           agent run identifier
+	 * @param insight         current Automation editor insight
 	 * @param includeMessages whether room messages should be included
 	 * @return agent run details
 	 */
@@ -322,7 +335,7 @@ public final class AgentRunService {
 		}
 		populatePendingActions(run, runId);
 		if (includeMessages) {
-			attachMessages(run, runId, trimToNull(run.get("userId")));
+			attachMessages(run, runId, ValueUtils.trimToNull(run.get("userId")));
 		}
 		run.remove("userId");
 		return run;
@@ -382,10 +395,10 @@ public final class AgentRunService {
 	 * Stops a run through Automation's trace-authorized access path.
 	 *
 	 * <p>
-	 * The Automation reactor must verify project edit access and the exact persisted
-	 * trace before invoking this owner-independent operation.
+	 * The Automation reactor must verify project edit access and the exact
+	 * persisted trace before invoking this owner-independent operation.
 	 *
-	 * @param runId agent run identifier
+	 * @param runId   agent run identifier
 	 * @param insight current Automation editor insight
 	 * @return terminal agent run details
 	 */
@@ -448,9 +461,14 @@ public final class AgentRunService {
 		snapshot.put("finalOutputMessageId", run.get("finalOutputMessageId"));
 		snapshot.put("finalText", run.get("finalText"));
 		snapshot.put("errorMessage", run.get("errorMessage"));
-		if (run.containsKey("progress")) snapshot.put("progress", run.get("progress"));
-        for (String key : List.of("artifacts", "reviewOutcome", "warnings"))
-            if (run.containsKey(key)) snapshot.put(key, run.get(key));
+		if (run.containsKey("progress")) {
+			snapshot.put("progress", run.get("progress"));
+		}
+		for (String key : List.of("artifacts", "reviewOutcome", "warnings")) {
+			if (run.containsKey(key)) {
+				snapshot.put(key, run.get(key));
+			}
+		}
 		List<Map<String, Object>> pendingActions = new ArrayList<>();
 		if (AgentRunStatus.INPUT_REQUIRED.name().equals(String.valueOf(run.get("status")))) {
 			try {
@@ -469,7 +487,8 @@ public final class AgentRunService {
 	}
 
 	private static boolean supportsCanonicalStreaming(String harnessType) {
-		return isSemossHarness(harnessType) || ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(harnessType));
+		return isSemossHarness(harnessType)
+				|| ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(ValueUtils.trimToNull(harnessType));
 	}
 
 	private static void notifyStreamCancelled(String runId, String message) {
@@ -509,10 +528,10 @@ public final class AgentRunService {
 	}
 
 	private static Map<String, Object> attachMessages(Map<String, Object> run, String runId, String userId) {
-		String roomId = trimToNull(run.get("roomId"));
+		String roomId = ValueUtils.trimToNull(run.get("roomId"));
 		Room room = roomId != null && userId != null ? ModelInferenceLogsUtils.getRoomById(roomId, userId) : null;
 		List<Map<String, Object>> messages = room == null ? new ArrayList<>() : collectRunMessages(room, runId);
-		if (ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(trimToNull(run.get("harnessType")))) {
+		if (ClaudeCodeAgentHarness.NAME.equalsIgnoreCase(ValueUtils.trimToNull(run.get("harnessType")))) {
 			messages = ClaudeCodeRunActivityAdapter.projectMessages(run, messages);
 		}
 		run.put("messages", messages);
@@ -574,14 +593,6 @@ public final class AgentRunService {
 			}
 		}
 		return RoomUtils.getMessagesForClient(room, runMessages);
-	}
-
-	private static String trimToNull(Object value) {
-		if (value == null) {
-			return null;
-		}
-		String text = String.valueOf(value).trim();
-		return text.isEmpty() ? null : text;
 	}
 
 	private String resolveRunId(Insight insight) {

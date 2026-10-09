@@ -15,6 +15,9 @@ the parent `../AGENTS.md` for the complete Automation contract.
 
 - The persisted graph is canonical. Do not create a second node contract in the
   UI, MCP metadata, or generated Python.
+- A compound node may own a nested acyclic graph through `body`. Validate its
+  nodes, edges, identifiers, sources, and permissions through the same catalog
+  and definition services used by the parent graph.
 - Authoring may save an incomplete acyclic draft; execution validation remains
   stricter and requires a connected runnable graph.
 - Node types, ports, configuration fields, and output fields come from

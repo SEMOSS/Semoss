@@ -55,8 +55,11 @@ public final class CollaborationUtils {
 	// them.
 	public static final List<String> SERVER_OWNED_ROOM_OPTIONS = List.of(ROOM_OPTION_DELEGATION_ACTION_ID);
 	// Set by Work on a thread's assistant room (threadId, contextRevision,
-	// modelId).
+	// modelId) until rooms opened from a thread switched to ROOM_OPTION_SOURCE.
 	public static final String ROOM_OPTION_WORK_THREAD = "workThread";
+	// Set on a room opened from a thread (threadId, title, channel, file,
+	// messages).
+	public static final String ROOM_OPTION_SOURCE = "source";
 
 	private CollaborationUtils() {
 	}
@@ -79,13 +82,45 @@ public final class CollaborationUtils {
 		return room != null && COLLABORATION_PROJECT_ID.equals(room.getProjectId());
 	}
 
-	/** A collaboration room that Work opened for one thread's assistant. */
-	public static boolean isThreadRoom(Room room) {
+	/**
+	 * The owner's own assistant chat: a collaboration room started from the home
+	 * page or opened from a thread. An assignee's delegation room is not one.
+	 */
+	public static boolean isAssistantRoom(Room room) {
 		if (!isCollaborationRoom(room)) {
 			return false;
 		}
 		Map<String, Object> options = room.getOptionsMap();
-		return options != null && options.get(ROOM_OPTION_WORK_THREAD) instanceof Map;
+		Object delegation = options == null ? null : options.get(ROOM_OPTION_DELEGATION_ACTION_ID);
+		return delegation == null || String.valueOf(delegation).isBlank();
+	}
+
+	/**
+	 * The thread an assistant room was opened from (its source, or an older
+	 * room's workThread option); null for a chat with no thread and any other
+	 * room.
+	 */
+	public static String threadIdOf(Room room) {
+		if (!isAssistantRoom(room)) {
+			return null;
+		}
+		return threadIdOf(room.getOptionsMap());
+	}
+
+	// the same, from an assistant room's stored options
+	static String threadIdOf(Map<String, Object> options) {
+		if (options == null) {
+			return null;
+		}
+		for (String key : List.of(ROOM_OPTION_SOURCE, ROOM_OPTION_WORK_THREAD)) {
+			if (options.get(key) instanceof Map<?, ?> link) {
+				Object threadId = link.get("threadId");
+				if (threadId != null && !String.valueOf(threadId).isBlank()) {
+					return String.valueOf(threadId);
+				}
+			}
+		}
+		return null;
 	}
 
 	/**

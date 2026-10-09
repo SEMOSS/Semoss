@@ -145,9 +145,9 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 						}
 						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
-								newUser.getModelUsageRestriction());
-						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
 								newUser.getModelUsageFrequency());
+						securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
+								newUser.getModelUsageRestriction());
 						ps.setString(parameterIndex++, oldId);
 						ps.execute();
 						if (!ps.getConnection().getAutoCommit()) {
@@ -245,19 +245,19 @@ public class SecurityUpdateUtils extends AbstractSecurityUtils {
 							ps.setTimestamp(parameterIndex++, timestamp);
 							ps.setTimestamp(parameterIndex++, timestamp);
 							if (newUser.getModelMaxTokens() == 0) {
-								ps.setInt(parameterIndex++, java.sql.Types.INTEGER);
+								ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
 							} else {
 								ps.setInt(parameterIndex++, newUser.getModelMaxTokens());
 							}
 							if (newUser.getModelMaxResponseTime() == 0.0) {
-								ps.setDouble(parameterIndex++, java.sql.Types.DOUBLE);
+								ps.setNull(parameterIndex++, java.sql.Types.DOUBLE);
 							} else {
 								ps.setDouble(parameterIndex++, newUser.getModelMaxResponseTime());
 							}
 							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
-									newUser.getModelUsageRestriction());
-							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
 									newUser.getModelUsageFrequency());
+							securityDb.getQueryUtil().setNullableString(ps, parameterIndex++,
+									newUser.getModelUsageRestriction());
 							ps.execute();
 							if (!ps.getConnection().getAutoCommit()) {
 								ps.getConnection().commit();

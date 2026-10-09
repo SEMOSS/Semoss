@@ -171,7 +171,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void initModelInferenceLogsDatabase() throws Exception {
 		try (MockedStatic<AbstractOwlCreator> schema = Mockito.mockStatic(AbstractOwlCreator.class);
-				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class)) {
+				MockedStatic<ConnectionUtils> connUtil = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 			when(engine.getOWLEngineFactory()).thenReturn(owlFactory);
 			when(owlFactory.getWriteOWL()).thenReturn(owlEngine);
@@ -221,7 +221,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void recordFeedback() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			staticWrapperManager.when(() -> WrapperManager.getInstance()).thenReturn(wrapperManager);
 			when(wrapperManager.getRawWrapper(eq(engine), any(SelectQueryStruct.class))).thenReturn(rawWrapper);
 
@@ -323,7 +323,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void doCreateNewConversation() throws Exception {
 		try (MockedStatic<UUID> statticUUID = Mockito.mockStatic(UUID.class);
-				MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+				MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			statticUUID.when(() -> UUID.randomUUID()).thenReturn(FIXED_UUID);
 
 			when(conn.prepareStatement(
@@ -369,7 +369,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			assertTrue(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 			assertFalse(ModelInferenceLogsUtils.doCheckRoomExists("1"));
 		}
@@ -385,7 +385,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		when(rs.next()).thenReturn(true).thenReturn(false);
 		when(rs.getInt(1)).thenReturn(1);
 
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			assertTrue(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 			assertFalse(ModelInferenceLogsUtils.doModelIsRegistered("1"));
 		}
@@ -394,7 +394,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void doCreateNewAgent() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 
 			when(conn.prepareStatement(
 					"INSERT INTO AGENT (AGENT_ID, AGENT_NAME, DESCRIPTION, AGENT_TYPE, AUTHOR, DATE_CREATED) VALUES (?, ?, ?, ?, ?, ?)"))
@@ -518,7 +518,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 	@Test
 	void removeFeedback() throws Exception {
 		try (MockedStatic<WrapperManager> staticWrapperManager = Mockito.mockStatic(WrapperManager.class);
-				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+				MockedStatic<ConnectionUtils> staticConnUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			staticWrapperManager.when(() -> WrapperManager.getInstance()).thenReturn(wrapperManager);
 			when(wrapperManager.getRawWrapper(eq(engine), any(SelectQueryStruct.class))).thenReturn(rawWrapper);
 
@@ -585,7 +585,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void setRoomOptions() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			when(conn.prepareStatement("UPDATE ROOM SET OPTIONS = ? WHERE USER_ID = ? AND ROOM_ID = ?")).thenReturn(ps);
 			when(engine.getQueryUtil()).thenReturn(absQueryUtil);
 
@@ -610,7 +610,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 
 	@Test
 	void setRoomWorkspaceId() throws Exception {
-		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class)) {
+		try (MockedStatic<ConnectionUtils> connUtils = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			when(conn.prepareStatement("UPDATE ROOM SET WORKSPACE_ID = ? WHERE USER_ID = ? AND ROOM_ID = ?"))
 					.thenReturn(ps);
 
@@ -690,7 +690,7 @@ public class ModelInferenceLogsUtilsUnitTests extends SemossUnitTest {
 		try (MockedStatic<SecurityEngineUtils> staticSecEngineUtils = Mockito.mockStatic(SecurityEngineUtils.class);
 				MockedStatic<RawRDBMSSelectWrapper> staticRDBMSWrapper = Mockito
 						.mockStatic(RawRDBMSSelectWrapper.class);
-				MockedStatic<ConnectionUtils> connUtilStatic = Mockito.mockStatic(ConnectionUtils.class)) {
+				MockedStatic<ConnectionUtils> connUtilStatic = Mockito.mockStatic(ConnectionUtils.class, Mockito.CALLS_REAL_METHODS)) {
 			staticSecEngineUtils.when(() -> SecurityEngineUtils.getModelEngineIdsWithRestrictions(user, "engineId"))
 					.thenReturn(engineList);
 

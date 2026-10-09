@@ -48,6 +48,7 @@ import com.google.gson.JsonParser;
 
 import prerna.auth.User;
 import prerna.auth.utils.SecurityProjectUtils;
+import prerna.collaboration.CollaborationMemoryRunHook;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.RoomSystemPrompt;
@@ -206,7 +207,7 @@ public final class AgentConfigLoader {
 		// list,
 		// or both.
 		ResolvedHooks rh = resolveHooks(cfgJson);
-		b.runHooks(rh.runHooks);
+		b.runHooks(withBuiltInRunHooks(room, rh.runHooks));
 		b.toolHooks(rh.toolHooks);
 		b.subagents(resolveSubagents(cfgJson));
 
@@ -795,6 +796,18 @@ public final class AgentConfigLoader {
 	}
 
 	/**
+	 * An assistant room also reviews its finished chats for memories to suggest, whatever its agent configures.
+	 */
+	private static List<IAgentRunHook> withBuiltInRunHooks(Room room, List<IAgentRunHook> configured) {
+		if (!CollaborationUtils.isAssistantRoom(room)) {
+			return configured;
+		}
+		List<IAgentRunHook> hooks = new ArrayList<>(configured);
+		hooks.add(new CollaborationMemoryRunHook());
+		return hooks;
+	}
+
+	/**
 	 * Resolve the configured hook list from {@code CONFIG_JSON.hooks[]}. Each
 	 * entry's {@code kind} is mapped to a concrete {@link IAgentHook} via
 	 * {@link #resolveHook}; the result is then classified by interface -
@@ -853,7 +866,7 @@ public final class AgentConfigLoader {
 	 *
 	 * @return unmodifiable list, never {@code null}
 	 */
-	static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
+	public static List<SubAgentSpec> resolveSubagents(JSONObject cfgJson) {
 		if (cfgJson == null || !cfgJson.has("subagents")) {
 			return Collections.emptyList();
 		}
