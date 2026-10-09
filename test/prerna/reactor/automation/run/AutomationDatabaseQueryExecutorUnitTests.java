@@ -29,15 +29,36 @@ package prerna.reactor.automation.run;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
+import prerna.algorithm.api.ITableDataFrame;
+import prerna.om.Insight;
+import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
+import prerna.reactor.frame.FrameFactory;
+import prerna.reactor.imports.IImporter;
+import prerna.reactor.imports.ImportFactory;
+import prerna.reactor.qs.SqlQueryReactor;
+import prerna.sablecc2.om.PixelDataType;
+import prerna.sablecc2.om.nounmeta.NounMetadata;
+import prerna.sablecc2.om.task.BasicIteratorTask;
 
 public class AutomationDatabaseQueryExecutorUnitTests {
 
@@ -79,5 +100,76 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 						AutomationConstants.CONFIG_LIMIT, AutomationConstants.DB_QUERY_MAX_LIMIT + 1));
 		assertThrows(IllegalStateException.class,
 				() -> AutomationDatabaseQueryExecutor.parseRequest(excessiveLimit));
+	}
+
+	@Test
+	void executesTheSqlTaskImporterAndFrameRegistrationPipeline() throws Exception {
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		BasicIteratorTask task = mock(BasicIteratorTask.class);
+		SelectQueryStruct queryStruct = new SelectQueryStruct();
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IImporter importer = mock(IImporter.class);
+		when(task.getQueryStruct()).thenReturn(queryStruct);
+		when(frame.size("query_result")).thenReturn(2L);
+		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
+		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+
+		try (MockedConstruction<SqlQueryReactor> reactors = sqlQueryReactors(task);
+				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
+				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
+			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
+					"query_result")).thenReturn(frame);
+			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
+
+			AutomationFrameOutput.RegisteredFrame output = AutomationDatabaseQueryExecutor.execute(insight,
+					request(), "query_result", "run-1", "node-1");
+
+			assertEquals(Map.of("dataType", "table", "rowCount", 2L, "columnCount", 2), output.summary());
+			assertSame(frame, insight.getVarStore().get("query_result").getValue());
+			verify(reactors.constructed().get(0)).setInsight(insight);
+			verify(importer).setInsight(insight);
+			verify(importer).insertData();
+			verify(task).close();
+		}
+	}
+
+	@Test
+	void closesTheTaskAndUnregisteredFrameWhenImportFails() throws Exception {
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		BasicIteratorTask task = mock(BasicIteratorTask.class);
+		SelectQueryStruct queryStruct = new SelectQueryStruct();
+		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IImporter importer = mock(IImporter.class);
+		when(task.getQueryStruct()).thenReturn(queryStruct);
+		doThrow(new IllegalStateException("import failed")).when(importer).insertData();
+
+		try (MockedConstruction<SqlQueryReactor> ignored = sqlQueryReactors(task);
+				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
+				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
+			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
+					"query_result")).thenReturn(frame);
+			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
+
+			assertThrows(IllegalStateException.class, () -> AutomationDatabaseQueryExecutor.execute(insight, request(),
+					"query_result", "run-1", "node-1"));
+
+			assertNull(insight.getVarStore().get("query_result"));
+			verify(frame).close();
+			verify(task).close();
+		}
+	}
+
+	private static MockedConstruction<SqlQueryReactor> sqlQueryReactors(BasicIteratorTask task) {
+		return mockConstruction(SqlQueryReactor.class,
+				(reactor, context) -> when(reactor.execute())
+						.thenReturn(new NounMetadata(task, PixelDataType.FORMATTED_DATA_SET)));
+	}
+
+	private static Map<String, Object> request() {
+		return Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
+				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
+						AutomationConstants.CONFIG_LIMIT, 50));
 	}
 }

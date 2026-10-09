@@ -102,7 +102,10 @@ and persists only bounded table metadata. A later Python node still reads the li
 `scope["outputVar"]`; no frame identifier is exposed to the graph or browser. For a generated `database.query`, that
 scope value is now a pandas `DataFrame`, not the former `list[dict]`; downstream custom Python must use DataFrame
 operations such as `iterrows()`, `itertuples()`, or `to_dict("records")` when row dictionaries are required. This is
-currently a PY/pandas backend contract only. Polars and other frame backends require separate platform support.
+currently a PY/pandas backend contract only. Frames retain normal SEMOSS live-object semantics: downstream in-place
+changes are visible through every alias that references the same frame, and run-history frame previews are live views,
+not immutable per-node snapshots. Return the mutated frame from a node to publish it under that node's output alias.
+Polars and other frame backends require separate platform support.
 Generated sources import their documented
 `ai_server` engine class and invoke it directly; wait nodes use `time.sleep`.
 Each run reloads its persisted effective trigger-input snapshot before execution. Each node receives a read-only,

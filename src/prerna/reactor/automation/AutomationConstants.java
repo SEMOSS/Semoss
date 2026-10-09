@@ -336,11 +336,14 @@ public final class AutomationConstants {
 	 * persistence.
 	 */
 	public static final String INTERNAL_RESULT_METADATA = "__automation_metadata__";
-	/**
-	 * Reserved Python-to-Java signal that a node retained its output as a run-owned
-	 * SEMOSS frame. Removed before scope and history persistence.
-	 */
-	public static final String INTERNAL_FRAME_RESULT = "__automation_frame__";
+	/** Runtime-owned Python-to-Java node result discriminator. */
+	public static final String INTERNAL_NODE_RESULT_KIND = "__automation_result_kind__";
+	/** Runtime-owned Python-to-Java ordinary node value. */
+	public static final String INTERNAL_NODE_RESULT_VALUE = "__automation_result_value__";
+	/** Runtime result kind for an ordinary JSON-compatible node value. */
+	public static final String INTERNAL_NODE_RESULT_KIND_VALUE = "VALUE";
+	/** Runtime result kind for a frame retained in the run Insight. */
+	public static final String INTERNAL_NODE_RESULT_KIND_FRAME = "FRAME";
 	/**
 	 * Reserved generated-source signal requesting a guarded database query whose
 	 * result is loaded directly into a run-owned frame. Removed before scope and

@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
@@ -171,26 +172,23 @@ public class AutomationRunExecutionServiceUnitTests {
 
 		assertEquals(List.of(Map.of("NAME", "Storm", "POWER", "Weather control"),
 				Map.of("NAME", "Flash", "POWER", "Super speed")),
-				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 2));
+				AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 10, 2));
+		ArgumentCaptor<SelectQueryStruct> query = ArgumentCaptor.forClass(SelectQueryStruct.class);
+		verify(frame).query(query.capture());
+		assertEquals(10, query.getValue().getOffset());
+		assertEquals(2, query.getValue().getLimit());
 	}
 
 	@Test
 	void rejectsFrameLoopInputBeyondTheConfiguredBound() throws Exception {
 		ITableDataFrame frame = mock(ITableDataFrame.class);
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
-		IHeadersDataRow row = mock(IHeadersDataRow.class);
-		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME" });
-		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
-		when(wrapper.hasNext()).thenReturn(true, true);
-		when(wrapper.next()).thenReturn(row);
-		when(row.getHeaders()).thenReturn(new String[] { "NAME" });
-		when(row.getValues()).thenReturn(new Object[] { "Storm" });
+		when(frame.size("heroes")).thenReturn(2L);
 
 		Insight insight = new Insight();
 		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
 
 		assertThrows(IllegalArgumentException.class,
-				() -> AutomationRunExecutionService.frameRows(insight, "heroes", "loop", 1));
+				() -> AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 1));
 	}
 
 	@Test

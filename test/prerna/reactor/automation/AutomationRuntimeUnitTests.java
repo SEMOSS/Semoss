@@ -141,21 +141,29 @@ public class AutomationRuntimeUnitTests {
 	}
 
 	@Test
-	void convertsPrivateFrameResultIntoPublicSummary() {
-		Map<String, Object> value = Map.of(AutomationConstants.INTERNAL_FRAME_RESULT,
-				Map.of("rowCount", 12, "columnCount", 3));
+	void decodesRuntimeOwnedFrameResult() {
+		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(
+				Map.of(AutomationConstants.INTERNAL_NODE_RESULT_KIND,
+						AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME));
 
-		assertEquals(Map.of("dataType", "table", "rowCount", 12L, "columnCount", 3L),
-				AutomationRuntime.frameOutputSummary(value));
-		assertNull(AutomationRuntime.frameOutputSummary(Map.of("rows", List.of())));
+		assertTrue(result.frame());
+		assertNull(result.value());
 	}
 
 	@Test
-	void rejectsMalformedPrivateFrameResult() {
-		assertThrows(IllegalStateException.class,
-				() -> AutomationRuntime.frameOutputSummary(
-						Map.of(AutomationConstants.INTERNAL_FRAME_RESULT,
-								Map.of("rowCount", -1, "columnCount", 3))));
+	void keepsFrameShapedUserJsonAsAnOrdinaryValue() {
+		Map<String, Object> value = Map.of("__automation_frame__", Map.of("rowCount", 12, "columnCount", 3));
+		AutomationRuntime.NodeResult result = AutomationRuntime.decodeNodeResult(Map.of(
+				AutomationConstants.INTERNAL_NODE_RESULT_KIND, AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE,
+				AutomationConstants.INTERNAL_NODE_RESULT_VALUE, value));
+
+		assertFalse(result.frame());
+		assertEquals(value, result.value());
+	}
+
+	@Test
+	void rejectsMalformedRuntimeResult() {
+		assertThrows(IllegalStateException.class, () -> AutomationRuntime.decodeNodeResult(Map.of("value", 1)));
 	}
 
 }

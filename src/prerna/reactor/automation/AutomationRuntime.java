@@ -400,42 +400,36 @@ public final class AutomationRuntime {
 	}
 
 	/**
-	 * Converts an internal Python frame result into the bounded table summary stored
-	 * in scope and run history. The frame itself remains owned by the run Insight and
-	 * is available only while that Insight's Python session is live.
+	 * Decodes the runtime-owned Python result envelope. User values remain nested in
+	 * the envelope, so ordinary JSON cannot impersonate a retained frame.
 	 *
-	 * @param value normalized result returned by the Python Automation runtime
-	 * @return bounded table summary, or {@code null} for an ordinary node result
-	 * @throws IllegalStateException when the internal frame result is malformed
+	 * @param output raw value returned by the Python translator
+	 * @return decoded ordinary value or retained-frame signal
+	 * @throws IllegalStateException when the runtime envelope is malformed
 	 */
-	public static Map<String, Object> frameOutputSummary(Object value) {
-		if (!(value instanceof Map<?, ?> result)
-				|| !result.containsKey(AutomationConstants.INTERNAL_FRAME_RESULT)) {
-			return null;
+	public static NodeResult decodeNodeResult(Object output) {
+		Object normalized = normalizeNodeResult(output);
+		if (!(normalized instanceof Map<?, ?> result)
+				|| !(result.get(AutomationConstants.INTERNAL_NODE_RESULT_KIND) instanceof String kind)) {
+			throw new IllegalStateException("Python automation node returned an invalid runtime result.");
 		}
-		Object rawSummary = result.get(AutomationConstants.INTERNAL_FRAME_RESULT);
-		if (result.size() != 1 || !(rawSummary instanceof Map<?, ?> summary)) {
-			throw new IllegalStateException("Python automation node returned an invalid frame result.");
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_FRAME.equals(kind)) {
+			if (result.size() != 1) {
+				throw new IllegalStateException("Python automation frame result contains unexpected values.");
+			}
+			return new NodeResult(null, true);
 		}
-
-		long rowCount = nonNegativeWholeNumber(summary.get("rowCount"), "rowCount");
-		long columnCount = nonNegativeWholeNumber(summary.get("columnCount"), "columnCount");
-		Map<String, Object> publicSummary = new LinkedHashMap<>();
-		publicSummary.put("dataType", "table");
-		publicSummary.put("rowCount", rowCount);
-		publicSummary.put("columnCount", columnCount);
-		return publicSummary;
+		if (AutomationConstants.INTERNAL_NODE_RESULT_KIND_VALUE.equals(kind)) {
+			if (result.size() != 2 || !result.containsKey(AutomationConstants.INTERNAL_NODE_RESULT_VALUE)) {
+				throw new IllegalStateException("Python automation value result is missing its value.");
+			}
+			return new NodeResult(result.get(AutomationConstants.INTERNAL_NODE_RESULT_VALUE), false);
+		}
+		throw new IllegalStateException("Python automation node returned an unknown runtime result kind.");
 	}
 
-	private static long nonNegativeWholeNumber(Object value, String field) {
-		if (!(value instanceof Number number)) {
-			throw new IllegalStateException("Python automation frame result is missing " + field + ".");
-		}
-		double numeric = number.doubleValue();
-		if (!Double.isFinite(numeric) || numeric < 0 || numeric != Math.rint(numeric)) {
-			throw new IllegalStateException("Python automation frame result has an invalid " + field + ".");
-		}
-		return number.longValue();
+	/** Decoded result returned by the Python Automation runtime. */
+	public record NodeResult(Object value, boolean frame) {
 	}
 
 	private static String encode(String value) {

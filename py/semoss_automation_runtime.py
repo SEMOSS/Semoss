@@ -19,7 +19,10 @@ _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
 _DATA_PATH_TOKEN_PATTERN = re.compile(
     r"([^.\[\]]+)|\[(\d+|\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')\]"
 )
-_FRAME_RESULT_KEY = "__automation_frame__"
+_RESULT_KIND_KEY = "__automation_result_kind__"
+_RESULT_VALUE_KEY = "__automation_result_value__"
+_RESULT_KIND_VALUE = "VALUE"
+_RESULT_KIND_FRAME = "FRAME"
 _MISSING = object()
 
 
@@ -287,12 +290,14 @@ def execute_node(
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
     value = run(scope)
-    frame_result = _retain_supported_frame(value, output_variable, session_globals)
-    if frame_result is not None:
-        return frame_result
+    if _retain_supported_frame(value, output_variable, session_globals):
+        return {_RESULT_KIND_KEY: _RESULT_KIND_FRAME}
     result = _json_result(value, max_output_bytes)
     _prepare_row_preview_frame(result, output_variable, session_globals)
-    return result
+    return {
+        _RESULT_KIND_KEY: _RESULT_KIND_VALUE,
+        _RESULT_VALUE_KEY: result,
+    }
 
 
 def execute_trigger(
@@ -333,6 +338,12 @@ def _decode_scope(
     session_globals: dict[str, Any] | None = None,
     frame_bindings: dict[str, str] | None = None,
 ) -> AutomationScope:
+    """Decode scope and bind live Insight-owned frames by output alias.
+
+    Frame values follow the existing SEMOSS frame model: they are live mutable
+    objects, not per-node snapshots. In-place changes are therefore visible
+    through every alias bound to that object for the life of the run Insight.
+    """
     decoded = json.loads(_decode(value))
     if not isinstance(decoded, dict):
         raise ValueError("Automation scope must be a JSON object.")
@@ -359,7 +370,7 @@ def _is_json_compatible(value: Any) -> bool:
 
 def _retain_supported_frame(
     value: Any, output_variable: str, session_globals: dict[str, Any]
-) -> dict[str, dict[str, int]] | None:
+) -> bool:
     """Retain a supported Python frame in the run Insight's live namespace.
 
     Pandas is the first supported adapter. Additional SEMOSS Python frame
@@ -369,14 +380,9 @@ def _retain_supported_frame(
     import pandas as pd
 
     if not isinstance(value, pd.DataFrame):
-        return None
+        return False
     session_globals[output_variable] = value
-    return {
-        _FRAME_RESULT_KEY: {
-            "rowCount": int(value.shape[0]),
-            "columnCount": int(value.shape[1]),
-        }
-    }
+    return True
 
 
 def _prepare_row_preview_frame(

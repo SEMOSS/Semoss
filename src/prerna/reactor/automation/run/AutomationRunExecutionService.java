@@ -318,13 +318,18 @@ final class AutomationRunExecutionService {
 					? ((Number) config.get(AutomationConstants.CONFIG_LOOP_BATCH_SIZE)).intValue()
 					: 1;
 			long maximumItems = (long) maximumIterations * batchSize;
-			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
-					? loopItems(config.get(AutomationConstants.CONFIG_LOOP_ITEMS), parentScope, executionInsight,
-							frameBindings, loopNodeId, maximumItems)
+			Object configuredItems = config.get(AutomationConstants.CONFIG_LOOP_ITEMS);
+			String frameAlias = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)
+					? exactFrameAlias(configuredItems, frameBindings)
+					: null;
+			List<Object> items = AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode) && frameAlias == null
+					? loopItems(configuredItems, parentScope, loopNodeId)
 					: List.of();
+			long itemCount = frameAlias == null ? items.size()
+					: frameRowCount(executionInsight, frameAlias, loopNodeId, maximumItems);
+			long requiredIterations = itemCount == 0 ? 0 : (itemCount + batchSize - 1) / batchSize;
 			int iterationLimit = switch (loopMode) {
-			case AutomationConstants.LOOP_MODE_FOR_EACH -> items.isEmpty() ? 0
-					: (items.size() + batchSize - 1) / batchSize;
+			case AutomationConstants.LOOP_MODE_FOR_EACH -> Math.toIntExact(requiredIterations);
 			case AutomationConstants.LOOP_MODE_REPEAT -> ((Number) config
 					.get(AutomationConstants.CONFIG_LOOP_COUNT)).intValue();
 			case AutomationConstants.LOOP_MODE_WHILE -> maximumIterations;
@@ -371,9 +376,15 @@ final class AutomationRunExecutionService {
 				loopContext.put("number", iteration + 1);
 				loopContext.put("isFirst", iteration == 0);
 				if (AutomationConstants.LOOP_MODE_FOR_EACH.equals(loopMode)) {
-					int from = iteration * batchSize;
-					int to = Math.min(items.size(), from + batchSize);
-					List<Object> batch = new ArrayList<>(items.subList(from, to));
+					long from = (long) iteration * batchSize;
+					int currentBatchSize = (int) Math.min(batchSize, itemCount - from);
+					List<Object> batch;
+					if (frameAlias == null) {
+						int start = Math.toIntExact(from);
+						batch = new ArrayList<>(items.subList(start, start + currentBatchSize));
+					} else {
+						batch = frameRows(executionInsight, frameAlias, loopNodeId, from, currentBatchSize);
+					}
 					loopContext.put("batch", batch);
 					loopContext.put("total", iterationLimit);
 					loopContext.put("isLast", iteration == iterationLimit - 1);
@@ -525,21 +536,6 @@ final class AutomationRunExecutionService {
 		throw new IllegalArgumentException("Loop node '" + loopNodeId + "' items must resolve to an array or list.");
 	}
 
-	/**
-	 * Resolves a loop input from either ordinary scope data or a live SEMOSS frame
-	 * owned by the run Insight. Frame rows are read through {@link ITableDataFrame},
-	 * so loop execution does not depend on the frame's Python, native, or other
-	 * backend implementation.
-	 */
-	private static List<Object> loopItems(Object configuredItems, Map<String, Object> scope, Insight executionInsight,
-			Map<String, String> frameBindings, String loopNodeId, long maximumItems) {
-		String frameAlias = exactFrameAlias(configuredItems, frameBindings);
-		if (frameAlias == null) {
-			return loopItems(configuredItems, scope, loopNodeId);
-		}
-		return frameRows(executionInsight, frameAlias, loopNodeId, maximumItems);
-	}
-
 	/** Returns an exact scope reference when it identifies a live frame binding. */
 	private static String exactFrameAlias(Object configuredItems, Map<String, String> frameBindings) {
 		if (!(configuredItems instanceof String value)) {
@@ -554,35 +550,50 @@ final class AutomationRunExecutionService {
 	}
 
 	/**
-	 * Reads a bounded set of frame rows as the same ordered maps a business user
-	 * receives from a JSON table result. One additional row is requested solely to
-	 * detect input that exceeds the loop's configured execution bound.
+	 * Returns the live frame row count and rejects input that exceeds the loop's
+	 * configured execution bound before any body node can run.
 	 */
-	static List<Object> frameRows(Insight executionInsight, String frameAlias, String loopNodeId,
-			long maximumItems) {
-		NounMetadata noun = executionInsight.getVarStore().get(frameAlias);
-		if (noun == null || noun.getNounType() != PixelDataType.FRAME
-				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
-			throw new IllegalStateException("Loop node '" + loopNodeId + "' cannot access SEMOSS frame '"
-					+ frameAlias + "' in its run Insight.");
+	static long frameRowCount(Insight executionInsight, String frameAlias, String loopNodeId, long maximumItems) {
+		ITableDataFrame frame = requireLoopFrame(executionInsight, frameAlias, loopNodeId);
+		long rowCount = frame.size(frameAlias);
+		if (rowCount < 0) {
+			throw new IllegalStateException("Loop node '" + loopNodeId + "' frame input returned an invalid row count.");
+		}
+		if (rowCount > maximumItems) {
+			throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its configured "
+					+ "maximum of " + maximumItems + " items.");
+		}
+		return rowCount;
+	}
+
+	/**
+	 * Reads one bounded page of frame rows through the standard SEMOSS frame query
+	 * contract. Only the current loop batch is materialized in Java memory.
+	 */
+	static List<Object> frameRows(Insight executionInsight, String frameAlias, String loopNodeId, long offset,
+			int limit) {
+		ITableDataFrame frame = requireLoopFrame(executionInsight, frameAlias, loopNodeId);
+		if (limit <= 0) {
+			return List.of();
 		}
 
 		String[] selectors = frame.getQsHeaders();
 		if (selectors.length == 0) {
-			return List.of();
+			throw new IllegalStateException("Loop node '" + loopNodeId + "' frame input has no selectable columns.");
 		}
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
 		for (String selector : selectors) {
 			queryStruct.addSelector(new QueryColumnSelector(selector));
 		}
-		queryStruct.setLimit(maximumItems + 1);
+		queryStruct.setOffSet(offset);
+		queryStruct.setLimit(limit);
 
-		List<Object> rows = new ArrayList<>();
+		List<Object> rows = new ArrayList<>(limit);
 		try (IRawSelectWrapper wrapper = frame.query(queryStruct)) {
 			while (wrapper.hasNext()) {
-				if (rows.size() == maximumItems) {
-					throw new IllegalArgumentException("Loop node '" + loopNodeId + "' frame input exceeds its "
-							+ "configured maximum of " + maximumItems + " items.");
+				if (rows.size() == limit) {
+					throw new IllegalStateException(
+							"Loop node '" + loopNodeId + "' frame query exceeded its requested batch size.");
 				}
 				IHeadersDataRow row = wrapper.next();
 				String[] headers = row.getHeaders();
@@ -592,6 +603,9 @@ final class AutomationRunExecutionService {
 					item.put(headers[index], values[index]);
 				}
 				rows.add(item);
+			}
+			if (rows.size() != limit) {
+				throw new IllegalStateException("Loop node '" + loopNodeId + "' frame input changed while it was read.");
 			}
 			return rows;
 		} catch (IOException e) {
@@ -607,6 +621,17 @@ final class AutomationRunExecutionService {
 			throw new IllegalStateException(
 					"Loop node '" + loopNodeId + "' could not read SEMOSS frame '" + frameAlias + "'.", e);
 		}
+	}
+
+	/** Returns the registered frame used as a for-each loop input. */
+	private static ITableDataFrame requireLoopFrame(Insight executionInsight, String frameAlias, String loopNodeId) {
+		NounMetadata noun = executionInsight.getVarStore().get(frameAlias);
+		if (noun == null || noun.getNounType() != PixelDataType.FRAME
+				|| !(noun.getValue() instanceof ITableDataFrame frame)) {
+			throw new IllegalStateException("Loop node '" + loopNodeId + "' cannot access SEMOSS frame '"
+					+ frameAlias + "' in its run Insight.");
+		}
+		return frame;
 	}
 
 	/** Resolves a generated loop's exact dotted scope path without coercing its value. */
@@ -963,15 +988,16 @@ final class AutomationRunExecutionService {
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, outputVariable, frameBindings),
 					getProjectAssetsFolder(projectId),
 					new String[] { getProjectPyFolder(projectId) });
-			Object value = AutomationRuntime.normalizeNodeResult(raw);
+			AutomationRuntime.NodeResult nodeResult = AutomationRuntime.decodeNodeResult(raw);
+			Object value = nodeResult.value();
 			boolean databaseFrameRequest = AutomationDatabaseQueryExecutor.supports(node)
 					&& AutomationDatabaseQueryExecutor.isRequest(value);
-			Map<String, Object> frameSummary = AutomationRuntime.frameOutputSummary(value);
-			boolean frameProducing = databaseFrameRequest || frameSummary != null;
+			boolean pythonFrame = nodeResult.frame();
+			boolean frameProducing = databaseFrameRequest || pythonFrame;
 			String outputKind = null;
 			String parentLoopNodeId = stringValue(node.get(AutomationConstants.PARENT_NODE_ID));
 			if (parentLoopNodeId != null && frameProducing) {
-				if (frameSummary != null) {
+				if (pythonFrame) {
 					AutomationFrameOutput.discardPythonValue(translator, outputVariable, runId, nodeId);
 				}
 				throw new IllegalStateException("Loop node '" + parentLoopNodeId
@@ -985,7 +1011,7 @@ final class AutomationRunExecutionService {
 				frameBindings.put(outputVariable, registeredFrame.backend());
 				outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 			} else {
-				if (frameSummary != null) {
+				if (pythonFrame) {
 					AutomationFrameOutput.RegisteredFrame registeredFrame;
 					try {
 						registeredFrame = AutomationFrameOutput.registerPythonVariable(executionInsight, outputVariable);

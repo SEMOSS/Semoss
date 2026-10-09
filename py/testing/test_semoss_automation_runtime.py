@@ -80,7 +80,10 @@ class DataFrameOutputTests(unittest.TestCase):
         ):
             with self.subTest(name=name):
                 self.assertEqual(
-                    expected,
+                    {
+                        "__automation_result_kind__": "VALUE",
+                        "__automation_result_value__": expected,
+                    },
                     execute_node(
                         _encode({}),
                         _encode(source),
@@ -108,14 +111,41 @@ class DataFrameOutputTests(unittest.TestCase):
 
         self.assertEqual(
             {
-                "dataType": "table",
-                "rowCount": 2,
-                "columnCount": 1,
-                "label": "ordinary JSON",
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {
+                    "dataType": "table",
+                    "rowCount": 2,
+                    "columnCount": 1,
+                    "label": "ordinary JSON",
+                },
             },
             result,
         )
         self.assertNotIn("result", session_globals)
+
+    def test_keeps_private_frame_marker_as_ordinary_json(self) -> None:
+        result = execute_node(
+            _encode({}),
+            _encode(
+                "def run(scope):\n"
+                "    return {'__automation_frame__': "
+                "{'rowCount': 2, 'columnCount': 1}}\n"
+            ),
+            1024,
+            "result",
+            {},
+            {},
+        )
+
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {
+                    "__automation_frame__": {"rowCount": 2, "columnCount": 1}
+                },
+            },
+            result,
+        )
 
     def test_retains_dataframe_and_rebinds_it_for_the_next_node(self) -> None:
         session_globals: dict[str, object] = {}
@@ -132,9 +162,7 @@ class DataFrameOutputTests(unittest.TestCase):
             {},
         )
 
-        self.assertEqual(
-            {"__automation_frame__": {"rowCount": 2, "columnCount": 1}}, result
-        )
+        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
         self.assertEqual([7, 9], session_globals["rows"]["value"].tolist())
 
         downstream = execute_node(
@@ -150,7 +178,13 @@ class DataFrameOutputTests(unittest.TestCase):
             {"rows": "PY"},
         )
 
-        self.assertEqual({"rows": 2, "first": 7}, downstream)
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {"rows": 2, "first": 7},
+            },
+            downstream,
+        )
 
     def test_retains_empty_dataframe_schema(self) -> None:
         session_globals: dict[str, object] = {}
@@ -167,10 +201,40 @@ class DataFrameOutputTests(unittest.TestCase):
             {},
         )
 
-        self.assertEqual(
-            {"__automation_frame__": {"rowCount": 0, "columnCount": 2}}, result
-        )
+        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
         self.assertEqual(["id", "name"], list(session_globals["rows"].columns))
+
+    def test_frame_aliases_share_the_live_mutable_object(self) -> None:
+        session_globals: dict[str, object] = {}
+        execute_node(
+            _encode({}),
+            _encode(
+                "import pandas as pd\n\n"
+                "def run(scope):\n"
+                "    return pd.DataFrame([{'value': 1}])\n"
+            ),
+            1024,
+            "rows",
+            session_globals,
+            {},
+        )
+
+        result = execute_node(
+            _encode({"rows": {"dataType": "table", "rowCount": 1}}),
+            _encode(
+                "def run(scope):\n"
+                "    scope['rows'].loc[0, 'value'] = 99\n"
+                "    return scope['rows']\n"
+            ),
+            1024,
+            "updated_rows",
+            session_globals,
+            {"rows": "PY"},
+        )
+
+        self.assertEqual({"__automation_result_kind__": "FRAME"}, result)
+        self.assertIs(session_globals["rows"], session_globals["updated_rows"])
+        self.assertEqual(99, session_globals["rows"].loc[0, "value"])
 
     def test_reports_expired_frame_backing_explicitly(self) -> None:
         with self.assertRaisesRegex(ValueError, "no longer available"):
@@ -185,7 +249,7 @@ class DataFrameOutputTests(unittest.TestCase):
 
     def test_json_row_list_keeps_its_existing_scope_shape(self) -> None:
         session_globals: dict[str, object] = {}
-        rows = execute_node(
+        result = execute_node(
             _encode({}),
             _encode("def run(scope):\n    return [{'value': 7}]\n"),
             1024,
@@ -194,7 +258,14 @@ class DataFrameOutputTests(unittest.TestCase):
             {},
         )
 
-        self.assertEqual([{"value": 7}], rows)
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": [{"value": 7}],
+            },
+            result,
+        )
+        rows = result["__automation_result_value__"]
         downstream = execute_node(
             _encode({"rows": rows}),
             _encode(
@@ -206,7 +277,13 @@ class DataFrameOutputTests(unittest.TestCase):
             session_globals,
             {},
         )
-        self.assertEqual({"is_list": True}, downstream)
+        self.assertEqual(
+            {
+                "__automation_result_kind__": "VALUE",
+                "__automation_result_value__": {"is_list": True},
+            },
+            downstream,
+        )
 
 
 if __name__ == "__main__":
