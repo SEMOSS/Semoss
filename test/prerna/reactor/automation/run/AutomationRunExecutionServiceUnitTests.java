@@ -80,6 +80,40 @@ public class AutomationRunExecutionServiceUnitTests {
 				Map.of("route", routeAnswer)));
 	}
 
+	private static TypeSafeModelEngineResponse mixedResponse(double urgentProbability) {
+		return TypeSafeModelEngineResponse.fromObject(Map.of("model", "jev-1.13.0",
+				"usage", Map.of("input_tokens", 10, "output_tokens", 4), "answers",
+				Map.of("department",
+						Map.of("type", "choice", "choice", "billing", "confidence", 0.95, "probabilities",
+								Map.of("billing", 0.95, "technical", 0.05)),
+						"frustration", Map.of("type", "score", "score", 0.7, "confidence", 0.9),
+						"urgent", Map.of("type", "noul", "noul", urgentProbability))));
+	}
+
+	private static Map<String, Object> mixedConfig() {
+		return Map.of(AutomationConstants.CONFIG_QUESTIONS,
+				List.of(Map.of(AutomationConstants.CONFIG_KEY, "department"),
+						Map.of(AutomationConstants.CONFIG_KEY, "frustration"),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent")));
+	}
+
+	private static List<Map<String, Object>> mixedRoutes() {
+		return List.of(Map.of(AutomationConstants.CONFIG_CLAUSE_ID, "urgent_billing",
+				AutomationConstants.CONFIG_DESCRIPTION, "Urgent billing",
+				AutomationConstants.CONFIG_MATCH, AutomationConstants.JEV_ROUTE_MATCH_ALL,
+				AutomationConstants.CONFIG_CONDITIONS,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "department",
+								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_CHOICE,
+								AutomationConstants.CONFIG_OPERATOR, AutomationConstants.JEV_OPERATOR_EQUALS,
+								AutomationConstants.CONFIG_VALUE, "billing"),
+						Map.of(AutomationConstants.CONFIG_QUESTION_KEY, "urgent",
+								AutomationConstants.CONFIG_FIELD, AutomationConstants.JEV_FIELD_NOUL,
+								AutomationConstants.CONFIG_OPERATOR,
+								AutomationConstants.JEV_OPERATOR_GREATER_THAN_OR_EQUAL,
+								AutomationConstants.CONFIG_VALUE, 0.8))));
+	}
+
 	@Test
 	void mapsNoulYesAndNoAnswersToExplicitStableRouteIds() {
 		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTION_TYPE,
@@ -117,6 +151,58 @@ public class AutomationRunExecutionServiceUnitTests {
 				response(Map.of("type", "choice", "choice", "research", "confidence", 0.9)), routes,
 				Map.of(AutomationConstants.CONFIG_CONFIDENCE_THRESHOLD, 0.6));
 		assertEquals("case:research", decision.get("branch"));
+	}
+
+	@Test
+	void combinesMultipleTypedAnswersIntoOneJevRoute() {
+		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(mixedResponse(0.89), mixedRoutes(),
+				mixedConfig());
+		assertEquals("case:urgent_billing", decision.get("branch"));
+		assertEquals("Urgent billing", decision.get("route"));
+		assertEquals(AutomationConstants.JEV_ROUTE_MATCH_ALL, decision.get("routeMatch"));
+		assertEquals(2, ((List<?>) decision.get("matchedConditions")).size());
+		assertEquals("jev-1.13.0", decision.get("model"));
+		assertEquals(3, ((Map<?, ?>) decision.get("answers")).size());
+	}
+
+	@Test
+	void buildsTheNativeMultiQuestionJevRequestWithoutFlatteningCriteria() {
+		Map<String, Object> config = Map.of(AutomationConstants.CONFIG_QUESTIONS,
+				List.of(
+						Map.of(AutomationConstants.CONFIG_KEY, "department",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "Choose a team",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("billing", "Payments", "technical", "Bugs")),
+						Map.of(AutomationConstants.CONFIG_KEY, "urgent",
+								AutomationConstants.CONFIG_TYPE, AutomationConstants.JEV_QUESTION_TYPE_NOUL,
+								AutomationConstants.CONFIG_INSTRUCTIONS, "${instruction}",
+								AutomationConstants.CONFIG_CRITERIA,
+								Map.of("true", "Today", "false", "Later"))));
+		Map<String, Object> questions = AutomationRunExecutionService.jevQuestions(config,
+				Map.of("instruction", "Does this require action today?"));
+		assertEquals(2, questions.size());
+		assertEquals("Does this require action today?",
+				((Map<?, ?>) questions.get("urgent")).get(AutomationConstants.CONFIG_INSTRUCTIONS));
+		assertEquals(Map.of("billing", "Payments", "technical", "Bugs"),
+				((Map<?, ?>) questions.get("department")).get(AutomationConstants.CONFIG_CRITERIA));
+	}
+
+	@Test
+	void preservesIntegerRetryOptionsAfterJsonDeserialization() {
+		Map<String, Object> parameters = AutomationRunExecutionService.jevParameters(
+				Map.of(AutomationConstants.CONFIG_PARAM_VALUES, Map.of("timeout", 30.0, "max_retries", 2.0)));
+		assertEquals(30.0, parameters.get("timeout"));
+		assertEquals(2, parameters.get("max_retries"));
+		assertEquals(Integer.class, parameters.get("max_retries").getClass());
+	}
+
+	@Test
+	void usesFallbackWhenNoMultiQuestionJevRouteMatches() {
+		Map<String, Object> decision = AutomationRunExecutionService.jevDecision(mixedResponse(0.6), mixedRoutes(),
+				mixedConfig());
+		assertEquals(AutomationConstants.CONTROL_PORT_ELSE, decision.get("branch"));
+		assertNull(decision.get("routeId"));
 	}
 
 	@Test

@@ -79,11 +79,12 @@ Supported native-Python runtime types are:
 
 `control.if` stores ordered `{ id, condition }` clauses evaluated only by the bounded Java
 expression evaluator. The first match selects its `case:<clause-id>` edge; otherwise the final
-`else` edge is selected. `control.jev` delegates a typed routing question to a TYPESAFE model.
-`questionType: "choice"` selects among arbitrary described routes; `questionType: "noul"` maps the
-model's Yes probability to exactly one `{ answer: true }` route or one `{ answer: false }` route.
-Both modes retain stable route IDs for `case:<route-id>` edges and select `else` when confidence is
-below the configured threshold. `control.loop` owns a nested acyclic graph and supports bounded,
+`else` edge is selected. `control.jev` delegates one state and a named set of `choice`, `score`, or
+`noul` questions to a TYPESAFE model. Ordered routes contain `all` or `any` rules over typed answer
+fields; the first match selects its stable `case:<route-id>` edge and no match selects `else`. Saved
+single-question `questionType` definitions remain supported for compatibility, while new graphs use
+the multi-question contract and retain the complete typed response in the node result.
+`control.loop` owns a nested acyclic graph and supports bounded,
 sequential `forEach`, fixed-count `repeat`, and condition-based `while` execution. Java owns each
 pass, cancellation, and server-side limits; body nodes continue to use the ordinary node executors
 and appear under their parent loop in run history. Loop context exposes the current item/group or

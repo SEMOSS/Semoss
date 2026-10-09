@@ -188,12 +188,22 @@ public final class AutomationConstants {
 	// --------
 
 	public static final String CONFIG_ENGINE_ID = "engineId";
+	public static final String CONFIG_KEY = "key";
+	public static final String CONFIG_TYPE = "type";
 	public static final String CONFIG_CLAUSES = "clauses";
 	public static final String CONFIG_CLAUSE_ID = "id";
 	public static final String CONFIG_CONDITION = "condition";
 	public static final String CONFIG_STATE = "state";
+	public static final String CONFIG_QUESTIONS = "questions";
+	public static final String CONFIG_QUESTION_KEY = "questionKey";
 	public static final String CONFIG_QUESTION = "question";
 	public static final String CONFIG_QUESTION_TYPE = "questionType";
+	public static final String CONFIG_INSTRUCTIONS = "instructions";
+	public static final String CONFIG_CRITERIA = "criteria";
+	public static final String CONFIG_MATCH = "match";
+	public static final String CONFIG_CONDITIONS = "conditions";
+	public static final String CONFIG_FIELD = "field";
+	public static final String CONFIG_OPTION = "option";
 	public static final String CONFIG_CONFIDENCE_THRESHOLD = "confidenceThreshold";
 	public static final String CONFIG_LIMIT = "limit";
 	public static final String CONFIG_COMMAND = "command";
@@ -213,7 +223,25 @@ public final class AutomationConstants {
 	public static final String CONFIG_DESCRIPTION = "description";
 	public static final String CONFIG_ANSWER = "answer";
 	public static final String JEV_QUESTION_TYPE_CHOICE = "choice";
+	public static final String JEV_QUESTION_TYPE_SCORE = "score";
 	public static final String JEV_QUESTION_TYPE_NOUL = "noul";
+	public static final String JEV_ROUTE_MATCH_ALL = "all";
+	public static final String JEV_ROUTE_MATCH_ANY = "any";
+	public static final String JEV_FIELD_CHOICE = "choice";
+	public static final String JEV_FIELD_SCORE = "score";
+	public static final String JEV_FIELD_NOUL = "noul";
+	public static final String JEV_FIELD_CONFIDENCE = "confidence";
+	public static final String JEV_FIELD_PROBABILITY = "probability";
+	public static final String JEV_OPERATOR_EQUALS = "equals";
+	public static final String JEV_OPERATOR_NOT_EQUALS = "notEquals";
+	public static final String JEV_OPERATOR_GREATER_THAN = "greaterThan";
+	public static final String JEV_OPERATOR_GREATER_THAN_OR_EQUAL = "greaterThanOrEqual";
+	public static final String JEV_OPERATOR_LESS_THAN = "lessThan";
+	public static final String JEV_OPERATOR_LESS_THAN_OR_EQUAL = "lessThanOrEqual";
+	public static final int JEV_MAX_QUESTIONS = 32;
+	public static final int JEV_MAX_ROUTES = 32;
+	public static final int JEV_MAX_ROUTE_CONDITIONS = 32;
+	public static final int JEV_MAX_CRITERIA = 255;
 	/** Optional trigger setup Python. */
 	public static final String CONFIG_PYTHON_SOURCE = "pythonSource";
 	public static final String CONFIG_HARNESS_TYPE = "harnessType";

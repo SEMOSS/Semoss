@@ -151,20 +151,17 @@ public class AutomationNodeCatalogUnitTests {
 	}
 
 	@Test
-	void jevDecisionAdvertisesTypeSafeRoutingConfiguration() {
+	void jevDecisionAdvertisesMultiQuestionTypeSafeRoutingConfiguration() {
 		AutomationNodeDefinition definition = find(AutomationConstants.NODE_CONTROL_JEV);
 		assertNotNull(definition);
 		assertEquals(AutomationNodeType.Permission.VIEW, definition.nodeType().getPermission());
 		Map<String, Map<String, Object>> fieldsByKey = definition.configFields().stream()
 				.collect(java.util.stream.Collectors.toMap(AutomationNodeDefinition.ConfigField::key,
 						AutomationNodeDefinition.ConfigField::toMap));
-		Map<String, Object> confidence = fieldsByKey.get("confidenceThreshold");
-		assertEquals(0.0, confidence.get("minimum"));
-		assertEquals(1.0, confidence.get("maximum"));
-		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
-				fieldsByKey.get(AutomationConstants.CONFIG_QUESTION_TYPE).get("defaultValue"));
-		assertEquals(AutomationConstants.JEV_QUESTION_TYPE_CHOICE,
-				definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTION_TYPE));
+		assertEquals("json", fieldsByKey.get(AutomationConstants.CONFIG_QUESTIONS).get("type"));
+		assertEquals("branch-clauses", fieldsByKey.get(AutomationConstants.CONFIG_CLAUSES).get("type"));
+		assertNotNull(definition.defaultConfig().get(AutomationConstants.CONFIG_QUESTIONS));
+		assertNotNull(definition.defaultConfig().get(AutomationConstants.CONFIG_CLAUSES));
 	}
 
 	@Test
