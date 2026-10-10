@@ -33,6 +33,7 @@ import prerna.algorithm.api.ITableDataFrame;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IHeadersDataRow;
@@ -49,6 +50,8 @@ public class ImportFactory {
 			return new RImporter((RDataTable) frame, qs);
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs);
+		} else if(frame instanceof PolarsFrame) {
+			return new PolarsImporter((PolarsFrame) frame, qs);
 		} else if(frame instanceof NativeFrame) {
 			return new NativeImporter((NativeFrame) frame, qs);
 		}
@@ -64,6 +67,8 @@ public class ImportFactory {
 			return new RImporter((RDataTable) frame, qs, it);
 		} else if(frame instanceof PandasFrame) {
 			return new PandasImporter((PandasFrame) frame, qs, it);
+		} else if(frame instanceof PolarsFrame) {
+			return new PolarsImporter((PolarsFrame) frame, qs, it);
 		} else if(frame instanceof NativeFrame) {
 			return new NativeImporter((NativeFrame) frame, qs, it);
 		}

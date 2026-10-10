@@ -601,6 +601,8 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 	@Override
 	public void setFrameFilters(GenRowFilters filter) {
 		this.grf = filter;
+		this.clearCachedMetrics();
+		this.clearQueryCache();
 	}
 
 	@Override
@@ -608,12 +610,14 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.grf.merge(filter);
 		this.uniqueColumnCache.clear();
 		this.clearCachedMetrics();
+		this.clearQueryCache();
 	}
 
 	@Override
 	public void addFilter(IQueryFilter filter) {
 		this.grf.merge(filter);
 		this.clearCachedMetrics();
+		this.clearQueryCache();
 	}
 
 	@Override
@@ -622,6 +626,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		this.grf.removeColumnFilters(allColsUsed);
 		this.grf.merge(filter);
 		this.clearCachedMetrics();
+		this.clearQueryCache();
 	}
 
 	@Override
@@ -629,6 +634,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		boolean foundFiltersToRemove = this.grf.removeColumnFilter(columnHeader);
 		if (foundFiltersToRemove) {
 			this.clearCachedMetrics();
+			this.clearQueryCache();
 		}
 		return foundFiltersToRemove;
 	}
@@ -638,6 +644,7 @@ public abstract class AbstractTableDataFrame implements ITableDataFrame {
 		if (!this.grf.isEmpty()) {
 			this.grf.removeAllFilters();
 			this.clearCachedMetrics();
+			this.clearQueryCache();
 			return true;
 		}
 		return false;

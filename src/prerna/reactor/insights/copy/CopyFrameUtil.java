@@ -37,6 +37,7 @@ import prerna.ds.OwlTemporalEngineMeta;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PandasSyntaxHelper;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IRawSelectWrapper;
@@ -101,6 +102,16 @@ public class CopyFrameUtil {
 				dt.runScript(PandasSyntaxHelper.makeWrapper(newWrapperName, newName));
 				dt.getMetaData().modifyVertexName(oldName, newName);
 
+			} else if (frameToCopy instanceof PolarsFrame) {
+				newFrame = new PolarsFrame(newName, insightContext.getPyTranslator());
+				SelectQueryStruct qs = newMetadata.getFlatTableQs(false);
+				if (limit > 0) {
+					qs.setLimit(limit);
+				}
+				try (IRawSelectWrapper iterator = frameToCopy.query(qs)) {
+					IImporter importer = ImportFactory.getImporter(newFrame, qs, iterator);
+					importer.insertData(newMetadata);
+				}
 			} else if (frameToCopy instanceof RDataTable) {
 				newFrame = new RDataTable( insightContext.getRJavaTranslator(CLASS_NAME), newName );
 				// set the metadata
@@ -164,6 +175,9 @@ public class CopyFrameUtil {
 
 			metadata.modifyVertexName(oldName, newName);
 
+		} else if (frame instanceof PolarsFrame) {
+			frame.setName(newName);
+			metadata.modifyVertexName(oldName, newName);
 		} else if (frame instanceof RDataTable) {
 			((RDataTable) frame).executeRScript(newName + "<- " + oldName);
 			((RDataTable) frame).executeRScript("rm(" + oldName + ")");

@@ -53,6 +53,7 @@ import prerna.date.reactor.YearReactor;
 import prerna.ds.TinkerFrame;
 import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.ds.rdbms.AbstractRdbmsFrame;
 import prerna.engine.api.IEngine;
@@ -208,6 +209,7 @@ import prerna.reactor.frame.graph.r.ChangeGraphLayoutReactor;
 import prerna.reactor.frame.graph.r.ClusterGraphReactor;
 import prerna.reactor.frame.graph.r.NodeDetailsReactor;
 import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
+import prerna.reactor.frame.polars.GenerateFrameFromPolarsVariableReactor;
 import prerna.reactor.frame.r.GenerateFrameFromRVariableReactor;
 import prerna.reactor.frame.r.GenerateH2FrameFromRVariableReactor;
 import prerna.reactor.frame.r.SemanticBlendingReactor;
@@ -408,6 +410,7 @@ public class ReactorFactory {
 	// this holds that base package name for frame specific reactors
 	public static Map<String, Class<? extends IReactor>> rFrameHash;
 	public static Map<String, Class<? extends IReactor>> pandasFrameHash;
+	public static Map<String, Class<? extends IReactor>> polarsFrameHash;
 	public static Map<String, Class<? extends IReactor>> h2FrameHash;
 	public static Map<String, Class<? extends IReactor>> tinkerFrameHash;
 	public static Map<String, Class<? extends IReactor>> nativeFrameHash;
@@ -429,6 +432,7 @@ public class ReactorFactory {
 		// populateRFrameHash(rFrameHash);
 		pandasFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		// populatePandasFrameHash(pandasFrameHash);
+		polarsFrameHash = new HashMap<String, Class<? extends IReactor>>();
 		h2FrameHash = new HashMap<String, Class<? extends IReactor>>();
 		// populateH2FrameHash(h2FrameHash);
 		tinkerFrameHash = new HashMap<String, Class<? extends IReactor>>();
@@ -528,6 +532,8 @@ public class ReactorFactory {
 							rFrameHash.put(reactorName, actualClass);
 						} else if (packageName.equalsIgnoreCase("py")) {
 							pandasFrameHash.put(reactorName, actualClass);
+						} else if (packageName.equalsIgnoreCase("polars")) {
+							polarsFrameHash.put(reactorName, actualClass);
 						} else if (packageName.equalsIgnoreCase("tinker") || packageName.equalsIgnoreCase("graph")) {
 							tinkerFrameHash.put(reactorName, actualClass);
 						} else {// nullify the package name
@@ -733,6 +739,7 @@ public class ReactorFactory {
 		reactorHash.put("Convert", ConvertReactor.class);
 		reactorHash.put("GenerateFrameFromRVariable", GenerateFrameFromRVariableReactor.class);
 		reactorHash.put("GenerateFrameFromPyVariable", GenerateFrameFromPyVariableReactor.class);
+		reactorHash.put("GenerateFrameFromPolarsVariable", GenerateFrameFromPolarsVariableReactor.class);
 		reactorHash.put("GenerateH2FrameFromRVariable", GenerateH2FrameFromRVariableReactor.class);
 		// reactorHash.put("SynchronizeToR", SynchronizeToRReactor.class);
 
@@ -1311,6 +1318,10 @@ public class ReactorFactory {
 					if (pandasFrameHash.containsKey(reactorId)) {
 						reactor = pandasFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
 					}
+				} else if (frame instanceof PolarsFrame) {
+					if (polarsFrameHash.containsKey(reactorId)) {
+						reactor = polarsFrameHash.get(reactorId).getDeclaredConstructor().newInstance();
+					}
 				}
 
 				// if we have retrieved a reactor from a frame hash
@@ -1410,6 +1421,8 @@ public class ReactorFactory {
 			return rFrameHash;
 		} else if (key.equals("PY")) {
 			return pandasFrameHash;
+		} else if (key.equals("POLARS")) {
+			return polarsFrameHash;
 		} else if (key.equals("NATIVE")) {
 			return nativeFrameHash;
 		} else if (key.equals("TINKER")) {

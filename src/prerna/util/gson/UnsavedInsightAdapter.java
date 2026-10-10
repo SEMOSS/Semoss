@@ -44,6 +44,7 @@ import com.google.gson.stream.JsonWriter;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.cache.CachePropFileFrameObject;
 import prerna.ds.py.PandasFrame;
+import prerna.ds.py.PolarsFrame;
 import prerna.ds.r.RDataTable;
 import prerna.om.Insight;
 import prerna.om.InsightPanel;
@@ -271,6 +272,9 @@ public class UnsavedInsightAdapter extends TypeAdapter<Insight> {
 				// need to set the exector for pandas
 				if(frame instanceof PandasFrame) {
 					frame = new PandasFrame(insight.getPyTranslator());
+				}
+				else if(frame instanceof PolarsFrame) {
+					frame = new PolarsFrame(insight.getPyTranslator());
 				}
 				else if(frame instanceof RDataTable) {
 					frame = new RDataTable(insight.getRJavaTranslator(CLASS_NAME));
