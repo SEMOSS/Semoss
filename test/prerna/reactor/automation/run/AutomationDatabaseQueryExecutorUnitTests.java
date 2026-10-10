@@ -49,6 +49,7 @@ import org.mockito.MockedStatic;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
@@ -109,16 +110,18 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
 		ITableDataFrame frame = mock(ITableDataFrame.class);
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
-		when(frame.size("query_result")).thenReturn(2L);
+		when(task.getIterator()).thenReturn(wrapper);
+		when(wrapper.getNumRows()).thenReturn(2L);
 		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
-		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.NATIVE);
 
 		try (MockedConstruction<SqlQueryReactor> reactors = sqlQueryReactors(task);
 				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
 				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
-			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
+			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.NATIVE.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
 
@@ -148,7 +151,7 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		try (MockedConstruction<SqlQueryReactor> ignored = sqlQueryReactors(task);
 				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
 				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
-			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(),
+			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.NATIVE.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
 

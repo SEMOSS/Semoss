@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.engine.api.IRawSelectWrapper;
 import prerna.om.Insight;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
@@ -56,8 +57,10 @@ import prerna.sablecc2.om.task.BasicIteratorTask;
  * returns only an internal query request. This adapter sends that request through
  * {@link SqlQueryReactor}, preserving its SQL routing, authorization, audit, and
  * limit behavior. The returned task is imported once into the run Insight's
- * configured Python frame backend and registered under the node output alias.
- * Full rows therefore do not cross the Python-to-Java Automation result boundary.
+ * native frame backend and registered under the node output alias. Native frames
+ * retain the authorized query plan and page the source engine on demand. Full
+ * rows therefore do not cross the Python-to-Java Automation result boundary or
+ * get materialized solely to render a node result.
  */
 final class AutomationDatabaseQueryExecutor {
 
@@ -84,7 +87,7 @@ final class AutomationDatabaseQueryExecutor {
 	 *
 	 * @param insight        run Insight that owns database access and frame lifetime
 	 * @param rawRequest     internal request returned by generated Python source
-	 * @param outputVariable node output alias and Python frame variable name
+	 * @param outputVariable node output alias used by the live SEMOSS frame
 	 * @param runId          durable Automation run identifier used for diagnostics
 	 * @param nodeId         executing node identifier used for diagnostics
 	 * @return registered frame identity and bounded public summary
@@ -96,17 +99,18 @@ final class AutomationDatabaseQueryExecutor {
 		ITableDataFrame frame = null;
 		boolean registered = false;
 		try {
-			frame = FrameFactory.getFrame(insight, DataFrameTypeEnum.PYTHON.getTypeAsString(), outputVariable);
+			frame = FrameFactory.getFrame(insight, DataFrameTypeEnum.NATIVE.getTypeAsString(), outputVariable);
 			SelectQueryStruct queryStruct = task.getQueryStruct();
 			IImporter importer = ImportFactory.getImporter(frame, queryStruct, task);
 			if (importer == null) {
-				throw new IllegalStateException("SEMOSS could not create a Python frame importer.");
+				throw new IllegalStateException("SEMOSS could not create a native frame importer.");
 			}
 			importer.setInsight(insight);
 			importer.insertData();
+			long rowCount = queryRowCount(task, runId, nodeId);
 
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
-					frame);
+					frame, rowCount);
 			registered = true;
 
 			classLogger.debug(
@@ -122,6 +126,23 @@ final class AutomationDatabaseQueryExecutor {
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		} finally {
 			closeTask(task, runId, nodeId);
+		}
+	}
+
+	private static long queryRowCount(BasicIteratorTask task, String runId, String nodeId) {
+		try {
+			IRawSelectWrapper wrapper = task.getIterator();
+			long rowCount = wrapper.getNumRows();
+			if (rowCount < 0) {
+				throw new IllegalStateException("Database query returned an invalid row count.");
+			}
+			return rowCount;
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Exception e) {
+			classLogger.error("Unable to count database frame rows for Automation run '{}', node '{}'", runId, nodeId,
+					e);
+			throw new IllegalStateException("Unable to count Automation database query rows.", e);
 		}
 	}
 

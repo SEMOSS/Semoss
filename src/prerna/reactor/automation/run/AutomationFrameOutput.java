@@ -28,15 +28,20 @@
 package prerna.reactor.automation.run;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
 import prerna.reactor.automation.utils.AutomationRuntimeUtils;
+import prerna.reactor.frame.convert.ConvertReactor;
 import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.om.NounStore;
 import prerna.sablecc2.om.PixelDataType;
@@ -64,14 +69,69 @@ final class AutomationFrameOutput {
 
 	/** Registers an existing frame and returns its backend identity and summary. */
 	static RegisteredFrame register(Insight insight, String outputVariable, ITableDataFrame frame) {
+		return register(insight, outputVariable, frame, frame.size(outputVariable));
+	}
+
+	/** Registers an existing frame with a row count resolved by its query owner. */
+	static RegisteredFrame register(Insight insight, String outputVariable, ITableDataFrame frame, long rowCount) {
 		if (insight == null || frame == null || outputVariable == null || outputVariable.isBlank()) {
 			throw new IllegalArgumentException("Automation frame registration requires an Insight, frame, and alias.");
 		}
-		RegisteredFrame output = describe(outputVariable, frame);
+		if (rowCount < 0) {
+			throw new IllegalArgumentException("Automation frame registration requires a nonnegative row count.");
+		}
+		RegisteredFrame output = describe(frame, rowCount);
 		NounMetadata noun = new NounMetadata(frame, PixelDataType.FRAME,
 				PixelOperationType.FRAME_DATA_CHANGE, PixelOperationType.FRAME_HEADERS_CHANGE);
 		insight.getVarStore().put(outputVariable, noun);
 		return output;
+	}
+
+	/**
+	 * Converts lazy native bindings only when a Python node needs them. Java-owned
+	 * consumers, including loops and UI paging, continue to query the native frame
+	 * without materializing the complete result.
+	 */
+	static void materializePythonBindings(Insight insight, Map<String, String> frameBindings,
+			Set<String> requiredBindings, String runId, String nodeId) {
+		for (Map.Entry<String, String> binding : frameBindings.entrySet()) {
+			if (!requiredBindings.contains(binding.getKey())
+					|| !DataFrameTypeEnum.NATIVE.getTypeAsString().equals(binding.getValue())) {
+				continue;
+			}
+			String alias = binding.getKey();
+			NounMetadata noun = insight.getVarStore().get(alias);
+			if (noun == null || !(noun.getValue() instanceof NativeFrame nativeFrame)) {
+				throw new IllegalStateException("Automation native frame output '" + alias
+						+ "' is no longer available in execution Insight '" + insight.getInsightId() + "'.");
+			}
+
+			NounStore nounStore = new NounStore("Convert");
+			nounStore.makeGenRowStruct(ReactorKeysEnum.FRAME.getKey())
+					.add(new NounMetadata(nativeFrame, PixelDataType.FRAME));
+			nounStore.makeGenRowStruct(ReactorKeysEnum.FRAME_TYPE.getKey())
+					.add(new NounMetadata(DataFrameTypeEnum.PYTHON.getTypeAsString(), PixelDataType.CONST_STRING));
+			nounStore.makeGenRowStruct(ReactorKeysEnum.ALIAS.getKey())
+					.add(new NounMetadata(alias, PixelDataType.ALIAS));
+
+			ConvertReactor reactor = new ConvertReactor();
+			reactor.setInsight(insight);
+			reactor.setNounStore(nounStore);
+			NounMetadata converted = reactor.execute();
+			if (!(converted.getValue() instanceof ITableDataFrame pythonFrame)
+					|| pythonFrame.getFrameType() != DataFrameTypeEnum.PYTHON) {
+				throw new IllegalStateException("SEMOSS did not convert native frame '" + alias + "' to Python.");
+			}
+
+			binding.setValue(DataFrameTypeEnum.PYTHON.getTypeAsString());
+			try {
+				nativeFrame.close();
+			} catch (RuntimeException cleanupError) {
+				classLogger.warn("Unable to close native frame '{}' after materializing Automation run '{}', node '{}'",
+						alias, runId, nodeId, cleanupError);
+			}
+			insight.getVarStore().getAllCreatedFrames().remove(nativeFrame);
+		}
 	}
 
 	/**
@@ -98,7 +158,7 @@ final class AutomationFrameOutput {
 				throw new IllegalStateException("SEMOSS frame registration returned a non-frame value.");
 			}
 			frame = registeredFrame;
-			return describe(outputVariable, frame);
+			return describe(frame, frame.size(outputVariable));
 		} catch (RuntimeException e) {
 			if (frame != null) {
 				removeFailedRegistration(insight, outputVariable, frame);
@@ -145,16 +205,45 @@ final class AutomationFrameOutput {
 		}
 	}
 
-	private static RegisteredFrame describe(String outputVariable, ITableDataFrame frame) {
-		long rowCount = frame.size(outputVariable);
+	/**
+	 * Releases frames created by one loop iteration without touching frames borrowed
+	 * from the parent scope. Frame identity, rather than a reusable output alias,
+	 * determines ownership.
+	 */
+	static void releaseIterationFrames(Insight insight, PyTranslator translator, Set<ITableDataFrame> ownedFrames,
+			Map<String, String> frameBindings, String runId, String loopNodeId, int iteration) {
+		for (ITableDataFrame frame : ownedFrames) {
+			Set<String> aliases = new LinkedHashSet<>(insight.getVarStore().findAllVarReferencesForFrame(frame));
+			for (String alias : aliases) {
+				insight.getVarStore().remove(alias);
+				frameBindings.remove(alias);
+			}
+			try {
+				if (!frame.isClosed()) {
+					frame.close();
+				}
+			} catch (RuntimeException cleanupError) {
+				classLogger.warn(
+						"Unable to close iteration frame for Automation run '{}', loop '{}', iteration {}",
+						runId, loopNodeId, iteration, cleanupError);
+			} finally {
+				insight.getVarStore().getAllCreatedFrames().remove(frame);
+				for (String alias : aliases) {
+					discardPythonValue(translator, alias, runId, loopNodeId);
+				}
+			}
+		}
+	}
+
+	private static RegisteredFrame describe(ITableDataFrame frame, long rowCount) {
 		int columnCount = frame.getColumnHeaders().length;
 		Map<String, Object> summary = new LinkedHashMap<>();
 		summary.put("dataType", "table");
 		summary.put("rowCount", rowCount);
 		summary.put("columnCount", columnCount);
-		return new RegisteredFrame(summary, frame.getFrameType().getTypeAsString());
+		return new RegisteredFrame(summary, frame.getFrameType().getTypeAsString(), frame);
 	}
 
-	record RegisteredFrame(Map<String, Object> summary, String backend) {
+	record RegisteredFrame(Map<String, Object> summary, String backend, ITableDataFrame frame) {
 	}
 }

@@ -33,17 +33,23 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
+import prerna.ds.py.PandasFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.om.Insight;
+import prerna.reactor.frame.convert.ConvertReactor;
 import prerna.reactor.frame.py.GenerateFrameFromPyVariableReactor;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -119,5 +125,56 @@ public class AutomationFrameOutputUnitTests {
 		AutomationFrameOutput.discardPythonValue(translator, "query_result", "run-1", "node-1");
 
 		verify(translator).runScript("globals().pop(\"query_result\", None)");
+	}
+
+	@Test
+	void materializesOnlyRequiredNativeBindingsForPython() {
+		NativeFrame nativeFrame = mock(NativeFrame.class);
+		PandasFrame pythonFrame = mock(PandasFrame.class);
+		when(pythonFrame.getFrameType()).thenReturn(DataFrameTypeEnum.PYTHON);
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		insight.getVarStore().put("query_result", new NounMetadata(nativeFrame, PixelDataType.FRAME));
+		Map<String, String> bindings = new LinkedHashMap<>(
+				Map.of("query_result", DataFrameTypeEnum.NATIVE.getTypeAsString(), "unused_rows",
+						DataFrameTypeEnum.NATIVE.getTypeAsString()));
+
+		try (var reactors = mockConstruction(ConvertReactor.class, (reactor, context) -> when(reactor.execute())
+				.thenAnswer(invocation -> {
+					insight.getVarStore().put("query_result", new NounMetadata(pythonFrame, PixelDataType.FRAME));
+					return new NounMetadata(pythonFrame, PixelDataType.FRAME);
+				}))) {
+			AutomationFrameOutput.materializePythonBindings(insight, bindings, Set.of("query_result"), "run-1",
+					"node-1");
+
+			assertEquals(1, reactors.constructed().size());
+		}
+
+		assertEquals(DataFrameTypeEnum.PYTHON.getTypeAsString(), bindings.get("query_result"));
+		assertEquals(DataFrameTypeEnum.NATIVE.getTypeAsString(), bindings.get("unused_rows"));
+		assertSame(pythonFrame, insight.getVarStore().get("query_result").getValue());
+		verify(nativeFrame).close();
+	}
+
+	@Test
+	void releasesOnlyIterationOwnedFramesAndPreservesParentBindings() {
+		ITableDataFrame parentFrame = mock(ITableDataFrame.class);
+		ITableDataFrame iterationFrame = mock(ITableDataFrame.class);
+		PyTranslator translator = mock(PyTranslator.class);
+		Insight insight = new Insight();
+		insight.setInsightId("automation-run-1");
+		insight.getVarStore().put("parent_rows", new NounMetadata(parentFrame, PixelDataType.FRAME));
+		insight.getVarStore().put("lookup_rows", new NounMetadata(iterationFrame, PixelDataType.FRAME));
+		Map<String, String> bindings = new LinkedHashMap<>(Map.of("parent_rows", "PY", "lookup_rows", "PY"));
+
+		AutomationFrameOutput.releaseIterationFrames(insight, translator, Set.of(iterationFrame), bindings, "run-1",
+				"loop-1", 0);
+
+		assertSame(parentFrame, insight.getVarStore().get("parent_rows").getValue());
+		assertNull(insight.getVarStore().get("lookup_rows"));
+		assertEquals(Map.of("parent_rows", "PY"), bindings);
+		verify(iterationFrame).close();
+		verify(parentFrame, never()).close();
+		verify(translator).runScript("globals().pop(\"lookup_rows\", None)");
 	}
 }

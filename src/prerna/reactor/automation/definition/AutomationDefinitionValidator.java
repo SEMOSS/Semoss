@@ -1119,6 +1119,10 @@ public final class AutomationDefinitionValidator {
 				throw new IllegalArgumentException("Loop node '" + loopNodeId + "' body exceeds the maximum of "
 						+ AutomationConstants.LOOP_MAX_BODY_NODES + " nodes.");
 			}
+			Map<String, Object> loopConfig = requireMap(node.get(AutomationConstants.NODE_FIELD_CONFIG),
+					"Loop node '" + loopNodeId + "' config");
+			boolean whileLoop = AutomationConstants.LOOP_MODE_WHILE
+					.equals(loopConfig.get(AutomationConstants.CONFIG_LOOP_MODE));
 			for (Map<String, Object> bodyNode : bodyNodes) {
 				String bodyType = String.valueOf(bodyNode.get(AutomationConstants.NODE_FIELD_TYPE));
 				if (AutomationConstants.NODE_CONTROL_LOOP.equals(bodyType)) {
@@ -1129,11 +1133,9 @@ public final class AutomationDefinitionValidator {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
 							+ "' cannot contain an agent.run node because durable input waits inside iterations are not supported.");
 				}
-				if (requireExecutableGraph && AutomationConstants.NODE_DATABASE_QUERY.equals(bodyType)
-						&& !AutomationConstants.NODE_CODE_MODE_CUSTOM
-								.equals(bodyNode.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+				if (whileLoop && AutomationConstants.NODE_DATABASE_QUERY.equals(bodyType)) {
 					throw new IllegalArgumentException("Loop node '" + loopNodeId
-							+ "' cannot contain a generated database.query node because frame outputs inside iterations are not supported.");
+							+ "' cannot carry a database frame across while-loop iterations. Use for-each or repeat mode.");
 				}
 			}
 			Map<String, String> bodyNodeTypes = validateNodes(bodyNodes, false);

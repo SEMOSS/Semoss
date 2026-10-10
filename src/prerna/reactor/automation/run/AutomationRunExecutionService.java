@@ -37,7 +37,9 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,7 @@ import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.auth.utils.SecurityEngineUtils;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.ds.py.PyTranslator;
 import prerna.engine.api.IEngine;
 import prerna.engine.api.IHeadersDataRow;
@@ -260,7 +263,7 @@ final class AutomationRunExecutionService {
 			} else {
 				nodeResult = executeNodeSource(executionInsight, projectId, runId, node, nodeSources.get(nodeId), scope,
 						frameBindings, traceRoomIds.get(nodeId),
-						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT));
+						controlTargets.getOrDefault(nodeId, Map.of()).get(AutomationConstants.CONTROL_PORT_OUT), null);
 			}
 			if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
 				if (AutomationConstants.NODE_STATUS_WAITING_FOR_INPUT
@@ -413,48 +416,58 @@ final class AutomationRunExecutionService {
 
 				Set<String> visited = new HashSet<>();
 				Map<String, Object> outputs = new LinkedHashMap<>();
-				String current = bodyEntry;
-				while (current != null) {
-					if (AutomationRunRegistry.isCancellationRequested(runId)) {
-						throw new IllegalStateException("Run cancelled by user");
+				Map<String, String> iterationFrameBindings = new LinkedHashMap<>(frameBindings);
+				Set<ITableDataFrame> iterationFrames = Collections.newSetFromMap(new IdentityHashMap<>());
+				try {
+					String current = bodyEntry;
+					while (current != null) {
+						if (AutomationRunRegistry.isCancellationRequested(runId)) {
+							throw new IllegalStateException("Run cancelled by user");
+						}
+						if (!visited.add(current)) {
+							throw new IllegalStateException("Loop body revisited node '" + current + "'.");
+						}
+						Map<String, Object> canonicalNode = bodyNodesById.get(current);
+						Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
+						executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
+						executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
+						executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
+						executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
+						String type = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_TYPE);
+						Map<String, Object> nodeResult;
+						if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
+							nodeResult = executeConditionNode(runId, executionNode, iterationScope);
+						} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
+							nodeResult = executeJevDecisionNode(executionInsight, runId, executionNode,
+									iterationScope);
+						} else {
+							nodeResult = executeNodeSource(executionInsight, projectId, runId, executionNode,
+									nodeSources.get(current), iterationScope, iterationFrameBindings,
+									bodyTraceRoomIds.get(current), null, iterationFrames);
+						}
+						if (!AutomationConstants.NODE_STATUS_SUCCESS
+								.equals(nodeResult.get(AutomationConstants.STATUS))) {
+							throw new IllegalStateException(
+									"Loop body node '" + current + "' did not complete successfully.");
+						}
+						String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
+						if (outputVar != null) {
+							Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							iterationScope.put(outputVar, value);
+							outputs.put(outputVar, value);
+						}
+						String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
+						if (AutomationConstants.NODE_CONTROL_IF.equals(type)
+								|| AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
+							Map<String, Object> decision = (Map<String, Object>) nodeResult
+									.get(AutomationConstants.RESULT_OUTPUT_VALUE);
+							selectedPort = (String) decision.get("branch");
+						}
+						current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
 					}
-					if (!visited.add(current)) {
-						throw new IllegalStateException("Loop body revisited node '" + current + "'.");
-					}
-					Map<String, Object> canonicalNode = bodyNodesById.get(current);
-					Map<String, Object> executionNode = new LinkedHashMap<>(canonicalNode);
-					executionNode.put(AutomationConstants.NODE_FIELD_ID, executionNodeIds.get(current));
-					executionNode.put(AutomationConstants.SOURCE_NODE_ID, current);
-					executionNode.put(AutomationConstants.PARENT_NODE_ID, loopNodeId);
-					executionNode.put(AutomationConstants.ITERATION_INDEX, iteration);
-					String type = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_TYPE);
-					Map<String, Object> nodeResult;
-					if (AutomationConstants.NODE_CONTROL_IF.equals(type)) {
-						nodeResult = executeConditionNode(runId, executionNode, iterationScope);
-					} else if (AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
-						nodeResult = executeJevDecisionNode(executionInsight, runId, executionNode, iterationScope);
-					} else {
-						nodeResult = executeNodeSource(executionInsight, projectId, runId, executionNode,
-								nodeSources.get(current), iterationScope, frameBindings,
-								bodyTraceRoomIds.get(current), null);
-					}
-					if (!AutomationConstants.NODE_STATUS_SUCCESS.equals(nodeResult.get(AutomationConstants.STATUS))) {
-						throw new IllegalStateException("Loop body node '" + current + "' did not complete successfully.");
-					}
-					String outputVar = (String) canonicalNode.get(AutomationConstants.NODE_FIELD_OUTPUT_VAR);
-					if (outputVar != null) {
-						Object value = nodeResult.get(AutomationConstants.RESULT_OUTPUT_VALUE);
-						iterationScope.put(outputVar, value);
-						outputs.put(outputVar, value);
-					}
-					String selectedPort = AutomationConstants.CONTROL_PORT_OUT;
-					if (AutomationConstants.NODE_CONTROL_IF.equals(type)
-							|| AutomationConstants.NODE_CONTROL_JEV.equals(type)) {
-						Map<String, Object> decision = (Map<String, Object>) nodeResult
-								.get(AutomationConstants.RESULT_OUTPUT_VALUE);
-						selectedPort = (String) decision.get("branch");
-					}
-					current = bodyTargets.getOrDefault(current, Map.of()).get(selectedPort);
+				} finally {
+					AutomationFrameOutput.releaseIterationFrames(executionInsight, executionInsight.getPyTranslator(),
+							iterationFrames, iterationFrameBindings, runId, loopNodeId, iteration);
 				}
 				List<String> skipped = bodyNodesById.keySet().stream().filter(nodeId -> !visited.contains(nodeId))
 						.map(executionNodeIds::get).toList();
@@ -555,7 +568,8 @@ final class AutomationRunExecutionService {
 	 */
 	static long frameRowCount(Insight executionInsight, String frameAlias, String loopNodeId, long maximumItems) {
 		ITableDataFrame frame = requireLoopFrame(executionInsight, frameAlias, loopNodeId);
-		long rowCount = frame.size(frameAlias);
+		long rowCount = frame instanceof NativeFrame ? nativeFrameRowCount(frame, frameAlias, loopNodeId)
+				: frame.size(frameAlias);
 		if (rowCount < 0) {
 			throw new IllegalStateException("Loop node '" + loopNodeId + "' frame input returned an invalid row count.");
 		}
@@ -564,6 +578,21 @@ final class AutomationRunExecutionService {
 					+ "maximum of " + maximumItems + " items.");
 		}
 		return rowCount;
+	}
+
+	private static long nativeFrameRowCount(ITableDataFrame frame, String frameAlias, String loopNodeId) {
+		SelectQueryStruct queryStruct = new SelectQueryStruct();
+		for (String selector : frame.getQsHeaders()) {
+			queryStruct.addSelector(new QueryColumnSelector(selector));
+		}
+		queryStruct.setDistinct(false);
+		try (IRawSelectWrapper wrapper = frame.query(queryStruct)) {
+			return wrapper.getNumRows();
+		} catch (Exception e) {
+			classLogger.error("Unable to count native frame '{}' for loop node '{}'.", frameAlias, loopNodeId, e);
+			throw new IllegalStateException(
+					"Loop node '" + loopNodeId + "' could not count SEMOSS frame '" + frameAlias + "'.", e);
+		}
 	}
 
 	/**
@@ -1110,7 +1139,7 @@ final class AutomationRunExecutionService {
 	 */
 	private Map<String, Object> executeNodeSource(Insight executionInsight, String projectId, String runId,
 			Map<String, Object> node, String source, Map<String, Object> scope, Map<String, String> frameBindings,
-			String traceRoomId, String resumeNodeId) {
+			String traceRoomId, String resumeNodeId, Set<ITableDataFrame> ownedFrames) {
 		if (source == null || source.isBlank()) {
 			throw new IllegalStateException(
 					"Automation node has no persisted Python source: " + node.get(AutomationConstants.NODE_FIELD_ID));
@@ -1133,6 +1162,8 @@ final class AutomationRunExecutionService {
 				nodeScope = new LinkedHashMap<>(scope);
 				nodeScope.put(AutomationConstants.SCOPE_ROOM_ID, traceRoomId);
 			}
+			AutomationFrameOutput.materializePythonBindings(executionInsight, frameBindings,
+					requiredPythonFrameBindings(node, source, frameBindings.keySet()), runId, nodeId);
 			Object raw = translator.runScriptWithExplicitAssetPaths(executionInsight,
 					AutomationRuntime.buildNodeInvocationScript(source, nodeScope, outputVariable, frameBindings),
 					getProjectAssetsFolder(projectId),
@@ -1142,13 +1173,10 @@ final class AutomationRunExecutionService {
 			boolean databaseFrameRequest = AutomationDatabaseQueryExecutor.supports(node)
 					&& AutomationDatabaseQueryExecutor.isRequest(value);
 			boolean pythonFrame = nodeResult.frame();
-			boolean frameProducing = databaseFrameRequest || pythonFrame;
 			String outputKind = null;
 			String parentLoopNodeId = stringValue(node.get(AutomationConstants.PARENT_NODE_ID));
-			if (parentLoopNodeId != null && frameProducing) {
-				if (pythonFrame) {
-					AutomationFrameOutput.discardPythonValue(translator, outputVariable, runId, nodeId);
-				}
+			if (parentLoopNodeId != null && pythonFrame) {
+				AutomationFrameOutput.discardPythonValue(translator, outputVariable, runId, nodeId);
 				throw new IllegalStateException("Loop node '" + parentLoopNodeId
 						+ "' does not support frame-producing body node '" + nodeId
 						+ "'. Return JSON or move the frame-producing node outside the loop.");
@@ -1158,6 +1186,7 @@ final class AutomationRunExecutionService {
 						executionInsight, value, outputVariable, runId, nodeId);
 				value = registeredFrame.summary();
 				frameBindings.put(outputVariable, registeredFrame.backend());
+				rememberOwnedFrame(ownedFrames, registeredFrame);
 				outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 			} else {
 				if (pythonFrame) {
@@ -1169,6 +1198,7 @@ final class AutomationRunExecutionService {
 						throw registrationError;
 					}
 					frameBindings.put(outputVariable, registeredFrame.backend());
+					rememberOwnedFrame(ownedFrames, registeredFrame);
 					outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 					classLogger.debug(
 							"Registered SEMOSS frame output '{}' for Automation run '{}', node '{}', "
@@ -1178,7 +1208,9 @@ final class AutomationRunExecutionService {
 							registeredFrame.summary().get("rowCount"), registeredFrame.summary().get("columnCount"));
 					value = registeredFrame.summary();
 				} else {
-					registerRowPreviewFrame(executionInsight, runId, nodeId, outputVariable, value);
+					AutomationFrameOutput.RegisteredFrame preview = registerRowPreviewFrame(executionInsight, runId,
+							nodeId, outputVariable, value);
+					rememberOwnedFrame(ownedFrames, preview);
 					frameBindings.remove(outputVariable);
 				}
 			}
@@ -1206,23 +1238,48 @@ final class AutomationRunExecutionService {
 	 * @param outputVariable   node output alias
 	 * @param value            normalized JSON node result
 	 */
-	private static void registerRowPreviewFrame(Insight executionInsight, String runId, String nodeId,
+	private static AutomationFrameOutput.RegisteredFrame registerRowPreviewFrame(Insight executionInsight, String runId,
+			String nodeId,
 			String outputVariable, Object value) {
 		if (!(value instanceof List<?> rows) || rows.isEmpty()
 				|| rows.stream().anyMatch(row -> !(row instanceof Map<?, ?>))) {
-			return;
+			return null;
 		}
 		try {
-			AutomationFrameOutput.registerPythonVariable(executionInsight, outputVariable);
+			AutomationFrameOutput.RegisteredFrame registeredFrame = AutomationFrameOutput
+					.registerPythonVariable(executionInsight, outputVariable);
 			classLogger.debug(
 					"Registered tabular preview '{}' for Automation run '{}', node '{}', execution Insight '{}'",
 					outputVariable, runId, nodeId, executionInsight.getInsightId());
+			return registeredFrame;
 		} catch (RuntimeException e) {
 			classLogger.warn(
 					"Unable to register optional tabular preview '{}' for Automation run '{}', node '{}', "
 							+ "execution Insight '{}'; the JSON result remains available",
 					outputVariable, runId, nodeId, executionInsight.getInsightId(), e);
+			return null;
 		}
+	}
+
+	private static void rememberOwnedFrame(Set<ITableDataFrame> ownedFrames,
+			AutomationFrameOutput.RegisteredFrame registeredFrame) {
+		if (ownedFrames != null && registeredFrame != null) {
+			ownedFrames.add(registeredFrame.frame());
+		}
+	}
+
+	private static Set<String> requiredPythonFrameBindings(Map<String, Object> node, String source,
+			Set<String> availableBindings) {
+		if (AutomationConstants.NODE_CODE_MODE_CUSTOM.equals(node.get(AutomationConstants.NODE_FIELD_CODE_MODE))) {
+			return availableBindings;
+		}
+		Set<String> required = new HashSet<>();
+		for (String alias : availableBindings) {
+			if (source.contains("${" + alias + "}") || source.contains("${" + alias + ".")) {
+				required.add(alias);
+			}
+		}
+		return required;
 	}
 
 	/**

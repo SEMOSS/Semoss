@@ -459,7 +459,7 @@ public class AutomationDefinitionValidatorUnitTests {
 	}
 
 	@Test
-	void rejectsGeneratedDatabaseQueryInsideExecutableLoop() {
+	void acceptsGeneratedDatabaseQueryInsideExecutableLoop() {
 		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
 		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
 		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
@@ -473,7 +473,23 @@ public class AutomationDefinitionValidatorUnitTests {
 		String json = definition(Map.of(), loop);
 
 		AutomationDefinitionValidator.parseAndValidateForAuthoring(json);
-		assertThrows(IllegalArgumentException.class, () -> AutomationDefinitionValidator.parseAndValidate(json));
+		AutomationDefinitionValidator.parseAndValidate(json);
+	}
+
+	@Test
+	void rejectsDatabaseFrameCarryAcrossWhileLoopIterations() {
+		Map<String, Object> bodyNode = workNode(AutomationConstants.NODE_DATABASE_QUERY, databaseQueryConfig());
+		bodyNode.put(AutomationConstants.NODE_FIELD_ID, "body-query");
+		bodyNode.put(AutomationConstants.NODE_FIELD_OUTPUT_VAR, "query_result");
+		Map<String, Object> loop = workNode(AutomationConstants.NODE_CONTROL_LOOP,
+				Map.of(AutomationConstants.CONFIG_LOOP_MODE, AutomationConstants.LOOP_MODE_WHILE,
+						AutomationConstants.CONFIG_LOOP_CONDITION, "${keep_running}",
+						AutomationConstants.CONFIG_LOOP_MAX_ITERATIONS, 10));
+		loop.put(AutomationConstants.NODE_FIELD_BODY,
+				Map.of(AutomationConstants.DOC_NODES, List.of(bodyNode), AutomationConstants.DOC_EDGES, List.of()));
+
+		assertThrows(IllegalArgumentException.class,
+				() -> AutomationDefinitionValidator.parseAndValidate(definition(Map.of("keep_running", true), loop)));
 	}
 
 	@Test

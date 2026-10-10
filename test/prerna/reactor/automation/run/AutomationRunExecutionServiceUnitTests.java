@@ -52,6 +52,7 @@ import org.mockito.ArgumentCaptor;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.engine.impl.model.responses.TypeSafeModelEngineResponse;
@@ -326,6 +327,25 @@ public class AutomationRunExecutionServiceUnitTests {
 
 		assertThrows(IllegalArgumentException.class,
 				() -> AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 1));
+	}
+
+	@Test
+	void countsNativeLoopInputThroughTheFrameQuery() throws Exception {
+		NativeFrame frame = mock(NativeFrame.class);
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		when(frame.getQsHeaders()).thenReturn(new String[] { "HERO__NAME" });
+		when(frame.query(any(SelectQueryStruct.class))).thenReturn(wrapper);
+		when(wrapper.getNumRows()).thenReturn(50_000L);
+
+		Insight insight = new Insight();
+		insight.getVarStore().put("heroes", new NounMetadata(frame, PixelDataType.FRAME));
+
+		assertEquals(50_000L,
+				AutomationRunExecutionService.frameRowCount(insight, "heroes", "loop", 50_000L));
+		ArgumentCaptor<SelectQueryStruct> query = ArgumentCaptor.forClass(SelectQueryStruct.class);
+		verify(frame).query(query.capture());
+		assertFalse(query.getValue().isDistinct());
+		verify(wrapper).close();
 	}
 
 	@Test
