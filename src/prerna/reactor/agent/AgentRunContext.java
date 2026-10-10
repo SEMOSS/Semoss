@@ -64,6 +64,7 @@ public final class AgentRunContext {
     private final Insight       insight;
     private final String        userId;
     private final String        input;
+    private final String        userText;
     private final SandboxPolicy sandboxPolicy;
     private final String        runId;
     private final List<String>  mediaInputPaths;
@@ -90,6 +91,7 @@ public final class AgentRunContext {
         this.insight       = b.insight;
         this.userId        = b.userId;
         this.input         = b.input;
+        this.userText      = b.userText;
         this.sandboxPolicy = b.sandboxPolicy;
         this.runId         = b.runId;
         this.mediaInputPaths = immutableStringList(b.mediaInputPaths);
@@ -124,6 +126,11 @@ public final class AgentRunContext {
     /** Initial user message to start the agentic loop. */
     public String getInput() {
         return input;
+    }
+
+    /** What the user typed; {@link #getInput()} when the caller sent no separate text. */
+    public String getUserText() {
+        return userText == null || userText.isBlank() ? input : userText;
     }
 
     /** Durable {@code AGENT_RUN.RUN_ID} for this invocation. May be {@code null} for legacy direct callers. */
@@ -242,6 +249,7 @@ public final class AgentRunContext {
         private Insight       insight;
         private String        userId;
         private String        input;
+        private String        userText;
         private SandboxPolicy sandboxPolicy;
         private String        runId;
         private List<String>  mediaInputPaths;
@@ -266,6 +274,7 @@ public final class AgentRunContext {
         public Builder insight(Insight insight)              { this.insight = insight;             return this; }
         public Builder userId(String userId)                 { this.userId = userId;               return this; }
         public Builder input(String input)                   { this.input = input;                 return this; }
+        public Builder userText(String userText)             { this.userText = userText;           return this; }
         public Builder sandboxPolicy(SandboxPolicy policy)   { this.sandboxPolicy = policy;        return this; }
         public Builder runId(String runId)                   { this.runId = runId;                 return this; }
         public Builder mediaInputPaths(List<String> paths)   { this.mediaInputPaths = paths;       return this; }

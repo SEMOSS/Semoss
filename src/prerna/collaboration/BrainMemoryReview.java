@@ -288,10 +288,14 @@ public final class BrainMemoryReview {
 		if (text == null) {
 			return "";
 		}
-		String request = CollaborationUtils.withoutWorkContext(text);
-		// a block cut short holds source text; nothing after it is certainly the owner's
-		if (request == null) {
-			return "";
+		String request = text;
+		if (text.startsWith(HEADER)) {
+			int boundary = text.indexOf(FOOTER, HEADER.length());
+			// a block cut short holds source text; nothing after it is certainly the owner's
+			if (boundary < 0) {
+				return "";
+			}
+			request = text.substring(boundary + FOOTER.length());
 		}
 		return clip(RUNTIME_NOTE.matcher(request).replaceAll("").trim(), MAX_TURN_CHARS);
 	}

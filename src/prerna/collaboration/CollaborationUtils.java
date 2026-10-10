@@ -64,15 +64,6 @@ public final class CollaborationUtils {
 	private CollaborationUtils() {
 	}
 
-	// thread-context.ts puts the work-context block before the owner's words; null when the block is cut short
-	public static String withoutWorkContext(String text) {
-		if (text == null || !text.startsWith(BrainMemoryReview.HEADER)) {
-			return text;
-		}
-		int boundary = text.indexOf(BrainMemoryReview.FOOTER, BrainMemoryReview.HEADER.length());
-		return boundary < 0 ? null : text.substring(boundary + BrainMemoryReview.FOOTER.length());
-	}
-
 	/**
 	 * System project id for a playground room mode; null or blank is a normal
 	 * playground room.

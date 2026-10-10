@@ -34,7 +34,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.auth.User;
-import prerna.collaboration.CollaborationUtils;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
@@ -115,15 +114,9 @@ public final class AgentRoomNamer {
 			return;
 		}
 
-		// a Collaboration request starts with its thread context; name the room from the owner's words
-		String request = CollaborationUtils.withoutWorkContext(input);
-		if (request == null || request.isBlank()) {
-			return;
-		}
-		request = request.strip();
-		String title = generateTitle(roomId, request, modelId, userId, insight);
+		String title = generateTitle(roomId, input, modelId, userId, insight);
 		if (title == null || title.trim().isEmpty()) {
-			title = truncate(request, DEFAULT_NAME_CHAR_LIMIT);
+			title = defaultName;
 		}
 
 		boolean updated = ModelInferenceLogsUtils.doSetNameForRoomIfDefault(userId, roomId, title, defaultName);
