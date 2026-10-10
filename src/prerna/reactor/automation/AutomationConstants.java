@@ -59,6 +59,8 @@ public final class AutomationConstants {
 	public static final String TABLE_AUTOMATION_RUN_NODE_SOURCES = "AUTOMATION_RUN_NODE_SOURCES";
 	public static final String TABLE_AUTOMATION_NODE_OUTPUTS = "AUTOMATION_NODE_OUTPUTS";
 	public static final String TABLE_AUTOMATION_RUN_WAITS = "AUTOMATION_RUN_WAITS";
+	public static final String TABLE_AUTOMATION_RUN_DATA = "AUTOMATION_RUN_DATA";
+	public static final String TABLE_AUTOMATION_RUN_DATA_CHUNKS = "AUTOMATION_RUN_DATA_CHUNKS";
 
 	// -- AUTOMATION_RUNS columns
 	// ---------------------------------------------------
@@ -112,6 +114,25 @@ public final class AutomationConstants {
 	public static final String ITERATION_INDEX = "ITERATION_INDEX";
 	/** Canonical graph node represented by a dynamic execution row. */
 	public static final String SOURCE_NODE_ID = "SOURCE_NODE_ID";
+
+	// -- AUTOMATION_RUN_DATA / AUTOMATION_RUN_DATA_CHUNKS columns -----------------
+
+	public static final String DATA_REFERENCE_ID = "DATA_REFERENCE_ID";
+	public static final String DATA_STATE = "DATA_STATE";
+	public static final String DATA_HEADERS = "DATA_HEADERS";
+	public static final String DATA_TYPES = "DATA_TYPES";
+	public static final String DATA_ROW_COUNT = "DATA_ROW_COUNT";
+	public static final String DATA_COLUMN_COUNT = "DATA_COLUMN_COUNT";
+	public static final String DATA_CONTENT_BYTES = "DATA_CONTENT_BYTES";
+	public static final String DATA_CREATED_AT = "DATA_CREATED_AT";
+	public static final String DATA_AVAILABLE_AT = "DATA_AVAILABLE_AT";
+	public static final String DATA_CHUNK_INDEX = "DATA_CHUNK_INDEX";
+	public static final String DATA_ROW_OFFSET = "DATA_ROW_OFFSET";
+	public static final String DATA_CHUNK_ROW_COUNT = "DATA_CHUNK_ROW_COUNT";
+	public static final String DATA_ROWS = "DATA_ROWS";
+	public static final String DATA_STATE_WRITING = "WRITING";
+	public static final String DATA_STATE_AVAILABLE = "AVAILABLE";
+	public static final String DATA_STATE_FAILED = "FAILED";
 
 	// -- AUTOMATION_RUN_WAITS columns ---------------------------------------------
 
@@ -427,6 +448,8 @@ public final class AutomationConstants {
 	public static final String PK_AUTO_RUN_SOURCE = "PK_AUTO_RUN_SOURCE";
 	public static final String PK_AUTO_NODE_OUT = "PK_AUTO_NODE_OUT";
 	public static final String PK_AUTO_RUN_WAIT = "PK_AUTO_RUN_WAIT";
+	public static final String PK_AUTO_RUN_DATA = "PK_AUTO_RUN_DATA";
+	public static final String PK_AUTO_RUN_DATA_CHUNK = "PK_AUTO_RUN_DATA_CHUNK";
 	public static final String IDX_AR_PROJECT = "IDX_AR_PROJECT";
 	public static final String IDX_AR_STATUS = "IDX_AR_STATUS";
 	public static final String IDX_AR_STARTED = "IDX_AR_STARTED";
@@ -436,6 +459,9 @@ public final class AutomationConstants {
 	public static final String IDX_ANO_AGENT_RUN = "IDX_ANO_AGENT_RUN";
 	public static final String IDX_ARW_RUN = "IDX_ARW_RUN";
 	public static final String IDX_ARW_AGENT_RUN = "IDX_ARW_AGENT_RUN";
+	public static final String IDX_ARD_RUN_NODE = "IDX_ARD_RUN_NODE";
+	public static final String IDX_ARD_STATE = "IDX_ARD_STATE";
+	public static final String IDX_ARDC_REFERENCE = "IDX_ARDC_REFERENCE";
 
 	// -- Defaults
 	// ------------------------------------------------------------------
@@ -444,4 +470,7 @@ public final class AutomationConstants {
 	public static final int HEARTBEAT_INTERVAL_SECONDS = 30;
 	public static final int STALE_HEARTBEAT_THRESHOLD_MINUTES = 5;
 	public static final int OUTPUT_PREVIEW_MAX_LENGTH = 2000;
+	public static final int RUN_DATA_CHUNK_SIZE = 1000;
+	public static final int RUN_DATA_DEFAULT_PAGE_SIZE = 50;
+	public static final int RUN_DATA_MAX_PAGE_SIZE = 1000;
 }

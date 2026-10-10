@@ -114,16 +114,20 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
 		when(task.getIterator()).thenReturn(wrapper);
-		when(wrapper.getNumRows()).thenReturn(2L);
 		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.NATIVE);
 
 		try (MockedConstruction<SqlQueryReactor> reactors = sqlQueryReactors(task);
 				MockedStatic<FrameFactory> frames = mockStatic(FrameFactory.class);
-				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class)) {
+				MockedStatic<ImportFactory> importers = mockStatic(ImportFactory.class);
+				MockedStatic<AutomationFrameHistory> history = mockStatic(AutomationFrameHistory.class)) {
 			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.NATIVE.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
+			history.when(() -> AutomationFrameHistory.captureWrapper("run-1", "node-1", "query_result", wrapper))
+					.thenReturn(new AutomationFrameHistory.Snapshot("reference", "run-1", "node-1", "query_result",
+							AutomationConstants.DATA_STATE_AVAILABLE, java.util.List.of("ID", "STATUS"),
+							java.util.List.of("INT", "STRING"), 2L, 2, 32L));
 
 			AutomationFrameOutput.RegisteredFrame output = AutomationDatabaseQueryExecutor.execute(insight,
 					request(), "query_result", "run-1", "node-1");

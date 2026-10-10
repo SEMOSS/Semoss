@@ -29,6 +29,7 @@ package prerna.reactor.automation.run;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +55,11 @@ public class GetAutomationRunReactor extends AbstractReactor {
 
 	private static final String OUTPUT_FRAME_KEY = "OUTPUT_FRAME";
 	private static final String OUTPUT_FRAME_UNAVAILABLE_KEY = "OUTPUT_FRAME_UNAVAILABLE";
+	private static final String OUTPUT_DATA_AVAILABLE_KEY = "outputDataAvailable";
+	private static final String OUTPUT_DATA_REFERENCE_ID_KEY = "outputDataReferenceId";
+	private static final String OUTPUT_DATA_ROW_COUNT_KEY = "outputDataRowCount";
+	private static final String OUTPUT_DATA_COLUMN_COUNT_KEY = "outputDataColumnCount";
+	private static final String OUTPUT_VARIABLE_KEY = "outputVariable";
 	private static final String FRAME_UNAVAILABLE_MESSAGE =
 			"Frame data is unavailable because this run's execution workspace is closed.";
 
@@ -100,13 +106,13 @@ public class GetAutomationRunReactor extends AbstractReactor {
 		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())) {
 			runDetail.put(AutomationConstants.RESULT_EXECUTION_INSIGHT_ID, executionInsight.getInsightId());
 		}
-		int resultIndex = 0;
+		Map<String, Map<String, Object>> outputsByNode = new LinkedHashMap<>();
 		for (Map<String, Object> nodeOutput : nodeOutputs) {
-			if (nodeOutput.get(AutomationConstants.PARENT_NODE_ID) != null) {
-				continue;
-			}
-			Map<String, Object> nodeResult = nodeResults.get(resultIndex++);
-			decorateFrameResult(executionInsight, projectId, nodeOutput, nodeResult);
+			outputsByNode.put(String.valueOf(nodeOutput.get(AutomationConstants.NODE_ID)), nodeOutput);
+		}
+		Map<String, AutomationFrameHistory.Snapshot> durableData = AutomationFrameHistory.findAvailableByRun(runId);
+		for (Map<String, Object> nodeResult : nodeResults) {
+			decorateNodeResult(executionInsight, projectId, outputsByNode, durableData, nodeResult);
 		}
 		Map<String, Object> wait = AutomationRunStore.getActiveWait(runId);
 		if (wait != null) {
@@ -130,7 +136,21 @@ public class GetAutomationRunReactor extends AbstractReactor {
 	 */
 	void decorateFrameResult(Insight executionInsight, String projectId, Map<String, Object> nodeOutput,
 			Map<String, Object> nodeResult) {
+		decorateFrameResult(executionInsight, projectId, nodeOutput, nodeResult, null);
+	}
+
+	private void decorateFrameResult(Insight executionInsight, String projectId, Map<String, Object> nodeOutput,
+			Map<String, Object> nodeResult, AutomationFrameHistory.Snapshot durableData) {
 		Object outputVariable = nodeOutput.get(AutomationConstants.OUTPUT_VAR_NAME);
+		if (outputVariable instanceof String name) {
+			nodeResult.put(OUTPUT_VARIABLE_KEY, name);
+		}
+		if (durableData != null) {
+			nodeResult.put(OUTPUT_DATA_AVAILABLE_KEY, true);
+			nodeResult.put(OUTPUT_DATA_REFERENCE_ID_KEY, durableData.referenceId());
+			nodeResult.put(OUTPUT_DATA_ROW_COUNT_KEY, durableData.rowCount());
+			nodeResult.put(OUTPUT_DATA_COLUMN_COUNT_KEY, durableData.columnCount());
+		}
 		if (executionInsight != null && projectId.equals(executionInsight.getProjectId())
 				&& outputVariable instanceof String name) {
 			NounMetadata frame = executionInsight.getVarStore().get(name);
@@ -139,10 +159,56 @@ public class GetAutomationRunReactor extends AbstractReactor {
 				return;
 			}
 		}
-		if (isFrameOutput(nodeOutput)) {
+		if (isFrameOutput(nodeOutput) && durableData == null) {
 			nodeResult.put(OUTPUT_FRAME_UNAVAILABLE_KEY, true);
 			nodeResult.put(AutomationConstants.OUTPUT_PREVIEW, FRAME_UNAVAILABLE_MESSAGE);
 		}
+	}
+
+	private void decorateNodeResult(Insight executionInsight, String projectId,
+			Map<String, Map<String, Object>> outputsByNode,
+			Map<String, AutomationFrameHistory.Snapshot> durableData, Map<String, Object> nodeResult) {
+		String runtimeNodeId = String.valueOf(nodeResult.get(AutomationConstants.NODE_ID));
+		Object traceValue = nodeResult.get(AutomationConstants.RESULT_TRACE);
+		if (traceValue instanceof Map<?, ?> trace && trace.get(AutomationConstants.TRACE_NODE_ID) != null) {
+			runtimeNodeId = String.valueOf(trace.get(AutomationConstants.TRACE_NODE_ID));
+		}
+		Map<String, Object> output = outputsByNode.get(runtimeNodeId);
+		if (output != null) {
+			decorateFrameResult(executionInsight, projectId, output, nodeResult, durableData.get(runtimeNodeId));
+		}
+		Object iterationsValue = nodeResult.get("iterations");
+		if (!(iterationsValue instanceof List<?> iterations)) {
+			return;
+		}
+		List<Map<String, Object>> decoratedIterations = new ArrayList<>();
+		for (Object iterationValue : iterations) {
+			if (!(iterationValue instanceof Map<?, ?> iteration)) {
+				continue;
+			}
+			Object childResults = iteration.get("nodeResults");
+			if (!(childResults instanceof List<?> children)) {
+				continue;
+			}
+			List<Map<String, Object>> decoratedChildren = new ArrayList<>();
+			for (Object child : children) {
+				if (child instanceof Map<?, ?> childResult) {
+					Map<String, Object> decoratedChild = new LinkedHashMap<>();
+					for (Map.Entry<?, ?> entry : childResult.entrySet()) {
+						if (entry.getKey() instanceof String key) {
+							decoratedChild.put(key, entry.getValue());
+						}
+					}
+					decorateNodeResult(executionInsight, projectId, outputsByNode, durableData, decoratedChild);
+					decoratedChildren.add(decoratedChild);
+				}
+			}
+			Map<String, Object> decoratedIteration = new LinkedHashMap<>();
+			decoratedIteration.put("index", iteration.get("index"));
+			decoratedIteration.put("nodeResults", decoratedChildren);
+			decoratedIterations.add(decoratedIteration);
+		}
+		nodeResult.put("iterations", decoratedIterations);
 	}
 
 	@Override

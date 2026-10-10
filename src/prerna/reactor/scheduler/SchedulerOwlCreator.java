@@ -352,6 +352,27 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.RESOLVED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.RESOLVED_BY, AutomationConstants.VARCHAR_255)));
 
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_DATA, Arrays.asList(
+				Pair.with(AutomationConstants.DATA_REFERENCE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.RUN_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.NODE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.OUTPUT_VAR_NAME, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.DATA_STATE, AutomationConstants.VARCHAR_50),
+				Pair.with(AutomationConstants.DATA_HEADERS, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.DATA_TYPES, CLOB_DATATYPE),
+				Pair.with(AutomationConstants.DATA_ROW_COUNT, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.DATA_COLUMN_COUNT, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.DATA_CONTENT_BYTES, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.DATA_CREATED_AT, TIMESTAMP_DATATYPE),
+				Pair.with(AutomationConstants.DATA_AVAILABLE_AT, TIMESTAMP_DATATYPE)));
+
+		addTable(AutomationConstants.TABLE_AUTOMATION_RUN_DATA_CHUNKS, Arrays.asList(
+				Pair.with(AutomationConstants.DATA_REFERENCE_ID, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.DATA_CHUNK_INDEX, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.DATA_ROW_OFFSET, AutomationConstants.BIGINT),
+				Pair.with(AutomationConstants.DATA_CHUNK_ROW_COUNT, AutomationConstants.INTEGER),
+				Pair.with(AutomationConstants.DATA_ROWS, CLOB_DATATYPE)));
+
 		// @formatter:on 
 	}
 
@@ -396,6 +417,15 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_WAITS, AutomationConstants.TABLE_AUTOMATION_RUNS,
 				AutomationConstants.TABLE_AUTOMATION_RUN_WAITS + "." + AutomationConstants.RUN_ID + "."
 						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_DATA, AutomationConstants.TABLE_AUTOMATION_RUNS,
+				AutomationConstants.TABLE_AUTOMATION_RUN_DATA + "." + AutomationConstants.RUN_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUNS + "." + AutomationConstants.RUN_ID);
+		owler.addRelation(AutomationConstants.TABLE_AUTOMATION_RUN_DATA_CHUNKS,
+				AutomationConstants.TABLE_AUTOMATION_RUN_DATA,
+				AutomationConstants.TABLE_AUTOMATION_RUN_DATA_CHUNKS + "."
+						+ AutomationConstants.DATA_REFERENCE_ID + "."
+						+ AutomationConstants.TABLE_AUTOMATION_RUN_DATA + "."
+						+ AutomationConstants.DATA_REFERENCE_ID);
 	}
 
 }

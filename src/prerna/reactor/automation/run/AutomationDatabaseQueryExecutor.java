@@ -107,7 +107,10 @@ final class AutomationDatabaseQueryExecutor {
 			}
 			importer.setInsight(insight);
 			importer.insertData();
-			long rowCount = queryRowCount(task, runId, nodeId);
+			IRawSelectWrapper wrapper = task.getIterator();
+			AutomationFrameHistory.Snapshot history = AutomationFrameHistory.captureWrapper(runId, nodeId,
+					outputVariable, wrapper);
+			long rowCount = history.rowCount();
 
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
 					frame, rowCount);
@@ -126,23 +129,6 @@ final class AutomationDatabaseQueryExecutor {
 			throw e instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(e);
 		} finally {
 			closeTask(task, runId, nodeId);
-		}
-	}
-
-	private static long queryRowCount(BasicIteratorTask task, String runId, String nodeId) {
-		try {
-			IRawSelectWrapper wrapper = task.getIterator();
-			long rowCount = wrapper.getNumRows();
-			if (rowCount < 0) {
-				throw new IllegalStateException("Database query returned an invalid row count.");
-			}
-			return rowCount;
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to count database frame rows for Automation run '{}', node '{}'", runId, nodeId,
-					e);
-			throw new IllegalStateException("Unable to count Automation database query rows.", e);
 		}
 	}
 

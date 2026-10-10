@@ -36,6 +36,9 @@ import static prerna.reactor.automation.AutomationConstants.CREATED_BY;
 import static prerna.reactor.automation.AutomationConstants.DEFINITION_HASH;
 import static prerna.reactor.automation.AutomationConstants.DEFINITION_SNAPSHOT;
 import static prerna.reactor.automation.AutomationConstants.DEFINITION_VERSION;
+import static prerna.reactor.automation.AutomationConstants.DATA_CHUNK_INDEX;
+import static prerna.reactor.automation.AutomationConstants.DATA_REFERENCE_ID;
+import static prerna.reactor.automation.AutomationConstants.DATA_STATE;
 import static prerna.reactor.automation.AutomationConstants.DURATION_MS;
 import static prerna.reactor.automation.AutomationConstants.ERROR_MESSAGE;
 import static prerna.reactor.automation.AutomationConstants.EXECUTION_ORDER;
@@ -46,6 +49,9 @@ import static prerna.reactor.automation.AutomationConstants.IDX_ANO_ROOM;
 import static prerna.reactor.automation.AutomationConstants.IDX_ANO_RUN;
 import static prerna.reactor.automation.AutomationConstants.IDX_ARW_AGENT_RUN;
 import static prerna.reactor.automation.AutomationConstants.IDX_ARW_RUN;
+import static prerna.reactor.automation.AutomationConstants.IDX_ARDC_REFERENCE;
+import static prerna.reactor.automation.AutomationConstants.IDX_ARD_RUN_NODE;
+import static prerna.reactor.automation.AutomationConstants.IDX_ARD_STATE;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_PROJECT;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STARTED;
 import static prerna.reactor.automation.AutomationConstants.IDX_AR_STATUS;
@@ -69,6 +75,8 @@ import static prerna.reactor.automation.AutomationConstants.PK_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_NODE_OUT;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_SOURCE;
 import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_WAIT;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_DATA;
+import static prerna.reactor.automation.AutomationConstants.PK_AUTO_RUN_DATA_CHUNK;
 import static prerna.reactor.automation.AutomationConstants.PROJECT_ID;
 import static prerna.reactor.automation.AutomationConstants.RESULT_SUMMARY_COL;
 import static prerna.reactor.automation.AutomationConstants.ROOM_ID;
@@ -85,6 +93,8 @@ import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_NOD
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUNS;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_NODE_SOURCES;
 import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_WAITS;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_DATA;
+import static prerna.reactor.automation.AutomationConstants.TABLE_AUTOMATION_RUN_DATA_CHUNKS;
 import static prerna.reactor.automation.AutomationConstants.TOTAL_NODES;
 import static prerna.reactor.automation.AutomationConstants.TRIGGER_TYPE;
 import static prerna.reactor.automation.AutomationConstants.WORKSPACE_ID;
@@ -159,7 +169,13 @@ public final class AutomationRunStore {
 			Set.of(RUN_ID, NODE_ID, SOURCE_HASH, SOURCE_CODE), TABLE_AUTOMATION_NODE_OUTPUTS,
 			Set.of(RUN_ID, NODE_ID, EXECUTION_ORDER, STATUS), TABLE_AUTOMATION_RUN_WAITS,
 			Set.of(AutomationConstants.WAIT_ID, RUN_ID, NODE_ID, AutomationConstants.WAIT_TYPE, AGENT_RUN_ID, ROOM_ID,
-					STATUS, STARTED_AT, AutomationConstants.EXPIRES_AT));
+					STATUS, STARTED_AT, AutomationConstants.EXPIRES_AT), TABLE_AUTOMATION_RUN_DATA,
+			Set.of(DATA_REFERENCE_ID, RUN_ID, NODE_ID, DATA_STATE, AutomationConstants.DATA_HEADERS,
+					AutomationConstants.DATA_ROW_COUNT, AutomationConstants.DATA_COLUMN_COUNT,
+					AutomationConstants.DATA_CONTENT_BYTES, AutomationConstants.DATA_CREATED_AT),
+			TABLE_AUTOMATION_RUN_DATA_CHUNKS,
+			Set.of(DATA_REFERENCE_ID, DATA_CHUNK_INDEX, AutomationConstants.DATA_ROW_OFFSET,
+					AutomationConstants.DATA_CHUNK_ROW_COUNT, AutomationConstants.DATA_ROWS));
 
 	// Table name shortcuts for SelectQueryStruct (TABLE__COLUMN format)
 	private static final String TABLE_RUNS = TABLE_AUTOMATION_RUNS;
@@ -359,6 +375,18 @@ public final class AutomationRunStore {
 				new String[] { RUN_ID, STATUS });
 		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARW_AGENT_RUN, TABLE_AUTOMATION_RUN_WAITS,
 				new String[] { AGENT_RUN_ID });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_RUN_DATA, database, schema, PK_AUTO_RUN_DATA,
+				new String[] { DATA_REFERENCE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARD_RUN_NODE, TABLE_AUTOMATION_RUN_DATA,
+				new String[] { RUN_ID, NODE_ID });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARD_STATE, TABLE_AUTOMATION_RUN_DATA,
+				new String[] { DATA_STATE });
+
+		addPrimaryKeyIfNotExists(conn, queryUtil, TABLE_AUTOMATION_RUN_DATA_CHUNKS, database, schema,
+				PK_AUTO_RUN_DATA_CHUNK, new String[] { DATA_REFERENCE_ID, DATA_CHUNK_INDEX });
+		createIndexIfNotExists(conn, queryUtil, allowIfExists, IDX_ARDC_REFERENCE,
+				TABLE_AUTOMATION_RUN_DATA_CHUNKS, new String[] { DATA_REFERENCE_ID, DATA_CHUNK_INDEX });
 	}
 
 	/**
@@ -1002,6 +1030,7 @@ public final class AutomationRunStore {
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_VERSION, DEFINITION_VERSION));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_HASH, DEFINITION_HASH));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + DEFINITION_SNAPSHOT, DEFINITION_SNAPSHOT));
+		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + INPUT_SNAPSHOT, INPUT_SNAPSHOT));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STATUS, STATUS));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + TRIGGER_TYPE, TRIGGER_TYPE));
 		qs.addSelector(new QueryColumnSelector(TABLE_RUNS + "__" + STARTED_AT, STARTED_AT));
@@ -1354,6 +1383,16 @@ public final class AutomationRunStore {
 
 		List<Map<String, Object>> results = QueryExecutionUtility.flushRsToMap(schedulerDb, qs);
 		return results != null ? results : new ArrayList<>();
+	}
+
+	/** Returns one exact persisted node-output row for authorized detail APIs. */
+	public static Map<String, Object> getNodeOutput(String runId, String nodeId) {
+		for (Map<String, Object> output : getNodeOutputsForRun(runId)) {
+			if (nodeId.equals(output.get(NODE_ID))) {
+				return output;
+			}
+		}
+		return null;
 	}
 
 	/**

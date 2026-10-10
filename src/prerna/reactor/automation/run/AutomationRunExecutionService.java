@@ -1199,6 +1199,7 @@ final class AutomationRunExecutionService {
 					}
 					frameBindings.put(outputVariable, registeredFrame.backend());
 					rememberOwnedFrame(ownedFrames, registeredFrame);
+					AutomationFrameHistory.captureFrame(runId, nodeId, outputVariable, registeredFrame.frame());
 					outputKind = AutomationConstants.OUTPUT_KIND_FRAME;
 					classLogger.debug(
 							"Registered SEMOSS frame output '{}' for Automation run '{}', node '{}', "
@@ -1248,6 +1249,7 @@ final class AutomationRunExecutionService {
 		try {
 			AutomationFrameOutput.RegisteredFrame registeredFrame = AutomationFrameOutput
 					.registerPythonVariable(executionInsight, outputVariable);
+			AutomationFrameHistory.captureFrame(runId, nodeId, outputVariable, registeredFrame.frame());
 			classLogger.debug(
 					"Registered tabular preview '{}' for Automation run '{}', node '{}', execution Insight '{}'",
 					outputVariable, runId, nodeId, executionInsight.getInsightId());

@@ -215,6 +215,10 @@ class AutomationRunStoreUnitTests {
 					+ "WHERE TABLE_NAME='AUTOMATION_NODE_OUTPUTS' AND COLUMN_NAME='OUTPUT_KIND'")).intValue());
 			assertEquals(1, ((Number) db.value("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
 					+ "WHERE TABLE_NAME='AUTOMATION_RUNS'")).intValue());
+			assertEquals(1, ((Number) db.value("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
+					+ "WHERE TABLE_NAME='AUTOMATION_RUN_DATA'")).intValue());
+			assertEquals(1, ((Number) db.value("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES "
+					+ "WHERE TABLE_NAME='AUTOMATION_RUN_DATA_CHUNKS'")).intValue());
 		}
 	}
 }
