@@ -142,7 +142,8 @@ public class RunAgentReactor extends AbstractReactor {
 			// from creating a durable run that later executes under the default harness.
 			IAgentHarness harness = AgentHarnessRegistry.getOrDefault(harnessType);
 			validateMediaSupported(harness, inputMedia, inputMediaURLs);
-			List<String> copiedMedia = stageMediaInputs(roomId, input, engineIdFallback, inputMedia);
+			List<String> copiedMedia = stageMediaInputs(roomId, AgentRunner.userText(agentParams, input),
+					engineIdFallback, inputMedia);
 			AgentRunRequest request = new AgentRunRequest(roomId, input, engineIdFallback, harnessType,
 					explicitWorkspaceId, maxTurns, maxReflections, paramMap, agentParams, copiedMedia, inputMediaURLs,
 					this.insight);

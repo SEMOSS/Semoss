@@ -28,6 +28,7 @@
 package prerna.engine.impl.model.inferencetracking.reactors;
 
 import prerna.auth.User;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 import prerna.reactor.AbstractReactor;
 import prerna.sablecc2.om.PixelDataType;
@@ -50,6 +51,11 @@ public class SetRoomNameReactor extends AbstractReactor {
         String roomId = this.keyValue.get(this.keysToGet[0]);
         String roomName = this.keyValue.get(this.keysToGet[1]);
         boolean output = ModelInferenceLogsUtils.doSetNameForRoom(user.getPrimaryLoginToken().getId(), roomId, roomName);
+        // the cached room backfills an empty name from its first prompt; keep it in step
+        Room cached = output ? user.getRoomHash().get(roomId) : null;
+        if (cached != null) {
+            cached.setRoomName(roomName);
+        }
 		return new NounMetadata(output, PixelDataType.BOOLEAN);
 	}
 	
