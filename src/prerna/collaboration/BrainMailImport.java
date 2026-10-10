@@ -275,6 +275,7 @@ public final class BrainMailImport {
 			headers.addAll(chats.messages());
 			job.count("teamsMessages", chats.messages().size());
 			job.count("teamsChatsSkipped", chats.skippedChats());
+			job.count("teamsChatsUnreadable", chats.unreadableChats());
 			reauthNeeded = chats.reauthNeeded();
 			if (chats.skippedChats() > 0) {
 				teamsError = chats.skippedChats() + " Teams chat" + (chats.skippedChats() == 1 ? "" : "s")

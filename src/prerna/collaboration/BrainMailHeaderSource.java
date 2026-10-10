@@ -102,8 +102,16 @@ public interface BrainMailHeaderSource {
 		return List.of();
 	}
 
-	/** Readable chat headers and partial failures; a skipped chat keeps the sync checkpoint unchanged. */
-	record ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded) {
+	/**
+	 * Readable chat headers and partial failures; a skipped chat keeps the sync checkpoint unchanged, an unreadable
+	 * one (no access to it) does not.
+	 */
+	record ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded,
+			int unreadableChats) {
+
+		ChatImport(List<Map<String, Object>> messages, int skippedChats, boolean reauthNeeded) {
+			this(messages, skippedChats, reauthNeeded, 0);
+		}
 	}
 
 	// Existing sources that only supply headers have no partial failures to report.
@@ -126,6 +134,16 @@ public interface BrainMailHeaderSource {
 	static boolean needsReauth(Throwable error) {
 		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
 			if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 401\\b.*")) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// a chat the owner no longer has access to (often a meeting chat) fails the same way every time
+	static boolean noAccess(Throwable error) {
+		for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+			if (String.valueOf(cause.getMessage()).matches("(?s).*returned HTTP 40[34]\\b.*")) {
 				return true;
 			}
 		}
