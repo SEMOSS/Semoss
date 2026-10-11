@@ -32,12 +32,15 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import prerna.auth.User;
 import prerna.om.Insight;
@@ -59,6 +62,13 @@ public final class BrainSync {
 	private static final String QUIET = "quiet";
 	// threads listed on the job for the page; counts cover all of them
 	private static final int MAX_CHANGES = 50;
+	// one import into an owner's Brain at a time on this server (a sync, the onboarding import, a webhook, a chat's
+	// pull): a Run dedupes only against what it loaded when it was built, and the tables have no unique keys
+	static final String INGEST_LOCK = "ingest";
+	// a chat's pull reads at most this many headers a thread and folder, and the same thread again after PULL_EVERY
+	private static final int PULL_MAX = 50;
+	private static final Duration PULL_EVERY = Duration.ofSeconds(30);
+	private static final Map<String, Instant> PULLED = new ConcurrentHashMap<>();
 
 	private BrainSync() {
 	}
@@ -81,6 +91,8 @@ public final class BrainSync {
 		}
 		// fail here, not inside the job, when no model is set or the caller cannot use it
 		BrainThreadClassifier.requireEngine(user);
+		// from then on new mail also arrives by itself; in the background, skipped when Graph cannot reach this server
+		BrainMailWebhook.ensureSubscribed(user);
 		return CollaborationJobUtils.start(ownerId, ownerType, KIND, Map.of(), job -> run(user, job, last));
 	}
 
@@ -96,20 +108,23 @@ public final class BrainSync {
 		if (myAddress == null) {
 			throw new IllegalStateException("The signed-in mailbox has no address");
 		}
-		BrainMailImport.Run run = new BrainMailImport.Run(ownerId, ownerType);
-		run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
-				source.aliases(user));
+		List<String> aliases = source.aliases(user);
 
 		Instant floor = Instant.now().minus(Duration.ofDays(BrainMailImport.MAX_DAYS));
 		Instant since = later(toInstant(last).minus(OVERLAP), floor);
 		boolean withTeams = Boolean.TRUE
 				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 		job.count("since", since.toString());
-		String teamsError = BrainMailImport.importSince(user, source, job, run, since,
-				withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
-
-		job.step("threads", 86);
-		run.refreshThreads();
+		BrainMailImport.Run run;
+		String teamsError;
+		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			run = new BrainMailImport.Run(ownerId, ownerType);
+			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
+			teamsError = BrainMailImport.importSince(user, source, job, run, since,
+					withTeams ? teamsSince(ownerId, ownerType, since, floor) : null);
+			job.step("threads", 86);
+			run.refreshThreads();
+		}
 
 		// the owner answered: reply items received before the send are done
 		job.step("replies", 88);
@@ -155,6 +170,109 @@ public final class BrainSync {
 		if (withTeams && teamsError == null) {
 			CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, TEAMS);
 		}
+	}
+
+	/**
+	 * A chat's email threads read straight from Graph, so its assistant sees mail that came after the last sync:
+	 * Inbox and Sent of each thread's conversation since its newest message, through the same gate as a sync. A
+	 * thread pulled in the last 30 seconds is skipped. Returns the threads that got mail.
+	 */
+	public static Set<String> pullThreads(User user, Collection<String> threadIds) throws Exception {
+		var owner = CollaborationDbUtils.ownerOf(user);
+		return pullThreads(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), threadIds,
+				Instant.now());
+	}
+
+	static Set<String> pullThreads(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
+			Collection<String> threadIds, Instant now) throws Exception {
+		if (!canIngest(ownerId, ownerType)) {
+			return Set.of();
+		}
+		Instant floor = now.minus(Duration.ofDays(BrainMailImport.MAX_DAYS));
+		List<Map<String, Object>> headers = new ArrayList<>();
+		for (String threadId : threadIds) {
+			String pulledKey = ownerType + ":" + ownerId + ":" + threadId;
+			Instant pulled = PULLED.get(pulledKey);
+			if (pulled != null && pulled.plus(PULL_EVERY).isAfter(now)) {
+				continue;
+			}
+			Object[] thread = CollaborationDbUtils.queryOne("SELECT THREAD_KEY, LAST_MESSAGE_AT FROM BRAIN_THREAD "
+					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND SOURCE = ?",
+					rs -> new Object[] { rs.getString("THREAD_KEY"), rs.getTimestamp("LAST_MESSAGE_AT") }, ownerId,
+					ownerType, threadId, EMAIL);
+			// email only: a Teams chat's messages come in with the next sync
+			if (thread == null || !(thread[0] instanceof String key) || !key.startsWith(EMAIL + ":")) {
+				continue;
+			}
+			Instant since = thread[1] == null ? floor : later(toInstant((Timestamp) thread[1]).minus(OVERLAP), floor);
+			for (String folder : BrainMailHeaderSource.FOLDERS) {
+				headers.addAll(source.conversation(user, folder, key.substring(EMAIL.length() + 1), since, PULL_MAX));
+			}
+			PULLED.put(pulledKey, now);
+		}
+		return importHeaders(user, ownerId, ownerType, source, headers);
+	}
+
+	/**
+	 * Imports the headers Brain does not hold yet, as a sync would: the gate's rules, people and threads; the
+	 * owner's own replies close their reply items and the threads' summaries are queued. Nothing happens before the
+	 * onboarding import or while one runs. The next sync classifies these threads. Returns the threads that got mail.
+	 */
+	static Set<String> importHeaders(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
+			List<Map<String, Object>> headers) throws Exception {
+		Map<String, Map<String, Object>> unseen = new LinkedHashMap<>();
+		for (Map<String, Object> header : headers) {
+			String messageId = BrainMailImport.messageId(header);
+			if (messageId != null) {
+				unseen.putIfAbsent(CollaborationDbUtils.deterministicId(ownerId, ownerType, EMAIL, messageId), header);
+			}
+		}
+		// usually nothing is new: one query and no Run, which loads the owner's whole Brain
+		if (!unseen.isEmpty()) {
+			List<Object> params = new ArrayList<>(List.of(ownerId, ownerType));
+			params.addAll(unseen.keySet());
+			CollaborationDbUtils.query("SELECT MESSAGE_KEY FROM BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ? "
+					+ "AND MESSAGE_KEY IN (" + CollaborationDbUtils.placeholders(unseen.size()) + ")",
+					rs -> unseen.remove(rs.getString("MESSAGE_KEY")), params.toArray());
+		}
+		if (unseen.isEmpty() || !canIngest(ownerId, ownerType)) {
+			return Set.of();
+		}
+		Map<String, Object> me = source.me(user);
+		String myAddress = BrainRulesGate.norm(BrainMailImport.first(me, "mail", "userPrincipalName"));
+		if (myAddress == null) {
+			throw new IllegalStateException("The signed-in mailbox has no address");
+		}
+		List<String> aliases = source.aliases(user);
+		List<Map<String, Object>> fresh = new ArrayList<>(unseen.values());
+		// oldest first, so a new thread takes its first subject
+		fresh.sort(Comparator.comparing(header -> String.valueOf(header.get("receivedDateTime"))));
+		BrainMailImport.Run run;
+		synchronized (CollaborationDbUtils.ownerLock(INGEST_LOCK, ownerId, ownerType)) {
+			run = new BrainMailImport.Run(ownerId, ownerType);
+			run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"), aliases);
+			CollaborationDbUtils.batch(conn -> {
+				for (Map<String, Object> header : fresh) {
+					run.importOne(header);
+				}
+			});
+			run.refreshThreads();
+		}
+		for (String[] sent : run.ownerSent) {
+			WorkItemUtils.closeOnReply(ownerId, ownerType, sent[0], sent[1]);
+		}
+		WorkThreadInsights.queue(user, ownerId, ownerType, run.threads);
+		return run.threads;
+	}
+
+	// mail is connected, the onboarding import has finished, and none is running
+	private static boolean canIngest(String ownerId, String ownerType) {
+		if (!Boolean.TRUE.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(EMAIL))) {
+			return false;
+		}
+		Map<String, Object> importing = CollaborationJobUtils.latest(ownerId, ownerType, BrainMailImport.KIND);
+		return (importing == null || !CollaborationJobUtils.RUNNING.equals(importing.get("status")))
+				&& lastRun(ownerId, ownerType) != null;
 	}
 
 	// where each thread with new mail went, so the page can say more than "N new messages": a new card, an

@@ -145,10 +145,10 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 			return "Optional subject line of a new email, saying what it is about. Never start it with Re: or Fwd:. "
 					+ "A reply or forward keeps its thread's subject; Outlook adds RE: or FW:.";
 		} else if (REPLY_TO.equals(key)) {
-			return "Optional id of the email to reply to, taken from the messages in the Work context. "
+			return "Optional id of the email to reply to, taken from the Work context or the Chat threads section. "
 					+ "The reply stays in that email's thread. Leave it out for a new email.";
 		} else if (FORWARD.equals(key)) {
-			return "Optional id of the email to forward, taken from the messages in the Work context. Outlook includes "
+			return "Optional id of the email to forward, taken from the Work context or the Chat threads section. Outlook includes "
 					+ "that email and its attachments below the note, so do not copy its text into message. Set to. "
 					+ "Leave it out unless the owner asks to forward.";
 		} else if (OPEN_EMAIL_ID.equals(key)) {

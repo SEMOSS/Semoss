@@ -90,6 +90,8 @@ public final class BrainMailImport {
 		if (teams != null) {
 			input.put("teams", teams);
 		}
+		// new mail arrives by itself once the import is done; in the background, skipped when Graph cannot reach us
+		BrainMailWebhook.ensureSubscribed(user);
 		return CollaborationJobUtils.start(owner.getValue0(), owner.getValue1(), KIND, input,
 				job -> run(user, job, days, teams));
 	}
@@ -116,24 +118,28 @@ public final class BrainMailImport {
 		boolean withTeams = Boolean.TRUE
 				.equals(CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType).get(TEAMS));
 
-		Run run = new Run(ownerId, ownerType);
-		String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"), (String) me.get("userPrincipalName"),
-				source.aliases(user));
-
-		Instant since = Instant.now().minus(Duration.ofDays(days));
-		// mail first, then who matters; the owner can go on to People while Teams chats are read
-		importMail(user, source, job, run, since, 5, 40);
-		job.step("threads", 42);
-		run.refreshThreads();
-		String managerPersonId = people(user, source, job, run, selfId, myAddress);
-		found(user, job, ownerId, ownerType, selfId, managerPersonId);
-		job.count("mailReady", true);
+		List<String> aliases = source.aliases(user);
 		String teamsError = null;
-		if (withTeams) {
-			teamsError = importTeams(user, source, job, run, since, 50, 95);
-			job.step("ranking", 96);
+		// webhooks and chat pulls skip while this job runs; the lock covers one that began just before it
+		synchronized (CollaborationDbUtils.ownerLock(BrainSync.INGEST_LOCK, ownerId, ownerType)) {
+			Run run = new Run(ownerId, ownerType);
+			String selfId = run.ensureSelf(myAddress, (String) me.get("displayName"),
+					(String) me.get("userPrincipalName"), aliases);
+
+			Instant since = Instant.now().minus(Duration.ofDays(days));
+			// mail first, then who matters; the owner can go on to People while Teams chats are read
+			importMail(user, source, job, run, since, 5, 40);
+			job.step("threads", 42);
 			run.refreshThreads();
-			BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
+			String managerPersonId = people(user, source, job, run, selfId, myAddress);
+			found(user, job, ownerId, ownerType, selfId, managerPersonId);
+			job.count("mailReady", true);
+			if (withTeams) {
+				teamsError = importTeams(user, source, job, run, since, 50, 95);
+				job.step("ranking", 96);
+				run.refreshThreads();
+				BrainPeopleRanking.rank(ownerId, ownerType, selfId, domain(myAddress));
+			}
 		}
 		CollaborationSourceUtils.recordSourceEvent(ownerId, ownerType, SOURCE);
 		if (withTeams && teamsError == null) {

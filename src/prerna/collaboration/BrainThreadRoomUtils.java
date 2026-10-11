@@ -44,6 +44,7 @@ import org.javatuples.Pair;
 import prerna.auth.User;
 import prerna.collaboration.BrainThreadMessages.Shown;
 import prerna.collaboration.BrainTopicRoomUtils.Chat;
+import prerna.engine.impl.model.Room;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
 
 /**
@@ -79,21 +80,7 @@ public final class BrainThreadRoomUtils {
 		String ownerType = owner.getValue1();
 		Chat chat = BrainTopicRoomUtils.requireChat(user, roomId);
 		seedFromSource(ownerId, ownerType, chat.roomId(), chat.options());
-		List<Map<String, Object>> threads = CollaborationDbUtils.query("SELECT l.THREAD_ID, l.ORIGIN, l.SEEN_AT, "
-				+ "t.SUBJECT, t.SOURCE, t.MESSAGE_COUNT, t.LAST_MESSAGE_AT FROM BRAIN_THREAD_ROOM l "
-				+ "JOIN BRAIN_THREAD t ON t.OWNER_ID = l.OWNER_ID AND t.OWNER_TYPE = l.OWNER_TYPE "
-				+ "AND t.THREAD_ID = l.THREAD_ID WHERE l.OWNER_ID = ? AND l.OWNER_TYPE = ? AND l.ROOM_ID = ? "
-				+ "AND l.STATE = ? ORDER BY t.LAST_MESSAGE_AT DESC, l.THREAD_ID", rs -> {
-					Map<String, Object> row = new LinkedHashMap<>();
-					row.put("threadId", rs.getString("THREAD_ID"));
-					row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
-					row.put("channel", CollaborationDbUtils.getString(rs, "SOURCE"));
-					row.put("origin", CollaborationDbUtils.getString(rs, "ORIGIN"));
-					row.put("messageCount", CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT"));
-					row.put("lastMessageAt", CollaborationDbUtils.getTimestamp(rs, "LAST_MESSAGE_AT"));
-					row.put("seenAt", CollaborationDbUtils.getTimestamp(rs, "SEEN_AT"));
-					return row;
-				}, ownerId, ownerType, chat.roomId(), LINKED);
+		List<Map<String, Object>> threads = linkedThreads(ownerId, ownerType, chat.roomId());
 		for (Map<String, Object> thread : threads) {
 			String seenAt = (String) thread.get("seenAt");
 			List<Shown> shown = BrainThreadMessages.shown(ownerId, ownerType, (String) thread.get("threadId"));
@@ -173,7 +160,46 @@ public final class BrainThreadRoomUtils {
 		return listRoomThreads(user, chat.roomId(), false);
 	}
 
+	/**
+	 * The threads of the owner's own assistant chat, as listRoomThreads gives them before counting: threadId, subject,
+	 * channel, origin, messageCount, lastMessageAt, seenAt. Empty for any other room.
+	 */
+	static List<Map<String, Object>> chatThreads(User user, Room room) {
+		if (user == null || !CollaborationUtils.isAssistantRoom(room)) {
+			return List.of();
+		}
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		seedFromSource(owner.getValue0(), owner.getValue1(), room.getId(), room.getOptionsMap());
+		return linkedThreads(owner.getValue0(), owner.getValue1(), room.getId());
+	}
+
+	// the chat's assistant has been given the thread up to this email and time; never moves back
+	static void markSeen(String ownerId, String ownerType, String roomId, String threadId, String graphId,
+			Timestamp at) {
+		CollaborationDbUtils.update("UPDATE BRAIN_THREAD_ROOM SET SEEN_REF = COALESCE(?, SEEN_REF), SEEN_AT = ?"
+				+ OWNED_ROOM + " AND THREAD_ID = ? AND (SEEN_AT IS NULL OR SEEN_AT <= ?)", graphId, at, ownerId,
+				ownerType, roomId, threadId, at);
+	}
+
 	// ---- helpers ----
+
+	private static List<Map<String, Object>> linkedThreads(String ownerId, String ownerType, String roomId) {
+		return CollaborationDbUtils.query("SELECT l.THREAD_ID, l.ORIGIN, l.SEEN_AT, t.SUBJECT, t.SOURCE, "
+				+ "t.MESSAGE_COUNT, t.LAST_MESSAGE_AT FROM BRAIN_THREAD_ROOM l JOIN BRAIN_THREAD t "
+				+ "ON t.OWNER_ID = l.OWNER_ID AND t.OWNER_TYPE = l.OWNER_TYPE AND t.THREAD_ID = l.THREAD_ID "
+				+ "WHERE l.OWNER_ID = ? AND l.OWNER_TYPE = ? AND l.ROOM_ID = ? AND l.STATE = ? "
+				+ "ORDER BY t.LAST_MESSAGE_AT DESC, l.THREAD_ID", rs -> {
+					Map<String, Object> row = new LinkedHashMap<>();
+					row.put("threadId", rs.getString("THREAD_ID"));
+					row.put("subject", CollaborationDbUtils.getString(rs, "SUBJECT"));
+					row.put("channel", CollaborationDbUtils.getString(rs, "SOURCE"));
+					row.put("origin", CollaborationDbUtils.getString(rs, "ORIGIN"));
+					row.put("messageCount", CollaborationDbUtils.getInteger(rs, "MESSAGE_COUNT"));
+					row.put("lastMessageAt", CollaborationDbUtils.getTimestamp(rs, "LAST_MESSAGE_AT"));
+					row.put("seenAt", CollaborationDbUtils.getTimestamp(rs, "SEEN_AT"));
+					return row;
+				}, ownerId, ownerType, roomId, LINKED);
+	}
 
 	// shown emails (newest first) after the newest one the assistant was given; all of them when it was given none
 	static int newCount(List<Shown> shown, String seenAt) {
