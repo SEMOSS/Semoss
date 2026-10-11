@@ -393,6 +393,7 @@ public class Constants {
 	public static final String VENV_FOLDER = "venv";
 	// project is just a special engine..
 	public static final String PROJECT_FOLDER = "project";
+	public static final String APP_LOGGING_ENABLED = "APP_LOGGING_ENABLED";
 	public static final String APP_ROOT_FOLDER = "app_root";
 	public static final String ASSETS_FOLDER = "assets";
 	// folder within the assets folder whose contents are visible to users with only
