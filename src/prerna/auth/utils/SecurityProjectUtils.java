@@ -284,6 +284,12 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 								statement.setString(1, projectId);
 								statement.setString(2, deleteId);
 							});
+					QueryExecutionUtility.executeBatch(securityDb,
+							"DELETE FROM USERINSIGHTPREFERENCE WHERE PROJECTID=? AND INSIGHTID=?", insightPermissionIds,
+							(statement, deleteId) -> {
+								statement.setString(1, projectId);
+								statement.setString(2, deleteId);
+							});
 				} catch (RuntimeException e) {
 					throw e;
 				} catch (Exception e) {
@@ -433,14 +439,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
 		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
 
-		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?,?)";
+		String query = "INSERT INTO PROJECTPERMISSION (USERID, PERMISSION, PROJECTID, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES (?,?,?,?,?,?)";
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
 				int parameterIndex = 1;
 				ps.setString(parameterIndex++, userId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 				ps.setString(parameterIndex++, projectId);
-				ps.setBoolean(parameterIndex++, true);
 				ps.setString(parameterIndex++, userDetails.getValue0());
 				ps.setString(parameterIndex++, userDetails.getValue1());
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
@@ -1449,6 +1454,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		deletes.add("DELETE FROM PROJECT WHERE PROJECTID=?");
 		deletes.add("DELETE FROM INSIGHT WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTPERMISSION WHERE PROJECTID=?");
+		deletes.add("DELETE FROM USERPROJECTPREFERENCE WHERE PROJECTID=?");
+		deletes.add("DELETE FROM USERINSIGHTPREFERENCE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTMETA WHERE PROJECTID=?");
 		deletes.add("DELETE FROM ASSETENGINE WHERE PROJECTID=?");
 		deletes.add("DELETE FROM PROJECTACCESSREQUEST WHERE PROJECTID=?");
@@ -2980,7 +2987,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs1.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
 				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
 				"low_project_name"));
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "project_favorite"));
+		qs1.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "project_favorite"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "group_permission"));
 
@@ -3029,23 +3037,10 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs1.addSelector(qis);
 		}
 
-		// add a join to get the user permission level, if favorite, and the visibility
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
-
-			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					"PROJECTPERMISSION__FAVORITE", "castFavorite");
-			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
-
-			QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					"PROJECTPERMISSION__VISIBILITY", "castVisibility");
-			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
-
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					"PROJECTPERMISSION__PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID", "PROJECTID"));
@@ -3054,6 +3049,9 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 					new String[] { "USER_PERMISSIONS__PROJECTID", "PROJECT__PROJECTID", "=" });
 			qs1.addRelation(subQuery);
 		}
+
+		// add a join to get if favorite and the visibility
+		qs1.addRelation(getUserPreferencesSubquery(securityDb, user));
 
 		// add a join to get the group permission level
 		{
@@ -3122,13 +3120,13 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		}
 
 		// only show those that are visible
-		// remember, user permissions cast this to int
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==",
+		// remember, user preferences cast this to int
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__VISIBILITY", "==",
 				Arrays.asList(new Object[] { 1, null }), PixelDataType.CONST_INT));
 		// favorites only
-		// remember, user permissions cast this to int
+		// remember, user preferences cast this to int
 		if (favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", 1,
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__FAVORITE", "==", 1,
 					PixelDataType.CONST_INT));
 		}
 
@@ -3336,7 +3334,8 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILED", "project_reactors_compiled_date"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDUSER", "project_reactors_compiled_user"));
 		qs.addSelector(new QueryColumnSelector("PROJECT__REACTORSCOMPILEDTYPE", "project_reactors_compiled_user_type"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__FAVORITE", "project_favorite"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "project_favorite"));
 		// for sorting
 		qs.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.LOWER, QueryFunctionSelector
 				.makeCoalesceSelector("PROJECT__PROJECTDISPLAYNAME", "PROJECT__PROJECTNAME", "display_name"),
@@ -3363,9 +3362,41 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 			qs.addExplicitFilter(orFilter);
 		}
 		qs.addRelation("PROJECT", "PROJECTPERMISSION", "left.outer.join");
+		qs.addRelation(getUserPreferencesSubquery(securityDb, user));
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_project_name"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
+	}
+
+	/**
+	 * A left join, as USER_PREFERENCES, to the user's preferences on each project:
+	 * FAVORITE is 1 when any of the user's logins favorited it, and VISIBILITY is 1
+	 * when any of them shows it and 0 when they all hide it, both cast to int. A
+	 * project the user has no preferences on joins to null.
+	 *
+	 * @param securityDb the security database
+	 * @param user       the user; their logins come from the session
+	 * @return the join to add to a query on PROJECT
+	 */
+	private static IRelation getUserPreferencesSubquery(IRDBMSEngine securityDb, User user) {
+		SelectQueryStruct prefQs = new SelectQueryStruct();
+		prefQs.addSelector(new QueryColumnSelector("USERPROJECTPREFERENCE__PROJECTID", "PROJECTID"));
+
+		QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+				"USERPROJECTPREFERENCE__FAVORITE", "castFavorite");
+		castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+		prefQs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
+		QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+				"USERPROJECTPREFERENCE__VISIBILITY", "castVisibility");
+		castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+		prefQs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
+		prefQs.addGroupBy(new QueryColumnSelector("USERPROJECTPREFERENCE__PROJECTID", "PROJECTID"));
+		prefQs.addExplicitFilter(
+				getUserIdAndTypeFilter(user, "USERPROJECTPREFERENCE__USERID", "USERPROJECTPREFERENCE__TYPE"));
+		return new SubqueryRelationship(prefQs, "USER_PREFERENCES", "left.outer.join",
+				new String[] { "USER_PREFERENCES__PROJECTID", "PROJECT__PROJECTID", "=" });
 	}
 
 	/**
@@ -3557,178 +3588,44 @@ public class SecurityProjectUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user visibility (show/hide) for a project. Without removing its
-	 * permissions.
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
+	 * Show or hide a project in the user's lists, for each of their logins. The
+	 * visibility is saved in USERPROJECTPREFERENCE, apart from the user's
+	 * permissions, and changes only this project.
+	 *
+	 * @param user       the user
+	 * @param projectId  the project
+	 * @param visibility true to show the project, false to hide it
+	 * @throws IllegalAccessException when the user cannot view the project
+	 * @throws Exception              when the visibility cannot be saved
 	 */
-	public static void setProjectVisibility(User user, String projectId, boolean visibility)
-			throws SQLException, IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+	public static void setProjectVisibility(User user, String projectId, boolean visibility) throws Exception {
 		if (!userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this project.");
 		}
-		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// need to update
-				PreparedStatement ps = securityDb
-						.getPreparedStatement("UPDATE PROJECTPERMISSION SET VISIBILITY=? WHERE USERID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
-				}
-				try {
-					// Preserve permissions when updating preferences.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, visibility);
-						ps.setString(parameterIndex++, userId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update project visibility", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
-						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project visibility");
-				}
-				try {
-					// A preference does not grant direct access.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setBoolean(parameterIndex++, visibility);
-						// default favorite as false
-						ps.setBoolean(parameterIndex++, false);
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update project visibility", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update project visibility", e);
-		}
+		setUserPreference(user, "USERPROJECTPREFERENCE", List.of(Pair.with("PROJECTID", projectId)), "VISIBILITY",
+				visibility);
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for a project. Without
-	 * removing its permissions.
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
+	 * Favorite or unfavorite a project for each of the user's logins. The favorite
+	 * is saved in USERPROJECTPREFERENCE, apart from the user's permissions, so a
+	 * user can favorite a public project they have no direct access to.
+	 *
+	 * @param user       the user
+	 * @param projectId  the project
+	 * @param isFavorite true to favorite the project, false to unfavorite it
+	 * @throws IllegalAccessException when the project is not public and the user
+	 *                                cannot view it
+	 * @throws Exception              when the favorite cannot be saved
 	 */
-	public static void setProjectFavorite(User user, String projectId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+	public static void setProjectFavorite(User user, String projectId, boolean isFavorite) throws Exception {
 		if (!projectIsGlobal(projectId) && !userCanViewProject(user, projectId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this project.");
 		}
-		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__PROJECTID", "==", projectId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIdFilters));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// need to update
-				PreparedStatement ps = securityDb
-						.getPreparedStatement("UPDATE PROJECTPERMISSION SET FAVORITE=? WHERE USERID=? AND PROJECTID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
-				}
-				try {
-					// Preserve permissions when updating preferences.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update project favorite", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO PROJECTPERMISSION "
-						+ "(USERID, PROJECTID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set project favorite");
-				}
-				try {
-					// A preference does not grant direct access.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, projectId);
-						// default visibility as true
-						ps.setBoolean(parameterIndex++, true);
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update project favorite", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update project favorite", e);
-		}
+		setUserPreference(user, "USERPROJECTPREFERENCE", List.of(Pair.with("PROJECTID", projectId)), "FAVORITE",
+				isFavorite);
 	}
 
 	///////////////////////////////////////////////

@@ -35,7 +35,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -528,7 +527,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT_USER_PERMISSIONS__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "insight_group_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT_GROUP_PERMISSIONS__PERMISSION", "project_group_permission"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__FAVORITE", "insight_favorite"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "insight_favorite"));
 
 		// if user project owner - return owner
 		// if group project owner - return owner
@@ -590,12 +590,10 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// add a join to get the user permission level and if favorite
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX,
-					userInsightPrefix + "FAVORITE", "FAVORITE"));
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					userInsightPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
@@ -605,6 +603,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 					new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
 			qs.addRelation(subQuery);
 		}
+		// add a join to get if favorite
+		qs.addRelation(SecurityInsightUtils.getUserInsightPreferencesSubquery(securityDb, user));
 		// add a join to get the user project permission
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
@@ -701,18 +701,11 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 			qs.addRelation(subQuery);
 		}
 
-		// remove hidden projects
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-		}
+		// remove hidden projects and insights
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=",
+				getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "!=",
+				getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 
 		// filter the insight ids based on
 		OrQueryFilter orFilter = new OrQueryFilter();
@@ -1119,6 +1112,9 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		{
 			String[] deleteQueries = new String[] { "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE USERID=? AND TYPE=?",
 					"DELETE FROM GROUPMANAGERS WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERENGINEPREFERENCE WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERPROJECTPREFERENCE WHERE USERID=? AND TYPE=?",
+					"DELETE FROM USERINSIGHTPREFERENCE WHERE USERID=? AND TYPE=?",
 					"DELETE FROM ENGINEACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?",
 					"DELETE FROM PROJECTACCESSREQUEST WHERE REQUEST_USERID=? AND REQUEST_TYPE=?", };
 			for (String query : deleteQueries) {
@@ -2106,31 +2102,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the databases the user has explicit access to
-	 * 
-	 * @param singleUserId
-	 * @return
-	 */
-	public Map<String, Boolean> getProjectsAndVisibilityUserHasExplicitAccess(String singleUserId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-		qs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__VISIBILITY"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", singleUserId));
-		Map<String, Boolean> values = new HashMap<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				values.put((String) row[0], (Boolean) row[1]);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve projects with explicit user visibility settings", e);
-		}
-
-		return values;
-	}
-
-	/**
 	 * Gives a person one level on every project in admin mode, as permission
 	 * batches. With {@code isAddNew}, they get it on every project they have no
 	 * access to; otherwise the projects they have access to change to it, and their
@@ -2145,7 +2116,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	public void grantAllProjects(String userId, String permission, boolean isAddNew, User user) {
 		List<PermissionBatch> batches = new ArrayList<>();
 		if (isAddNew) {
-			// favorite and visibility rows are no access, so those projects are added
+			// rows with no level are no access, so those projects are added
 			Set<String> current = new HashSet<>(getProjectIdsUserCanUse(userId));
 			for (String projectId : SecurityProjectUtils.getAllProjectIds()) {
 				if (!current.contains(projectId)) {
@@ -2184,36 +2155,6 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Return the databases the user has explicit access to
-	 * 
-	 * @param singleUserId
-	 * @return
-	 */
-	public Map<String, Boolean> getEnginesAndVisibilityUserHasExplicitAccess(String singleUserId,
-			List<String> engineTypes) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__VISIBILITY"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", singleUserId));
-		if (engineTypes != null && !engineTypes.isEmpty()) {
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINE__ENGINETYPE", "==", engineTypes));
-			qs.addRelation("ENGINEPERMISSION__ENGINEID", "ENGINE__ENGINEID", "inner.join");
-		}
-		Map<String, Boolean> values = new HashMap<>();
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				values.put((String) row[0], (Boolean) row[1]);
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to retrieve engines with explicit user visibility settings", e);
-		}
-
-		return values;
-	}
-
-	/**
 	 * Gives a person one level on every engine of the given types in admin mode, as
 	 * permission batches. With {@code isAddNew}, they get it on every such engine
 	 * they have no access to; otherwise those they have access to change to it, and
@@ -2232,7 +2173,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 				: ("[" + String.join(", ", engineTypes) + "]");
 		List<PermissionBatch> batches = new ArrayList<>();
 		if (isAddNew) {
-			// favorite and visibility rows are no access, so those engines are added
+			// rows with no level are no access, so those engines are added
 			Set<String> current = new HashSet<>(getEngineIdsUserCanUse(userId, engineTypes));
 			List<String> engineIds = engineTypes == null || engineTypes.isEmpty()
 					? SecurityEngineUtils.getAllEngineIds()
@@ -2590,6 +2531,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 		// TODO:
 		String query = "DELETE FROM INSIGHT WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId + "';";
 		query += "DELETE FROM USERINSIGHTPERMISSION  WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId
+				+ "';";
+		query += "DELETE FROM USERINSIGHTPREFERENCE WHERE INSIGHTID " + insightFilters + " AND PROJECTID='" + projectId
 				+ "'";
 		securityDb.insertData(query);
 		securityDb.commit();
@@ -2910,8 +2853,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Changes everyone with access to an engine to one level in admin mode, as
-	 * permission batches, keeping their model limits. Favorite and visibility rows
-	 * with no level are no access, so they stay as they are.
+	 * permission batches, keeping their model limits. Rows with no level are no
+	 * access, so they stay as they are.
 	 *
 	 * @param engineId      the engine
 	 * @param newPermission the level, by name; anything else is Read-Only
@@ -2929,8 +2872,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 
 	/**
 	 * Changes everyone with access to a project to one level in admin mode, as
-	 * permission batches. Favorite and visibility rows with no level are no access,
-	 * so they stay as they are.
+	 * permission batches. Rows with no level are no access, so they stay as they
+	 * are.
 	 *
 	 * @param projectId     the project
 	 * @param newPermission the level, by name; anything else is Read-Only
@@ -3498,8 +3441,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * @return the ids of the people with access to the project, leaving out
-	 *         favorite and visibility rows, which have no level
+	 * @return the ids of the people with access to the project, leaving out rows
+	 *         with no level
 	 */
 	private static List<String> getProjectUserIdsWithAccess(String projectId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3511,8 +3454,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * @return the ids of the people with access to the engine, leaving out favorite
-	 *         and visibility rows, which have no level
+	 * @return the ids of the people with access to the engine, leaving out rows
+	 *         with no level
 	 */
 	private static List<String> getEngineUserIdsWithAccess(String engineId) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3526,7 +3469,7 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	/**
 	 * @param engineTypes the engine types, or null or empty for every type
 	 * @return the ids of the engines of those types the person has access to,
-	 *         leaving out favorite and visibility rows, which have no level
+	 *         leaving out rows with no level
 	 */
 	private static List<String> getEngineIdsUserCanUse(String userId, List<String> engineTypes) {
 		SelectQueryStruct qs = new SelectQueryStruct();
@@ -3570,8 +3513,8 @@ public class SecurityAdminUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * @return the ids of the projects the person has access to, leaving out
-	 *         favorite and visibility rows, which have no level
+	 * @return the ids of the projects the person has access to, leaving out rows
+	 *         with no level
 	 */
 	private static List<String> getProjectIdsUserCanUse(String userId) {
 		SelectQueryStruct qs = new SelectQueryStruct();

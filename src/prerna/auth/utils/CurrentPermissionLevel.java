@@ -99,9 +99,8 @@ final class CurrentPermissionLevel {
 	 * Reads the user's highest level on a project, an engine or an insight from the
 	 * grants in effect now: their own, and those of the login provider groups and
 	 * custom teams they are in. A grant, or a membership of a custom team, that has
-	 * ended does not count, and neither does a favorite or visibility row, which
-	 * has no level. On an insight, an owner of its project is an owner of the
-	 * insight.
+	 * ended does not count, and neither does a row with no level. On an insight, an
+	 * owner of its project is an owner of the insight.
 	 *
 	 * @return the level's id, or null when the user has no access now
 	 * @throws IllegalArgumentException when the rows cannot be read

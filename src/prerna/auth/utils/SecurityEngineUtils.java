@@ -307,7 +307,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			throw new IllegalArgumentException("This user already has access to this engine");
 		}
 
-		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, VISIBILITY, DATEADDED) VALUES (?,?,?,?,?)";
+		String query = "INSERT INTO ENGINEPERMISSION (USERID, PERMISSION, ENGINEID, DATEADDED) VALUES (?,?,?,?)";
 
 		try {
 			QueryExecutionUtility.executeUpdate(securityDb, query, ps -> {
@@ -315,7 +315,6 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				ps.setString(parameterIndex++, userId);
 				ps.setInt(parameterIndex++, AccessPermissionEnum.OWNER.getId());
 				ps.setString(parameterIndex++, engineId);
-				ps.setBoolean(parameterIndex++, true);
 				ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
 			});
 		} catch (RuntimeException e) {
@@ -962,6 +961,7 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 		List<String> deletes = new ArrayList<>();
 		deletes.add("DELETE FROM ENGINE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEPERMISSION WHERE ENGINEID=?");
+		deletes.add("DELETE FROM USERENGINEPREFERENCE WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEMETA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM MODELMETADATA WHERE ENGINEID=?");
 		deletes.add("DELETE FROM ENGINEACCESSREQUEST WHERE ENGINEID=?");
@@ -1122,176 +1122,44 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user visibility (show/hide) for a engine. Without removing its
-	 * permissions.
-	 * 
-	 * @param user
-	 * @param engineId
-	 * @param visibility
-	 * @throws IllegalAccessException
+	 * Show or hide an engine in the user's lists, for each of their logins. The
+	 * visibility is saved in USERENGINEPREFERENCE, apart from the user's
+	 * permissions, and changes only this engine.
+	 *
+	 * @param user       the user
+	 * @param engineId   the engine
+	 * @param visibility true to show the engine, false to hide it
+	 * @throws IllegalAccessException when the user cannot view the engine
+	 * @throws Exception              when the visibility cannot be saved
 	 */
-	public static void setEngineVisibility(User user, String engineId, boolean visibility)
-			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+	public static void setEngineVisibility(User user, String engineId, boolean visibility) throws Exception {
 		if (!userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
 		}
-		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// need to update
-				PreparedStatement ps = securityDb
-						.getPreparedStatement("UPDATE ENGINEPERMISSION SET VISIBILITY=? WHERE USERID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
-				}
-				try {
-					// Preserve permissions when updating preferences.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, visibility);
-						ps.setString(parameterIndex++, userId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update engine visibility", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
-						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set engine visibility");
-				}
-				try {
-					// A preference does not grant direct access.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, engineId);
-						ps.setBoolean(parameterIndex++, visibility);
-						// default favorite as false
-						ps.setBoolean(parameterIndex++, false);
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update engine visibility", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine visibility", e);
-		}
+		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "VISIBILITY",
+				visibility);
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for an engine. Without
-	 * removing its permissions.
-	 * 
-	 * @param user
-	 * @param engineId
-	 * @param visibility
-	 * @throws IllegalAccessException
+	 * Favorite or unfavorite an engine for each of the user's logins. The favorite
+	 * is saved in USERENGINEPREFERENCE, apart from the user's permissions, so a
+	 * user can favorite a public engine they have no direct access to.
+	 *
+	 * @param user       the user
+	 * @param engineId   the engine
+	 * @param isFavorite true to favorite the engine, false to unfavorite it
+	 * @throws IllegalAccessException when the engine is not public and the user
+	 *                                cannot view it
+	 * @throws Exception              when the favorite cannot be saved
 	 */
-	public static void setEngineFavorite(User user, String engineId, boolean isFavorite) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
+	public static void setEngineFavorite(User user, String engineId, boolean isFavorite) throws Exception {
 		if (!engineIsGlobal(engineId) && !userCanViewEngine(user, engineId)) {
 			throw new IllegalAccessException(
 					"The user doesn't have the permission to modify his visibility of this engine");
 		}
-		Collection<String> userIdFilters = getUserFiltersQs(user);
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__ENGINEID", "==", engineId));
-		qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIdFilters));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			if (wrapper.hasNext()) {
-				// need to update
-				PreparedStatement ps = securityDb
-						.getPreparedStatement("UPDATE ENGINEPERMISSION SET FAVORITE=? WHERE USERID=? AND ENGINEID=?");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
-				}
-				try {
-					// Preserve permissions when updating preferences.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, engineId);
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update engine favorite", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			} else {
-				// need to insert
-				PreparedStatement ps = securityDb.getPreparedStatement("INSERT INTO ENGINEPERMISSION "
-						+ "(USERID, ENGINEID, VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,?)");
-				if (ps == null) {
-					throw new IllegalArgumentException("Error generating prepared statement to set engine favorites");
-				}
-				try {
-					// A preference does not grant direct access.
-					for (AuthProvider loginType : user.getLogins()) {
-						String userId = user.getAccessToken(loginType).getId();
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, userId);
-						ps.setString(parameterIndex++, engineId);
-						// default visibility as true
-						ps.setBoolean(parameterIndex++, true);
-						ps.setBoolean(parameterIndex++, isFavorite);
-						ps.setNull(parameterIndex++, java.sql.Types.INTEGER);
-
-						ps.addBatch();
-					}
-					ps.executeBatch();
-					if (!ps.getConnection().getAutoCommit()) {
-						ps.getConnection().commit();
-					}
-				} catch (Exception e) {
-					classLogger.error("Failed to update engine favorite", e);
-					throw e;
-				} finally {
-					ConnectionUtils.closeAllConnectionsIfPooling(securityDb, ps);
-				}
-			}
-		} catch (Exception e) {
-			classLogger.error("Failed to update engine favorite", e);
-		}
+		setUserPreference(user, "USERENGINEPREFERENCE", List.of(Pair.with("ENGINEID", engineId)), "FAVORITE",
+				isFavorite);
 	}
 
 	/**
@@ -1901,7 +1769,8 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 				"low_engine_name"));
 		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__PERMISSION", "engine_user_permission"));
 		qs1.addSelector(new QueryColumnSelector("GROUP_PERMISSIONS__PERMISSION", "engine_group_permission"));
-		qs1.addSelector(new QueryColumnSelector("USER_PERMISSIONS__FAVORITE", "engine_favorite"));
+		qs1.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "engine_favorite"));
 
 		// Legacy aliases, every one of which repeats a column already selected above
 		// under its engine_* name. The commented entries are unused by either client.
@@ -1962,28 +1831,39 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs1.addSelector(qis);
 		}
 
-		// add a join to get the user permission level, if favorite, and the visibility
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
-
-			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					"ENGINEPERMISSION__FAVORITE", "castFavorite");
-			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
-			QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					"ENGINEPERMISSION__VISIBILITY", "castVisibility");
-			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
-
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					"ENGINEPERMISSION__PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID", "ENGINEID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			IRelation subQuery = new SubqueryRelationship(qs2, "USER_PERMISSIONS", "left.outer.join",
 					new String[] { "USER_PERMISSIONS__ENGINEID", "ENGINE__ENGINEID", "=" });
+			qs1.addRelation(subQuery);
+		}
+
+		// add a join to get if favorite and the visibility
+		{
+			SelectQueryStruct prefQs = new SelectQueryStruct();
+			prefQs.addSelector(new QueryColumnSelector("USERENGINEPREFERENCE__ENGINEID", "ENGINEID"));
+
+			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+					"USERENGINEPREFERENCE__FAVORITE", "castFavorite");
+			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+			prefQs.addSelector(
+					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
+			QueryFunctionSelector castVisibility = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+					"USERENGINEPREFERENCE__VISIBILITY", "castVisibility");
+			castVisibility.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+			prefQs.addSelector(
+					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castVisibility, "VISIBILITY"));
+			prefQs.addGroupBy(new QueryColumnSelector("USERENGINEPREFERENCE__ENGINEID", "ENGINEID"));
+			prefQs.addExplicitFilter(
+					getUserIdAndTypeFilter(user, "USERENGINEPREFERENCE__USERID", "USERENGINEPREFERENCE__TYPE"));
+			IRelation subQuery = new SubqueryRelationship(prefQs, "USER_PREFERENCES", "left.outer.join",
+					new String[] { "USER_PREFERENCES__ENGINEID", "ENGINE__ENGINEID", "=" });
 			qs1.addRelation(subQuery);
 		}
 
@@ -2046,13 +1926,13 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			qs1.addExplicitFilter(orFilter);
 		}
 		// only show those that are visible
-		// remember, user permissions cast this to int
-		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__VISIBILITY", "==",
+		// remember, user preferences cast this to int
+		qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__VISIBILITY", "==",
 				Arrays.asList(new Object[] { 1, null }), PixelDataType.CONST_INT));
 		// favorites only
-		// remember, user permissions cast this to int
+		// remember, user preferences cast this to int
 		if (favoritesOnly) {
-			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PERMISSIONS__FAVORITE", "==", 1,
+			qs1.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__FAVORITE", "==", 1,
 					PixelDataType.CONST_INT));
 		}
 		// optional word filter on the engine name
@@ -2360,17 +2240,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			qs.addExplicitFilter(orFilter);
 		}
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
-
-			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-		}
+		// remove the engines the user has hidden
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=",
+				getHiddenIdsQs(user, "USERENGINEPREFERENCE", "ENGINEID")));
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		qs.addOrderBy(new QueryColumnOrderBySelector("low_database_name"));
@@ -2581,17 +2453,9 @@ public class SecurityEngineUtils extends AbstractSecurityUtils {
 			orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
 			qs.addExplicitFilter(orFilter);
 		}
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=", subQs));
-
-			// fill in the sub query with the necessary column output + filters
-			subQs.addSelector(new QueryColumnSelector("ENGINEPERMISSION__ENGINEID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("ENGINEPERMISSION__USERID", "==", userIds));
-		}
+		// remove the engines the user has hidden
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("ENGINE__ENGINEID", "!=",
+				getHiddenIdsQs(user, "USERENGINEPREFERENCE", "ENGINEID")));
 		// joins
 		qs.addRelation("ENGINE", "ENGINEPERMISSION", "left.outer.join");
 		return QueryExecutionUtility.flushToListString(securityDb, qs);

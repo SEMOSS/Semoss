@@ -126,7 +126,7 @@ Where those permissions come from, as
   highest current level there (`CurrentPermissionLevel.of`): given to them
   directly, or to a login provider group or a custom team they are in. An
   Author through a team is an Author. A grant, or a team membership, that has
-  ended does not count, and neither does a favorite or visibility row. On an
+  ended does not count, and neither does a row with no level. On an
   insight, an Author of its project is an Author of the insight.
 - `CurrentPermissionLevel` is the one definition of that level.
   `SecurityProjectUtils.userCanEditProject` and `userIsOwner`, and the engine

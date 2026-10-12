@@ -71,8 +71,9 @@ final class PermissionChangeValidation {
 	 */
 	private boolean needsDirectoryAccount;
 	/**
-	 * Whether the person has a favorite or visibility row with no level, which an
-	 * add fills in
+	 * Whether the person has a row with no level, which an add fills in. Favorites
+	 * and visibility used to be kept on the permission row, so saving one for a
+	 * person with no grant added such a row.
 	 */
 	private boolean hasPreferenceRow;
 	/** Why the change cannot be made, or null while it can */

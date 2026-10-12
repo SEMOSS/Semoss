@@ -29,7 +29,6 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -736,18 +735,35 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for a database. Without
-	 * removing its permissions.
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
+	 * Favorite or unfavorite an insight for the user, as
+	 * {@link SecurityUserInsightUtils#setInsightFavorite(User, String, String, boolean)}
+	 * does.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param isFavorite true to favorite the insight, false to unfavorite it
+	 * @throws Exception when the user may not or the favorite cannot be saved
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
+			throws Exception {
 		SecurityUserInsightUtils.setInsightFavorite(user, projectId, insightId, isFavorite);
+	}
+
+	/**
+	 * Show or hide an insight for the user, as
+	 * {@link SecurityUserInsightUtils#setInsightVisibility(User, String, String, boolean)}
+	 * does.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param visibility true to show the insight, false to hide it
+	 * @throws Exception when the user may not or the visibility cannot be saved
+	 */
+	public static void setInsightVisibility(User user, String projectId, String insightId, boolean visibility)
+			throws Exception {
+		SecurityUserInsightUtils.setInsightVisibility(user, projectId, insightId, visibility);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1524,7 +1540,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT_USER_PERMISSIONS__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "insight_group_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT_GROUP_PERMISSIONS__PERMISSION", "project_group_permission"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__FAVORITE", "insight_favorite"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "insight_favorite"));
 
 		// if user project owner - return owner
 		// if group project owner - return owner
@@ -1586,33 +1603,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// add a join to get the user permission level and if favorite
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-
-			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					userInsightPrefix + "FAVORITE", "castFavorite");
-			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
-
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					userInsightPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
-			IRelation subQuery = null;
-			if (favoritesOnly) {
-				qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "FAVORITE", "==", true,
-						PixelDataType.BOOLEAN));
-				// we can set this to inner join if only favorites
-				subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "inner.join",
-						new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
-			} else {
-				subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join",
-						new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
-			}
+			IRelation subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join",
+					new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
 			qs.addRelation(subQuery);
+		}
+		// add a join to get if favorite
+		qs.addRelation(getUserInsightPreferencesSubquery(securityDb, user));
+		// favorites only
+		// remember, user preferences cast this to int
+		if (favoritesOnly) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__FAVORITE", "==", 1,
+					PixelDataType.CONST_INT));
 		}
 		// add a join to get the user project permission
 		{
@@ -1710,18 +1719,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addRelation(subQuery);
 		}
 
-		// remove hidden projects
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-		}
+		// remove hidden projects and insights
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=",
+				getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "!=",
+				getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 		// optional filters
 		// on the project
 		if (hasProjectFilters) {
@@ -1962,6 +1964,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //	}
 
 	/**
+	 * A left join, as USER_PREFERENCES, to the user's preferences on each insight,
+	 * with FAVORITE as 1 when any of the user's logins favorited it, else 0, cast
+	 * to int. An insight the user has no preferences on joins to null.
+	 *
+	 * @param securityDb the security database
+	 * @param user       the user; their logins come from the session
+	 * @return the join to add to a query on INSIGHT
+	 */
+	static IRelation getUserInsightPreferencesSubquery(IRDBMSEngine securityDb, User user) {
+		SelectQueryStruct prefQs = new SelectQueryStruct();
+		prefQs.addSelector(new QueryColumnSelector("USERINSIGHTPREFERENCE__INSIGHTID", "INSIGHTID"));
+
+		QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+				"USERINSIGHTPREFERENCE__FAVORITE", "castFavorite");
+		castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+		prefQs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
+		prefQs.addGroupBy(new QueryColumnSelector("USERINSIGHTPREFERENCE__INSIGHTID", "INSIGHTID"));
+		prefQs.addExplicitFilter(
+				getUserIdAndTypeFilter(user, "USERINSIGHTPREFERENCE__USERID", "USERINSIGHTPREFERENCE__TYPE"));
+		return new SubqueryRelationship(prefQs, "USER_PREFERENCES", "left.outer.join",
+				new String[] { "USER_PREFERENCES__INSIGHTID", "INSIGHT__INSIGHTID", "=" });
+	}
+
+	/**
 	 * User has access to specific insights within a project User can access if: 1)
 	 * Is Owner, Editer, or Reader of insight 2) Insight is global 3) Is Owner of
 	 * database
@@ -2030,20 +2057,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			qs.addExplicitFilter(firstOrFilter);
 
-			// subquery time
-			// remove those engines you have visibility as false
-			{
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
-
-				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==",
-						false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(
-						SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			}
+			// remove hidden projects and insights
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=",
+					getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "!=",
+					getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 
 			OrQueryFilter secondOrFilter = new OrQueryFilter();
 			{
@@ -2056,8 +2074,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						PixelDataType.CONST_INT));
 				embedAndFilter
 						.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==",
-						true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
 			qs.addExplicitFilter(secondOrFilter);
