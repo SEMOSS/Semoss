@@ -177,6 +177,33 @@ mvn clean install -DskipTests
 
 The default `dev` profile is intended for local development. The `deploy` profile adds release packaging and signing steps; it is not needed for a local build. The development build also configures the repository's [Git hooks](hooks/README.md).
 
+### Building without a local JDK (Docker)
+
+If you don't have a JDK installed locally, you can compile using the same Iron
+Bank Maven image the [IL4 container build](docker/il4/README.md) uses, run
+from the repository root:
+
+```bash
+docker run --rm \
+  -v semoss-devbuild-m2:/home/maven/.m2 \
+  -v "$(pwd)":/build -w /build \
+  registry1.dso.mil/ironbank/opensource/maven/maven-openjdk-25:3.9.16 \
+  mvn compile -q
+```
+
+`semoss-devbuild-m2` is a named Docker volume that persists the downloaded
+dependency tree across runs (Docker creates it automatically on first use).
+Mount it at **`/home/maven/.m2`, not `/root/.m2`**: this image runs as its own
+non-root `maven` user (`$HOME=/home/maven`), under which `/root/.m2` is
+root-owned and unreadable. A volume mounted there is silently never read or
+written — Maven just resolves `${user.home}/.m2` as normal, so every `--rm`
+run re-downloads the full dependency tree into a throwaway container layer
+and discards it on exit instead of reusing the cache. The IL4
+[Dockerfile](docker/il4/Dockerfile) and
+[build-dev-artifacts.Dockerfile](docker/il4/build-dev-artifacts.Dockerfile)
+are not affected by this: both run their own `/root/.m2`-targeted build steps
+after an explicit `USER 0`.
+
 ### Run your changes through Monolith
 
 Keep the two repositories next to each other:
