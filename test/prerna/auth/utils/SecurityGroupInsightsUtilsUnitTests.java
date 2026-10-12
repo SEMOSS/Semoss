@@ -482,4 +482,48 @@ public class SecurityGroupInsightsUtilsUnitTests extends AbstractSecurityUtilsUn
 
 		assertNull(SecurityGroupInsightsUtils.getGroupInsightPermission("groupId1", "CUSTOM", "pid1", "iid1"));
 	}
+
+	///
+	/// getGroupsWithAccessToInsight and getAvailableGroupsForInsight
+	///
+
+	@Test
+	void getGroupsWithAccessToInsight_listsAndCountsTheAttachedGroups() throws Exception {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createGroup(admin, "attached", "CUSTOM");
+		UnitTestSecurityAuthUtils.createGroup(admin, "other", "CUSTOM");
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", admin);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+		SecurityGroupInsightsUtils.addInsightGroupPermission(admin, "attached", "CUSTOM", "pid1", "iid1", "EDIT", null);
+
+		List<Map<String, Object>> groups = SecurityGroupInsightsUtils.getGroupsWithAccessToInsight(admin, "pid1",
+				"iid1", 0, 0);
+
+		assertEquals(1, groups.size());
+		assertEquals("attached", groups.get(0).get("ID"));
+		assertEquals("CUSTOM", groups.get(0).get("TYPE"));
+		assertEquals(1L, SecurityGroupInsightsUtils.getNumGroupsWithAccessToInsight(admin, "pid1", "iid1"));
+		List<Object> available = SecurityGroupInsightsUtils
+				.getAvailableGroupsForInsight(admin, "pid1", "iid1", null, 0, 0).stream().map(row -> row.get("id"))
+				.toList();
+		assertTrue(available.contains("other"));
+		assertFalse(available.contains("attached"));
+	}
+
+	@Test
+	void getGroupsWithAccessToInsight_deniesUsersWhoCannotViewOrOwnIt() {
+		User admin = UnitTestSecurityAuthUtils.createUser("admin", true);
+		User stranger = UnitTestSecurityAuthUtils.createUser("stranger", false);
+		UnitTestSecurityAuthUtils.createProject("pid1", "pname1", admin);
+		UnitTestSecurityAuthUtils.createInsight("pid1", "iid1", "insight1", "grid");
+
+		IllegalAccessException view = assertThrows(IllegalAccessException.class,
+				() -> SecurityGroupInsightsUtils.getGroupsWithAccessToInsight(stranger, "pid1", "iid1", 0, 0));
+		assertEquals("The user does not have access to view this insight", view.getMessage());
+		IllegalAccessException own = assertThrows(IllegalAccessException.class,
+				() -> SecurityGroupInsightsUtils.getAvailableGroupsForInsight(stranger, "pid1", "iid1", null, 0, 0));
+		assertEquals("Only this insight's owners can change which teams have access to it.", own.getMessage());
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityGroupInsightsUtils.getNumGroupsWithAccessToInsight(admin, " ", "iid1"));
+	}
 }

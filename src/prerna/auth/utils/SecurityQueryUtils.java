@@ -337,6 +337,9 @@ public class SecurityQueryUtils extends AbstractSecurityUtils {
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__ID", "?like", searchTerm));
 		orFilter.addFilter(SimpleQueryFilter.makeColToValFilter("SMSS_USER__USERNAME", "?like", searchTerm));
 		qs.addExplicitFilter(orFilter);
+		// a stable order, so the pages callers cut from the list do not overlap
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__NAME"));
+		qs.addOrderBy(new QueryColumnOrderBySelector("SMSS_USER__ID"));
 
 		return QueryExecutionUtility.flushRsToMap(securityDb, qs);
 	}

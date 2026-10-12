@@ -36,9 +36,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,6 +55,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -60,15 +63,24 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.MockedStatic;
 
+import prerna.engine.api.IDatabaseEngine;
 import prerna.engine.api.IRDBMSEngine;
+import prerna.engine.api.IRawSelectWrapper;
+import prerna.om.HeadersDataRow;
+import prerna.query.querystruct.SelectQueryStruct;
+import prerna.rdf.engine.wrappers.WrapperManager;
 
 class QueryExecutionStatementUnitTests {
 
 	private static final String INSERT = "INSERT INTO ITEMS (ID, V) VALUES (?, ?)";
 	private static final String SELECT = "SELECT V FROM ITEMS ORDER BY ID";
 	private JdbcTestDatabase db;
+	private final IDatabaseEngine source = mock(IDatabaseEngine.class);
+	private final SelectQueryStruct sourceQs = new SelectQueryStruct();
 
 	@BeforeEach
 	void setup() throws Exception {
@@ -339,5 +351,89 @@ class QueryExecutionStatementUnitTests {
 		verify(result).close();
 		verify(statement).close();
 		verify(connection, never()).close();
+	}
+
+	@Test
+	void queryRowsAreBatchedIntoTheTargetAndTheWrapperIsClosed() throws Exception {
+		IRawSelectWrapper wrapper = wrapperOf(new Object[] { 1, "one" }, new Object[] { 2, "two" },
+				new Object[] { 3, "three" });
+		try (MockedStatic<WrapperManager> wrappers = readsFrom(wrapper)) {
+			assertEquals(3,
+					QueryExecutionUtility.executeBatchFromQuery(db.engine, INSERT, source, sourceQs, 2, (ps, row) -> {
+						ps.setInt(1, (Integer) row.getValues()[0]);
+						ps.setString(2, (String) row.getValues()[1]);
+					}));
+		}
+		assertEquals(List.of("one", "two", "three"), QueryExecutionUtility.queryList(db.engine, SELECT, ps -> {
+		}, rs -> rs.getString(1)));
+		verify(wrapper).close();
+		assertTrue(db.connection.getAutoCommit());
+	}
+
+	@ParameterizedTest
+	@CsvSource({ "0, 0", "4, 2", "5, 3" })
+	void queryBatchIsExecutedEveryFlushAndOnceMoreForTheRest(int rows, int executions) throws Exception {
+		Connection connection = mock(Connection.class);
+		PreparedStatement statement = mock(PreparedStatement.class);
+		when(connection.prepareStatement(INSERT)).thenReturn(statement);
+		Object[][] values = new Object[rows][];
+		for (int i = 0; i < rows; i++) {
+			values[i] = new Object[] { i, "row" + i };
+		}
+		try (MockedStatic<WrapperManager> wrappers = readsFrom(wrapperOf(values))) {
+			assertEquals(rows, QueryExecutionUtility.executeBatchFromQuery(connection, INSERT, source, sourceQs, 2,
+					(ps, row) -> ps.setInt(1, (Integer) row.getValues()[0])));
+		}
+		verify(statement, times(rows)).addBatch();
+		verify(statement, times(executions)).executeBatch();
+		verify(statement).close();
+		verify(connection, never()).commit();
+	}
+
+	@Test
+	void aFailingQueryRowRollsBackTheRowsAlreadyFlushed() throws Exception {
+		db.execute("INSERT INTO ITEMS VALUES (9, 'existing')");
+		IRawSelectWrapper wrapper = wrapperOf(new Object[] { 1, "new" }, new Object[] { 9, "duplicate" });
+		try (MockedStatic<WrapperManager> wrappers = readsFrom(wrapper)) {
+			assertThrows(SQLException.class, () -> QueryExecutionUtility.executeBatchFromQuery(db.engine, INSERT,
+					source, sourceQs, 1, (ps, row) -> {
+						ps.setInt(1, (Integer) row.getValues()[0]);
+						ps.setString(2, (String) row.getValues()[1]);
+					}));
+		}
+		assertEquals(1, db.count("ITEMS"));
+		assertEquals("existing", db.value("SELECT V FROM ITEMS WHERE ID=9"));
+		verify(wrapper).close();
+	}
+
+	@Test
+	void aQueryBatchFlushBelowOneIsRejectedBeforeAStatementOpens() throws Exception {
+		Connection connection = mock(Connection.class);
+		assertThrows(IllegalArgumentException.class, () -> QueryExecutionUtility.executeBatchFromQuery(connection,
+				INSERT, source, sourceQs, 0, (ps, row) -> fail("No row to bind")));
+		verify(connection, never()).prepareStatement(anyString());
+	}
+
+	/**
+	 * Makes {@link WrapperManager} answer the source query with the wrapper, until
+	 * the returned mock is closed.
+	 */
+	private MockedStatic<WrapperManager> readsFrom(IRawSelectWrapper wrapper) throws Exception {
+		WrapperManager manager = mock(WrapperManager.class);
+		when(manager.getRawWrapper(source, sourceQs)).thenReturn(wrapper);
+		MockedStatic<WrapperManager> wrappers = mockStatic(WrapperManager.class);
+		wrappers.when(WrapperManager::getInstance).thenReturn(manager);
+		return wrappers;
+	}
+
+	/**
+	 * @return a wrapper that reads the rows, each an ID and a V
+	 */
+	private static IRawSelectWrapper wrapperOf(Object[]... rows) {
+		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		Iterator<Object[]> remaining = Arrays.asList(rows).iterator();
+		when(wrapper.hasNext()).thenAnswer(invocation -> remaining.hasNext());
+		when(wrapper.next()).thenAnswer(invocation -> new HeadersDataRow(new String[] { "ID", "V" }, remaining.next()));
+		return wrapper;
 	}
 }

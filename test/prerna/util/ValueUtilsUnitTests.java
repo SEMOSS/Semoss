@@ -28,6 +28,7 @@
 package prerna.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Checks reading text that must be there.
+ * Checks reading text that must be there, and numbers that may come as text.
  */
 class ValueUtilsUnitTests {
 
@@ -55,5 +56,25 @@ class ValueUtilsUnitTests {
 		IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
 				() -> ValueUtils.requireNonBlank(value, MESSAGE));
 		assertEquals(MESSAGE, e.getMessage());
+	}
+
+	@Test
+	void toNumberOrNull_keepsNumbersAndReadsText() {
+		assertEquals(10, ValueUtils.toNumberOrNull(10));
+		assertEquals(1.5, ValueUtils.toNumberOrNull(" 1.5 "));
+		assertEquals(100.0, ValueUtils.toNumberOrNull("100"));
+	}
+
+	@ParameterizedTest
+	@NullAndEmptySource
+	@ValueSource(strings = { " ", "\t" })
+	void toNumberOrNull_readsNothingAsNull(String value) {
+		assertNull(ValueUtils.toNumberOrNull(value));
+	}
+
+	@Test
+	void toNumberOrNull_rejectsTextThatIsNotANumber() {
+		NumberFormatException e = assertThrows(NumberFormatException.class, () -> ValueUtils.toNumberOrNull("lots"));
+		assertEquals("Not a number: lots", e.getMessage());
 	}
 }
