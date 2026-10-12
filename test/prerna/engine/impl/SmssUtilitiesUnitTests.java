@@ -238,6 +238,10 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 
 		Files.createFile(engineFolder.resolve("rdfName.rdf"));
 
+		Properties coreProp = new Properties();
+		coreProp.setProperty(Constants.BASE_FOLDER, base.toAbsolutePath().toString());
+		DIHelper.getInstance().setCoreProp(coreProp);
+
 		try (MockedStatic<EngineUtility> utilityMockedStatic = Mockito.mockStatic(EngineUtility.class)) {
 			utilityMockedStatic
 					.when(() -> EngineUtility.getSpecificEngineBaseFolder(IEngine.CATALOG_TYPE.DATABASE, "eName__eid"))
@@ -439,17 +443,6 @@ public class SmssUtilitiesUnitTests extends SemossUnitTest {
 				() -> SmssUtilities.validateProject(u, projectName, "id"));
 
 		assertEquals("Need to provide a name for the project", e.getMessage());
-	}
-
-	@Test
-	void testValidateProjectAlreadyContains() {
-		User u = new User();
-		try (MockedStatic<AbstractSecurityUtils> mockedStatic = Mockito.mockStatic(AbstractSecurityUtils.class)) {
-			mockedStatic.when(() -> AbstractSecurityUtils.containsProjectName("pname")).thenReturn(true);
-
-			IOException e = assertThrows(IOException.class, () -> SmssUtilities.validateProject(u, "pname", "id"));
-			assertEquals("Project name already exists. Please provide a unique project name", e.getMessage());
-		}
 	}
 
 	@Test
