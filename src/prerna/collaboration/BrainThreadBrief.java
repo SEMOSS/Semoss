@@ -126,7 +126,7 @@ public final class BrainThreadBrief {
 				return null;
 			}
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			pull(user, owner, headers, threads);
+			pull(user, owner, headers);
 			// again, with what the pull brought in
 			return build(user, owner.getValue0(), owner.getValue1(), room.getId(),
 					BrainThreadRoomUtils.chatThreads(user, room), messages);
@@ -137,12 +137,11 @@ public final class BrainThreadBrief {
 		}
 	}
 
-	// a failed or slow pull only costs freshness: the brief uses what Brain holds
-	private static void pull(User user, Pair<String, String> owner, BrainMailHeaderSource headers,
-			List<Map<String, Object>> threads) {
-		List<String> threadIds = threads.stream().map(thread -> (String) thread.get("threadId")).toList();
-		Future<?> pulled = PULLS.submit(() -> BrainSync.pullThreads(user, owner.getValue0(), owner.getValue1(),
-				headers, threadIds, Instant.now()));
+	// the owner's new mail, wherever Outlook filed it; a failed or slow pull only costs freshness, and the brief
+	// uses what Brain holds
+	private static void pull(User user, Pair<String, String> owner, BrainMailHeaderSource headers) {
+		Future<?> pulled = PULLS.submit(
+				() -> BrainSync.pullNewMail(user, owner.getValue0(), owner.getValue1(), headers, Instant.now()));
 		try {
 			pulled.get(PULL_WAIT_SECONDS, TimeUnit.SECONDS);
 		} catch (TimeoutException e) {

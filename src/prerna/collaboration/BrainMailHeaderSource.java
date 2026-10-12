@@ -28,7 +28,6 @@
 package prerna.collaboration;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -90,20 +89,6 @@ public interface BrainMailHeaderSource {
 	// Topic discovery additionally needs unsubscribe headers; fixtures already retain those when supplied.
 	default List<Map<String, Object>> topicHeaders(User user, String folder, Instant since, int max) throws Exception {
 		return list(user, folder, since, max);
-	}
-
-	// one conversation's headers in a folder, received at or after since, at most max; Inbox gets the fields a full
-	// read uses (topicHeaders), so a message gets the same key and flags either way
-	default List<Map<String, Object>> conversation(User user, String folder, String conversationId, Instant since,
-			int max) throws Exception {
-		List<Map<String, Object>> out = new ArrayList<>();
-		for (Map<String, Object> header : INBOX.equals(folder) ? topicHeaders(user, folder, since, Integer.MAX_VALUE)
-				: list(user, folder, since, Integer.MAX_VALUE)) {
-			if (out.size() < max && conversationId.equals(header.get("conversationId"))) {
-				out.add(header);
-			}
-		}
-		return out;
 	}
 
 	// one message's headers by its Graph id, as Inbox is read; null when this source cannot read one

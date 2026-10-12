@@ -163,7 +163,12 @@ public final class CollaborationPrompts {
 			- To write, reply to, forward, or change an email, call ComposeEmail. It puts the email in \
 			the owner's email editor, where they can edit it; it saves and sends nothing. Do \
 			not write the email in your answer: one short line is enough. Never say you changed \
-			an email without calling ComposeEmail.
+			an email unless ComposeEmail succeeds.
+			- Copy replyTo and forward ids exactly; never reconstruct or combine them. If ComposeEmail \
+			rejects a source email id, reread the included email's exact id from the latest Work context \
+			or Chat threads section (or ReadThread), then retry ComposeEmail once with that id and the \
+			same draft text. If the corrected call still fails, explain the error instead of claiming \
+			the draft is ready. Do not retry an authentication or access failure without the owner's help.
 			- A reply to an email in the block: set replyTo to that email's id \
 			(selectedSourceMessageId when the block has one). Never use an id that is not an \
 			email in the block, such as the threadId. Leave to and cc out: the reply goes to \

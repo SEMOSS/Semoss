@@ -34,8 +34,15 @@ import java.util.List;
 import java.io.IOException;
 
 import org.json.JSONObject;
+import prerna.auth.User;
+import prerna.collaboration.CollaborationUtils;
 import prerna.collaboration.EmailAttachmentFiles;
+import prerna.engine.impl.model.Room;
+import prerna.engine.impl.model.RoomUtils;
+import prerna.io.connector.ms.MicrosoftLoginUtils;
+import prerna.io.connector.ms.outlook.MicrosoftOutlookMailHelper;
 import prerna.sablecc2.om.GenRowStruct;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 
 import prerna.reactor.agent.mcp.MCPUtility;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
@@ -62,16 +69,20 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 
 	@Override
 	public NounMetadata execute() {
-		getUser();
+		User user = getUser();
 		String message = getString(MESSAGE);
 		String openEmailId = getString(OPEN_EMAIL_ID);
+		String replyTo = getString(REPLY_TO);
 		String forward = getString(FORWARD);
-		if (!isBlank(forward) && !isBlank(getString(REPLY_TO))) {
+		if (!isBlank(forward) && !isBlank(replyTo)) {
 			throw new IllegalArgumentException("Pass replyTo or forward, not both");
 		}
 		// a change to the open email passes only the fields that change; a forward may have no note
 		if (isBlank(message) && isBlank(openEmailId) && isBlank(forward)) {
 			throw new IllegalArgumentException("Must pass the email as message");
+		}
+		if (!isBlank(replyTo) || !isBlank(forward)) {
+			validateSource(user, isBlank(replyTo) ? FORWARD : REPLY_TO, isBlank(replyTo) ? forward : replyTo);
 		}
 		Map<String, Object> out = new LinkedHashMap<>();
 		GenRowStruct files = this.store.getGenRowStruct(ATTACHMENTS);
@@ -93,6 +104,40 @@ public class WorkComposeEmailReactor extends AbstractCollaborationReactor {
 		out.put("note", "The email is in the owner's email editor, where they can edit it. Nothing was saved or "
 				+ "sent; SendEmail sends it once they press Send.");
 		return mapResult(out);
+	}
+
+	private void validateSource(User user, String key, String messageId) {
+		String id = messageId.trim();
+		String retry = "ComposeEmail did not open a draft. Copy an exact included email id from the Work context "
+				+ "or ReadThread for this chat's thread, then retry ComposeEmail once with that " + key
+				+ " and the same draft text. Never guess or combine ids. If it still fails, explain the error "
+				+ "instead of claiming the draft is ready.";
+		String roomId = this.insight.getRoomId();
+		Room room = roomId == null ? null : RoomUtils.getOrLoadRoom(roomId, this.insight);
+		Map<String, Object> options = room == null ? null : room.getOptionsMap();
+		// The editor accepts only exact ids from this room's imported email sources.
+		if (options == null || !(options.get(CollaborationUtils.ROOM_OPTION_SOURCE) instanceof Map<?, ?> source)
+				|| !"email".equals(source.get("channel")) || !(source.get("messages") instanceof List<?> messages)
+				|| messages.stream().noneMatch(value -> value instanceof Map<?, ?> email && id.equals(email.get("id")))) {
+			throw new IllegalArgumentException("The " + key + " email is not included in this chat. " + retry);
+		}
+		try {
+			String token = MicrosoftLoginUtils.getValidAccessToken(user);
+			if (new MicrosoftOutlookMailHelper().getMessage(token, null, id) == null) {
+				throw new IllegalArgumentException("The " + key + " email is no longer available in Outlook. " + retry);
+			}
+		} catch (SemossPixelException e) {
+			throw e;
+		} catch (IllegalArgumentException e) {
+			String error = String.valueOf(e.getMessage());
+			if (error.contains("returned HTTP 404") || error.contains("ErrorInvalidIdMalformed")
+					|| error.contains("ErrorItemNotFound")) {
+				throw new IllegalArgumentException("The " + key + " email could not be found in Outlook. " + retry, e);
+			}
+			throw e;
+		} catch (Exception e) {
+			throw new IllegalStateException("Could not check the source email in Outlook: " + e.getMessage(), e);
+		}
 	}
 
 	private static boolean isBlank(String value) {

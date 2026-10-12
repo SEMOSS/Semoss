@@ -279,6 +279,13 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("HIDDEN_COUNT", INTEGER_DATATYPE_NAME),
 				Pair.with("FIRST_SEEN_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("LAST_SEEN_AT", TIMESTAMP_DATATYPE_NAME)));
+		// a conversation Outlook started for a reply (an outside mail client, a subject a gateway tagged) that
+		// belongs to the thread of the email it answers; THREAD_KEY is source:conversationId as on BRAIN_THREAD
+		addTable("BRAIN_THREAD_ALIAS", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("THREAD_KEY", VARCHAR_255),
+				Pair.with("THREAD_ID", VARCHAR_50),
+				Pair.with("CREATED_AT", TIMESTAMP_DATATYPE_NAME)));
 		// a chat's email threads: linked, or removed (not added back); SEEN_REF is the newest email of the
 		// thread the chat's assistant has been given, so later ones are new to the chat
 		addTable("BRAIN_THREAD_ROOM", Arrays.asList(

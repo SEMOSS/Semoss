@@ -32,7 +32,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -65,10 +64,13 @@ public final class BrainSync {
 	// one import into an owner's Brain at a time on this server (a sync, the onboarding import, a webhook, a chat's
 	// pull): a Run dedupes only against what it loaded when it was built, and the tables have no unique keys
 	static final String INGEST_LOCK = "ingest";
-	// a chat's pull reads at most this many headers a thread and folder, and the same thread again after PULL_EVERY
-	private static final int PULL_MAX = 50;
+	// a chat's pull of new mail: at most this many headers a folder, once every PULL_EVERY an owner, and no further
+	// back than PULL_REACH; per owner, when it last tried and when it last read the mailbox
+	private static final int PULL_MAX = 200;
 	private static final Duration PULL_EVERY = Duration.ofSeconds(30);
-	private static final Map<String, Instant> PULLED = new ConcurrentHashMap<>();
+	private static final Duration PULL_REACH = Duration.ofDays(2);
+	private static final Map<String, Instant> PULL_TRIED = new ConcurrentHashMap<>();
+	private static final Map<String, Instant> PULL_READ = new ConcurrentHashMap<>();
 
 	private BrainSync() {
 	}
@@ -173,44 +175,35 @@ public final class BrainSync {
 	}
 
 	/**
-	 * A chat's email threads read straight from Graph, so its assistant sees mail that came after the last sync:
-	 * Inbox and Sent of each thread's conversation since its newest message, through the same gate as a sync. A
-	 * thread pulled in the last 30 seconds is skipped. Returns the threads that got mail.
+	 * New mail since Brain last read the mailbox, straight from Graph, so a chat's assistant sees what came after the
+	 * last sync: Inbox and Sent through the same gate as a sync, where a reply Outlook filed in a conversation of its
+	 * own still joins the thread it answers. At most once every 30 seconds an owner, and no further back than two
+	 * days (older mail waits for the next sync, whose window this does not move). Returns the threads that got mail.
 	 */
-	public static Set<String> pullThreads(User user, Collection<String> threadIds) throws Exception {
+	public static Set<String> pullNewMail(User user) throws Exception {
 		var owner = CollaborationDbUtils.ownerOf(user);
-		return pullThreads(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), threadIds,
-				Instant.now());
+		return pullNewMail(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), Instant.now());
 	}
 
-	static Set<String> pullThreads(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
-			Collection<String> threadIds, Instant now) throws Exception {
-		if (!canIngest(ownerId, ownerType)) {
+	static Set<String> pullNewMail(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
+			Instant now) throws Exception {
+		String owner = ownerType + ":" + ownerId;
+		Instant tried = PULL_TRIED.get(owner);
+		if ((tried != null && tried.plus(PULL_EVERY).isAfter(now)) || !canIngest(ownerId, ownerType)) {
 			return Set.of();
 		}
-		Instant floor = now.minus(Duration.ofDays(BrainMailImport.MAX_DAYS));
-		List<Map<String, Object>> headers = new ArrayList<>();
-		for (String threadId : threadIds) {
-			String pulledKey = ownerType + ":" + ownerId + ":" + threadId;
-			Instant pulled = PULLED.get(pulledKey);
-			if (pulled != null && pulled.plus(PULL_EVERY).isAfter(now)) {
-				continue;
-			}
-			Object[] thread = CollaborationDbUtils.queryOne("SELECT THREAD_KEY, LAST_MESSAGE_AT FROM BRAIN_THREAD "
-					+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ? AND SOURCE = ?",
-					rs -> new Object[] { rs.getString("THREAD_KEY"), rs.getTimestamp("LAST_MESSAGE_AT") }, ownerId,
-					ownerType, threadId, EMAIL);
-			// email only: a Teams chat's messages come in with the next sync
-			if (thread == null || !(thread[0] instanceof String key) || !key.startsWith(EMAIL + ":")) {
-				continue;
-			}
-			Instant since = thread[1] == null ? floor : later(toInstant((Timestamp) thread[1]).minus(OVERLAP), floor);
-			for (String folder : BrainMailHeaderSource.FOLDERS) {
-				headers.addAll(source.conversation(user, folder, key.substring(EMAIL.length() + 1), since, PULL_MAX));
-			}
-			PULLED.put(pulledKey, now);
-		}
-		return importHeaders(user, ownerId, ownerType, source, headers);
+		PULL_TRIED.put(owner, now);
+		// from the last pull that read the mailbox, else the last import or sync
+		Instant read = PULL_READ.get(owner);
+		Instant last = toInstant(lastRun(ownerId, ownerType));
+		Instant since = later((read != null && read.isAfter(last) ? read : last).minus(OVERLAP),
+				now.minus(PULL_REACH));
+		List<Map<String, Object>> headers = new ArrayList<>(
+				source.topicHeaders(user, BrainMailHeaderSource.INBOX, since, PULL_MAX));
+		headers.addAll(source.list(user, BrainMailHeaderSource.SENT, since, PULL_MAX));
+		Set<String> threads = importHeaders(user, ownerId, ownerType, source, headers);
+		PULL_READ.put(owner, now);
+		return threads;
 	}
 
 	/**

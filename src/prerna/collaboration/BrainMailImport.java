@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -42,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
@@ -67,8 +69,11 @@ public final class BrainMailImport {
 	private static final int MAX_PER_CHAT = 200;
 	// which source a header came from; mail headers carry none
 	private static final String SOURCE_KEY = "_source";
-	private static final Pattern REPLY_PREFIX = Pattern.compile("^\\s*((re|fw|fwd|aw|wg)\\s*:\\s*)+",
+	// reply and forward prefixes, after any tags a mail gateway puts in front ("[EXT] Re: ..."), which stay
+	private static final Pattern REPLY_PREFIX = Pattern.compile("^(\\s*(\\[[^\\]]*\\]\\s*)*)((re|fw|fwd|aw|wg)\\s*:\\s*)+",
 			Pattern.CASE_INSENSITIVE);
+	// one message id in a reply header: <local@domain>
+	private static final Pattern MESSAGE_ID = Pattern.compile("<[^<>\\s]+>");
 	private static final Set<String> LINKED = Set.of(BrainRulesGate.INGESTED, BrainRulesGate.EXCLUDED,
 			BrainRulesGate.MUTED);
 
@@ -386,6 +391,15 @@ public final class BrainMailImport {
 									String.valueOf(
 											Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) }),
 					ownerId, ownerType);
+			// conversations that joined a thread (joinReply)
+			CollaborationDbUtils.query("SELECT a.THREAD_KEY, a.THREAD_ID, t.MUTED FROM BRAIN_THREAD_ALIAS a "
+					+ "JOIN BRAIN_THREAD t ON t.OWNER_ID = a.OWNER_ID AND t.OWNER_TYPE = a.OWNER_TYPE "
+					+ "AND t.THREAD_ID = a.THREAD_ID WHERE a.OWNER_ID = ? AND a.OWNER_TYPE = ?",
+					rs -> threadsByKey.putIfAbsent(rs.getString(1),
+							new String[] { rs.getString(2),
+									String.valueOf(
+											Boolean.TRUE.equals(CollaborationDbUtils.getBoolean(rs, "MUTED"))) }),
+					ownerId, ownerType);
 			CollaborationDbUtils.query(
 					"SELECT MESSAGE_KEY, DECISION, RULE_ID, THREAD_ID, SENDER_PERSON_ID FROM "
 							+ "BRAIN_MESSAGE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
@@ -434,6 +448,9 @@ public final class BrainMailImport {
 				return;
 			}
 			String conversationId = (String) header.get("conversationId");
+			String threadKey = source + ":" + (conversationId != null ? conversationId : messageId);
+			// before the gate, so it judges a reply on the thread the reply joins
+			joinReply(threadKey, source, header);
 			Map<String, String> gate = new HashMap<>();
 			gate.put("source", source);
 			gate.put("messageId", messageId);
@@ -456,7 +473,6 @@ public final class BrainMailImport {
 			}
 
 			Timestamp at = CollaborationDbUtils.toTimestamp(header.get("receivedDateTime"), "receivedDateTime");
-			String threadKey = source + ":" + (conversationId != null ? conversationId : messageId);
 			String threadId = ensureThread(threadKey, source, (String) header.get("subject"), at);
 			boolean senderHidden = BrainRulesGate.EXCLUDED.equals(decision.get("decision"));
 
@@ -598,6 +614,32 @@ public final class BrainMailImport {
 			}
 		}
 
+		// Outlook starts a new conversation for some replies (an outside mail client that leaves out its thread
+		// header, a subject a mail gateway tagged): such a reply joins the thread of the email it answers, found by
+		// its reply headers, and so does the rest of its conversation
+		private void joinReply(String threadKey, String source, Map<String, Object> header) {
+			if (threadsByKey.containsKey(threadKey)) {
+				return;
+			}
+			for (String answered : repliesTo(header)) {
+				Map<String, Object> message = messages
+						.get(CollaborationDbUtils.deterministicId(ownerId, ownerType, source, answered));
+				Object threadId = message == null ? null : message.get("threadId");
+				if (threadId == null) {
+					continue;
+				}
+				for (String[] thread : threadsByKey.values()) {
+					if (thread[0].equals(threadId)) {
+						CollaborationDbUtils.update("INSERT INTO BRAIN_THREAD_ALIAS (OWNER_ID, OWNER_TYPE, THREAD_KEY, "
+								+ "THREAD_ID, CREATED_AT) VALUES (?, ?, ?, ?, ?)", ownerId, ownerType, threadKey,
+								thread[0], CollaborationDbUtils.now());
+						threadsByKey.put(threadKey, thread);
+						return;
+					}
+				}
+			}
+		}
+
 		private String ensureThread(String threadKey, String source, String subject, Timestamp at) {
 			String[] existing = threadsByKey.get(threadKey);
 			if (existing != null) {
@@ -721,6 +763,37 @@ public final class BrainMailImport {
 				&& type.startsWith("#microsoft.graph.eventMessage");
 	}
 
+	// the message ids an email answers, nearest first: In-Reply-To, then References from the newest
+	static List<String> repliesTo(Map<String, Object> header) {
+		String inReplyTo = null;
+		String references = null;
+		if (header.get("internetMessageHeaders") instanceof List<?> list) {
+			for (Object h : list) {
+				// as written: message ids are case sensitive, so not headerValue
+				String value = h instanceof Map<?, ?> m && m.get("value") instanceof String v ? v : null;
+				if ("in-reply-to".equals(headerName(h))) {
+					inReplyTo = value;
+				} else if ("references".equals(headerName(h))) {
+					references = value;
+				}
+			}
+		}
+		Set<String> ids = new LinkedHashSet<>(messageIds(inReplyTo));
+		List<String> referenced = messageIds(references);
+		Collections.reverse(referenced);
+		ids.addAll(referenced);
+		return new ArrayList<>(ids);
+	}
+
+	private static List<String> messageIds(String header) {
+		List<String> ids = new ArrayList<>();
+		Matcher id = header == null ? null : MESSAGE_ID.matcher(header);
+		while (id != null && id.find()) {
+			ids.add(id.group());
+		}
+		return ids;
+	}
+
 	static String messageId(Map<String, Object> header) {
 		Object id = header.get("internetMessageId");
 		return id instanceof String s && !s.isBlank() ? s : (String) header.get("id");
@@ -730,7 +803,13 @@ public final class BrainMailImport {
 		if (subject == null) {
 			return "(no subject)";
 		}
-		String clean = REPLY_PREFIX.matcher(subject).replaceFirst("").trim();
+		String clean = subject;
+		// "RE: [EXT] Re: x" takes two passes
+		for (String before = null; !clean.equals(before);) {
+			before = clean;
+			clean = REPLY_PREFIX.matcher(clean).replaceFirst("$1");
+		}
+		clean = clean.trim();
 		clean = clean.isEmpty() ? "(no subject)" : clean;
 		return clean.length() > 255 ? clean.substring(0, 255) : clean;
 	}

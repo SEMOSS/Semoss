@@ -104,19 +104,12 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 
 	@Override
 	public List<Map<String, Object>> list(User user, String folder, Instant since, int max) throws Exception {
-		return list(user, folder, since, max, SELECT, null);
+		return list(user, folder, since, max, SELECT);
 	}
 
 	@Override
 	public List<Map<String, Object>> topicHeaders(User user, String folder, Instant since, int max) throws Exception {
-		return list(user, folder, since, max, SELECT + ",internetMessageHeaders", null);
-	}
-
-	@Override
-	public List<Map<String, Object>> conversation(User user, String folder, String conversationId, Instant since,
-			int max) throws Exception {
-		return list(user, folder, since, max, INBOX.equals(folder) ? SELECT + ",internetMessageHeaders" : SELECT,
-				"conversationId eq '" + conversationId.replace("'", "''") + "'");
+		return list(user, folder, since, max, SELECT + ",internetMessageHeaders");
 	}
 
 	@Override
@@ -124,14 +117,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return get(user, BASE + "/me/messages/" + encode(messageId) + "?$select=" + SELECT + ",internetMessageHeaders");
 	}
 
-	// receivedDateTime stays first in the filter: Graph only orders by a property that leads the filter
 	@SuppressWarnings("unchecked")
-	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields,
-			String andFilter) throws Exception {
+	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
 		List<Map<String, Object>> out = new ArrayList<>();
-		String filter = "receivedDateTime ge " + since + (andFilter == null ? "" : " and " + andFilter);
 		String url = BASE + "/me/mailFolders/" + folder + "/messages?$select=" + fields + "&$top=" + PAGE
-				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode(filter);
+				+ "&$orderby=receivedDateTime%20desc&$filter=" + encode("receivedDateTime ge " + since);
 		while (url != null && out.size() < max) {
 			Map<String, Object> page = get(user, url);
 			if (page.get("value") instanceof List<?> values) {

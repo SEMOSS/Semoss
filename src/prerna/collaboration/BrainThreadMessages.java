@@ -129,6 +129,7 @@ public final class BrainThreadMessages {
 		String conversationId = thread[1] != null && thread[1].startsWith(source + ":")
 				? thread[1].substring(source.length() + 1)
 				: null;
+		Set<String> conversations = conversations(ownerId, ownerType, threadId, source, conversationId);
 		int max = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(MAX_LIMIT, limit));
 
 		// newest first, so the limit keeps the latest messages
@@ -180,7 +181,7 @@ public final class BrainThreadMessages {
 				// gone, or no longer in this conversation
 				Object messageConversation = message == null ? null : message.get("conversationId");
 				if (message == null || (messageConversation != null && conversationId != null
-						&& !conversationId.equals(messageConversation))) {
+						&& !conversations.contains(messageConversation))) {
 					unavailable++;
 					continue;
 				}
@@ -327,6 +328,7 @@ public final class BrainThreadMessages {
 		String conversationId = thread[1] != null && thread[1].startsWith(source + ":")
 				? thread[1].substring(source.length() + 1)
 				: null;
+		Set<String> conversations = conversations(ownerId, ownerType, threadId, source, conversationId);
 		// newest first, as the read orders them, so the oldest is last
 		List<Row> rows = rows(ownerId, ownerType, threadId);
 		Row row = null;
@@ -361,7 +363,7 @@ public final class BrainThreadMessages {
 		}
 		Object messageConversation = message == null ? null : message.get("conversationId");
 		if (message == null || (messageConversation != null && conversationId != null
-				&& !conversationId.equals(messageConversation))) {
+				&& !conversations.contains(messageConversation))) {
 			return null;
 		}
 		Map<String, Object> sender = sender(message);
@@ -405,6 +407,21 @@ public final class BrainThreadMessages {
 			}
 		}
 		throw new IllegalArgumentException("Thread history changed. Reload the thread before loading older messages.");
+	}
+
+	// the thread's conversation and the ones that joined it (a reply Outlook filed apart, BrainMailImport joinReply)
+	private static Set<String> conversations(String ownerId, String ownerType, String threadId, String source,
+			String conversationId) {
+		Set<String> conversations = new LinkedHashSet<>();
+		conversations.add(conversationId);
+		for (String key : CollaborationDbUtils.query(
+				"SELECT THREAD_KEY FROM BRAIN_THREAD_ALIAS WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND THREAD_ID = ?",
+				rs -> rs.getString("THREAD_KEY"), ownerId, ownerType, threadId)) {
+			if (key != null && key.startsWith(source + ":")) {
+				conversations.add(key.substring(source.length() + 1));
+			}
+		}
+		return conversations;
 	}
 
 	// the thread's messages, newest first
