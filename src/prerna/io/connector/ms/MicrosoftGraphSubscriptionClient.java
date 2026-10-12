@@ -394,8 +394,10 @@ public class MicrosoftGraphSubscriptionClient {
 		if (!url.startsWith("https://")) {
 			return false;
 		}
-		return !url.contains("://localhost") && !url.contains("://127.0.0.1") && !url.contains("://0.0.0.0")
-				&& !url.contains("://[::1]");
+		// a .local name is multicast DNS: it resolves on the local network only, never for Graph
+		String host = url.substring("https://".length()).split("[/:]", 2)[0];
+		return !host.endsWith(".local") && !url.contains("://localhost") && !url.contains("://127.0.0.1")
+				&& !url.contains("://0.0.0.0") && !url.contains("://[::1]");
 	}
 
 	/**

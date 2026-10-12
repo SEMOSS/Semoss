@@ -28,18 +28,21 @@
 package prerna.reactor.collaboration;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainThreadBrief;
 import prerna.collaboration.BrainThreadMessages;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
-// BrainGetThreadMessages(threadId=["..."], limit=[20]);
+// BrainGetThreadMessages(threadId=["..."], limit=[20], refresh=[true]);
 public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor {
 
 	private static final String THREAD_ID = "threadId";
 	private static final String LIMIT = "limit";
+	private static final String REFRESH = "refresh";
 
 	public BrainGetThreadMessagesReactor() {
-		this.keysToGet = new String[] { THREAD_ID, LIMIT, "includeDisplayBody", "cursor", "includeAttachments" };
-		this.keyRequired = new int[] { 1, 0, 0, 0, 0 };
+		this.keysToGet = new String[] { THREAD_ID, LIMIT, "includeDisplayBody", "cursor", "includeAttachments",
+				REFRESH };
+		this.keyRequired = new int[] { 1, 0, 0, 0, 0, 0 };
 	}
 
 	@Override
@@ -49,6 +52,9 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 		if (threadId == null) {
 			throw new IllegalArgumentException("Must pass a threadId");
 		}
+		if (Boolean.parseBoolean(getString(REFRESH))) {
+			BrainThreadBrief.pullBeforeRead(user);
+		}
 		return mapResult(BrainThreadMessages.read(user, threadId, getIntFromKeyOrCurRow(LIMIT),
 				Boolean.parseBoolean(getString("includeDisplayBody")), getString("cursor"),
 				Boolean.parseBoolean(getString("includeAttachments"))));
@@ -56,7 +62,9 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 
 	@Override
 	public String getReactorDescription() {
-		return "Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out";
+		return "Reads a Brain thread's latest messages as clean text, fetched live; never-ingest senders are left out. "
+				+ "In the owner's assistant chat, pass the chosen email's emailRef to ComposeEmail for replies or forwards. "
+				+ "Delegation rooms must use selected or an exact native email id included in their context.";
 	}
 
 	@Override
@@ -66,6 +74,10 @@ public class BrainGetThreadMessagesReactor extends AbstractCollaborationReactor 
 		}
 		if ("includeAttachments".equals(key)) {
 			return "List each email's attachments by name and id, without their bytes; defaults to false.";
+		}
+		if (REFRESH.equals(key)) {
+			return "true first reads the mailbox for mail Brain does not hold yet (at most every 25 seconds); "
+					+ "defaults to false.";
 		}
 		if ("includeDisplayBody".equals(key)) {
 			return "Include bounded source display bodies only after access and ingestion rules pass; defaults to false.";

@@ -91,6 +91,11 @@ public interface BrainMailHeaderSource {
 		return list(user, folder, since, max);
 	}
 
+	// one message's headers by its Graph id, as Inbox is read; null when this source cannot read one
+	default Map<String, Object> message(User user, String messageId) throws Exception {
+		return null;
+	}
+
 	/**
 	 * Teams chat messages sent at or after since, in the header shape: id (the
 	 * message), internetMessageId (chat and message), conversationId (the chat),

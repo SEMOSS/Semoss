@@ -542,7 +542,7 @@ final class HarnessToolExecutor {
 		}
 		if (CollaborationAgentTools.appliesTo(ctx.getRoom()) && CollaborationAgentTools.isTool(tc.rawToolName)) {
 			ToolExecutionResult result = CollaborationAgentTools.execute(tc.rawToolName, tc.toolParams,
-					ctx.getInsight());
+					ctx.getInsight(), ctx.getInput());
 			String output = result.isSuccess() ? String.valueOf(result.getOutput()) : result.getError();
 			if (result.isSuccess()) {
 				output = MCPUtility.externalizeToolResultMedia(output, ctx.getRoom());

@@ -496,6 +496,7 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		BrainMailWebhook.startRenewals();
 	}
 
 	/**
@@ -574,6 +575,12 @@ public class CollaborationDbUtils {
 							"OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_PARTICIPANT_PERSON_ID_INDEX", "BRAIN_THREAD_PARTICIPANT", "OWNER_ID",
 							"OWNER_TYPE", "PERSON_ID"),
+					OwlIndex.of("BRAIN_THREAD_ALIAS_THREAD_ID_INDEX", "BRAIN_THREAD_ALIAS", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_ROOM_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_THREAD_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
 					OwlIndex.of("BRAIN_MESSAGE_OWNER_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_MESSAGE_MESSAGE_KEY_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE",
 							"MESSAGE_KEY"),
