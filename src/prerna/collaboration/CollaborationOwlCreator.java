@@ -95,6 +95,20 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME)));
 
+		addTable("WORK_INBOX_ROUTINE", Arrays.asList(
+				OWNER_ID, OWNER_TYPE,
+				Pair.with("SETTINGS_JSON", CLOB_DATATYPE_NAME),
+				Pair.with("ENABLED", BOOLEAN_DATATYPE_NAME),
+				Pair.with("LAST_DATE", VARCHAR_20),
+				Pair.with("RUN_STATUS", VARCHAR_20),
+				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("ROOM_ID", VARCHAR_50),
+				Pair.with("RUN_ID", VARCHAR_50),
+				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
+				Pair.with("ERROR", CLOB_DATATYPE_NAME),
+				Pair.with("UPDATED_AT", TIMESTAMP_DATATYPE_NAME)));
+
 		// --- Brain: you ---
 		addTable("BRAIN_PROFILE", Arrays.asList(
 				OWNER_ID, OWNER_TYPE,
