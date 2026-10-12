@@ -64,13 +64,17 @@ public final class BrainSync {
 	// one import into an owner's Brain at a time on this server (a sync, the onboarding import, a webhook, a chat's
 	// pull): a Run dedupes only against what it loaded when it was built, and the tables have no unique keys
 	static final String INGEST_LOCK = "ingest";
-	// a chat's pull of new mail: at most this many headers a folder, once every PULL_EVERY an owner, and no further
-	// back than PULL_REACH; per owner, when it last tried and when it last read the mailbox
+	// a chat's pull of new mail: at most this many headers a folder, once every PULL_EVERY an owner and purpose, and
+	// no further back than PULL_REACH; when each purpose last tried, and per owner when a pull last read the mailbox
 	private static final int PULL_MAX = 200;
-	private static final Duration PULL_EVERY = Duration.ofSeconds(30);
+	// under the chat's 30 s check, so request jitter does not skip every other one
+	private static final Duration PULL_EVERY = Duration.ofSeconds(25);
 	private static final Duration PULL_REACH = Duration.ofDays(2);
 	private static final Map<String, Instant> PULL_TRIED = new ConcurrentHashMap<>();
 	private static final Map<String, Instant> PULL_READ = new ConcurrentHashMap<>();
+	// purposes paced apart, so a chat's polling never uses up the pull of the owner's next turn
+	static final String PULL_FOR_RUN = "run";
+	static final String PULL_FOR_READ = "read";
 
 	private BrainSync() {
 	}
@@ -177,22 +181,28 @@ public final class BrainSync {
 	/**
 	 * New mail since Brain last read the mailbox, straight from Graph, so a chat's assistant sees what came after the
 	 * last sync: Inbox and Sent through the same gate as a sync, where a reply Outlook filed in a conversation of its
-	 * own still joins the thread it answers. At most once every 30 seconds an owner, and no further back than two
-	 * days (older mail waits for the next sync, whose window this does not move). Returns the threads that got mail.
+	 * own still joins the thread it answers. At most once every 25 seconds an owner and purpose (PULL_FOR_RUN,
+	 * PULL_FOR_READ), never while a sync runs (it brings the mail in itself), and no further back than two days (older
+	 * mail waits for the next sync, whose window this does not move). Returns the threads that got mail.
 	 */
 	public static Set<String> pullNewMail(User user) throws Exception {
 		var owner = CollaborationDbUtils.ownerOf(user);
-		return pullNewMail(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), Instant.now());
+		return pullNewMail(user, owner.getValue0(), owner.getValue1(), BrainMailHeaderSource.current(), Instant.now(),
+				PULL_FOR_READ);
 	}
 
 	static Set<String> pullNewMail(User user, String ownerId, String ownerType, BrainMailHeaderSource source,
-			Instant now) throws Exception {
+			Instant now, String purpose) throws Exception {
 		String owner = ownerType + ":" + ownerId;
-		Instant tried = PULL_TRIED.get(owner);
-		if ((tried != null && tried.plus(PULL_EVERY).isAfter(now)) || !canIngest(ownerId, ownerType)) {
+		if (!pullDue(purpose, ownerId, ownerType, now) || !canIngest(ownerId, ownerType)) {
 			return Set.of();
 		}
-		PULL_TRIED.put(owner, now);
+		// a sync holds the ingest lock for minutes; not marked as tried, so the first pull after it runs
+		Map<String, Object> syncing = CollaborationJobUtils.latest(ownerId, ownerType, KIND);
+		if (syncing != null && CollaborationJobUtils.RUNNING.equals(syncing.get("status"))) {
+			return Set.of();
+		}
+		PULL_TRIED.put(purpose + "|" + owner, now);
 		// from the last pull that read the mailbox, else the last import or sync
 		Instant read = PULL_READ.get(owner);
 		Instant last = toInstant(lastRun(ownerId, ownerType));
@@ -204,6 +214,12 @@ public final class BrainSync {
 		Set<String> threads = importHeaders(user, ownerId, ownerType, source, headers);
 		PULL_READ.put(owner, now);
 		return threads;
+	}
+
+	// whether a pull for this purpose may read the mailbox now; callers check it before handing one to a pool
+	static boolean pullDue(String purpose, String ownerId, String ownerType, Instant now) {
+		Instant tried = PULL_TRIED.get(purpose + "|" + ownerType + ":" + ownerId);
+		return tried == null || !tried.plus(PULL_EVERY).isAfter(now);
 	}
 
 	/**

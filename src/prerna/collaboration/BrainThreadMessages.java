@@ -99,6 +99,43 @@ public final class BrainThreadMessages {
 				includeDisplayBody, cursor, includeAttachments);
 	}
 
+	/** An exact email the owner can compose against, with current source and ingestion checks. */
+	public static Map<String, Object> composeSource(User user, String emailId) {
+		if (emailId == null || emailId.isBlank()) {
+			return null;
+		}
+		boolean reference = emailId.startsWith("email:");
+		String id = reference ? emailId.substring("email:".length()) : emailId;
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String[] stored = CollaborationDbUtils.queryOne(
+				"SELECT m.THREAD_ID, m.GRAPH_ID, m.MESSAGE_KEY FROM BRAIN_MESSAGE m JOIN BRAIN_THREAD t "
+						+ "ON t.OWNER_ID = m.OWNER_ID AND t.OWNER_TYPE = m.OWNER_TYPE AND t.THREAD_ID = m.THREAD_ID "
+						+ "WHERE m.OWNER_ID = ? AND m.OWNER_TYPE = ? AND m."
+						+ (reference ? "MESSAGE_KEY" : "GRAPH_ID") + " = ? AND t.SOURCE = 'email'",
+				rs -> new String[] { rs.getString("THREAD_ID"), rs.getString("GRAPH_ID"), rs.getString("MESSAGE_KEY") },
+				ownerId, ownerType, id);
+		if (stored == null || stored[1] == null || !id.equals(stored[reference ? 2 : 1])) {
+			return null;
+		}
+		String threadId = stored[0];
+		String graphId = stored[1];
+		if (shown(ownerId, ownerType, threadId).stream()
+				.noneMatch(email -> graphId.equals(email.graphId()))) {
+			return null;
+		}
+		Readable email = readable(user, ownerId, ownerType, threadId, graphId, BrainMessageSource.current());
+		if (email == null) {
+			return null;
+		}
+		Map<String, Object> source = new LinkedHashMap<>();
+		source.put("id", email.graphId());
+		String subject = CollaborationDbUtils.asString(email.message().get("subject"));
+		source.put("subject", subject == null ? "" : subject);
+		return source;
+	}
+
 	static Map<String, Object> read(User user, String ownerId, String ownerType, String threadId, Integer limit,
 			BrainMessageSource messages) {
 		return read(user, ownerId, ownerType, threadId, limit, messages, false);
@@ -490,6 +527,9 @@ public final class BrainThreadMessages {
 		boolean excluded = isExcluded(row, rules, topicIds, source, included);
 		Map<String, Object> entry = new LinkedHashMap<>();
 		entry.put("id", row.graphId());
+		if ("email".equals(source)) {
+			entry.put("emailRef", "email:" + row.messageKey());
+		}
 		entry.put("fromId", row.personId());
 		entry.put("fromName", sender.get("name"));
 		entry.put("fromAddress", sender.get("address"));

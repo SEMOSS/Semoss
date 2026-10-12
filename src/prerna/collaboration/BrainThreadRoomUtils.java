@@ -218,7 +218,7 @@ public final class BrainThreadRoomUtils {
 	}
 
 	// a chat opened from a thread includes it, given up to the newest email its import held
-	private static void seedFromSource(String ownerId, String ownerType, String roomId, Map<String, Object> options) {
+	static void seedFromSource(String ownerId, String ownerType, String roomId, Map<String, Object> options) {
 		String threadId = CollaborationUtils.threadIdOf(options);
 		String linkSql = "SELECT 1 FROM BRAIN_THREAD_ROOM" + OWNED_ROOM + " AND THREAD_ID = ?";
 		if (threadId == null || CollaborationDbUtils.exists(linkSql, ownerId, ownerType, roomId, threadId)) {

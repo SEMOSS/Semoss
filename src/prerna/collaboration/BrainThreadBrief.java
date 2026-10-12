@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,6 +70,8 @@ public final class BrainThreadBrief {
 		thread.setDaemon(true);
 		return thread;
 	});
+	// the pull in flight for each owner (ownerType:ownerId)
+	private static final Map<String, Future<?>> PULLING = new ConcurrentHashMap<>();
 	// written inside an email, these cannot close the brief, an email or the runtime note early
 	private static final Pattern MARKER = Pattern.compile(
 			"(?i)\\[(/?)(SEMOSS runtime status|SEMOSS_WORK_CONTEXT_V1|Chat threads|Chat topics|end of email)\\]");
@@ -126,7 +129,7 @@ public final class BrainThreadBrief {
 				return null;
 			}
 			Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
-			pull(user, owner, headers);
+			pull(user, owner, headers, BrainSync.PULL_FOR_RUN);
 			// again, with what the pull brought in
 			return build(user, owner.getValue0(), owner.getValue1(), room.getId(),
 					BrainThreadRoomUtils.chatThreads(user, room), messages);
@@ -137,19 +140,39 @@ public final class BrainThreadBrief {
 		}
 	}
 
+	/**
+	 * The owner's new mail before a read that should be current (a thread opened or shown in a chat), waiting at
+	 * most as long as a run does. Never throws: a failed or slow pull only costs freshness.
+	 */
+	public static void pullBeforeRead(User user) {
+		try {
+			pull(user, CollaborationDbUtils.ownerOf(user), BrainMailHeaderSource.current(), BrainSync.PULL_FOR_READ);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not pull the owner's new mail before a thread read", e);
+		}
+	}
+
 	// the owner's new mail, wherever Outlook filed it; a failed or slow pull only costs freshness, and the brief
-	// uses what Brain holds
-	private static void pull(User user, Pair<String, String> owner, BrainMailHeaderSource headers) {
-		Future<?> pulled = PULLS.submit(
-				() -> BrainSync.pullNewMail(user, owner.getValue0(), owner.getValue1(), headers, Instant.now()));
+	// uses what Brain holds. One pull in flight an owner, which later callers wait on, so a slow mailbox holds at most
+	// one pool thread and a paced caller never queues behind other owners' pulls.
+	private static void pull(User user, Pair<String, String> owner, BrainMailHeaderSource headers, String purpose) {
+		String ownerId = owner.getValue0();
+		String ownerType = owner.getValue1();
+		String key = ownerType + ":" + ownerId;
+		Future<?> running = PULLING.get(key);
+		if ((running == null || running.isDone()) && !BrainSync.pullDue(purpose, ownerId, ownerType, Instant.now())) {
+			return;
+		}
+		Future<?> pulled = PULLING.compute(key, (k, current) -> current != null && !current.isDone() ? current
+				: PULLS.submit(() -> BrainSync.pullNewMail(user, ownerId, ownerType, headers, Instant.now(), purpose)));
 		try {
 			pulled.get(PULL_WAIT_SECONDS, TimeUnit.SECONDS);
 		} catch (TimeoutException e) {
-			classLogger.info("Pulling a chat's threads took over {}s; their new mail shows next turn", PULL_WAIT_SECONDS);
+			classLogger.info("Pulling new mail took over {}s; it shows on the next read", PULL_WAIT_SECONDS);
 		} catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
 		} catch (ExecutionException e) {
-			classLogger.warn("Could not pull a chat's threads from Graph", e.getCause());
+			classLogger.warn("Could not pull new mail from Graph", e.getCause());
 		}
 	}
 

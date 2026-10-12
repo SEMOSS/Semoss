@@ -39,6 +39,7 @@ import org.javatuples.Pair;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainRulesGate.Rule;
+import prerna.collaboration.BrainTopicRoomUtils.Chat;
 import prerna.engine.impl.model.Room;
 
 /**
@@ -57,9 +58,38 @@ public final class BrainTopicBrief {
 	private BrainTopicBrief() {
 	}
 
-	/** The chat's topics that apply: linked, and not kept out by a topic-wide ignore. */
+	/** The chat's own topics and its included threads' confirmed topics, after the owner's exclusions. */
 	public static List<String> chatTopics(User user, Room room) {
-		return applying(user, BrainTopicRoomUtils.topicsOf(user, room));
+		if (user == null || !CollaborationUtils.isAssistantRoom(room)) {
+			return List.of();
+		}
+		return chatTopics(user, new Chat(room.getId(), CollaborationUtils.threadIdOf(room), room.getOptionsMap()));
+	}
+
+	/** The same for an owned chat id; rejects inaccessible and delegation rooms. */
+	public static List<String> chatTopics(User user, String roomId) {
+		return chatTopics(user, BrainTopicRoomUtils.requireChat(user, roomId));
+	}
+
+	static List<String> chatTopics(User user, Chat chat) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		BrainThreadRoomUtils.seedFromSource(owner.getValue0(), owner.getValue1(), chat.roomId(), chat.options());
+		// A topic inherited from a thread applies only while an included thread still carries it.
+		List<String> topics = CollaborationDbUtils.query("SELECT t.TOPIC_ID FROM BRAIN_TOPIC t "
+				+ "LEFT JOIN BRAIN_TOPIC_ROOM r ON r.OWNER_ID = t.OWNER_ID AND r.OWNER_TYPE = t.OWNER_TYPE "
+				+ "AND r.TOPIC_ID = t.TOPIC_ID AND r.ROOM_ID = ? WHERE t.OWNER_ID = ? AND t.OWNER_TYPE = ? "
+				+ "AND t.STATUS IN (?, ?) AND (r.STATE IS NULL OR r.STATE = ?) "
+				+ "AND ((r.STATE = ? AND COALESCE(r.ORIGIN, '') <> ?) OR EXISTS ("
+				+ "SELECT 1 FROM BRAIN_THREAD_ROOM tr JOIN BRAIN_THREAD_TOPIC tt ON tt.OWNER_ID = tr.OWNER_ID "
+				+ "AND tt.OWNER_TYPE = tr.OWNER_TYPE AND tt.THREAD_ID = tr.THREAD_ID "
+				+ "JOIN BRAIN_THREAD th ON th.OWNER_ID = tr.OWNER_ID AND th.OWNER_TYPE = tr.OWNER_TYPE "
+				+ "AND th.THREAD_ID = tr.THREAD_ID WHERE tr.OWNER_ID = t.OWNER_ID AND tr.OWNER_TYPE = t.OWNER_TYPE "
+				+ "AND tr.ROOM_ID = ? AND tr.STATE = ? AND tt.TOPIC_ID = t.TOPIC_ID AND tt.SOURCE <> ?)) "
+				+ "ORDER BY t.TOPIC_ID", rs -> rs.getString("TOPIC_ID"), chat.roomId(), owner.getValue0(),
+				owner.getValue1(), BrainTopicUtils.ACTIVE, BrainTopicUtils.DORMANT, BrainTopicRoomUtils.LINKED,
+				BrainTopicRoomUtils.LINKED, BrainTopicRoomUtils.THREAD, chat.roomId(), BrainThreadRoomUtils.LINKED,
+				BrainTopicUtils.SUGGESTED);
+		return applying(user, topics);
 	}
 
 	// linked topics minus the ones a topic-wide ignore keeps out
@@ -133,14 +163,22 @@ public final class BrainTopicBrief {
 			out.append("\nDescription: ").append(clip(description.trim(), MAX_DESCRIPTION));
 		}
 		List<String> goals = new ArrayList<>();
+		int openGoals = 0;
 		for (Map<String, Object> goal : BrainTopicUtils.getGoals(ownerId, ownerType, topicId)) {
-			if ("open".equals(goal.get("status")) && goals.size() < MAX_GOALS) {
-				goals.add(String.valueOf(goal.get("text")));
+			if ("open".equals(goal.get("status"))) {
+				openGoals++;
+				if (goals.size() < MAX_GOALS) {
+					goals.add(goal.get("text") + " (noteId " + goal.get("noteId") + ")");
+				}
 			}
 		}
 		out.append("\nOpen goals:").append(goals.isEmpty() ? " none" : "");
 		for (String goal : goals) {
 			out.append("\n- ").append(goal);
+		}
+		if (openGoals > goals.size()) {
+			out.append("\n").append(openGoals - goals.size())
+					.append(" more open goals not shown; use ListTopics with this topic to review them.");
 		}
 		List<Map<String, Object>> items = openItems(ownerId, ownerType, topicId, MAX_ITEMS);
 		out.append("\nOpen action items:").append(items.isEmpty() ? " none" : "");

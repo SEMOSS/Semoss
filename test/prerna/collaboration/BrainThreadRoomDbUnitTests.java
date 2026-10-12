@@ -1,14 +1,46 @@
+/*******************************************************************************
+ * Copyright 2015 Defense Health Agency (DHA)
+ *
+ * If your use of this software does not include any GPLv2 components:
+ * 	Licensed under the Apache License, Version 2.0 (the "License");
+ * 	you may not use this file except in compliance with the License.
+ * 	You may obtain a copy of the License at
+ *
+ * 	  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * 	Unless required by applicable law or agreed to in writing, software
+ * 	distributed under the License is distributed on an "AS IS" BASIS,
+ * 	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * 	See the License for the specific language governing permissions and
+ * 	limitations under the License.
+ * ----------------------------------------------------------------------------
+ * If your use of this software includes any GPLv2 components:
+ * 	This program is free software; you can redistribute it and/or
+ * 	modify it under the terms of the GNU General Public License
+ * 	as published by the Free Software Foundation; either version 2
+ * 	of the License, or (at your option) any later version.
+ *
+ * 	This program is distributed in the hope that it will be useful,
+ * 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * 	GNU General Public License for more details.
+ *******************************************************************************/
 package prerna.collaboration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
@@ -36,6 +68,7 @@ import prerna.auth.User;
 import prerna.collaboration.BrainThreadMessages.Shown;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.impl.model.inferencetracking.ModelInferenceLogsUtils;
+import prerna.sablecc2.om.execptions.SemossPixelException;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.sql.AbstractSqlQueryUtil;
 import prerna.util.sql.RdbmsTypeEnum;
@@ -226,6 +259,108 @@ class BrainThreadRoomDbUnitTests {
 				new Shown("g2", "2026-10-01T12:00:00Z"));
 		assertEquals(1, BrainThreadRoomUtils.newCount(shown, "2026-10-01T12:00:00Z"));
 		assertEquals(2, BrainThreadRoomUtils.newCount(shown, null));
+	}
+
+	@Test
+	void composeFindsAnOwnedEmailWithoutImportingItIntoAChat() throws Exception {
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of(
+				"subject", "Current subject", "body", Map.of("content", "Body stays private", "contentType", "text"),
+				"conversationId", "conv-th-1"));
+		assertEquals(Map.of("id", "g3", "subject", "Current subject"), compose("g3", messages));
+		verify(messages).fetch(user, "email", "conv-th-1", "g3");
+		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(Map.of());
+		assertEquals(Map.of("id", "g3", "subject", ""), compose("g3", messages));
+	}
+
+	@Test
+	void composeResolvesTheStableReferenceReturnedByReadThread() {
+		BrainMessageSource messages = (owner, channel, conversation, id) -> Map.of(
+				"subject", "Message " + id, "conversationId", conversation);
+		try (MockedStatic<BrainMessageSource> source = mockStatic(BrainMessageSource.class)) {
+			source.when(BrainMessageSource::current).thenReturn(messages);
+			List<?> read = (List<?>) BrainThreadMessages.read(user, "th-1", 20).get("messages");
+			Map<?, ?> latest = (Map<?, ?>) read.getLast();
+			assertEquals("g3", latest.get("id"));
+			assertEquals("email:key-g3", latest.get("emailRef"));
+			assertEquals(Map.of("id", "g3", "subject", "Message g3"),
+					BrainThreadMessages.composeSource(user, (String) latest.get("emailRef")));
+		}
+	}
+
+	@Test
+	void composeRejectsUnknownForeignNonEmailAndInexactIdsBeforeFetching() throws Exception {
+		sql("UPDATE BRAIN_MESSAGE SET OWNER_ID = 'someone-else' WHERE GRAPH_ID = 'g2'");
+		thread("teams-thread", "2026-10-01 12:00:00");
+		email("teams-thread", "teams-message", "2026-10-01 12:00:00", "p-kyle");
+		sql("UPDATE BRAIN_THREAD SET SOURCE = 'teams' WHERE THREAD_ID = 'teams-thread'");
+		email("th-1", "stale", "2026-10-01 12:00:00", "p-kyle");
+		sql("UPDATE BRAIN_MESSAGE SET GRAPH_ID = NULL WHERE GRAPH_ID = 'stale'");
+		sql("ALTER TABLE BRAIN_MESSAGE ALTER COLUMN MESSAGE_KEY VARCHAR_IGNORECASE(256)");
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		for (String id : List.of("missing", "g2", "teams-message", "G3", "email:key-missing", "email:key-g2",
+				"email:key-teams-message", "email:KEY-g3", "email:key-stale", "email:key-g4")) {
+			assertNull(compose(id, messages));
+		}
+		verifyNoInteractions(messages);
+	}
+
+	@Test
+	void composeRejectsHiddenAndExcludedEmailsBeforeFetching() throws Exception {
+		sql("UPDATE BRAIN_MESSAGE SET DECISION = ? WHERE GRAPH_ID = 'g1'", BrainRulesGate.NEVER);
+		sql("UPDATE BRAIN_MESSAGE SET DECISION = ? WHERE GRAPH_ID = 'g2'", BrainRulesGate.EXCLUDED);
+		sql("INSERT INTO BRAIN_THREAD_PARTICIPANT (OWNER_ID, OWNER_TYPE, THREAD_ID, PERSON_ID, INCLUDED) "
+				+ "VALUES (?, ?, 'th-1', 'p-kyle', FALSE)", ownerId, ownerType);
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		for (String id : List.of("g1", "g2", "g3", "email:key-g1", "email:key-g2", "email:key-g3")) {
+			assertNull(compose(id, messages));
+		}
+		verifyNoInteractions(messages);
+	}
+
+	@Test
+	void composeRechecksLiveSenderAndKeywordRules() throws Exception {
+		sql("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, VALUE, CREATED_AT) "
+				+ "VALUES (?, ?, 'r-1', 'never_sender', 'blocked@test.com', CURRENT_TIMESTAMP)", ownerId, ownerType);
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(
+				Map.of("from", Map.of("emailAddress", Map.of("address", "blocked@test.com"))));
+		assertNull(compose("g3", messages));
+		sql("UPDATE BRAIN_RULE SET KIND = 'never_keyword', VALUE = 'Confidential' WHERE RULE_ID = 'r-1'");
+		when(messages.fetch(user, "email", "conv-th-1", "g3"))
+				.thenReturn(Map.of("subject", "Confidential details"));
+		assertNull(compose("g3", messages));
+		verify(messages, times(2)).fetch(user, "email", "conv-th-1", "g3");
+	}
+
+	@Test
+	void composeRejectsGoneEmailsAndChangedConversations() throws Exception {
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenReturn(null);
+		assertNull(compose("g3", messages));
+		assertNull(compose("email:key-g3", messages));
+		when(messages.fetch(user, "email", "conv-th-1", "g3"))
+				.thenReturn(Map.of("subject", "Elsewhere", "conversationId", "other-conversation"));
+		assertNull(compose("g3", messages));
+		assertNull(compose("email:key-g3", messages));
+	}
+
+	@Test
+	void composePreservesLoginAndProviderFailures() throws Exception {
+		BrainMessageSource messages = mock(BrainMessageSource.class);
+		SemossPixelException login = new SemossPixelException("Sign in to Outlook");
+		when(messages.fetch(user, "email", "conv-th-1", "g3")).thenThrow(login);
+		assertSame(login, assertThrows(SemossPixelException.class, () -> compose("g3", messages)));
+		RuntimeException failure = new RuntimeException("Outlook unavailable");
+		doThrow(failure).when(messages).fetch(user, "email", "conv-th-1", "g3");
+		assertSame(failure, assertThrows(IllegalStateException.class, () -> compose("email:key-g3", messages)).getCause());
+	}
+
+	private Map<String, Object> compose(String graphId, BrainMessageSource messages) {
+		try (MockedStatic<BrainMessageSource> source = mockStatic(BrainMessageSource.class)) {
+			source.when(BrainMessageSource::current).thenReturn(messages);
+			return BrainThreadMessages.composeSource(user, graphId);
+		}
 	}
 
 	@SuppressWarnings("unchecked")

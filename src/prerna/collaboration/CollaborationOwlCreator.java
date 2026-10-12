@@ -202,6 +202,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("TOPIC_ID", VARCHAR_50),
 				Pair.with("KIND", VARCHAR_20),
 				Pair.with("TEXT", CLOB_DATATYPE_NAME),
+				Pair.with("RESOLUTION", CLOB_DATATYPE_NAME),
 				Pair.with("STATE", VARCHAR_20),
 				Pair.with("ORIGIN", VARCHAR_20),
 				Pair.with("SOURCE_REF", VARCHAR_255),

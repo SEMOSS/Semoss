@@ -626,6 +626,12 @@ public final class BrainMailImport {
 						.get(CollaborationDbUtils.deterministicId(ownerId, ownerType, source, answered));
 				Object threadId = message == null ? null : message.get("threadId");
 				if (threadId == null) {
+					// A quick reply can reach the webhook before the sent copy has been imported.
+					String[] outgoing = threadsByKey.get("message:" + source + ":"
+							+ CollaborationDbUtils.deterministicId(ownerId, ownerType, source, answered));
+					threadId = outgoing == null ? null : outgoing[0];
+				}
+				if (threadId == null) {
 					continue;
 				}
 				for (String[] thread : threadsByKey.values()) {
