@@ -258,21 +258,30 @@ class SecurityGroupManagerUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	///
 
 	@Test
-	void userCanViewGroupPeople_ownersAndEditorsOfAResourceTheTeamCanUse() throws Exception {
+	void userCanViewGroupPeople_ownersBeforeTheTeamHasAccessAndEditorsAfter() throws Exception {
 		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
 		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "EDIT");
 		UnitTestSecurityAuthUtils.createEngine("eid", "ename", admin);
 		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(admin, OUTSIDER_ID, "eid", "OWNER");
 
+		// an owner sees who they would give access to before they give it; an
+		// editor sees a team only once it can use what they edit
 		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
-		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, null, "eid"));
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, null, "eid"));
 
 		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, "pid", 3, null);
-		groups.addGroupEnginePermission(admin, GROUP_ID, CUSTOM, "eid", 3, null);
 
 		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
-		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, null, "eid"));
 		assertTrue(SecurityGroupManagerUtils.userCanViewGroupManagers(outsider, GROUP_ID, "pid", null));
+	}
+
+	@Test
+	void userCanViewGroupPeople_ownersCannotSeeAGroupThatIsNotCustom() throws Exception {
+		UnitTestSecurityAuthUtils.createProject("pid", "pname", admin);
+		UnitTestSecurityAuthUtils.addPermissionsToUserForProject(admin, "pid", OUTSIDER_ID, "OWNER");
+
+		assertTrue(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, GROUP_ID, "pid", null));
+		assertFalse(SecurityGroupManagerUtils.userCanViewGroupPeople(outsider, NON_CUSTOM_GROUP_ID, "pid", null));
 	}
 
 	@Test

@@ -758,23 +758,27 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 	}
 
 	@Test
-	void getAccessToCopy_aTeamsMembersNeedItsManagersOrAccessToTheTarget() throws Exception {
+	void getAccessToCopy_aTeamsMembersNeedItsManagersTheTargetsOwnersOrAccessToTheTarget() throws Exception {
 		UnitTestGroupTables.insertMember(securityDb, GROUP_ID, "strangerid", NATIVE);
 		PermissionTargetResource team = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID,
 				null);
 		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
 				PROJECT_ID, null);
 
+		// the project's owners see whom they would bring in; its editors once the
+		// team can use it
+		assertNull(rowFor(SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner, team, project), "strangerid")
+				.get("source"));
 		assertThrows(IllegalAccessException.class,
-				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner, team, project));
+				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(editor, team, project));
 
 		groups.addGroupProjectPermission(admin, GROUP_ID, CUSTOM, PROJECT_ID, 3, null);
-		List<Map<String, Object>> rows = SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner, team, project);
-		assertNull(rowFor(rows, "strangerid").get("source"));
+		assertNull(rowFor(SecurityAccessPermissionBatchUtils.getPermissionsToCopy(editor, team, project), "strangerid")
+				.get("source"));
 	}
 
 	@Test
-	void getAccessToCopy_copiesManagersOnlyToAnotherTeamsManagers() throws Exception {
+	void getAccessToCopy_copiesManagersAndMembersBetweenATeamsLists() throws Exception {
 		groups.addGroup(admin, "otherteam", CUSTOM, "another team");
 		UnitTestGroupTables.insertManager(securityDb, "otherteam", "managerid", NATIVE);
 		UnitTestGroupTables.insertManager(securityDb, "otherteam", "editorid", NATIVE);
@@ -782,17 +786,32 @@ class PermissionBatchUtilsUnitTests extends AbstractSecurityUtilsUnitTestsSetup 
 				"otherteam", null);
 		PermissionTargetResource to = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM_MANAGERS,
 				GROUP_ID, null);
+		PermissionTargetResource members = new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID,
+				null);
 
 		List<Map<String, Object>> rows = SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, from, to);
 
 		assertEquals(false, rowFor(rows, "editorid").get("inTarget"));
 		assertEquals(true, rowFor(rows, "managerid").get("inTarget"));
 		assertNull(rowFor(rows, "editorid").get("source"));
-		assertThrows(IllegalArgumentException.class,
-				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, from,
-						new PermissionTargetResource(PermissionTargetResource.Kind.TEAM, GROUP_ID, null)));
 		assertThrows(IllegalAccessException.class,
 				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(stranger, from, to));
+
+		// another team's managers, and a team's own managers, can become its members
+		assertEquals(false,
+				rowFor(SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, from, members), "editorid")
+						.get("inTarget"));
+		assertEquals(false,
+				rowFor(SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, to, members), "managerid")
+						.get("inTarget"));
+
+		// managers are never copied to or from a project or an engine
+		PermissionTargetResource project = new PermissionTargetResource(PermissionTargetResource.Kind.PROJECT,
+				PROJECT_ID, null);
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(manager, to, project));
+		assertThrows(IllegalArgumentException.class,
+				() -> SecurityAccessPermissionBatchUtils.getPermissionsToCopy(owner, project, to));
 	}
 
 	@Test
