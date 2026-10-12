@@ -29,19 +29,25 @@ package prerna.collaboration;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.javatuples.Pair;
 
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.util.RuntimeTimeContext;
 
 // Brain "you": BRAIN_PROFILE, BRAIN_SETTINGS, and the overview counts
 public final class BrainProfileUtils {
+
+	private static final Logger classLogger = LogManager.getLogger(BrainProfileUtils.class);
 
 	public static final int DEFAULT_FILE_AT = 85;
 	public static final int DEFAULT_ASK_AT = 40;
@@ -56,6 +62,22 @@ public final class BrainProfileUtils {
 	}
 
 	// ---- profile ----
+
+	/** Read only the owner's timezone without creating a profile or loading its other fields. */
+	public static ZoneId timeZone(User user) {
+		ZoneId userZone = user == null ? null : user.getZoneId();
+		String profileZone = null;
+		if (user != null) {
+			try {
+				Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+				profileZone = CollaborationDbUtils.queryOne("SELECT TIMEZONE FROM BRAIN_PROFILE WHERE OWNER_ID = ? "
+						+ "AND OWNER_TYPE = ?", rs -> rs.getString(1), owner.getValue0(), owner.getValue1());
+			} catch (RuntimeException e) {
+				classLogger.warn("Could not read the Collaboration timezone; using the authenticated user's timezone");
+			}
+		}
+		return RuntimeTimeContext.resolveZone(profileZone, userZone);
+	}
 
 	// creates the row on first read, seeded from the login's name and email
 	public static Map<String, Object> getProfile(User user) {
@@ -75,6 +97,41 @@ public final class BrainProfileUtils {
 			profile.put("vips", getVipIds(ownerId, ownerType));
 		}
 		return profile;
+	}
+
+	// who the assistant writes as; role and style only once the owner set or confirmed them
+	@SuppressWarnings("unchecked")
+	public static String promptBlock(User user) {
+		Map<String, Object> profile;
+		try {
+			profile = user == null ? null : getProfile(user);
+		} catch (RuntimeException e) {
+			classLogger.warn("Could not read the Collaboration profile for the assistant prompt", e);
+			return null;
+		}
+		if (profile == null) {
+			return null;
+		}
+		StringBuilder out = new StringBuilder("## Owner\nThe owner you work for. Write and sign as them.");
+		appendField(out, "Name", profile.get("name"));
+		appendField(out, "Email", profile.get("email"));
+		appendField(out, "Organization", profile.get("org"));
+		appendField(out, "Timezone", profile.get("timezone"));
+		Map<String, Object> role = (Map<String, Object>) profile.get("role");
+		if (role != null && YOU.equals(role.get("source"))) {
+			appendField(out, "Role", role.get("value"));
+		}
+		Map<String, Object> style = (Map<String, Object>) profile.get("style");
+		if (style != null && Boolean.TRUE.equals(style.get("confirmed"))) {
+			appendField(out, "Writing style", style.get("summary"));
+		}
+		return out.toString();
+	}
+
+	private static void appendField(StringBuilder out, String label, Object value) {
+		if (value instanceof String text && !text.isBlank()) {
+			out.append("\n- ").append(label).append(": ").append(text.strip());
+		}
 	}
 
 	// partial Profile: only keys present are written; a field the owner types
@@ -211,7 +268,8 @@ public final class BrainProfileUtils {
 	public static Map<String, Object> getSettings(String ownerId, String ownerType) {
 		ensureSettings(ownerId, ownerType);
 		Map<String, Object> settings = CollaborationDbUtils.queryOne(
-				"SELECT FILE_AT, ASK_AT, VERSION FROM BRAIN_SETTINGS " + "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				"SELECT FILE_AT, ASK_AT, VERSION, MEMORY_USE, MEMORY_LEARN FROM BRAIN_SETTINGS "
+						+ "WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
 				rs -> {
 					Map<String, Object> row = new LinkedHashMap<>();
 					// read-only: one platform classifier (RDF_Map)
@@ -219,6 +277,10 @@ public final class BrainProfileUtils {
 					row.put("fileAt", CollaborationDbUtils.getInteger(rs, "FILE_AT"));
 					row.put("askAt", CollaborationDbUtils.getInteger(rs, "ASK_AT"));
 					row.put("version", CollaborationDbUtils.getInteger(rs, "VERSION"));
+					Map<String, Object> memory = new LinkedHashMap<>();
+					memory.put("use", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_USE")));
+					memory.put("learn", !Boolean.FALSE.equals(CollaborationDbUtils.getBoolean(rs, "MEMORY_LEARN")));
+					row.put("memory", memory);
 					return row;
 				}, ownerId, ownerType);
 		settings.put("sourcesJson", CollaborationSourceUtils.getSourcesEnabled(ownerId, ownerType));
@@ -258,6 +320,15 @@ public final class BrainProfileUtils {
 		List<Object> params = new ArrayList<>();
 		CollaborationDbUtils.addSet(sets, params, "FILE_AT", fileAt);
 		CollaborationDbUtils.addSet(sets, params, "ASK_AT", askAt);
+		if (changes.get("memory") instanceof Map) {
+			Map<String, Object> memory = (Map<String, Object>) changes.get("memory");
+			if (memory.containsKey("use")) {
+				CollaborationDbUtils.addSet(sets, params, "MEMORY_USE", isTrue(memory.get("use")));
+			}
+			if (memory.containsKey("learn")) {
+				CollaborationDbUtils.addSet(sets, params, "MEMORY_LEARN", isTrue(memory.get("learn")));
+			}
+		}
 		CollaborationDbUtils.addSet(sets, params, "VERSION", currentVersion + 1);
 		CollaborationDbUtils.addSet(sets, params, "UPDATED_AT", CollaborationDbUtils.now());
 		params.add(ownerId);
@@ -273,6 +344,27 @@ public final class BrainProfileUtils {
 					Boolean.TRUE.equals(source.getValue()));
 		}
 		return getSettings(ownerId, ownerType);
+	}
+
+	/** Memories are recalled and the assistant gets its memory tools; on unless the owner turned it off. */
+	static boolean usesMemory(String ownerId, String ownerType) {
+		return !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_USE"));
+	}
+
+	/** Finished chats are reviewed for memories to suggest; also needs memory itself to be on. */
+	static boolean learnsMemory(String ownerId, String ownerType) {
+		return usesMemory(ownerId, ownerType)
+				&& !Boolean.FALSE.equals(memorySetting(ownerId, ownerType, "MEMORY_LEARN"));
+	}
+
+	private static Boolean memorySetting(String ownerId, String ownerType, String column) {
+		return CollaborationDbUtils.queryOne("SELECT " + column + " FROM BRAIN_SETTINGS WHERE OWNER_ID = ? "
+				+ "AND OWNER_TYPE = ?", rs -> CollaborationDbUtils.getBoolean(rs, column), ownerId, ownerType);
+	}
+
+	// pixel booleans arrive as Boolean or text
+	private static boolean isTrue(Object value) {
+		return value instanceof Boolean b ? b : Boolean.parseBoolean(String.valueOf(value).trim());
 	}
 
 	private static void ensureSettings(String ownerId, String ownerType) {

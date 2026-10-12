@@ -253,7 +253,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupEngineUtils
 				.addEngineGroupPermission(user2, "groupId1", "CUSTOM", "eid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this engine's permissions.", e.getMessage());
+		assertEquals("Only this engine's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -311,7 +311,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupEngineUtils
 				.editDatabaseGroupPermission(user2, "groupId1", "CUSTOM", "eid1", "READ_ONLY", endDate));
-		assertEquals("Insufficient privileges to modify this database's permissions.", e.getMessage());
+		assertEquals("Only this engine's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -330,7 +330,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 	}
 
 	@Test
-	void testEditDatabaseGroupPermission_NotHighEnoughPermissions() throws Exception {
+	void testEditDatabaseGroupPermission_EditorCannotChangeTeamAccess() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createGroup(user, "groupId1", "CUSTOM");
 		UnitTestSecurityAuthUtils.addUserTokenToGroup(user, "groupId1", "CUSTOM");
@@ -349,8 +349,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		IllegalAccessException e = assertThrows(IllegalAccessException.class, () -> SecurityGroupEngineUtils
 				.editDatabaseGroupPermission(user2, "groupId1", "CUSTOM", "eid1", "OWNER", endDate));
-		assertEquals("Cannot give owner level access to this database since you are not currently an owner.",
-				e.getMessage());
+		assertEquals("Only this engine's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -366,7 +365,8 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "EDIT");
+		// only an owner changes which teams have access
+		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "OWNER");
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "EDIT", endDate);
@@ -392,7 +392,7 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 
 		IllegalAccessException e = assertThrows(IllegalAccessException.class,
 				() -> SecurityGroupEngineUtils.removeDatabaseGroupPermission(user2, "groupId1", "CUSTOM", "eid1"));
-		assertEquals("Insufficient privileges to modify this database's permissions.", e.getMessage());
+		assertEquals("Only this engine's owners can change which teams have access to it.", e.getMessage());
 	}
 
 	@Test
@@ -422,7 +422,8 @@ public class SecurityGroupEngineUtilsUnitTests extends AbstractSecurityUtilsUnit
 		String user2Type = user2.getPrimaryLogin().getLabel();
 		UnitTestSecurityAuthUtils.addUserToGroup(user, "groupId1", user2Id, user2Type);
 
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "EDIT");
+		// only an owner changes which teams have access
+		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, user2Id, "eid1", "OWNER");
 
 		String endDate = ZonedDateTime.now().plusDays(2).toString();
 		SecurityGroupEngineUtils.addEngineGroupPermission(user, "groupId1", "CUSTOM", "eid1", "EDIT", endDate);

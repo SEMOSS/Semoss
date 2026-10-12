@@ -48,6 +48,9 @@ import org.junit.jupiter.api.Test;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import prerna.query.querystruct.filters.FunctionQueryFilter;
+import prerna.query.querystruct.selectors.QueryConstantSelector;
+
 class AnsiSqlQueryUtilUnitTests {
 
 	@Test
@@ -139,4 +142,17 @@ class AnsiSqlQueryUtilUnitTests {
 		String connectionUrl = util.setConnectionDetailsfromMap(connDetails);
 		assertEquals(RdbmsTypeEnum.DERBY.getUrlPrefix() + "://db.example.com:1527/APP", connectionUrl);
 	}
+
+	@Test
+	void preparedRegexKeepsRawPatternWhileLegacyFilterEscapesIt() {
+		var util = new H2QueryUtil();
+		String pattern = "O'Brien\\path";
+		var prepared = (FunctionQueryFilter) util.getPreparedSearchRegexFilter("ITEMS__V", pattern);
+		var legacy = (FunctionQueryFilter) util.getSearchRegexFilter("ITEMS__V", pattern);
+		assertEquals(pattern,
+				((QueryConstantSelector) prepared.getFunctionSelector().getInnerSelector().get(1)).getConstant());
+		assertEquals(util.escapeForSQLStatement(pattern),
+				((QueryConstantSelector) legacy.getFunctionSelector().getInnerSelector().get(1)).getConstant());
+	}
+
 }

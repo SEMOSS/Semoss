@@ -27,20 +27,23 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 
-import jakarta.mail.internet.AddressException;
-import jakarta.mail.internet.InternetAddress;
+import prerna.io.connector.mail.MailRecipientRules;
 
 /**
- * Original reply-all defaults and explicit, verifiable draft envelope
- * overrides.
+ * Explicit, verifiable recipients for an Outlook reply draft.
+ *
+ * <p>
+ * Who a reply goes to on its own is worked out by {@link MailRecipientRules},
+ * the same way for every mailbox. What is here is only what Graph needs: the
+ * addresses in the shape the helper sends them, and a check that the draft
+ * Graph saved holds exactly the recipients asked for.
+ * </p>
  */
 final class MicrosoftOutlookReplyRecipients {
 
@@ -48,66 +51,12 @@ final class MicrosoftOutlookReplyRecipients {
 	}
 
 	/**
-	 * Reply-To replaces From; TO takes precedence over CC and the connected account
-	 * is omitted unless nobody else is on the message.
-	 */
-	static Map<String, List<String>> defaults(Map<String, Object> message, String account) {
-		if (account == null || account.isBlank()) {
-			throw new IllegalArgumentException(
-					"Your connected Outlook address could not be verified. Reconnect Microsoft and try again.");
-		}
-		Set<String> seen = new LinkedHashSet<>();
-		seen.add(account.trim().toLowerCase(Locale.ROOT));
-		List<String> to = new ArrayList<>();
-		List<String> cc = new ArrayList<>();
-		String[] replyTo = MicrosoftOutlookMessageMapper.addressArray(message.get("replyTo"));
-		String sender = MicrosoftOutlookMessageMapper.addressOf(message.get("from"));
-		if (replyTo == null && (sender == null || sender.isBlank())) {
-			throw new IllegalArgumentException("The original sender could not be verified.");
-		}
-		appendUnique(to, seen, replyTo == null ? new String[] { sender } : replyTo);
-		appendUnique(to, seen, MicrosoftOutlookMessageMapper.addressArray(message.get("toRecipients")));
-		appendUnique(cc, seen, MicrosoftOutlookMessageMapper.addressArray(message.get("ccRecipients")));
-		// a message the account sent only to itself answers the account, as Outlook does
-		if (to.isEmpty() && cc.isEmpty()) {
-			to.add(account.trim());
-		}
-		return Map.of("to", to, "cc", cc);
-	}
-
-	private static void appendUnique(List<String> target, Set<String> seen, String[] addresses) {
-		for (String address : validate(addresses)) {
-			if (seen.add(address.toLowerCase(Locale.ROOT))) {
-				target.add(address);
-			}
-		}
-	}
-
-	/**
 	 * Validate before any draft is created; null is an explicitly empty list in
 	 * override mode.
 	 */
 	static String[] validate(String[] addresses) {
-		if (addresses == null) {
-			return new String[0];
-		}
-		return Arrays.stream(addresses).map(address -> {
-			if (address == null) {
-				throw new IllegalArgumentException("Enter valid email addresses.");
-			}
-			String value = address.trim();
-			try {
-				InternetAddress parsed = new InternetAddress(value, true);
-				parsed.validate();
-				if (!value.equals(parsed.getAddress()) || !value.contains("@") || value.contains("\r")
-						|| value.contains("\n")) {
-					throw new AddressException("Expected a bare email address");
-				}
-			} catch (AddressException e) {
-				throw new IllegalArgumentException("Enter valid email addresses.", e);
-			}
-			return value;
-		}).toArray(String[]::new);
+		List<String> valid = MailRecipientRules.validate(addresses == null ? null : Arrays.asList(addresses));
+		return valid.toArray(new String[0]);
 	}
 
 	/**

@@ -10,7 +10,7 @@ import json
 from collections import OrderedDict
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from threading import RLock
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
@@ -36,6 +36,10 @@ DOCUMENT_FORMATS = {
 
 class DocumentInputError(ValueError):
     """An attachment could not be delivered without losing its contents."""
+
+
+class ContextBudgetError(DocumentInputError):
+    """The request is too large for the model's context; callers may compact and retry."""
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,42 @@ class DocumentInputProcessor:
         self._cache_bytes = 0
         self._converter = None
         self._lock = RLock()
+
+    def extract_file(self, file_path: str | Path) -> str:
+        """Return local document Markdown without modifying or caching the file.
+
+        Common Office/PDF, HTML, Markdown, CSV and image inputs use the same
+        Docling conversion as model attachments. Limits fail rather than silently
+        truncating text. PDF/OCR still requires available local model artifacts.
+        """
+        for name, limit in (
+            ("max_file_bytes", self.max_file_bytes),
+            ("max_text_chars", self.max_text_chars),
+            ("max_pages", self.max_pages),
+        ):
+            if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+                raise ValueError(f"{name} must be a positive integer")
+        source = Path(file_path)
+        with source.open("rb") as handle:
+            raw = handle.read(self.max_file_bytes + 1)
+        if len(raw) > self.max_file_bytes:
+            raise DocumentInputError("The file exceeds the document size limit.")
+        document = self._extract(raw, source.suffix.lstrip(".").lower(), None)
+        if not document.text.strip():
+            raise DocumentInputError("No readable text was found in the document.")
+        text = document.text
+        if document.pictures:
+            text = (
+                f"Extraction note: {document.pictures} image(s) were not visually "
+                "analyzed. Extracted text does not preserve the visual layout.\n\n"
+                + text
+            )
+        if len(text) > self.max_text_chars:
+            raise DocumentInputError(
+                f"The document exceeds the {self.max_text_chars:,} "
+                "extracted-character limit. Use a smaller document."
+            )
+        return text
 
     def prepare(
         self,
@@ -171,7 +211,7 @@ class DocumentInputProcessor:
                     message.type = SEMOSSMessageType.INPUT_TEXT
 
             if extracted_chars > self.max_text_chars:
-                raise DocumentInputError(
+                raise ContextBudgetError(
                     "The attached documents contain too much text for one conversation "
                     f"({self.max_text_chars:,} character limit). Use fewer pages or files."
                 )
@@ -290,8 +330,13 @@ class DocumentInputProcessor:
                 PdfPipelineOptions,
             )
             from docling.document_converter import (
+                AsciiDocFormatOption,
+                CsvFormatOption,
                 DocumentConverter,
                 ExcelFormatOption,
+                HTMLFormatOption,
+                ImageFormatOption,
+                MarkdownFormatOption,
                 PdfFormatOption,
                 PowerpointFormatOption,
                 WordFormatOption,
@@ -312,6 +357,11 @@ class DocumentInputProcessor:
                     InputFormat.DOCX,
                     InputFormat.PPTX,
                     InputFormat.XLSX,
+                    InputFormat.HTML,
+                    InputFormat.IMAGE,
+                    InputFormat.CSV,
+                    InputFormat.MD,
+                    InputFormat.ASCIIDOC,
                 ],
                 format_options={
                     InputFormat.PDF: PdfFormatOption(
@@ -323,6 +373,16 @@ class DocumentInputProcessor:
                     InputFormat.DOCX: WordFormatOption(pipeline_options=simple),
                     InputFormat.PPTX: PowerpointFormatOption(pipeline_options=simple),
                     InputFormat.XLSX: ExcelFormatOption(pipeline_options=simple),
+                    InputFormat.HTML: HTMLFormatOption(pipeline_options=simple),
+                    InputFormat.CSV: CsvFormatOption(pipeline_options=simple),
+                    InputFormat.MD: MarkdownFormatOption(pipeline_options=simple),
+                    InputFormat.ASCIIDOC: AsciiDocFormatOption(pipeline_options=simple),
+                    InputFormat.IMAGE: ImageFormatOption(
+                        pipeline_options=PdfPipelineOptions(
+                            document_timeout=120,
+                            enable_remote_services=False,
+                        )
+                    ),
                 },
             )
         try:
@@ -416,7 +476,7 @@ class DocumentInputProcessor:
                 ]
             text_bytes += len(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
         if text_bytes + int(output_tokens) > settings.context_window:
-            raise DocumentInputError(
+            raise ContextBudgetError(
                 "The extracted documents and conversation exceed the conservative "
                 "text budget for this model. Attach fewer pages, start a new conversation, "
                 "or reduce the requested output length. No content was truncated."

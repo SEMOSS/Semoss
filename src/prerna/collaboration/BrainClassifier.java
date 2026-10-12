@@ -33,6 +33,7 @@ import java.util.Map;
 import prerna.engine.api.IModelEngine;
 import prerna.engine.api.ITypeSafeEngine;
 import prerna.om.Insight;
+import prerna.util.RuntimeTimeContext;
 
 // A pluggable thread classifier: any model that can score a thread against the owner's topics. The
 // policy that turns scores into topic links and work items lives in BrainThreadClassifier, so a new model
@@ -42,9 +43,10 @@ public interface BrainClassifier {
 	/**
 	 * What a classifier sees: the gated thread, never more. earlier: the engine's
 	 * window fits the earlier messages too (COLLAB_CLASSIFIER_WINDOW).
+	 * currentTime is captured by the server before scoring, with the owner's timezone.
 	 */
 	record ThreadInput(String threadId, String ownerName, String subject, List<String> participants,
-			List<Message> messages, boolean earlier) {
+			List<Message> messages, boolean earlier, RuntimeTimeContext currentTime) {
 	}
 
 	/**

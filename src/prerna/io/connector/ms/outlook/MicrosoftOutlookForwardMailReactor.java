@@ -27,122 +27,59 @@
  *******************************************************************************/
 package prerna.io.connector.ms.outlook;
 
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import prerna.auth.User;
+import prerna.io.connector.mail.AbstractForwardMailReactor;
+import prerna.io.connector.mail.ComposedMail;
+import prerna.io.connector.mail.MailApp;
+import prerna.io.connector.mail.OutgoingMail;
 import prerna.io.connector.ms.MicrosoftLoginUtils;
-import prerna.reactor.agent.mcp.MCPUtility;
-import prerna.sablecc2.om.PixelDataType;
-import prerna.sablecc2.om.execptions.SemossPixelException;
-import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 /**
- * Passes a message in the signed in user's mailbox on to somebody else.
+ * Forwards a message from the signed in user's own Microsoft 365 mailbox,
+ * attachments and all.
  *
  * <p>
- * Required delegated Microsoft Graph scopes:
+ * The forward is always written as a native forward draft, which carries the
+ * original's attachments, and is sent from there when it is not being left in
+ * Drafts.
  * </p>
- * <ul>
- * <li>{@code Mail.Send} for {@code POST /me/messages/{id}/forward}</li>
- * <li>{@code Mail.ReadWrite} instead, when {@code asDraft} asks for
- * {@code POST /me/messages/{id}/createForward}</li>
- * </ul>
  *
  * <p>
- * The whole message goes, attachments included, which is the point of
- * forwarding rather than quoting. That is also the reason to think before
- * calling it: whoever it goes to sees everything on the thread, including
- * anything further down it.
+ * Required delegated Microsoft Graph scopes: {@code Mail.ReadWrite}, and
+ * {@code Mail.Send} to send it.
  * </p>
  */
-public class MicrosoftOutlookForwardMailReactor extends AbstractMicrosoftOutlookMessageReactor {
+public class MicrosoftOutlookForwardMailReactor extends AbstractForwardMailReactor {
 
-	private static final Logger classLogger = LogManager.getLogger(MicrosoftOutlookForwardMailReactor.class);
-
-	private static final String TO = "to";
-
-	public MicrosoftOutlookForwardMailReactor() {
-		this.keysToGet = new String[] { UID, TO, COMMENT, AS_DRAFT, "html", "attachments" };
-		this.keyRequired = new int[] { 1, 1, 0, 0, 0, 0 };
+	@Override
+	protected MailApp getMailApp() {
+		return MailApp.OUTLOOK;
 	}
 
 	@Override
-	protected NounMetadata executeAuthenticated() {
-		this.organizeKeys();
-		String uid = requiredUid("forward a message");
-		String[] to = values(TO);
-		String comment = this.keyValue.get(COMMENT);
-		boolean asDraft = Boolean.parseBoolean(this.keyValue.get(AS_DRAFT));
-		boolean html = Boolean.parseBoolean(this.keyValue.get("html"));
-		if (html && !asDraft) {
-			throw new SemossPixelException("HTML is supported for draft saving only.");
-		}
-
-		if (to == null) {
-			throw new SemossPixelException("At least one recipient in " + TO + " is required to forward a message.");
-		}
-
-		try {
-			var attachments = draftAttachments(asDraft);
-			User user = this.insight.getUser();
-			String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
-			MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
-			Map<String, Object> draft = html
-					? helper.forwardHtmlDraft(accessToken, uid, to, comment)
-					: helper.forward(accessToken, null, uid, to, comment, asDraft);
-
-			helper.attachToDraft(accessToken, draft, attachments);
-
-			Map<String, Object> output = new LinkedHashMap<>();
-			output.put("forwarded", uid);
-			output.put(TO, String.join(", ", to));
-			output.put("sent", !asDraft);
-			if (draft != null) {
-				output.put(UID, draft.get("id"));
-				MicrosoftOutlookMessageMapper.putIfPresent(output, "webLink", draft.get("webLink"));
-			}
-			return new NounMetadata(output, PixelDataType.CUSTOM_DATA_STRUCTURE);
-		} catch (SemossPixelException e) {
-			classLogger.error("Error while forwarding the message '{}'", uid, e);
-			throw e;
-		} catch (IllegalArgumentException e) {
-			classLogger.error("Invalid input passed to forward a message", e);
-			throw new SemossPixelException(e.getMessage());
-		} catch (Exception e) {
-			classLogger.error("Failed to forward the message '{}'", uid, e);
-			throw new SemossPixelException(
-					"An error occurred forwarding the message. Error message: " + e.getMessage());
-		}
+	protected ComposedMail draftForward(User user, ForwardMailRequest request) throws Exception {
+		String accessToken = MicrosoftLoginUtils.getValidAccessToken(user);
+		MicrosoftOutlookMailHelper helper = new MicrosoftOutlookMailHelper();
+		// the files are read before anything is written to the mailbox, so one that
+		// cannot be read leaves no draft behind
+		List<Map<String, Object>> files = MicrosoftOutlookMailHelper.fileAttachments(
+				request.attachments().stream().map(file -> file.getAbsolutePath()).toArray(String[]::new));
+		String[] to = request.to().toArray(new String[0]);
+		Map<String, Object> draft = request.html()
+				? helper.forwardHtmlDraft(accessToken, request.id(), to, request.body())
+				: helper.forward(accessToken, null, request.id(), to, request.body(), true);
+		helper.attachToDraft(accessToken, draft, files);
+		return MicrosoftOutlookMessageMapper.toComposedMail(draft, request.body() == null ? "" : request.body(),
+				request.html(), request.attachments().stream().map(OutgoingMail::attachmentName).toList());
 	}
 
 	@Override
-	public String getReactorDescription() {
-		return "Forward a message from the signed in user's own Microsoft 365 mailbox, attachments and all.";
-	}
-
-	@Override
-	protected String getDescriptionForKey(String key) {
-		if ("attachments".equals(key)) return "Optional insight-relative files to add to a saved draft, preserving original attachments; requires asDraft=true.";
-		if ("html".equals(key)) {
-			return "Treat the authored comment as HTML when asDraft=true; defaults to false.";
-		}
-		if (key.equals(TO)) {
-			return "Who to forward the message to, passed as several values or as one comma separated value.";
-		} else if (key.equals(COMMENT)) {
-			return "Optional note added above the message being forwarded.";
-		}
-		return super.getDescriptionForKey(key);
-	}
-
-	@Override
-	public Map<String, String> getMcpToolMetadata() {
-		// sends mail as the user, so an agent asks before running it
-		Map<String, String> meta = super.getMcpToolMetadata();
-		meta.put(MCPUtility.SMSS_MCP_EXECUTION, MCPUtility.MCPExecution.ASK.getValue());
-		return meta;
+	protected ComposedMail sendDraft(User user, ComposedMail draft) throws Exception {
+		new MicrosoftOutlookMailHelper().sendDraft(MicrosoftLoginUtils.getValidAccessToken(user), null, draft.id());
+		// a sent draft moves to Sent Items under a new id, which Graph does not report
+		return draft.withIds(null, null, null);
 	}
 }

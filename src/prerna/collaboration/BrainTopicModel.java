@@ -32,7 +32,8 @@ import prerna.auth.utils.SecurityEngineUtils;
 import prerna.util.Constants;
 import prerna.util.Utility;
 
-// Resolves the permitted platform text engine; BrainTopicStructure groups headers and BrainTopicVotes judges them.
+// Resolves the permitted platform text engine; BrainTopicStructure groups headers and BrainTopicVotes judges them, and
+// WorkThreadInsights writes thread summaries and action items with it.
 final class BrainTopicModel {
 
 	private BrainTopicModel() {
@@ -49,7 +50,7 @@ final class BrainTopicModel {
 		}
 		if (!SecurityEngineUtils.userCanViewEngine(user, id.trim())) {
 			throw new IllegalArgumentException(
-					"You do not have access to the topic model (" + id.trim() + "); ask an admin to share it with you");
+					"You do not have access to Brain's text model (" + id.trim() + "); ask an admin to share it with you");
 		}
 		return id.trim();
 	}

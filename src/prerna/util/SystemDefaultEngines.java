@@ -62,11 +62,17 @@ public class SystemDefaultEngines {
 			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR);
 
 	private static final List<String> SYSTEM_SKILLS = List.of(Constants.SKILL_AGENT_RUN, Constants.SKILL_APP_BOOTSTRAP,
-			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_DATABASE,
+			Constants.SKILL_APP_DATA, Constants.SKILL_BUILD_AND_PUBLISH, Constants.SKILL_COLLABORATION,
+			Constants.SKILL_DATABASE,
 			Constants.SKILL_EXPORTS, Constants.SKILL_FILE_UPLOADS, Constants.SKILL_FRONTEND_DESIGN,
 			Constants.SKILL_FUNCTIONS, Constants.SKILL_MCP, Constants.SKILL_MODEL, Constants.SKILL_PAGINATION,
 			Constants.SKILL_PERMISSIONS, Constants.SKILL_PPTX, Constants.SKILL_PYTHON, Constants.SKILL_ROOM,
 			Constants.SKILL_STORAGE, Constants.SKILL_USER, Constants.SKILL_VECTOR, Constants.SKILL_WORKFLOW_AUTOMATION);
+
+	private static final List<String> COLLABORATION_SKILLS = List.of(Constants.SKILL_COLLABORATION,
+			Constants.SKILL_PPTX, Constants.SKILL_PYTHON);
+
+	private static final List<String> COLLABORATION_MCPS = List.of(Constants.MCP_PIXABAY);
 
 	/**
 	 * Platform MCPs cataloged at boot by {@code ProjectWatcher.init()}. Every entry
@@ -112,6 +118,16 @@ public class SystemDefaultEngines {
 
 	public static List<String> getSystemSkills() {
 		return SYSTEM_SKILLS;
+	}
+
+	/** Skills available in every collaboration room, independently of its agent. */
+	public static List<String> getCollaborationSkills() {
+		return COLLABORATION_SKILLS;
+	}
+
+	/** Platform MCPs whose tools every collaboration room gets, independently of its agent. */
+	public static List<String> getCollaborationMCPs() {
+		return COLLABORATION_MCPS;
 	}
 
 	public static List<String> getSystemMCPs() {

@@ -51,7 +51,7 @@ final class JevBrainClassifier implements BrainClassifier {
 
 	@Override
 	public String version() {
-		return "jev-v1:" + engineId;
+		return "jev-v2:" + engineId;
 	}
 
 	@Override
@@ -76,7 +76,10 @@ final class JevBrainClassifier implements BrainClassifier {
 		questions.put("automated", question("noul", "Is this an automated or bulk message (newsletter, notification, "
 				+ "no-reply, alert) rather than a person writing?", null));
 		questions.put("urgency",
-				question("score", "How urgently does the newest message need a response?", List.of(URGENCY)));
+				question("score", "How urgently does the newest message need a response as of currentTime? "
+						+ "Compare full dates including year, and resolve relative source dates against the message's at timestamp. "
+						+ "An unanswered invitation to a past meeting is not an upcoming response need. "
+						+ "Do not assume a future year for an incomplete event date.", List.of(URGENCY)));
 
 		Map<String, Object> answers = map(
 				engine.evaluate(state(thread), questions, insight, null).getResponse().get("answers"));
@@ -123,6 +126,7 @@ final class JevBrainClassifier implements BrainClassifier {
 						messages.subList(0, messages.size() - 1).stream().map(JevBrainClassifier::message).toList());
 			}
 		}
+		state.put("currentTime", thread.currentTime().toMap());
 		return state;
 	}
 
@@ -131,6 +135,7 @@ final class JevBrainClassifier implements BrainClassifier {
 		message.put("from", m.from());
 		message.put("to", m.to());
 		message.put("cc", m.cc());
+		message.put("at", m.at());
 		message.put("text", m.text());
 		if (m.footer() != null && !m.footer().isBlank()) {
 			message.put("footer", m.footer());
