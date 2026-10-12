@@ -28,7 +28,6 @@
 package prerna.auth.utils;
 
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,6 +43,12 @@ import org.javatuples.Pair;
 import prerna.auth.AccessPermissionEnum;
 import prerna.auth.AccessToken;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.engine.api.IRDBMSEngine;
 import prerna.engine.api.IRawSelectWrapper;
 import prerna.query.querystruct.SelectQueryStruct;
@@ -83,8 +88,8 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 
 	/**
 	 * The group utilities without an admin check, for callers in this package that
-	 * check the user's rights themselves, such as {@link SecurityGroupManagerUtils}
-	 * for a group's managers.
+	 * check the user's permissions themselves, such as
+	 * {@link SecurityGroupManagerUtils} for a group's managers.
 	 * 
 	 * @return the group utilities
 	 */
@@ -334,90 +339,49 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param userId
-	 * @param userType
-	 * @throws Exception
+	 * Adds a member to a custom group in admin mode, as a permission batch.
+	 *
+	 * @param user     the admin
+	 * @param groupId  the custom group
+	 * @param userId   the new member's user id
+	 * @param userType the new member's login type
+	 * @param endDate  when the membership ends, or null
+	 * @throws IllegalArgumentException when the group does not exist, or the person
+	 *                                  is already a member or does not exist
 	 */
 	public void addUserToGroup(User user, String groupId, String userId, String userType, String endDate)
 			throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " does not exist");
-		}
-
-		if (userInCustomGroup(groupId, userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " already has access to group " + groupId);
-		}
-
-		if (!userExists(userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " does not exist");
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.write(securityDb, conn -> {
-				String query = "INSERT INTO CUSTOMGROUPASSIGNMENT (GROUPID, USERID, TYPE, "
-						+ "DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) "
-						+ "VALUES (?,?,?,?,?,?,?)";
-				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userType);
-					ps.setTimestamp(parameterIndex++, Utility.getCurrentSqlTimestampUTC());
-					if (verifiedEndDate == null) {
-						ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-					} else {
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					}
-					ps.setString(parameterIndex++, userDetails.getValue0());
-					ps.setString(parameterIndex++, userDetails.getValue1());
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to delete the group and clean up related permissions.", e);
-			throw e;
-		}
+		changeMember(user, PermissionChange.Action.ADD, groupId, userId, userType, endDate);
 	}
 
 	/**
-	 * 
-	 * @param groupId
-	 * @param userId
-	 * @param userType
-	 * @throws Exception
+	 * Takes a member out of a custom group in admin mode, as a permission batch.
+	 *
+	 * @param groupId  the custom group
+	 * @param userId   the member's user id
+	 * @param userType the member's login type
+	 * @throws IllegalArgumentException when the group does not exist, or the person
+	 *                                  is not a member
 	 */
 	public void removeUserFromGroup(String groupId, String userId, String userType) throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, "CUSTOM")) {
-			throw new IllegalArgumentException("Group " + groupId + " does not exist");
-		}
+		changeMember(null, PermissionChange.Action.REMOVE, groupId, userId, userType, null);
+	}
 
-		if (!userInCustomGroup(groupId, userId, userType)) {
-			throw new IllegalArgumentException("User " + userId + " does not have access to group " + groupId);
-		}
-
-		try {
-			QueryExecutionUtility.write(securityDb, conn -> {
-				String query = "DELETE FROM CUSTOMGROUPASSIGNMENT WHERE GROUPID=? AND USERID=? AND TYPE=?";
-				QueryExecutionUtility.executeUpdate(conn, query, ps -> {
-					int parameterIndex = 1;
-					ps.setString(parameterIndex++, groupId);
-					ps.setString(parameterIndex++, userId);
-					ps.setString(parameterIndex++, userType);
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to remove user from group.", e);
-			throw e;
-		}
+	/**
+	 * Adds or removes a member in admin mode, with these methods' own messages.
+	 */
+	private static void changeMember(User user, PermissionChange.Action action, String groupId, String userId,
+			String userType, String endDate) throws IllegalAccessException {
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.team(groupId),
+				List.of(new PermissionChange(
+						action, PermissionSubject.ofUser(userId, userType), new PermissionGrant(null, endDate))),
+				PermissionBatchOptions.adminMode(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.INVALID_TARGET, "Group " + groupId + " does not exist")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"User " + userId + " already has access to group " + groupId)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"User " + userId + " does not have access to group " + groupId));
 	}
 
 	/**
@@ -663,138 +627,79 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDat
+	 * Gives a team access to a project in admin mode, as a permission batch.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addGroupProjectPermission(User user, String groupId, String groupType, String projectId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission != -1) {
-			throw new IllegalArgumentException("Group " + groupId + " already has access to project " + projectId
-					+ " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"INSERT INTO GROUPPROJECTPERMISSION (ID, TYPE, PROJECTID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, projectId);
-						ps.setInt(parameterIndex++, permission);
-						ps.setTimestamp(parameterIndex++, startDate);
-						if (verifiedEndDate == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-						} else {
-							ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						}
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-					});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
-			throw new IllegalArgumentException("Error occurred adding the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.SUBJECT_MISSING,
+								"Group " + groupId + " with type " + groupType + " does not exist")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								() -> "Group " + groupId + " already has access to project " + projectId
+										+ " with permission = "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupProjectPermission(groupId, groupType, projectId)))
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred adding the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDate
+	 * Changes a team's access to a project in admin mode, as a permission batch.
+	 * The team must not have the level already.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param projectId  the project
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void editGroupProjectPermission(User user, String groupId, String groupType, String projectId,
 			int permission, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to project " + projectId + " to edit");
-		}
-		if (curPermission == permission) {
-			throw new IllegalArgumentException("Group " + groupId + " already has permission level "
-					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to project " + projectId);
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		String updateQuery;
-		updateQuery = "UPDATE GROUPPROJECTPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setInt(parameterIndex++, permission);
-				ps.setTimestamp(parameterIndex++, startDate);
-				if (verifiedEndDate == null) {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				} else {
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				}
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, groupType);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the number of users who are not in the group.", e);
-			throw new IllegalArgumentException("Error occurred editing the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Group " + groupId + " does not currently have access to project " + projectId
+										+ " to edit")
+						.illegalArgument(PermissionProblem.Code.SAME_LEVEL,
+								() -> "Group " + groupId + " already has permission level "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupProjectPermission(groupId, groupType, projectId))
+										+ " to project " + projectId)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred editing the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
+	 * Takes a team's access to a project away in admin mode, as a permission batch.
+	 *
+	 * @param user      the admin
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param projectId the project
 	 */
 	public void removeGroupProjectPermission(User user, String groupId, String groupType, String projectId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupProjectPermission(groupId, groupType, projectId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to project " + projectId + " to remove");
-		}
-		String deleteQuery;
-		deleteQuery = "DELETE FROM GROUPPROJECTPERMISSION WHERE ID=? AND PROJECTID=? AND TYPE=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, groupType);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to remove group project permission.", e);
-			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.project(projectId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Group " + groupId + " does not currently have access to project " + projectId + " to remove")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred deleting the group permission"));
 	}
 
 	/**
@@ -1009,139 +914,79 @@ public class AdminSecurityGroupUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param engineId
-	 * @param permission
-	 * @param endDate
+	 * Gives a team access to an engine in admin mode, as a permission batch.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void addGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		if (!groupExists(groupId, groupType)) {
-			throw new IllegalArgumentException("Group " + groupId + " with type " + groupType + " does not exist");
-		}
-
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission != -1) {
-			throw new IllegalArgumentException("Group " + groupId + " already has access to engine " + engineId
-					+ " with permission = " + AccessPermissionEnum.getPermissionValueById(curPermission));
-		}
-
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"INSERT INTO GROUPENGINEPERMISSION (ID, TYPE, ENGINEID, PERMISSION, DATEADDED, ENDDATE, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE) VALUES(?,?,?,?,?,?,?,?)",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, groupId);
-						ps.setString(parameterIndex++, groupType);
-						ps.setString(parameterIndex++, engineId);
-						ps.setInt(parameterIndex++, permission);
-						ps.setTimestamp(parameterIndex++, startDate);
-						if (verifiedEndDate == null) {
-							ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-						} else {
-							ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						}
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-					});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
-			throw new IllegalArgumentException("Error occurred adding the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.add(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.SUBJECT_MISSING,
+								"Group " + groupId + " with type " + groupType + " does not exist")
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								() -> "Group " + groupId + " already has access to engine " + engineId
+										+ " with permission = "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupEnginePermission(groupId, groupType, engineId)))
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred adding the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param projectId
-	 * @param permission
-	 * @param endDate
+	 * Changes a team's access to an engine in admin mode, as a permission batch.
+	 * The team must not have the level already.
+	 *
+	 * @param user       the admin
+	 * @param groupId    the team
+	 * @param groupType  the team's type
+	 * @param engineId   the engine
+	 * @param permission the level's id; anything but 1, 2 or 3 is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public void editGroupEnginePermission(User user, String groupId, String groupType, String engineId, int permission,
 			String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to engine " + engineId + " to edit");
-		}
-		if (curPermission == permission) {
-			throw new IllegalArgumentException("Group " + groupId + " already has permission level "
-					+ AccessPermissionEnum.getPermissionValueById(curPermission) + " to engine " + engineId);
-		}
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		String updateQuery;
-		updateQuery = "UPDATE GROUPENGINEPERMISSION SET PERMISSION=?, DATEADDED=?, ENDDATE=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=? WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, updateQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setInt(parameterIndex++, permission);
-				ps.setTimestamp(parameterIndex++, startDate);
-				if (verifiedEndDate == null) {
-					ps.setNull(parameterIndex++, java.sql.Types.TIMESTAMP);
-				} else {
-					ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				}
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, engineId);
-				ps.setString(parameterIndex++, groupType);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve the number of projects available for the group.", e);
-			throw new IllegalArgumentException("Error occurred editing the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.change(PermissionSubject.ofTeam(groupId, groupType),
+						new PermissionGrant(AccessPermissionEnum.getPermissionValueById(permission), endDate))),
+				PermissionBatchOptions.adminMode().keepingTeamType().rejectingSameLevel(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS,
+								"Group " + groupId + " does not currently have access to engine " + engineId
+										+ " to edit")
+						.illegalArgument(PermissionProblem.Code.SAME_LEVEL,
+								() -> "Group " + groupId + " already has permission level "
+										+ AccessPermissionEnum.getPermissionValueById(
+												groupEnginePermission(groupId, groupType, engineId))
+										+ " to engine " + engineId)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred editing the group permission"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param groupId
-	 * @param groupType
-	 * @param engineId
+	 * Takes a team's access to an engine away in admin mode, as a permission batch.
+	 *
+	 * @param user      the admin
+	 * @param groupId   the team
+	 * @param groupType the team's type
+	 * @param engineId  the engine
 	 */
 	public void removeGroupEnginePermission(User user, String groupId, String groupType, String engineId) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		int curPermission = groupEnginePermission(groupId, groupType, engineId);
-		if (curPermission == -1) {
-			throw new IllegalArgumentException(
-					"Group " + groupId + " does not currently have access to engine " + engineId + " to remove");
-		}
-		String deleteQuery;
-		deleteQuery = "DELETE FROM GROUPENGINEPERMISSION WHERE ID=? AND ENGINEID=? AND TYPE=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, groupId);
-				ps.setString(parameterIndex++, engineId);
-				ps.setString(parameterIndex++, groupType);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to remove group engine permission.", e);
-			throw new IllegalArgumentException("Error occurred deleting the group permission");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.engine(engineId),
+				List.of(PermissionChange.remove(PermissionSubject.ofTeam(groupId, groupType))),
+				PermissionBatchOptions.adminMode().keepingTeamType(),
+				new PermissionErrorRules().illegalArgument(PermissionProblem.Code.NO_ACCESS,
+						"Group " + groupId + " does not currently have access to engine " + engineId + " to remove")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"Error occurred deleting the group permission"));
 	}
 
 	/**

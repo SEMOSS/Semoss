@@ -325,6 +325,7 @@ public class SchedulerOwlCreator extends AbstractOwlCreator {
 				Pair.with(AutomationConstants.COMPLETED_AT, TIMESTAMP_DATATYPE),
 				Pair.with(AutomationConstants.DURATION_MS, AutomationConstants.BIGINT),
 				Pair.with(AutomationConstants.OUTPUT_VAR_NAME, AutomationConstants.VARCHAR_255),
+				Pair.with(AutomationConstants.OUTPUT_KIND, AutomationConstants.VARCHAR_50),
 				Pair.with(AutomationConstants.OUTPUT_VALUE, CLOB_DATATYPE),
 				Pair.with(AutomationConstants.OUTPUT_PREVIEW, AutomationConstants.VARCHAR_2000),
 				Pair.with(AutomationConstants.ROOM_ID, AutomationConstants.VARCHAR_50),

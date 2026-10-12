@@ -14,14 +14,36 @@ open-editor ID, and mailbox draft ID identify different objects.
 | Operation | Arguments and preservation rules |
 | --- | --- |
 | New email | `message`, known `to`, and `subject`; omit reply/forward IDs |
-| Reply | `replyTo` = source email ID, preferably `selectedSourceMessageId`; `message` is the new reply |
-| Forward | `forward` = source email ID; set `to`; `message` is the short note |
+| Reply | `replyTo: "selected"` for the selected email, or its `emailRef` from `ReadThread`; `message` is the new reply |
+| Forward | `forward: "selected"` for the selected email, or its `emailRef` from `ReadThread`; set `to`; `message` is the short note |
 | Edit the open email | `openEmailId` = `openEmail.id`; pass only changed fields |
 
 For a reply, leave `to` and `cc` out unless the owner requested a recipient change;
 the provider keeps native reply behavior. For a forward, the provider includes the
 original email and its attachments. Do not paste the original into `message`.
 Do not pass both `replyTo` and `forward`.
+
+Topic and home chats can reply to or forward accessible Brain emails without
+adding the thread to the chat. Use `SearchMail` to find the thread and `ReadThread`
+to get its messages, then pass the chosen email's `emailRef` (`email:...`) to
+`ComposeEmail`. SEMOSS resolves that stable reference to the exact Outlook ID.
+Native email IDs from context remain supported, but prefer `emailRef` over copying
+a long Outlook ID. The editor keeps the original email thread; no selected email
+is required. This reference lookup is for the owner's assistant chats; delegation
+rooms keep using `"selected"` or the exact native ID of an included email.
+
+`"selected"` resolves to the current context's `selectedSourceMessageId`; do not copy
+that long ID yourself. If the source is rejected, check the latest context or
+`ReadThread` and retry once with its `emailRef` and the same draft text (in a
+delegation room, use the exact included native ID instead). Never
+drop `replyTo` or `forward` to bypass an error. Report a persistent failure; do not
+retry authentication or access errors without the owner's help. An unresolved
+email ID does not establish a permissions problem.
+
+Completing a topic goal does not fulfill an explicit request to draft or reply.
+If the latest email says the action already happened, briefly surface that fact
+without silently abandoning the requested email. Clarify only when that fact
+materially changes what the owner wants to send.
 
 ## Resolve recipients without guessing
 
@@ -59,5 +81,7 @@ Example for changing only the subject of an existing draft:
 {"openEmailId":"<openEmail.id from context>","subject":"Updated review request"}
 ```
 
-Report the returned state accurately. `shown: true` means the editor handoff
-succeeded. Saving to the mailbox is an owner action in the editor; it is not implied.
+Report the returned `mode` accurately: `reply`, `forward`, `new`, or `edit`.
+`replyTo` or `forward` in the result is the resolved source ID; `shown: true` means
+the editor handoff succeeded. Saving to the mailbox is an owner action in the
+editor; it is not implied.

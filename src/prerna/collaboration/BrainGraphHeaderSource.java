@@ -112,6 +112,11 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 		return list(user, folder, since, max, SELECT + ",internetMessageHeaders");
 	}
 
+	@Override
+	public Map<String, Object> message(User user, String messageId) throws Exception {
+		return get(user, BASE + "/me/messages/" + encode(messageId) + "?$select=" + SELECT + ",internetMessageHeaders");
+	}
+
 	@SuppressWarnings("unchecked")
 	private List<Map<String, Object>> list(User user, String folder, Instant since, int max, String fields) throws Exception {
 		List<Map<String, Object>> out = new ArrayList<>();
@@ -189,6 +194,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			throws InterruptedException {
 		List<Map<String, Object>> out = new ArrayList<>();
 		int skipped = 0;
+		int unreadable = 0;
 		boolean reauthNeeded = false;
 		int done = 0;
 		progress.read(0, calls.size());
@@ -198,6 +204,12 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 				out.addAll(call.get());
 			} catch (ExecutionException e) {
 				Throwable cause = e.getCause() == null ? e : e.getCause();
+				// retrying a chat the owner cannot open would hold the Teams checkpoint back forever
+				if (BrainMailHeaderSource.noAccess(cause)) {
+					unreadable++;
+					classLogger.info("Teams chat not readable, left out: {}", cause.getMessage());
+					continue;
+				}
 				skipped++;
 				reauthNeeded |= BrainMailHeaderSource.needsReauth(cause);
 				classLogger.warn("Skipped a Teams chat for the import: {}", cause.getMessage());
@@ -207,7 +219,7 @@ final class BrainGraphHeaderSource implements BrainMailHeaderSource {
 			}
 		}
 		progress.read(calls.size(), calls.size());
-		return new ChatImport(out, skipped, reauthNeeded);
+		return new ChatImport(out, skipped, reauthNeeded, unreadable);
 	}
 
 	// one chat's members, then its messages since the window opened, newest first

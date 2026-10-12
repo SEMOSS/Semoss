@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -61,6 +62,7 @@ import prerna.engine.impl.owl.AbstractOwlCreator.OwlIndex;
 import prerna.util.ConnectionUtils;
 import prerna.util.SystemEngineRegistry;
 import prerna.util.Utility;
+import prerna.util.sql.RdbmsTypeEnum;
 
 // Loads the Collaboration database and holds the shared JDBC helpers for the *Utils classes
 public class CollaborationDbUtils {
@@ -494,6 +496,7 @@ public class CollaborationDbUtils {
 		} catch (RuntimeException e) {
 			classLogger.error("Moving topic notes and thread facts into Brain memory failed; retrying next boot", e);
 		}
+		BrainMailWebhook.startRenewals();
 	}
 
 	/**
@@ -511,6 +514,8 @@ public class CollaborationDbUtils {
 		try {
 			// create the tables and columns from the OWL creator schema
 			AbstractOwlCreator.syncSchema(collaborationDb, conn, dbSchema);
+			// syncSchema only adds columns; a role defaults to the job title (VARCHAR 255)
+			widenColumn(collaborationDb, conn, "BRAIN_TOPIC_PERSON", "ROLE_LABEL", 255);
 
 			AbstractOwlCreator.syncIndexes(collaborationDb, conn, List.of(
 					// owner and sources
@@ -570,6 +575,12 @@ public class CollaborationDbUtils {
 							"OWNER_TYPE", "THREAD_ID"),
 					OwlIndex.of("BRAIN_THREAD_PARTICIPANT_PERSON_ID_INDEX", "BRAIN_THREAD_PARTICIPANT", "OWNER_ID",
 							"OWNER_TYPE", "PERSON_ID"),
+					OwlIndex.of("BRAIN_THREAD_ALIAS_THREAD_ID_INDEX", "BRAIN_THREAD_ALIAS", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_ROOM_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"ROOM_ID"),
+					OwlIndex.of("BRAIN_THREAD_ROOM_THREAD_ID_INDEX", "BRAIN_THREAD_ROOM", "OWNER_ID", "OWNER_TYPE",
+							"THREAD_ID"),
 					OwlIndex.of("BRAIN_MESSAGE_OWNER_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE"),
 					OwlIndex.of("BRAIN_MESSAGE_MESSAGE_KEY_INDEX", "BRAIN_MESSAGE", "OWNER_ID", "OWNER_TYPE",
 							"MESSAGE_KEY"),
@@ -618,6 +629,31 @@ public class CollaborationDbUtils {
 			if (conn != null && collaborationDb.isConnectionPooling()) {
 				conn.close();
 			}
+		}
+	}
+
+	// grows a VARCHAR column created narrower by an earlier schema; never shrinks one
+	private static void widenColumn(IRDBMSEngine db, Connection conn, String table, String column, int size)
+			throws SQLException {
+		Integer current = null;
+		for (String[] name : new String[][] { { table, column }, { table.toLowerCase(), column.toLowerCase() } }) {
+			try (ResultSet rs = conn.getMetaData().getColumns(db.getDatabase(), db.getSchema(), name[0], name[1])) {
+				if (rs.next()) {
+					current = rs.getInt("COLUMN_SIZE");
+					break;
+				}
+			}
+		}
+		if (current == null || current >= size) {
+			return;
+		}
+		String type = "VARCHAR(" + size + ")";
+		String sql = db.getQueryUtil().getDbType() == RdbmsTypeEnum.POSTGRES
+				? "ALTER TABLE " + table + " ALTER COLUMN " + column + " TYPE " + type
+				: db.getQueryUtil().modColumnType(table, column, type);
+		classLogger.info("Widening {}.{} from VARCHAR({}) to {}", table, column, current, type);
+		try (Statement stmt = conn.createStatement()) {
+			stmt.execute(sql);
 		}
 	}
 }
