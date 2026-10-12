@@ -126,7 +126,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	private static final Logger classLogger = LogManager.getLogger(PermissionBatchUtils.class);
 
 	private static final String INSERT_PROJECT_USER = "INSERT INTO PROJECTPERMISSION (USERID, PROJECTID, PERMISSION, "
-			+ "VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES (?,?,?,?,?,?,?,?)";
+			+ "PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES (?,?,?,?,?,?,?)";
 	private static final String UPDATE_PROJECT_USER = "UPDATE PROJECTPERMISSION SET PERMISSION=?, "
 			+ "PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND PROJECTID=?";
 	private static final String DELETE_PROJECT_USER = "DELETE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?";
@@ -134,8 +134,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 			+ "AND PROJECTID=?";
 
 	private static final String INSERT_ENGINE_USER = "INSERT INTO ENGINEPERMISSION (USERID, ENGINEID, PERMISSION, "
-			+ "VISIBILITY, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, "
-			+ "USAGEFREQUENCY, MAXTOKENS, MAXRESPONSETIME) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)";
+			+ "PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE, USAGERESTRICTION, USAGEFREQUENCY, "
+			+ "MAXTOKENS, MAXRESPONSETIME) VALUES (?,?,?,?,?,?,?,?,?,?,?)";
 	private static final String UPDATE_ENGINE_USER = "UPDATE ENGINEPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, "
 			+ "PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=?, USAGERESTRICTION=?, USAGEFREQUENCY=?, MAXTOKENS=?, "
 			+ "MAXRESPONSETIME=? WHERE USERID=? AND ENGINEID=?";
@@ -1106,12 +1106,12 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * <li>A removal: {@code NO_ACCESS} when the person has none to take away;
 	 * {@code CHANGES_AUTHOR} when a non-owner takes away an Author's access.</li>
 	 * </ul>
-	 * A favorite or visibility row has no level, so it counts as no access, and an
-	 * add over it fills it in.
+	 * A row with no level counts as no access, and an add over it fills it in.
+	 * Favorites and visibility used to be kept on the permission row, so saving one
+	 * for a person with no grant added a row with no level.
 	 *
 	 * @param existingLevels each person's level in the rows that exist now, by id;
-	 *                       a person whose only rows are favorite or visibility
-	 *                       rows maps to null
+	 *                       a person whose only rows have no level maps to null
 	 */
 	private static void validatePersonChange(User user, PermissionTargetResource target,
 			PermissionAllowedChanges allowed, PermissionChangeValidation validation,
@@ -1144,9 +1144,9 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 		}
 
 		// Step 3: what access does the person have now? Their level was read with
-		// everyone else's in the batch (step 5 of validateBatch). A favorite or
-		// visibility row has no level, so it counts as no access, and an add fills
-		// that row in rather than adding a second one.
+		// everyone else's in the batch (step 5 of validateBatch). A row with no
+		// level counts as no access, and an add fills that row in rather than adding
+		// a second one.
 		Integer currentLevelId = existingLevels.get(validation.getSubjectId());
 		validation.setCurrentLevelId(currentLevelId);
 		validation.setHasPreferenceRow(currentLevelId == null && existingLevels.containsKey(validation.getSubjectId()));
@@ -1371,8 +1371,7 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	 * Reads the rows that exist now for each person on a project, an engine or an
 	 * insight, in one query, ended or not, since a change writes over every row a
 	 * person has. A person with more than one row gets the highest level among
-	 * them; a person whose only rows are favorite or visibility rows, which have no
-	 * level, maps to null.
+	 * them; a person whose only rows have no level maps to null.
 	 *
 	 * @return each person's level in their rows, by id; a person with no row is not
 	 *         in the map
@@ -1432,8 +1431,8 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 	private static void writeChange(Connection conn, IRDBMSEngine securityDb, PermissionTargetResource target,
 			PermissionChangeValidation validation, Pair<String, String> grantor, Timestamp now,
 			PermissionBatchOptions options) throws Exception {
-		// an add over a favorite or visibility row fills in that row rather than
-		// adding a second one, since the tables have no key
+		// an add over a row with no level fills in that row rather than adding a
+		// second one, since the tables have no key
 		PermissionChange.Action action = validation.getChange().getAction() == PermissionChange.Action.ADD
 				&& validation.hasPreferenceRow() ? PermissionChange.Action.CHANGE : validation.getChange().getAction();
 		boolean isTeam = validation.getChange().getSubject().getKind() == PermissionSubject.Kind.TEAM;
@@ -1503,7 +1502,6 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 					ps.setString(i++, subjectId);
 					ps.setString(i++, id);
 					ps.setInt(i++, level);
-					ps.setBoolean(i++, true);
 					ps.setString(i++, grantor.getValue0());
 					ps.setString(i++, grantor.getValue1());
 					ps.setTimestamp(i++, now);
@@ -1540,7 +1538,6 @@ final class PermissionBatchUtils extends AbstractSecurityUtils {
 					ps.setString(i++, subjectId);
 					ps.setString(i++, id);
 					ps.setInt(i++, level);
-					ps.setBoolean(i++, true);
 					ps.setString(i++, grantor.getValue0());
 					ps.setString(i++, grantor.getValue1());
 					ps.setTimestamp(i++, now);

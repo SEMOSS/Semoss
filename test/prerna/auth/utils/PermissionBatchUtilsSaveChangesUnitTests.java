@@ -144,12 +144,12 @@ class PermissionBatchUtilsSaveChangesUnitTests extends AbstractSecurityUtilsUnit
 	}
 
 	///
-	/// favorite and visibility rows
+	/// rows with no level
 	///
 
 	@Test
-	void givingAccessFillsInAFavoriteRowRatherThanAddingASecondRow() throws Exception {
-		insertPreferenceRow("PROJECTPERMISSION", "PROJECTID", PROJECT_ID, "strangerid");
+	void givingAccessFillsInARowWithNoLevelRatherThanAddingASecondRow() throws Exception {
+		insertRowWithNoLevel("PROJECTPERMISSION", "PROJECTID", PROJECT_ID, "strangerid");
 
 		SecurityProjectUtils.addProjectUser(owner, "strangerid", PROJECT_ID, "EDIT", null);
 
@@ -158,8 +158,6 @@ class PermissionBatchUtilsSaveChangesUnitTests extends AbstractSecurityUtilsUnit
 						"SELECT COUNT(*) FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", "strangerid",
 						PROJECT_ID)).longValue());
 		assertEquals(2, SecurityProjectUtils.getUserProjectPermission("strangerid", PROJECT_ID));
-		assertEquals(true, UnitTestGroupTables.queryValue(securityDb,
-				"SELECT FAVORITE FROM PROJECTPERMISSION WHERE USERID=? AND PROJECTID=?", "strangerid", PROJECT_ID));
 	}
 
 	///
@@ -261,14 +259,12 @@ class PermissionBatchUtilsSaveChangesUnitTests extends AbstractSecurityUtilsUnit
 	/// helpers
 	///
 
-	private void insertPreferenceRow(String table, String idColumn, String id, String userId) throws Exception {
+	private void insertRowWithNoLevel(String table, String idColumn, String id, String userId) throws Exception {
 		try (Connection conn = securityDb.getConnection();
-				PreparedStatement ps = conn.prepareStatement("INSERT INTO " + table + " (USERID, " + idColumn
-						+ ", VISIBILITY, FAVORITE, PERMISSION) VALUES (?,?,?,?,NULL)")) {
+				PreparedStatement ps = conn.prepareStatement(
+						"INSERT INTO " + table + " (USERID, " + idColumn + ", PERMISSION) VALUES (?,?,NULL)")) {
 			ps.setString(1, userId);
 			ps.setString(2, id);
-			ps.setBoolean(3, true);
-			ps.setBoolean(4, true);
 			ps.execute();
 			if (!conn.getAutoCommit()) {
 				conn.commit();

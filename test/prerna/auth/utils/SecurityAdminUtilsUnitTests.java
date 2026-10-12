@@ -1408,54 +1408,6 @@ public class SecurityAdminUtilsUnitTests extends AbstractSecurityUtilsUnitTestsS
 	}
 
 	///
-	/// getProjectsAndVisibilityUserHasExplicitAccess
-	///
-
-	@Test
-	void testGetProjectsAndVisibilityUserHasExplicitAccess_empty() {
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-
-		Map<String, Boolean> projects = instance.getProjectsAndVisibilityUserHasExplicitAccess("user2id");
-		assertNotNull(projects);
-		assertTrue(projects.isEmpty());
-	}
-
-	@Test
-	void testGetProjectsAndVisibilityUserHasExplicitAccess_hasAccess() throws IllegalAccessException {
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("project1", "Project One", adminUser);
-		SecurityProjectUtils.addProjectUser(adminUser, "user2id", "project1", "READ_ONLY", null);
-
-		Map<String, Boolean> projects = instance.getProjectsAndVisibilityUserHasExplicitAccess("user2id");
-		assertNotNull(projects);
-		assertTrue(projects.containsKey("project1"));
-	}
-
-	///
-	/// getEnginesAndVisibilityUserHasExplicitAccess
-	///
-
-	@Test
-	void testGetEnginesAndVisibilityUserHasExplicitAccess_empty() {
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-
-		Map<String, Boolean> engines = instance.getEnginesAndVisibilityUserHasExplicitAccess("user2id", null);
-		assertNotNull(engines);
-		assertTrue(engines.isEmpty());
-	}
-
-	@Test
-	void testGetEnginesAndVisibilityUserHasExplicitAccess_hasAccess() throws IllegalAccessException {
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createEngine("engine1", "Engine One", adminUser);
-		SecurityEngineUtils.addEngineUser(adminUser, "user2id", "engine1", "READ_ONLY", null, null, null, 0, 0.0);
-
-		Map<String, Boolean> engines = instance.getEnginesAndVisibilityUserHasExplicitAccess("user2id", null);
-		assertNotNull(engines);
-		assertTrue(engines.containsKey("engine1"));
-	}
-
-	///
 	/// grantNewUsersEngineAccess
 	///
 
