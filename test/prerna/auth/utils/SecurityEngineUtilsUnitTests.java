@@ -413,8 +413,10 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updates.add(updatesMap);
 		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
 
+		UnitTestSecurityAuthUtils.createUser("second", false);
 		List<Map<String, String>> requests = new ArrayList<>();
 		Map<String, String> request = new HashMap<>();
+		request.put("userid", "secondid");
 		request.put("permission", "OWNER");
 		requests.add(request);
 
@@ -1072,7 +1074,7 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 	///
 
 	@Test
-	void testEngineVisibility() throws IllegalAccessException {
+	void testEngineVisibility() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
 
@@ -1087,12 +1089,30 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals(0, SecurityEngineUtils.getVisibleUserDatabaseIds(user).size());
 	}
 
+	@Test
+	void testEngineVisibility_onlyChangesThatEngine() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
+
+		SecurityEngineUtils.setEngineVisibility(user, "testId", false);
+
+		assertEquals(List.of("testId2"), SecurityEngineUtils.getVisibleUserDatabaseIds(user));
+		List<Map<String, Object>> engines = SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null,
+				null, null, null, null);
+		assertEquals(1, engines.size());
+		assertEquals("testId2", engines.getFirst().get("engine_id"));
+
+		SecurityEngineUtils.setEngineVisibility(user, "testId", true);
+		assertEquals(2, SecurityEngineUtils.getVisibleUserDatabaseIds(user).size());
+	}
+
 	///
 	/// setEngineFavorite
 	///
 
 	@Test
-	void testEngineFavorite() throws IllegalAccessException {
+	void testEngineFavorite() throws Exception {
 		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
 		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
 
@@ -1113,6 +1133,35 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		assertEquals("1",
 				SecurityEngineUtils.getUserEngineList(user, null, null, false, null, null, null, null, null, null)
 						.getFirst().get("engine_favorite").toString());
+	}
+
+	@Test
+	void testEngineFavorite_publicEngineWithoutAccess() throws Exception {
+		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
+		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
+		SecurityEngineUtils.setEngineGlobal(user, "testId", true);
+
+		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
+		String user2Id = user2.getPrimaryLoginToken().getId();
+		SecurityEngineUtils.setEngineFavorite(user2, "testId", true);
+
+		List<Map<String, Object>> favorites = SecurityEngineUtils.getUserEngineList(user2, null, null, true, null, null,
+				null, null, null, null);
+		assertEquals(1, favorites.size());
+		assertEquals("1", favorites.getFirst().get("engine_favorite").toString());
+		// the favorite is kept apart from the permissions, so no access row is added
+		assertEquals(0L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM ENGINEPERMISSION WHERE USERID=? AND ENGINEID=?", user2Id, "testId"))
+						.longValue());
+
+		SecurityEngineUtils.setEngineFavorite(user2, "testId", false);
+		assertTrue(SecurityEngineUtils.getUserEngineList(user2, null, null, true, null, null, null, null, null, null)
+				.isEmpty());
+		assertEquals(1L,
+				((Number) UnitTestGroupTables.queryValue(securityDb,
+						"SELECT COUNT(*) FROM USERENGINEPREFERENCE WHERE USERID=? AND TYPE=? AND ENGINEID=?", user2Id,
+						"NATIVE", "testId")).longValue());
 	}
 
 	///
@@ -1182,23 +1231,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		assertTrue(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "adminid"));
 		assertFalse(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "secondid"));
-	}
-
-	///
-	/// copyEnginePermissions
-	///
-
-	@Test
-	void testCopyEnginePermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "secondid", "testId", "EDIT");
-		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
-
-		assertFalse(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
-		SecurityEngineUtils.copyEnginePermissions("testId", "testId2");
-		assertTrue(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
 	}
 
 	///

@@ -59,8 +59,8 @@ public final class BrainTopicRoomUtils {
 	private static final String LOCK = "topic-room";
 	private static final String OWNED_ROOM = " WHERE OWNER_ID = ? AND OWNER_TYPE = ? AND ROOM_ID = ?";
 
-	/** The owner's own collaboration chat and the thread it was opened from (null for a plain chat). */
-	record Chat(String roomId, String threadId) {
+	/** The owner's own collaboration chat, the thread it was opened from (null for a plain chat), and its options. */
+	record Chat(String roomId, String threadId, Map<String, Object> options) {
 	}
 
 	private BrainTopicRoomUtils() {
@@ -102,7 +102,7 @@ public final class BrainTopicRoomUtils {
 		if (user == null || !CollaborationUtils.isAssistantRoom(room)) {
 			return List.of();
 		}
-		return linkedTopics(user, new Chat(room.getId(), CollaborationUtils.threadIdOf(room)));
+		return linkedTopics(user, new Chat(room.getId(), CollaborationUtils.threadIdOf(room), room.getOptionsMap()));
 	}
 
 	/** The same for a chat known by id; "Chat not found" for anything but the user's own assistant chat. */
@@ -330,7 +330,7 @@ public final class BrainTopicRoomUtils {
 		if (delegation != null && !String.valueOf(delegation).isBlank()) {
 			throw new IllegalArgumentException("Chat not found");
 		}
-		return new Chat(roomId, CollaborationUtils.threadIdOf(options));
+		return new Chat(roomId, CollaborationUtils.threadIdOf(options), options);
 	}
 
 	// the user's open rooms among roomIds: roomId, name, updatedAt

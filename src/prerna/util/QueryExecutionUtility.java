@@ -199,6 +199,54 @@ public class QueryExecutionUtility {
 	}
 
 	/**
+	 * Binds a batch entry for each row a query reads from the source, and executes
+	 * the batch every {@code flushEvery} rows, all in one owned transaction on the
+	 * target.
+	 *
+	 * @return the number of rows batched
+	 */
+	public static int executeBatchFromQuery(IRDBMSEngine target, String sql, IDatabaseEngine source,
+			SelectQueryStruct qs, int flushEvery, BatchBinder<IHeadersDataRow> binder) throws Exception {
+		return write(target, connection -> executeBatchFromQuery(connection, sql, source, qs, flushEvery, binder));
+	}
+
+	/**
+	 * Binds a batch entry for each row a query reads from the source, and executes
+	 * the batch every {@code flushEvery} rows, so a large source never builds one
+	 * batch in memory. Values that must go in as read, such as a clob, are in
+	 * {@link IHeadersDataRow#getRawValues()}. Closes the wrapper and the statement;
+	 * does not complete the caller's transaction.
+	 *
+	 * @return the number of rows batched
+	 * @throws IllegalArgumentException when {@code flushEvery} is not positive
+	 */
+	public static int executeBatchFromQuery(Connection connection, String sql, IDatabaseEngine source,
+			SelectQueryStruct qs, int flushEvery, BatchBinder<IHeadersDataRow> binder) throws Exception {
+		Objects.requireNonNull(source, "source");
+		Objects.requireNonNull(qs, "qs");
+		Objects.requireNonNull(binder, "binder");
+		if (flushEvery < 1) {
+			throw new IllegalArgumentException("flushEvery must be positive");
+		}
+		int count = 0;
+		try (PreparedStatement statement = connection.prepareStatement(sql);
+				IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(source, qs)) {
+			while (wrapper.hasNext()) {
+				statement.clearParameters();
+				binder.bind(statement, wrapper.next());
+				statement.addBatch();
+				if (++count % flushEvery == 0) {
+					statement.executeBatch();
+				}
+			}
+			if (count % flushEvery != 0) {
+				statement.executeBatch();
+			}
+		}
+		return count;
+	}
+
+	/**
 	 * Returns the mapped first row, or null if absent; later rows are ignored. Owns
 	 * a read transaction.
 	 */

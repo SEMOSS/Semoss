@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Reading loosely typed values: text that may be missing or blank, text that
@@ -50,6 +51,10 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Check whether text is missing, such as an optional parameter that was left
+	 * out or sent as spaces. Blank means empty once trimmed with
+	 * {@link String#trim()}.
+	 *
 	 * @param value the text
 	 * @return whether it is null, or empty once trimmed
 	 */
@@ -58,6 +63,10 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read optional text, such as an optional request parameter, so that missing
+	 * and blank text both read as null and present text loses its leading and
+	 * trailing spaces.
+	 *
 	 * @param value the text
 	 * @return the text trimmed, or null when it is null or blank
 	 */
@@ -70,6 +79,11 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read an optional value as trimmed text, such as a field from a
+	 * {@code Map<String, Object>} request body or JSON. The value is read through
+	 * {@link Object#toString()}, so a value whose text is null or blank reads as
+	 * null.
+	 *
 	 * @param value the value
 	 * @return the value as text, trimmed, or null when it is null or blank
 	 */
@@ -95,6 +109,9 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read text that may be missing as trimmed text, for callers that would rather
+	 * hold an empty string than null. Blank text reads as an empty string.
+	 *
 	 * @param value the text
 	 * @return the text trimmed, or an empty string when it is null
 	 */
@@ -103,6 +120,38 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a value that may be missing as trimmed text, such as a field from a
+	 * {@code Map<String, Object>} request body. The value is read through
+	 * {@link Object#toString()} and nothing else, so numbers, booleans, JSON and
+	 * collections are not parsed, and spaces inside the text stay.
+	 *
+	 * @param value the value
+	 * @return the value as text, trimmed, or an empty string when it or its text is
+	 *         null
+	 */
+	public static String trimToEmpty(Object value) {
+		return value == null ? "" : trimToEmpty(value.toString());
+	}
+
+	/**
+	 * Build a key to compare text by, such as a filter or a lookup label. The lower
+	 * case uses the root locale, so it does not depend on the default locale, and
+	 * it is not full Unicode case folding. Spaces inside the text, punctuation and
+	 * accents stay as they are.
+	 *
+	 * @param value the text
+	 * @return the text trimmed and in lower case, or an empty string when it is
+	 *         null
+	 */
+	public static String lowerCaseTrimToEmpty(String value) {
+		return trimToEmpty(value).toLowerCase(Locale.ROOT);
+	}
+
+	/**
+	 * Read a value as text without changing it, such as an id that may be missing.
+	 * Unlike {@link #trimToNull(Object)}, the text is not trimmed and blank text is
+	 * kept.
+	 *
 	 * @param value the value
 	 * @return the value as text, or null when it is null
 	 */
@@ -111,6 +160,10 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a value as text without changing it, for callers that would rather hold
+	 * an empty string than null. Unlike {@link #trimToEmpty(Object)}, the text is
+	 * not trimmed.
+	 *
 	 * @param value the value
 	 * @return the value as text, or an empty string when it is null
 	 */
@@ -119,6 +172,10 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a value as text that must have content while keeping its spacing, such
+	 * as a display label whose spaces matter. Blank text reads as null, as with
+	 * {@link #trimToNull(Object)}, but present text is returned untrimmed.
+	 *
 	 * @param value the value
 	 * @return the value as text, as it is, or null when it is null or blank
 	 */
@@ -131,6 +188,27 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Choose between a value and its fallback, such as a typed configuration value
+	 * or a display label whose spacing should stay. The chosen one is returned as
+	 * it is, and the fallback is never read.
+	 *
+	 * @param <T>      the type of the value
+	 * @param value    the value
+	 * @param fallback what a null or blank value means, even when it is itself null
+	 *                 or blank
+	 * @return the value, or the fallback when the value or its text is null or
+	 *         blank
+	 */
+	public static <T> T defaultIfBlank(T value, T fallback) {
+		return trimToNull(value) == null ? fallback : value;
+	}
+
+	/**
+	 * Read a flag that may come as text, such as a request parameter or a
+	 * configuration entry, using the fallback when it is missing. Only {@code true}
+	 * in any case reads as true, so other text such as {@code yes} or {@code 1}
+	 * reads as false.
+	 *
 	 * @param value    the text, such as {@code "true"}
 	 * @param fallback what a null or blank value means
 	 * @return true when the text is {@code true} in any case, false for anything
@@ -163,6 +241,31 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a number that may come as a number or as text, such as a value read from
+	 * JSON or a form.
+	 *
+	 * @param value the value
+	 * @return the number as it is, the text read as a decimal, or null when the
+	 *         value is null or blank
+	 * @throws NumberFormatException when the value is text that is not a number,
+	 *                               which callers can answer as a bad request
+	 */
+	public static Number toNumberOrNull(Object value) {
+		if (value instanceof Number number) {
+			return number;
+		}
+		String trimmed = trimToNull(value);
+		if (trimmed == null) {
+			return null;
+		}
+		try {
+			return Double.valueOf(trimmed);
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Not a number: " + trimmed);
+		}
+	}
+
+	/**
 	 * Read a set of values that may come as one value, a collection, nested
 	 * collections, or comma separated text, or any mixture of them.
 	 *
@@ -177,6 +280,14 @@ public final class ValueUtils {
 		return values;
 	}
 
+	/**
+	 * Add a value to the list, walking into collections and splitting text on
+	 * commas when asked. Each entry is trimmed and blank entries are dropped.
+	 *
+	 * @param values      the list to add to
+	 * @param value       the value, a collection of values, or null
+	 * @param splitCommas whether text is split on commas
+	 */
 	private static void addValues(List<String> values, Object value, boolean splitCommas) {
 		if (value == null) {
 			return;

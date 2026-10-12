@@ -29,7 +29,9 @@ package prerna.reactor.collaboration;
 
 import java.util.HashMap;
 
+import prerna.collaboration.BrainSync;
 import prerna.collaboration.CollaborationJobUtils;
+import prerna.collaboration.WorkThreadInsights;
 import prerna.sablecc2.om.nounmeta.NounMetadata;
 
 // BrainGetJob(); or BrainGetJob(kind=["import"]);
@@ -50,12 +52,17 @@ public class BrainGetJobReactor extends AbstractCollaborationReactor {
 		String jobId = getString(JOB_ID);
 		var job = jobId == null ? CollaborationJobUtils.latest(user, getString(KIND), getString(MODE))
 				: CollaborationJobUtils.get(user, jobId);
-		return mapResult(job == null ? new HashMap<>() : job);
+		var result = job == null ? new HashMap<String, Object>() : new HashMap<>(job);
+		// a sync's summaries keep landing after it finishes; the page reads again until none are left
+		if (BrainSync.KIND.equals(getString(KIND))) {
+			result.put("insightsPending", WorkThreadInsights.pendingCount(user));
+		}
+		return mapResult(result);
 	}
 
 	@Override
 	public String getReactorDescription() {
-		return "Read an owner-scoped background job by exact ID or the newest import/classify job, optionally filtered by sort/topics mode: status, progress, counts and error";
+		return "Read an owner-scoped background job by exact ID or the newest import/classify job, optionally filtered by sort/topics mode: status, progress, counts and error; with kind sync also insightsPending, the thread summaries still running";
 	}
 
 	@Override
