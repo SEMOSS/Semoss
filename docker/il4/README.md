@@ -204,6 +204,17 @@ exact upstream fix. See `applied_source_patches` in
 verification, including reproducing the advisory's RCE proof-of-concept
 against both the unpatched and patched package.
 
+`datasets` likewise stays at 4.4.0 rather than bumped to 5.0.1 for the same
+pyarrow-pin reason, leaving CVE-2026-66007 (path traversal via unsanitized
+`file_name` metadata in folder-based dataset builders, triggered only via
+`save_to_disk`/`push_to_hub`) open rather than source-patched. Unlike fsspec,
+this is accepted as-is rather than patched: SEMOSS's only `datasets` usage is
+in-memory `Dataset.from_dict`/`concatenate_datasets` construction, and neither
+a folder-based `load_dataset()` builder nor `save_to_disk`/`push_to_hub`
+appears anywhere in the codebase, so neither precondition the exploit needs is
+present. See `accepted_vulnerabilities` in
+[compatibility.json](./python-dependencies/compatibility.json).
+
 The build uses hash-pinned uv and build tools, verifies dependency artifact hashes,
 routes PyTorch packages explicitly to its CPU index, and checks the installed
 dependency graph. Annoy, pandasql, and swifter require source builds; their sdists,

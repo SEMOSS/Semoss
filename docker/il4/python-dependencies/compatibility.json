@@ -85,6 +85,17 @@
       "verification": "Hash-guarded against fsspec 2023.10.0's exact reference.py source (same pattern as audio_compat.py); each of the three replacement blocks confirmed to occur exactly once, and the patched source compiles. Functionally verified twice: once in an ad hoc venv, and again inside the real built python-dependencies image for linux/amd64. Reproduced the advisory's own RCE proof-of-concept (a Kerchunk reference JSON with a 'gen' array whose templated key/url triggers jinja2.sandbox.SecurityError before the patch raises an unhandled exception) - unpatched fsspec 2023.10.0 fires the RCE (marker file created), patched fsspec raises jinja2.sandbox.SecurityError and creates no marker file. Also confirmed the advisory's documented benign case (plain '{{var}}' substitution) still resolves correctly, so legitimate Kerchunk usage is unaffected. The project's own validate.py (29 checks, 260 locked packages) passes unchanged since fsspec's version and public API are untouched."
     }
   ],
+  "accepted_vulnerabilities": [
+    {
+      "requirement": "datasets",
+      "version": "4.4.0",
+      "cve": "CVE-2026-66007",
+      "summary": "Path traversal via unsanitized file_name metadata in folder-based dataset builders (e.g. imagefolder/audiofolder); fixed upstream in 5.0.1.",
+      "reason_not_fixed": "Reaching 5.0.1 requires pyarrow>=24.0.0, reopening the pyarrow==23.0.1 pin tuned for CPython 3.14 wheel availability and CVE-2026-25087 (same tradeoff as the fsspec entry above, and no smaller in-range fix exists this time - unlike fast-uri's parallel 3.x track, datasets has no backport; 5.0.1 is the actual minimum fix).",
+      "not_exploitable_because": "The vulnerability requires two things in sequence: (1) loading a folder-based dataset whose file_name metadata is attacker-controlled, via datasets.load_dataset() with a folder builder (imagefolder, audiofolder, etc.), and (2) then calling save_to_disk() or push_to_hub() on it, which is the actual read-and-embed step. SEMOSS's only datasets usage (py/vector_database/faiss/_legacy_pickle_migration.py, py/legacy/legacy-3-18-25/gaas_simple_faiss.py, py/prototype/temporal_frame.py) is limited to Dataset.from_dict-style in-memory construction and concatenate_datasets; neither load_dataset with a folder builder nor save_to_disk/push_to_hub appears anywhere in the codebase (confirmed via grep across py/). Both gates the exploit depends on are absent, not just one.",
+      "reassess_if": "A future use of datasets.load_dataset() with a folder-based builder (imagefolder/audiofolder/etc.) or a call to Dataset.save_to_disk()/push_to_hub() is introduced; either would reopen this as a live finding worth revisiting the pyarrow cascade for."
+    }
+  ],
   "additional_constraints": [
     {
       "requirement": "dill>=0.4.0",
