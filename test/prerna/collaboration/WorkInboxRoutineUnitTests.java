@@ -356,6 +356,8 @@ class WorkInboxRoutineUnitTests {
 	@ParameterizedTest
 	@ValueSource(booleans = { false, true })
 	void completedAgentBriefIsStoredPrivatelyAndDuplicateDeliveryDoesNotScanAgain(boolean alreadySaved) throws Exception {
+		String scanAt = "2026-10-12T12:00:00.123Z";
+		at(scanAt);
 		backgroundAvailable();
 		if (alreadySaved) {
 			savedTokens.put("ms-owner", microsoftToken("ms-owner"));
@@ -371,12 +373,16 @@ class WorkInboxRoutineUnitTests {
 		AgentRunService service = mock(AgentRunService.class);
 		when(service.run(any(AgentRunRequest.class))).thenAnswer(call -> new AgentRunHandle("run-1",
 				((AgentRunRequest) call.getArgument(0)).getRoomId(), AgentRunStatus.SUBMITTED));
-		when(service.waitForRun("run-1", insight, 600_000L)).thenReturn(Map.of("status", "COMPLETED", "finalText", "Your private daily brief."));
+		when(service.waitForRun("run-1", insight, 600_000L)).thenAnswer(call -> {
+			at("2026-10-12T12:05:00Z");
+			return Map.of("status", "COMPLETED", "finalText", "Your private daily brief.");
+		});
 		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
 				MockedStatic<RoomUtils> rooms = mockStatic(RoomUtils.class);
 				MockedStatic<AgentRunService> services = mockStatic(AgentRunService.class);
 				MockedConstruction<MicrosoftOutlookMailHelper> mail = mockConstruction(MicrosoftOutlookMailHelper.class,
-						(helper, context) -> when(helper.listMessages(any(), isNull(), any())).thenReturn(List.of(Map.of("subject", "Project update"))))) {
+						(helper, context) -> when(helper.listMessages(any(), isNull(), any()))
+								.thenReturn(List.of(email("Project update", "2026-10-11T12:00:00Z", true))))) {
 			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
 			services.when(AgentRunService::get).thenReturn(service);
 			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
@@ -388,14 +394,157 @@ class WorkInboxRoutineUnitTests {
 			assertEquals("Your private daily brief.", brief.get("summary"));
 			assertNotNull(brief.get("roomId"));
 			assertNotNull(brief.get("finishedAt"));
+			assertEquals(scanAt, lastSuccess());
+			assertEquals("2026-10-12T12:05:00Z", brief.get("finishedAt"));
 			assertNull(WorkInboxRoutine.get(owner("another-owner")).get("lastRun"));
 			assertEquals("skipped", WorkInboxRoutine.run(insight).get("status"));
 			assertEquals(1, mail.constructed().size());
-			verify(mail.constructed().getFirst()).listMessages(eq("secret-token"), isNull(), any());
+			ArgumentCaptor<MicrosoftOutlookMailHelper.MessageQuery> queries = ArgumentCaptor.forClass(MicrosoftOutlookMailHelper.MessageQuery.class);
+			verify(mail.constructed().getFirst()).listMessages(eq("secret-token"), isNull(), queries.capture());
+			assertNull(queries.getValue().since);
+			assertEquals(Instant.parse(scanAt), queries.getValue().until.toInstant());
+			assertFalse(queries.getValue().unreadOnly);
+			assertEquals(25, queries.getValue().top);
 			ArgumentCaptor<AgentRunRequest> requests = ArgumentCaptor.forClass(AgentRunRequest.class);
 			verify(service).run(requests.capture());
 			assertEquals(InboxBriefHarness.NAME, requests.getValue().getHarnessType());
 			assertTrue(requests.getValue().getInput().contains("Project update"));
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void failedBriefPreservesTheSuccessfulCutoffAndRetryCatchesUp(boolean legacyCompletedRow) throws Exception {
+		Insight insight = enabledRoutine();
+		String prior = "2026-10-10T08:00:00Z";
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET LAST_SUCCESS_AT = ?, RUN_STATUS = ?, STARTED_AT = ?",
+				legacyCompletedRow ? null : CollaborationDbUtils.toTimestamp(prior, "prior"),
+				legacyCompletedRow ? "completed" : "failed", CollaborationDbUtils.toTimestamp(prior, "prior"));
+		at("2026-10-12T08:00:00Z");
+		AgentRunService service = mock(AgentRunService.class);
+		when(service.run(any())).thenAnswer(call -> new AgentRunHandle("retry-run",
+				((AgentRunRequest) call.getArgument(0)).getRoomId(), AgentRunStatus.SUBMITTED));
+		when(service.waitForRun("retry-run", insight, 600_000L)).thenReturn(Map.of("status", "FAILED"),
+				Map.of("status", "COMPLETED", "finalText", "Caught up."));
+		List<Map<String, Object>> messages = List.of(
+				email("Arrived during earlier model call", "2026-10-12T08:01:00Z", false),
+				email("New read message", "2026-10-12T07:00:00Z", true),
+				email("Unread since Friday", "2026-10-11T07:00:00Z", false),
+				email("Already covered at cutoff", prior, false),
+				email("Old message", "2026-10-09T00:00:00Z", false));
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
+				MockedStatic<RoomUtils> rooms = mockStatic(RoomUtils.class);
+				MockedStatic<AgentRunService> services = mockStatic(AgentRunService.class);
+				MockedConstruction<MicrosoftOutlookMailHelper> mail = mockConstruction(MicrosoftOutlookMailHelper.class,
+						(helper, context) -> when(helper.listMessages(any(), isNull(), any())).thenReturn(messages))) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
+			services.when(AgentRunService::get).thenReturn(service);
+			assertThrows(IllegalStateException.class, () -> WorkInboxRoutine.run(insight));
+			assertEquals(prior, lastSuccess());
+			assertEquals("failed", ((Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun")).get("status"));
+			// Simulate the next scheduled day's database claim without changing the host clock.
+			CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET LAST_DATE = NULL");
+			at("2026-10-13T08:00:00Z");
+			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
+			assertEquals("2026-10-13T08:00:00Z", lastSuccess());
+			ArgumentCaptor<AgentRunRequest> requests = ArgumentCaptor.forClass(AgentRunRequest.class);
+			verify(service, times(2)).run(requests.capture());
+			assertFalse(requests.getAllValues().getFirst().getInput().contains("Arrived during earlier model call"));
+			assertTrue(requests.getAllValues().getLast().getInput().contains("Arrived during earlier model call"));
+			for (AgentRunRequest request : requests.getAllValues()) {
+				assertTrue(request.getInput().contains("New read message"));
+				assertTrue(request.getInput().contains("Unread since Friday"));
+				assertFalse(request.getInput().contains("Already covered at cutoff"));
+				assertFalse(request.getInput().contains("Old message"));
+			}
+			for (MicrosoftOutlookMailHelper helper : mail.constructed()) {
+				ArgumentCaptor<MicrosoftOutlookMailHelper.MessageQuery> query = ArgumentCaptor.forClass(MicrosoftOutlookMailHelper.MessageQuery.class);
+				verify(helper).listMessages(any(), isNull(), query.capture());
+				assertEquals(Instant.parse(prior), query.getValue().since.toInstant());
+			}
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(booleans = { false, true })
+	void quietOrEntirelyExcludedInboxStoresAShortBriefWithoutAnAgent(boolean excludedMail) {
+		Insight insight = enabledRoutine();
+		at("2026-10-12T08:00:00Z");
+		Map<String, Object> limited = config(false);
+		limited.put("days", List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"));
+		limited.put("emailCount", 1);
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET SETTINGS_JSON = ?", CollaborationDbUtils.toJson(limited));
+		CollaborationDbUtils.update("INSERT INTO BRAIN_RULE (OWNER_ID, OWNER_TYPE, RULE_ID, KIND, VALUE) VALUES (?, ?, ?, ?, ?)",
+				"owner-one", AuthProvider.NATIVE.getLabel(), "skip-sender", "never_sender", "sender@example.com");
+		Map<String, Object> beyondLimit = new HashMap<>(email("Beyond scan limit", "2026-10-11T07:00:00Z", false));
+		beyondLimit.put("from", Map.of("emailAddress", Map.of("address", "allowed@example.com")));
+		List<Map<String, Object>> messages = excludedMail
+				? List.of(email("Excluded mail", "2026-10-11T08:00:00Z", false), beyondLimit) : List.of();
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
+				MockedStatic<RoomUtils> rooms = mockStatic(RoomUtils.class);
+				MockedStatic<AgentRunService> services = mockStatic(AgentRunService.class);
+				MockedConstruction<MicrosoftOutlookMailHelper> mail = mockConstruction(MicrosoftOutlookMailHelper.class,
+						(helper, context) -> when(helper.listMessages(any(), isNull(), any())).thenReturn(messages))) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
+			assertEquals("completed", WorkInboxRoutine.run(insight).get("status"));
+			Map<?, ?> last = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
+			assertEquals("No new relevant emails.", last.get("summary"));
+			assertNull(last.get("roomId"));
+			assertEquals("2026-10-12T08:00:00Z", lastSuccess());
+			ArgumentCaptor<MicrosoftOutlookMailHelper.MessageQuery> query = ArgumentCaptor.forClass(MicrosoftOutlookMailHelper.MessageQuery.class);
+			verify(mail.constructed().getFirst()).listMessages(any(), isNull(), query.capture());
+			assertEquals(1, query.getValue().top);
+			rooms.verifyNoInteractions();
+			services.verifyNoInteractions();
+		}
+	}
+
+	@Test
+	void recoveredCompletedRunAdvancesOnlyItsOwnersCutoff() {
+		WorkInboxRoutine.save(user, config(false));
+		WorkInboxRoutine.save(owner("another-owner"), config(false));
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET RUN_STATUS = ?, RUN_ID = ?, STARTED_AT = ? WHERE OWNER_ID = ?",
+				"running", "completed-run", CollaborationDbUtils.toTimestamp("2026-10-11T08:00:00Z", "startedAt"), "owner-one");
+		Insight insight = mock(Insight.class); when(insight.getUser()).thenReturn(user);
+		AgentRunService service = mock(AgentRunService.class);
+		when(service.getRun("completed-run", insight)).thenReturn(Map.of("status", "COMPLETED", "finalText", "Recovered brief."));
+		try (MockedStatic<AgentRunService> services = mockStatic(AgentRunService.class)) {
+			services.when(AgentRunService::get).thenReturn(service);
+			assertEquals("Recovered brief.", ((Map<?, ?>) WorkInboxRoutine.get(insight).get("lastRun")).get("summary"));
+			assertEquals("2026-10-11T08:00:00Z", lastSuccess());
+			assertNull(CollaborationDbUtils.queryOne("SELECT LAST_SUCCESS_AT FROM WORK_INBOX_ROUTINE WHERE OWNER_ID = ?",
+					rs -> CollaborationDbUtils.getTimestamp(rs, "LAST_SUCCESS_AT"), "another-owner"));
+		}
+	}
+
+	@Test
+	void supersededExecutionCannotAttachItsAgentToANewerRun() throws Exception {
+		Insight insight = enabledRoutine();
+		at("2026-10-12T08:00:00Z");
+		AgentRunService service = mock(AgentRunService.class);
+		when(service.run(any())).thenAnswer(call -> {
+			CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET STARTED_AT = ?, RUN_ID = ?, ROOM_ID = ?",
+					CollaborationDbUtils.toTimestamp("2026-10-13T08:00:00Z", "newStart"), "newer-run", "newer-room");
+			return new AgentRunHandle("older-run", ((AgentRunRequest) call.getArgument(0)).getRoomId(), AgentRunStatus.SUBMITTED);
+		});
+		try (MockedStatic<SecurityQueryUtils> accounts = mockStatic(SecurityQueryUtils.class);
+				MockedStatic<RoomUtils> rooms = mockStatic(RoomUtils.class);
+				MockedStatic<AgentRunService> services = mockStatic(AgentRunService.class);
+				MockedConstruction<MicrosoftOutlookMailHelper> mail = mockConstruction(MicrosoftOutlookMailHelper.class,
+						(helper, context) -> when(helper.listMessages(any(), isNull(), any()))
+								.thenReturn(List.of(email("New mail", "2026-10-12T07:00:00Z", false))))) {
+			accounts.when(() -> SecurityQueryUtils.getUnlockedUser("owner-one", AuthProvider.NATIVE.getLabel())).thenReturn(Map.of("id", "owner-one"));
+			services.when(AgentRunService::get).thenReturn(service);
+			assertEquals("skipped", WorkInboxRoutine.run(insight).get("status"));
+			Map<?, ?> last = (Map<?, ?>) WorkInboxRoutine.get(user).get("lastRun");
+			assertEquals("running", last.get("status"));
+			assertEquals("newer-room", last.get("roomId"));
+			assertEquals("2026-10-13T08:00:00Z", last.get("startedAt"));
+			assertEquals("newer-run", CollaborationDbUtils.queryOne("SELECT RUN_ID FROM WORK_INBOX_ROUTINE",
+					rs -> rs.getString("RUN_ID")));
+			assertNull(lastSuccess());
+			verify(service).cancelRun(eq("older-run"), anyString());
+			verify(service, never()).waitForRun(anyString(), any(), anyLong());
 		}
 	}
 
@@ -481,6 +630,32 @@ class WorkInboxRoutineUnitTests {
 		when(subscription.getResource()).thenReturn("me/messages");
 		when(subscription.getUser()).thenReturn(microsoftUser);
 		subscriptions.when(() -> MicrosoftGraphSubscriptionRegistry.forUser("ms-owner")).thenReturn(List.of(subscription));
+	}
+
+	private Insight enabledRoutine() {
+		backgroundAvailable();
+		savedTokens.put("ms-owner", microsoftToken("ms-owner"));
+		registry.when(SystemEngineRegistry::isSchedulerDbLoaded).thenReturn(false);
+		Map<String, Object> everyDay = config(false);
+		everyDay.put("days", List.of("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"));
+		WorkInboxRoutine.save(user, everyDay);
+		CollaborationDbUtils.update("UPDATE WORK_INBOX_ROUTINE SET ENABLED = ?", true);
+		Insight insight = mock(Insight.class); when(insight.getUser()).thenReturn(user);
+		return insight;
+	}
+
+	private void at(String instant) {
+		utility.when(Utility::getCurrentSqlTimestampUTC).thenAnswer(call -> CollaborationDbUtils.toTimestamp(instant, "now"));
+	}
+
+	private String lastSuccess() {
+		return CollaborationDbUtils.queryOne("SELECT LAST_SUCCESS_AT FROM WORK_INBOX_ROUTINE WHERE OWNER_ID = ? AND OWNER_TYPE = ?",
+				rs -> CollaborationDbUtils.getTimestamp(rs, "LAST_SUCCESS_AT"), "owner-one", AuthProvider.NATIVE.getLabel());
+	}
+
+	private static Map<String, Object> email(String subject, String received, boolean read) {
+		return Map.of("subject", subject, "receivedDateTime", received, "isRead", read,
+				"from", Map.of("emailAddress", Map.of("address", "sender@example.com")));
 	}
 
 	private static AccessToken microsoftToken(String id) {

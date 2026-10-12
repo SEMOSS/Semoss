@@ -103,6 +103,7 @@ public class CollaborationOwlCreator extends AbstractOwlCreator {
 				Pair.with("RUN_STATUS", VARCHAR_20),
 				Pair.with("STARTED_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("FINISHED_AT", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("LAST_SUCCESS_AT", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("ROOM_ID", VARCHAR_50),
 				Pair.with("RUN_ID", VARCHAR_50),
 				Pair.with("SUMMARY", CLOB_DATATYPE_NAME),
