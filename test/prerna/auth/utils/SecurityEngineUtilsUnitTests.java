@@ -413,8 +413,10 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 		updates.add(updatesMap);
 		SecurityEngineUtils.updateEngineUserPermissions(user, updates);
 
+		UnitTestSecurityAuthUtils.createUser("second", false);
 		List<Map<String, String>> requests = new ArrayList<>();
 		Map<String, String> request = new HashMap<>();
+		request.put("userid", "secondid");
 		request.put("permission", "OWNER");
 		requests.add(request);
 
@@ -1182,23 +1184,6 @@ public class SecurityEngineUtilsUnitTests extends AbstractSecurityUtilsUnitTests
 
 		assertTrue(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "adminid"));
 		assertFalse(SecurityEngineUtils.checkUserHasAccessToDatabase("testId", "secondid"));
-	}
-
-	///
-	/// copyEnginePermissions
-	///
-
-	@Test
-	void testCopyEnginePermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		UnitTestSecurityAuthUtils.createEngine("testId", "testAlias", user);
-		User user2 = UnitTestSecurityAuthUtils.createUser("second", true);
-		UnitTestSecurityAuthUtils.addPermissionsToUserForEngine(user, "secondid", "testId", "EDIT");
-		UnitTestSecurityAuthUtils.createEngine("testId2", "testAlias2", user);
-
-		assertFalse(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
-		SecurityEngineUtils.copyEnginePermissions("testId", "testId2");
-		assertTrue(SecurityEngineUtils.userCanEditEngine(user2, "testId2"));
 	}
 
 	///

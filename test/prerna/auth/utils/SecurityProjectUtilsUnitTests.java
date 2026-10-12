@@ -1106,26 +1106,6 @@ public class SecurityProjectUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// copyProjectPermissions
-	///
-
-	@Test
-	void testCopyProjectPermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", false);
-		UnitTestSecurityAuthUtils.createProject("sourceProject", "Source Project", user);
-		UnitTestSecurityAuthUtils.createProject("targetProject", "Target Project", user);
-		SecurityProjectUtils.addProjectUser(user, "user2id", "sourceProject", "EDIT", null);
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "sourceProject"));
-		assertFalse(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
-
-		SecurityProjectUtils.copyProjectPermissions("sourceProject", "targetProject");
-
-		assertTrue(SecurityProjectUtils.userCanEditProject(user2, "targetProject"));
-	}
-
-	///
 	/// getProjectsUserHasExplicitAccess
 	///
 

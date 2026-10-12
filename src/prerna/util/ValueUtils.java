@@ -163,6 +163,31 @@ public final class ValueUtils {
 	}
 
 	/**
+	 * Read a number that may come as a number or as text, such as a value read from
+	 * JSON or a form.
+	 *
+	 * @param value the value
+	 * @return the number as it is, the text read as a decimal, or null when the
+	 *         value is null or blank
+	 * @throws NumberFormatException when the value is text that is not a number,
+	 *                               which callers can answer as a bad request
+	 */
+	public static Number toNumberOrNull(Object value) {
+		if (value instanceof Number number) {
+			return number;
+		}
+		String trimmed = trimToNull(value);
+		if (trimmed == null) {
+			return null;
+		}
+		try {
+			return Double.valueOf(trimmed);
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Not a number: " + trimmed);
+		}
+	}
+
+	/**
 	 * Read a set of values that may come as one value, a collection, nested
 	 * collections, or comma separated text, or any mixture of them.
 	 *

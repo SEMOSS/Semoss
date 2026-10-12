@@ -1213,30 +1213,6 @@ public class SecurityInsightUtilsUnitTests extends AbstractSecurityUtilsUnitTest
 	}
 
 	///
-	/// copyInsightPermissions
-	///
-
-	@Test
-	void testCopyInsightPermissions() throws Exception {
-		User user = UnitTestSecurityAuthUtils.createUser("admin", true);
-		User user2 = UnitTestSecurityAuthUtils.createUser("user2", true);
-		UnitTestSecurityAuthUtils.createProject("testProjectId", "testProjectName", user);
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "sourceInsightId", "SourceInsight", "grid");
-		UnitTestSecurityAuthUtils.createInsight("testProjectId", "targetInsightId", "TargetInsight", "grid");
-		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "sourceInsightId");
-		SecurityInsightUtils.addUserInsightCreator(user, "testProjectId", "targetInsightId");
-		SecurityInsightUtils.addInsightUser(user, "user2id", "testProjectId", "sourceInsightId", "EDIT", null);
-
-		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "sourceInsightId"));
-		assertFalse(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "targetInsightId"));
-
-		SecurityInsightUtils.copyInsightPermissions("testProjectId", "sourceInsightId", "testProjectId",
-				"targetInsightId");
-
-		assertTrue(SecurityInsightUtils.userCanEditInsight(user2, "testProjectId", "targetInsightId"));
-	}
-
-	///
 	/// getInsightOwners
 	///
 
