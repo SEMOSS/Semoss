@@ -480,6 +480,15 @@ public class SecurityOwlCreator extends AbstractOwlCreator {
 				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
 				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
 
+		addTable("MS_GRAPH_CREDENTIAL", Arrays.asList(
+				Pair.with("USER_ID", VARCHAR_255),
+				Pair.with("USER_EMAIL", VARCHAR_255),
+				Pair.with("ACCESS_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("REFRESH_TOKEN", CLOB_DATATYPE_NAME),
+				Pair.with("TOKEN_EXPIRATION", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("CREATED_ON", TIMESTAMP_DATATYPE_NAME),
+				Pair.with("UPDATED_ON", TIMESTAMP_DATATYPE_NAME)));
+
 		addTable("MS_GRAPH_SUBSCRIPTION", Arrays.asList(
 				Pair.with("SUBSCRIPTION_ID", VARCHAR_255),
 				Pair.with("USER_ID", VARCHAR_255),

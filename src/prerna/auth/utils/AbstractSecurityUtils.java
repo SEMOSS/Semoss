@@ -2853,6 +2853,33 @@ public abstract class AbstractSecurityUtils {
 				}
 			}
 
+			// Delegated credentials for opted-in background work, independent of webhooks.
+			colNames = new String[] { "USER_ID", "USER_EMAIL", "ACCESS_TOKEN", "REFRESH_TOKEN", "TOKEN_EXPIRATION",
+					"CREATED_ON", "UPDATED_ON" };
+			types = new String[] { VARCHAR_255, VARCHAR_255, CLOB_DATATYPE_NAME, CLOB_DATATYPE_NAME,
+					TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME, TIMESTAMP_DATATYPE_NAME };
+			if (allowIfExistsTable) {
+				securityDb.insertData(queryUtil.createTableIfNotExists("MS_GRAPH_CREDENTIAL", colNames, types));
+			} else if (!queryUtil.tableExists(conn, "MS_GRAPH_CREDENTIAL", database, schema)) {
+				securityDb.insertData(queryUtil.createTable("MS_GRAPH_CREDENTIAL", colNames, types));
+			}
+			{
+				List<String> allCols = queryUtil.getTableColumns(conn, "MS_GRAPH_CREDENTIAL", database, schema);
+				for (int i = 0; i < colNames.length; i++) {
+					String col = colNames[i];
+					if (!allCols.contains(col) && !allCols.contains(col.toLowerCase())) {
+						securityDb.insertData(queryUtil.alterTableAddColumn("MS_GRAPH_CREDENTIAL", col, types[i]));
+					}
+				}
+			}
+			if (allowIfExistsIndexs
+					|| !queryUtil.indexExists(securityDb, "IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", database, schema)) {
+				String sql = allowIfExistsIndexs
+						? queryUtil.createIndexIfNotExists("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID")
+						: queryUtil.createIndex("IX_MSGC_USER_UNIQUE", "MS_GRAPH_CREDENTIAL", "USER_ID");
+				securityDb.insertData(sql.replaceFirst("(?i)CREATE INDEX", "CREATE UNIQUE INDEX"));
+			}
+
 			// MS_GRAPH_SUBSCRIPTION
 			// the Microsoft Graph change notification subscriptions this deployment
 			// created. A notification carries a subscription id and nothing else, and any
