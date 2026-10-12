@@ -29,20 +29,16 @@ package prerna.auth.utils;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Vector;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,9 +47,14 @@ import org.javatuples.Pair;
 import prerna.algorithm.api.ITableDataFrame;
 import prerna.algorithm.api.SemossDataType;
 import prerna.auth.AccessPermissionEnum;
-import prerna.auth.AccessToken;
 import prerna.auth.AuthProvider;
 import prerna.auth.User;
+import prerna.auth.access.PermissionChange;
+import prerna.auth.access.PermissionErrorRules;
+import prerna.auth.access.PermissionGrant;
+import prerna.auth.access.PermissionProblem;
+import prerna.auth.access.PermissionSubject;
+import prerna.auth.access.PermissionTargetResource;
 import prerna.date.SemossDate;
 import prerna.engine.api.IHeadersDataRow;
 import prerna.engine.api.IRDBMSEngine;
@@ -77,7 +78,6 @@ import prerna.sablecc2.PixelUtility;
 import prerna.sablecc2.lexer.LexerException;
 import prerna.sablecc2.om.PixelDataType;
 import prerna.sablecc2.parser.ParserException;
-import prerna.util.ConnectionUtils;
 import prerna.util.Constants;
 import prerna.util.QueryExecutionUtility;
 import prerna.util.SystemEngineRegistry;
@@ -87,6 +87,11 @@ import prerna.util.sql.AbstractSqlQueryUtil;
 public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 	private static final Logger classLogger = LogManager.getLogger(SecurityInsightUtils.class);
+
+	private static final String INSUFFICIENT_PRIVILEGES = "Insufficient privileges to modify this insight's permissions.";
+	private static final String NOT_HIGH_ENOUGH = "The user doesn't have the high enough permissions to modify this users insight permission.";
+	private static final String CANNOT_GIVE_OWNER = "Cannot give owner level access to this insight since you are not currently an owner.";
+	private static final String NO_ACCESS = "Attempting to modify user permission for a user who does not currently have access to the insight";
 
 	/**
 	 * Get an insight
@@ -660,41 +665,21 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Determine if the user can edit the insight User must be database owner OR be
-	 * given explicit permissions on the insight
-	 * 
-	 * @param userId
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * @return whether the user is an editor or an owner of the insight now,
+	 *         directly or through a team; an owner of its project is an owner of
+	 *         the insight. See {@link CurrentPermissionLevel}
 	 */
 	public static boolean userCanEditInsight(User user, String projectId, String insightId) {
-		// if user is owner
-		// they can do whatever they want
-		return SecurityProjectUtils.userIsOwner(user, projectId)
-				// user can edit
-				|| SecurityUserInsightUtils.userCanEditInsight(user, projectId, insightId)
-				// or group can edit
-				|| SecurityGroupInsightsUtils.userGroupCanEditInsight(user, projectId, insightId);
+		return CurrentPermissionLevel.canEdit(user, PermissionTargetResource.insight(projectId, insightId));
 	}
 
 	/**
-	 * Determine if the user is an owner of an insight User must be database owner
-	 * OR be given explicit permissions on the insight
-	 * 
-	 * @param userId
-	 * @param projectId
-	 * @param insightId
-	 * @return
+	 * @return whether the user is an owner of the insight now, directly or through
+	 *         a team; an owner of its project is an owner of the insight. See
+	 *         {@link CurrentPermissionLevel}
 	 */
 	public static boolean userIsInsightOwner(User user, String projectId, String insightId) {
-		// if user is owner
-		// they can do whatever they want
-		return SecurityProjectUtils.userIsOwner(user, projectId)
-				// user is owner
-				|| SecurityUserInsightUtils.userIsInsightOwner(user, projectId, insightId)
-				// or group is owner
-				|| SecurityGroupInsightsUtils.userGroupIsOwner(user, projectId, insightId);
+		return CurrentPermissionLevel.isOwner(user, PermissionTargetResource.insight(projectId, insightId));
 	}
 
 	/**
@@ -750,18 +735,35 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Change the user favorite (is favorite / not favorite) for a database. Without
-	 * removing its permissions.
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param visibility
-	 * @throws SQLException
-	 * @throws IllegalAccessException
+	 * Favorite or unfavorite an insight for the user, as
+	 * {@link SecurityUserInsightUtils#setInsightFavorite(User, String, String, boolean)}
+	 * does.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param isFavorite true to favorite the insight, false to unfavorite it
+	 * @throws Exception when the user may not or the favorite cannot be saved
 	 */
 	public static void setInsightFavorite(User user, String projectId, String insightId, boolean isFavorite)
-			throws SQLException, IllegalAccessException {
+			throws Exception {
 		SecurityUserInsightUtils.setInsightFavorite(user, projectId, insightId, isFavorite);
+	}
+
+	/**
+	 * Show or hide an insight for the user, as
+	 * {@link SecurityUserInsightUtils#setInsightVisibility(User, String, String, boolean)}
+	 * does.
+	 *
+	 * @param user       the user
+	 * @param projectId  the insight's project
+	 * @param insightId  the insight
+	 * @param visibility true to show the insight, false to hide it
+	 * @throws Exception when the user may not or the visibility cannot be saved
+	 */
+	public static void setInsightVisibility(User user, String projectId, String insightId, boolean visibility)
+			throws Exception {
+		SecurityUserInsightUtils.setInsightVisibility(user, projectId, insightId, visibility);
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1360,259 +1362,108 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	///////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * 
-	 * @param user
-	 * @param newUserId
-	 * @param projectId
-	 * @param insightId
-	 * @param permission
-	 * @return
+	 * Gives a person access to an insight, as a permission batch. The insight's
+	 * editors can; only its owners give Author access.
+	 *
+	 * @param user       the user giving access
+	 * @param newUserId  the person
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the level, by name; anything else is Read-Only
+	 * @param endDate    when the access ends, or null
 	 */
 	public static void addInsightUser(User user, String newUserId, String projectId, String insightId,
 			String permission, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		// make sure user doesn't already exist for this insight
-		if (getUserInsightPermission(newUserId, projectId, insightId) != null) {
-			// that means there is already a value
-			throw new IllegalArgumentException(
-					"This user already has access to this insight. Please edit the existing permission level.");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can edit this users permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			int newPermissionLvl = AccessPermissionEnum.getIdByPermission(permission);
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalArgumentException(
-						"Cannot give owner level access to this insight since you are not currently an owner.");
-			}
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)",
-					ps -> {
-						int parameterIndex = 1;
-						ps.setString(parameterIndex++, newUserId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-						ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(permission));
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-					});
-		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
-			throw new IllegalArgumentException("An error occurred adding user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange
+						.add(PermissionSubject.ofUser(newUserId, null), new PermissionGrant(permission, endDate))),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"This user already has access to this insight. Please edit the existing permission level.")
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param existingUserId
-	 * @param projectId
-	 * @param insightId
-	 * @param newPermission
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes a person's access to an insight, as a permission batch. The insight's
+	 * editors can; only its owners change an Author's access or give Author access.
+	 *
+	 * @param user           the user changing the access
+	 * @param existingUserId the person
+	 * @param projectId      the project the insight belongs to
+	 * @param insightId      the insight
+	 * @param newPermission  the level, by name; anything else is Read-Only
+	 * @param endDate        when the access ends, or null for never
+	 * @throws IllegalAccessException when the user cannot change the access
 	 */
 	public static void editInsightUserPermission(User user, String existingUserId, String projectId, String insightId,
 			String newPermission, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserInsightPermission(existingUserId, projectId, insightId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the insight");
-		}
-
-		int newPermissionLvl = AccessPermissionEnum.getIdByPermission(newPermission);
-
-		// if i am not an owner
-		// then i need to check if i can edit this users permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this users insight permission.");
-			}
-
-			// also, cannot give some owner permission if i am just an editor
-			if (AccessPermissionEnum.OWNER.getId() == newPermissionLvl) {
-				throw new IllegalAccessException(
-						"Cannot give owner level access to this insight since you are not currently an owner.");
-			}
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb,
-					"UPDATE USERINSIGHTPERMISSION SET PERMISSION=?, PERMISSIONGRANTEDBY=?, PERMISSIONGRANTEDBYTYPE=?, DATEADDED=?, ENDDATE=? WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?",
-					ps -> {
-						int parameterIndex = 1;
-						// SET
-						ps.setInt(parameterIndex++, newPermissionLvl);
-						ps.setString(parameterIndex++, userDetails.getValue0());
-						ps.setString(parameterIndex++, userDetails.getValue1());
-						ps.setTimestamp(parameterIndex++, startDate);
-						ps.setTimestamp(parameterIndex++, verifiedEndDate);
-						// WHERE
-						ps.setString(parameterIndex++, existingUserId);
-						ps.setString(parameterIndex++, projectId);
-						ps.setString(parameterIndex++, insightId);
-					});
-		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
-			throw new IllegalArgumentException("An error occurred updating the user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.change(
+						PermissionSubject.ofUser(existingUserId, null), new PermissionGrant(newPermission, endDate))),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(endDate)
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalAccess(PermissionProblem.Code.GIVES_AUTHOR, CANNOT_GIVE_OWNER)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param projectId
-	 * @param insightId
-	 * @param requests
-	 * @return
-	 * @throws IllegalAccessException
+	 * Changes many people's access to an insight together, as a permission batch.
+	 * Each request has {@code userid} and {@code permission}; every row gets the
+	 * same end date. Only the insight's owners give Author access.
+	 *
+	 * @param user      the user changing the access
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @param requests  the changes
+	 * @param endDate   when the access ends, or null for never
+	 * @throws IllegalAccessException when the user cannot change people's access
 	 */
 	public static void editInsightUserPermissions(User user, String projectId, String insightId,
 			List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user can edit the database
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify insight permissions.");
-		}
-		// get userid of all requests
-		List<String> existingUserIds = new ArrayList<String>();
-		for (Map<String, String> i : requests) {
-			existingUserIds.add(i.get("userid"));
-		}
-
-		// get user permissions to edit
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
-				projectId, insightId);
-
-		// make sure all users to edit currently has access to insight
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
-							+ String.join(",", toRemoveUserIds));
-		}
-
-		// if user is not an owner, check to make sure they are not editting owner
-		// access
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
-			if (permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
-				throw new IllegalArgumentException("As a non-owner, you cannot edit access of an owner.");
-			}
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// update user permissions in bulk
-		String updateQ = "UPDATE USERINSIGHTPERMISSION SET PERMISSION = ?, PERMISSIONGRANTEDBY = ?, PERMISSIONGRANTEDBYTYPE= ?, DATEADDED = ?, ENDDATE = ? WHERE USERID = ? AND PROJECTID = ? AND INSIGHTID = ?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, updateQ, requests, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				// SET
-				ps.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
-				ps.setString(parameterIndex++, userDetails.getValue0());
-				ps.setString(parameterIndex++, userDetails.getValue1());
-				ps.setTimestamp(parameterIndex++, startDate);
-				ps.setTimestamp(parameterIndex++, verifiedEndDate);
-				// WHERE
-				ps.setString(parameterIndex++, batchRow.get("userid"));
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionBatchUtils.peopleChanges(PermissionChange.Action.CHANGE, requests, endDate),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(endDate)
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+								"Insufficient privileges to modify insight permissions.")
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
+						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+								"As a non-owner, you cannot edit access of an owner.")
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+								"As a non-owner, you cannot give a user access as an owner.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred updating the user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param user
-	 * @param editedUserId
-	 * @param projectId
-	 * @param insightId
-	 * @return
-	 * @throws IllegalAccessException
+	 * Takes a person's access to an insight away, as a permission batch. The
+	 * insight's editors can; only its owners take away an Author's access.
+	 *
+	 * @param user           the user taking the access away
+	 * @param existingUserId the person
+	 * @param projectId      the project the insight belongs to
+	 * @param insightId      the insight
+	 * @throws IllegalAccessException when the user cannot take the access away
 	 */
 	public static void removeInsightUser(User user, String existingUserId, String projectId, String insightId)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-
-		// make sure we are trying to edit a permission that exists
-		Integer existingUserPermission = getUserInsightPermission(existingUserId, projectId, insightId);
-		if (existingUserPermission == null) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for a user who does not currently have access to the insight");
-		}
-
-		// if i am not an owner
-		// then i need to check if i can remove this users permission
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			// not an owner, check if trying to edit an owner or an editor/reader
-			// get the current permission
-			if (AccessPermissionEnum.OWNER.getId() == existingUserPermission) {
-				throw new IllegalAccessException(
-						"The user doesn't have the high enough permissions to modify this users insight permission.");
-			}
-		}
-
-		String deleteQuery = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		try {
-			QueryExecutionUtility.executeUpdate(securityDb, deleteQuery, ps -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, existingUserId);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Exception e) {
-			classLogger.error("Unable to update execution count.", e);
-			throw new IllegalArgumentException("An error occurred removing the user permissions for this insight");
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				List.of(PermissionChange.remove(PermissionSubject.ofUser(existingUserId, null))),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgument(PermissionProblem.Code.NO_ACCESS, NO_ACCESS)
+						.illegalAccess(PermissionProblem.Code.CHANGES_AUTHOR, NOT_HIGH_ENOUGH)
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing the user permissions for this insight"));
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////
@@ -1689,7 +1540,8 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 		qs.addSelector(new QueryColumnSelector("PROJECT_USER_PERMISSIONS__PERMISSION", "project_permission"));
 		qs.addSelector(new QueryColumnSelector("INSIGHT_GROUP_PERMISSIONS__PERMISSION", "insight_group_permission"));
 		qs.addSelector(new QueryColumnSelector("PROJECT_GROUP_PERMISSIONS__PERMISSION", "project_group_permission"));
-		qs.addSelector(new QueryColumnSelector("INSIGHT_USER_PERMISSIONS__FAVORITE", "insight_favorite"));
+		qs.addSelector(
+				QueryFunctionSelector.makeCol2ValCoalesceSelector("USER_PREFERENCES__FAVORITE", 0, "insight_favorite"));
 
 		// if user project owner - return owner
 		// if group project owner - return owner
@@ -1751,33 +1603,25 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 
 		// add PROJECT relation
 		qs.addRelation("PROJECT", "INSIGHT", "inner.join");
-		// add a join to get the user permission level and if favorite
+		// add a join to get the user permission level
 		{
 			SelectQueryStruct qs2 = new SelectQueryStruct();
 			qs2.addSelector(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
-
-			QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
-					userInsightPrefix + "FAVORITE", "castFavorite");
-			castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
-			qs2.addSelector(
-					QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
-
 			qs2.addSelector(QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MIN,
 					userInsightPrefix + "PERMISSION", "PERMISSION"));
 			qs2.addGroupBy(new QueryColumnSelector(userInsightPrefix + "INSIGHTID", "INSIGHTID"));
 			qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "USERID", "==", userIds));
-			IRelation subQuery = null;
-			if (favoritesOnly) {
-				qs2.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userInsightPrefix + "FAVORITE", "==", true,
-						PixelDataType.BOOLEAN));
-				// we can set this to inner join if only favorites
-				subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "inner.join",
-						new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
-			} else {
-				subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join",
-						new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
-			}
+			IRelation subQuery = new SubqueryRelationship(qs2, "INSIGHT_USER_PERMISSIONS", "left.outer.join",
+					new String[] { "INSIGHT_USER_PERMISSIONS__INSIGHTID", insightPrefix + "INSIGHTID", "=" });
 			qs.addRelation(subQuery);
+		}
+		// add a join to get if favorite
+		qs.addRelation(getUserInsightPreferencesSubquery(securityDb, user));
+		// favorites only
+		// remember, user preferences cast this to int
+		if (favoritesOnly) {
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("USER_PREFERENCES__FAVORITE", "==", 1,
+					PixelDataType.CONST_INT));
 		}
 		// add a join to get the user project permission
 		{
@@ -1875,18 +1719,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			qs.addRelation(subQuery);
 		}
 
-		// remove hidden projects
-		{
-			SelectQueryStruct subQs = new SelectQueryStruct();
-			// store first and fill in sub query after
-			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=", subQs));
-
-			// fill in the sub query with the single return + filters
-			subQs.addSelector(new QueryColumnSelector(userProjectPrefix + "PROJECTID"));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "VISIBILITY", "==", false,
-					PixelDataType.BOOLEAN));
-			subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter(userProjectPrefix + "USERID", "==", userIds));
-		}
+		// remove hidden projects and insights
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(projectPrefix + "PROJECTID", "!=",
+				getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+		qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery(insightPrefix + "INSIGHTID", "!=",
+				getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 		// optional filters
 		// on the project
 		if (hasProjectFilters) {
@@ -2127,6 +1964,31 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 //	}
 
 	/**
+	 * A left join, as USER_PREFERENCES, to the user's preferences on each insight,
+	 * with FAVORITE as 1 when any of the user's logins favorited it, else 0, cast
+	 * to int. An insight the user has no preferences on joins to null.
+	 *
+	 * @param securityDb the security database
+	 * @param user       the user; their logins come from the session
+	 * @return the join to add to a query on INSIGHT
+	 */
+	static IRelation getUserInsightPreferencesSubquery(IRDBMSEngine securityDb, User user) {
+		SelectQueryStruct prefQs = new SelectQueryStruct();
+		prefQs.addSelector(new QueryColumnSelector("USERINSIGHTPREFERENCE__INSIGHTID", "INSIGHTID"));
+
+		QueryFunctionSelector castFavorite = QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.CAST,
+				"USERINSIGHTPREFERENCE__FAVORITE", "castFavorite");
+		castFavorite.setDataType(securityDb.getQueryUtil().getIntegerDataTypeName());
+		prefQs.addSelector(
+				QueryFunctionSelector.makeFunctionSelector(QueryFunctionHelper.MAX, castFavorite, "FAVORITE"));
+		prefQs.addGroupBy(new QueryColumnSelector("USERINSIGHTPREFERENCE__INSIGHTID", "INSIGHTID"));
+		prefQs.addExplicitFilter(
+				getUserIdAndTypeFilter(user, "USERINSIGHTPREFERENCE__USERID", "USERINSIGHTPREFERENCE__TYPE"));
+		return new SubqueryRelationship(prefQs, "USER_PREFERENCES", "left.outer.join",
+				new String[] { "USER_PREFERENCES__INSIGHTID", "INSIGHT__INSIGHTID", "=" });
+	}
+
+	/**
 	 * User has access to specific insights within a project User can access if: 1)
 	 * Is Owner, Editer, or Reader of insight 2) Insight is global 3) Is Owner of
 	 * database
@@ -2195,20 +2057,11 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 			}
 			qs.addExplicitFilter(firstOrFilter);
 
-			// subquery time
-			// remove those engines you have visibility as false
-			{
-				SelectQueryStruct subQs = new SelectQueryStruct();
-				// store first and fill in sub query after
-				qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=", subQs));
-
-				// fill in the sub query with the single return + filters
-				subQs.addSelector(new QueryColumnSelector("PROJECTPERMISSION__PROJECTID"));
-				subQs.addExplicitFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==",
-						false, PixelDataType.BOOLEAN));
-				subQs.addExplicitFilter(
-						SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-			}
+			// remove hidden projects and insights
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("PROJECT__PROJECTID", "!=",
+					getHiddenIdsQs(user, "USERPROJECTPREFERENCE", "PROJECTID")));
+			qs.addExplicitFilter(SimpleQueryFilter.makeColToSubQuery("INSIGHT__INSIGHTID", "!=",
+					getHiddenIdsQs(user, "USERINSIGHTPREFERENCE", "INSIGHTID")));
 
 			OrQueryFilter secondOrFilter = new OrQueryFilter();
 			{
@@ -2221,8 +2074,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 						PixelDataType.CONST_INT));
 				embedAndFilter
 						.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__USERID", "==", userIds));
-				embedAndFilter.addFilter(SimpleQueryFilter.makeColToValFilter("PROJECTPERMISSION__VISIBILITY", "==",
-						true, PixelDataType.BOOLEAN));
 				secondOrFilter.addFilter(embedAndFilter);
 			}
 			qs.addExplicitFilter(secondOrFilter);
@@ -2679,61 +2530,6 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	/////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////
 
-	/*
-	 * Copying permissions
-	 */
-
-	/**
-	 * Copy the insight permissions from one project to another
-	 * 
-	 * @param sourceProjectId
-	 * @param targetProjectId
-	 * @throws SQLException
-	 */
-	public static void copyInsightPermissions(String sourceProjectId, String sourceInsightId, String targetProjectId,
-			String targetInsightId) throws Exception {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		String insertTargetAppInsightPermissionSql = "INSERT INTO USERINSIGHTPERMISSION (PROJECTID, INSIGHTID, USERID, PERMISSION) VALUES (?, ?, ?, ?)";
-		PreparedStatement insertTargetAppInsightPermissionStatement = securityDb
-				.getPreparedStatement(insertTargetAppInsightPermissionSql);
-
-		// grab the permissions, filtered on the source project id and source insight id
-		SelectQueryStruct qs = new SelectQueryStruct();
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PROJECTID"));
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__INSIGHTID"));
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__USERID"));
-		qs.addSelector(new QueryColumnSelector("USERINSIGHTPERMISSION__PERMISSION"));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__PROJECTID", "==", sourceProjectId));
-		qs.addExplicitFilter(
-				SimpleQueryFilter.makeColToValFilter("USERINSIGHTPERMISSION__INSIGHTID", "==", sourceInsightId));
-
-		try (IRawSelectWrapper wrapper = WrapperManager.getInstance().getRawWrapper(securityDb, qs)) {
-			while (wrapper.hasNext()) {
-				Object[] row = wrapper.next().getValues();
-				// now loop through all the permissions
-				// but with the target engine/insight id instead of the source engine/insight id
-				insertTargetAppInsightPermissionStatement.setString(1, targetProjectId);
-				insertTargetAppInsightPermissionStatement.setString(2, targetInsightId);
-				insertTargetAppInsightPermissionStatement.setString(3, (String) row[2]);
-				insertTargetAppInsightPermissionStatement.setInt(4, ((Number) row[3]).intValue());
-				// add to batch
-				insertTargetAppInsightPermissionStatement.addBatch();
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to generate insight search suggestions.", e);
-			throw e;
-		}
-
-		// first delete the current app permissions on the database
-		String deleteTargetAppPermissionsSql = "DELETE FROM USERINSIGHTPERMISSION WHERE PROJECTID = '"
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetProjectId) + "' AND INSIGHTID = '"
-				+ AbstractSqlQueryUtil.escapeForSQLStatement(targetInsightId) + "'";
-		securityDb.removeData(deleteTargetAppPermissionsSql);
-		// execute the query
-		insertTargetAppInsightPermissionStatement.executeBatch();
-	}
-
 	/**
 	 * Returns List of users that have no access credentials to a given insight
 	 * 
@@ -2897,109 +2693,53 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * 
-	 * @param newUserId
-	 * @param projectId
-	 * @param insightId
-	 * @param permission
-	 * @return
+	 * Gives many people access to an insight together, as a permission batch. Each
+	 * entry has {@code userid} and {@code permission}; every row gets the same end
+	 * date.
+	 *
+	 * @param user       the user giving access
+	 * @param projectId  the project the insight belongs to
+	 * @param insightId  the insight
+	 * @param permission the people and their levels
+	 * @param endDate    when the access ends, or null
 	 */
 	public static void addInsightUserPermissions(User user, String projectId, String insightId,
 			List<Map<String, String>> permission, String endDate) {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to modify this insight's permissions.");
-		}
-		// first, check to make sure these users do not already have permissions to
-		// insight
-		// get list of userids from permission list map
-		List<String> userIds = permission.stream().map(map -> map.get("userid")).collect(Collectors.toList());
-		// this returns a list of existing permissions
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(userIds, projectId,
-				insightId);
-		if (!existingUserPermission.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The following users already have access to this insight. Please edit the existing permission level: "
-							+ String.join(",", existingUserPermission.keySet()));
-		}
-		// if user is not an owner, check to make sure they are not adding owner access
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			List<String> permissionList = permission.stream().map(map -> map.get("permission"))
-					.collect(Collectors.toList());
-			if (permissionList.contains("OWNER")) {
-				throw new IllegalArgumentException("As a non-owner, you cannot add owner user access.");
-			}
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = endDate == null ? null : AbstractSecurityUtils.calculateEndDate(endDate);
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED, ENDDATE) VALUES(?,?,?,?,?,?,?,?)";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, insertQ, permission, (insertPs, batchRow) -> {
-				int parameterIndex = 1;
-				insertPs.setString(parameterIndex++, batchRow.get("userid"));
-				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setString(parameterIndex++, insightId);
-				insertPs.setInt(parameterIndex++, AccessPermissionEnum.getIdByPermission(batchRow.get("permission")));
-				insertPs.setString(parameterIndex++, userDetails.getValue0());
-				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, startDate);
-				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve available metadata values.", e);
-		}
+		PermissionBatchUtils.saveChangesNoCheckedException(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionBatchUtils.peopleChanges(PermissionChange.Action.ADD, permission, endDate),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules(endDate)
+						.illegalArgument(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.ALREADY_HAS_ACCESS,
+								"The following users already have access to this insight. Please edit the existing permission level: ")
+						.illegalArgument(PermissionProblem.Code.GIVES_AUTHOR,
+								"As a non-owner, you cannot add owner user access.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred adding user permissions for this insight"));
 	}
 
 	/**
-	 * 
-	 * @param editedUserId
-	 * @param insightId
-	 * @return
+	 * Takes many people's access to an insight away together, as a permission
+	 * batch.
+	 *
+	 * @param user            the user taking the access away
+	 * @param existingUserIds the people
+	 * @param projectId       the project the insight belongs to
+	 * @param insightId       the insight
+	 * @throws IllegalAccessException when the user cannot change people's access
 	 */
 	public static void removeInsightUsers(User user, List<String> existingUserIds, String projectId, String insightId)
 			throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user can edit the insight
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this insight's permissions.");
-		}
-		Map<String, Integer> existingUserPermission = SecurityInsightUtils.getUserInsightPermissions(existingUserIds,
-				projectId, insightId);
-		// make sure these users all exist and have access
-		Set<String> toRemoveUserIds = new HashSet<String>(existingUserIds);
-		toRemoveUserIds.removeAll(existingUserPermission.keySet());
-		if (!toRemoveUserIds.isEmpty()) {
-			throw new IllegalArgumentException(
-					"Attempting to modify user permission for the following users who do not currently have access to the insight: "
-							+ String.join(",", toRemoveUserIds));
-		}
-		// if user is not an owner, check to make sure they are not removing owner
-		// access
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			List<Integer> permissionList = new ArrayList<Integer>(existingUserPermission.values());
-			if (permissionList.contains(AccessPermissionEnum.OWNER.getId())) {
-				throw new IllegalArgumentException("As a non-owner, you cannot remove access of an owner.");
-			}
-		}
-		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		try {
-			QueryExecutionUtility.executeBatch(securityDb, deleteQ, existingUserIds, (ps, batchRow) -> {
-				int parameterIndex = 1;
-				ps.setString(parameterIndex++, batchRow);
-				ps.setString(parameterIndex++, projectId);
-				ps.setString(parameterIndex++, insightId);
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to retrieve available metadata values.", e);
-		}
+		PermissionBatchUtils.saveChanges(user, PermissionTargetResource.insight(projectId, insightId),
+				PermissionChange.forPeople(PermissionChange.Action.REMOVE, existingUserIds, null),
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules().illegalAccess(PermissionProblem.Code.NO_PERMISSION, INSUFFICIENT_PRIVILEGES)
+						.illegalArgumentWithIds(PermissionProblem.Code.NO_ACCESS,
+								"Attempting to modify user permission for the following users who do not currently have access to the insight: ")
+						.illegalArgument(PermissionProblem.Code.CHANGES_AUTHOR,
+								"As a non-owner, you cannot remove access of an owner.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred removing the user permissions for this insight"));
 	}
 
 	/**
@@ -3027,179 +2767,50 @@ public class SecurityInsightUtils extends AbstractSecurityUtils {
 	}
 
 	/**
-	 * Approving user access requests and giving user access in permissions
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param requests
+	 * Approves access requests, as a permission batch: each person gets the level
+	 * they asked for, and the requests are marked approved in the same save. The
+	 * insight's editors can; only its owners give or change Author access.
+	 *
+	 * @param user      the user approving
+	 * @param projectId the project the insight belongs to
+	 * @param insightId the insight
+	 * @param requests  the requests, each with {@code requestid}, {@code userid}
+	 *                  and {@code permission}
+	 * @param endDate   when the access ends, or null
+	 *
+	 * @throws IllegalAccessException when the user cannot change people's access
 	 */
 	public static void approveInsightUserAccessRequests(User user, String projectId, String insightId,
 			List<Map<String, String>> requests, String endDate) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		Pair<String, String> userDetails = User.getPrimaryUserIdAndTypePair(user);
-
-		// make sure user has right permission level to approve access requests
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify this project's permissions.");
-		}
-
-		// get user permissions of all requests
-		List<String> permissions = new ArrayList<String>();
-		for (Map<String, String> i : requests) {
-			permissions.add(i.get("permission"));
-		}
-
-		// if user is not an owner, check to make sure they cannot grant owner access
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalArgumentException("You cannot grant user access to others.");
-		} else {
-			if (!AccessPermissionEnum.isOwner(userPermissionLvl) && permissions.contains("OWNER")) {
-				throw new IllegalArgumentException("As a non-owner, you cannot grant owner access.");
-			}
-		}
-
-		Timestamp startDate = Utility.getCurrentSqlTimestampUTC();
-		Timestamp verifiedEndDate = null;
-		if (endDate != null) {
-			verifiedEndDate = AbstractSecurityUtils.calculateEndDate(endDate);
-		}
-
-		// bulk delete
-		String deleteQ = "DELETE FROM USERINSIGHTPERMISSION WHERE USERID=? AND PROJECTID=? AND INSIGHTID=?";
-		PreparedStatement deletePs = null;
-		try {
-			deletePs = securityDb.getPreparedStatement(deleteQ);
-			for (int i = 0; i < requests.size(); i++) {
-				int parameterIndex = 1;
-				deletePs.setString(parameterIndex++, requests.get(i).get("userid"));
-				deletePs.setString(parameterIndex++, projectId);
-				deletePs.setString(parameterIndex++, insightId);
-				deletePs.addBatch();
-			}
-			deletePs.executeBatch();
-			if (!deletePs.getConnection().getAutoCommit()) {
-				deletePs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to remove expired insight user.", e);
-			throw new IllegalArgumentException(
-					"An error occurred while deleting projectpermission with detailed message = " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, deletePs);
-		}
-
-		// insert new user permissions in bulk
-		String insertQ = "INSERT INTO USERINSIGHTPERMISSION (USERID, PROJECTID, INSIGHTID, PERMISSION, PERMISSIONGRANTEDBY, PERMISSIONGRANTEDBYTYPE, DATEADDED) VALUES(?,?,?,?,?,?,?,?)";
-		PreparedStatement insertPs = null;
-		try {
-			insertPs = securityDb.getPreparedStatement(insertQ);
-			for (int i = 0; i < requests.size(); i++) {
-				int parameterIndex = 1;
-				insertPs.setString(parameterIndex++, requests.get(i).get("userid"));
-				insertPs.setString(parameterIndex++, projectId);
-				insertPs.setString(parameterIndex++, insightId);
-				insertPs.setInt(parameterIndex++,
-						AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-				insertPs.setString(parameterIndex++, userDetails.getValue0());
-				insertPs.setString(parameterIndex++, userDetails.getValue1());
-				insertPs.setTimestamp(parameterIndex++, startDate);
-				insertPs.setTimestamp(parameterIndex++, verifiedEndDate);
-				insertPs.addBatch();
-			}
-			insertPs.executeBatch();
-			if (!insertPs.getConnection().getAutoCommit()) {
-				insertPs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to remove expired insight user.", e);
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, insertPs);
-		}
-
-		// now we do the new bulk update to accessrequest table
-		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET PERMISSION = ?, APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-		PreparedStatement updatePs = null;
-		try {
-			Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-			updatePs = securityDb.getPreparedStatement(updateQ);
-			AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-			String userId = token.getId();
-			String userType = token.getProvider().toString();
-			for (int i = 0; i < requests.size(); i++) {
-				int index = 1;
-				updatePs.setInt(index++, AccessPermissionEnum.getIdByPermission(requests.get(i).get("permission")));
-				updatePs.setString(index++, userId);
-				updatePs.setString(index++, userType);
-				updatePs.setString(index++, "APPROVED");
-				updatePs.setTimestamp(index++, timestamp);
-				updatePs.setString(index++, requests.get(i).get("requestid"));
-				updatePs.addBatch();
-			}
-			updatePs.executeBatch();
-			if (!updatePs.getConnection().getAutoCommit()) {
-				updatePs.getConnection().commit();
-			}
-		} catch (Exception e) {
-			classLogger.error("Unable to remove expired insight user.", e);
-			throw new IllegalArgumentException(
-					"An error occurred while updating user access request detailed message = " + e.getMessage());
-		} finally {
-			ConnectionUtils.closeAllConnectionsIfPooling(securityDb, updatePs);
-		}
+		PermissionTargetResource target = PermissionTargetResource.insight(projectId, insightId);
+		PermissionBatchUtils.saveChanges(user, target, PermissionBatchUtils.approvalChanges(target, requests, endDate),
+				PermissionBatchOptions.userMode().approving(target, requests),
+				PermissionErrorRules.forApprovals(endDate).illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+						"Insufficient privileges to modify this project's permissions."));
 	}
 
 	/**
-	 * Denying user access requests
-	 * 
-	 * @param userId
-	 * @param userType
-	 * @param projectId
-	 * @param insightId
-	 * @param requests
+	 * Denies access requests to an insight: each is marked denied, by the user.
+	 * Only the insight's owners can, directly or through a team; an owner of its
+	 * project is an owner of the insight.
+	 *
+	 * @param user          the user denying
+	 * @param projectId     the project the insight belongs to
+	 * @param insightId     the insight
+	 * @param requestIdList the requests' ids
+	 * @throws IllegalAccessException when the user is not an editor of the insight
 	 */
 	public static void denyInsightUserAccessRequests(User user, String projectId, String insightId,
 			List<String> requestIdList) throws IllegalAccessException {
-		IRDBMSEngine securityDb = SystemEngineRegistry.getSecurityDb();
-		// make sure user has right permission level to approve access requests
-		int userPermissionLvl = getMaxUserInsightPermission(user, projectId, insightId);
-		if (!AccessPermissionEnum.isEditor(userPermissionLvl)) {
-			throw new IllegalAccessException("Insufficient privileges to modify insight permissions.");
-		}
-
-		// only project owners can deny user access requests
-		if (!AccessPermissionEnum.isOwner(userPermissionLvl)) {
-			throw new IllegalArgumentException("Insufficient privileges to deny user access requests.");
-		}
-
-		// bulk update to accessrequest table
-		String updateQ = "UPDATE INSIGHTACCESSREQUEST SET APPROVER_USERID = ?, APPROVER_TYPE = ?, APPROVER_DECISION = ?, APPROVER_TIMESTAMP = ? WHERE ID = ?";
-		try {
-			QueryExecutionUtility.write(securityDb, connection -> {
-				Timestamp timestamp = Utility.getCurrentSqlTimestampUTC();
-
-				QueryExecutionUtility.executeBatch(connection, updateQ, ps -> {
-					AccessToken token = user.getAccessToken(user.getPrimaryLogin());
-					String userId = token.getId();
-					String userType = token.getProvider().toString();
-					for (int i = 0; i < requestIdList.size(); i++) {
-						int index = 1;
-						ps.setString(index++, userId);
-						ps.setString(index++, userType);
-						ps.setString(index++, "DENIED");
-						ps.setTimestamp(index++, timestamp);
-						ps.setString(index++, requestIdList.get(i));
-						ps.addBatch();
-					}
-				});
-				return null;
-			});
-		} catch (Exception e) {
-			classLogger.error("Unable to remove expired insight user.", e);
-			throw new IllegalArgumentException(
-					"An error occurred while updating user access request detailed message = " + e.getMessage());
-		}
+		PermissionBatchUtils.denyRequests(user, PermissionTargetResource.insight(projectId, insightId), requestIdList,
+				PermissionBatchOptions.userMode(),
+				new PermissionErrorRules()
+						.illegalAccess(PermissionProblem.Code.NO_PERMISSION,
+								"Insufficient privileges to modify insight permissions.")
+						.illegalArgument(PermissionProblem.Code.OWNERS_ONLY,
+								"Insufficient privileges to deny user access requests.")
+						.illegalArgument(PermissionProblem.Code.WRITE_FAILED,
+								"An error occurred while updating user access request"));
 	}
 
 	/**

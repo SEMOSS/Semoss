@@ -63,11 +63,15 @@ public class AutomationSourceRendererUnitTests {
 	}
 
 	@Test
-	void readsGoThroughExecQuery() {
+	void readsRequestAJavaOwnedFrameImport() {
 		String source = AutomationSourceRenderer.renderNode(
 				node(AutomationConstants.NODE_DATABASE_QUERY, databaseConfig()));
 		assertTrue(source.contains("def run(scope):"), "every node source defines the run entry point");
-		assertTrue(source.contains("_pixel_value(\"limit\", int(scope.resolve(LIMIT)))"));
+		assertTrue(source.contains("REQUEST_KEY = \"__automation_database_query__\""));
+		assertTrue(source.contains("\"engineId\": scope.resolve(ENGINE_ID)"));
+		assertTrue(source.contains("\"query\": scope.resolve(QUERY)"));
+		assertTrue(source.contains("\"limit\": int(scope.resolve(LIMIT))"));
+		assertFalse(source.contains("Insight().run_pixel"));
 		assertFalse(source.contains("insertData"));
 		assertFalse(source.contains("removeData"));
 	}

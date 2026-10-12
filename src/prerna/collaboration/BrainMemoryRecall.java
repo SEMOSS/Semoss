@@ -127,7 +127,7 @@ public final class BrainMemoryRecall {
 		List<String> chatTopics = null;
 		if (roomId != null) {
 			threadId = threadId != null ? threadId : BrainTopicRoomUtils.requireChat(user, roomId).threadId();
-			chatTopics = BrainTopicBrief.applying(user, BrainTopicRoomUtils.topicsOf(user, roomId));
+			chatTopics = BrainTopicBrief.chatTopics(user, roomId);
 		}
 		Recall recall = recall(owner.getValue0(), owner.getValue1(), threadId, chatTopics, promptChars());
 		for (Line line : recall.lines()) {
@@ -316,7 +316,7 @@ public final class BrainMemoryRecall {
 		}
 		if (confirmed.isEmpty() && learned.isEmpty()) {
 			out.append("Nothing yet. Memories saved in other threads that do not apply here are not shown; use "
-					+ "SearchMemories if the owner asks about them.");
+					+ "SearchMemories to find relevant memories or check for an existing match before saving one.");
 			return out.toString();
 		}
 		out.append("Each line starts with the memory's id, for replaces and Forget.");

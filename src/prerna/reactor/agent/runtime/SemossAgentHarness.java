@@ -39,6 +39,7 @@ import org.apache.logging.log4j.Logger;
 import com.github.f4b6a3.uuid.alt.GUID;
 
 import prerna.collaboration.BrainMemoryRecall;
+import prerna.collaboration.BrainProfileUtils;
 import prerna.collaboration.CollaborationAgentTools;
 import prerna.collaboration.CollaborationPrompts;
 import prerna.collaboration.CollaborationUtils;
@@ -255,6 +256,10 @@ public class SemossAgentHarness implements IAgentHarness {
 		// stay cacheable
 		if (CollaborationUtils.isAssistantRoom(room) && ctx.getSpawnDepth() == AgentRunContext.ROOT_SPAWN_DEPTH
 				&& !agentConfig.hasPptxWorkflow()) {
+			String ownerBlock = BrainProfileUtils.promptBlock(ctx.getInsight().getUser());
+			if (ownerBlock != null) {
+				composed.append("\n\n").append(ownerBlock);
+			}
 			String memoryBlock = BrainMemoryRecall.promptBlock(ctx.getInsight().getUser(), room);
 			if (memoryBlock != null) {
 				composed.append("\n\n").append(memoryBlock);
@@ -358,7 +363,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getUserText())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);

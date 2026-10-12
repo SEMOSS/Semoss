@@ -242,6 +242,19 @@ public final class WorkThreadInsights {
 		return run != null && RUNNING.equals(run.status);
 	}
 
+	/** Runs queued or going on this server for the owner, so the page knows to read again when they land. */
+	public static int pendingCount(User user) {
+		Pair<String, String> owner = CollaborationDbUtils.ownerOf(user);
+		String prefix = key(owner.getValue0(), owner.getValue1(), "");
+		int count = 0;
+		for (Map.Entry<String, Run> entry : RUNS.entrySet()) {
+			if (entry.getKey().startsWith(prefix) && RUNNING.equals(entry.getValue().status)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
 	/** The summary was made from the thread's newest message; a thread with no message has nothing to summarize. */
 	static boolean covers(String summaryRef, String newestMessageId) {
 		return newestMessageId == null || newestMessageId.equals(summaryRef);

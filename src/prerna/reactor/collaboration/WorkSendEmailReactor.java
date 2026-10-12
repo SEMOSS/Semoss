@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import prerna.collaboration.BrainOutgoingEmail;
 import prerna.collaboration.email.MailProvider;
 import prerna.collaboration.email.MailProviders;
 import prerna.collaboration.email.OutgoingEmail;
@@ -83,6 +84,7 @@ public class WorkSendEmailReactor extends AbstractCollaborationReactor {
 				draftId = mail.saveDraft(email);
 			}
 			Map<String, Object> out = new LinkedHashMap<>();
+			BrainOutgoingEmail.trackDraft(this.insight, draftId);
 			out.put("sent", true);
 			out.put(FROM, mail.account());
 			out.putAll(mail.sendDraft(draftId));

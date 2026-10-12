@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import prerna.auth.User;
+import prerna.collaboration.BrainOutgoingEmail;
 
 /**
  * What the reactors that send by way of a draft have in common: replying,
@@ -74,6 +75,9 @@ public abstract class AbstractDraftDeliveryReactor extends AbstractMailReactor {
 			return output;
 		}
 		User user = this.insight.getUser();
+		if (getMailApp() == MailApp.OUTLOOK) {
+			BrainOutgoingEmail.trackDraft(this.insight, draft.id());
+		}
 		ComposedMail sent = deliver(draft, () -> sendDraft(user, draft));
 		output.put("sent", true);
 		output.putAll(sent.toMap());

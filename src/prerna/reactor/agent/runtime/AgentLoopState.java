@@ -34,6 +34,7 @@ import java.util.List;
 
 import prerna.auth.User;
 import prerna.collaboration.BrainProfileUtils;
+import prerna.collaboration.BrainThreadBrief;
 import prerna.collaboration.BrainTopicBrief;
 import prerna.collaboration.CollaborationUtils;
 import prerna.engine.impl.model.Room;
@@ -60,6 +61,8 @@ public final class AgentLoopState {
     // the owner's own collaboration chat at the root of the run: its topics ride in the runtime note
     private User topicUser;
     private Room topicRoom;
+    // and its email threads: their new emails on the run's first note, a line per thread after
+    private BrainThreadBrief.Brief threadBrief;
     private AgentRunProgress progress = new AgentRunProgress(30, 0, System::nanoTime);
 
     void initializeProgress(prerna.reactor.agent.AgentRunContext ctx) {
@@ -80,6 +83,7 @@ public final class AgentLoopState {
                 && !ctx.getAgentConfig().hasPptxWorkflow()) {
             topicUser = runUser;
             topicRoom = ctx.getRoom();
+            threadBrief = BrainThreadBrief.prepare(runUser, ctx.getRoom());
         }
         if (ctx.getAgentConfig().hasPptxWorkflow()) {
             startPptxWorkflow(ctx, ctx.isResumeMode());
@@ -99,10 +103,12 @@ public final class AgentLoopState {
 
     String runtimeContext() {
         String topics = topicRoom == null ? null : BrainTopicBrief.runtimeNote(topicUser, topicRoom);
+        String threads = threadBrief == null ? null : threadBrief.next();
         return "[SEMOSS runtime status]\n" + progress.guidance()
                 + (currentTimeZone == null ? "" : "\n" + RuntimeTimeContext.capture(currentTimeZone).guidance())
                 + (pptxWorkflow == null ? "" : "\n" + pptxWorkflow.guidance(iterations))
                 + (topics == null ? "" : "\n" + topics)
+                + (threads == null ? "" : "\n" + threads)
                 + "\n[/SEMOSS runtime status]";
     }
 

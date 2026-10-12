@@ -19,6 +19,10 @@ _PLACEHOLDER_PATTERN = re.compile(r"\$\{([^}]+)\}")
 _DATA_PATH_TOKEN_PATTERN = re.compile(
     r"([^.\[\]]+)|\[(\d+|\"(?:\\.|[^\"])*\"|'(?:\\.|[^'])*')\]"
 )
+_RESULT_KIND_KEY = "__automation_result_kind__"
+_RESULT_VALUE_KEY = "__automation_result_value__"
+_RESULT_KIND_VALUE = "VALUE"
+_RESULT_KIND_FRAME = "FRAME"
 _MISSING = object()
 
 
@@ -267,9 +271,10 @@ def execute_node(
     max_output_bytes: int,
     output_variable: str,
     session_globals: dict[str, Any],
+    frame_bindings: dict[str, str],
 ) -> Any:
     """Execute one persisted node module with a fresh module namespace."""
-    scope = _decode_scope(encoded_scope)
+    scope = _decode_scope(encoded_scope, session_globals, frame_bindings)
     source = _decode(encoded_source)
     module: dict[str, Any] = {
         "__name__": "__automation_node__",
@@ -284,9 +289,15 @@ def execute_node(
     run = module.get("run")
     if not callable(run):
         raise ValueError("Automation node source must define callable run(scope).")
-    result = _json_result(run(scope), max_output_bytes)
-    _prepare_frame(result, output_variable, session_globals)
-    return result
+    value = run(scope)
+    if _retain_supported_frame(value, output_variable, session_globals):
+        return {_RESULT_KIND_KEY: _RESULT_KIND_FRAME}
+    result = _json_result(value, max_output_bytes)
+    _prepare_row_preview_frame(result, output_variable, session_globals)
+    return {
+        _RESULT_KIND_KEY: _RESULT_KIND_VALUE,
+        _RESULT_VALUE_KEY: result,
+    }
 
 
 def execute_trigger(
@@ -322,10 +333,30 @@ def _decode(value: str) -> str:
     return base64.urlsafe_b64decode(value).decode("utf-8")
 
 
-def _decode_scope(value: str) -> AutomationScope:
+def _decode_scope(
+    value: str,
+    session_globals: dict[str, Any] | None = None,
+    frame_bindings: dict[str, str] | None = None,
+) -> AutomationScope:
+    """Decode scope and bind live Insight-owned frames by output alias.
+
+    Frame values follow the existing SEMOSS frame model: they are live mutable
+    objects, not per-node snapshots. In-place changes are therefore visible
+    through every alias bound to that object for the life of the run Insight.
+    """
     decoded = json.loads(_decode(value))
     if not isinstance(decoded, dict):
         raise ValueError("Automation scope must be a JSON object.")
+    for name, backend in (frame_bindings or {}).items():
+        if name not in decoded:
+            continue
+        frame = (session_globals or {}).get(name, _MISSING)
+        if frame is _MISSING:
+            raise ValueError(
+                f"Automation {backend} frame-backed scope value '{name}' "
+                "is no longer available."
+            )
+        decoded[name] = frame
     return AutomationScope(decoded)
 
 
@@ -337,7 +368,24 @@ def _is_json_compatible(value: Any) -> bool:
         return False
 
 
-def _prepare_frame(
+def _retain_supported_frame(
+    value: Any, output_variable: str, session_globals: dict[str, Any]
+) -> bool:
+    """Retain a supported Python frame in the run Insight's live namespace.
+
+    Pandas is the first supported adapter. Additional SEMOSS Python frame
+    backends can join this boundary without changing node scope or Java
+    orchestration contracts.
+    """
+    import pandas as pd
+
+    if not isinstance(value, pd.DataFrame):
+        return False
+    session_globals[output_variable] = value
+    return True
+
+
+def _prepare_row_preview_frame(
     value: Any, output_variable: str, session_globals: dict[str, Any]
 ) -> None:
     """Retain row output where the standard SEMOSS Python-frame bridge expects it.

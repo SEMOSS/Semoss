@@ -49,10 +49,10 @@ import prerna.engine.api.IRDBMSEngine;
 import prerna.util.SystemEngineRegistry;
 
 /**
- * Checks that only a project's or engine's owners, and admins, change which
- * groups have access to it, through {@link SecurityGroupProjectUtils} and
- * {@link SecurityGroupEngineUtils}. Each test runs once for a project and once
- * for an engine.
+ * Checks that only a project's or engine's owners change which groups have
+ * access to it, through {@link SecurityGroupProjectUtils} and
+ * {@link SecurityGroupEngineUtils}; admins do it in admin mode. Each test runs
+ * once for a project and once for an engine.
  */
 class SecurityGroupResourceOwnerAccessUnitTests extends AbstractSecurityUtilsUnitTestsSetup {
 
@@ -108,11 +108,15 @@ class SecurityGroupResourceOwnerAccessUnitTests extends AbstractSecurityUtilsUni
 
 	@ParameterizedTest
 	@ValueSource(strings = { PROJECT, ENGINE })
-	void userCanManageGroupAccess_adminWithoutOwnershipCan(String kind) {
+	void userCanManageGroupAccess_anAdminWithoutOwnershipIsAnOrdinaryUser(String kind) throws Exception {
 		createResource(kind);
 		User otherAdmin = UnitTestSecurityAuthUtils.createUser("otheradmin", true);
 
-		assertTrue(canManage(kind, otherAdmin));
+		assertFalse(canManage(kind, otherAdmin));
+		IllegalAccessException e = assertThrows(IllegalAccessException.class,
+				() -> addGroupAccess(kind, otherAdmin, GROUP_ID, "READ_ONLY"));
+		assertEquals(deniedMessage(kind), e.getMessage());
+		assertNull(groupPermission(kind, GROUP_ID));
 	}
 
 	@ParameterizedTest
