@@ -29,6 +29,7 @@ package prerna.cluster.sync.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.List;
@@ -57,6 +58,17 @@ public class ZKClusterSynchronizer implements IClusterSynchronizer {
 	private static final String SYNC_PROJECT_PATH = "/sync/project";
 	private static final String SYNC_ENGINE_PATH = "/sync/engine";
 	private static final String SYNC_USER_PATH = "/sync/user";
+
+	// ZK znodes under the sync paths are written with the default (open) ACL, so this
+	// allow-lists the only classes performWrite() ever serializes, rather than trusting
+	// readObject() to deserialize whatever bytes show up at the watched path.
+	private static final ObjectInputFilter CLUSTER_SYNC_EVENT_FILTER = ObjectInputFilter.Config.createFilter(
+			"prerna.cluster.sync.impl.ClusterSyncEvent;"
+			+ "java.util.Arrays$ArrayList;"
+			+ "java.lang.String;"
+			+ "java.lang.Object;"
+			+ "maxdepth=5;maxarray=1000;maxrefs=1000;maxbytes=1000000;"
+			+ "!*");
 
 	private CuratorFramework client = null;
 	private CuratorCache projectCache;
@@ -155,6 +167,7 @@ public class ZKClusterSynchronizer implements IClusterSynchronizer {
 						if (event.getType() == PathChildrenCacheEvent.Type.CHILD_UPDATED) {
 							ByteArrayInputStream byteIn = new ByteArrayInputStream(event.getData().getData());
 							ObjectInputStream in = new ObjectInputStream(byteIn);
+							in.setObjectInputFilter(CLUSTER_SYNC_EVENT_FILTER);
 							ClusterSyncEvent syncEvent = (ClusterSyncEvent) in.readObject();
 
 							String updatedByNodeId = syncEvent.getNodeId();

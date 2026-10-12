@@ -30,6 +30,7 @@ package prerna.cluster.sync.impl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -41,8 +42,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InvalidClassException;
+import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Field;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -182,14 +188,12 @@ class ZKClusterSynchronizerUnitTests {
 			instance.publishEngineChange("eng1", ClusterSyncMethod.PULL_OWL, "p1");
 			assertNotNull(captured[0]);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			@SuppressWarnings("unchecked")
-			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
+			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
 			// nodeId is sourced from the shared CONTAINER_IP resolved by
 			// AppCloudClientProperties
-			assertEquals(IClusterSynchronizer.CONTAINER_IP, dataMap.get("nodeId"));
-			assertEquals("pullOwl", dataMap.get("methodName"));
-			@SuppressWarnings("unchecked")
-			List<Object> params = (List<Object>) dataMap.get("params");
+			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
+			assertEquals("pullOwl", syncEvent.getMethodName());
+			List<Object> params = syncEvent.getParams();
 			assertEquals(1, params.size());
 			assertEquals("p1", params.get(0));
 		}
@@ -205,12 +209,10 @@ class ZKClusterSynchronizerUnitTests {
 			instance.publishProjectChange("proj1", ClusterSyncMethod.PULL_INSIGHTS_DB, "x", "y");
 			assertNotNull(captured[0]);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			@SuppressWarnings("unchecked")
-			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
-			assertEquals(IClusterSynchronizer.CONTAINER_IP, dataMap.get("nodeId"));
-			assertEquals("pullInsightsDB", dataMap.get("methodName"));
-			@SuppressWarnings("unchecked")
-			List<Object> params = (List<Object>) dataMap.get("params");
+			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
+			assertEquals(IClusterSynchronizer.CONTAINER_IP, syncEvent.getNodeId());
+			assertEquals("pullInsightsDB", syncEvent.getMethodName());
+			List<Object> params = syncEvent.getParams();
 			assertEquals(2, params.size());
 			assertEquals("x", params.get(0));
 			assertEquals("y", params.get(1));
@@ -226,11 +228,70 @@ class ZKClusterSynchronizerUnitTests {
 			});
 			instance.publishEngineChange("eng1", ClusterSyncMethod.PULL_OWL);
 			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(captured[0]));
-			@SuppressWarnings("unchecked")
-			Map<String, Object> dataMap = (Map<String, Object>) ois.readObject();
-			@SuppressWarnings("unchecked")
-			List<Object> params = (List<Object>) dataMap.get("params");
+			ClusterSyncEvent syncEvent = (ClusterSyncEvent) ois.readObject();
+			List<Object> params = syncEvent.getParams();
 			assertTrue(params.isEmpty());
+		}
+	}
+
+	/**
+	 * Covers the {@code ObjectInputFilter} installed on the read side
+	 * ({@code createCacheListener}'s {@code childEvent}), since ZK znodes under the
+	 * sync paths carry the default (open) ACL and so are not guaranteed to only ever
+	 * contain bytes this synchronizer itself wrote.
+	 */
+	@Nested
+	class ClusterSyncEventFilterTests {
+
+		private ObjectInputFilter filter() throws Exception {
+			Field f = ZKClusterSynchronizer.class.getDeclaredField("CLUSTER_SYNC_EVENT_FILTER");
+			f.setAccessible(true);
+			return (ObjectInputFilter) f.get(null);
+		}
+
+		private byte[] serialize(Object o) throws Exception {
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			try (ObjectOutputStream oos = new ObjectOutputStream(baos)) {
+				oos.writeObject(o);
+			}
+			return baos.toByteArray();
+		}
+
+		@Test
+		void testFilterAllowsLegitimateClusterSyncEvent() throws Exception {
+			ClusterSyncEvent event = new ClusterSyncEvent("node1", "/sync/engine/eng1", "pullOwl", "param1", "param2");
+			byte[] bytes = serialize(event);
+
+			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+			ois.setObjectInputFilter(filter());
+			ClusterSyncEvent roundTripped = (ClusterSyncEvent) ois.readObject();
+
+			assertEquals("node1", roundTripped.getNodeId());
+			assertEquals("/sync/engine/eng1", roundTripped.getPath());
+			assertEquals("pullOwl", roundTripped.getMethodName());
+			assertEquals(List.of("param1", "param2"), roundTripped.getParams());
+		}
+
+		@Test
+		void testFilterAllowsEventWithNoParams() throws Exception {
+			ClusterSyncEvent event = new ClusterSyncEvent("node1", "/sync/engine/eng1", "pullOwl");
+			byte[] bytes = serialize(event);
+
+			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+			ois.setObjectInputFilter(filter());
+			ClusterSyncEvent roundTripped = (ClusterSyncEvent) ois.readObject();
+
+			assertTrue(roundTripped.getParams().isEmpty());
+		}
+
+		@Test
+		void testFilterRejectsDisallowedClass() throws Exception {
+			byte[] bytes = serialize(new HashMap<>(Map.of("a", "b")));
+
+			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(bytes));
+			ois.setObjectInputFilter(filter());
+
+			assertThrows(InvalidClassException.class, ois::readObject);
 		}
 	}
 }
