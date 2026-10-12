@@ -363,7 +363,7 @@ public class SemossAgentHarness implements IAgentHarness {
 
 				String priorRequests = focusedEdit ? PptxEditContext.priorRequests(room.getMessages()) : "";
 				InputMessage firstMsg = InputMessage.builder(room).withSystemPrompt(systemPrompt)
-						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getInput())
+						.withText(ctx.getInput() + priorRequests + "\n\n" + state.runtimeContext(), ctx.getUserText())
 						.withMediaInputs(ctx.getMediaInputPaths(), room).withMediaUrls(ctx.getMediaUrls())
 						.withModelType(ctx.getModelEngine().getModelType()).withParamMap(paramMap).build();
 				tagAgentRun(firstMsg, ctx.getRunId(), RUN_ROLE_INPUT);
