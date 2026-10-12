@@ -786,6 +786,16 @@
 					<groupId>org.slf4j</groupId>
 					<artifactId>*</artifactId>
 				</exclusion>
+				<!-- CVE-2012-5783: commons-httpclient 3.x's SSL hostname verification
+				     is broken with no fixed 3.x release (Apache replaced the library
+				     rather than patch it). Pulled in transitively via sesame-http-client
+				     for Sesame's remote HTTP SPARQL repository client, which SEMOSS
+				     never uses (no org.openrdf.repository.http/HTTPRepository
+				     reference anywhere in src/); safe to drop entirely. -->
+				<exclusion>
+					<groupId>commons-httpclient</groupId>
+					<artifactId>commons-httpclient</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<!-- Source: https://mvnrepository.com/artifact/org.openrdf.sesame/sesame-rio-rdfxml -->
