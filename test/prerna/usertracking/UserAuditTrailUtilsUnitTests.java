@@ -69,6 +69,39 @@ class UserAuditTrailUtilsUnitTests {
 
 
 	@Test
+	void functionAndStorageCreationStoreCanonicalEngineContext() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			for (String type : new String[] { "FUNCTION", "STORAGE" }) {
+				String id = type.toLowerCase() + "-1";
+				UserAuditTrailUtils.recordEngineLifecycle(null, type + "_CREATE", type, id, "Test " + type,
+						Map.of("global", false));
+				String where = " WHERE ENGINE_ID='" + id + "'";
+				assertEquals(type + "_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS" + where));
+				assertEquals(type, db.value("SELECT TARGET_TYPE FROM USER_AUDIT_EVENTS" + where));
+				assertEquals(id, db.value("SELECT TARGET_ID FROM USER_AUDIT_EVENTS" + where));
+				assertEquals("SUCCESS", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS" + where));
+			}
+			assertEquals(2, db.count("USER_AUDIT_EVENTS"));
+		}
+	}
+
+	@Test
+	void pythonFunctionCreationFailuresAreAuditedWithoutSourceContent() throws Exception {
+		try (var db = new JdbcTestDatabase(); var utility = mockStatic(Utility.class)) {
+			createAuditTable(db);
+			utility.when(Utility::isUserTrackingEnabled).thenReturn(true);
+			UserAuditTrailUtils.recordPixelFailure(null,
+					"CreatePythonFunctionEngine(function=[\"Test\"],content=[\"private-source\"]);",
+					"CreatePythonFunctionEngineReactor", new IllegalArgumentException("Unable to create function"), null);
+			assertEquals("FUNCTION_CREATE", db.value("SELECT EVENT_TYPE FROM USER_AUDIT_EVENTS"));
+			assertEquals("FAILURE", db.value("SELECT STATUS FROM USER_AUDIT_EVENTS"));
+			assertFalse(String.valueOf(db.value("SELECT DETAILS FROM USER_AUDIT_EVENTS")).contains("private-source"));
+		}
+	}
+
+	@Test
 	void disabledTrackingNeverLoadsTheDatabase() {
 		try (var utility = mockStatic(Utility.class); var registry = mockStatic(SystemEngineRegistry.class)) {
 			utility.when(Utility::isUserTrackingEnabled).thenReturn(false);

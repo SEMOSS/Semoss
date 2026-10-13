@@ -162,6 +162,8 @@ public final class UserAuditTrailUtils {
 	 */
 	private static final Map<String, String[]> AUDITED_REACTORS = Map.ofEntries(
 			Map.entry("CreateProject", new String[] { "PROJECT_CREATE", "PROJECT" }),
+			Map.entry("CreateAppFromBlocks", new String[] { "PROJECT_CREATE", "PROJECT" }),
+			Map.entry("CreateAppFromTemplate", new String[] { "PROJECT_CREATE", "PROJECT" }),
 			Map.entry("UploadProject", new String[] { "PROJECT_UPLOAD", "PROJECT" }),
 			Map.entry("UploadProjectApp", new String[] { "PROJECT_UPLOAD", "PROJECT" }),
 			Map.entry("DeleteProject", new String[] { "PROJECT_DELETE", "PROJECT" }),
@@ -170,6 +172,7 @@ public final class UserAuditTrailUtils {
 			Map.entry("CreateVectorDatabaseEngine", new String[] { "VECTOR_CREATE", "VECTOR" }),
 			Map.entry("CreateStorageEngine", new String[] { "STORAGE_CREATE", "STORAGE" }),
 			Map.entry("CreateFunctionEngine", new String[] { "FUNCTION_CREATE", "FUNCTION" }),
+			Map.entry("CreatePythonFunctionEngine", new String[] { "FUNCTION_CREATE", "FUNCTION" }),
 			Map.entry("CreateGuardrailEngine", new String[] { "GUARDRAIL_CREATE", "GUARDRAIL" }),
 			Map.entry("CreateVenvEngine", new String[] { "ENGINE_CREATE", "VENV" }),
 			Map.entry("DeleteEngine", new String[] { "ENGINE_DELETE", "ENGINE" }),
