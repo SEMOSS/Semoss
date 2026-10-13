@@ -33,6 +33,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -42,16 +44,19 @@ import static org.mockito.Mockito.when;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
-import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.ds.nativeframe.NativeFrame;
+import prerna.engine.api.IDatabaseEngine;
 import prerna.om.Insight;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
+import prerna.query.querystruct.selectors.QueryColumnSelector;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.frame.FrameFactory;
 import prerna.reactor.imports.IImporter;
@@ -109,11 +114,11 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		insight.setInsightId("automation-run-1");
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
-		ITableDataFrame frame = mock(ITableDataFrame.class);
-		IRawSelectWrapper wrapper = mock(IRawSelectWrapper.class);
+		NativeFrame frame = mock(NativeFrame.class);
+		SelectQueryStruct frameQueryStruct = frameQueryStruct();
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
-		when(task.getIterator()).thenReturn(wrapper);
+		when(frame.getQueryStruct()).thenReturn(frameQueryStruct);
 		when(frame.getColumnHeaders()).thenReturn(new String[] { "ID", "STATUS" });
 		when(frame.getFrameType()).thenReturn(DataFrameTypeEnum.NATIVE);
 
@@ -124,7 +129,7 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 			frames.when(() -> FrameFactory.getFrame(insight, DataFrameTypeEnum.NATIVE.getTypeAsString(),
 					"query_result")).thenReturn(frame);
 			importers.when(() -> ImportFactory.getImporter(frame, queryStruct, task)).thenReturn(importer);
-			history.when(() -> AutomationFrameHistory.captureWrapper("run-1", "node-1", "query_result", wrapper))
+			history.when(() -> AutomationFrameHistory.captureFrame("run-1", "node-1", "query_result", frame))
 					.thenReturn(new AutomationFrameHistory.Snapshot("reference", "run-1", "node-1", "query_result",
 							AutomationConstants.DATA_STATE_AVAILABLE, java.util.List.of("ID", "STATUS"),
 							java.util.List.of("INT", "STRING"), 2L, 2, 32L));
@@ -137,8 +142,22 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 			verify(reactors.constructed().get(0)).setInsight(insight);
 			verify(importer).setInsight(insight);
 			verify(importer).insertData();
+			assertEquals("SELECT * FROM bounded_source LIMIT 50", frameQueryStruct.getCustomFrom());
+			assertEquals(-1L, frameQueryStruct.getLimit());
 			verify(task).close();
 		}
+	}
+
+	@Test
+	void makesTheConfiguredLimitPartOfTheNativeFrameSource() {
+		NativeFrame frame = mock(NativeFrame.class);
+		SelectQueryStruct source = frameQueryStruct();
+		when(frame.getQueryStruct()).thenReturn(source);
+
+		AutomationDatabaseQueryExecutor.applyResultLimit(frame, 321);
+
+		assertEquals("SELECT * FROM bounded_source LIMIT 321", source.getCustomFrom());
+		assertEquals(-1L, source.getLimit());
 	}
 
 	@Test
@@ -147,7 +166,9 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		insight.setInsightId("automation-run-1");
 		BasicIteratorTask task = mock(BasicIteratorTask.class);
 		SelectQueryStruct queryStruct = new SelectQueryStruct();
-		ITableDataFrame frame = mock(ITableDataFrame.class);
+		NativeFrame frame = mock(NativeFrame.class);
+		SelectQueryStruct frameQueryStruct = frameQueryStruct();
+		when(frame.getQueryStruct()).thenReturn(frameQueryStruct);
 		IImporter importer = mock(IImporter.class);
 		when(task.getQueryStruct()).thenReturn(queryStruct);
 		doThrow(new IllegalStateException("import failed")).when(importer).insertData();
@@ -178,5 +199,26 @@ public class AutomationDatabaseQueryExecutorUnitTests {
 		return Map.of(AutomationConstants.INTERNAL_DATABASE_QUERY,
 				Map.of(AutomationConstants.CONFIG_ENGINE_ID, "engine-1", "query", "SELECT 1",
 						AutomationConstants.CONFIG_LIMIT, 50));
+	}
+
+	private static SelectQueryStruct frameQueryStruct() {
+		IDatabaseEngine engine = mock(IDatabaseEngine.class);
+		IQueryInterpreter interpreter = mock(IQueryInterpreter.class);
+		AtomicReference<SelectQueryStruct> interpreted = new AtomicReference<>();
+		when(engine.getQueryInterpreter()).thenReturn(interpreter);
+		doAnswer(invocation -> {
+			interpreted.set(invocation.getArgument(0));
+			return null;
+		}).when(interpreter).setQueryStruct(any(SelectQueryStruct.class));
+		when(interpreter.composeQuery())
+				.thenAnswer(ignored -> "SELECT * FROM bounded_source LIMIT " + interpreted.get().getLimit());
+
+		SelectQueryStruct source = new SelectQueryStruct();
+		source.setEngine(engine);
+		source.setCustomFrom("SELECT * FROM source_table");
+		source.setCustomFromAliasName("customquery");
+		source.addSelector(new QueryColumnSelector("customquery__ID"));
+		source.addSelector(new QueryColumnSelector("customquery__STATUS"));
+		return source;
 	}
 }

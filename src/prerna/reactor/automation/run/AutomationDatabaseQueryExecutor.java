@@ -29,14 +29,16 @@ package prerna.reactor.automation.run;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import prerna.algorithm.api.DataFrameTypeEnum;
 import prerna.algorithm.api.ITableDataFrame;
-import prerna.engine.api.IRawSelectWrapper;
+import prerna.ds.nativeframe.NativeFrame;
 import prerna.om.Insight;
+import prerna.query.interpreters.IQueryInterpreter;
 import prerna.query.querystruct.SelectQueryStruct;
 import prerna.reactor.automation.AutomationConstants;
 import prerna.reactor.frame.FrameFactory;
@@ -94,8 +96,10 @@ final class AutomationDatabaseQueryExecutor {
 	 */
 	static AutomationFrameOutput.RegisteredFrame execute(Insight insight, Object rawRequest, String outputVariable,
 			String runId, String nodeId) {
+		long startedNanos = System.nanoTime();
 		QueryRequest request = parseRequest(rawRequest);
 		BasicIteratorTask task = createTask(insight, request);
+		long taskReadyNanos = System.nanoTime();
 		ITableDataFrame frame = null;
 		boolean registered = false;
 		try {
@@ -107,20 +111,20 @@ final class AutomationDatabaseQueryExecutor {
 			}
 			importer.setInsight(insight);
 			importer.insertData();
-			IRawSelectWrapper wrapper = task.getIterator();
-			AutomationFrameHistory.Snapshot history = AutomationFrameHistory.captureWrapper(runId, nodeId,
-					outputVariable, wrapper);
+			applyResultLimit(frame, request.limit());
+			long frameReadyNanos = System.nanoTime();
+			AutomationFrameHistory.Snapshot history = AutomationFrameHistory.captureFrame(runId, nodeId,
+					outputVariable, frame);
+			long historyReadyNanos = System.nanoTime();
 			long rowCount = history.rowCount();
 
 			AutomationFrameOutput.RegisteredFrame output = AutomationFrameOutput.register(insight, outputVariable,
 					frame, rowCount);
 			registered = true;
+			long registeredNanos = System.nanoTime();
 
-			classLogger.debug(
-					"Loaded database query output '{}' for Automation run '{}', node '{}', execution Insight '{}': "
-							+ "{} rows, {} columns",
-					outputVariable, runId, nodeId, insight.getInsightId(), output.summary().get("rowCount"),
-					output.summary().get("columnCount"));
+			logTimings(runId, nodeId, outputVariable, output, startedNanos, taskReadyNanos, frameReadyNanos,
+					historyReadyNanos, registeredNanos);
 			return output;
 		} catch (Exception e) {
 			if (!registered && frame != null) {
@@ -130,6 +134,62 @@ final class AutomationDatabaseQueryExecutor {
 		} finally {
 			closeTask(task, runId, nodeId);
 		}
+	}
+
+	/** Logs the query, frame, and durable-retention phases without exposing them in node data. */
+	private static void logTimings(String runId, String nodeId, String outputVariable,
+			AutomationFrameOutput.RegisteredFrame output, long startedNanos, long taskReadyNanos,
+			long frameReadyNanos, long historyReadyNanos, long registeredNanos) {
+		long taskMillis = elapsedMillis(startedNanos, taskReadyNanos);
+		long frameMillis = elapsedMillis(taskReadyNanos, frameReadyNanos);
+		long historyMillis = elapsedMillis(frameReadyNanos, historyReadyNanos);
+		long registrationMillis = elapsedMillis(historyReadyNanos, registeredNanos);
+		long totalMillis = elapsedMillis(startedNanos, registeredNanos);
+		String message = "Loaded Automation database output '{}' for run '{}', node '{}': {} rows, {} columns; "
+				+ "task={} ms, frame={} ms, history={} ms, registration={} ms, total={} ms";
+		Object[] arguments = { outputVariable, runId, nodeId, output.summary().get("rowCount"),
+				output.summary().get("columnCount"), taskMillis, frameMillis, historyMillis, registrationMillis,
+				totalMillis };
+		if (totalMillis >= 1_000L) {
+			classLogger.info(message, arguments);
+		} else {
+			classLogger.debug(message, arguments);
+		}
+	}
+
+	private static long elapsedMillis(long startedNanos, long completedNanos) {
+		return TimeUnit.NANOSECONDS.toMillis(completedNanos - startedNanos);
+	}
+
+	/**
+	 * Makes the configured node limit part of the native frame's source query.
+	 *
+	 * <p>
+	 * {@link SqlQueryReactor} applies its limit while collecting a task. A native
+	 * frame retains the query plan instead of collecting the task, so leaving the
+	 * limit only on the task would expose the complete source to downstream frame
+	 * queries and durable history. Compose one bounded source query with the
+	 * database's existing interpreter so every frame consumer observes the same
+	 * result set.
+	 */
+	static void applyResultLimit(ITableDataFrame frame, int limit) {
+		if (!(frame instanceof NativeFrame nativeFrame)) {
+			throw new IllegalStateException("Generated database query did not create a native frame.");
+		}
+		SelectQueryStruct source = nativeFrame.getQueryStruct();
+		SelectQueryStruct boundedSource = source.getNewBaseQueryStruct();
+		boundedSource.merge(source);
+		boundedSource.setLimit(limit);
+
+		IQueryInterpreter interpreter = source.retrieveQueryStructEngine().getQueryInterpreter();
+		interpreter.setQueryStruct(boundedSource);
+		String boundedQuery = interpreter.composeQuery();
+		if (boundedQuery == null || boundedQuery.isBlank()) {
+			throw new IllegalStateException("SEMOSS could not compose the bounded database query.");
+		}
+
+		source.setCustomFrom(boundedQuery);
+		source.setLimit(-1L);
 	}
 
 	private static BasicIteratorTask createTask(Insight insight, QueryRequest request) {
